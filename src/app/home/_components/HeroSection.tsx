@@ -2,7 +2,7 @@
 
 export default function HeroSection() {
   return (
-    <section className="relative w-full h-[700px] overflow-hidden">
+    <section className="relative w-full h-[700px] overflow-hidden ml-20">
       {/* Background Video */}
       <video
         src="/videos/motorbike-road-trip-2022-07-26-01-49-02-utc.mp4"

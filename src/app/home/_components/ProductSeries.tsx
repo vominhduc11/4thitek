@@ -73,7 +73,7 @@ export default function ProductSeries() {
   };
 
   return (
-    <section className="relative w-full min-h-[600px] bg-[#0c131d] overflow-hidden select-none">
+    <section className="relative w-full min-h-[600px] bg-[#0c131d] overflow-hidden select-none ml-20">
       {/* Thumbnails row */}
       <div className="flex justify-end w-full pt-4 pr-8 pb-2">
         <div className="flex items-center gap-2">
