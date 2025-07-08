@@ -3,7 +3,7 @@ import { FiMenu } from 'react-icons/fi';
 
 export default function Sidebar() {
   return (
-    <aside className="fixed top-0 left-0 h-full w-20 bg-[#1e2631] flex flex-col items-center py-4 z-40 shadow-lg">
+    <aside className="fixed top-0 left-0 h-full w-20 bg-[#1e2631]/70 backdrop-blur-md flex flex-col items-center py-4 z-40 shadow-lg">
       {/* Menu Icon */}
       <div className="mb-8 mt-2">
         <button className="p-2 rounded hover:bg-[#263040] transition">
