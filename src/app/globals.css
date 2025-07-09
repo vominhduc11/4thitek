@@ -82,3 +82,67 @@ body {
 .header-scrolled {
   transition: all 0.3s ease-out;
 }
+
+/* Hero Section responsive utilities */
+.hero-title-responsive {
+  font-size: clamp(2.5rem, 8vw, 12.5rem);
+  line-height: 0.9;
+}
+
+.hero-content-responsive {
+  font-size: clamp(0.75rem, 2vw, 1.125rem);
+  line-height: 1.6;
+}
+
+/* Smooth video performance on mobile */
+video {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Touch-friendly interactive elements */
+@media (max-width: 640px) {
+  button, .interactive {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Line clamp utilities */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ProductSeries specific responsive utilities */
+.product-card-hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.product-card-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 1024px) {
+  .product-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Thumbnail scroll optimization */
+.thumbnail-container {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Vertical text optimization */
+.vertical-text {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}

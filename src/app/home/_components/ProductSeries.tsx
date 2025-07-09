@@ -86,7 +86,7 @@ export default function ProductSeries() {
 
   return (
     <motion.section
-      className="bg-[#0c131d] w-full py-12 sm:py-16 relative"
+      className="bg-[#0c131d] w-full py-8 xs:py-10 sm:py-12 md:py-16 relative"
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
@@ -95,7 +95,7 @@ export default function ProductSeries() {
       <div className="sidebar-aware-container">
         {/* Divider with thumbnails interrupting it */}
         <motion.div
-          className="relative mb-6 sm:mb-8 md:mb-10"
+          className="relative mb-4 xs:mb-6 sm:mb-8 md:mb-10"
           initial={{ scaleX: 0 }}
           whileInView={{ scaleX: 1 }}
           transition={{ duration: 1, delay: 0.3 }}
@@ -104,26 +104,26 @@ export default function ProductSeries() {
           <div className="border-b border-gray-700/50"></div>
           {/* Thumbnails positioned to interrupt the divider */}
           <motion.div
-            className="absolute top-0 right-0 transform -translate-y-1/2 z-30"
-            style={{ paddingTop: '8px' }} // Thêm padding để tránh bị clip khi hover
+            className="absolute top-0 right-0 xs:right-2 sm:right-0 transform -translate-y-1/2 z-30 max-w-[90%] xs:max-w-none"
+            style={{ paddingTop: '8px' }}
             initial={{ x: 100, opacity: 0 }}
             whileInView={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.6 }}
             viewport={{ once: true }}
           >
-            <div className="flex items-center gap-1 sm:gap-2 md:gap-3 overflow-x-auto overflow-y-visible scrollbar-hide bg-[#0c131d] px-2 sm:px-4 py-3 scroll-smooth shadow-lg border border-gray-700/30 rounded-lg">
+            <div className="flex items-center gap-1 xs:gap-1.5 sm:gap-2 md:gap-3 overflow-x-auto overflow-y-visible scrollbar-hide bg-[#0c131d] px-1.5 xs:px-2 sm:px-4 py-2 xs:py-2.5 sm:py-3 scroll-smooth shadow-lg border border-gray-700/30 rounded-lg">
               {/* Left Navigation Button */}
               <button
                 onClick={() => handleThumbNav("left")}
                 className={clsx(
-                  "p-1 sm:p-2 bg-white/10 hover:bg-white/20 transition-colors rounded flex-shrink-0 z-20",
+                  "p-1 xs:p-1.5 sm:p-2 bg-white/10 hover:bg-white/20 transition-colors rounded flex-shrink-0 z-20 min-w-[32px] xs:min-w-[36px] sm:min-w-[40px] min-h-[32px] xs:min-h-[36px] sm:min-h-[40px] flex items-center justify-center",
                   activeThumb === 0 ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
                 )}
                 disabled={activeThumb === 0}
               >
                 <FiChevronLeft
-                  size={16}
-                  className="sm:w-5 sm:h-5"
+                  size={14}
+                  className="xs:w-4 xs:h-4 sm:w-5 sm:h-5"
                   color="white"
                 />
               </button>
@@ -131,7 +131,7 @@ export default function ProductSeries() {
                 <motion.div
                   key={`${activeIndex}-${idx}-${thumb.label}`}
                   className={clsx(
-                    "relative w-[60px] sm:w-[80px] md:w-[100px] h-[35px] sm:h-[50px] md:h-[70px] cursor-pointer border-2 rounded overflow-hidden flex-shrink-0 bg-[#0c131d] z-10",
+                    "relative w-[45px] xs:w-[55px] sm:w-[70px] md:w-[90px] lg:w-[100px] h-[28px] xs:h-[35px] sm:h-[45px] md:h-[60px] lg:h-[70px] cursor-pointer border-2 rounded overflow-hidden flex-shrink-0 bg-[#0c131d] z-10",
                     idx === activeThumb
                       ? "border-blue-400 shadow-lg shadow-blue-400/30"
                       : "border-white/30 hover:border-white/60"
@@ -145,9 +145,9 @@ export default function ProductSeries() {
                     ease: "easeOut"
                   }}
                   whileHover={{
-                    scale: 1.08,
+                    scale: 1.05,
                     zIndex: 50,
-                    boxShadow: "0 8px 25px rgba(79, 200, 255, 0.4)",
+                    boxShadow: "0 4px 15px rgba(79, 200, 255, 0.4)",
                     transition: { duration: 0.2, ease: "easeOut" }
                   }}
                   whileTap={{ 
@@ -159,7 +159,7 @@ export default function ProductSeries() {
                     <Image
                       width={0}
                       height={0}
-                      sizes="100vw"
+                      sizes="(max-width: 475px) 45px, (max-width: 640px) 55px, (max-width: 768px) 70px, (max-width: 1024px) 90px, 100px"
                       priority
                       src={thumb.src}
                       alt={thumb.label}
@@ -177,7 +177,7 @@ export default function ProductSeries() {
                     )}
                   </div>
                   
-                  <span className="absolute top-0.5 sm:top-1 left-0.5 sm:left-1 md:left-2 text-white text-xs font-bold z-10 drop-shadow-sm">
+                  <span className="absolute top-0.5 xs:top-1 left-0.5 xs:left-1 md:left-2 text-white text-[10px] xs:text-xs font-bold z-10 drop-shadow-sm">
                     {thumb.label}
                   </span>
                   
@@ -196,21 +196,21 @@ export default function ProductSeries() {
               <button
                 onClick={() => handleThumbNav("right")}
                 className={clsx(
-                  "p-1 sm:p-2 bg-white/10 hover:bg-white/20 transition-colors rounded flex-shrink-0 z-20",
+                  "p-1 xs:p-1.5 sm:p-2 bg-white/10 hover:bg-white/20 transition-colors rounded flex-shrink-0 z-20 min-w-[32px] xs:min-w-[36px] sm:min-w-[40px] min-h-[32px] xs:min-h-[36px] sm:min-h-[40px] flex items-center justify-center",
                   activeThumb === thumbs.length - 1 ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
                 )}
                 disabled={activeThumb === thumbs.length - 1}
               >
                 <FiChevronRight
-                  size={16}
-                  className="sm:w-5 sm:h-5"
+                  size={14}
+                  className="xs:w-4 xs:h-4 sm:w-5 sm:h-5"
                   color="white"
                 />
               </button>
               
               {/* Thumbnail Counter */}
               {thumbs.length > 1 && (
-                <div className="px-2 py-1 bg-black/50 backdrop-blur-sm rounded-full text-white text-xs font-medium flex-shrink-0 min-w-[2.5rem] text-center z-20">
+                <div className="px-1.5 xs:px-2 py-1 bg-black/50 backdrop-blur-sm rounded-full text-white text-[10px] xs:text-xs font-medium flex-shrink-0 min-w-[2rem] xs:min-w-[2.5rem] text-center z-20">
                   {activeThumb + 1}/{thumbs.length}
                 </div>
               )}
@@ -218,8 +218,8 @@ export default function ProductSeries() {
           </motion.div>
         </motion.div>
 
-        {/* Series Cards Grid - No gaps, with vertical dividers */}
-        <div className="flex flex-col sm:flex-row relative">
+        {/* Series Cards Grid - Responsive layout */}
+        <div className="flex flex-col lg:flex-row relative gap-2 sm:gap-0">
           {seriesItems.map((item, idx) => (
             <motion.div
               key={item.id}
@@ -228,16 +228,16 @@ export default function ProductSeries() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{
                 duration: 0.8,
-                delay: idx * 0.2,
+                delay: idx * 0.15,
                 type: "spring",
                 stiffness: 100,
               }}
               viewport={{ once: true, amount: 0.3 }}
             >
-              {/* Vertical Divider - except for last item */}
+              {/* Vertical Divider - except for last item on desktop */}
               {idx < seriesItems.length - 1 && (
                 <motion.div
-                  className="absolute top-0 right-0 h-full border-r border-gray-700/50 z-10"
+                  className="absolute top-0 right-0 h-full border-r border-gray-700/50 z-10 hidden lg:block"
                   initial={{ scaleY: 0 }}
                   whileInView={{ scaleY: 1 }}
                   transition={{ duration: 0.8, delay: 1 + idx * 0.1 }}
@@ -247,53 +247,54 @@ export default function ProductSeries() {
 
               <motion.div
                 className={clsx(
-                  "relative bg-gray-900/30 hover:bg-gray-800/50 transition-all duration-300 cursor-pointer group overflow-hidden min-h-[400px] sm:min-h-[500px] md:min-h-[600px] flex flex-col",
+                  "relative bg-gray-900/30 hover:bg-gray-800/50 transition-all duration-300 cursor-pointer group overflow-hidden min-h-[320px] xs:min-h-[360px] sm:min-h-[400px] md:min-h-[450px] lg:min-h-[500px] xl:min-h-[600px] flex flex-col rounded-lg lg:rounded-none",
                   idx === activeIndex && "bg-gray-800/50"
                 )}
                 onClick={() => handleSeriesChange(idx)}
                 onMouseEnter={() => setHoveredIndex(idx)}
                 onMouseLeave={() => setHoveredIndex(null)}
                 whileHover={{
-                  y: -10,
-                  boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
+                  y: -5,
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
                   transition: { duration: 0.3 },
                 }}
               >
-                {/* Video background cho card được hover - Hiển thị ở dưới */}
+                {/* Video background cho card được hover - Chỉ hiển thị trên desktop */}
                 {hoveredIndex === idx && (
                   <motion.video
                     src="/videos/futuristic-background-2022-08-04-19-57-56-utc.mp4"
-                    className="absolute inset-0 w-full h-full object-cover -z-10"
+                    className="absolute inset-0 w-full h-full object-cover -z-10 hidden sm:block"
                     autoPlay
                     loop
                     muted
+                    playsInline
                     initial={{ opacity: 0, scale: 1.1 }}
-                    animate={{ opacity: 0.6, scale: 1 }}
+                    animate={{ opacity: 0.4, scale: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.5 }}
                   />
                 )}
 
-                {/* Vertical Label */}
+                {/* Vertical Label - Responsive positioning */}
                 <motion.div
-                  className="absolute left-1 sm:left-2 md:left-4 top-1/2 -translate-y-1/2 font-bold text-lg sm:text-2xl md:text-3xl lg:text-4xl uppercase tracking-widest text-gray-400 z-10 font-sans"
+                  className="absolute left-1 xs:left-2 sm:left-3 md:left-4 top-1/2 -translate-y-1/2 font-bold text-sm xs:text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl uppercase tracking-wider xs:tracking-widest text-gray-400 z-10 font-sans"
                   style={{
                     writingMode: "vertical-rl",
                     transform: "translateY(-50%) rotate(180deg)",
                   }}
                   whileHover={{
                     color: "#4FC8FF",
-                    scale: 1.1,
+                    scale: 1.05,
                     transition: { duration: 0.3 },
                   }}
                 >
                   {item.label}
                 </motion.div>
 
-                {/* Product Image */}
+                {/* Product Image - Responsive sizing */}
                 <motion.div
-                  className="flex justify-center items-center py-6 sm:py-8 md:py-12 flex-1 z-10 relative"
-                  whileHover={{ scale: 1.05 }}
+                  className="flex justify-center items-center py-4 xs:py-6 sm:py-8 md:py-10 lg:py-12 flex-1 z-10 relative"
+                  whileHover={{ scale: 1.03 }}
                   transition={{ duration: 0.3 }}
                 >
                   {/* Transition Loading Overlay */}
@@ -306,7 +307,7 @@ export default function ProductSeries() {
                       transition={{ duration: 0.2 }}
                     >
                       <motion.div
-                        className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full"
+                        className="w-6 xs:w-7 sm:w-8 h-6 xs:h-7 sm:h-8 border-2 border-blue-400 border-t-transparent rounded-full"
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                       />
@@ -331,18 +332,18 @@ export default function ProductSeries() {
                     <Image
                       width={0}
                       height={0}
-                      sizes="100vw"
+                      sizes="(max-width: 475px) 120px, (max-width: 640px) 150px, (max-width: 768px) 180px, (max-width: 1024px) 200px, 250px"
                       priority={true}
                       src={
                         idx === activeIndex 
-                          ? (item.thumbs?.[activeThumb]?.src || item.img)  // Series active dùng activeThumb
-                          : (item.thumbs?.[0]?.src || item.img)            // Series khác dùng ảnh đầu tiên
+                          ? (item.thumbs?.[activeThumb]?.src || item.img)
+                          : (item.thumbs?.[0]?.src || item.img)
                       }
                       alt={item.label}
-                      className="w-[150px] sm:w-[200px] md:w-[250px] h-[150px] sm:h-[200px] md:h-[250px] object-contain transition-opacity duration-200 ease-out"
+                      className="w-[120px] xs:w-[140px] sm:w-[160px] md:w-[180px] lg:w-[200px] xl:w-[250px] h-[120px] xs:h-[140px] sm:h-[160px] md:h-[180px] lg:h-[200px] xl:h-[250px] object-contain transition-opacity duration-200 ease-out"
                     />
                     
-                    {/* Subtle active indicators thay vì glow effect lòe loẹt */}
+                    {/* Subtle active indicators */}
                     {idx === activeIndex && !isTransitioning && (
                       <>
                         {/* Subtle border highlight */}
@@ -355,7 +356,7 @@ export default function ProductSeries() {
                         
                         {/* Small corner indicator */}
                         <motion.div
-                          className="absolute top-3 right-3 w-2 h-2 bg-blue-400 rounded-full"
+                          className="absolute top-2 xs:top-3 right-2 xs:right-3 w-1.5 xs:w-2 h-1.5 xs:h-2 bg-blue-400 rounded-full"
                           initial={{ scale: 0, opacity: 0 }}
                           animate={{ scale: 1, opacity: 0.9 }}
                           transition={{ duration: 0.3, delay: 0.1, type: "spring", stiffness: 300 }}
@@ -373,41 +374,42 @@ export default function ProductSeries() {
                   </motion.div>
                 </motion.div>
 
-                {/* Content */}
+                {/* Content - Responsive typography and spacing */}
                 <motion.div
-                  className="px-3 sm:px-4 md:px-6 pb-4 sm:pb-6 md:pb-8 pl-8 sm:pl-12 md:pl-16 z-10 relative"
+                  className="px-2 xs:px-3 sm:px-4 md:px-6 pb-3 xs:pb-4 sm:pb-6 md:pb-8 pl-6 xs:pl-8 sm:pl-10 md:pl-12 lg:pl-16 z-10 relative"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.3 }}
                   viewport={{ once: true }}
                 >
                   <motion.h3
-                    className="text-white font-bold text-lg sm:text-xl md:text-2xl mb-2 md:mb-3 font-sans"
+                    className="text-white font-bold text-base xs:text-lg sm:text-xl md:text-2xl mb-1.5 xs:mb-2 md:mb-3 font-sans"
                     whileHover={{
                       color: "#4FC8FF",
-                      scale: 1.05,
+                      scale: 1.02,
                       transition: { duration: 0.3 },
                     }}
                   >
                     {item.label.replace(" SERIES", " Series")}
                   </motion.h3>
-                  <p className="text-gray-300 text-xs sm:text-sm md:text-base leading-relaxed mb-2 sm:mb-3 md:mb-4 font-sans">
+                  <p className="text-gray-300 text-xs xs:text-sm sm:text-base leading-relaxed mb-2 xs:mb-3 md:mb-4 font-sans line-clamp-3 sm:line-clamp-none">
                     Advanced communication technology designed for professional
                     riders with superior audio quality and durability.
                   </p>
                   <div className="flex justify-end">
                     <motion.div
                       whileHover={{
-                        scale: 1.2,
+                        scale: 1.15,
                         rotate: 45,
                         color: "#4FC8FF",
                       }}
                       transition={{ duration: 0.3 }}
+                      className="p-1 xs:p-1.5 sm:p-2 rounded-full hover:bg-white/10 transition-colors"
                     >
                       <FiArrowUpRight
-                        size={20}
+                        size={16}
                         className={clsx(
-                          "transition-colors w-5 h-5 sm:w-6 sm:h-6",
+                          "transition-colors w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6",
                           hoveredIndex === idx
                             ? "text-blue-400"
                             : "text-gray-500"

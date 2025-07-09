@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 
 export default function HeroSection() {
   return (
-    <section className="relative w-full h-[500px] sm:h-[600px] md:h-[700px] overflow-hidden">
+    <section className="relative w-full h-[450px] xs:h-[500px] sm:h-[600px] md:h-[700px] lg:h-[800px] overflow-hidden">
       {/* Background Video */}
       <motion.video
         src="/videos/motorbike-road-trip-2022-07-26-01-49-02-utc.mp4"
@@ -13,6 +13,7 @@ export default function HeroSection() {
         autoPlay
         loop
         muted
+        playsInline
         initial={{ scale: 1.1, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 2, ease: "easeOut" }}
@@ -28,7 +29,7 @@ export default function HeroSection() {
 
       {/* Title (behind image) */}
       <motion.h1 
-        className="absolute top-[15%] sm:top-[18%] left-1/2 transform -translate-x-1/2 text-white text-[60px] sm:text-[80px] md:text-[120px] lg:text-[200px] font-sans leading-none z-20"
+        className="absolute top-[12%] xs:top-[15%] sm:top-[18%] md:top-[16%] left-1/2 transform -translate-x-1/2 text-white text-[45px] xs:text-[55px] sm:text-[80px] md:text-[120px] lg:text-[160px] xl:text-[200px] font-sans leading-none z-20 text-center px-2"
         initial={{ y: -100, opacity: 0, scale: 0.8 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}
         transition={{ 
@@ -49,7 +50,7 @@ export default function HeroSection() {
 
       {/* Product Image (on top of title but below description) */}
       <motion.div 
-        className="absolute top-[18%] sm:top-[20%] left-1/2 transform -translate-x-1/2 z-25"
+        className="absolute top-[16%] xs:top-[18%] sm:top-[20%] md:top-[18%] lg:top-[20%] left-1/2 transform -translate-x-1/2 z-25"
         initial={{ scale: 0, rotate: -180, opacity: 0 }}
         animate={{ scale: 1, rotate: 0, opacity: 1 }}
         transition={{ 
@@ -71,19 +72,20 @@ export default function HeroSection() {
           alt="SCS S8X"
           width={384}
           height={216}
-          className="object-contain drop-shadow-2xl w-[250px] sm:w-[300px] md:w-[384px] h-auto"
+          className="object-contain drop-shadow-2xl w-[180px] xs:w-[220px] sm:w-[280px] md:w-[350px] lg:w-[384px] h-auto"
+          priority
         />
       </motion.div>
 
       {/* Description & Button (above image) */}
       <motion.div 
-        className="absolute bottom-[4%] sm:bottom-[6%] left-1/2 transform -translate-x-1/2 text-center px-4 sm:px-6 z-20"
+        className="absolute bottom-[3%] xs:bottom-[4%] sm:bottom-[6%] md:bottom-[5%] left-1/2 transform -translate-x-1/2 text-center px-3 xs:px-4 sm:px-6 z-20 w-full max-w-[90%] sm:max-w-none"
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 1.2, delay: 2.2 }}
       >
         <motion.p 
-          className="text-white text-sm sm:text-base md:text-lg max-w-xl sm:max-w-2xl mb-4 sm:mb-6 font-sans"
+          className="text-white text-xs xs:text-sm sm:text-base md:text-lg max-w-sm xs:max-w-lg sm:max-w-xl md:max-w-2xl mx-auto mb-3 xs:mb-4 sm:mb-6 font-sans leading-relaxed"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 2.5 }}
@@ -95,7 +97,7 @@ export default function HeroSection() {
           GPS navigation, etc.
         </motion.p>
         <motion.button 
-          className="px-4 sm:px-6 py-2 sm:py-3 border border-white text-white text-sm sm:text-base font-medium font-sans rounded-full hover:bg-white hover:text-black transition cursor-pointer"
+          className="px-3 xs:px-4 sm:px-6 py-2 xs:py-2.5 sm:py-3 border border-white text-white text-xs xs:text-sm sm:text-base font-medium font-sans rounded-full hover:bg-white hover:text-black transition cursor-pointer min-w-[140px] xs:min-w-[160px] sm:min-w-auto"
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ 
@@ -120,7 +122,7 @@ export default function HeroSection() {
       <motion.div
         className="
           absolute inset-x-0 bottom-0
-          h-32 sm:h-48 md:h-64
+          h-24 xs:h-32 sm:h-48 md:h-64
           bg-gradient-to-b
           from-transparent
           to-[#0c131d]
@@ -132,23 +134,23 @@ export default function HeroSection() {
         transition={{ duration: 2, delay: 1.5 }}
       />
 
-      {/* Floating particles effect */}
+      {/* Floating particles effect - Responsive */}
       <div className="absolute inset-0 z-5 pointer-events-none">
-        {[...Array(8)].map((_, i) => (
+        {[...Array(6)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-2 h-2 bg-white/20 rounded-full"
+            className="absolute w-1.5 xs:w-2 sm:w-2.5 h-1.5 xs:h-2 sm:h-2.5 bg-white/20 rounded-full"
             style={{
-              left: `${15 + i * 12}%`,
-              top: `${25 + (i % 3) * 20}%`,
+              left: `${10 + i * 15}%`,
+              top: `${20 + (i % 3) * 25}%`,
             }}
             animate={{
-              y: [-20, 20, -20],
-              opacity: [0.2, 0.8, 0.2],
-              scale: [1, 1.5, 1],
+              y: [-15, 15, -15],
+              opacity: [0.1, 0.6, 0.1],
+              scale: [0.8, 1.3, 0.8],
             }}
             transition={{
-              duration: 3 + i * 0.3,
+              duration: 2.5 + i * 0.3,
               repeat: Infinity,
               delay: i * 0.4,
               ease: "easeInOut"
@@ -157,24 +159,24 @@ export default function HeroSection() {
         ))}
       </div>
 
-      {/* Animated light rays */}
+      {/* Animated light rays - Responsive */}
       <div className="absolute inset-0 z-5 pointer-events-none overflow-hidden">
-        {[...Array(3)].map((_, i) => (
+        {[...Array(2)].map((_, i) => (
           <motion.div
             key={`ray-${i}`}
-            className="absolute w-px h-full bg-gradient-to-b from-transparent via-white/10 to-transparent"
+            className="absolute w-px h-full bg-gradient-to-b from-transparent via-white/8 to-transparent hidden sm:block"
             style={{
-              left: `${30 + i * 25}%`,
-              transform: 'rotate(15deg)',
+              left: `${25 + i * 30}%`,
+              transform: 'rotate(12deg)',
             }}
             animate={{
-              opacity: [0, 0.3, 0],
-              scaleY: [0.5, 1, 0.5],
+              opacity: [0, 0.25, 0],
+              scaleY: [0.4, 1, 0.4],
             }}
             transition={{
-              duration: 4 + i * 0.5,
+              duration: 3.5 + i * 0.5,
               repeat: Infinity,
-              delay: i * 1.2,
+              delay: i * 1.5,
               ease: "easeInOut"
             }}
           />
