@@ -75,7 +75,7 @@ export default function Newsroom() {
       transition={{ duration: 0.8 }}
       viewport={{ once: true, amount: 0.2 }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="sidebar-aware-container">
       {/* Heading */}
       <motion.div
         className="text-center text-white z-10 mb-8 sm:mb-10 md:mb-12"

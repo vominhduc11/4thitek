@@ -105,7 +105,7 @@ export default function ProductFeature() {
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-[#0c131d] to-[#001A35] py-12 sm:py-16 md:py-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="sidebar-aware-container">
       {/* Diagonal Pattern */}
       <div
         className="absolute inset-0 pointer-events-none z-0"
@@ -131,15 +131,14 @@ export default function ProductFeature() {
       </motion.h2>
 
       {/* Carousel */}
-      <div className="relative flex items-center justify-center z-10">
-        {/* Left Arrow - Original style, closer position */}
+      <div className="relative flex items-center justify-center z-10 px-16 sm:px-20">
+        {/* Left Arrow - Positioned inside container */}
         <motion.button
           onClick={prev}
-          className="absolute left-[-60px] sm:left-[-80px] p-1 sm:p-2 bg-white/20 hover:bg-white/40 rounded-full transition z-20"
+          className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full transition z-20 border border-white/20"
           whileHover={{ scale: 1.15 }}
           whileTap={{ scale: 0.9 }}
           transition={{ duration: 0.2 }}
-          style={{ boxShadow: "none" }}
         >
           <FiChevronLeft size={20} className="sm:w-6 sm:h-6" color="white" />
         </motion.button>
@@ -169,14 +168,13 @@ export default function ProductFeature() {
           </AnimatePresence>
         </div>
 
-        {/* Right Arrow - Closer to product */}
+        {/* Right Arrow - Positioned inside container */}
         <motion.button
           onClick={next}
-          className="absolute right-[-60px] sm:right-[-80px] p-1 sm:p-2 bg-white/20 hover:bg-white/40 rounded-full transition z-20"
+          className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full transition z-20 border border-white/20"
           whileHover={{ scale: 1.15 }}
           whileTap={{ scale: 0.9 }}
           transition={{ duration: 0.2 }}
-          style={{ boxShadow: "none" }}
         >
           <FiChevronRight size={20} className="sm:w-6 sm:h-6" color="white" />
         </motion.button>
@@ -192,16 +190,17 @@ export default function ProductFeature() {
             animate="center"
             exit="exit"
             transition={{ duration: 0.5, ease: "easeInOut" }}
+            className="grid grid-rows-[auto_1fr_auto] min-h-[200px] sm:min-h-[220px] gap-3 sm:gap-4" // Grid layout với min-height
           >
             <motion.h3
-              className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#4FC8FF] mb-3 sm:mb-4 font-sans"
+              className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#4FC8FF] font-sans"
               variants={titleVariants}
               transition={{ duration: 0.6, ease: "easeOut" }}
             >
               {activeItem.title}
             </motion.h3>
             <motion.p
-              className="text-sm sm:text-base md:text-lg text-white/80 leading-relaxed mb-4 sm:mb-6 font-sans"
+              className="text-sm sm:text-base md:text-lg text-white/80 leading-relaxed font-sans flex items-center justify-center text-center" // Flex để center content
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -209,7 +208,7 @@ export default function ProductFeature() {
               {activeItem.description}
             </motion.p>
             <motion.button
-              className="px-4 sm:px-6 py-2 border border-white text-white text-sm sm:text-base font-medium font-sans hover:bg-white/10 rounded-full transition cursor-pointer"
+              className="px-4 sm:px-6 py-2 border border-white text-white text-sm sm:text-base font-medium font-sans hover:bg-white/10 rounded-full transition cursor-pointer justify-self-center"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4, delay: 0.4 }}

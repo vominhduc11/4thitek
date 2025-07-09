@@ -5,10 +5,9 @@ import Image from "next/image";
 export default function FeatureCards() {
   return (
     <section className="py-8 sm:py-12 lg:py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="sidebar-aware-container">
         {/* Mobile: Single column, Tablet: 2 columns, Desktop: 3 columns */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-          
           {/* Card 1 - White Card */}
           <div className="aspect-square bg-white relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
             <Image
@@ -23,16 +22,16 @@ export default function FeatureCards() {
                 fill
                 src="/productCards/card1/466d1bbba4340b452f1792456a3a5ef7cc9fd843.png"
                 alt="Product showcase"
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                className="object-cover "
               />
             </div>
             <Image
-              height={40}
-              width={40}
+              height={0}
+              width={0}
+              sizes="100vw"
               src="/productCards/card1/image.png"
               alt="Icon"
-              className="absolute bottom-6 sm:bottom-8 lg:bottom-12 left-6 sm:left-8 lg:left-12 z-10"
+              className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 z-20 bottom-8 left-8 sm:bottom-8 sm:left-8 lg:bottom-8 lg:left-8 absolute"
             />
           </div>
 
@@ -52,14 +51,15 @@ export default function FeatureCards() {
             <div className="absolute inset-0 bg-gradient-to-r from-[#29ABE2]/50 to-[#0071BC]/50 z-10" />
 
             {/* Content */}
-            <div className="relative z-20 h-full flex flex-col justify-between p-6 sm:p-8 lg:p-12">
+            <div className="relative z-10 h-full flex flex-col justify-between p-6 sm:p-8 lg:p-12">
               <div className="flex justify-between items-start">
                 <Image
-                  height={80}
-                  width={80}
+                  height={0}
+                  width={0}
+                  sizes="100vw"
                   src="/productCards/card2/image2.png"
                   alt="Membership icon"
-                  className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24"
+                  className="w-30 h-10"
                 />
               </div>
 
@@ -71,21 +71,23 @@ export default function FeatureCards() {
                     PROGRAM
                   </h3>
                 </div>
-                
+
                 <div className="flex flex-col items-end gap-4">
                   <Image
-                    height={40}
-                    width={40}
+                    height={0}
+                    width={0}
+                    sizes="100vw"
                     src="/productCards/card1/image.png"
                     alt="Icon"
-                    className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12"
+                    className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 z-20 bottom-8 left-8 absolute"
                   />
                   <Image
-                    height={120}
-                    width={120}
+                    height={0}
+                    width={0}
+                    sizes="100vw"
                     src="/productCards/card2/image.png"
-                    alt="Membership graphic"
-                    className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28"
+                    alt="Icon"
+                    className="w-full h-full z-20 bottom-0 left-0 absolute"
                   />
                 </div>
               </div>
@@ -101,7 +103,7 @@ export default function FeatureCards() {
                   width={80}
                   src="/productCards/card3/image.png"
                   alt="Product icon"
-                  className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 mb-4"
+                  className="w-36 h-16"
                 />
               </div>
 
@@ -124,11 +126,12 @@ export default function FeatureCards() {
 
               <div className="flex justify-start">
                 <Image
-                  height={40}
-                  width={40}
+                  height={0}
+                  width={0}
+                  sizes="100vw"
                   src="/productCards/card1/image.png"
                   alt="Icon"
-                  className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12"
+                  className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 z-20 bottom-8 left-8 sm:bottom-8 sm:left-8 lg:bottom-8 lg:left-8 absolute"
                 />
               </div>
             </div>

@@ -28,11 +28,57 @@ body {
 /* Responsive main content utility */
 .main-content {
   margin-left: 4rem; /* 64px for mobile sidebar */
-  padding-top: 4rem; /* Space for header */
+  padding-left: 0; /* Remove default padding to align with sidebar */
+  padding-right: 0; /* Remove default padding to align with edge */
 }
 
 @media (min-width: 640px) {
   .main-content {
     margin-left: 5rem; /* 80px for desktop sidebar */
   }
+}
+
+/* Custom container for sidebar-aware layout */
+.sidebar-aware-container {
+  width: 100%;
+  padding-left: 1rem; /* Small padding from sidebar */
+  padding-right: 1rem; /* Small padding to edge */
+}
+
+@media (min-width: 640px) {
+  .sidebar-aware-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .sidebar-aware-container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
+/* Header transparency utility */
+.header-transparent {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.header-scrolled {
+  transition: all 0.3s ease-out;
 }
