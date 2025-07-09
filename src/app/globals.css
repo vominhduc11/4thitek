@@ -24,3 +24,15 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
+
+/* Responsive main content utility */
+.main-content {
+  margin-left: 4rem; /* 64px for mobile sidebar */
+  padding-top: 4rem; /* Space for header */
+}
+
+@media (min-width: 640px) {
+  .main-content {
+    margin-left: 5rem; /* 80px for desktop sidebar */
+  }
+}

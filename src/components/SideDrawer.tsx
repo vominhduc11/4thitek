@@ -111,7 +111,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
 
           {/* Drawer */}
           <motion.aside 
-            className="fixed top-0 left-0 h-screen w-auto flex z-50 shadow-2xl"
+            className="fixed top-0 left-0 h-screen w-auto flex z-50 shadow-2xl max-w-[90vw] sm:max-w-none"
             variants={drawerVariants}
             initial="hidden"
             animate="visible"
@@ -119,66 +119,66 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
           >
             {/* Narrow Side */}
             <motion.div 
-              className="w-20 flex flex-col justify-between items-center py-6 bg-gradient-to-b from-[#1a2332] via-[#1e2631] to-[#0f1419] border-r border-gray-700/50"
+              className="w-16 sm:w-20 flex flex-col justify-between items-center py-4 sm:py-6 bg-gradient-to-b from-[#1a2332] via-[#1e2631] to-[#0f1419] border-r border-gray-700/50"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.3 }}
             >
               <motion.button 
                 aria-label="Close menu" 
-                className="text-gray-400 hover:text-white hover:bg-white/10 p-2 rounded-lg"
+                className="text-gray-400 hover:text-white hover:bg-white/10 p-1.5 sm:p-2 rounded-lg"
                 onClick={onClose}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
               >
-                <FiX size={20} />
+                <FiX size={16} className="sm:w-5 sm:h-5" />
               </motion.button>
 
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-4 sm:gap-6">
                 <motion.a 
                   href="#" 
-                  className="text-gray-400 hover:text-blue-400 p-2"
+                  className="text-gray-400 hover:text-blue-400 p-1.5 sm:p-2"
                   whileHover={{ scale: 1.2, color: "#60a5fa" }}
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
-                  <FaFacebookF size={16} />
+                  <FaFacebookF size={14} className="sm:w-4 sm:h-4" />
                 </motion.a>
                 <motion.a 
                   href="#" 
-                  className="text-gray-400 hover:text-blue-400 p-2"
+                  className="text-gray-400 hover:text-blue-400 p-1.5 sm:p-2"
                   whileHover={{ scale: 1.2, color: "#60a5fa" }}
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
-                  <FaTwitter size={16} />
+                  <FaTwitter size={14} className="sm:w-4 sm:h-4" />
                 </motion.a>
               </div>
             </motion.div>
 
             {/* Main Navigation */}
             <motion.nav 
-              className="w-80 bg-gradient-to-b from-[#1e2631] to-[#151e2b] text-gray-300 px-8 py-10 relative border-r border-gray-700/30"
+              className="w-64 sm:w-80 bg-gradient-to-b from-[#1e2631] to-[#151e2b] text-gray-300 px-4 sm:px-8 py-6 sm:py-10 relative border-r border-gray-700/30"
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2, duration: 0.4 }}
             >
               <motion.div 
-                className="mb-8"
+                className="mb-6 sm:mb-8"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 0.3 }}
               >
-                <h2 className="text-xl font-bold text-white mb-2">Navigation</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-white mb-2">Navigation</h2>
                 <motion.div 
-                  className="w-12 h-0.5 bg-blue-500"
+                  className="w-10 sm:w-12 h-0.5 bg-blue-500"
                   initial={{ width: 0 }}
-                  animate={{ width: 48 }}
+                  animate={{ width: "2.5rem" }}
                   transition={{ delay: 0.6, duration: 0.5, ease: "easeOut" }}
                 />
               </motion.div>
 
               <motion.ul 
-                className="space-y-4"
+                className="space-y-3 sm:space-y-4"
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
@@ -186,7 +186,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                 <motion.li variants={staggerItem}>
                   <motion.a 
                     href="#" 
-                    className="block text-sm font-medium uppercase tracking-wider hover:text-white py-2"
+                    className="block text-xs sm:text-sm font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2"
                     whileHover={{ x: 4, color: "#ffffff" }}
                     transition={{ type: "spring", stiffness: 400, damping: 17 }}
                   >
@@ -196,7 +196,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                 
                 <motion.li variants={staggerItem}>
                   <motion.button 
-                    className="w-full flex justify-between items-center text-sm font-medium uppercase tracking-wider hover:text-white py-2"
+                    className="w-full flex justify-between items-center text-xs sm:text-sm font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2"
                     onClick={toggleProduct}
                     whileHover={{ x: 4, color: "#ffffff" }}
                     transition={{ type: "spring", stiffness: 400, damping: 17 }}
@@ -211,7 +211,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                   </motion.button>
                   
                   <motion.ul 
-                    className="mt-3 ml-4 space-y-3 overflow-hidden border-l border-gray-600/50 pl-4"
+                    className="mt-2 sm:mt-3 ml-3 sm:ml-4 space-y-2 sm:space-y-3 overflow-hidden border-l border-gray-600/50 pl-3 sm:pl-4"
                     variants={productMenuVariants}
                     initial="closed"
                     animate={isProductOpen ? "open" : "closed"}
@@ -225,7 +225,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                       >
                         <motion.a 
                           href="#" 
-                          className="block text-sm text-gray-400 hover:text-white py-1"
+                          className="block text-xs sm:text-sm text-gray-400 hover:text-white py-0.5 sm:py-1"
                           whileHover={{ x: 4, color: "#ffffff" }}
                           transition={{ type: "spring", stiffness: 400, damping: 17 }}
                         >
@@ -240,7 +240,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                   <motion.li key={item} variants={staggerItem}>
                     <motion.a 
                       href="#" 
-                      className="block text-sm font-medium uppercase tracking-wider hover:text-white py-2"
+                      className="block text-xs sm:text-sm font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2"
                       whileHover={{ x: 4, color: "#ffffff" }}
                       transition={{ type: "spring", stiffness: 400, damping: 17 }}
                     >
@@ -251,12 +251,12 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
               </motion.ul>
 
               <motion.div 
-                className="absolute bottom-8 right-6 opacity-20"
+                className="absolute bottom-6 sm:bottom-8 right-4 sm:right-6 opacity-20 hidden sm:block"
                 initial={{ opacity: 0, rotate: 0 }}
                 animate={{ opacity: 0.2, rotate: 90 }}
                 transition={{ delay: 0.8, duration: 0.5 }}
               >
-                <span className="text-6xl font-black text-white uppercase origin-center select-none">
+                <span className="text-4xl sm:text-6xl font-black text-white uppercase origin-center select-none">
                   Menu
                 </span>
               </motion.div>
@@ -264,23 +264,23 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
 
             {/* Sub Panel */}
             <motion.div 
-              className="w-72 bg-gradient-to-b from-[#0f1419] to-[#0a0e13] px-8 py-10 text-gray-300"
+              className="w-56 sm:w-72 bg-gradient-to-b from-[#0f1419] to-[#0a0e13] px-4 sm:px-8 py-6 sm:py-10 text-gray-300 hidden sm:block"
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3, duration: 0.4 }}
             >
               {/* Language */}
               <motion.div 
-                className="mb-10"
+                className="mb-8 sm:mb-10"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5, duration: 0.3 }}
               >
-                <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4 flex items-center">
-                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3 sm:mb-4 flex items-center">
+                  <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-blue-500 rounded-full mr-2"></span>
                   Language
                 </h4>
-                <ul className="space-y-3">
+                <ul className="space-y-2 sm:space-y-3">
                   {[
                     { code: "vi", label: "Tiếng Việt" },
                     { code: "en", label: "English" }
@@ -293,7 +293,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                     >
                       <motion.button 
                         className={clsx(
-                          "flex justify-between items-center w-full text-sm py-2 px-3 rounded-lg",
+                          "flex justify-between items-center w-full text-xs sm:text-sm py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg",
                           language === lang.code ? "bg-blue-500/20 text-white" : "hover:bg-white/5 hover:text-white"
                         )}
                         onClick={() => selectLanguage(lang.code)}
@@ -323,17 +323,17 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7, duration: 0.3 }}
               >
-                <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4 flex items-center">
-                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3 sm:mb-4 flex items-center">
+                  <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-green-500 rounded-full mr-2"></span>
                   Contact Us
                 </h4>
                 <motion.div 
-                  className="bg-white/5 rounded-lg p-4 border border-gray-700/30"
+                  className="bg-white/5 rounded-lg p-3 sm:p-4 border border-gray-700/30"
                   whileHover={{ scale: 1.02, borderColor: "rgba(59, 130, 246, 0.3)" }}
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
-                  <p className="text-sm text-gray-300 mb-2">Email</p>
-                  <p className="text-white font-medium">contact@4thiteck.com</p>
+                  <p className="text-xs sm:text-sm text-gray-300 mb-1 sm:mb-2">Email</p>
+                  <p className="text-white font-medium text-sm sm:text-base">contact@4thiteck.com</p>
                 </motion.div>
               </motion.div>
             </motion.div>

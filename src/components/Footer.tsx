@@ -1,10 +1,12 @@
+import Image from "next/image";
+
 const Footer = () => {
   return (
-    <footer className="bg-[#0E1327] text-gray-300 py-12 px-6 ml-20">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+    <footer className="bg-[#0E1327] text-gray-300 py-8 sm:py-12 px-4 sm:px-6 ml-16 sm:ml-20">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
         {/* COMPANY Column */}
         <div>
-          <h3 className="uppercase text-sm font-semibold text-white mb-4">Company</h3>
+          <h3 className="uppercase text-sm font-semibold text-white mb-3 sm:mb-4">Company</h3>
           <ul className="space-y-2">
             <li>
               <a href="#" className="text-sm hover:text-white hover:underline transition-colors">
@@ -41,7 +43,7 @@ const Footer = () => {
 
         {/* PRODUCT Column */}
         <div>
-          <h3 className="uppercase text-sm font-semibold text-white mb-4">Product</h3>
+          <h3 className="uppercase text-sm font-semibold text-white mb-3 sm:mb-4">Product</h3>
           <ul className="space-y-2">
             <li>
               <a href="#" className="text-sm hover:text-white hover:underline transition-colors">
@@ -68,7 +70,7 @@ const Footer = () => {
 
         {/* RESELLER Column */}
         <div>
-          <h3 className="uppercase text-sm font-semibold text-white mb-4">Reseller</h3>
+          <h3 className="uppercase text-sm font-semibold text-white mb-3 sm:mb-4">Reseller</h3>
           <ul className="space-y-2">
             <li>
               <a href="#" className="text-sm hover:text-white hover:underline transition-colors">
@@ -85,7 +87,7 @@ const Footer = () => {
 
         {/* OTHER Column */}
         <div>
-          <h3 className="uppercase text-sm font-semibold text-white mb-4">Other</h3>
+          <h3 className="uppercase text-sm font-semibold text-white mb-3 sm:mb-4">Other</h3>
           <ul className="space-y-2">
             <li>
               <a href="#" className="text-sm hover:text-white hover:underline transition-colors">
@@ -112,22 +114,26 @@ const Footer = () => {
       </div>
 
       {/* Separator Line */}
-      <hr className="border-gray-700 my-8" />
+      <hr className="border-gray-700 my-6 sm:my-8" />
 
       {/* Copyright & Language Selector */}
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-xs text-gray-500">
-        <p className="mb-4 md:mb-0">
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center text-xs text-gray-500 gap-4 sm:gap-0">
+        <p className="mb-2 sm:mb-0 text-center sm:text-left">
           CopyRight © 2023 4Thiteck CO., LTD All Right Reserved.
         </p>
         
         {/* Language Selector */}
-        <div className="flex items-center cursor-pointer hover:text-gray-300 transition-colors" aria-label="Language selector">
-          <img 
+        <div className="flex items-center cursor-pointer hover:text-gray-300 transition-colors justify-center sm:justify-start" aria-label="Language selector">
+          <Image
+            width={0}
+            height={0}
+            sizes="100vw"
+            priority
             src="/flags/vn.svg" 
             alt="Vietnam flag" 
-            className="w-5 h-5 rounded-full"
+            className="w-4 sm:w-5 h-4 sm:h-5 rounded-full"
           />
-          <span className="ml-2 text-sm text-gray-300">Vietnam</span>
+          <span className="ml-1.5 sm:ml-2 text-xs sm:text-sm text-gray-300">Vietnam</span>
           <svg 
             className="ml-1 w-3 h-3 fill-current" 
             viewBox="0 0 20 20"

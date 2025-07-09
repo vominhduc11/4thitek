@@ -104,7 +104,8 @@ export default function ProductFeature() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-[#0c131d] to-[#001A35] py-16 md:py-24 pl-6 md:pl-24 pr-6">
+    <section className="relative overflow-hidden bg-gradient-to-b from-[#0c131d] to-[#001A35] py-12 sm:py-16 md:py-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Diagonal Pattern */}
       <div
         className="absolute inset-0 pointer-events-none z-0"
@@ -121,7 +122,7 @@ export default function ProductFeature() {
 
       {/* Heading */}
       <motion.h2
-        className="relative z-10 text-center text-3xl md:text-4xl font-medium text-white mb-12 font-sans"
+        className="relative z-10 text-center text-2xl sm:text-3xl md:text-4xl font-medium text-white mb-8 sm:mb-10 md:mb-12 font-sans"
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
@@ -134,17 +135,17 @@ export default function ProductFeature() {
         {/* Left Arrow - Original style, closer position */}
         <motion.button
           onClick={prev}
-          className="absolute left-[500px] p-1 md:p-2 rounded-full z-20 bg-transparent hover:bg-transparent active:bg-transparent"
+          className="absolute left-[-60px] sm:left-[-80px] p-1 sm:p-2 bg-white/20 hover:bg-white/40 rounded-full transition z-20"
           whileHover={{ scale: 1.15 }}
           whileTap={{ scale: 0.9 }}
           transition={{ duration: 0.2 }}
           style={{ boxShadow: "none" }}
         >
-          <FiChevronLeft size={42} color="white" />
+          <FiChevronLeft size={20} className="sm:w-6 sm:h-6" color="white" />
         </motion.button>
 
         {/* Product Image with Animation */}
-        <div className="w-[400px] h-[300px] relative group">
+        <div className="w-[280px] sm:w-[350px] md:w-[400px] h-[210px] sm:h-[260px] md:h-[300px] relative group">
           <AnimatePresence initial={false} custom={direction} mode="wait">
             <motion.img
               key={activeItem.id}
@@ -171,18 +172,18 @@ export default function ProductFeature() {
         {/* Right Arrow - Closer to product */}
         <motion.button
           onClick={next}
-          className="absolute right-[500px] p-1 md:p-2 rounded-full z-20 bg-transparent hover:bg-transparent active:bg-transparent"
+          className="absolute right-[-60px] sm:right-[-80px] p-1 sm:p-2 bg-white/20 hover:bg-white/40 rounded-full transition z-20"
           whileHover={{ scale: 1.15 }}
           whileTap={{ scale: 0.9 }}
           transition={{ duration: 0.2 }}
           style={{ boxShadow: "none" }}
         >
-          <FiChevronRight size={42} color="white" />
+          <FiChevronRight size={20} className="sm:w-6 sm:h-6" color="white" />
         </motion.button>
       </div>
 
       {/* Product Info with Animation */}
-      <div className="mt-8 text-center z-10 max-w-xl mx-auto relative">
+      <div className="mt-6 sm:mt-8 text-center z-10 max-w-lg sm:max-w-xl mx-auto relative px-4">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeItem.id}
@@ -193,14 +194,14 @@ export default function ProductFeature() {
             transition={{ duration: 0.5, ease: "easeInOut" }}
           >
             <motion.h3
-              className="text-3xl md:text-4xl font-bold text-[#4FC8FF] mb-4 font-sans"
+              className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#4FC8FF] mb-3 sm:mb-4 font-sans"
               variants={titleVariants}
               transition={{ duration: 0.6, ease: "easeOut" }}
             >
               {activeItem.title}
             </motion.h3>
             <motion.p
-              className="text-base md:text-lg text-white/80 leading-relaxed mb-6 font-sans"
+              className="text-sm sm:text-base md:text-lg text-white/80 leading-relaxed mb-4 sm:mb-6 font-sans"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -208,7 +209,7 @@ export default function ProductFeature() {
               {activeItem.description}
             </motion.p>
             <motion.button
-              className="px-6 py-2 border border-white text-white text-base font-medium font-sans hover:bg-white/10 rounded-full transition"
+              className="px-4 sm:px-6 py-2 border border-white text-white text-sm sm:text-base font-medium font-sans hover:bg-white/10 rounded-full transition cursor-pointer"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4, delay: 0.4 }}
@@ -250,6 +251,7 @@ export default function ProductFeature() {
           />
         ))}
       </motion.div>
+      </div>
     </section>
   );
 }

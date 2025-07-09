@@ -7,64 +7,95 @@ const newsItems = [
   {
     id: 1,
     img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=500&fit=crop",
-    caption: "Latest motorcycle communication technology breakthrough in 2024"
+    caption: "Latest motorcycle communication technology breakthrough in 2024",
+    title: "Revolutionary Bluetooth 5.0 Technology",
+    content:
+      "Discover the latest breakthrough in motorcycle communication with our advanced Bluetooth 5.0 technology. Enhanced connectivity, crystal clear audio quality, and seamless integration with modern devices.",
+    date: "March 15, 2024",
+    category: "Technology",
   },
   {
     id: 2,
     img: "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=400&h=500&fit=crop",
-    caption: "Exploring new horizons with advanced rider communication systems"
+    caption: "Exploring new horizons with advanced rider communication systems",
+    title: "Adventure Riding Communication",
+    content:
+      "Join the adventure with our premium communication systems designed for long-distance touring. Waterproof design, extended battery life, and group intercom capabilities for the ultimate riding experience.",
+    date: "March 10, 2024",
+    category: "Adventure",
   },
   {
     id: 3,
     img: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400&h=500&fit=crop",
-    caption: "Enjoying the ride with crystal clear group communication"
+    caption: "Enjoying the ride with crystal clear group communication",
+    title: "Group Intercom Excellence",
+    content:
+      "Experience seamless group communication with up to 8 riders simultaneously. Advanced noise cancellation technology ensures clear conversations even at high speeds and in challenging weather conditions.",
+    date: "March 5, 2024",
+    category: "Features",
   },
   {
     id: 4,
     img: "https://images.unsplash.com/photo-1571068316344-75bc76f77890?w=400&h=500&fit=crop",
-    caption: "Professional riders choose SCSETC for reliable communication"
+    caption: "Professional riders choose SCSETC for reliable communication",
+    title: "Professional Grade Reliability",
+    content:
+      "Trusted by professional riders worldwide, our communication systems deliver unmatched reliability and performance. Built to withstand extreme conditions while maintaining superior audio quality.",
+    date: "February 28, 2024",
+    category: "Professional",
   },
   {
     id: 5,
     img: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=500&fit=crop",
-    caption: "Adventure awaits with our premium communication devices"
+    caption: "Adventure awaits with our premium communication devices",
+    title: "Premium Series Launch",
+    content:
+      "Introducing our new premium series with enhanced features including GPS navigation integration, voice commands, and smart connectivity. Perfect for riders who demand the best technology.",
+    date: "February 20, 2024",
+    category: "Product Launch",
   },
   {
     id: 6,
     img: "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=400&h=500&fit=crop",
-    caption: "Innovation in motorcycle safety and communication technology"
-  }
+    caption: "Innovation in motorcycle safety and communication technology",
+    title: "Safety Innovation Awards",
+    content:
+      "SCSETC wins multiple safety innovation awards for our groundbreaking communication technology that enhances rider safety through improved connectivity and emergency features.",
+    date: "February 15, 2024",
+    category: "Awards",
+  },
 ];
 
 export default function Newsroom() {
   return (
-    <motion.section 
-      className="relative bg-gradient-to-b from-[#001A35] to-[#0c131d] py-20 md:py-24 px-6 md:px-24 overflow-hidden"
+    <motion.section
+      className="relative bg-gradient-to-b from-[#001A35] to-[#0c131d] py-16 sm:py-20 md:py-24 overflow-hidden"
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
       viewport={{ once: true, amount: 0.2 }}
     >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Heading */}
-      <motion.div 
-        className="text-center text-white z-10 mb-12"
+      <motion.div
+        className="text-center text-white z-10 mb-8 sm:mb-10 md:mb-12"
         initial={{ y: -50, opacity: 0 }}
         whileInView={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, delay: 0.2 }}
         viewport={{ once: true }}
       >
-        <motion.h2 
-          className="text-4xl md:text-5xl font-semibold font-sans"
-          whileHover={{ 
+        <motion.h2
+          className="text-3xl sm:text-4xl md:text-5xl font-semibold font-sans"
+          whileHover={{
             scale: 1.05,
             color: "#4FC8FF",
-            transition: { duration: 0.3 }
+            transition: { duration: 0.3 },
           }}
         >
           Newsroom
         </motion.h2>
-        <motion.p 
-          className="mt-3 text-base uppercase tracking-wider font-sans"
+        <motion.p
+          className="mt-2 sm:mt-3 text-sm sm:text-base uppercase tracking-wider font-sans"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.5 }}
@@ -72,8 +103,8 @@ export default function Newsroom() {
         >
           #RIDING, EXPLORING, ENJOYING
         </motion.p>
-        <motion.span 
-          className="mt-2 text-sm text-white/70 block font-sans"
+        <motion.span
+          className="mt-1 sm:mt-2 text-xs sm:text-sm text-white/70 block font-sans"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.7 }}
@@ -84,94 +115,114 @@ export default function Newsroom() {
       </motion.div>
 
       {/* News Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6 z-10 relative">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6 z-10 relative">
         {newsItems.map((post, index) => (
-          <motion.div 
-            key={post.id} 
-            className="relative w-full h-80 bg-black/10 rounded-lg overflow-hidden group cursor-pointer"
+          <motion.div
+            key={post.id}
+            className="relative w-full h-64 sm:h-72 md:h-80 bg-black/10 rounded-lg overflow-hidden group cursor-pointer"
             initial={{ opacity: 0, y: 100, scale: 0.8 }}
             whileInView={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ 
-              duration: 0.6, 
+            transition={{
+              duration: 0.6,
               delay: index * 0.1,
               type: "spring",
-              stiffness: 100
+              stiffness: 100,
             }}
             viewport={{ once: true, amount: 0.3 }}
-            whileHover={{ 
+            whileHover={{
               y: -10,
               scale: 1.02,
               boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
-              transition: { duration: 0.3 }
+              transition: { duration: 0.3 },
             }}
           >
-            <motion.img 
-              src={post.img} 
-              alt={post.caption} 
+            <motion.img
+              src={post.img}
+              alt={post.caption}
               className="w-full h-full object-cover"
               whileHover={{ scale: 1.1 }}
               transition={{ duration: 0.4 }}
             />
-            
-            {/* Hover Overlay */}
-            <motion.div 
-              className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex flex-col justify-between p-6"
-              initial={{ opacity: 0 }}
-              whileHover={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              <motion.p 
-                className="text-sm md:text-base text-white/90 font-sans"
-                initial={{ y: 20, opacity: 0 }}
-                whileHover={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-              >
-                {post.caption}
-              </motion.p>
-              <div className="flex justify-end">
-                <motion.button 
-                  className="p-3 bg-white/20 hover:bg-white/40 rounded-full transition"
-                  whileHover={{ 
-                    scale: 1.2, 
+            {/* Overlay hiển thị nội dung chi tiết khi hover */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/80 to-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-3 md:p-4">
+              {/* Category Badge & Date */}
+              <div className="flex justify-between items-start">
+                <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-[#4FC8FF] text-white text-xs font-semibold rounded-full">
+                  {post.category || "News"}
+                </span>
+                <span className="text-white/70 text-xs font-medium">
+                  {post.date || "2024-07-09"}
+                </span>
+              </div>
+              {/* Main Content */}
+              <div className="flex-1 flex flex-col justify-center space-y-2 my-3">
+                <h3 className="text-white font-bold text-xs sm:text-sm md:text-base leading-tight line-clamp-2">
+                  {post.title || "Sample Title"}
+                </h3>
+                <p className="text-white/90 text-xs leading-relaxed line-clamp-3">
+                  {post.content ||
+                    "Sample content preview of this article will show here. Add real content."}
+                </p>
+              </div>
+              {/* Bottom section */}
+              <div className="flex justify-between items-end">
+                <div className="flex-1 mr-1 sm:mr-2">
+                  <p className="text-white/70 text-xs leading-tight line-clamp-2">
+                    {post.caption}
+                  </p>
+                </div>
+                <motion.button
+                  className="p-1.5 sm:p-2 bg-white/20 hover:bg-[#4FC8FF] rounded-full transition-colors duration-300 flex-shrink-0"
+                  whileHover={{
+                    scale: 1.2,
                     rotate: 45,
-                    backgroundColor: "rgba(79, 200, 255, 0.3)"
+                    backgroundColor: "#4FC8FF",
                   }}
                   whileTap={{ scale: 0.9 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <FiArrowUpRight size={18} color="white" />
+                  <FiArrowUpRight size={12} className="sm:w-3.5 sm:h-3.5" color="white" />
                 </motion.button>
               </div>
-            </motion.div>
+            </div>
 
             {/* Animated border on hover */}
             <motion.div
-              className="absolute inset-0 border-2 border-transparent rounded-lg"
-              whileHover={{ 
+              className="absolute inset-0 border-2 border-transparent rounded-lg pointer-events-none"
+              whileHover={{
                 borderColor: "#4FC8FF",
-                boxShadow: "0 0 20px rgba(79, 200, 255, 0.3)"
+                boxShadow: "0 0 20px rgba(79, 200, 255, 0.3)",
               }}
               transition={{ duration: 0.3 }}
             />
+            {/* Reading time indicator */}
+            <motion.div
+              className="absolute top-2 sm:top-3 right-2 sm:right-3 bg-black/60 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              initial={{ scale: 0 }}
+              whileHover={{ scale: 1 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+            >
+              <span className="text-white text-xs font-medium">2 min read</span>
+            </motion.div>
           </motion.div>
         ))}
       </div>
 
       {/* Explore More Button */}
-      <motion.div 
-        className="text-center mt-10 z-10 relative"
+      <motion.div
+        className="text-center mt-8 sm:mt-10 z-10 relative"
         initial={{ opacity: 0, y: 50 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.5 }}
         viewport={{ once: true }}
       >
-        <motion.button 
-          className="px-8 py-3 border border-white text-white hover:bg-white/10 rounded-full transition text-base font-medium font-sans"
-          whileHover={{ 
+        <motion.button
+          className="px-6 sm:px-8 py-2 sm:py-3 border border-white text-white hover:bg-white/10 rounded-full transition text-sm sm:text-base font-medium font-sans"
+          whileHover={{
             scale: 1.05,
             borderColor: "#4FC8FF",
             color: "#4FC8FF",
-            boxShadow: "0 10px 25px rgba(79, 200, 255, 0.2)"
+            boxShadow: "0 10px 25px rgba(79, 200, 255, 0.2)",
           }}
           whileTap={{ scale: 0.95 }}
           transition={{ duration: 0.3 }}
@@ -201,6 +252,7 @@ export default function Newsroom() {
             }}
           />
         ))}
+      </div>
       </div>
     </motion.section>
   );

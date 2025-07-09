@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 
 export default function HeroSection() {
   return (
-    <section className="relative w-full h-[700px] overflow-hidden">
+    <section className="relative w-full h-[500px] sm:h-[600px] md:h-[700px] overflow-hidden">
       {/* Background Video */}
       <motion.video
         src="/videos/motorbike-road-trip-2022-07-26-01-49-02-utc.mp4"
@@ -28,7 +28,7 @@ export default function HeroSection() {
 
       {/* Title (behind image) */}
       <motion.h1 
-        className="absolute top-[18%] left-1/2 transform -translate-x-1/2 text-white text-[80px] md:text-[120px] lg:text-[200px] font-sans leading-none z-20"
+        className="absolute top-[15%] sm:top-[18%] left-1/2 transform -translate-x-1/2 text-white text-[60px] sm:text-[80px] md:text-[120px] lg:text-[200px] font-sans leading-none z-20"
         initial={{ y: -100, opacity: 0, scale: 0.8 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}
         transition={{ 
@@ -49,7 +49,7 @@ export default function HeroSection() {
 
       {/* Product Image (on top of title but below description) */}
       <motion.div 
-        className="absolute top-[20%] left-1/2 transform -translate-x-1/2 z-25"
+        className="absolute top-[18%] sm:top-[20%] left-1/2 transform -translate-x-1/2 z-25"
         initial={{ scale: 0, rotate: -180, opacity: 0 }}
         animate={{ scale: 1, rotate: 0, opacity: 1 }}
         transition={{ 
@@ -71,19 +71,19 @@ export default function HeroSection() {
           alt="SCS S8X"
           width={384}
           height={216}
-          className="object-contain drop-shadow-2xl"
+          className="object-contain drop-shadow-2xl w-[250px] sm:w-[300px] md:w-[384px] h-auto"
         />
       </motion.div>
 
       {/* Description & Button (above image) */}
       <motion.div 
-        className="absolute bottom-[6%] left-1/2 transform -translate-x-1/2 text-center px-4 z-20"
+        className="absolute bottom-[4%] sm:bottom-[6%] left-1/2 transform -translate-x-1/2 text-center px-4 sm:px-6 z-20"
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 1.2, delay: 2.2 }}
       >
         <motion.p 
-          className="text-white text-base md:text-lg max-w-2xl mb-6 font-sans"
+          className="text-white text-sm sm:text-base md:text-lg max-w-xl sm:max-w-2xl mb-4 sm:mb-6 font-sans"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 2.5 }}
@@ -95,7 +95,7 @@ export default function HeroSection() {
           GPS navigation, etc.
         </motion.p>
         <motion.button 
-          className="px-6 py-3 border border-white text-white text-base font-medium font-sans rounded-full hover:bg-white hover:text-black transition cursor-pointer"
+          className="px-4 sm:px-6 py-2 sm:py-3 border border-white text-white text-sm sm:text-base font-medium font-sans rounded-full hover:bg-white hover:text-black transition cursor-pointer"
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ 
@@ -120,7 +120,7 @@ export default function HeroSection() {
       <motion.div
         className="
           absolute inset-x-0 bottom-0
-          h-64
+          h-32 sm:h-48 md:h-64
           bg-gradient-to-b
           from-transparent
           to-[#0c131d]
