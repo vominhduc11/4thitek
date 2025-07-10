@@ -185,7 +185,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
               >
                 <motion.li variants={staggerItem}>
                   <motion.a 
-                    href="#" 
+                    href="/home" 
                     className="block text-xs sm:text-sm font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2"
                     whileHover={{ x: 4, color: "#ffffff" }}
                     transition={{ type: "spring", stiffness: 400, damping: 17 }}
@@ -195,9 +195,9 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                 </motion.li>
                 
                 <motion.li variants={staggerItem}>
-                  <motion.button 
+                  <motion.a 
+                    href="/products"
                     className="w-full flex justify-between items-center text-xs sm:text-sm font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2"
-                    onClick={toggleProduct}
                     whileHover={{ x: 4, color: "#ffffff" }}
                     transition={{ type: "spring", stiffness: 400, damping: 17 }}
                   >
@@ -208,7 +208,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                     >
                       <FiChevronDown className="text-blue-400" />
                     </motion.div>
-                  </motion.button>
+                  </motion.a>
                   
                   <motion.ul 
                     className="mt-2 sm:mt-3 ml-3 sm:ml-4 space-y-2 sm:space-y-3 overflow-hidden border-l border-gray-600/50 pl-3 sm:pl-4"
@@ -224,7 +224,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                         transition={{ delay: isProductOpen ? index * 0.1 : 0, duration: 0.2 }}
                       >
                         <motion.a 
-                          href="#" 
+                          href="/products" 
                           className="block text-xs sm:text-sm text-gray-400 hover:text-white py-0.5 sm:py-1"
                           whileHover={{ x: 4, color: "#ffffff" }}
                           transition={{ type: "spring", stiffness: 400, damping: 17 }}
