@@ -1,21 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiArrowUpRight } from "react-icons/fi";
 import Image from "next/image";
 import clsx from "clsx";
 
+// Types
+interface Product {
+  id: number;
+  name: string;
+  series: string;
+  category: string;
+  image: string;
+  description: string;
+  price: number;
+  rating: number;
+  isNew: boolean;
+  popularity: number;
+}
+
+// Constants
+const ITEMS_PER_PAGE = 8;
+
 // Mock data for products
-const mockProducts = [
+const mockProducts: Product[] = [
   {
     id: 1,
     name: "SCS S8X Pro",
     series: "SX SERIES",
     category: "Category1",
     image: "/products/product1.png",
-    description:
-      "Advanced communication device with Bluetooth 5.0 technology, waterproof design, and crystal clear audio quality for professional use.",
+    description: "Advanced communication device with Bluetooth 5.0 technology, waterproof design, and crystal clear audio quality for professional use.",
     price: 299,
     rating: 4.8,
     isNew: true,
@@ -27,8 +43,7 @@ const mockProducts = [
     series: "SX SERIES",
     category: "Category1",
     image: "/products/product2.png",
-    description:
-      "Premium series featuring enhanced noise cancellation, extended battery life, and seamless group communication capabilities.",
+    description: "Premium series featuring enhanced noise cancellation, extended battery life, and seamless group communication capabilities.",
     price: 399,
     rating: 4.9,
     isNew: true,
@@ -40,8 +55,7 @@ const mockProducts = [
     series: "S SERIES",
     category: "Category2",
     image: "/products/product3.png",
-    description:
-      "Reliable and durable communication solution designed for everyday use with superior sound quality and ergonomic design.",
+    description: "Reliable and durable communication solution designed for everyday use with superior sound quality and ergonomic design.",
     price: 199,
     rating: 4.6,
     isNew: false,
@@ -53,8 +67,7 @@ const mockProducts = [
     series: "G+ SERIES",
     category: "Category2",
     image: "/products/product1.png",
-    description:
-      "Next-generation communication device with AI-powered noise reduction and ultra-long range connectivity.",
+    description: "Next-generation communication device with AI-powered noise reduction and ultra-long range connectivity.",
     price: 499,
     rating: 4.9,
     isNew: true,
@@ -66,8 +79,7 @@ const mockProducts = [
     series: "G SERIES",
     category: "Category3",
     image: "/products/product2.png",
-    description:
-      "Professional grade communication system with military-standard durability and crystal clear transmission.",
+    description: "Professional grade communication system with military-standard durability and crystal clear transmission.",
     price: 349,
     rating: 4.7,
     isNew: false,
@@ -79,8 +91,7 @@ const mockProducts = [
     series: "S SERIES",
     category: "Category2",
     image: "/products/product3.png",
-    description:
-      "Entry-level professional communication device with essential features and reliable performance.",
+    description: "Entry-level professional communication device with essential features and reliable performance.",
     price: 149,
     rating: 4.4,
     isNew: false,
@@ -89,12 +100,40 @@ const mockProducts = [
 ];
 
 export default function ProductsPage() {
+  // State management - optimized
   const [hoveredProductId, setHoveredProductId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(ITEMS_PER_PAGE);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // Memoized calculations for better performance
+  const { currentProducts, totalPages } = useMemo(() => {
+    const total = mockProducts.length;
+    const pages = Math.ceil(total / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const products = mockProducts.slice(startIndex, endIndex);
+
+    return {
+      currentProducts: products,
+      totalPages: pages,
+      totalItems: total
+    };
+  }, [currentPage, itemsPerPage]);
+
+  // // Event handlers - optimized
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const handleFilterToggle = () => setIsFilterOpen(prev => !prev);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0c131d] to-[#001A35] text-white">
-      {/* Enhanced Hero Video Section */}
-      <section className="relative w-full h-[500px] sm:h-[600px] lg:h-[700px] overflow-hidden">
+    <div className="min-h-screen bg-[#0c131d] text-white">
+      {/* Hero Video Section - Like HeroSection */}
+      <section className="relative w-full h-[400px] overflow-hidden">
         {/* Background Video */}
         <motion.video
           src="/videos/motorbike-road-trip-2022-07-26-01-49-02-utc.mp4"
@@ -108,215 +147,46 @@ export default function ProductsPage() {
           transition={{ duration: 2, ease: "easeOut" }}
         />
 
-        {/* Enhanced Dark Overlay với gradient */}
+        {/* Dark Overlay */}
         <motion.div
-          className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-black/80 z-10"
+          className="absolute inset-0 bg-black/60 z-10"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1.5, delay: 0.5 }}
         />
 
-        {/* Hero Content - Center */}
+        {/* Breadcrumb - Bottom Left (after sidebar) - Moved higher for better spacing */}
         <motion.div
-          className="absolute inset-0 flex items-center justify-center z-20"
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.8 }}
-        >
-          <div className="text-center max-w-4xl px-6">
-            <motion.h1 
-              className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold font-mono mb-6"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 1 }}
-            >
-              <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                PROFESSIONAL
-              </span>
-              <br />
-              <span className="text-[#4FC8FF]">COMMUNICATION</span>
-            </motion.h1>
-            
-            <motion.p 
-              className="text-lg sm:text-xl text-gray-300 mb-8 leading-relaxed"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 1.2 }}
-            >
-              Khám phá công nghệ giao tiếp đỉnh cao dành cho người lái chuyên nghiệp
-            </motion.p>
-            
-            {/* CTA Buttons */}
-            <motion.div 
-              className="flex flex-col sm:flex-row gap-4 justify-center"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 1.4 }}
-            >
-              <motion.button 
-                className="px-8 py-3 bg-[#4FC8FF] text-black font-semibold rounded-lg hover:bg-[#4FC8FF]/90 transition-all duration-300"
-                whileHover={{ scale: 1.05, boxShadow: "0 8px 25px rgba(79, 200, 255, 0.3)" }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Khám Phá Ngay
-              </motion.button>
-              <motion.button 
-                className="px-8 py-3 border border-white/30 text-white font-semibold rounded-lg hover:bg-white/10 transition-all duration-300"
-                whileHover={{ scale: 1.05, boxShadow: "0 8px 25px rgba(255, 255, 255, 0.1)" }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Xem Catalog
-              </motion.button>
-            </motion.div>
-          </div>
-        </motion.div>
-
-        {/* Stats Overlay - Top Right */}
-        <motion.div
-          className="absolute top-6 right-6 z-20 hidden lg:block"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, delay: 1.6 }}
-        >
-          <div className="bg-black/40 backdrop-blur-md rounded-lg p-4 border border-white/10">
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="text-2xl font-bold text-[#4FC8FF]">4</div>
-                <div className="text-xs text-gray-300">Series</div>
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="text-2xl font-bold text-white">12+</div>
-                <div className="text-xs text-gray-300">Models</div>
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="text-2xl font-bold text-green-400">5★</div>
-                <div className="text-xs text-gray-300">Rating</div>
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="text-2xl font-bold text-yellow-400">Pro</div>
-                <div className="text-xs text-gray-300">Grade</div>
-              </motion.div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Feature Highlights - Bottom Center */}
-        <motion.div
-          className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-20 hidden md:block"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.8 }}
-        >
-          <div className="flex space-x-8 text-center">
-            <motion.div 
-              className="flex flex-col items-center"
-              whileHover={{ scale: 1.1, y: -5 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="w-12 h-12 bg-[#4FC8FF]/20 rounded-full flex items-center justify-center mb-2 border border-[#4FC8FF]/30">
-                <span className="text-[#4FC8FF] text-xl">🔊</span>
-              </div>
-              <span className="text-white text-sm font-medium">Crystal Clear</span>
-            </motion.div>
-            <motion.div 
-              className="flex flex-col items-center"
-              whileHover={{ scale: 1.1, y: -5 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="w-12 h-12 bg-[#4FC8FF]/20 rounded-full flex items-center justify-center mb-2 border border-[#4FC8FF]/30">
-                <span className="text-[#4FC8FF] text-xl">📡</span>
-              </div>
-              <span className="text-white text-sm font-medium">Long Range</span>
-            </motion.div>
-            <motion.div 
-              className="flex flex-col items-center"
-              whileHover={{ scale: 1.1, y: -5 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="w-12 h-12 bg-[#4FC8FF]/20 rounded-full flex items-center justify-center mb-2 border border-[#4FC8FF]/30">
-                <span className="text-[#4FC8FF] text-xl">💧</span>
-              </div>
-              <span className="text-white text-sm font-medium">Waterproof</span>
-            </motion.div>
-            <motion.div 
-              className="flex flex-col items-center"
-              whileHover={{ scale: 1.1, y: -5 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="w-12 h-12 bg-[#4FC8FF]/20 rounded-full flex items-center justify-center mb-2 border border-[#4FC8FF]/30">
-                <span className="text-[#4FC8FF] text-xl">🔋</span>
-              </div>
-              <span className="text-white text-sm font-medium">Long Battery</span>
-            </motion.div>
-          </div>
-        </motion.div>
-
-        {/* Enhanced Breadcrumb - Bottom Left */}
-        <motion.div
-          className="absolute bottom-6 left-20 sm:left-24 z-20"
+          className="absolute bottom-16 sm:bottom-20 lg:bottom-24 left-20 sm:left-24 z-20"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, delay: 1.2 }}
         >
-          <nav className="flex items-center space-x-2 text-sm bg-black/20 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/10">
-            <motion.a
-              href="/home"
-              className="text-gray-300 hover:text-[#4FC8FF] transition-colors duration-300"
-              whileHover={{ scale: 1.05 }}
-            >
-              Home
-            </motion.a>
-            <span className="text-gray-500">/</span>
-            <span className="text-white font-medium">Products</span>
-          </nav>
+          <div className="px-12 sm:px-16 lg:px-20">
+            <nav className="flex items-center space-x-2 text-sm">
+              <motion.a
+                href="/home"
+                className="text-gray-300 hover:text-[#4FC8FF] transition-colors duration-300"
+                whileHover={{ scale: 1.05 }}
+              >
+                Home
+              </motion.a>
+              <span className="text-gray-500">/</span>
+              <span className="text-white font-medium">Products</span>
+            </nav>
+          </div>
         </motion.div>
 
-        {/* Scroll Indicator */}
-        <motion.div
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 2 }}
-        >
-          <motion.div
-            className="flex flex-col items-center text-white/60"
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            <span className="text-xs mb-2 hidden sm:block">Scroll to explore</span>
-            <div className="w-0.5 h-8 bg-white/30 rounded-full">
-              <motion.div
-                className="w-0.5 h-4 bg-[#4FC8FF] rounded-full"
-                animate={{ y: [0, 16, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
-            </div>
-          </motion.div>
-        </motion.div>
-
-        {/* Enhanced Gradient Overlay */}
+        {/* Gradient Overlay - Transition to content below */}
         <motion.div
           className="
             absolute inset-x-0 bottom-0
-            h-32 sm:h-48 md:h-64 lg:h-80
+            h-24 xs:h-32 sm:h-48 md:h-64
             bg-gradient-to-b
             from-transparent
-            via-[#0a1523]/50
-            to-[#0a1523]
+            to-[#0c131d]
             pointer-events-none
-            z-15
+            z-10
           "
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -324,211 +194,192 @@ export default function ProductsPage() {
         />
       </section>
 
-      {/* Enhanced Title & Description Section */}
-      <section className="ml-16 sm:ml-20 py-8 sm:py-12 lg:py-16">
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="max-w-6xl">
+      {/* Title & Description Section - Moved to gradient transition area */}
+      <div className="ml-16 sm:ml-20 -mt-16 sm:-mt-20 lg:-mt-24 relative z-20 py-6 sm:py-8 lg:py-10">
+        <div className="px-12 sm:px-16 lg:px-20">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+          >
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 font-mono">
+              PRODUCT LIST
+            </h1>
+
+            {/* Breadcrumb & Filter Section */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-8 mb-8 relative"
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
-              className="grid lg:grid-cols-12 gap-8 lg:gap-12"
+              transition={{ duration: 0.6, delay: 0.5 }}
             >
-              {/* Left Column - Title & Meta */}
-              <div className="lg:col-span-5 space-y-6">
-                <div className="space-y-4">
-                  {/* Category Indicator */}
-                  <motion.div 
-                    className="flex items-center space-x-3"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.6, delay: 0.5 }}
-                  >
-                    <div className="w-12 h-0.5 bg-[#4FC8FF]"></div>
-                    <span className="text-[#4FC8FF] text-sm font-medium uppercase tracking-wider">
-                      Communication Series
-                    </span>
-                  </motion.div>
-                  
-                  {/* Enhanced Title */}
-                  <motion.h1 
-                    className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold font-mono leading-tight"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 0.4 }}
-                  >
-                    <span className="bg-gradient-to-r from-white via-gray-100 to-gray-300 bg-clip-text text-transparent">
-                      PRODUCT
-                    </span>
-                    <br />
-                    <span className="text-[#4FC8FF]">COLLECTION</span>
-                  </motion.h1>
-                </div>
+              {/* Decorative horizontal line cutting through - Extended to edges */}
+              <motion.div
+                className="absolute -left-12 sm:-left-16 lg:-left-20 -right-12 sm:-right-16 lg:-right-20 top-1/2 h-px bg-gradient-to-r from-gray-500/40 via-gray-500/70 to-gray-500/40 z-0 hidden lg:block"
+                initial={{ scaleX: 0, opacity: 0 }}
+                animate={{ scaleX: 1, opacity: 1 }}
+                transition={{ duration: 1.2, delay: 0.8 }}
+                style={{ transform: 'translateY(-0.5px)' }}
+              />
+
+              {/* Breadcrumb / Category Navigation - Left Side */}
+              <div className="flex items-center space-x-1 text-sm font-sans uppercase tracking-wider bg-[#0c131d] pr-4 relative z-10">
+                <motion.button
+                  className="text-white font-medium relative pb-1 border-b-2 border-[#4FC8FF] hover:text-[#4FC8FF] transition-colors duration-300"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  ALL
+                </motion.button>
                 
-                {/* Stats/Highlights */}
-                <motion.div 
-                  className="flex flex-wrap gap-6 text-sm"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.7 }}
+                <span className="text-gray-500 mx-2">/</span>
+                
+                <motion.button
+                  className="text-gray-400 hover:text-white transition-colors duration-300 relative group"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-[#4FC8FF] rounded-full"></div>
-                    <span className="text-white font-semibold">4</span>
-                    <span className="text-gray-400">Series</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                    <span className="text-white font-semibold">12+</span>
-                    <span className="text-gray-400">Models</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                    <span className="text-white font-semibold">Pro</span>
-                    <span className="text-gray-400">Grade</span>
-                  </div>
-                </motion.div>
+                  SX SERIES
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#4FC8FF] group-hover:w-full transition-all duration-300"></span>
+                </motion.button>
+                
+                <span className="text-gray-500 mx-2">/</span>
+                
+                <motion.button
+                  className="text-gray-400 hover:text-white transition-colors duration-300 relative group"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  S SERIES
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#4FC8FF] group-hover:w-full transition-all duration-300"></span>
+                </motion.button>
+                
+                <span className="text-gray-500 mx-2">/</span>
+                
+                <motion.button
+                  className="text-gray-400 hover:text-white transition-colors duration-300 relative group"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  G SERIES
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#4FC8FF] group-hover:w-full transition-all duration-300"></span>
+                </motion.button>
+                
+                <span className="text-gray-500 mx-2">/</span>
+                
+                <motion.button
+                  className="text-gray-400 hover:text-white transition-colors duration-300 relative group"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  G+ SERIES
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#4FC8FF] group-hover:w-full transition-all duration-300"></span>
+                </motion.button>
               </div>
 
-              {/* Right Column - Description & Actions */}
-              <div className="lg:col-span-7 space-y-6">
-                <motion.div 
-                  className="space-y-4"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.6 }}
+              {/* Filter & Sort By Button - Right Side */}
+              <motion.button
+                className="flex items-center space-x-3 px-6 py-3 border border-gray-600 rounded-lg text-white font-sans uppercase tracking-wider text-sm hover:border-[#4FC8FF] hover:text-[#4FC8FF] transition-all duration-300 group min-w-[180px] justify-center lg:justify-start bg-[#0c131d] relative z-10"
+                whileHover={{ 
+                  scale: 1.02,
+                  boxShadow: "0 4px 12px rgba(79, 200, 255, 0.2)"
+                }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleFilterToggle}
+              >
+                {/* Slider/Filter Icon */}
+                <motion.div
+                  className="flex flex-col space-y-1"
+                  whileHover={{ rotate: 90 }}
+                  transition={{ duration: 0.3 }}
                 >
-                  <p className="text-[#8390A5] text-base sm:text-lg leading-relaxed">
-                    Khám phá bộ sưu tập Series của 4T Hiteck – nơi hội tụ công nghệ giao 
-                    tiếp đỉnh cao dành riêng cho người lái chuyên nghiệp. Mỗi sản phẩm
-                    trong dòng SX, S, G và G+ đều được thiết kế tỉ mỉ, mang đến âm thanh
-                    rõ ràng, kết nối ổn định và độ bền vượt trội trên mọi hành trình.
-                  </p>
-                  
-                  <p className="text-gray-400 text-sm sm:text-base leading-relaxed">
-                    Dù bạn đang chinh phục những cung đường mạo hiểm hay di chuyển trong đô
-                    thị, trải nghiệm tương tác liền mạch cùng bạn đồng hành của 4T
-                    Hiteck sẽ giúp hành trình luôn an toàn, hứng khởi và đầy phong cách.
-                  </p>
+                  <div className="flex space-x-1">
+                    <div className="w-3 h-0.5 bg-current rounded-full"></div>
+                    <div className="w-2 h-0.5 bg-current rounded-full opacity-60"></div>
+                  </div>
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-0.5 bg-current rounded-full opacity-60"></div>
+                    <div className="w-3 h-0.5 bg-current rounded-full"></div>
+                  </div>
+                  <div className="flex space-x-1">
+                    <div className="w-3 h-0.5 bg-current rounded-full"></div>
+                    <div className="w-1 h-0.5 bg-current rounded-full opacity-40"></div>
+                  </div>
                 </motion.div>
-
-                {/* Feature Grid */}
-                <motion.div 
-                  className="grid grid-cols-2 gap-4 py-6"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.7 }}
+                
+                <span className="font-medium">FILTER & SORT BY</span>
+                
+                {/* Arrow indicator */}
+                <motion.div
+                  className="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  animate={{ x: [0, 3, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
                 >
-                  <motion.div 
-                    className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50 hover:border-[#4FC8FF]/30 transition-all duration-300 cursor-pointer group"
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <div className="flex items-center space-x-3 mb-2">
-                      <div className="w-8 h-8 bg-[#4FC8FF]/20 rounded-full flex items-center justify-center group-hover:bg-[#4FC8FF]/30 transition-colors">
-                        <span className="text-[#4FC8FF] text-sm">🔊</span>
-                      </div>
-                      <span className="text-white font-medium text-sm group-hover:text-[#4FC8FF] transition-colors">Crystal Clear Audio</span>
-                    </div>
-                    <p className="text-gray-400 text-xs leading-relaxed">Âm thanh rõ ràng trong mọi điều kiện thời tiết</p>
-                  </motion.div>
-
-                  <motion.div 
-                    className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50 hover:border-green-400/30 transition-all duration-300 cursor-pointer group"
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <div className="flex items-center space-x-3 mb-2">
-                      <div className="w-8 h-8 bg-green-400/20 rounded-full flex items-center justify-center group-hover:bg-green-400/30 transition-colors">
-                        <span className="text-green-400 text-sm">📡</span>
-                      </div>
-                      <span className="text-white font-medium text-sm group-hover:text-green-400 transition-colors">Long Range</span>
-                    </div>
-                    <p className="text-gray-400 text-xs leading-relaxed">Kết nối xa đến 1.5km trong điều kiện lý tưởng</p>
-                  </motion.div>
-
-                  <motion.div 
-                    className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50 hover:border-blue-400/30 transition-all duration-300 cursor-pointer group"
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <div className="flex items-center space-x-3 mb-2">
-                      <div className="w-8 h-8 bg-blue-400/20 rounded-full flex items-center justify-center group-hover:bg-blue-400/30 transition-colors">
-                        <span className="text-blue-400 text-sm">💧</span>
-                      </div>
-                      <span className="text-white font-medium text-sm group-hover:text-blue-400 transition-colors">Waterproof IP67</span>
-                    </div>
-                    <p className="text-gray-400 text-xs leading-relaxed">Chống nước hoàn toàn, an tâm trong mọi thời tiết</p>
-                  </motion.div>
-
-                  <motion.div 
-                    className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50 hover:border-yellow-400/30 transition-all duration-300 cursor-pointer group"
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <div className="flex items-center space-x-3 mb-2">
-                      <div className="w-8 h-8 bg-yellow-400/20 rounded-full flex items-center justify-center group-hover:bg-yellow-400/30 transition-colors">
-                        <span className="text-yellow-400 text-sm">🔋</span>
-                      </div>
-                      <span className="text-white font-medium text-sm group-hover:text-yellow-400 transition-colors">20H Battery</span>
-                    </div>
-                    <p className="text-gray-400 text-xs leading-relaxed">Pin bền bỉ cả ngày dài, sạc nhanh chỉ 2 giờ</p>
-                  </motion.div>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </motion.div>
-
-                {/* Quick Series Filters */}
-                <motion.div 
-                  className="flex flex-wrap gap-3 pt-4"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.8 }}
-                >
-                  <motion.button 
-                    className="px-4 py-2 bg-[#4FC8FF]/10 border border-[#4FC8FF]/30 rounded-lg text-[#4FC8FF] text-sm hover:bg-[#4FC8FF]/20 transition-all duration-300 font-medium"
-                    whileHover={{ scale: 1.05, boxShadow: "0 4px 12px rgba(79, 200, 255, 0.2)" }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    SX Series
-                  </motion.button>
-                  <motion.button 
-                    className="px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm hover:bg-gray-700/50 hover:text-white transition-all duration-300 font-medium"
-                    whileHover={{ scale: 1.05, boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)" }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    S Series
-                  </motion.button>
-                  <motion.button 
-                    className="px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm hover:bg-gray-700/50 hover:text-white transition-all duration-300 font-medium"
-                    whileHover={{ scale: 1.05, boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)" }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    G Series
-                  </motion.button>
-                  <motion.button 
-                    className="px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm hover:bg-gray-700/50 hover:text-white transition-all duration-300 font-medium"
-                    whileHover={{ scale: 1.05, boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)" }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    G+ Series
-                  </motion.button>
-                </motion.div>
-              </div>
+              </motion.button>
             </motion.div>
 
-            {/* Mobile-Optimized Layout */}
-            <motion.div 
-              className="block lg:hidden mt-8 text-center space-y-4"
+            {/* Mobile Responsive Version */}
+            <motion.div
+              className="block lg:hidden mb-6 space-y-3"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.9 }}
+              transition={{ duration: 0.6, delay: 0.7 }}
             >
-              <div className="inline-flex items-center space-x-2 px-4 py-2 bg-[#4FC8FF]/10 rounded-full">
-                <span className="text-[#4FC8FF] text-xs font-medium">Hãy chọn Series phù hợp</span>
+              {/* Mobile Categories */}
+              <div className="flex flex-wrap gap-2">
+                <motion.button
+                  className="px-3 py-1.5 bg-[#4FC8FF]/20 border border-[#4FC8FF]/50 rounded text-[#4FC8FF] text-xs font-sans uppercase tracking-wide"
+                  whileTap={{ scale: 0.95 }}
+                >
+                  ALL
+                </motion.button>
+                <motion.button
+                  className="px-3 py-1.5 border border-gray-600 rounded text-gray-400 text-xs font-sans uppercase tracking-wide hover:text-white hover:border-gray-500 transition-colors"
+                  whileTap={{ scale: 0.95 }}
+                >
+                  SX
+                </motion.button>
+                <motion.button
+                  className="px-3 py-1.5 border border-gray-600 rounded text-gray-400 text-xs font-sans uppercase tracking-wide hover:text-white hover:border-gray-500 transition-colors"
+                  whileTap={{ scale: 0.95 }}
+                >
+                  S
+                </motion.button>
+                <motion.button
+                  className="px-3 py-1.5 border border-gray-600 rounded text-gray-400 text-xs font-sans uppercase tracking-wide hover:text-white hover:border-gray-500 transition-colors"
+                  whileTap={{ scale: 0.95 }}
+                >
+                  G
+                </motion.button>
+                <motion.button
+                  className="px-3 py-1.5 border border-gray-600 rounded text-gray-400 text-xs font-sans uppercase tracking-wide hover:text-white hover:border-gray-500 transition-colors"
+                  whileTap={{ scale: 0.95 }}
+                >
+                  G+
+                </motion.button>
               </div>
             </motion.div>
-          </div>
+
+            <p 
+              style={{ color: "#8390A5" }}
+            >
+              Khám phá bộ sưu tập Series của 4T Hiteck – nơi hội tụ công nghệ giao 
+              tiếp đỉnh cao dành riêng cho người lái chuyên nghiệp. Mỗi sản phẩm
+              trong dòng SX, S, G và G+ đều được thiết kế tỉ mỉ, mang đến âm thanh
+              rõ ràng, kết nối ổn định và độ bền vượt trội trên mọi hành trình. Dù
+              bạn đang chinh phục những cung đường mạo hiểm hay di chuyển trong đô
+              thị, trải nghiệm tương tác liền mạch cùng bạn đồng hành của 4T
+              Hiteck sẽ giúp hành trình luôn an toàn, hứng khởi và đầy phong cách.
+              Hãy chọn ngay Series phù hợp để nâng tầm kết nối và tận hưởng tự do
+              bứt phá mọi giới hạn!
+            </p>
+          </motion.div>
         </div>
-      </section>
+      </div>
 
       {/* Product Grid - ProductSeries Style */}
       <div className="ml-16 sm:ml-20 mb-16">
@@ -537,7 +388,7 @@ export default function ProductsPage() {
           {/* First Row - 4 products */}
           <motion.div className="flex flex-col lg:flex-row relative" layout>
             <AnimatePresence>
-              {mockProducts.slice(0, 4).map((product, index) => (
+              {currentProducts.slice(0, 4).map((product, index) => (
                 <motion.div
                   key={product.id}
                   layout
@@ -691,10 +542,10 @@ export default function ProductsPage() {
           </motion.div>
 
           {/* Second Row - Remaining products with same width as first row */}
-          {mockProducts.length > 4 && (
+          {currentProducts.length > 4 && (
             <motion.div className="flex flex-col lg:flex-row relative" layout>
               <AnimatePresence>
-                {mockProducts.slice(4).map((product, index) => (
+                {currentProducts.slice(4).map((product, index) => (
                   <motion.div
                     key={product.id}
                     layout
@@ -843,7 +694,7 @@ export default function ProductsPage() {
 
                 {/* Empty spaces to maintain layout consistency */}
                 {Array.from(
-                  { length: 4 - mockProducts.slice(4).length },
+                  { length: 4 - currentProducts.slice(4).length },
                   (_, index) => (
                     <div
                       key={`empty-${index}`}
@@ -857,6 +708,341 @@ export default function ProductsPage() {
           )}
         </div>
       </div>
+
+      {/* Pagination Section */}
+      <div className="ml-16 sm:ml-20 py-8 sm:py-12">
+        <div className="px-4 sm:px-6 lg:px-8">
+          <motion.div
+            className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 lg:gap-8 relative"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            {/* Horizontal Divider Line - Full Width */}
+            <motion.div
+              className="absolute left-0 right-0 top-1/2 h-px bg-gradient-to-r from-gray-500/40 via-gray-500/70 to-gray-500/40 z-0 hidden lg:block"
+              initial={{ scaleX: 0, opacity: 0 }}
+              animate={{ scaleX: 1, opacity: 1 }}
+              transition={{ duration: 1.2, delay: 0.5 }}
+              style={{ transform: 'translateY(-0.5px)' }}
+            />
+
+            {/* Left Side - Show Count with Background */}
+            <div className="flex items-center space-x-4 bg-[#0c131d] pr-4 relative z-10">
+              {/* Short Divider Line */}
+              <motion.div
+                className="w-12 sm:w-16 h-px bg-gray-600/50"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ duration: 0.8, delay: 0.7 }}
+              />
+              
+              {/* Show Count Dropdown */}
+              <motion.div
+                className="flex items-center space-x-2 cursor-pointer group"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.6 }}
+              >
+                <span className="text-white/70 group-hover:text-white transition-colors duration-300 font-sans text-sm">
+                  Show
+                </span>
+                <span className="text-white font-medium text-sm">
+                  6
+                </span>
+                <span className="text-white/70 group-hover:text-white transition-colors duration-300 font-sans text-sm">
+                  /6
+                </span>
+                <motion.svg
+                  className="w-4 h-4 text-white/70 group-hover:text-white transition-colors duration-300"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  whileHover={{ rotate: 180 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </motion.svg>
+              </motion.div>
+            </div>
+
+            {/* Right Side - Pagination Controls with Background */}
+            <motion.div
+              className="flex items-center space-x-2 bg-[#0c131d] pl-4 relative z-10"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.7 }}
+            >
+              {/* First Page */}
+              <motion.button
+                className="p-2 text-white/40 hover:text-white/70 transition-colors duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                disabled={currentPage === 1}
+                onClick={() => handlePageChange(1)}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                </svg>
+              </motion.button>
+
+              {/* Previous Page */}
+              <motion.button
+                className="p-2 text-white/40 hover:text-white/70 transition-colors duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                disabled={currentPage === 1}
+                onClick={() => handlePageChange(currentPage - 1)}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </motion.button>
+
+              {/* Page Numbers */}
+              <div className="flex items-center space-x-1 px-4">
+                {/* Current Page */}
+                <motion.span
+                  className="px-3 py-1.5 bg-[#4FC8FF]/20 border border-[#4FC8FF]/50 rounded text-[#4FC8FF] font-medium text-sm min-w-[32px] text-center"
+                  whileHover={{ scale: 1.05 }}
+                >
+                  1
+                </motion.span>
+                
+                <span className="text-white/50 px-1">/</span>
+                
+                <span className="text-white/70 font-medium text-sm">1</span>
+              </div>
+
+              {/* Next Page */}
+              <motion.button
+                className="p-2 text-white/40 hover:text-white/70 transition-colors duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                disabled={currentPage === totalPages}
+                onClick={() => handlePageChange(currentPage + 1)}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </motion.button>
+
+              {/* Last Page */}
+              <motion.button
+                className="p-2 text-white/40 hover:text-white/70 transition-colors duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                disabled={currentPage === totalPages}
+                onClick={() => handlePageChange(totalPages)}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                </svg>
+              </motion.button>
+            </motion.div>
+
+            {/* Mobile Responsive Version */}
+            <motion.div
+              className="flex lg:hidden items-center justify-between w-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
+            >
+              {/* Mobile Show Count */}
+              <div className="flex items-center space-x-2">
+                <span className="text-white/70 text-sm">Showing</span>
+                <span className="text-white font-medium text-sm">6 of 6</span>
+              </div>
+
+              {/* Mobile Pagination */}
+              <div className="flex items-center space-x-3">
+                <motion.button
+                  className="p-2 text-white/40 disabled:opacity-30"
+                  whileTap={{ scale: 0.9 }}
+                  disabled={currentPage === 1}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </motion.button>
+                
+                <span className="text-white/70 text-sm font-medium">{currentPage} of {totalPages}</span>
+                
+                <motion.button
+                  className="p-2 text-white/40 disabled:opacity-30"
+                  whileTap={{ scale: 0.9 }}
+                  disabled={currentPage === totalPages}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Filter Sidebar - Re-added */}
+      <AnimatePresence>
+        {isFilterOpen && (
+          <>
+            {/* Backdrop Overlay */}
+            <motion.div
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={handleFilterToggle}
+            />
+
+            {/* Filter Sidebar */}
+            <motion.div
+              className="fixed top-0 right-0 h-full w-80 sm:w-96 bg-[#0c131d] border-l border-gray-700 z-50 overflow-y-auto"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-700">
+                <h2 className="text-xl font-bold text-white font-mono">FILTER & SORT</h2>
+                <motion.button
+                  onClick={handleFilterToggle}
+                  className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-800"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </motion.button>
+              </div>
+
+              {/* Filter Content */}
+              <div className="p-6 space-y-8">
+                {/* Series Filter */}
+                <div>
+                  <h3 className="text-white font-semibold mb-4 uppercase tracking-wider text-sm">Series</h3>
+                  <div className="space-y-3">
+                    {['SX SERIES', 'S SERIES', 'G SERIES', 'G+ SERIES'].map((series) => (
+                      <motion.label
+                        key={series}
+                        className="flex items-center space-x-3 cursor-pointer group"
+                        whileHover={{ x: 4 }}
+                      >
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 text-[#4FC8FF] bg-gray-800 border-gray-600 rounded focus:ring-[#4FC8FF] focus:ring-2"
+                        />
+                        <span className="text-gray-300 group-hover:text-white transition-colors text-sm">
+                          {series}
+                        </span>
+                      </motion.label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Price Range */}
+                <div>
+                  <h3 className="text-white font-semibold mb-4 uppercase tracking-wider text-sm">Price Range</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-4">
+                      <input
+                        type="number"
+                        placeholder="Min"
+                        className="w-20 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white text-sm focus:border-[#4FC8FF] focus:ring-1 focus:ring-[#4FC8FF]"
+                      />
+                      <span className="text-gray-400">-</span>
+                      <input
+                        type="number"
+                        placeholder="Max"
+                        className="w-20 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white text-sm focus:border-[#4FC8FF] focus:ring-1 focus:ring-[#4FC8FF]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Features */}
+                <div>
+                  <h3 className="text-white font-semibold mb-4 uppercase tracking-wider text-sm">Features</h3>
+                  <div className="space-y-3">
+                    {['Bluetooth 5.0', 'Waterproof IP67', 'Noise Cancellation', 'Long Battery Life'].map((feature) => (
+                      <motion.label
+                        key={feature}
+                        className="flex items-center space-x-3 cursor-pointer group"
+                        whileHover={{ x: 4 }}
+                      >
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 text-[#4FC8FF] bg-gray-800 border-gray-600 rounded focus:ring-[#4FC8FF] focus:ring-2"
+                        />
+                        <span className="text-gray-300 group-hover:text-white transition-colors text-sm">
+                          {feature}
+                        </span>
+                      </motion.label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Sort By */}
+                <div>
+                  <h3 className="text-white font-semibold mb-4 uppercase tracking-wider text-sm">Sort By</h3>
+                  <div className="space-y-3">
+                    {[
+                      { value: 'popularity', label: 'Popularity' },
+                      { value: 'price-low', label: 'Price: Low to High' },
+                      { value: 'price-high', label: 'Price: High to Low' },
+                      { value: 'newest', label: 'Newest First' },
+                      { value: 'rating', label: 'Highest Rated' }
+                    ].map((option) => (
+                      <motion.label
+                        key={option.value}
+                        className="flex items-center space-x-3 cursor-pointer group"
+                        whileHover={{ x: 4 }}
+                      >
+                        <input
+                          type="radio"
+                          name="sortBy"
+                          value={option.value}
+                          defaultChecked={option.value === 'popularity'}
+                          className="w-4 h-4 text-[#4FC8FF] bg-gray-800 border-gray-600 focus:ring-[#4FC8FF] focus:ring-2"
+                        />
+                        <span className="text-gray-300 group-hover:text-white transition-colors text-sm">
+                          {option.label}
+                        </span>
+                      </motion.label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="p-6 border-t border-gray-700 flex space-x-4">
+                <motion.button
+                  className="flex-1 px-4 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium text-sm"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Clear All
+                </motion.button>
+                <motion.button
+                  className="flex-1 px-4 py-3 bg-[#4FC8FF] text-black font-semibold rounded-lg hover:bg-[#4FC8FF]/90 transition-colors text-sm"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleFilterToggle}
+                >
+                  Apply Filters
+                </motion.button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
