@@ -5,6 +5,7 @@ import { FiChevronLeft, FiChevronRight, FiArrowUpRight } from "react-icons/fi";
 import clsx from "clsx";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 const seriesItems = [
   {
@@ -12,22 +13,22 @@ const seriesItems = [
     label: "SX SERIES",
     img: "/products/product1.png",
     thumbs: [
-      { src: "/products/product1.png", label: "01" },
-      { src: "/products/product2.png", label: "02" },
-      { src: "/products/product3.png", label: "03" },
-      { src: "/products/product1.png", label: "04" },
-      { src: "/products/product2.png", label: "05" },
+      { src: "/products/product1.png", label: "S8X Pro" },
+      { src: "/products/product2.png", label: "S8X Elite" },
+      { src: "/products/product3.png", label: "S8X Max" },
+      { src: "/products/product1.png", label: "S8X Standard" },
+      { src: "/products/product2.png", label: "S8X Sport" },
     ],
   },
   {
     id: 2,
     label: "S SERIES",
-    img: "/products/product1.png",
+    img: "/products/product3.png",
     thumbs: [
-      { src: "/products/product1.png", label: "01" },
-      { src: "/products/product2.png", label: "02" },
-      { src: "/products/product3.png", label: "03" },
-      { src: "/products/product1.png", label: "04" },
+      { src: "/products/product3.png", label: "S Pro" },
+      { src: "/products/product1.png", label: "S Standard" },
+      { src: "/products/product2.png", label: "S Plus" },
+      { src: "/products/product3.png", label: "S Compact" },
     ],
   },
   {
@@ -35,18 +36,22 @@ const seriesItems = [
     label: "G SERIES",
     img: "/products/product1.png",
     thumbs: [
-      { src: "/products/product1.png", label: "01" },
-      { src: "/products/product2.png", label: "02" },
-      { src: "/products/product3.png", label: "03" },
+      { src: "/products/product1.png", label: "G Pro" },
+      { src: "/products/product2.png", label: "G Elite" },
+      { src: "/products/product3.png", label: "G Standard" },
+      { src: "/products/product1.png", label: "G Tactical" },
     ],
   },
   {
     id: 4,
     label: "G+ SERIES",
-    img: "/products/product1.png",
+    img: "/products/product2.png",
     thumbs: [
-      { src: "/products/product1.png", label: "01" },
-      { src: "/products/product2.png", label: "02" },
+      { src: "/products/product2.png", label: "G+ Elite" },
+      { src: "/products/product3.png", label: "G+ Max" },
+      { src: "/products/product1.png", label: "G+ Pro" },
+      { src: "/products/product2.png", label: "G+ Sport" },
+      { src: "/products/product3.png", label: "G+ Tactical" },
     ],
   },
 ];
@@ -56,8 +61,15 @@ export default function ProductSeries() {
   const [activeThumb, setActiveThumb] = useState(0);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const router = useRouter();
 
   const thumbs = seriesItems[activeIndex].thumbs || [];
+  
+  // Navigate to products page with selected series
+  const handleViewProducts = (seriesLabel: string) => {
+    const seriesParam = encodeURIComponent(seriesLabel);
+    router.push(`/products?series=${seriesParam}`);
+  };
   
   // Reset active thumb when changing series with smooth transition
   const handleSeriesChange = (index: number) => {
@@ -397,7 +409,8 @@ export default function ProductSeries() {
                     riders with superior audio quality and durability.
                   </p>
                   <div className="flex justify-end">
-                    <motion.div
+                    <motion.button
+                      onClick={() => handleViewProducts(item.label)}
                       whileHover={{
                         scale: 1.15,
                         rotate: 45,
@@ -405,6 +418,7 @@ export default function ProductSeries() {
                       }}
                       transition={{ duration: 0.3 }}
                       className="p-1 xs:p-1.5 sm:p-2 rounded-full hover:bg-white/10 transition-colors"
+                      aria-label={`View ${item.label} products`}
                     >
                       <FiArrowUpRight
                         size={16}
@@ -415,7 +429,7 @@ export default function ProductSeries() {
                             : "text-gray-500"
                         )}
                       />
-                    </motion.div>
+                    </motion.button>
                   </div>
                 </motion.div>
               </motion.div>

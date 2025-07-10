@@ -24,10 +24,9 @@ const FilterSidebar = ({
   const seriesList = ['SX SERIES', 'S SERIES', 'G SERIES', 'G+ SERIES'];
   const sortOptions = [
     { value: 'popularity', label: 'Popularity' },
-    { value: 'price-low', label: 'Price: Low to High' },
-    { value: 'price-high', label: 'Price: High to Low' },
-    { value: 'newest', label: 'Newest First' },
-    { value: 'rating', label: 'Highest Rated' }
+    { value: 'name-asc', label: 'Name: A to Z' },
+    { value: 'name-desc', label: 'Name: Z to A' },
+    { value: 'category', label: 'Category' }
   ];
 
   return (
@@ -89,26 +88,6 @@ const FilterSidebar = ({
                       </span>
                     </motion.label>
                   ))}
-                </div>
-              </div>
-
-              {/* Price Range */}
-              <div>
-                <h3 className="text-white font-semibold mb-4 uppercase tracking-wider text-sm">Price Range</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-4">
-                    <input
-                      type="number"
-                      placeholder="Min"
-                      className="w-20 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white text-sm focus:border-[#4FC8FF] focus:ring-1 focus:ring-[#4FC8FF]"
-                    />
-                    <span className="text-gray-400">-</span>
-                    <input
-                      type="number"
-                      placeholder="Max"
-                      className="w-20 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white text-sm focus:border-[#4FC8FF] focus:ring-1 focus:ring-[#4FC8FF]"
-                    />
-                  </div>
                 </div>
               </div>
 

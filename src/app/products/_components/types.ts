@@ -6,10 +6,7 @@ export interface Product {
   category: string;
   image: string;
   description: string;
-  price: number;
-  rating: number;
-  isNew: boolean;
-  popularity: number;
+  popularity: number; // Keep for sorting purposes
 }
 
 export interface FilterState {
