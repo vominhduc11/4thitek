@@ -1,165 +1,172 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
-  --background: #0c131d;
-  --foreground: #ffffff;
+    --background: #0c131d;
+    --foreground: #ffffff;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --font-sans: var(--font-geist-sans);
+    --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+    :root {
+        --background: #0a0a0a;
+        --foreground: #ededed;
+    }
+}
+
+html {
+    scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
 /* Responsive main content utility */
 .main-content {
-  margin-left: 4rem; /* 64px for mobile sidebar */
-  padding-left: 0; /* Remove default padding to align with sidebar */
-  padding-right: 0; /* Remove default padding to align with edge */
+    margin-left: 4rem; /* 64px for mobile sidebar */
+    padding-left: 0; /* Remove default padding to align with sidebar */
+    padding-right: 0; /* Remove default padding to align with edge */
 }
 
 @media (min-width: 640px) {
-  .main-content {
-    margin-left: 5rem; /* 80px for desktop sidebar */
-  }
+    .main-content {
+        margin-left: 5rem; /* 80px for desktop sidebar */
+    }
 }
 
 /* Custom container for sidebar-aware layout */
 .sidebar-aware-container {
-  width: 100%;
-  padding-left: 1rem; /* Small padding from sidebar */
-  padding-right: 1rem; /* Small padding to edge */
+    width: 100%;
+    padding-left: 1rem; /* Small padding from sidebar */
+    padding-right: 1rem; /* Small padding to edge */
 }
 
 @media (min-width: 640px) {
-  .sidebar-aware-container {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
+    .sidebar-aware-container {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
 }
 
 @media (min-width: 1024px) {
-  .sidebar-aware-container {
-    padding-left: 2rem;
-    padding-right: 2rem;
-  }
+    .sidebar-aware-container {
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
 }
 
 /* Hide scrollbar utility */
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+    scrollbar-width: none; /* Firefox */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Safari and Chrome */
+    display: none; /* Safari and Chrome */
 }
 
 /* Header transparency utility */
 .header-transparent {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  backdrop-filter: none !important;
-  border: none !important;
-  box-shadow: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 .header-scrolled {
-  transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out;
 }
 
 /* Hero Section responsive utilities */
 .hero-title-responsive {
-  font-size: clamp(2.5rem, 8vw, 12.5rem);
-  line-height: 0.9;
+    font-size: clamp(2.5rem, 8vw, 12.5rem);
+    line-height: 0.9;
 }
 
 .hero-content-responsive {
-  font-size: clamp(0.75rem, 2vw, 1.125rem);
-  line-height: 1.6;
+    font-size: clamp(0.75rem, 2vw, 1.125rem);
+    line-height: 1.6;
 }
 
 /* Smooth video performance on mobile */
 video {
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
 }
 
 /* Touch-friendly interactive elements */
 @media (max-width: 640px) {
-  button, .interactive {
-    min-height: 44px;
-    min-width: 44px;
-  }
+    button,
+    .interactive {
+        min-height: 44px;
+        min-width: 44px;
+    }
 }
 
 /* Line clamp utilities */
 .line-clamp-3 {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 /* ProductSeries specific responsive utilities */
 .product-card-hover {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
 }
 
 .product-card-hover:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 @media (max-width: 1024px) {
-  .product-card-hover:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-  }
+    .product-card-hover:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
 }
 
 /* Thumbnail scroll optimization */
 .thumbnail-container {
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Vertical text optimization */
 .vertical-text {
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
 }
 
 /* Additional utilities for products page */
 .writing-mode-vertical-rl {
-  writing-mode: vertical-rl;
+    writing-mode: vertical-rl;
 }
 
 .text-orientation-mixed {
-  text-orientation: mixed;
+    text-orientation: mixed;
 }
 
 /* Line clamp utility for product descriptions */
 .line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
