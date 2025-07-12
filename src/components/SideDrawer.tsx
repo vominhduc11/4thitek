@@ -14,12 +14,23 @@ interface SideDrawerProps {
 
 export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
     const [isProductOpen, setIsProductOpen] = useState(false);
+    const [isProductHovered, setIsProductHovered] = useState(false);
     const [language, setLanguage] = useState('vi');
     const [isNavigating, setIsNavigating] = useState(false);
     const router = useRouter();
 
     const toggleProduct = () => setIsProductOpen((o) => !o);
     const selectLanguage = (lang: string) => setLanguage(lang);
+
+    // Handle Products navigation
+    const handleProductsNavigation = () => {
+        setIsNavigating(true);
+        setTimeout(() => {
+            onClose(); // Close drawer first
+            router.push('/products');
+            setIsNavigating(false);
+        }, 300);
+    };
 
     // Navigate to products page with selected series
     const handleSeriesNavigation = (seriesName: string) => {
@@ -40,6 +51,22 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
             router.push(`/products?series=${seriesParam}`);
             setIsNavigating(false);
         }, 300);
+    };
+
+    // Handle hover effects
+    const handleProductMouseEnter = () => {
+        setIsProductHovered(true);
+        setIsProductOpen(true);
+    };
+
+    const handleProductMouseLeave = () => {
+        setIsProductHovered(false);
+        // Keep menu open for a short time to allow navigation to submenu
+        setTimeout(() => {
+            if (!isProductHovered) {
+                setIsProductOpen(false);
+            }
+        }, 200);
     };
 
     useEffect(() => {
@@ -218,27 +245,60 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                     </motion.a>
                                 </motion.li>
 
-                                <motion.li variants={staggerItem}>
-                                    <motion.button
-                                        onClick={toggleProduct}
-                                        className="w-full flex justify-between items-center text-xs sm:text-sm font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2 text-left"
-                                        whileHover={{ x: 4, color: '#ffffff' }}
-                                        transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                                    >
-                                        Product
-                                        <motion.div
-                                            animate={{ rotate: isProductOpen ? 180 : 0 }}
-                                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                <motion.li 
+                                    variants={staggerItem}
+                                    onMouseEnter={handleProductMouseEnter}
+                                    onMouseLeave={handleProductMouseLeave}
+                                >
+                                    <div className="flex items-center">
+                                        <motion.button
+                                            onClick={handleProductsNavigation}
+                                            disabled={isNavigating}
+                                            className={`flex-1 text-left text-xs sm:text-sm font-medium uppercase tracking-wider py-1.5 sm:py-2 transition-all duration-200 ${
+                                                isNavigating
+                                                    ? 'text-gray-500 cursor-not-allowed'
+                                                    : 'hover:text-white'
+                                            }`}
+                                            whileHover={!isNavigating ? { x: 4, color: '#ffffff' } : {}}
+                                            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                         >
-                                            <FiChevronDown className="text-blue-400" />
-                                        </motion.div>
-                                    </motion.button>
+                                            <div className="flex items-center justify-between">
+                                                <span>Products</span>
+                                                {isNavigating && (
+                                                    <motion.div
+                                                        className="w-3 h-3 border border-[#4FC8FF] border-t-transparent rounded-full mr-2"
+                                                        animate={{ rotate: 360 }}
+                                                        transition={{
+                                                            duration: 1,
+                                                            repeat: Infinity,
+                                                            ease: 'linear'
+                                                        }}
+                                                    />
+                                                )}
+                                            </div>
+                                        </motion.button>
+                                        <motion.button
+                                            onClick={toggleProduct}
+                                            className="p-1 text-blue-400 hover:text-white ml-2"
+                                            whileHover={{ scale: 1.1 }}
+                                            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                                        >
+                                            <motion.div
+                                                animate={{ rotate: isProductOpen ? 180 : 0 }}
+                                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                            >
+                                                <FiChevronDown size={16} />
+                                            </motion.div>
+                                        </motion.button>
+                                    </div>
 
                                     <motion.ul
                                         className="mt-2 sm:mt-3 ml-3 sm:ml-4 space-y-2 sm:space-y-3 overflow-hidden border-l border-gray-600/50 pl-3 sm:pl-4"
                                         variants={productMenuVariants}
                                         initial="closed"
                                         animate={isProductOpen ? 'open' : 'closed'}
+                                        onMouseEnter={() => setIsProductHovered(true)}
+                                        onMouseLeave={() => setIsProductHovered(false)}
                                     >
                                         {['SX Series', 'S Series', 'G Series', 'G+ Series'].map((item, index) => (
                                             <motion.li

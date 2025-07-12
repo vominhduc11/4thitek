@@ -11,7 +11,8 @@ import {
     FilterSidebar,
     EmptyState,
     AdditionalContent,
-    StickyBreadcrumbFilter
+    StickyBreadcrumbFilter,
+    SeriesQuickSwitch
 } from './_components';
 
 // Constants
@@ -284,11 +285,21 @@ function ProductsPageContent() {
     const handleFilterToggle = () => setIsFilterOpen((prev) => !prev);
 
     const handleSeriesClick = (series: string) => {
-        if (series === selectedSeries) return; // Prevent unnecessary re-renders
-
+        // Allow clicking the same series to toggle back to 'ALL'
+        const newSeries = series === selectedSeries ? 'ALL' : series;
+        
         setIsTransitioning(true);
-        setSelectedSeries(series);
+        setSelectedSeries(newSeries);
         setCurrentPage(1); // Reset to first page when filtering
+
+        // Update URL to reflect the change
+        const url = new URL(window.location.href);
+        if (newSeries === 'ALL') {
+            url.searchParams.delete('series');
+        } else {
+            url.searchParams.set('series', newSeries);
+        }
+        window.history.pushState({}, '', url.toString());
 
         // Add a small delay to allow for smooth transition
         setTimeout(() => {
@@ -328,6 +339,17 @@ function ProductsPageContent() {
                 totalProducts={mockProducts.length}
                 filteredCount={filteredAndSortedProducts.length}
             />
+
+            {/* Quick Series Switch - Mobile Friendly */}
+            <div className="ml-16 sm:ml-20 px-4 sm:px-8 lg:px-12 mb-6 lg:hidden">
+                <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-400 font-medium">Quick Switch:</span>
+                    <SeriesQuickSwitch
+                        selectedSeries={selectedSeries}
+                        onSeriesClick={handleSeriesClick}
+                    />
+                </div>
+            </div>
 
             {/* Sticky Breadcrumb & Filter Section */}
             <StickyBreadcrumbFilter

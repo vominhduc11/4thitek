@@ -72,6 +72,24 @@ const FilterSidebar = ({
                                     Series
                                 </h3>
                                 <div className="space-y-3">
+                                    {/* All Series Option */}
+                                    <motion.label
+                                        className="flex items-center space-x-3 cursor-pointer group"
+                                        whileHover={{ x: 4 }}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="series"
+                                            checked={selectedSeries === 'ALL'}
+                                            onChange={() => onSeriesClick('ALL')}
+                                            className="w-4 h-4 text-[#4FC8FF] bg-gray-800 border-gray-600 focus:ring-[#4FC8FF] focus:ring-2"
+                                        />
+                                        <span className="text-gray-300 group-hover:text-white transition-colors text-sm font-medium">
+                                            All Series
+                                        </span>
+                                    </motion.label>
+                                    
+                                    {/* Individual Series */}
                                     {seriesList.map((series) => (
                                         <motion.label
                                             key={series}
@@ -79,12 +97,11 @@ const FilterSidebar = ({
                                             whileHover={{ x: 4 }}
                                         >
                                             <input
-                                                type="checkbox"
+                                                type="radio"
+                                                name="series"
                                                 checked={selectedSeries === series}
-                                                onChange={() =>
-                                                    onSeriesClick(selectedSeries === series ? 'ALL' : series)
-                                                }
-                                                className="w-4 h-4 text-[#4FC8FF] bg-gray-800 border-gray-600 rounded focus:ring-[#4FC8FF] focus:ring-2"
+                                                onChange={() => onSeriesClick(series)}
+                                                className="w-4 h-4 text-[#4FC8FF] bg-gray-800 border-gray-600 focus:ring-[#4FC8FF] focus:ring-2"
                                             />
                                             <span className="text-gray-300 group-hover:text-white transition-colors text-sm">
                                                 {series}
