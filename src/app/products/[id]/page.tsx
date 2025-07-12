@@ -196,6 +196,8 @@ function ProductDetailContent() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (!params?.id) return;
+        
         const productId = parseInt(params.id as string);
         console.log('Looking for product ID:', productId);
         console.log(
@@ -216,7 +218,7 @@ function ProductDetailContent() {
             }
             setLoading(false);
         }, 500);
-    }, [params.id]);
+    }, [params?.id]);
 
     if (loading) {
         return (
@@ -235,7 +237,7 @@ function ProductDetailContent() {
                 <div className="text-center">
                     <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
                     <p className="text-gray-400 mb-6">The product you&apos;re looking for doesn&apos;t exist.</p>
-                    <p className="text-gray-500 mb-6 text-sm">Product ID: {params.id}</p>
+                    <p className="text-gray-500 mb-6 text-sm">Product ID: {params?.id}</p>
                     <button
                         onClick={() => router.push('/products')}
                         className="px-6 py-3 bg-[#4FC8FF] text-black font-semibold rounded-lg hover:bg-[#4FC8FF]/90 transition-colors"

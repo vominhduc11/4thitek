@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import Header from './Header';
-import Sidebar from './Sidebar';
-import SideDrawer from './SideDrawer';
+import Header from '../Navigation/Header';
+import Sidebar from '../Navigation/Sidebar';
+import SideDrawer from '../Navigation/SideDrawer';
 import Footer from './Footer';
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {

@@ -215,6 +215,8 @@ function ProductsPageContent() {
 
     // Handle URL parameters on component mount
     useEffect(() => {
+        if (!searchParams) return;
+        
         const seriesParam = searchParams.get('series');
         console.log('URL series parameter:', seriesParam);
         console.log('Current selectedSeries:', selectedSeries);

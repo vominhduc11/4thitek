@@ -3,7 +3,7 @@
 import { MdHome, MdChevronRight } from 'react-icons/md';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { BlogPost } from './types';
+import { BlogPost } from '../types';
 
 interface BlogDetailHeroProps {
     post: BlogPost;

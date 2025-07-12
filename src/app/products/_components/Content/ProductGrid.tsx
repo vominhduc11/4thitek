@@ -6,7 +6,7 @@ import { FiArrowUpRight } from 'react-icons/fi';
 import Image from 'next/image';
 import Link from 'next/link';
 import clsx from 'clsx';
-import { Product } from './types';
+import { Product } from '../types';
 
 interface ProductGridProps {
     products: Product[];

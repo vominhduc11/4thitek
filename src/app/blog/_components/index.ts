@@ -1,10 +1,14 @@
-export { BlogHero } from './BlogHero';
-export { BlogDetailHero } from './BlogDetailHero';
-export { BlogHeader } from './BlogHeader';
-export { default as BlogGrid } from './BlogGrid';
-export { default as BlogPagination } from './BlogPagination';
-export { BlogFilterSidebar } from './BlogFilterSidebar';
-export { BlogEmptyState } from './BlogEmptyState';
-export { BlogStickyBreadcrumbFilter } from './BlogStickyBreadcrumbFilter';
-export { default as BlogBreadcrumb } from './BlogBreadcrumb';
+// Layout Components
+export { BlogHero, BlogDetailHero, BlogHeader } from './Layout';
+
+// Content Components
+export { BlogGrid, BlogEmptyState } from './Content';
+
+// Navigation Components
+export { BlogBreadcrumb, BlogPagination } from './Navigation';
+
+// Filter Components
+export { BlogFilterSidebar, BlogStickyBreadcrumbFilter } from './Filter';
+
+// Types
 export type { BlogPost, BlogFilterState, BlogPaginationState } from './types';

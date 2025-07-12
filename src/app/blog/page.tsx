@@ -169,6 +169,8 @@ function BlogPageContent() {
 
     // Handle URL parameters on component mount
     useEffect(() => {
+        if (!searchParams) return;
+        
         const categoryParam = searchParams.get('category');
         if (categoryParam && categoryParam !== selectedCategory) {
             setSelectedCategory(categoryParam);

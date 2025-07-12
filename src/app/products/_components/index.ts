@@ -1,10 +1,14 @@
-// Export all components
-export { default as ProductsHero } from './ProductsHero';
-export { default as ProductsHeader } from './ProductsHeader';
-export { default as ProductGrid } from './ProductGrid';
-export { default as ProductsPagination } from './ProductsPagination';
-export { default as FilterSidebar } from './FilterSidebar';
-export { default as EmptyState } from './EmptyState';
-export { default as AdditionalContent } from './AdditionalContent';
-export { default as StickyBreadcrumbFilter } from './StickyBreadcrumbFilter';
-export { default as SeriesQuickSwitch } from './SeriesQuickSwitch';
+// Layout Components
+export { ProductsHero, ProductsHeader } from './Layout';
+
+// Content Components
+export { ProductGrid, EmptyState, AdditionalContent } from './Content';
+
+// Navigation Components
+export { ProductsPagination, SeriesQuickSwitch } from './Navigation';
+
+// Filter Components
+export { FilterSidebar, StickyBreadcrumbFilter } from './Filter';
+
+// Types
+export type { Product, FilterState, PaginationState } from './types';

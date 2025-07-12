@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { MdArrowForward } from 'react-icons/md';
-import type { BlogPost } from './types';
+import type { BlogPost } from '../types';
 
 interface BlogGridProps {
     blogs: BlogPost[];

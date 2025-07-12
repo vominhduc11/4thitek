@@ -53,6 +53,26 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
         }, 300);
     };
 
+    // Handle Home navigation
+    const handleHomeNavigation = () => {
+        setIsNavigating(true);
+        setTimeout(() => {
+            onClose(); // Close drawer first
+            router.push('/home');
+            setIsNavigating(false);
+        }, 300);
+    };
+
+    // Handle Blog navigation
+    const handleBlogNavigation = () => {
+        setIsNavigating(true);
+        setTimeout(() => {
+            onClose(); // Close drawer first
+            router.push('/blog');
+            setIsNavigating(false);
+        }, 300);
+    };
+
     // Handle hover effects
     const handleProductMouseEnter = () => {
         setIsProductHovered(true);
@@ -235,14 +255,15 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                 animate="visible"
                             >
                                 <motion.li variants={staggerItem}>
-                                    <motion.a
-                                        href="/home"
-                                        className="block text-xs sm:text-sm font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2"
+                                    <motion.button
+                                        onClick={handleHomeNavigation}
+                                        className="block text-xs sm:text-sm font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2 w-full text-left"
                                         whileHover={{ x: 4, color: '#ffffff' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                                        disabled={isNavigating}
                                     >
                                         Home
-                                    </motion.a>
+                                    </motion.button>
                                 </motion.li>
 
                                 <motion.li 
@@ -339,18 +360,54 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                     </motion.ul>
                                 </motion.li>
 
-                                {['Company', 'Reseller', 'Blog', 'Contact Us'].map((item) => (
-                                    <motion.li key={item} variants={staggerItem}>
-                                        <motion.a
-                                            href="#"
-                                            className="block text-xs sm:text-sm font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2"
-                                            whileHover={{ x: 4, color: '#ffffff' }}
-                                            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                                        >
-                                            {item}
-                                        </motion.a>
-                                    </motion.li>
-                                ))}
+                                {/* Company */}
+                                <motion.li variants={staggerItem}>
+                                    <motion.a
+                                        href="#"
+                                        className="block text-xs sm:text-sm font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2"
+                                        whileHover={{ x: 4, color: '#ffffff' }}
+                                        transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                                    >
+                                        Company
+                                    </motion.a>
+                                </motion.li>
+
+                                {/* Reseller */}
+                                <motion.li variants={staggerItem}>
+                                    <motion.a
+                                        href="#"
+                                        className="block text-xs sm:text-sm font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2"
+                                        whileHover={{ x: 4, color: '#ffffff' }}
+                                        transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                                    >
+                                        Reseller
+                                    </motion.a>
+                                </motion.li>
+
+                                {/* Blog */}
+                                <motion.li variants={staggerItem}>
+                                    <motion.button
+                                        onClick={handleBlogNavigation}
+                                        className="block text-xs sm:text-sm font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2 w-full text-left"
+                                        whileHover={{ x: 4, color: '#ffffff' }}
+                                        transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                                        disabled={isNavigating}
+                                    >
+                                        Blog
+                                    </motion.button>
+                                </motion.li>
+
+                                {/* Contact Us */}
+                                <motion.li variants={staggerItem}>
+                                    <motion.a
+                                        href="#"
+                                        className="block text-xs sm:text-sm font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2"
+                                        whileHover={{ x: 4, color: '#ffffff' }}
+                                        transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                                    >
+                                        Contact Us
+                                    </motion.a>
+                                </motion.li>
                             </motion.ul>
 
                             <motion.div
