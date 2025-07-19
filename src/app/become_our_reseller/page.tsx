@@ -1,0 +1,699 @@
+'use client';
+
+import { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import Hero from '@/components/ui/Hero';
+import { FiTrendingUp, FiHeadphones, FiUsers, FiAward, FiCheckCircle, FiMail, FiPhone, FiMapPin } from 'react-icons/fi';
+import { motion } from 'framer-motion';
+
+interface FormData {
+    companyName: string;
+    contactName: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    country: string;
+    businessType: string;
+    experience: string;
+    expectedVolume: string;
+    website: string;
+    message: string;
+}
+
+export default function BecomeOurReseller() {
+    const [formData, setFormData] = useState<FormData>({
+        companyName: '',
+        contactName: '',
+        email: '',
+        phone: '',
+        address: '',
+        city: '',
+        country: '',
+        businessType: '',
+        experience: '',
+        expectedVolume: '',
+        website: '',
+        message: ''
+    });
+
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+
+        try {
+            // TODO: Implement API call to submit reseller application
+            await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate API call
+            setSubmitStatus('success');
+            setFormData({
+                companyName: '',
+                contactName: '',
+                email: '',
+                phone: '',
+                address: '',
+                city: '',
+                country: '',
+                businessType: '',
+                experience: '',
+                expectedVolume: '',
+                website: '',
+                message: ''
+            });
+        } catch {
+            setSubmitStatus('error');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const breadcrumbItems = [
+        { label: 'Home', href: '/' },
+        { label: 'Become Our Reseller', active: true }
+    ];
+
+    const benefits = [
+        {
+            icon: <FiTrendingUp className="w-8 h-8 text-[#4FC8FF]" />,
+            title: 'Competitive Margins',
+            description:
+                'Enjoy attractive profit margins on all our products with flexible pricing structures and volume discounts.',
+            highlight: 'Up to 40% margin'
+        },
+        {
+            icon: <FiHeadphones className="w-8 h-8 text-[#4FC8FF]" />,
+            title: 'Marketing Support',
+            description:
+                'Access to comprehensive marketing materials, product training, and co-marketing opportunities.',
+            highlight: 'Full marketing kit'
+        },
+        {
+            icon: <FiUsers className="w-8 h-8 text-[#4FC8FF]" />,
+            title: 'Technical Support',
+            description:
+                'Dedicated technical support team to help you and your customers with any questions or issues.',
+            highlight: '24/7 support'
+        },
+        {
+            icon: <FiAward className="w-8 h-8 text-[#4FC8FF]" />,
+            title: 'Premium Products',
+            description:
+                'Access to our complete range of high-quality audio products with exclusive early access to new releases.',
+            highlight: 'Exclusive access'
+        }
+    ];
+
+    const requirements = [
+        'Established business with proven track record',
+        'Minimum 2 years experience in audio/electronics',
+        'Committed to monthly volume targets',
+        'Professional sales and support capabilities',
+        'Adherence to brand guidelines and standards'
+    ];
+
+    return (
+        <div className="min-h-screen bg-[#0c131d]">
+            {/* Hero Section */}
+            <Hero breadcrumbItems={breadcrumbItems} />
+
+            {/* Main Content */}
+            <div className="relative">
+                {/* Header Section */}
+                <section className="py-16 px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-6xl mx-auto text-center">
+                        <motion.h1
+                            className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight"
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, ease: 'easeOut' }}
+                        >
+                            Become Our <span className="text-[#4FC8FF]">Reseller</span>
+                        </motion.h1>
+                        <motion.p
+                            className="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto mb-8 leading-relaxed"
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
+                        >
+                            Join our network of trusted partners and grow your business with our premium audio products.
+                            We offer competitive pricing, marketing support, and comprehensive training.
+                        </motion.p>
+                        <motion.div
+                            className="flex flex-col sm:flex-row gap-4 justify-center"
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, delay: 0.4, ease: 'easeOut' }}
+                        >
+                            <Button className="bg-[#4FC8FF] hover:bg-[#4FC8FF]/90 text-white px-8 py-3 text-lg">
+                                Apply Now
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="border-[#4FC8FF] text-[#4FC8FF] hover:bg-[#4FC8FF] hover:text-white px-8 py-3 text-lg"
+                            >
+                                Download Brochure
+                            </Button>
+                        </motion.div>
+                    </div>
+                </section>
+
+                {/* Benefits Section */}
+                <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-900/30">
+                    <div className="max-w-6xl mx-auto">
+                        <motion.div
+                            className="text-center mb-12"
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, ease: 'easeOut' }}
+                            viewport={{ once: true }}
+                        >
+                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Why Partner With Us?</h2>
+                            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+                                Join hundreds of successful partners worldwide and unlock your business potential
+                            </p>
+                        </motion.div>
+
+                        <div className="grid lg:grid-cols-2 gap-8">
+                            {benefits.map((benefit, index) => (
+                                <motion.div
+                                    key={index}
+                                    initial={{ opacity: 0, y: 30 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.6, delay: index * 0.2, ease: 'easeOut' }}
+                                    viewport={{ once: true }}
+                                >
+                                    <Card className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-all duration-300 hover:border-[#4FC8FF]/30 hover:scale-105">
+                                        <CardContent className="p-8">
+                                            <div className="flex items-start gap-6">
+                                                <motion.div
+                                                    className="p-3 bg-[#4FC8FF]/10 rounded-lg"
+                                                    whileHover={{ scale: 1.1, rotate: 5 }}
+                                                    transition={{ duration: 0.3 }}
+                                                >
+                                                    {benefit.icon}
+                                                </motion.div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <h3 className="text-xl font-semibold text-white">
+                                                            {benefit.title}
+                                                        </h3>
+                                                        <motion.span
+                                                            className="text-sm text-[#4FC8FF] font-medium bg-[#4FC8FF]/10 px-3 py-1 rounded-full"
+                                                            whileHover={{ scale: 1.05 }}
+                                                        >
+                                                            {benefit.highlight}
+                                                        </motion.span>
+                                                    </div>
+                                                    <p className="text-gray-300 leading-relaxed">
+                                                        {benefit.description}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* Requirements Section */}
+                <section className="py-16 px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-4xl mx-auto">
+                        <motion.div
+                            className="text-center mb-12"
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, ease: 'easeOut' }}
+                            viewport={{ once: true }}
+                        >
+                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Partner Requirements</h2>
+                            <p className="text-xl text-gray-300">
+                                We&apos;re looking for committed partners who share our vision of excellence
+                            </p>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, x: -30 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
+                            viewport={{ once: true }}
+                        >
+                            <Card className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-all duration-300">
+                                <CardContent className="p-8">
+                                    <div className="space-y-4">
+                                        {requirements.map((requirement, index) => (
+                                            <motion.div
+                                                key={index}
+                                                className="flex items-center gap-4"
+                                                initial={{ opacity: 0, x: -20 }}
+                                                whileInView={{ opacity: 1, x: 0 }}
+                                                transition={{ duration: 0.5, delay: 0.1 * index, ease: 'easeOut' }}
+                                                viewport={{ once: true }}
+                                            >
+                                                <motion.div
+                                                    whileHover={{ scale: 1.2, rotate: 360 }}
+                                                    transition={{ duration: 0.3 }}
+                                                >
+                                                    <FiCheckCircle className="w-6 h-6 text-[#4FC8FF] flex-shrink-0" />
+                                                </motion.div>
+                                                <span className="text-gray-300 text-lg">{requirement}</span>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+                    </div>
+                </section>
+
+                {/* Application Form Section */}
+                <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-900/30">
+                    <div className="max-w-4xl mx-auto">
+                        <motion.div
+                            className="text-center mb-12"
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, ease: 'easeOut' }}
+                            viewport={{ once: true }}
+                        >
+                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Submit Your Application</h2>
+                            <p className="text-xl text-gray-300">
+                                Ready to join our partner network? Fill out the form below and we&apos;ll get back to
+                                you within 24 hours.
+                            </p>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 40 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
+                            viewport={{ once: true }}
+                        >
+                            <Card className="bg-gray-800/50 border-gray-700 shadow-2xl hover:shadow-3xl transition-all duration-300">
+                                <CardContent className="p-8">
+                                    {submitStatus === 'success' && (
+                                        <div className="mb-8 p-6 bg-green-900/50 border border-green-600 text-green-300 rounded-lg">
+                                            <div className="flex items-center gap-3">
+                                                <FiCheckCircle className="w-6 h-6" />
+                                                <div>
+                                                    <h3 className="font-semibold">
+                                                        Application Submitted Successfully!
+                                                    </h3>
+                                                    <p className="text-sm opacity-90">
+                                                        We&apos;ll review your application and get back to you within 24
+                                                        hours.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {submitStatus === 'error' && (
+                                        <div className="mb-8 p-6 bg-red-900/50 border border-red-600 text-red-300 rounded-lg">
+                                            <div className="flex items-center gap-3">
+                                                <FiMail className="w-6 h-6" />
+                                                <div>
+                                                    <h3 className="font-semibold">Submission Failed</h3>
+                                                    <p className="text-sm opacity-90">
+                                                        There was an error submitting your application. Please try
+                                                        again.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <form onSubmit={handleSubmit} className="space-y-8">
+                                        {/* Company Information */}
+                                        <div className="space-y-6">
+                                            <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
+                                                Company Information
+                                            </h3>
+                                            <div className="grid md:grid-cols-2 gap-6">
+                                                <div>
+                                                    <label
+                                                        htmlFor="companyName"
+                                                        className="block text-sm font-medium text-gray-300 mb-2"
+                                                    >
+                                                        Company Name *
+                                                    </label>
+                                                    <Input
+                                                        id="companyName"
+                                                        name="companyName"
+                                                        type="text"
+                                                        required
+                                                        value={formData.companyName}
+                                                        onChange={handleInputChange}
+                                                        placeholder="Your company name"
+                                                        className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label
+                                                        htmlFor="website"
+                                                        className="block text-sm font-medium text-gray-300 mb-2"
+                                                    >
+                                                        Website
+                                                    </label>
+                                                    <Input
+                                                        id="website"
+                                                        name="website"
+                                                        type="url"
+                                                        value={formData.website}
+                                                        onChange={handleInputChange}
+                                                        placeholder="https://yourwebsite.com"
+                                                        className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Contact Information */}
+                                        <div className="space-y-6">
+                                            <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
+                                                Contact Information
+                                            </h3>
+                                            <div className="grid md:grid-cols-2 gap-6">
+                                                <div>
+                                                    <label
+                                                        htmlFor="contactName"
+                                                        className="block text-sm font-medium text-gray-300 mb-2"
+                                                    >
+                                                        Contact Name *
+                                                    </label>
+                                                    <Input
+                                                        id="contactName"
+                                                        name="contactName"
+                                                        type="text"
+                                                        required
+                                                        value={formData.contactName}
+                                                        onChange={handleInputChange}
+                                                        placeholder="Your full name"
+                                                        className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label
+                                                        htmlFor="email"
+                                                        className="block text-sm font-medium text-gray-300 mb-2"
+                                                    >
+                                                        Email Address *
+                                                    </label>
+                                                    <Input
+                                                        id="email"
+                                                        name="email"
+                                                        type="email"
+                                                        required
+                                                        value={formData.email}
+                                                        onChange={handleInputChange}
+                                                        placeholder="your@email.com"
+                                                        className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label
+                                                        htmlFor="phone"
+                                                        className="block text-sm font-medium text-gray-300 mb-2"
+                                                    >
+                                                        Phone Number *
+                                                    </label>
+                                                    <Input
+                                                        id="phone"
+                                                        name="phone"
+                                                        type="tel"
+                                                        required
+                                                        value={formData.phone}
+                                                        onChange={handleInputChange}
+                                                        placeholder="+1 (555) 123-4567"
+                                                        className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Business Address */}
+                                        <div className="space-y-6">
+                                            <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
+                                                Business Address
+                                            </h3>
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label
+                                                        htmlFor="address"
+                                                        className="block text-sm font-medium text-gray-300 mb-2"
+                                                    >
+                                                        Street Address *
+                                                    </label>
+                                                    <Input
+                                                        id="address"
+                                                        name="address"
+                                                        type="text"
+                                                        required
+                                                        value={formData.address}
+                                                        onChange={handleInputChange}
+                                                        placeholder="123 Business Street"
+                                                        className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
+                                                    />
+                                                </div>
+
+                                                <div className="grid md:grid-cols-2 gap-6">
+                                                    <div>
+                                                        <label
+                                                            htmlFor="city"
+                                                            className="block text-sm font-medium text-gray-300 mb-2"
+                                                        >
+                                                            City *
+                                                        </label>
+                                                        <Input
+                                                            id="city"
+                                                            name="city"
+                                                            type="text"
+                                                            required
+                                                            value={formData.city}
+                                                            onChange={handleInputChange}
+                                                            placeholder="Your city"
+                                                            className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label
+                                                            htmlFor="country"
+                                                            className="block text-sm font-medium text-gray-300 mb-2"
+                                                        >
+                                                            Country *
+                                                        </label>
+                                                        <Input
+                                                            id="country"
+                                                            name="country"
+                                                            type="text"
+                                                            required
+                                                            value={formData.country}
+                                                            onChange={handleInputChange}
+                                                            placeholder="Your country"
+                                                            className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Business Details */}
+                                        <div className="space-y-6">
+                                            <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
+                                                Business Details
+                                            </h3>
+                                            <div className="grid md:grid-cols-2 gap-6">
+                                                <div>
+                                                    <label
+                                                        htmlFor="businessType"
+                                                        className="block text-sm font-medium text-gray-300 mb-2"
+                                                    >
+                                                        Business Type *
+                                                    </label>
+                                                    <select
+                                                        id="businessType"
+                                                        name="businessType"
+                                                        required
+                                                        value={formData.businessType}
+                                                        onChange={handleInputChange}
+                                                        className="flex h-10 w-full rounded-md border border-gray-600 bg-gray-700/50 px-3 py-2 text-white ring-offset-background placeholder:text-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                                                    >
+                                                        <option value="">Select business type</option>
+                                                        <option value="retailer">Retailer</option>
+                                                        <option value="distributor">Distributor</option>
+                                                        <option value="online-store">Online Store</option>
+                                                        <option value="system-integrator">System Integrator</option>
+                                                        <option value="other">Other</option>
+                                                    </select>
+                                                </div>
+
+                                                <div>
+                                                    <label
+                                                        htmlFor="experience"
+                                                        className="block text-sm font-medium text-gray-300 mb-2"
+                                                    >
+                                                        Years of Experience *
+                                                    </label>
+                                                    <select
+                                                        id="experience"
+                                                        name="experience"
+                                                        required
+                                                        value={formData.experience}
+                                                        onChange={handleInputChange}
+                                                        className="flex h-10 w-full rounded-md border border-gray-600 bg-gray-700/50 px-3 py-2 text-white ring-offset-background placeholder:text-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                                                    >
+                                                        <option value="">Select experience</option>
+                                                        <option value="0-2">0-2 years</option>
+                                                        <option value="3-5">3-5 years</option>
+                                                        <option value="6-10">6-10 years</option>
+                                                        <option value="10+">10+ years</option>
+                                                    </select>
+                                                </div>
+
+                                                <div>
+                                                    <label
+                                                        htmlFor="expectedVolume"
+                                                        className="block text-sm font-medium text-gray-300 mb-2"
+                                                    >
+                                                        Expected Monthly Volume *
+                                                    </label>
+                                                    <select
+                                                        id="expectedVolume"
+                                                        name="expectedVolume"
+                                                        required
+                                                        value={formData.expectedVolume}
+                                                        onChange={handleInputChange}
+                                                        className="flex h-10 w-full rounded-md border border-gray-600 bg-gray-700/50 px-3 py-2 text-white ring-offset-background placeholder:text-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                                                    >
+                                                        <option value="">Select expected volume</option>
+                                                        <option value="1-10">1-10 units</option>
+                                                        <option value="11-50">11-50 units</option>
+                                                        <option value="51-100">51-100 units</option>
+                                                        <option value="100+">100+ units</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Additional Information */}
+                                        <div className="space-y-6">
+                                            <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
+                                                Additional Information
+                                            </h3>
+                                            <div>
+                                                <label
+                                                    htmlFor="message"
+                                                    className="block text-sm font-medium text-gray-300 mb-2"
+                                                >
+                                                    Tell us about your business
+                                                </label>
+                                                <textarea
+                                                    id="message"
+                                                    name="message"
+                                                    rows={5}
+                                                    value={formData.message}
+                                                    onChange={handleInputChange}
+                                                    placeholder="Tell us about your business, target markets, or any specific requirements..."
+                                                    className="flex w-full rounded-md border border-gray-600 bg-gray-700/50 px-3 py-2 text-white ring-offset-background placeholder:text-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col sm:flex-row gap-4 justify-end pt-6">
+                                            <Button
+                                                type="submit"
+                                                disabled={isSubmitting}
+                                                className="bg-[#4FC8FF] hover:bg-[#4FC8FF]/90 text-white px-12 py-3 text-lg font-semibold"
+                                            >
+                                                {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                                            </Button>
+                                        </div>
+                                    </form>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+                    </div>
+                </section>
+
+                {/* Contact Information */}
+                <section className="py-16 px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-4xl mx-auto">
+                        <motion.div
+                            className="text-center mb-12"
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, ease: 'easeOut' }}
+                            viewport={{ once: true }}
+                        >
+                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Have Questions?</h2>
+                            <p className="text-xl text-gray-300">
+                                Our partnership team is here to help you get started
+                            </p>
+                        </motion.div>
+
+                        <div className="grid md:grid-cols-3 gap-8">
+                            {[
+                                {
+                                    icon: <FiMail className="w-6 h-6 text-[#4FC8FF]" />,
+                                    title: 'Email Us',
+                                    content: 'reseller@tunezonehifi.com'
+                                },
+                                {
+                                    icon: <FiPhone className="w-6 h-6 text-[#4FC8FF]" />,
+                                    title: 'Call Us',
+                                    content: '+1 (555) 123-4567'
+                                },
+                                {
+                                    icon: <FiMapPin className="w-6 h-6 text-[#4FC8FF]" />,
+                                    title: 'Visit Us',
+                                    content: 'Business hours: Mon-Fri 9AM-6PM'
+                                }
+                            ].map((contact, index) => (
+                                <motion.div
+                                    key={index}
+                                    initial={{ opacity: 0, y: 30 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.6, delay: index * 0.2, ease: 'easeOut' }}
+                                    viewport={{ once: true }}
+                                >
+                                    <Card className="bg-gray-800/50 border-gray-700 text-center hover:bg-gray-800/70 hover:border-[#4FC8FF]/30 transition-all duration-300 hover:scale-105">
+                                        <CardContent className="p-6">
+                                            <div className="mb-4">
+                                                <motion.div
+                                                    className="w-12 h-12 bg-[#4FC8FF]/10 rounded-full flex items-center justify-center mx-auto mb-3"
+                                                    whileHover={{ scale: 1.1, rotate: 10 }}
+                                                    transition={{ duration: 0.3 }}
+                                                >
+                                                    {contact.icon}
+                                                </motion.div>
+                                                <h3 className="font-semibold text-white mb-2">{contact.title}</h3>
+                                                <p className="text-gray-300">{contact.content}</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    );
+}
