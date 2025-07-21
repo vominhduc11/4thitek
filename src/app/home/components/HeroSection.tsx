@@ -4,14 +4,13 @@
 import Image from 'next/image';
 import { motion, Variants } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Product info
 const PRODUCT_INFO = {
     NAME: 'SCS S8X Pro',
     IMAGE: '/products/product1.png',
-    VIDEO: '/videos/motorbike-road-trip-2022-07-26-01-49-02-utc.mp4',
-    DESCRIPTION: `4T HITEK latest S8X's unique appearance and a variety of functions allow users to have a better product experience. S8X has a unique rain proof structure, Bluetooth 5.0 communication technology, group intercom connection, advanced noise control, stereo music playback, GPS navigation, etc.`,
-    CTA_TEXT: 'DISCOVERY NOW'
+    VIDEO: '/videos/motorbike-road-trip-2022-07-26-01-49-02-utc.mp4'
 };
 
 // Particle effect config inlined
@@ -89,9 +88,10 @@ const gradientVariants: Variants = {
 
 export default function HeroSection() {
     const router = useRouter();
+    const { t } = useLanguage();
 
     const handleDiscoveryClick = () => {
-        router.push('/products?series=SX%20SERIES');
+        router.push('/products?position=Premium');
     };
 
     return (
@@ -172,7 +172,7 @@ export default function HeroSection() {
                     initial="hidden"
                     animate="visible"
                 >
-                    {PRODUCT_INFO.DESCRIPTION}
+                    {t('hero.subtitle')}
                 </motion.p>
                 <motion.button
                     className="px-3 xs:px-4 sm:px-6 py-2 xs:py-2.5 sm:py-3 border border-white text-white text-xs xs:text-sm sm:text-base font-medium font-sans rounded-full hover:bg-white hover:text-black transition cursor-pointer min-w-[140px] xs:min-w-[160px] sm:min-w-auto"
@@ -184,7 +184,7 @@ export default function HeroSection() {
                     onClick={handleDiscoveryClick}
                     aria-label={`Discover more about ${PRODUCT_INFO.NAME}`}
                 >
-                    {PRODUCT_INFO.CTA_TEXT}
+                    {t('hero.cta')}
                 </motion.button>
             </motion.div>
 

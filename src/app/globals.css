@@ -26,6 +26,44 @@ body {
     box-sizing: border-box;
 }
 
+/* Smooth scrolling for entire page */
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 80px; /* Account for fixed header */
+}
+
+/* Enhanced smooth scrolling with CSS animation */
+* {
+    scroll-behavior: smooth;
+}
+
+/* Custom easing for webkit browsers */
+@supports (scroll-behavior: smooth) {
+    html {
+        scroll-behavior: smooth;
+    }
+}
+
+/* Enhanced smooth scrolling for blog detail page */
+.scroll-smooth {
+    scroll-behavior: smooth;
+}
+
+/* Optimized animations for better performance */
+.motion-safe {
+    will-change: transform, opacity;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
 /* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
     width: 8px;

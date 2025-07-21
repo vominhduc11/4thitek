@@ -2,29 +2,25 @@
 
 interface Feature {
     title: string;
-    subtitle: string;
+    subtitle?: string;
     description: string;
     value?: string;
 }
 
-interface AdditionalFeature {
-    icon: string;
+interface ProductDetailsProps {
+    features: Feature[];
+    highlights: string[];
     description: string;
 }
 
-interface ProductDetailsProps {
-    features: Feature[];
-    additionalFeatures: AdditionalFeature[];
-}
-
-export default function ProductDetails({ features, additionalFeatures }: ProductDetailsProps) {
+export default function ProductDetails({ features, highlights, description }: ProductDetailsProps) {
     return (
         <section id="product-details" className="bg-[#0a0f1a] relative z-50 -mt-20 min-h-screen">
             <div className="container mx-auto max-w-8xl relative -top-48 py-20">
-                <h2 className="text-3xl font-bold mb-8 text-white">PRODUCT FEATURED</h2>
+                <h2 className="text-2xl md:text-3xl lg:text-3xl font-bold mb-6 md:mb-8 text-white">PRODUCT FEATURED</h2>
 
                 {/* Top row - 3 cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-12">
                     {features.map((feature, index) => (
                         <div
                             key={index}
@@ -32,32 +28,36 @@ export default function ProductDetails({ features, additionalFeatures }: Product
                         >
                             <div className="mb-4">
                                 <span className="text-4xl font-bold text-blue-400">{feature.title}</span>
-                                <h3 className="text-lg font-semibold text-blue-400 mt-2">{feature.subtitle}</h3>
+                                {feature.subtitle && (
+                                    <h3 className="text-lg font-semibold text-blue-400 mt-2">{feature.subtitle}</h3>
+                                )}
                             </div>
                             <p className="text-gray-400 text-sm leading-relaxed">{feature.description}</p>
                         </div>
                     ))}
                 </div>
 
-                {/* Bottom row - 2 cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
-                    {additionalFeatures.map((feature, index) => (
-                        <div
-                            key={index}
-                            className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-2xl flex items-center gap-4"
-                        >
-                            <div className="text-blue-400 text-3xl">{feature.icon}</div>
-                            <div className="flex-1">
-                                <p className="text-gray-400 text-sm leading-relaxed">{feature.description}</p>
+                {/* Product Highlights */}
+                {highlights.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-12 md:mb-16">
+                        {highlights.map((highlight, index) => (
+                            <div
+                                key={index}
+                                className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-2xl flex items-center gap-4"
+                            >
+                                <div className="text-blue-400 text-3xl">✨</div>
+                                <div className="flex-1">
+                                    <p className="text-gray-400 text-sm leading-relaxed">{highlight}</p>
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                )}
 
                 {/* Product Details Content */}
                 <div className="space-y-12">
                     {/* Title */}
-                    <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">
+                    <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-white leading-tight">
                         TAI NGHE CHO MŨ BẢO HIỂM MÔ TÔ PHƯỢT BLUETOOTH INTERCOM SCS S-9. GẮN KẾT ANH EM CÙNG PHƯỢT
                     </h2>
 
@@ -78,27 +78,16 @@ export default function ProductDetails({ features, additionalFeatures }: Product
                     </div>
 
                     {/* Content */}
-                    <div className="space-y-4 text-gray-300 leading-relaxed">
-                        <p>
-                            Tai nghe Bluetooth được thiết kế chuyên dụng cho mũ bảo hiểm mô tô với công nghệ âm thanc
-                            tiên tiến giúp bạn duy trì liên lạc trong quá trình di chuyển với mũ bảo hiểm mô tô SCS S-9
-                            lần này.
-                        </p>
-                        <p>
-                            Thiết kế chắc chắn, gọn nhẹ, có thể tháo rời dễ dàng. Khoảng cách nói chuyện lên tới 1km,
-                            chức năng ghi âm hoàn hảo, cho phần mềm cài đặt trên smartphone để quản lý và sử dụng một
-                            cách thuận tiện và hiệu quả.
-                        </p>
-                        <p>
-                            Cố gắng kết nối tối đa 6 người. Hỗ trợ kết nối GPS, nghe nhạc, gọi điện, chuyển chế độ theo
-                            các tùy chọn, hỗ trợ giảm tiếng ồn, dễ dàng lắp đặt trên mũ bảo hiểm.
-                        </p>
-                    </div>
+                    {description && (
+                        <div className="space-y-4 text-gray-300 leading-relaxed">
+                            <p>{description}</p>
+                        </div>
+                    )}
 
                     {/* Perfect Design Section */}
                     <div className="space-y-8">
                         {/* Title */}
-                        <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">THIẾT KẾ HOÀN HẢO</h2>
+                        <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-white leading-tight">THIẾT KẾ HOÀN HẢO</h2>
 
                         {/* Bullet Points */}
                         <div className="space-y-4 text-gray-300 leading-relaxed">

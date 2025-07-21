@@ -4,11 +4,10 @@ import { motion } from 'framer-motion';
 import { MdSearch } from 'react-icons/md';
 
 interface EmptyStateProps {
-    selectedSeries: string;
     onClearFilters: () => void;
 }
 
-export default function EmptyState({ selectedSeries, onClearFilters }: EmptyStateProps) {
+export default function EmptyState({ onClearFilters }: EmptyStateProps) {
     return (
         <motion.div
             className="flex flex-col items-center justify-center py-20 text-center"
@@ -40,9 +39,7 @@ export default function EmptyState({ selectedSeries, onClearFilters }: EmptyStat
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.6, delay: 0.6 }}
             >
-                {selectedSeries !== 'ALL'
-                    ? `No products found in ${selectedSeries}. Try selecting a different series or clear all filters.`
-                    : 'No products match your current filters. Try adjusting your search criteria.'}
+                No products match your current filters. Try adjusting your search criteria.
             </motion.p>
 
             <motion.button

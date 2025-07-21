@@ -1,20 +1,53 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { CiShuffle } from 'react-icons/ci';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
+import type { Product } from '@/types/product';
 
-interface Product {
-    id: string;
-    name: string;
-    subtitle: string;
-    description: string;
-    image: string;
-    series?: {
-        id: string;
-        name: string;
-    };
+interface ProductImageWithFallbackProps {
+    src: string;
+    alt: string;
+    className?: string;
+}
+
+function ProductImageWithFallback({ src, alt, className }: ProductImageWithFallbackProps) {
+    const [imageError, setImageError] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+
+    if (imageError) {
+        return (
+            <div className={`${className} flex flex-col items-center justify-center`}>
+                <div className="text-6xl md:text-8xl opacity-70">🎧</div>
+            </div>
+        );
+    }
+
+    return (
+        <div className={className}>
+            {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            )}
+            <Image
+                src={src}
+                alt={alt}
+                width={400}
+                height={400}
+                className={`w-full h-full object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+                onLoad={() => setIsLoading(false)}
+                onError={() => {
+                    console.error('Product image failed to load:', src);
+                    setImageError(true);
+                    setIsLoading(false);
+                }}
+                priority
+            />
+        </div>
+    );
 }
 
 interface BreadcrumbItem {
@@ -24,22 +57,18 @@ interface BreadcrumbItem {
 
 interface ProductHeroProps {
     product: Product;
-    breadcrumbItems: BreadcrumbItem[];
-    activeBreadcrumb: string;
-    onBreadcrumbClick: (item: BreadcrumbItem) => void;
-    seriesProducts?: Product[]; // List of products in the same series
-    currentProductIndex?: number; // Current product index in series
-    onProductSwitch?: (index: number) => void; // Function to switch product
+    relatedProducts?: Product[]; // Related products
+    breadcrumbItems?: BreadcrumbItem[];
+    activeBreadcrumb?: string;
+    onBreadcrumbClick?: (item: BreadcrumbItem) => void;
 }
 
 export default function ProductHero({
     product,
-    breadcrumbItems,
-    activeBreadcrumb,
-    onBreadcrumbClick,
-    seriesProducts = [],
-    currentProductIndex = 0,
-    onProductSwitch
+    relatedProducts = [],
+    breadcrumbItems = [],
+    activeBreadcrumb = '',
+    onBreadcrumbClick = () => {}
 }: ProductHeroProps) {
     const [, setVideoLoaded] = useState(false);
     const [, setVideoError] = useState(false);
@@ -50,42 +79,139 @@ export default function ProductHero({
         router.push('/reseller_infomation');
     };
 
+    // Create sticky breadcrumb effect
+    useEffect(() => {
+        const createStickyBreadcrumb = () => {
+            const heroBreadcrumb = document.getElementById('hero-breadcrumb');
+            if (!heroBreadcrumb || window.innerWidth < 640) return; // Only for tablet/desktop
+
+            let stickyBreadcrumb = document.getElementById('sticky-breadcrumb-clone');
+
+            const handleScroll = () => {
+                const heroBreadcrumbRect = heroBreadcrumb.getBoundingClientRect();
+                const hasScrolledPast = heroBreadcrumbRect.bottom < 80; // Header height
+
+                if (hasScrolledPast && !stickyBreadcrumb) {
+                    // Create simplified sticky breadcrumb
+                    stickyBreadcrumb = document.createElement('div');
+                    stickyBreadcrumb.id = 'sticky-breadcrumb-clone';
+                    stickyBreadcrumb.className = 'fixed top-13 sm:top-17 left-16 sm:left-20 right-0 z-[101] py-0 bg-gray-900/95 backdrop-blur-md shadow-lg transition-all duration-300 ease-out';
+                    
+                    // Initial state for animation (hidden)
+                    stickyBreadcrumb.style.opacity = '0';
+                    stickyBreadcrumb.style.transform = 'translateY(-20px)';
+                    
+                    // Create content structure
+                    const wrapperDiv = document.createElement('div');
+                    wrapperDiv.className = 'pl-4';
+                    
+                    const containerDiv = document.createElement('div');
+                    containerDiv.className = 'container mx-auto max-w-6xl md:max-w-4xl px-4';
+                    
+                    const nav = document.createElement('nav');
+                    nav.className = 'flex justify-center items-center space-x-2 md:space-x-1 text-sm';
+                    
+                    // Create breadcrumb items with proper event listeners
+                    breadcrumbItems.forEach((item, index) => {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'flex items-center space-x-2 md:space-x-1';
+                        
+                        const button = document.createElement('button');
+                        button.className = `font-medium transition-colors duration-300 px-3 md:px-2 py-3 text-center ${
+                            activeBreadcrumb === item.label
+                                ? 'text-blue-400'
+                                : 'text-gray-400 hover:text-white'
+                        }`;
+                        button.textContent = item.label;
+                        
+                        // Add click event listener
+                        button.addEventListener('click', () => {
+                            console.log('🖱️ Sticky breadcrumb clicked:', item.label);
+                            if (onBreadcrumbClick) {
+                                onBreadcrumbClick(item);
+                            }
+                        });
+                        
+                        itemDiv.appendChild(button);
+                        
+                        // Add separator
+                        if (index < breadcrumbItems.length - 1) {
+                            const separator = document.createElement('span');
+                            separator.className = 'text-gray-500';
+                            separator.textContent = '/';
+                            itemDiv.appendChild(separator);
+                        }
+                        
+                        nav.appendChild(itemDiv);
+                    });
+                    
+                    containerDiv.appendChild(nav);
+                    wrapperDiv.appendChild(containerDiv);
+                    stickyBreadcrumb.appendChild(wrapperDiv);
+                    
+                    document.body.appendChild(stickyBreadcrumb);
+                    
+                    // Trigger animation after a small delay
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            stickyBreadcrumb!.style.opacity = '1';
+                            stickyBreadcrumb!.style.transform = 'translateY(0)';
+                        });
+                    });
+                } else if (!hasScrolledPast && stickyBreadcrumb) {
+                    // Animate out before removing
+                    stickyBreadcrumb.style.opacity = '0';
+                    stickyBreadcrumb.style.transform = 'translateY(-20px)';
+                    
+                    // Remove after animation completes
+                    setTimeout(() => {
+                        if (stickyBreadcrumb) {
+                            stickyBreadcrumb.remove();
+                            stickyBreadcrumb = null;
+                        }
+                    }, 300);
+                }
+            };
+
+            window.addEventListener('scroll', handleScroll);
+            return () => {
+                window.removeEventListener('scroll', handleScroll);
+                if (stickyBreadcrumb) stickyBreadcrumb.remove();
+            };
+        };
+
+        const cleanup = createStickyBreadcrumb();
+        return cleanup;
+    }, [breadcrumbItems, activeBreadcrumb, onBreadcrumbClick]);
+
     const handleShuffleProduct = () => {
-        console.log('Current product index:', currentProductIndex);
-        console.log('Series products:', seriesProducts);
-        
-        if (seriesProducts.length <= 1) {
-            console.log('No other products in this series');
+        console.log('Related products:', relatedProducts);
+
+        if (relatedProducts.length === 0) {
+            console.log('No related products available');
             return;
         }
 
-        // Get all possible indices except current one
-        const availableIndices = seriesProducts
-            .map((_, index) => index)
-            .filter(index => index !== currentProductIndex);
+        // Use deterministic approach to avoid hydration mismatch
+        // Use current time + product id as seed for better randomness during interaction
+        const seed = new Date().getTime() + product.id.charCodeAt(0);
+        const randomIndex = seed % relatedProducts.length;
+        const randomProduct = relatedProducts[randomIndex];
 
-        if (availableIndices.length === 0) {
-            console.log('No other products available');
-            return;
-        }
+        console.log('Switching to product:', randomProduct);
 
-        // Pick a random index from available ones
-        const randomIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
-        
-        console.log('Switching to product index:', randomIndex);
-        console.log('Product:', seriesProducts[randomIndex]);
-        
-        // Use callback to switch product instead of navigation
-        if (onProductSwitch) {
-            onProductSwitch(randomIndex);
-        }
+        // Navigate to the random product
+        router.push(`/products/${randomProduct.id}`);
     };
 
-
     return (
-        <section
+        <motion.section
             id="product-videos"
-            className="relative min-h-screen flex items-center justify-center overflow-visible group"
+            className="relative h-[50vh] sm:h-[60vh] md:h-[70vh] lg:h-screen xl:min-h-screen flex items-center justify-center overflow-visible"
+            initial="hidden"
+            animate="hidden"
+            whileHover="visible"
+            transition={{ staggerChildren: 0.1 }}
         >
             {/* Video Background */}
             <div className="absolute inset-0 z-0">
@@ -132,95 +258,115 @@ export default function ProductHero({
                 <div className="absolute inset-0 bg-black/30"></div>
 
                 {/* Top gradient overlay */}
-                <div className="absolute top-0 left-0 right-0 h-96 bg-gradient-to-b from-black via-black/95 via-black/85 via-black/75 via-black/65 via-black/55 via-black/45 via-black/35 via-black/25 via-black/15 to-transparent z-10"></div>
+                <div className="absolute top-0 left-0 right-0 h-32 sm:h-48 md:h-64 lg:h-96 bg-gradient-to-b from-black via-black/95 via-black/85 via-black/75 via-black/65 via-black/55 via-black/45 via-black/35 via-black/25 via-black/15 to-transparent z-10"></div>
 
                 {/* Bottom gradient overlay */}
-                <div className="absolute bottom-0 left-0 right-0 h-[600px] bg-gradient-to-t from-black via-black/95 via-black/85 via-black/75 via-black/65 via-black/55 via-black/45 via-black/35 via-black/25 via-black/15 to-transparent z-10"></div>
+                <div className="absolute bottom-0 left-0 right-0 h-48 sm:h-64 md:h-80 lg:h-[600px] bg-gradient-to-t from-black via-black/95 via-black/85 via-black/75 via-black/65 via-black/55 via-black/45 via-black/35 via-black/25 via-black/15 to-transparent z-10"></div>
 
                 {/* Left gradient overlay */}
                 <div
-                    className="absolute top-0 bottom-0 left-0 w-32 bg-gradient-to-r from-black via-black/95 via-black/85 via-black/75 via-black/65 via-black/55 via-black/45 via-black/35 via-black/25 via-black/15 to-transparent z-10"
+                    className="absolute top-0 bottom-0 left-0 w-16 sm:w-20 md:w-24 lg:w-32 bg-gradient-to-r from-black via-black/95 via-black/85 via-black/75 via-black/65 via-black/55 via-black/45 via-black/35 via-black/25 via-black/15 to-transparent z-10"
                     style={{ clipPath: 'ellipse(100% 70% at 0% 50%)' }}
                 ></div>
 
                 {/* Right gradient overlay */}
                 <div
-                    className="absolute top-0 bottom-0 right-0 w-32 bg-gradient-to-l from-black via-black/95 via-black/85 via-black/75 via-black/65 via-black/55 via-black/45 via-black/35 via-black/25 via-black/15 to-transparent z-10"
+                    className="absolute top-0 bottom-0 right-0 w-16 sm:w-20 md:w-24 lg:w-32 bg-gradient-to-l from-black via-black/95 via-black/85 via-black/75 via-black/65 via-black/55 via-black/45 via-black/35 via-black/25 via-black/15 to-transparent z-10"
                     style={{ clipPath: 'ellipse(100% 70% at 100% 50%)' }}
                 ></div>
             </div>
 
-            {/* Side Navigation */}
-            <div className="absolute left-20 top-2/5 transform -translate-y-1/2 -rotate-90 z-30 mt-5 -ml-6">
-                <div className="text-white font-bold tracking-[0.3em] text-5xl">
-                    {product.series?.name || 'PRODUCT SERIES'}
+            {/* Side Navigation - Responsive Vertical Text */}
+            <div className="absolute left-2 sm:left-4 md:left-8 lg:left-16 xl:left-20 top-1/2 transform -translate-y-1/2 z-30 hidden sm:block">
+                <div 
+                    className="text-white font-bold tracking-[0.2em] sm:tracking-[0.25em] md:tracking-[0.3em] text-xs sm:text-sm md:text-base lg:text-lg xl:text-2xl opacity-70 hover:opacity-100 transition-opacity duration-300"
+                    style={{
+                        writingMode: 'vertical-rl',
+                        textOrientation: 'mixed'
+                    }}
+                >
+                    PRODUCT
                 </div>
             </div>
 
             {/* Main Content Area with Product Image */}
-            <div className="relative z-10 container mx-auto px-4 text-center -mt-32">
-
+            <div className="relative z-10 container mx-auto px-4 text-center -mt-16 sm:-mt-24 md:-mt-28 lg:-mt-32">
                 {/* Product Image with Navigation */}
-                <div className="flex items-center justify-center min-h-screen px-4">
-                    <div className="grid grid-cols-3 items-center w-full max-w-6xl">
-                        {/* Left Navigation - Shuffle Button */}
-                        <div className="flex justify-start">
-                            <button 
+                <div className="flex items-center justify-center h-full px-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3 items-center w-full max-w-5xl lg:max-w-4xl">
+                        {/* Left Navigation - Shuffle Button - Hidden on mobile and tablet */}
+                        <div className="hidden sm:flex md:hidden lg:flex justify-center lg:justify-end lg:pr-[90px]">
+                            <motion.button
                                 onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
                                     console.log('Shuffle button clicked!');
                                     handleShuffleProduct();
                                 }}
-                                className="w-12 h-12 bg-white/10 hover:bg-white rounded-full flex items-center justify-center transition-all duration-300 backdrop-blur-sm border border-white/20 opacity-0 group-hover:opacity-100 transform -translate-x-4 group-hover:translate-x-0 hover:scale-110 cursor-pointer z-50 group/shuffle"
-                                title={`Shuffle sản phẩm khác trong ${product.series?.name || 'series này'}`}
+                                className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-white/10 hover:bg-white rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 hover:scale-110 cursor-pointer z-50 group/shuffle"
+                                title={`View other related products`}
+                                initial={{ opacity: 0, x: -20, scale: 0.8 }}
+                                animate={{ 
+                                    opacity: 0, 
+                                    x: -20, 
+                                    scale: 0.8,
+                                    transition: { duration: 0.3, ease: "easeOut" }
+                                }}
+                                whileHover={{ scale: 1.1 }}
+                                variants={{
+                                    hidden: { opacity: 0, x: -20, scale: 0.8 },
+                                    visible: { 
+                                        opacity: 1, 
+                                        x: 0, 
+                                        scale: 1,
+                                        transition: { duration: 0.4, ease: "easeOut", delay: 0.1 }
+                                    }
+                                }}
                             >
-                                <CiShuffle className="w-6 h-6 text-white group-hover/shuffle:text-gray-800 pointer-events-none transition-colors duration-300" />
-                            </button>
+                                <CiShuffle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white group-hover/shuffle:text-gray-800 pointer-events-none transition-colors duration-300" />
+                            </motion.button>
                         </div>
 
                         {/* Product Image - Centered */}
-                        <div className="flex flex-col justify-center items-center">
+                        <div className="flex flex-col justify-center items-center relative">
                             {/* Product Title with Animation */}
-                            <div className="text-center mb-8">
+                            <div className="text-center mb-4 sm:mb-6 md:mb-8">
                                 <AnimatePresence mode="wait">
                                     <motion.h1
                                         key={product.id + '-title'}
                                         initial={{ opacity: 0, y: -20 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: 20 }}
-                                        transition={{ 
+                                        transition={{
                                             duration: 0.5,
                                             ease: [0.25, 0.1, 0.25, 1]
                                         }}
-                                        className="text-2xl md:text-3xl font-bold text-white w-[520px]"
+                                        className="text-xl sm:text-2xl md:text-2xl lg:text-3xl font-bold text-white max-w-[520px] px-4"
                                     >
                                         {product.name}
                                     </motion.h1>
                                 </AnimatePresence>
                             </div>
 
-                            <div className="relative w-full max-w-md h-96 md:h-[500px] -mt-24">
+                            <div className="relative w-full max-w-md h-48 sm:h-56 md:h-72 lg:h-80 xl:h-96 2xl:h-[500px] -mt-4 sm:-mt-8 md:-mt-8 lg:-mt-16 xl:-mt-24">
                                 <div className="relative w-full h-full flex items-center justify-center">
                                     {/* Product Image with Animation */}
                                     <AnimatePresence mode="wait">
-                                        <motion.img
-                                            key={product.id + '-image'}
-                                            src={product.image || "/products/product1.png"}
-                                            alt={product.name}
-                                            className="w-full h-full object-contain"
-                                            initial={{ 
-                                                opacity: 0, 
+                                        <motion.div
+                                            key={product.id + '-image-container'}
+                                            className="w-full h-full flex items-center justify-center"
+                                            initial={{
+                                                opacity: 0,
                                                 scale: 0.8,
                                                 rotateY: -90
                                             }}
-                                            animate={{ 
-                                                opacity: 1, 
+                                            animate={{
+                                                opacity: 1,
                                                 scale: 1,
                                                 rotateY: 0
                                             }}
-                                            exit={{ 
-                                                opacity: 0, 
+                                            exit={{
+                                                opacity: 0,
                                                 scale: 1.2,
                                                 rotateY: 90
                                             }}
@@ -229,32 +375,47 @@ export default function ProductHero({
                                                 ease: [0.25, 0.1, 0.25, 1],
                                                 rotateY: {
                                                     duration: 0.6,
-                                                    ease: "easeInOut"
+                                                    ease: 'easeInOut'
                                                 }
                                             }}
-                                            onError={(e) => {
-                                                console.error('Product image failed to load');
-                                                const target = e.target as HTMLImageElement;
-                                                target.style.display = 'none';
-                                                const fallback = document.createElement('div');
-                                                fallback.className = 'text-8xl md:text-9xl';
-                                                fallback.textContent = '🎧';
-                                                target.parentNode?.appendChild(fallback);
-                                            }}
-                                        />
+                                        >
+                                            <ProductImageWithFallback
+                                                src="/products/product1.png"
+                                                alt={product.name}
+                                                className="w-full h-full object-contain max-w-[600px] max-h-[600px]"
+                                            />
+                                        </motion.div>
                                     </AnimatePresence>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Right Navigation - Find Retailer Button */}
-                        <div className="flex justify-end">
-                            <button 
+                        {/* Right Navigation - Find Retailer Button - Hidden on mobile and tablet */}
+                        <div className="hidden sm:flex md:hidden lg:flex justify-center lg:justify-start lg:pl-[90px]">
+                            <motion.button
                                 onClick={handleFindRetailer}
-                                className="bg-white/10 hover:bg-white hover:text-black text-white px-6 py-3 rounded-full font-medium tracking-wide flex items-center gap-2 transition-all duration-300 backdrop-blur-sm border border-white/20 opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0"
+                                className="bg-white/10 hover:bg-white hover:text-black text-white px-3 py-2 sm:px-4 sm:py-2 md:px-6 md:py-3 rounded-full font-medium tracking-wide flex items-center gap-1 sm:gap-2 backdrop-blur-sm border border-white/20 text-xs sm:text-sm md:text-base"
+                                initial={{ opacity: 0, x: 20, scale: 0.8 }}
+                                animate={{ 
+                                    opacity: 0, 
+                                    x: 20, 
+                                    scale: 0.8,
+                                    transition: { duration: 0.3, ease: "easeOut" }
+                                }}
+                                whileHover={{ scale: 1.05 }}
+                                variants={{
+                                    hidden: { opacity: 0, x: 20, scale: 0.8 },
+                                    visible: { 
+                                        opacity: 1, 
+                                        x: 0, 
+                                        scale: 1,
+                                        transition: { duration: 0.4, ease: "easeOut", delay: 0.2 }
+                                    }
+                                }}
                             >
-                                TÌM ĐẠI LÝ
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <span className="hidden md:inline">FIND RETAILER</span>
+                                <span className="md:hidden">RETAILER</span>
+                                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
@@ -262,70 +423,134 @@ export default function ProductHero({
                                         d="M12 4l8 8-8 8M4 12h16"
                                     />
                                 </svg>
-                            </button>
+                            </motion.button>
                         </div>
+                        
+                        {/* Mobile & Tablet Action Buttons - Positioned below image */}
+                        <motion.div 
+                            className="flex justify-center gap-4 mt-6 sm:hidden md:flex lg:hidden"
+                            variants={{
+                                hidden: { opacity: 0, y: 20 },
+                                visible: { 
+                                    opacity: 1, 
+                                    y: 0,
+                                    transition: { 
+                                        duration: 0.5, 
+                                        ease: "easeOut",
+                                        staggerChildren: 0.1,
+                                        delayChildren: 0.3
+                                    }
+                                }
+                            }}
+                        >
+                            <motion.button
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    console.log('Shuffle button clicked!');
+                                    handleShuffleProduct();
+                                }}
+                                className="w-10 h-10 md:w-12 md:h-12 bg-white/10 hover:bg-white rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 hover:scale-110 cursor-pointer group/shuffle"
+                                title="View other related products"
+                                variants={{
+                                    hidden: { opacity: 0, scale: 0.8, x: -10 },
+                                    visible: { 
+                                        opacity: 1, 
+                                        scale: 1, 
+                                        x: 0,
+                                        transition: { duration: 0.4, ease: "easeOut" }
+                                    }
+                                }}
+                                whileTap={{ scale: 0.95 }}
+                            >
+                                <CiShuffle className="w-5 h-5 md:w-6 md:h-6 text-white group-hover/shuffle:text-gray-800 pointer-events-none transition-colors duration-300" />
+                            </motion.button>
+                            <motion.button
+                                onClick={handleFindRetailer}
+                                className="bg-white/10 hover:bg-white hover:text-black text-white px-4 py-2 md:px-6 md:py-3 rounded-full font-medium tracking-wide flex items-center gap-2 backdrop-blur-sm border border-white/20 text-sm md:text-base"
+                                variants={{
+                                    hidden: { opacity: 0, scale: 0.8, x: 10 },
+                                    visible: { 
+                                        opacity: 1, 
+                                        scale: 1, 
+                                        x: 0,
+                                        transition: { duration: 0.4, ease: "easeOut" }
+                                    }
+                                }}
+                                whileTap={{ scale: 0.95 }}
+                            >
+                                RETAILER
+                                <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 4l8 8-8 8M4 12h16"
+                                    />
+                                </svg>
+                            </motion.button>
+                        </motion.div>
                     </div>
                 </div>
             </div>
 
-            {/* Breadcrumb Navigation */}
-            <div className="absolute bottom-72 left-0 right-0 z-20">
-                {/* Left line segment */}
-                <div
-                    className="absolute top-1/2 left-0 right-1/2 h-px bg-gray-600 z-10"
-                    style={{ right: 'calc(50% + 250px)' }}
-                ></div>
+            {/* Desktop Breadcrumb Navigation - Bottom of Hero */}
+            {breadcrumbItems.length > 0 && (() => {
+                console.log('Desktop breadcrumb rendering, items:', breadcrumbItems);
+                return true;
+            })() && (
+                <div className="absolute bottom-32 sm:bottom-40 md:bottom-64 lg:bottom-56 left-0 right-0 z-20 hidden sm:block" id="hero-breadcrumb">
+                    {/* Left line segment */}
+                    <div
+                        className="absolute top-1/2 left-0 h-px bg-gray-600 z-5"
+                        style={{ 
+                            right: 'calc(50% + 280px)',
+                            width: 'calc(50% - 280px)'
+                        }}
+                    ></div>
 
-                {/* Right line segment */}
-                <div
-                    className="absolute top-1/2 left-1/2 right-0 h-px bg-gray-600 z-10"
-                    style={{ left: 'calc(50% + 250px)' }}
-                ></div>
+                    {/* Right line segment */}
+                    <div
+                        className="absolute top-1/2 right-0 h-px bg-gray-600 z-5"
+                        style={{ 
+                            left: 'calc(50% + 280px)',
+                            width: 'calc(50% - 280px)'
+                        }}
+                    ></div>
 
-                <div className="container mx-auto max-w-6xl px-4">
-                    <nav className="flex justify-center items-center space-x-2 text-sm relative z-20">
-                        {breadcrumbItems.map((item, index) => (
-                            <div key={item.label} className="flex items-center space-x-2">
-                                <motion.button
-                                    onClick={() => onBreadcrumbClick(item)}
-                                    className={`font-medium relative transition-all duration-300 hover:scale-105 ${
-                                        activeBreadcrumb === item.label
-                                            ? 'text-blue-400'
-                                            : 'text-gray-400 hover:text-white'
-                                    }`}
-                                    whileHover={{
-                                        scale: 1.05,
-                                        transition: { duration: 0.2 }
-                                    }}
-                                    whileTap={{
-                                        scale: 0.95,
-                                        transition: { duration: 0.1 }
-                                    }}
-                                    animate={
-                                        activeBreadcrumb === item.label
-                                            ? {
-                                                  textShadow: '0 0 8px rgba(59, 130, 246, 0.5)'
-                                              }
-                                            : {}
-                                    }
-                                >
-                                    {item.label}
-                                    {activeBreadcrumb === item.label && (
-                                        <motion.div
-                                            className="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-400"
-                                            layoutId="breadcrumb-underline"
-                                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                                        />
+                    <div className="container mx-auto max-w-6xl md:max-w-4xl px-4">
+                        <nav className="flex justify-center items-center space-x-2 md:space-x-1 text-sm relative z-20">
+                            {breadcrumbItems.map((item, index) => (
+                                <div key={item.label} className="flex items-center space-x-2 md:space-x-1">
+                                    <motion.button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            console.log('🖱️ Desktop breadcrumb clicked:', item.label, 'Screen width:', window.innerWidth);
+                                            if (onBreadcrumbClick) {
+                                                onBreadcrumbClick(item);
+                                            } else {
+                                                console.error('onBreadcrumbClick function not provided!');
+                                            }
+                                        }}
+                                        className={`font-medium relative transition-colors duration-300 px-3 md:px-2 py-2 text-center ${
+                                            activeBreadcrumb === item.label
+                                                ? 'text-blue-400'
+                                                : 'text-gray-400 hover:text-white'
+                                        }`}
+                                    >
+                                        {item.label}
+                                    </motion.button>
+                                    {index < breadcrumbItems.length - 1 && (
+                                        <span className="text-gray-500 relative">/</span>
                                     )}
-                                </motion.button>
-                                {index < breadcrumbItems.length - 1 && (
-                                    <span className="text-gray-500 relative">/</span>
-                                )}
-                            </div>
-                        ))}
-                    </nav>
+                                </div>
+                            ))}
+                        </nav>
+                    </div>
                 </div>
-            </div>
-        </section>
+            )}
+
+        </motion.section>
     );
 }

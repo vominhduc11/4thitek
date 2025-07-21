@@ -18,7 +18,7 @@ export default function FeatureCards() {
                 router.push('/account/user');
                 break;
             case 'product-showcase':
-                router.push('/products');
+                router.push('/contact');
                 break;
             default:
                 break;

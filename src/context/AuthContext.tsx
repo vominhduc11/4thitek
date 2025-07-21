@@ -14,6 +14,7 @@ interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
+    isHydrated: boolean;
     login: (user: User) => void;
     logout: () => void;
     clearAuth: () => void;
@@ -24,11 +25,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isHydrated, setIsHydrated] = useState(false);
 
     useEffect(() => {
         // Kiểm tra xem người dùng đã đăng nhập chưa (từ localStorage)
         const checkAuth = () => {
             console.log('Checking authentication status...');
+
+            // Set hydrated flag first
+            setIsHydrated(true);
 
             // Đảm bảo localStorage có sẵn (client-side)
             if (typeof window === 'undefined') {
@@ -49,10 +54,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         setUser(parsedUser);
 
                         // Đảm bảo cookie được đặt nếu có dữ liệu người dùng trong localStorage
-                        if (!document.cookie.includes('4thitek_auth=')) {
+                        if (typeof document !== 'undefined' && !document.cookie.includes('4thitek_auth=')) {
                             document.cookie = '4thitek_auth=true; path=/; max-age=86400'; // Hết hạn sau 1 ngày
                             console.log('Auth cookie set');
-                        } else {
+                        } else if (typeof document !== 'undefined') {
                             console.log('Auth cookie already exists');
                         }
                     } else {
@@ -63,7 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 } catch (error) {
                     console.error('Failed to parse stored user data:', error);
                     localStorage.removeItem('4thitek_user');
-                    document.cookie = '4thitek_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                    if (typeof document !== 'undefined') {
+                        document.cookie = '4thitek_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                    }
                     setUser(null);
                 }
             } else {
@@ -87,8 +94,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('User data saved to localStorage');
 
         // Đặt cookie để middleware có thể nhận diện
-        document.cookie = '4thitek_auth=true; path=/; max-age=86400'; // Hết hạn sau 1 ngày
-        console.log('Auth cookie set');
+        if (typeof document !== 'undefined') {
+            document.cookie = '4thitek_auth=true; path=/; max-age=86400'; // Hết hạn sau 1 ngày
+            console.log('Auth cookie set');
+        }
     };
 
     const logout = () => {
@@ -100,8 +109,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.log('User data removed from localStorage');
 
             // Xóa cookie xác thực
-            document.cookie = '4thitek_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-            console.log('Auth cookie removed');
+            if (typeof document !== 'undefined') {
+                document.cookie = '4thitek_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                console.log('Auth cookie removed');
+            }
         }
 
         // Đặt user state về null sau khi đã xóa dữ liệu
@@ -113,7 +124,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const clearAuth = () => {
         if (typeof window !== 'undefined') {
             localStorage.removeItem('4thitek_user');
-            document.cookie = '4thitek_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            if (typeof document !== 'undefined') {
+                document.cookie = '4thitek_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            }
         }
         setUser(null);
     };
@@ -122,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isAuthenticated: !!user,
         isLoading,
+        isHydrated,
         login,
         logout,
         clearAuth

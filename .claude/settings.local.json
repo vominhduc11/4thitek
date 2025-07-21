@@ -1,12 +1,16 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(npm run build:*)",
-      "Bash(head:*)",
-      "Bash(ls:*)",
-      "Bash(cat:*)",
-      "Bash(cp:*)"
-    ],
-    "deny": []
-  }
+    "permissions": {
+        "allow": [
+            "Bash(npm run build:*)",
+            "Bash(head:*)",
+            "Bash(ls:*)",
+            "Bash(cat:*)",
+            "Bash(cp:*)",
+            "Bash(rm:*)",
+            "Bash(wc:*)",
+            "Bash(find:*)",
+            "Bash(grep:*)"
+        ],
+        "deny": []
+    }
 }

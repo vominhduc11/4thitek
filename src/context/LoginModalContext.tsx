@@ -25,13 +25,9 @@ export function LoginModalProvider({ children }: { children: ReactNode }) {
         console.log('Opening login modal with redirect path:', path);
         setRedirectPath(path);
 
-        // Đảm bảo modal được mở bằng cách sử dụng setTimeout và requestAnimationFrame
-        setTimeout(() => {
-            requestAnimationFrame(() => {
-                setIsLoginModalOpen(true);
-                console.log('Login modal should be open now');
-            });
-        }, 0);
+        // Simplified modal opening to avoid hydration timing issues
+        setIsLoginModalOpen(true);
+        console.log('Login modal opened');
     };
 
     const closeLoginModal = () => {
@@ -45,17 +41,17 @@ export function LoginModalProvider({ children }: { children: ReactNode }) {
         // Đảm bảo modal được đóng trước
         setIsLoginModalOpen(false);
 
-        // Đảm bảo chuyển hướng được thực hiện sau khi modal đã đóng và trạng thái đăng nhập đã được cập nhật
-        setTimeout(() => {
-            if (redirectPath) {
-                console.log('Redirecting to:', redirectPath);
-                router.push(redirectPath);
-            } else {
-                // Nếu không có redirectPath, reload trang để cập nhật UI
-                console.log('No redirect path, reloading page');
+        // Simplified redirect handling
+        if (redirectPath) {
+            console.log('Redirecting to:', redirectPath);
+            router.push(redirectPath);
+        } else {
+            // Nếu không có redirectPath, reload trang để cập nhật UI
+            console.log('No redirect path, reloading page');
+            if (typeof window !== 'undefined') {
                 window.location.reload();
             }
-        }, 300); // Đợi 300ms để đảm bảo trạng thái đăng nhập đã được cập nhật
+        }
     };
 
     return (

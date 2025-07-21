@@ -5,50 +5,50 @@ export const contactInfo: ContactInfo[] = [
     {
         id: 'main-phone',
         type: 'phone',
-        label: 'Hotline chính',
+        label: 'Main Hotline',
         value: '1900-4THITEK (1900-484835)',
         icon: '📞',
         isPublic: true,
         isPrimary: true,
-        workingHours: 'T2-T6: 8:00-17:30, T7: 8:00-12:00',
-        notes: 'Hỗ trợ tư vấn sản phẩm và bảo hành'
+        workingHours: 'Mon-Fri: 8:00-17:30, Sat: 8:00-12:00',
+        notes: 'Product consultation and warranty support'
     },
     {
         id: 'business-phone',
         type: 'phone',
-        label: 'Kinh doanh B2B',
+        label: 'B2B Business',
         value: '024-3845-6789',
         icon: '📱',
         isPublic: true,
         isPrimary: false,
         department: 'Business Development',
-        workingHours: 'T2-T6: 8:00-17:30'
+        workingHours: 'Mon-Fri: 8:00-17:30'
     },
     {
         id: 'support-phone',
         type: 'phone',
-        label: 'Hỗ trợ kỹ thuật',
+        label: 'Technical Support',
         value: '028-3123-4567',
         icon: '🔧',
         isPublic: true,
         isPrimary: false,
         department: 'Technical Support',
-        workingHours: 'T2-T6: 8:00-17:30, T7: 8:00-16:00'
+        workingHours: 'Mon-Fri: 8:00-17:30, Sat: 8:00-16:00'
     },
     {
         id: 'main-email',
         type: 'email',
-        label: 'Email chính',
+        label: 'Main Email',
         value: 'info@4thitek.com',
         icon: '📧',
         isPublic: true,
         isPrimary: true,
-        notes: 'Email chính cho mọi liên hệ'
+        notes: 'Main email for all inquiries'
     },
     {
         id: 'business-email',
         type: 'email',
-        label: 'Hợp tác kinh doanh',
+        label: 'Business Partnership',
         value: 'business@4thitek.com',
         icon: '💼',
         isPublic: true,
@@ -58,7 +58,7 @@ export const contactInfo: ContactInfo[] = [
     {
         id: 'support-email',
         type: 'email',
-        label: 'Hỗ trợ kỹ thuật',
+        label: 'Technical Support',
         value: 'support@4thitek.com',
         icon: '🛠️',
         isPublic: true,
@@ -68,7 +68,7 @@ export const contactInfo: ContactInfo[] = [
     {
         id: 'warranty-email',
         type: 'email',
-        label: 'Bảo hành',
+        label: 'Warranty',
         value: 'warranty@4thitek.com',
         icon: '🔧',
         isPublic: true,
@@ -88,7 +88,7 @@ export const socialMedia: SocialMedia[] = [
         followers: 15420,
         isVerified: true,
         isActive: true,
-        description: 'Trang Facebook chính thức của 4THITEK - Cập nhật tin tức và sản phẩm mới',
+        description: 'Official Facebook page of 4THITEK - Updates on news and new products',
         icon: '👥',
         color: '#1877F2'
     },
@@ -101,7 +101,7 @@ export const socialMedia: SocialMedia[] = [
         followers: 8750,
         isVerified: true,
         isActive: true,
-        description: 'Instagram chính thức - Hình ảnh và video sản phẩm mới nhất',
+        description: 'Official Instagram - Latest product images and videos',
         icon: '📸',
         color: '#E4405F'
     },
@@ -114,7 +114,7 @@ export const socialMedia: SocialMedia[] = [
         followers: 12300,
         isVerified: true,
         isActive: true,
-        description: 'Kênh YouTube - Review, unboxing và hướng dẫn sử dụng',
+        description: 'YouTube Channel - Reviews, unboxing and user guides',
         icon: '📹',
         color: '#FF0000'
     },
@@ -126,7 +126,7 @@ export const socialMedia: SocialMedia[] = [
         followers: 2890,
         isVerified: true,
         isActive: true,
-        description: 'LinkedIn - Tin tức doanh nghiệp và cơ hội nghề nghiệp',
+        description: 'LinkedIn - Corporate news and career opportunities',
         icon: '💼',
         color: '#0A66C2'
     },
@@ -139,7 +139,7 @@ export const socialMedia: SocialMedia[] = [
         followers: 5420,
         isVerified: false,
         isActive: true,
-        description: 'TikTok - Video ngắn về gaming và công nghệ',
+        description: 'TikTok - Short videos about gaming and technology',
         icon: '🎵',
         color: '#000000'
     },
@@ -151,7 +151,7 @@ export const socialMedia: SocialMedia[] = [
         followers: 3450,
         isVerified: true,
         isActive: true,
-        description: 'Zalo OA - Hỗ trợ khách hàng nhanh chóng',
+        description: 'Zalo OA - Quick customer support',
         icon: '💬',
         color: '#0068FF'
     }
@@ -164,11 +164,11 @@ export const officeLocations: OfficeLocation[] = [
         name: '4THITEK Headquarters',
         type: 'headquarters',
         address: {
-            street: '123 Láng Hạ, Ba Đình',
-            district: 'Ba Đình',
-            city: 'Hà Nội',
-            province: 'Hà Nội',
-            country: 'Việt Nam',
+            street: '123 Lang Ha, Ba Dinh',
+            district: 'Ba Dinh District',
+            city: 'Hanoi',
+            province: 'Hanoi',
+            country: 'Vietnam',
             postalCode: '100000'
         },
         coordinates: {
@@ -179,7 +179,7 @@ export const officeLocations: OfficeLocation[] = [
             {
                 id: 'hn-phone',
                 type: 'phone',
-                label: 'Điện thoại',
+                label: 'Phone',
                 value: '024-3845-6789',
                 isPublic: true,
                 isPrimary: true
@@ -200,23 +200,17 @@ export const officeLocations: OfficeLocation[] = [
             thursday: '8:00 - 17:30',
             friday: '8:00 - 17:30',
             saturday: '8:00 - 12:00',
-            sunday: 'Đóng cửa'
+            sunday: 'Closed'
         },
         services: [
-            'Tư vấn sản phẩm',
-            'Bảo hành và sửa chữa',
-            'Đào tạo kỹ thuật',
-            'Hỗ trợ đại lý',
-            'Demo sản phẩm'
+            'Product consultation',
+            'Warranty and repair',
+            'Technical training',
+            'Dealer support',
+            'Product demo'
         ],
-        languages: ['Tiếng Việt', 'English'],
-        facilities: [
-            'Phòng demo âm thanh',
-            'Trung tâm bảo hành',
-            'Khu vực đào tạo',
-            'Bãi đỗ xe',
-            'Wifi miễn phí'
-        ],
+        languages: ['Vietnamese', 'English'],
+        facilities: ['Audio demo room', 'Warranty center', 'Training area', 'Parking area', 'Free WiFi'],
         isMainOffice: true,
         image: '/offices/hanoi-hq.jpg'
     },
@@ -225,11 +219,11 @@ export const officeLocations: OfficeLocation[] = [
         name: '4THITEK TP.HCM',
         type: 'branch',
         address: {
-            street: '456 Nguyễn Văn Cừ, Quận 5',
-            district: 'Quận 5',
-            city: 'TP. Hồ Chí Minh',
-            province: 'TP. Hồ Chí Minh',
-            country: 'Việt Nam',
+            street: '456 Nguyen Van Cu, District 5',
+            district: 'District 5',
+            city: 'Ho Chi Minh City',
+            province: 'Ho Chi Minh City',
+            country: 'Vietnam',
             postalCode: '700000'
         },
         coordinates: {
@@ -240,7 +234,7 @@ export const officeLocations: OfficeLocation[] = [
             {
                 id: 'hcm-phone',
                 type: 'phone',
-                label: 'Điện thoại',
+                label: 'Phone',
                 value: '028-3123-4567',
                 isPublic: true,
                 isPrimary: true
@@ -261,22 +255,17 @@ export const officeLocations: OfficeLocation[] = [
             thursday: '8:00 - 17:30',
             friday: '8:00 - 17:30',
             saturday: '8:00 - 16:00',
-            sunday: 'Đóng cửa'
+            sunday: 'Closed'
         },
         services: [
-            'Tư vấn sản phẩm',
-            'Bảo hành và sửa chữa',
-            'Hỗ trợ kỹ thuật',
+            'Product consultation',
+            'Warranty and repair',
+            'Technical support',
             'Training workshop',
             'Demo showroom'
         ],
-        languages: ['Tiếng Việt', 'English'],
-        facilities: [
-            'Showroom trưng bày',
-            'Phòng bảo hành',
-            'Khu vực training',
-            'Bãi đỗ xe máy'
-        ],
+        languages: ['Vietnamese', 'English'],
+        facilities: ['Display showroom', 'Warranty room', 'Training area', 'Motorcycle parking'],
         isMainOffice: false,
         image: '/offices/hcm-branch.jpg'
     },
@@ -285,11 +274,11 @@ export const officeLocations: OfficeLocation[] = [
         name: '4THITEK Service Center Đà Nẵng',
         type: 'service-center',
         address: {
-            street: '789 Lê Duẩn, Hải Châu',
-            district: 'Hải Châu',
-            city: 'Đà Nẵng',
-            province: 'Đà Nẵng',
-            country: 'Việt Nam',
+            street: '789 Le Duan, Hai Chau',
+            district: 'Hai Chau District',
+            city: 'Da Nang',
+            province: 'Da Nang',
+            country: 'Vietnam',
             postalCode: '550000'
         },
         coordinates: {
@@ -300,7 +289,7 @@ export const officeLocations: OfficeLocation[] = [
             {
                 id: 'dn-phone',
                 type: 'phone',
-                label: 'Điện thoại',
+                label: 'Phone',
                 value: '0236-3987-654',
                 isPublic: true,
                 isPrimary: true
@@ -321,20 +310,11 @@ export const officeLocations: OfficeLocation[] = [
             thursday: '8:00 - 17:00',
             friday: '8:00 - 17:00',
             saturday: '8:00 - 12:00',
-            sunday: 'Đóng cửa'
+            sunday: 'Closed'
         },
-        services: [
-            'Bảo hành sản phẩm',
-            'Sửa chữa chuyên nghiệp',
-            'Tư vấn kỹ thuật',
-            'Vệ sinh bảo dưỡng'
-        ],
+        services: ['Product warranty', 'Professional repair', 'Technical consultation', 'Cleaning and maintenance'],
         languages: ['Tiếng Việt'],
-        facilities: [
-            'Khu vực tiếp nhận',
-            'Phòng sửa chữa',
-            'Kho linh kiện'
-        ],
+        facilities: ['Reception area', 'Repair room', 'Parts warehouse'],
         isMainOffice: false,
         image: '/offices/danang-service.jpg'
     }
@@ -344,13 +324,13 @@ export const officeLocations: OfficeLocation[] = [
 export const departments: Department[] = [
     {
         id: 'sales',
-        name: 'Bộ phận Kinh doanh',
-        description: 'Tư vấn sản phẩm, báo giá và hỗ trợ khách hàng doanh nghiệp',
+        name: 'Sales Department',
+        description: 'Product consultation, quotation and enterprise customer support',
         contactInfo: [
             {
                 id: 'sales-phone',
                 type: 'phone',
-                label: 'Hotline Kinh doanh',
+                label: 'Sales Hotline',
                 value: '1900-4THITEK',
                 isPublic: true,
                 isPrimary: true
@@ -358,18 +338,18 @@ export const departments: Department[] = [
             {
                 id: 'sales-email',
                 type: 'email',
-                label: 'Email Kinh doanh',
+                label: 'Sales Email',
                 value: 'sales@4thitek.com',
                 isPublic: true,
                 isPrimary: true
             }
         ],
         responsibilities: [
-            'Tư vấn giải pháp âm thanh',
-            'Báo giá và đàm phán hợp đồng',
-            'Hỗ trợ khách hàng doanh nghiệp',
-            'Quản lý mối quan hệ đại lý',
-            'Phát triển thị trường mới'
+            'Audio solution consultation',
+            'Quotation and contract negotiation',
+            'Enterprise customer support',
+            'Dealer relationship management',
+            'New market development'
         ],
         teamMembers: [
             {
@@ -385,17 +365,17 @@ export const departments: Department[] = [
                 phone: '0123-456-790'
             }
         ],
-        workingHours: 'T2-T6: 8:00-17:30, T7: 8:00-12:00'
+        workingHours: 'Mon-Fri: 8:00-17:30, Sat: 8:00-12:00'
     },
     {
         id: 'technical-support',
-        name: 'Hỗ trợ Kỹ thuật',
-        description: 'Hỗ trợ kỹ thuật, troubleshooting và đào tạo sử dụng sản phẩm',
+        name: 'Technical Support',
+        description: 'Technical support, troubleshooting and product usage training',
         contactInfo: [
             {
                 id: 'tech-phone',
                 type: 'phone',
-                label: 'Hotline Kỹ thuật',
+                label: 'Technical Hotline',
                 value: '028-3123-4567',
                 isPublic: true,
                 isPrimary: true
@@ -403,18 +383,18 @@ export const departments: Department[] = [
             {
                 id: 'tech-email',
                 type: 'email',
-                label: 'Email Kỹ thuật',
+                label: 'Technical Email',
                 value: 'support@4thitek.com',
                 isPublic: true,
                 isPrimary: true
             }
         ],
         responsibilities: [
-            'Hỗ trợ kỹ thuật qua điện thoại/email',
-            'Troubleshooting và giải quyết sự cố',
-            'Hướng dẫn setup và cấu hình',
-            'Đào tạo sử dụng sản phẩm',
-            'Tạo tài liệu kỹ thuật'
+            'Technical support via phone/email',
+            'Troubleshooting and issue resolution',
+            'Setup and configuration guidance',
+            'Product usage training',
+            'Technical documentation creation'
         ],
         teamMembers: [
             {
@@ -424,17 +404,17 @@ export const departments: Department[] = [
                 phone: '0123-456-791'
             }
         ],
-        workingHours: 'T2-T6: 8:00-17:30, T7: 8:00-16:00'
+        workingHours: 'Mon-Fri: 8:00-17:30, Sat: 8:00-16:00'
     },
     {
         id: 'warranty',
-        name: 'Bảo hành',
-        description: 'Xử lý yêu cầu bảo hành, sửa chữa và thay thế sản phẩm',
+        name: 'Warranty',
+        description: 'Processing warranty requests, repairs and product replacement',
         contactInfo: [
             {
                 id: 'warranty-phone',
                 type: 'phone',
-                label: 'Hotline Bảo hành',
+                label: 'Warranty Hotline',
                 value: '1900-4THITEK',
                 isPublic: true,
                 isPrimary: true
@@ -442,20 +422,20 @@ export const departments: Department[] = [
             {
                 id: 'warranty-email',
                 type: 'email',
-                label: 'Email Bảo hành',
+                label: 'Warranty Email',
                 value: 'warranty@4thitek.com',
                 isPublic: true,
                 isPrimary: true
             }
         ],
         responsibilities: [
-            'Tiếp nhận và xử lý yêu cầu bảo hành',
-            'Kiểm tra và chẩn đoán sản phẩm',
-            'Sửa chữa và thay thế linh kiện',
-            'Quản lý kho linh kiện',
-            'Báo cáo tình trạng bảo hành'
+            'Receive and process warranty requests',
+            'Product inspection and diagnosis',
+            'Repair and component replacement',
+            'Parts inventory management',
+            'Warranty status reporting'
         ],
-        workingHours: 'T2-T6: 8:00-17:30, T7: 8:00-12:00'
+        workingHours: 'Mon-Fri: 8:00-17:30, Sat: 8:00-12:00'
     }
 ];
 
@@ -463,52 +443,52 @@ export const departments: Department[] = [
 export const businessHours: BusinessHours[] = [
     {
         day: 'monday',
-        dayName: 'Thứ Hai',
+        dayName: 'Monday',
         isOpen: true,
         openTime: '08:00',
         closeTime: '17:30'
     },
     {
         day: 'tuesday',
-        dayName: 'Thứ Ba',
+        dayName: 'Tuesday',
         isOpen: true,
         openTime: '08:00',
         closeTime: '17:30'
     },
     {
         day: 'wednesday',
-        dayName: 'Thứ Tư',
+        dayName: 'Wednesday',
         isOpen: true,
         openTime: '08:00',
         closeTime: '17:30'
     },
     {
         day: 'thursday',
-        dayName: 'Thứ Năm',
+        dayName: 'Thursday',
         isOpen: true,
         openTime: '08:00',
         closeTime: '17:30'
     },
     {
         day: 'friday',
-        dayName: 'Thứ Sáu',
+        dayName: 'Friday',
         isOpen: true,
         openTime: '08:00',
         closeTime: '17:30'
     },
     {
         day: 'saturday',
-        dayName: 'Thứ Bảy',
+        dayName: 'Saturday',
         isOpen: true,
         openTime: '08:00',
         closeTime: '12:00',
-        notes: 'Chỉ hỗ trợ bảo hành và tư vấn cơ bản'
+        notes: 'Warranty support and basic consultation only'
     },
     {
         day: 'sunday',
-        dayName: 'Chủ Nhật',
+        dayName: 'Sunday',
         isOpen: false,
-        notes: 'Đóng cửa nghỉ ngơi'
+        notes: 'Closed for rest'
     }
 ];
 
@@ -520,8 +500,8 @@ export const emergencyContacts: EmergencyContact[] = [
         role: 'Technical Support Manager',
         phone: '0123-456-791',
         email: 'tuan.le@4thitek.com',
-        availability: 'T7, CN: 9:00-18:00',
-        languages: ['Tiếng Việt', 'English'],
+        availability: 'Sat, Sun: 9:00-18:00',
+        languages: ['Vietnamese', 'English'],
         specialization: ['Technical Issues', 'Product Setup', 'Troubleshooting']
     },
     {
@@ -530,7 +510,7 @@ export const emergencyContacts: EmergencyContact[] = [
         role: 'Warranty Service Lead',
         phone: '0123-456-792',
         email: 'hoa.nguyen@4thitek.com',
-        availability: 'Cuối tuần và lễ',
+        availability: 'Weekends and holidays',
         languages: ['Tiếng Việt'],
         specialization: ['Warranty Claims', 'Urgent Repairs', 'Replacement Authorization']
     }
@@ -538,31 +518,31 @@ export const emergencyContacts: EmergencyContact[] = [
 
 // Helper functions
 export const getContactByType = (type: string): ContactInfo[] => {
-    return contactInfo.filter(contact => contact.type === type);
+    return contactInfo.filter((contact) => contact.type === type);
 };
 
 export const getPrimaryContacts = (): ContactInfo[] => {
-    return contactInfo.filter(contact => contact.isPrimary);
+    return contactInfo.filter((contact) => contact.isPrimary);
 };
 
 export const getOfficeById = (id: string): OfficeLocation | undefined => {
-    return officeLocations.find(office => office.id === id);
+    return officeLocations.find((office) => office.id === id);
 };
 
 export const getMainOffice = (): OfficeLocation | undefined => {
-    return officeLocations.find(office => office.isMainOffice);
+    return officeLocations.find((office) => office.isMainOffice);
 };
 
 export const getDepartmentById = (id: string): Department | undefined => {
-    return departments.find(dept => dept.id === id);
+    return departments.find((dept) => dept.id === id);
 };
 
 export const getActiveSocialMedia = (): SocialMedia[] => {
-    return socialMedia.filter(social => social.isActive);
+    return socialMedia.filter((social) => social.isActive);
 };
 
 export const getVerifiedSocialMedia = (): SocialMedia[] => {
-    return socialMedia.filter(social => social.isVerified);
+    return socialMedia.filter((social) => social.isVerified);
 };
 
 // Export counts

@@ -1,461 +1,293 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { FiArrowUpRight, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
-import clsx from 'clsx';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiArrowRight, FiStar, FiPackage, FiShield } from 'react-icons/fi';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
-import AvoidSidebar from '@/components/layout/AvoidSidebar';
+import Link from 'next/link';
+import { products } from '@/data/products';
+import type { Product } from '@/types/product';
 
-// Types
-/**
- * Represents a thumbnail image for a product series
- */
-interface Thumb {
-    /** Unique identifier for the thumbnail */
-    id: string;
-    /** Image source URL */
-    src: string;
-    /** Display label for the thumbnail */
-    label: string;
-}
-
-/**
- * Represents a product series with its main image and thumbnails
- */
-interface SeriesItem {
-    /** Unique identifier for the series */
-    id: string;
-    /** Display name of the series (e.g., "SX SERIES") */
-    label: string;
-    /** Main image URL for the series */
-    img: string;
-    /** Optional array of thumbnail images */
-    thumbs?: Thumb[];
-}
-
-// Mock Data
-const seriesItems: SeriesItem[] = [
-    {
-        id: '1',
-        label: 'SX SERIES',
-        img: '/products/product1.png',
-        thumbs: [
-            { id: 'sx1', src: '/products/product1.png', label: 'S8X Pro' },
-            { id: 'sx2', src: '/products/product2.png', label: 'S8X Elite' },
-            { id: 'sx3', src: '/products/product3.png', label: 'S8X Max' },
-            { id: 'sx4', src: '/products/product1.png', label: 'S8X Standard' },
-            { id: 'sx5', src: '/products/product2.png', label: 'S8X Sport' }
-        ]
-    },
-    {
-        id: '2',
-        label: 'S SERIES',
-        img: '/products/product3.png',
-        thumbs: [
-            { id: 's1', src: '/products/product3.png', label: 'S Pro' },
-            { id: 's2', src: '/products/product1.png', label: 'S Standard' },
-            { id: 's3', src: '/products/product2.png', label: 'S Plus' },
-            { id: 's4', src: '/products/product3.png', label: 'S Compact' }
-        ]
-    },
-    {
-        id: '3',
-        label: 'G SERIES',
-        img: '/products/product1.png',
-        thumbs: [
-            { id: 'g1', src: '/products/product1.png', label: 'G Pro' },
-            { id: 'g2', src: '/products/product2.png', label: 'G Elite' },
-            { id: 'g3', src: '/products/product3.png', label: 'G Standard' },
-            { id: 'g4', src: '/products/product1.png', label: 'G Tactical' }
-        ]
-    },
-    {
-        id: '4',
-        label: 'G+ SERIES',
-        img: '/products/product2.png',
-        thumbs: [
-            { id: 'gp1', src: '/products/product2.png', label: 'G+ Elite' },
-            { id: 'gp2', src: '/products/product3.png', label: 'G+ Max' },
-            { id: 'gp3', src: '/products/product1.png', label: 'G+ Pro' },
-            { id: 'gp4', src: '/products/product2.png', label: 'G+ Sport' },
-            { id: 'gp5', src: '/products/product3.png', label: 'G+ Tactical' }
-        ]
-    }
-];
-
-// Main ProductSeries Component
 export default function ProductSeries() {
-    const router = useRouter();
-
-    // State
-    const [activeIndex, setActiveIndex] = useState(0);
-    const [activeThumb, setActiveThumb] = useState(0);
-    const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-    const [isTransitioning, setIsTransitioning] = useState(false);
-
-    // Helper functions
-    const handleSeriesChange = (index: number) => {
-        if (index === activeIndex) return;
-
-        setIsTransitioning(true);
-
-        setTimeout(() => {
-            setActiveIndex(index);
-            setActiveThumb(0); // Reset thumb when changing series
-        }, 150);
-
-        setTimeout(() => {
-            setIsTransitioning(false);
-        }, 300);
-    };
-
-    const handleThumbNavigation = (direction: 'left' | 'right', thumbsLength: number) => {
-        if (direction === 'left') {
-            setActiveThumb((prev) => Math.max(prev - 1, 0));
-        } else if (direction === 'right') {
-            setActiveThumb((prev) => Math.min(prev + 1, thumbsLength - 1));
-        }
-    };
-
-    const handleViewProducts = (seriesLabel: string) => {
-        const seriesParam = encodeURIComponent(seriesLabel);
-        router.push(`/products?series=${seriesParam}`);
-    };
-
-    const thumbs = seriesItems[activeIndex].thumbs || [];
+    const [selectedProduct, setSelectedProduct] = useState<Product>(products[0]);
+    const featuredProducts = products.slice(0, 6); // Show first 6 products as featured
 
     return (
-        <AvoidSidebar>
-            {/* SeriesThumbnails - Inline Component */}
-            <motion.div
-                className="relative mb-4 xs:mb-6 sm:mb-8 md:mb-10"
-                initial={{ scaleX: 0 }}
-                whileInView={{ scaleX: 1 }}
-                transition={{ duration: 1, delay: 0.3 }}
-                viewport={{ once: true }}
-            >
-                <div className="border-b border-gray-700/50"></div>
-                {/* Thumbnails positioned to interrupt the divider */}
-                <motion.div
-                    className="absolute top-0 right-8 transform -translate-y-1/2 z-30 max-w-[90%] xs:max-w-none"
-                    style={{ paddingTop: '8px' }}
-                    initial={{ x: 100, opacity: 0 }}
-                    whileInView={{ x: 0, opacity: 1 }}
-                    transition={{ duration: 0.8, delay: 0.6 }}
-                    viewport={{ once: true }}
-                >
-                    <div className="flex items-center gap-1 xs:gap-1.5 sm:gap-2 md:gap-3 overflow-x-auto overflow-y-visible scrollbar-hide bg-[#0c131d] px-1.5 xs:px-2 sm:px-4 py-2 xs:py-2.5 sm:py-3 scroll-smooth shadow-lg border border-gray-700/30 rounded-lg">
-                        {/* Left Navigation Button */}
-                        <button
-                            onClick={() => handleThumbNavigation('left', thumbs.length)}
-                            className={clsx(
-                                'p-1 xs:p-1.5 sm:p-2 bg-white/10 hover:bg-white/20 transition-colors rounded flex-shrink-0 z-20 min-w-[32px] xs:min-w-[36px] sm:min-w-[40px] min-h-[32px] xs:min-h-[36px] sm:min-h-[40px] flex items-center justify-center',
-                                activeThumb === 0 ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
-                            )}
-                            disabled={activeThumb === 0}
-                        >
-                            <FiChevronLeft size={14} className="xs:w-4 xs:h-4 sm:w-5 sm:h-5" color="white" />
-                        </button>
-                        {thumbs.map((thumb, idx) => (
-                            <motion.div
-                                key={`${thumb.id}-${idx}-${thumb.label}`}
-                                className={clsx(
-                                    'relative w-[45px] xs:w-[55px] sm:w-[70px] md:w-[90px] lg:w-[100px] h-[28px] xs:h-[35px] sm:h-[45px] md:h-[60px] lg:h-[70px] cursor-pointer border-2 rounded overflow-hidden flex-shrink-0 bg-[#0c131d] z-10',
-                                    idx === activeThumb
-                                        ? 'border-blue-400 shadow-lg shadow-blue-400/30'
-                                        : 'border-white/30 hover:border-white/60'
-                                )}
-                                onClick={() => setActiveThumb(idx)}
-                                initial={{ scale: 0, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{
-                                    duration: 0.4,
-                                    delay: idx * 0.05,
-                                    ease: 'easeOut'
-                                }}
-                                whileHover={{
-                                    scale: 1.05,
-                                    zIndex: 50,
-                                    boxShadow: '0 4px 15px rgba(79, 200, 255, 0.4)',
-                                    transition: { duration: 0.2, ease: 'easeOut' }
-                                }}
-                                whileTap={{
-                                    scale: 0.98,
-                                    transition: { duration: 0.1, ease: 'easeInOut' }
-                                }}
-                            >
-                                <div className="w-full h-full relative overflow-hidden">
-                                    <Image
-                                        width={0}
-                                        height={0}
-                                        sizes="(max-width: 475px) 45px, (max-width: 640px) 55px, (max-width: 768px) 70px, (max-width: 1024px) 90px, 100px"
-                                        priority
-                                        src={thumb.src}
-                                        alt={thumb.label}
-                                        className="w-full h-full object-cover transition-transform duration-200 ease-out"
-                                    />
+        <section className="bg-[#0c131d] text-white py-16 lg:py-24 relative overflow-hidden">
+            {/* Background Effects */}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#0a0f1a] via-[#0c131d] to-[#1a1f2e] opacity-50"></div>
+            <div className="absolute top-20 right-10 w-96 h-96 bg-[#4FC8FF]/5 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-20 left-10 w-80 h-80 bg-[#00D4FF]/5 rounded-full blur-3xl"></div>
 
-                                    {/* Subtle active indicator cho thumbnail */}
-                                    {idx === activeThumb && (
+            <div className="ml-16 sm:ml-20 px-4 sm:px-6 lg:px-8 relative z-10">
+                <div className="max-w-7xl mx-auto">
+                    {/* Header */}
+                    <motion.div
+                        className="text-center mb-16"
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8 }}
+                        viewport={{ once: true }}
+                    >
+                        <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 font-mono">
+                            PRODUCT{' '}
+                            <span className="bg-gradient-to-r from-[#4FC8FF] to-[#00D4FF] bg-clip-text text-transparent">
+                                SHOWCASE
+                            </span>
+                        </h2>
+                        <div className="w-32 h-1 bg-gradient-to-r from-[#4FC8FF] to-[#00D4FF] mx-auto rounded-full mb-6"></div>
+                        <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+                            Khám phá bộ sưu tập sản phẩm âm thanh hàng đầu của 4THITEK - từng SKU được thiết kế tỉ mỉ
+                            cho trải nghiệm hoàn hảo
+                        </p>
+                    </motion.div>
+
+                    {/* Product Navigation */}
+                    <motion.div
+                        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-16"
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.2 }}
+                        viewport={{ once: true }}
+                    >
+                        {featuredProducts.map((product, index) => {
+                            const isSelected = selectedProduct.id === product.id;
+
+                            return (
+                                <motion.button
+                                    key={product.id}
+                                    onClick={() => setSelectedProduct(product)}
+                                    className={`relative p-4 rounded-xl border transition-all duration-300 overflow-hidden group ${
+                                        isSelected
+                                            ? 'border-[#4FC8FF] bg-[#4FC8FF]/10'
+                                            : 'border-gray-600 hover:border-[#4FC8FF]/50'
+                                    }`}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.1 }}
+                                >
+                                    {/* Product Image */}
+                                    <div className="aspect-square mb-3 flex items-center justify-center">
+                                        <Image
+                                            src={product.images[0]?.url || '/products/product1.png'}
+                                            alt={product.name}
+                                            width={80}
+                                            height={80}
+                                            className="object-contain opacity-70 group-hover:opacity-100 transition-opacity"
+                                        />
+                                    </div>
+
+                                    {/* Product Info */}
+                                    <div className="text-center">
+                                        <h4
+                                            className={`text-xs font-medium mb-1 line-clamp-2 ${
+                                                isSelected ? 'text-[#4FC8FF]' : 'text-gray-300 group-hover:text-white'
+                                            }`}
+                                        >
+                                            {product.name.replace('TUNECORE ', '')}
+                                        </h4>
+                                        <p className="text-xs text-gray-500 line-clamp-1">{product.sku}</p>
+                                    </div>
+
+                                    {/* Selected Indicator */}
+                                    {isSelected && (
                                         <motion.div
-                                            className="absolute inset-0 bg-blue-400/10"
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            transition={{ duration: 0.2, ease: 'easeOut' }}
+                                            className="absolute top-2 right-2 w-3 h-3 bg-[#4FC8FF] rounded-full"
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            transition={{ duration: 0.3 }}
                                         />
                                     )}
+                                </motion.button>
+                            );
+                        })}
+                    </motion.div>
+
+                    {/* Selected Product Content */}
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={selectedProduct.id}
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -30 }}
+                            transition={{ duration: 0.5 }}
+                            className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center"
+                        >
+                            {/* Product Info */}
+                            <div className="space-y-8">
+                                <div>
+                                    <motion.h3
+                                        className="text-3xl sm:text-4xl font-bold mb-4 text-[#4FC8FF]"
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: 0.2 }}
+                                    >
+                                        {selectedProduct.name}
+                                    </motion.h3>
+                                    <motion.p
+                                        className="text-lg text-gray-300 leading-relaxed mb-6"
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: 0.3 }}
+                                    >
+                                        {selectedProduct.description}
+                                    </motion.p>
                                 </div>
 
-                                <span className="absolute top-0.5 xs:top-1 left-0.5 xs:left-1 md:left-2 text-white text-[10px] xs:text-xs font-bold z-10 drop-shadow-sm">
-                                    {thumb.label}
-                                </span>
-
-                                {/* Subtle click feedback */}
-                                <motion.div
-                                    className="absolute inset-0 bg-white/10 rounded pointer-events-none"
-                                    initial={{ opacity: 0, scale: 0.8 }}
-                                    whileTap={{
-                                        opacity: [0, 0.6, 0],
-                                        scale: [0.8, 1, 1],
-                                        transition: { duration: 0.25, ease: 'easeOut' }
-                                    }}
-                                />
-                            </motion.div>
-                        ))}
-                        <button
-                            onClick={() => handleThumbNavigation('right', thumbs.length)}
-                            className={clsx(
-                                'p-1 xs:p-1.5 sm:p-2 bg-white/10 hover:bg-white/20 transition-colors rounded flex-shrink-0 z-20 min-w-[32px] xs:min-w-[36px] sm:min-w-[40px] min-h-[32px] xs:min-h-[36px] sm:min-h-[40px] flex items-center justify-center',
-                                activeThumb === thumbs.length - 1 ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
-                            )}
-                            disabled={activeThumb === thumbs.length - 1}
-                        >
-                            <FiChevronRight size={14} className="xs:w-4 xs:h-4 sm:w-5 sm:h-5" color="white" />
-                        </button>
-
-                        {/* Thumbnail Counter */}
-                        {thumbs.length > 1 && (
-                            <div className="px-1.5 xs:px-2 py-1 bg-black/50 backdrop-blur-sm rounded-full text-white text-[10px] xs:text-xs font-medium flex-shrink-0 min-w-[2rem] xs:min-w-[2.5rem] text-center z-20">
-                                {activeThumb + 1}/{thumbs.length}
-                            </div>
-                        )}
-                    </div>
-                </motion.div>
-            </motion.div>
-
-            {/* SeriesCardsGrid - Inline Component */}
-            <div className="flex flex-col lg:flex-row relative gap-2 sm:gap-0 pl-8 pr-8">
-                {seriesItems.map((item, idx) => (
-                    <motion.div
-                        key={item.id}
-                        className="relative flex-1"
-                        initial={{ opacity: 0, y: 100 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{
-                            duration: 0.8,
-                            delay: idx * 0.15,
-                            type: 'spring',
-                            stiffness: 100
-                        }}
-                        viewport={{ once: true, amount: 0.3 }}
-                    >
-                        {/* Vertical Divider - except for last item on desktop */}
-                        {idx < seriesItems.length - 1 && (
-                            <motion.div
-                                className="absolute top-0 right-0 h-full border-r border-gray-700/50 z-10 hidden lg:block"
-                                initial={{ scaleY: 0 }}
-                                whileInView={{ scaleY: 1 }}
-                                transition={{ duration: 0.8, delay: 1 + idx * 0.1 }}
-                                viewport={{ once: true }}
-                            />
-                        )}
-
-                        <motion.div
-                            className={clsx(
-                                'relative bg-gray-900/30 hover:bg-gray-800/50 transition-all duration-300 cursor-pointer group overflow-hidden min-h-[320px] xs:min-h-[360px] sm:min-h-[400px] md:min-h-[450px] lg:min-h-[500px] xl:min-h-[600px] flex flex-col rounded-lg lg:rounded-none',
-                                idx === activeIndex && 'bg-gray-800/50'
-                            )}
-                            onClick={() => handleSeriesChange(idx)}
-                            onMouseEnter={() => setHoveredIndex(idx)}
-                            onMouseLeave={() => setHoveredIndex(null)}
-                            whileHover={{
-                                y: -5,
-                                boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-                                transition: { duration: 0.3 }
-                            }}
-                        >
-                            {/* Video background cho card được hover - Chỉ hiển thị trên desktop */}
-                            {hoveredIndex === idx && (
-                                <motion.video
-                                    src="/videos/futuristic-background-2022-08-04-19-57-56-utc.mp4"
-                                    className="absolute inset-0 w-full h-full object-cover -z-10 hidden sm:block"
-                                    autoPlay
-                                    loop
-                                    muted
-                                    playsInline
-                                    initial={{ opacity: 0, scale: 1.1 }}
-                                    animate={{ opacity: 0.4, scale: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{ duration: 0.5 }}
-                                />
-                            )}
-
-                            {/* Vertical Label - Responsive positioning */}
-                            <motion.div
-                                className="absolute left-1 xs:left-2 sm:left-3 md:left-4 top-1/2 -translate-y-1/2 font-bold text-sm xs:text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl uppercase tracking-wider xs:tracking-widest text-gray-400 z-10 font-sans"
-                                style={{
-                                    writingMode: 'vertical-rl',
-                                    transform: 'translateY(-50%) rotate(180deg)'
-                                }}
-                                whileHover={{
-                                    color: '#4FC8FF',
-                                    scale: 1.05,
-                                    transition: { duration: 0.3 }
-                                }}
-                            >
-                                {item.label}
-                            </motion.div>
-
-                            {/* Product Image - Responsive sizing */}
-                            <motion.div
-                                className="flex justify-center items-center py-4 xs:py-6 sm:py-8 md:py-10 lg:py-12 flex-1 z-10 relative"
-                                whileHover={{ scale: 1.03 }}
-                                transition={{ duration: 0.3 }}
-                            >
-                                {/* Transition Loading Overlay */}
-                                {isTransitioning && idx === activeIndex && (
-                                    <motion.div
-                                        className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-20 rounded-lg"
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        transition={{ duration: 0.2 }}
-                                    >
+                                {/* Product Details */}
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
                                         <motion.div
-                                            className="w-6 xs:w-7 sm:w-8 h-6 xs:h-7 sm:h-8 border-2 border-blue-400 border-t-transparent rounded-full"
-                                            animate={{ rotate: 360 }}
-                                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                                        />
-                                    </motion.div>
-                                )}
+                                            className="flex items-center space-x-3 p-4 bg-gray-800/30 rounded-xl border border-gray-700/30"
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: 0.4 }}
+                                        >
+                                            <FiPackage className="w-5 h-5 text-[#4FC8FF]" />
+                                            <div>
+                                                <p className="text-xs text-gray-400">SKU</p>
+                                                <p className="font-medium text-white">{selectedProduct.sku}</p>
+                                            </div>
+                                        </motion.div>
 
-                                <motion.div
-                                    key={`${idx}-${idx === activeIndex ? activeThumb : 0}`}
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{
-                                        opacity: isTransitioning && idx === activeIndex ? 0.3 : 1,
-                                        scale: 1
-                                    }}
-                                    transition={{
-                                        duration: 0.3,
-                                        ease: 'easeOut',
-                                        opacity: { duration: 0.2 },
-                                        scale: { duration: 0.3, ease: 'easeOut' }
-                                    }}
-                                    className="relative"
-                                >
-                                    <Image
-                                        width={0}
-                                        height={0}
-                                        sizes="(max-width: 475px) 120px, (max-width: 640px) 150px, (max-width: 768px) 180px, (max-width: 1024px) 200px, 250px"
-                                        priority={true}
-                                        src={
-                                            idx === activeIndex
-                                                ? item.thumbs?.[activeThumb]?.src || item.img
-                                                : item.thumbs?.[0]?.src || item.img
-                                        }
-                                        alt={item.label}
-                                        className="w-[120px] xs:w-[140px] sm:w-[160px] md:w-[180px] lg:w-[200px] xl:w-[250px] h-[120px] xs:h-[140px] sm:h-[160px] md:h-[180px] lg:h-[200px] xl:h-[250px] object-contain transition-opacity duration-200 ease-out"
-                                    />
+                                        <motion.div
+                                            className="flex items-center space-x-3 p-4 bg-gray-800/30 rounded-xl border border-gray-700/30"
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: 0.5 }}
+                                        >
+                                            <FiStar className="w-5 h-5 text-[#4FC8FF]" />
+                                            <div>
+                                                <p className="text-xs text-gray-400">Rating</p>
+                                                <p className="font-medium text-white">{selectedProduct.rating}/5.0</p>
+                                            </div>
+                                        </motion.div>
+                                    </div>
 
-                                    {/* Subtle active indicators */}
-                                    {idx === activeIndex && !isTransitioning && (
-                                        <>
-                                            {/* Subtle border highlight */}
-                                            <motion.div
-                                                className="absolute inset-0 border border-blue-400/30 rounded-lg pointer-events-none"
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1 }}
-                                                transition={{ duration: 0.4, ease: 'easeOut' }}
-                                            />
-
-                                            {/* Small corner indicator */}
-                                            <motion.div
-                                                className="absolute top-2 xs:top-3 right-2 xs:right-3 w-1.5 xs:w-2 h-1.5 xs:h-2 bg-blue-400 rounded-full"
-                                                initial={{ scale: 0, opacity: 0 }}
-                                                animate={{ scale: 1, opacity: 0.9 }}
-                                                transition={{
-                                                    duration: 0.3,
-                                                    delay: 0.1,
-                                                    type: 'spring',
-                                                    stiffness: 300
-                                                }}
-                                            />
-
-                                            {/* Subtle background tint */}
-                                            <motion.div
-                                                className="absolute inset-0 bg-blue-400/5 rounded-lg pointer-events-none"
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1 }}
-                                                transition={{ duration: 0.5, ease: 'easeOut' }}
-                                            />
-                                        </>
-                                    )}
-                                </motion.div>
-                            </motion.div>
-                            {/* Content - Responsive typography and spacing */}
-                            <motion.div
-                                className="px-2 xs:px-3 sm:px-4 md:px-6 pb-3 xs:pb-4 sm:pb-6 md:pb-8 pl-6 xs:pl-8 sm:pl-10 md:pl-12 lg:pl-16 z-10 relative"
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.6, delay: 0.3 }}
-                                viewport={{ once: true }}
-                            >
-                                <motion.h3
-                                    className="text-white font-bold text-base xs:text-lg sm:text-xl md:text-2xl mb-1.5 xs:mb-2 md:mb-3 font-sans"
-                                    whileHover={{
-                                        color: '#4FC8FF',
-                                        scale: 1.02,
-                                        transition: { duration: 0.3 }
-                                    }}
-                                >
-                                    {item.label.replace(' SERIES', ' Series')}
-                                </motion.h3>
-                                <p className="text-gray-300 text-xs xs:text-sm sm:text-base leading-relaxed mb-2 xs:mb-3 md:mb-4 font-sans line-clamp-3 sm:line-clamp-none">
-                                    Advanced communication technology designed for professional riders with superior
-                                    audio quality and durability.
-                                </p>
-                                <div className="flex justify-end">
-                                    <motion.button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleViewProducts(item.label);
-                                        }}
-                                        whileHover={{
-                                            scale: 1.15,
-                                            rotate: 45,
-                                            color: '#4FC8FF'
-                                        }}
-                                        transition={{ duration: 0.3 }}
-                                        className="p-1 xs:p-1.5 sm:p-2 rounded-full hover:bg-white/10 transition-colors"
-                                        aria-label={`View ${item.label} products`}
+                                    <motion.div
+                                        className="p-4 bg-gray-800/30 rounded-xl border border-gray-700/30"
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: 0.6 }}
                                     >
-                                        <FiArrowUpRight
-                                            size={16}
-                                            className={clsx(
-                                                'transition-colors w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6',
-                                                hoveredIndex === idx ? 'text-blue-400' : 'text-gray-500'
-                                            )}
-                                        />
-                                    </motion.button>
+                                        <div className="flex items-center space-x-3 mb-3">
+                                            <FiShield className="w-5 h-5 text-[#4FC8FF]" />
+                                            <p className="font-medium text-white">
+                                                Warranty: {selectedProduct.warranty.period}
+                                            </p>
+                                        </div>
+                                        <p className="text-sm text-gray-400">{selectedProduct.subtitle}</p>
+                                    </motion.div>
+                                </div>
+
+                                {/* Product Highlights */}
+                                <div className="space-y-3">
+                                    <h4 className="text-lg font-semibold text-white">Key Features:</h4>
+                                    {selectedProduct.highlights.slice(0, 3).map((highlight, index) => (
+                                        <motion.div
+                                            key={index}
+                                            className="flex items-center space-x-3"
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: 0.7 + index * 0.1 }}
+                                        >
+                                            <div className="w-2 h-2 bg-[#4FC8FF] rounded-full"></div>
+                                            <p className="text-gray-300">{highlight}</p>
+                                        </motion.div>
+                                    ))}
+                                </div>
+
+                                {/* Action Buttons */}
+                                <motion.div
+                                    className="flex space-x-4"
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.8 }}
+                                >
+                                    <Link href={`/products/${selectedProduct.id}`}>
+                                        <motion.button
+                                            className="group flex items-center space-x-3 bg-gradient-to-r from-[#4FC8FF] to-[#00D4FF] text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 hover:shadow-lg hover:shadow-[#4FC8FF]/25"
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                        >
+                                            <span>View Details</span>
+                                            <FiArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                        </motion.button>
+                                    </Link>
+
+                                    <Link href="/products">
+                                        <motion.button
+                                            className="px-6 py-3 border border-gray-600 text-gray-300 rounded-xl font-medium hover:border-[#4FC8FF]/50 hover:text-white transition-all duration-300"
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                        >
+                                            View All
+                                        </motion.button>
+                                    </Link>
+                                </motion.div>
+                            </div>
+
+                            {/* Product Preview */}
+                            <motion.div
+                                className="relative"
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.3 }}
+                            >
+                                <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-3xl p-8 lg:p-12 border border-gray-700/30 overflow-hidden">
+                                    {/* Background Effect */}
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-[#4FC8FF]/5 to-[#00D4FF]/5 rounded-3xl"></div>
+
+                                    {/* Product Image */}
+                                    <div className="relative z-10 flex justify-center items-center h-80">
+                                        <motion.div
+                                            key={selectedProduct.id}
+                                            initial={{ opacity: 0, scale: 0.8 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            transition={{ duration: 0.5 }}
+                                            className="relative"
+                                        >
+                                            <Image
+                                                src={selectedProduct.images[0]?.url || '/products/product1.png'}
+                                                alt={selectedProduct.name}
+                                                width={300}
+                                                height={300}
+                                                className="object-contain drop-shadow-2xl"
+                                            />
+
+                                            {/* Floating Elements */}
+                                            <motion.div
+                                                className="absolute -top-4 -right-4 w-8 h-8 bg-[#4FC8FF]/20 rounded-full"
+                                                animate={{ scale: [1, 1.2, 1] }}
+                                                transition={{ duration: 2, repeat: Infinity }}
+                                            />
+                                            <motion.div
+                                                className="absolute -bottom-6 -left-6 w-6 h-6 bg-[#00D4FF]/20 rounded-full"
+                                                animate={{ scale: [1, 1.3, 1] }}
+                                                transition={{ duration: 2.5, repeat: Infinity, delay: 0.5 }}
+                                            />
+                                        </motion.div>
+                                    </div>
+
+                                    {/* Product SKU Badge */}
+                                    <motion.div
+                                        className="absolute top-6 right-6 bg-[#4FC8FF]/10 backdrop-blur-sm border border-[#4FC8FF]/20 rounded-xl px-4 py-2"
+                                        initial={{ opacity: 0, scale: 0.8 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: 0.5 }}
+                                    >
+                                        <span className="text-[#4FC8FF] font-semibold text-sm">
+                                            {selectedProduct.sku}
+                                        </span>
+                                    </motion.div>
                                 </div>
                             </motion.div>
                         </motion.div>
-                    </motion.div>
-                ))}
+                    </AnimatePresence>
+                </div>
             </div>
-        </AvoidSidebar>
+        </section>
     );
 }

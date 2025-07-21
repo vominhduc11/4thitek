@@ -4,11 +4,11 @@ export default function ProductSpecifications() {
     return (
         <section id="product-details" className="bg-[#0a0f1a] relative z-50 -mt-20 min-h-screen">
             <div className="container mx-auto max-w-8xl relative -top-48 py-20">
-                <h2 className="text-3xl font-bold mb-8 text-white">THÔNG SỐ KỸ THUẬT</h2>
+                <h2 className="text-2xl md:text-3xl lg:text-3xl font-bold mb-6 md:mb-8 text-white">THÔNG SỐ KỸ THUẬT</h2>
 
                 {/* Main Specifications Table */}
-                <div className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50 shadow-2xl mb-12">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-4 md:p-6 lg:p-8 border border-gray-700/50 shadow-2xl mb-8 md:mb-12">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                         {/* Left Column */}
                         <div className="space-y-6">
                             <h3 className="text-xl font-bold text-blue-400 mb-6">Thông Số Chung</h3>
@@ -74,8 +74,8 @@ export default function ProductSpecifications() {
                 </div>
 
                 {/* Additional Features */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                    <div className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-12">
+                    <div className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-gray-700/50">
                         <div className="text-center mb-4">
                             <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
                                 <span className="text-2xl">🎵</span>
@@ -90,7 +90,7 @@ export default function ProductSpecifications() {
                         </ul>
                     </div>
 
-                    <div className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
+                    <div className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-gray-700/50">
                         <div className="text-center mb-4">
                             <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
                                 <span className="text-2xl">📱</span>
@@ -105,7 +105,7 @@ export default function ProductSpecifications() {
                         </ul>
                     </div>
 
-                    <div className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
+                    <div className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-gray-700/50">
                         <div className="text-center mb-4">
                             <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
                                 <span className="text-2xl">🛡️</span>

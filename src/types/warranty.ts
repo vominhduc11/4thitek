@@ -101,7 +101,7 @@ export interface WarrantyRegistration {
     isActive: boolean;
 }
 
-export interface FAQ {
+export interface WarrantyFAQ {
     id: string;
     category: 'general' | 'registration' | 'claims' | 'service' | 'products';
     question: string;

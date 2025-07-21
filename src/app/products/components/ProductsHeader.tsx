@@ -4,43 +4,43 @@ import { motion } from 'framer-motion';
 import { MdChevronRight } from 'react-icons/md';
 
 interface ProductsHeaderProps {
-    selectedSeries: string;
+    selectedPosition: string;
     hasActiveFilters: boolean;
-    onSeriesClick: (series: string) => void;
+    onPositionClick: (position: string) => void;
     onFilterToggle: () => void;
     totalProducts: number;
     filteredCount: number;
 }
 
 export default function ProductsHeader({
-    selectedSeries,
+    selectedPosition,
     hasActiveFilters,
-    onSeriesClick,
+    onPositionClick,
     onFilterToggle,
     totalProducts,
     filteredCount
 }: ProductsHeaderProps) {
-    const seriesList = ['SX SERIES', 'S SERIES', 'G SERIES', 'G+ SERIES'];
+    const positionList = ['Entry', 'Mid-range', 'Premium', 'Ultimate'];
 
     const getDisplayTitle = () => {
-        if (selectedSeries === 'ALL') {
+        if (selectedPosition === 'ALL') {
             return 'PRODUCT LIST';
         }
-        return selectedSeries.replace(' SERIES', ' Series');
+        return `${selectedPosition.toUpperCase()} PRODUCTS`;
     };
 
-    const getSeriesDescription = () => {
-        switch (selectedSeries) {
-            case 'SX SERIES':
-                return 'Khám phá dòng SX Series - Công nghệ giao tiếp cao cấp với thiết kế tinh tế và tính năng vượt trội. Được thiết kế dành riêng cho những người lái chuyên nghiệp đòi hỏi chất lượng âm thanh hoàn hảo và độ bền vượt trội trong mọi điều kiện.';
-            case 'S SERIES':
-                return 'Tìm hiểu S Series - Giải pháp giao tiếp chuyên nghiệp với sự cân bằng hoàn hảo giữa hiệu suất và giá trị. Dòng sản phẩm này mang đến trải nghiệm đáng tin cậy cho việc sử dụng hàng ngày với chất lượng âm thanh rõ ràng.';
-            case 'G SERIES':
-                return 'Khám phá G Series - Hệ thống giao tiếp tiên tiến với độ bền chuẩn quân sự và khả năng truyền tải crystal clear. Được thiết kế để đáp ứng những yêu cầu khắt khe nhất trong môi trường làm việc chuyên nghiệp.';
-            case 'G+ SERIES':
-                return 'Trải nghiệm G+ Series - Đỉnh cao của công nghệ giao tiếp với AI-powered noise reduction và kết nối tầm xa vượt trội. Dòng sản phẩm ultimate này kết hợp công nghệ tiên tiến nhất với chất liệu cao cấp.';
+    const getPositionDescription = () => {
+        switch (selectedPosition) {
+            case 'Entry':
+                return 'Khám phá dòng Entry Level - Giải pháp âm thanh chất lượng với mức giá phải chăng. Được thiết kế dành cho những người mới bắt đầu hoặc cần sử dụng hàng ngày với hiệu suất ổn định và độ bền tốt.';
+            case 'Mid-range':
+                return 'Tìm hiểu Mid-range Products - Sự cân bằng hoàn hảo giữa hiệu suất và giá trị. Dòng sản phẩm này mang đến trải nghiệm âm thanh chuyên nghiệp với các tính năng tiên tiến phù hợp cho game thủ và người dùng chuyên nghiệp.';
+            case 'Premium':
+                return 'Khám phá Premium Collection - Công nghệ âm thanh cao cấp với chất lượng vượt trội và tính năng tiên tiến. Được thiết kế để đáp ứng những yêu cầu khắt khe nhất của game thủ chuyên nghiệp và audiophiles.';
+            case 'Ultimate':
+                return 'Trải nghiệm Ultimate Series - Đỉnh cao của công nghệ âm thanh với AI-powered features và chất liệu cao cấp nhất. Dòng sản phẩm ultimate này kết hợp công nghệ tiên tiến nhất với thiết kế luxury.';
             default:
-                return 'Khám phá bộ sưu tập Series của 4T Hiteck – nơi hội tụ công nghệ giao tiếp đỉnh cao dành riêng cho người lái chuyên nghiệp. Mỗi sản phẩm trong dòng SX, S, G và G+ đều được thiết kế tỉ mỉ, mang đến âm thanh rõ ràng, kết nối ổn định và độ bền vượt trội trên mọi hành trình.';
+                return 'Khám phá bộ sưu tập Products của 4THITEK – nơi hội tụ công nghệ âm thanh đỉnh cao dành riêng cho mọi nhu cầu sử dụng. Từ Entry level cho người mới bắt đầu đến Ultimate cho audiophiles, mỗi sản phẩm đều được thiết kế tỉ mỉ, mang đến âm thanh rõ ràng, kết nối ổn định và độ bền vượt trội.';
         }
     };
 
@@ -54,9 +54,9 @@ export default function ProductsHeader({
                 >
                     <motion.h1
                         className={`text-3xl sm:text-4xl lg:text-5xl font-bold mb-2 font-mono ${
-                            selectedSeries === 'ALL' ? 'text-white' : 'text-[#4FC8FF]'
+                            selectedPosition === 'ALL' ? 'text-white' : 'text-[#4FC8FF]'
                         }`}
-                        key={selectedSeries}
+                        key={selectedPosition}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -70,7 +70,7 @@ export default function ProductsHeader({
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.4 }}
                     >
-                        {selectedSeries === 'ALL' ? (
+                        {selectedPosition === 'ALL' ? (
                             <span>
                                 Showing all <span className="text-[#4FC8FF] font-semibold">{totalProducts}</span>{' '}
                                 products
@@ -78,7 +78,7 @@ export default function ProductsHeader({
                         ) : (
                             <span>
                                 Showing <span className="text-[#4FC8FF] font-semibold">{filteredCount}</span> products
-                                in <span className="text-white font-semibold">{selectedSeries}</span>
+                                in <span className="text-white font-semibold">{selectedPosition}</span> category
                             </span>
                         )}
                     </motion.div>
@@ -101,46 +101,46 @@ export default function ProductsHeader({
                         <div className="flex items-center space-x-1 text-sm font-sans uppercase tracking-wider bg-[#0c131d] pr-4 relative z-10">
                             <motion.button
                                 className={`font-medium relative pb-1 border-b-2 transition-all duration-300 ${
-                                    selectedSeries === 'ALL'
+                                    selectedPosition === 'ALL'
                                         ? 'border-[#4FC8FF] text-[#4FC8FF] scale-105'
                                         : 'border-transparent text-white hover:text-[#4FC8FF] hover:border-[#4FC8FF]/50'
                                 }`}
-                                whileHover={{ scale: selectedSeries === 'ALL' ? 1.05 : 1.1 }}
+                                whileHover={{ scale: selectedPosition === 'ALL' ? 1.05 : 1.1 }}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => onSeriesClick('ALL')}
+                                onClick={() => onPositionClick('ALL')}
                             >
-                                ALL SERIES
-                                {selectedSeries === 'ALL' && (
+                                ALL PRODUCTS
+                                {selectedPosition === 'ALL' && (
                                     <motion.div
                                         className="absolute -bottom-0.5 left-0 right-0 h-0.5 bg-[#4FC8FF]"
-                                        layoutId="activeSeriesIndicator"
+                                        layoutId="activePositionIndicator"
                                         initial={false}
                                         transition={{ duration: 0.3 }}
                                     />
                                 )}
                             </motion.button>
 
-                            {seriesList.map((series, index) => (
+                            {positionList.map((position, index) => (
                                 <div key={index} className="flex items-center">
                                     <span className="text-gray-500 mx-2">/</span>
                                     <motion.button
                                         className={`transition-all duration-300 relative group ${
-                                            selectedSeries === series
+                                            selectedPosition === position
                                                 ? 'text-[#4FC8FF] scale-105 font-semibold'
                                                 : 'text-gray-400 hover:text-white'
                                         }`}
-                                        whileHover={{ scale: selectedSeries === series ? 1.05 : 1.1 }}
+                                        whileHover={{ scale: selectedPosition === position ? 1.05 : 1.1 }}
                                         whileTap={{ scale: 0.95 }}
-                                        onClick={() => onSeriesClick(series)}
+                                        onClick={() => onPositionClick(position)}
                                     >
-                                        {series.replace(' SERIES', '')}
+                                        {position.toUpperCase()}
                                         <span
                                             className={`absolute bottom-0 left-0 h-0.5 bg-[#4FC8FF] transition-all duration-300 ${
-                                                selectedSeries === series ? 'w-full' : 'w-0 group-hover:w-full'
+                                                selectedPosition === position ? 'w-full' : 'w-0 group-hover:w-full'
                                             }`}
                                         ></span>
 
-                                        {selectedSeries === series && (
+                                        {selectedPosition === position && (
                                             <motion.div
                                                 className="absolute -top-1 -right-1 w-2 h-2 bg-[#4FC8FF] rounded-full"
                                                 initial={{ scale: 0 }}
@@ -217,27 +217,27 @@ export default function ProductsHeader({
                         <div className="flex flex-wrap gap-2">
                             <motion.button
                                 className={`px-3 py-1.5 rounded text-xs font-sans uppercase tracking-wide transition-all duration-300 ${
-                                    selectedSeries === 'ALL'
+                                    selectedPosition === 'ALL'
                                         ? 'bg-[#4FC8FF]/20 border border-[#4FC8FF]/50 text-[#4FC8FF]'
                                         : 'border border-gray-600 text-gray-400 hover:text-white hover:border-gray-500'
                                 }`}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => onSeriesClick('ALL')}
+                                onClick={() => onPositionClick('ALL')}
                             >
                                 ALL
                             </motion.button>
-                            {seriesList.map((series) => (
+                            {positionList.map((position) => (
                                 <motion.button
-                                    key={series}
+                                    key={position}
                                     className={`px-3 py-1.5 rounded text-xs font-sans uppercase tracking-wide transition-all duration-300 ${
-                                        selectedSeries === series
+                                        selectedPosition === position
                                             ? 'bg-[#4FC8FF]/20 border border-[#4FC8FF]/50 text-[#4FC8FF]'
                                             : 'border border-gray-600 text-gray-400 hover:text-white hover:border-gray-500'
                                     }`}
                                     whileTap={{ scale: 0.95 }}
-                                    onClick={() => onSeriesClick(series)}
+                                    onClick={() => onPositionClick(position)}
                                 >
-                                    {series.split(' ')[0]}
+                                    {position}
                                 </motion.button>
                             ))}
                         </div>
@@ -245,12 +245,12 @@ export default function ProductsHeader({
 
                     <motion.p
                         style={{ color: '#8390A5' }}
-                        key={`desc-${selectedSeries}`}
+                        key={`desc-${selectedPosition}`}
                         initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.2 }}
                     >
-                        {getSeriesDescription()}
+                        {getPositionDescription()}
                     </motion.p>
                 </motion.div>
             </div>

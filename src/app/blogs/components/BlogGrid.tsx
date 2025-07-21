@@ -5,75 +5,68 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { MdArrowForward } from 'react-icons/md';
 
-// Blog Post Type Definition
-export interface BlogPost {
-    id: number;
-    title: string;
-    category: string;
-    tags: string[];
-    image: string;
-    bannerImage?: string;
-    excerpt: string;
-    content?:
-        | {
-              intro?: string;
-              sections?: ContentSection[];
-          }
-        | string;
-    author: string;
-    publishDate: string;
-    readTime: number; // in minutes
-    featured: boolean;
-    popularity?: number; // For sorting purposes
-}
+// Import the proper BlogPost type
+import type { BlogPost } from '@/types/blog';
+import { useHydration } from '@/hooks/useHydration';
+import { formatDateSafe } from '@/utils/dateFormatter';
 
-export interface ContentSection {
-    type: 'heading' | 'paragraph' | 'image' | 'list' | 'quote';
-    content?: string;
-    src?: string;
-    alt?: string;
-    caption?: string;
-    float?: 'left' | 'right';
-    items?: string[];
-}
 
 interface BlogGridProps {
     blogs: BlogPost[];
 }
 
 const BlogGrid = ({ blogs }: BlogGridProps) => {
-    // Format date to Vietnamese format
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
+    const isHydrated = useHydration();
+
+    // Get author name
+    const getAuthorName = (author: BlogPost['author']) => {
+        if (typeof author === 'object' && author?.name) {
+            return author.name;
+        }
+        if (typeof author === 'string') {
+            return author;
+        }
+        return 'Tác giả';
     };
 
-    // Get category display name in Vietnamese
-    const getCategoryDisplay = (category: string) => {
-        const categoryNames: { [key: string]: string } = {
-            TECHNOLOGY: 'CÔNG NGHỆ',
-            TUTORIAL: 'HƯỚNG DẪN',
-            NEWS: 'TIN TỨC',
-            REVIEW: 'ĐÁNH GIÁ',
-            TIPS: 'MẸO HAY'
-        };
-        return categoryNames[category] || category;
+    // Get category display name
+    const getCategoryDisplay = (category: BlogPost['category']) => {
+        // Handle new data structure from src/data/blogs.ts
+        if (typeof category === 'object' && category?.name) {
+            return category.name.toUpperCase();
+        }
+        // Handle old string format
+        if (typeof category === 'string') {
+            const categoryNames: { [key: string]: string } = {
+                TECHNOLOGY: 'CÔNG NGHỆ',
+                TUTORIAL: 'HƯỚNG DẪN',
+                NEWS: 'TIN TỨC',
+                REVIEW: 'ĐÁNH GIÁ',
+                TIPS: 'MẸO HAY'
+            };
+            return categoryNames[category] || category;
+        }
+        return 'DANH MỤC';
     };
 
     // Get category color
-    const getCategoryColor = (category: string) => {
-        const categoryColors: { [key: string]: string } = {
-            TECHNOLOGY: 'text-blue-400',
-            TUTORIAL: 'text-green-400',
-            NEWS: 'text-red-400',
-            REVIEW: 'text-purple-400',
-            TIPS: 'text-yellow-400'
-        };
-        return categoryColors[category] || 'text-gray-400';
+    const getCategoryColor = (category: BlogPost['category']) => {
+        // Handle new data structure from src/data/blogs.ts
+        if (typeof category === 'object' && category?.color) {
+            return `text-[${category.color}]`;
+        }
+        // Handle old string format
+        if (typeof category === 'string') {
+            const categoryColors: { [key: string]: string } = {
+                TECHNOLOGY: 'text-blue-400',
+                TUTORIAL: 'text-green-400',
+                NEWS: 'text-red-400',
+                REVIEW: 'text-purple-400',
+                TIPS: 'text-yellow-400'
+            };
+            return categoryColors[category] || 'text-gray-400';
+        }
+        return 'text-gray-400';
     };
 
     return (
@@ -95,15 +88,16 @@ const BlogGrid = ({ blogs }: BlogGridProps) => {
                             {/* Cover Image - 16:9 Aspect Ratio */}
                             <div className="relative w-full aspect-video overflow-hidden">
                                 <Image
-                                    src={blog.image}
+                                    src="https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg"
                                     alt={`Ảnh bìa bài viết: ${blog.title}`}
                                     fill
                                     className="object-cover transition-transform duration-300 group-hover:scale-105"
                                     sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                    loading="lazy"
                                 />
 
                                 {/* Featured Badge */}
-                                {blog.featured && (
+                                {blog.isFeatured && (
                                     <div className="absolute top-4 left-4">
                                         <span className="bg-[#4FC8FF] text-white text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wide">
                                             Nổi bật
@@ -120,10 +114,10 @@ const BlogGrid = ({ blogs }: BlogGridProps) => {
                                 {/* Metadata */}
                                 <div className="flex items-center justify-between mb-3">
                                     <time
-                                        dateTime={blog.publishDate}
+                                        dateTime={blog.publishedAt}
                                         className="text-xs font-medium text-gray-400 uppercase tracking-wide"
                                     >
-                                        {formatDate(blog.publishDate)}
+                                        {formatDateSafe(blog.publishedAt, isHydrated)}
                                     </time>
                                     <span
                                         className={`text-xs font-bold uppercase tracking-wide ${getCategoryColor(blog.category)}`}
@@ -146,9 +140,9 @@ const BlogGrid = ({ blogs }: BlogGridProps) => {
                                 <div className="flex items-center justify-between">
                                     {/* Author & Read Time */}
                                     <div className="flex items-center space-x-4 text-xs text-gray-400">
-                                        <span className="font-medium">{blog.author}</span>
+                                        <span className="font-medium">{getAuthorName(blog.author)}</span>
                                         <span>•</span>
-                                        <span>{blog.readTime} phút đọc</span>
+                                        <span>{blog.readingTime} phút đọc</span>
                                     </div>
 
                                     {/* CTA Arrow Button */}

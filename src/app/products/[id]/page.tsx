@@ -8,38 +8,13 @@ import ProductVideos from '@/app/products/[id]/components/ProductVideos';
 import ProductSpecifications from '@/app/products/[id]/components/ProductSpecifications';
 import ProductWarranty from '@/app/products/[id]/components/ProductWarranty';
 import RelatedProducts from '@/app/products/[id]/components/RelatedProducts';
-import { getProductById, getProductsBySeries, productSeries } from '@/data/products';
-import { ProductSeries } from '@/types/product';
+import { getProductById, getRelatedProducts } from '@/data/products';
+import type { Product } from '@/types/product';
 
-// Legacy interface for backward compatibility
-interface LegacyProduct {
-    id: string;
-    name: string;
-    subtitle: string;
-    description: string;
-    image: string;
-    features: Array<{
-        title: string;
-        subtitle: string;
-        description: string;
-        value?: string;
-    }>;
-    additionalFeatures: Array<{
-        icon: string;
-        description: string;
-    }>;
-    series?: {
-        id: string;
-        name: string;
-    };
-}
-
-export default function SeriesPage({ params }: { params: Promise<{ id: string }> }) {
+export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
     const [resolvedParams, setResolvedParams] = useState<{ id: string } | null>(null);
-    const [currentProduct, setCurrentProduct] = useState<LegacyProduct | null>(null);
-    const [seriesProducts, setSeriesProducts] = useState<LegacyProduct[]>([]);
-    const [seriesInfo, setSeriesInfo] = useState<ProductSeries | null>(null);
-    const [currentProductIndex, setCurrentProductIndex] = useState(0);
+    const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
+    const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
     const [activeBreadcrumb, setActiveBreadcrumb] = useState('PRODUCT DETAILS');
     const [currentSection, setCurrentSection] = useState('details');
     const [isTransitioning, setIsTransitioning] = useState(false);
@@ -50,142 +25,19 @@ export default function SeriesPage({ params }: { params: Promise<{ id: string }>
 
     useEffect(() => {
         if (resolvedParams?.id) {
-            // First, try to find series by ID
-            const series = productSeries.find(s => s.id === resolvedParams.id);
-            
-            if (series) {
-                // Load all products from this series
-                const sameSeriesProducts = getProductsBySeries(series.id);
-                
-                if (sameSeriesProducts.length > 0) {
-                    // Convert real products to legacy format
-                    const legacySeriesProducts: LegacyProduct[] = sameSeriesProducts.map(prod => ({
-                        id: prod.id,
-                        name: prod.name,
-                        subtitle: prod.subtitle,
-                        description: prod.description,
-                        image: prod.images[0]?.url || '/products/product1.png',
-                        series: {
-                            id: prod.series.id,
-                            name: prod.series.name
-                        },
-                        features: prod.features.slice(0, 3).map(feature => ({
-                            title: feature.title,
-                            subtitle: feature.subtitle || '',
-                            description: feature.description
-                        })),
-                        additionalFeatures: prod.features.slice(3).map(feature => ({
-                            icon: feature.icon || '🎧',
-                            description: feature.description
-                        }))
-                    }));
-                    
-                    setSeriesProducts(legacySeriesProducts);
-                    setCurrentProduct(legacySeriesProducts[0]); // Start with first product
-                    setCurrentProductIndex(0);
-                    setSeriesInfo(series);
-                } else {
-                    // Fallback to mock data if series exists but no products
-                    loadMockSeriesData(resolvedParams.id);
-                }
+            const product = getProductById(resolvedParams.id);
+
+            if (product) {
+                setCurrentProduct(product);
+                // Get related products based on category and position
+                const related = getRelatedProducts(product.id, 4);
+                setRelatedProducts(related);
             } else {
-                // Check if it's a product ID (backward compatibility)
-                const realProduct = getProductById(resolvedParams.id);
-                if (realProduct) {
-                    // Redirect to series page
-                    const sameSeriesProducts = getProductsBySeries(realProduct.series.id);
-                    const legacySeriesProducts: LegacyProduct[] = sameSeriesProducts.map(prod => ({
-                        id: prod.id,
-                        name: prod.name,
-                        subtitle: prod.subtitle,
-                        description: prod.description,
-                        image: prod.images[0]?.url || '/products/product1.png',
-                        series: {
-                            id: prod.series.id,
-                            name: prod.series.name
-                        },
-                        features: prod.features.slice(0, 3).map(feature => ({
-                            title: feature.title,
-                            subtitle: feature.subtitle || '',
-                            description: feature.description
-                        })),
-                        additionalFeatures: prod.features.slice(3).map(feature => ({
-                            icon: feature.icon || '🎧',
-                            description: feature.description
-                        }))
-                    }));
-                    
-                    const currentIndex = legacySeriesProducts.findIndex(p => p.id === realProduct.id);
-                    setSeriesProducts(legacySeriesProducts);
-                    setCurrentProduct(legacySeriesProducts[currentIndex >= 0 ? currentIndex : 0]);
-                    setCurrentProductIndex(currentIndex >= 0 ? currentIndex : 0);
-                    setSeriesInfo(realProduct.series);
-                } else {
-                    // Fallback to mock data
-                    loadMockSeriesData(resolvedParams.id);
-                }
+                // Fallback for unknown product
+                console.error('Product not found:', resolvedParams.id);
             }
         }
     }, [resolvedParams]);
-
-    const loadMockSeriesData = (id: string) => {
-        const mockSeriesProducts: LegacyProduct[] = [
-            {
-                id: `${id}-1`,
-                name: `TUNECORE ${id.toUpperCase()} Pro Elite`,
-                subtitle: 'Professional Gaming Headset',
-                description: 'Tai nghe gaming cao cấp với công nghệ tiên tiến.',
-                image: '/products/product1.png',
-                series: { id: id, name: `${id.toUpperCase()} SERIES` },
-                features: [
-                    { title: 'Premium', subtitle: 'High Quality', description: 'Chất lượng cao cấp' },
-                    { title: '50mm', subtitle: 'Driver Size', description: 'Driver lớn cho âm thanh tốt' },
-                    { title: '7.1', subtitle: 'Surround Sound', description: 'Âm thanh vòm chân thực' }
-                ],
-                additionalFeatures: [
-                    { icon: '🎧', description: 'Thiết kế ergonomic thoải mái' },
-                    { icon: '🎵', description: 'Chất lượng âm thanh vượt trội' }
-                ]
-            },
-            {
-                id: `${id}-2`,
-                name: `TUNECORE ${id.toUpperCase()} Gaming Master`,
-                subtitle: 'Professional Gaming Audio',
-                description: 'Tai nghe gaming chuyên nghiệp cho game thủ.',
-                image: '/products/product1.png',
-                series: { id: id, name: `${id.toUpperCase()} SERIES` },
-                features: [
-                    { title: 'Master', subtitle: 'Pro Level', description: 'Cấp độ chuyên nghiệp' },
-                    { title: '40mm', subtitle: 'Driver Size', description: 'Driver chính xác' },
-                    { title: 'RGB', subtitle: 'LED Lighting', description: 'Đèn LED RGB' }
-                ],
-                additionalFeatures: [
-                    { icon: '🎮', description: 'Tối ưu cho gaming' },
-                    { icon: '💡', description: 'RGB LED tùy chỉnh' }
-                ]
-            }
-        ];
-        
-        setSeriesProducts(mockSeriesProducts);
-        setCurrentProduct(mockSeriesProducts[0]);
-        setCurrentProductIndex(0);
-        setSeriesInfo({ 
-            id: id, 
-            name: `${id.toUpperCase()} SERIES`,
-            description: `Dòng sản phẩm ${id.toUpperCase()} cao cấp`,
-            targetAudience: 'Professional Gamers',
-            positionInMarket: 'Premium',
-            thumbnail: '/productCards/card1/image1.png'
-        });
-    };
-
-    // Function to switch to specific product in series
-    const switchToProduct = (productIndex: number) => {
-        if (productIndex >= 0 && productIndex < seriesProducts.length) {
-            setCurrentProduct(seriesProducts[productIndex]);
-            setCurrentProductIndex(productIndex);
-        }
-    };
 
     const breadcrumbItems = [
         { label: 'PRODUCT DETAILS', section: 'details' },
@@ -196,8 +48,12 @@ export default function SeriesPage({ params }: { params: Promise<{ id: string }>
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleBreadcrumbClick = (item: any) => {
+        console.log('handleBreadcrumbClick called with:', item);
         // Don't trigger if already active or transitioning
-        if (activeBreadcrumb === item.label || isTransitioning) return;
+        if (activeBreadcrumb === item.label || isTransitioning) {
+            console.log('Skipping - already active or transitioning:', { activeBreadcrumb, isTransitioning });
+            return;
+        }
 
         // Start transition
         setIsTransitioning(true);
@@ -213,16 +69,60 @@ export default function SeriesPage({ params }: { params: Promise<{ id: string }>
         // End transition and scroll
         setTimeout(() => {
             setIsTransitioning(false);
-            const targetSection = document.getElementById('product-details');
+            // Try to find the actual content section title (h2)
+            let targetSection = null;
+            
+            // For desktop/tablet, try to find the section title first for better positioning
+            if (window.innerWidth >= 640) { // Tablet and Desktop
+                // Try to find the h2 title element directly
+                const sectionTitles = document.querySelectorAll('.hidden.sm\\:block h2');
+                if (sectionTitles.length > 0) {
+                    targetSection = sectionTitles[0]; // First h2 in desktop layout
+                } else {
+                    // Fallback to container
+                    targetSection = document.querySelector('.hidden.sm\\:block .container.mx-auto.px-4');
+                    if (!targetSection) {
+                        targetSection = document.querySelector('.ml-20 .container.mx-auto');
+                    }
+                }
+            } else { // Mobile
+                targetSection = document.getElementById('product-details');
+            }
+            
+            // Fallback to original selector
+            if (!targetSection) {
+                targetSection = document.getElementById('product-details');
+            }
+            
+            console.log('Target section found:', targetSection);
+            
             if (targetSection) {
-                const headerOffset = 80; // Account for fixed header
+                // Adjust offset so title appears right below header - smaller since targeting h2 directly
+                const headerOffset = window.innerWidth < 640 ? 200 : window.innerWidth < 1024 ? 100 : 120; // Fine-tuned for h2 title positioning
                 const elementPosition = targetSection.getBoundingClientRect().top;
                 const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
 
-                window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
+                console.log('Scrolling to content:', {
+                    isMobile: window.innerWidth < 640,
+                    headerOffset,
+                    elementPosition,
+                    offsetPosition,
+                    currentSection
                 });
+
+                // Force scroll with smooth behavior
+                try {
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                } catch {
+                    // Fallback for older browsers
+                    console.log('Smooth scroll failed, using instant scroll');
+                    window.scrollTo(0, offsetPosition);
+                }
+            } else {
+                console.log('Target section not found');
             }
         }, 600);
     };
@@ -312,19 +212,20 @@ export default function SeriesPage({ params }: { params: Promise<{ id: string }>
                     >
                         <ProductDetails
                             features={currentProduct?.features || []}
-                            additionalFeatures={currentProduct?.additionalFeatures || []}
+                            highlights={currentProduct?.highlights || []}
+                            description={currentProduct?.longDescription || currentProduct?.description || ''}
                         />
                     </motion.div>
                 );
         }
     };
 
-    if (!currentProduct || !seriesInfo) {
+    if (!currentProduct) {
         return (
             <div className="min-h-screen bg-[#0a0f1a] flex items-center justify-center">
                 <div className="text-center">
                     <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-400">Đang tải series...</p>
+                    <p className="text-gray-400">Loading product...</p>
                 </div>
             </div>
         );
@@ -332,39 +233,112 @@ export default function SeriesPage({ params }: { params: Promise<{ id: string }>
 
     return (
         <div className="min-h-screen bg-[#0a0f1a] text-white">
-            {/* Hero Section */}
-            <ProductHero
-                product={currentProduct}
-                breadcrumbItems={breadcrumbItems}
-                activeBreadcrumb={activeBreadcrumb}
-                onBreadcrumbClick={handleBreadcrumbClick}
-                seriesProducts={seriesProducts}
-                currentProductIndex={currentProductIndex}
-                onProductSwitch={switchToProduct}
-            />
+            {/* Mobile Layout */}
+            <div className="sm:hidden">
+                {/* Mobile Navigation Dropdown - Above Hero */}
+                <div className="ml-16 sticky top-16 sm:top-20 z-[9999] py-3 bg-[#0a0f1a]/95 backdrop-blur-sm border-b border-gray-800/50">
+                    <div className="px-4">
+                        <div className="relative z-[9999]">
+                            <select
+                                value={activeBreadcrumb}
+                                onChange={(e) => {
+                                    console.log('Mobile breadcrumb selected:', e.target.value);
+                                    const selectedItem = breadcrumbItems.find(item => item.label === e.target.value);
+                                    if (selectedItem) {
+                                        console.log('Found item:', selectedItem);
+                                        handleBreadcrumbClick(selectedItem);
+                                    }
+                                }}
+                                className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent appearance-none cursor-pointer"
+                            >
+                                {breadcrumbItems.map((item) => (
+                                    <option key={item.label} value={item.label} className="bg-gray-800 text-white">
+                                        {item.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            {/* Dynamic Section Content with Animation */}
-            <div id="product-details" className="relative">
-                {/* Transition overlay */}
-                <AnimatePresence>
-                    {isTransitioning && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="absolute inset-0 bg-[#0a0f1a]/30 backdrop-blur-sm z-50 flex items-center justify-center"
-                        >
-                            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                {/* Mobile Hero - Compact */}
+                <div className="ml-16 pt-16 sm:pt-20">
+                    <ProductHero
+                        product={currentProduct}
+                        relatedProducts={relatedProducts}
+                    />
+                </div>
 
-                <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
+                {/* Mobile Content */}
+                <div className="ml-16">
+                    <div id="product-details" className="relative min-h-screen pt-4">
+                        <AnimatePresence>
+                            {isTransitioning && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="absolute inset-0 bg-[#0a0f1a]/30 backdrop-blur-sm z-50 flex items-center justify-center"
+                                >
+                                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                        <div className="px-4">
+                            <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
+                        </div>
+                    </div>
+                    <div className="pt-8">
+                        <RelatedProducts products={relatedProducts} />
+                    </div>
+                </div>
             </div>
 
-            {/* Related Products Section */}
-            <RelatedProducts />
+            {/* Desktop Layout */}
+            <div className="hidden sm:block">
+                {/* Desktop Hero */}
+                <div className="ml-20">
+                    <ProductHero
+                        product={currentProduct}
+                        relatedProducts={relatedProducts}
+                        breadcrumbItems={breadcrumbItems}
+                        activeBreadcrumb={activeBreadcrumb}
+                        onBreadcrumbClick={handleBreadcrumbClick}
+                    />
+                </div>
+
+
+                {/* Desktop Content */}
+                <div className="ml-20">
+                    <div id="product-details" className="relative min-h-screen pt-6 md:pt-8 lg:pt-12">
+                        <AnimatePresence>
+                            {isTransitioning && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="absolute inset-0 bg-[#0a0f1a]/30 backdrop-blur-sm z-50 flex items-center justify-center"
+                                >
+                                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                        <div className="container mx-auto px-4 lg:px-8">
+                            <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
+                        </div>
+                    </div>
+                    <div className="pt-8 md:pt-12 lg:pt-16">
+                        <RelatedProducts products={relatedProducts} />
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }

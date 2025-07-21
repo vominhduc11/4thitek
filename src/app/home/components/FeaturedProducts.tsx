@@ -6,7 +6,47 @@ import { FiArrowUpRight } from 'react-icons/fi';
 import Image from 'next/image';
 import Link from 'next/link';
 import clsx from 'clsx';
-import type { Product } from '@/types/product';
+import AvoidSidebar from '@/components/layout/AvoidSidebar';
+// import { useLanguage } from '@/contexts/LanguageContext';
+
+interface FeaturedProduct {
+    id: string;
+    name: string;
+    category: string;
+    description: string;
+    image: string;
+}
+
+const featuredProducts: FeaturedProduct[] = [
+    {
+        id: 'sx-pro-elite',
+        name: 'TUNECORE SX Pro Elite',
+        category: 'Gaming Headsets',
+        description: 'Professional Gaming Headset với driver 50mm và công nghệ noise cancelling tiên tiến',
+        image: '/products/product1.png'
+    },
+    {
+        id: 'gx-wireless-pro',
+        name: 'TUNECORE GX Wireless Pro',
+        category: 'Wireless Headsets',
+        description: 'Wireless Gaming Headset với kết nối 2.4GHz và thời lượng pin 30 giờ',
+        image: '/products/product1.png'
+    },
+    {
+        id: 'hx-studio-master',
+        name: 'TUNECORE HX Studio Master',
+        category: 'Professional Audio',
+        description: 'Professional Studio Headphones với driver planar magnetic chất lượng cao',
+        image: '/products/product1.png'
+    },
+    {
+        id: 'mx-sport-elite',
+        name: 'TUNECORE MX Sport Elite',
+        category: 'Wireless Headsets',
+        description: 'Sport Wireless Earbuds với khả năng chống nước IPX7 và sạc nhanh',
+        image: '/products/product1.png'
+    }
+];
 
 interface ProductImageWithFallbackProps {
     src: string;
@@ -52,14 +92,15 @@ function ProductImageWithFallback({ src, alt, className }: ProductImageWithFallb
     );
 }
 
-interface ProductGridProps {
-    products: Product[];
-}
-
-export default function ProductGrid({ products }: ProductGridProps) {
+export default function FeaturedProducts() {
     const [hoveredProductId, setHoveredProductId] = useState<string | null>(null);
+    // const { language } = useLanguage();
 
-    const renderProductCard = (product: Product, index: number) => {
+    const handleViewAllProducts = () => {
+        window.location.href = '/products';
+    };
+
+    const renderProductCard = (product: FeaturedProduct, index: number) => {
         return (
             <motion.div
                 key={product.id}
@@ -129,7 +170,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
                             className="relative"
                         >
                             <ProductImageWithFallback
-                                src="/products/product1.png"
+                                src={product.image}
                                 alt={product.name}
                                 className="w-[300px] h-[300px] object-contain transition-opacity duration-200 ease-out"
                             />
@@ -195,16 +236,68 @@ export default function ProductGrid({ products }: ProductGridProps) {
     };
 
     return (
-        <div className="w-full">
-            <motion.div
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-x divide-gray-700/30 relative"
-                layout
-                transition={{ duration: 0.5, ease: 'easeInOut' }}
-            >
-                <AnimatePresence mode="popLayout">
-                    {products.map((product, index) => renderProductCard(product, index))}
-                </AnimatePresence>
-            </motion.div>
-        </div>
+        <AvoidSidebar>
+            <section className="py-16 md:py-24 bg-[#0c131d] relative overflow-hidden">
+                <div className="container mx-auto px-4 max-w-[1800px]">
+                    {/* Header */}
+                    <div className="text-center mb-12 md:mb-16">
+                        <motion.h2
+                            className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4"
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6 }}
+                        >
+                            Sản phẩm tiêu biểu
+                        </motion.h2>
+                        <motion.p
+                            className="text-gray-400 text-lg max-w-2xl mx-auto"
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: 0.2 }}
+                        >
+                            Khám phá những sản phẩm âm thanh hàng đầu được lựa chọn đặc biệt
+                        </motion.p>
+                    </div>
+
+                    {/* Products Grid */}
+                    <div className="w-full">
+                        <motion.div
+                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-x divide-gray-700/30 relative mb-12"
+                            layout
+                            transition={{ duration: 0.5, ease: 'easeInOut' }}
+                        >
+                            <AnimatePresence mode="popLayout">
+                                {featuredProducts.map((product, index) => renderProductCard(product, index))}
+                            </AnimatePresence>
+                        </motion.div>
+                    </div>
+
+                    {/* View All Button */}
+                    <motion.div
+                        className="text-center"
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.4 }}
+                    >
+                        <motion.button
+                            onClick={handleViewAllProducts}
+                            className="group relative bg-transparent hover:bg-gradient-to-r hover:from-[#4FC8FF] hover:to-[#3BA5CC] text-white px-10 py-4 rounded-lg font-medium transition-all duration-300 inline-flex items-center gap-3 shadow-lg hover:shadow-xl overflow-hidden border border-[#4FC8FF]/50 hover:border-[#4FC8FF]"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-r from-[#4FC8FF] to-[#3BA5CC] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            <span className="relative z-10 text-base">Xem tất cả sản phẩm</span>
+                            <motion.div
+                                className="relative z-10"
+                                whileHover={{ rotate: 45 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <FiArrowUpRight className="w-5 h-5" />
+                            </motion.div>
+                        </motion.button>
+                    </motion.div>
+                </div>
+            </section>
+        </AvoidSidebar>
     );
 }

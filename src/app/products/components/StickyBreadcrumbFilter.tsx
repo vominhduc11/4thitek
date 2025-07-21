@@ -5,24 +5,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MdFilterList, MdChevronRight } from 'react-icons/md';
 
 interface StickyBreadcrumbFilterProps {
-    selectedSeries: string;
+    selectedPosition: string;
     hasActiveFilters: boolean;
-    onSeriesClick: (series: string) => void;
+    onPositionClick: (position: string) => void;
     onFilterToggle: () => void;
-    filteredCount: number;
-    totalProducts: number;
+    showFilters: boolean;
 }
 
 export default function StickyBreadcrumbFilter({
-    selectedSeries,
+    selectedPosition,
     hasActiveFilters,
-    onSeriesClick,
+    onPositionClick,
     onFilterToggle,
-    filteredCount,
-    totalProducts
+    showFilters // eslint-disable-line @typescript-eslint/no-unused-vars
 }: StickyBreadcrumbFilterProps) {
     const [isVisible, setIsVisible] = useState(false);
-    const seriesList = ['SX SERIES', 'S SERIES', 'G SERIES', 'G+ SERIES'];
+    const positionList = ['Entry', 'Mid-range', 'Premium', 'Ultimate'];
 
     useEffect(() => {
         const handleScroll = () => {
@@ -60,9 +58,9 @@ export default function StickyBreadcrumbFilter({
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                 <div className="flex items-center space-x-3 overflow-x-auto">
                                     <motion.button
-                                        onClick={() => onSeriesClick('ALL')}
+                                        onClick={() => onPositionClick('ALL')}
                                         className={`flex items-center space-x-2 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 ${
-                                            selectedSeries === 'ALL'
+                                            selectedPosition === 'ALL'
                                                 ? 'bg-[#4FC8FF]/20 text-[#4FC8FF] border border-[#4FC8FF]/50'
                                                 : 'bg-gray-800/50 text-gray-400 hover:text-white border border-gray-700 hover:border-gray-600'
                                         }`}
@@ -70,7 +68,7 @@ export default function StickyBreadcrumbFilter({
                                         whileTap={{ scale: 0.95 }}
                                     >
                                         <span>All</span>
-                                        {selectedSeries === 'ALL' && (
+                                        {selectedPosition === 'ALL' && (
                                             <motion.div
                                                 className="w-1.5 h-1.5 bg-[#4FC8FF] rounded-full"
                                                 initial={{ scale: 0 }}
@@ -80,12 +78,12 @@ export default function StickyBreadcrumbFilter({
                                         )}
                                     </motion.button>
 
-                                    {seriesList.map((series, index) => (
+                                    {positionList.map((position, index) => (
                                         <motion.button
-                                            key={series}
-                                            onClick={() => onSeriesClick(series)}
+                                            key={position}
+                                            onClick={() => onPositionClick(position)}
                                             className={`flex items-center space-x-2 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 ${
-                                                selectedSeries === series
+                                                selectedPosition === position
                                                     ? 'bg-[#4FC8FF]/20 text-[#4FC8FF] border border-[#4FC8FF]/50'
                                                     : 'bg-gray-800/50 text-gray-400 hover:text-white border border-gray-700 hover:border-gray-600'
                                             }`}
@@ -95,8 +93,8 @@ export default function StickyBreadcrumbFilter({
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
                                         >
-                                            <span>{series.split(' ')[0]}</span>
-                                            {selectedSeries === series && (
+                                            <span>{position}</span>
+                                            {selectedPosition === position && (
                                                 <motion.div
                                                     className="w-1.5 h-1.5 bg-[#4FC8FF] rounded-full"
                                                     initial={{ scale: 0 }}
@@ -115,9 +113,7 @@ export default function StickyBreadcrumbFilter({
                                         animate={{ opacity: 1 }}
                                         transition={{ delay: 0.2 }}
                                     >
-                                        <span className="text-[#4FC8FF] font-medium">{filteredCount}</span>
-                                        <span className="mx-1">/</span>
-                                        <span>{totalProducts}</span>
+                                        <span className="text-[#4FC8FF] font-medium">Products</span>
                                     </motion.div>
 
                                     <motion.button

@@ -1,9 +1,9 @@
-import { 
-    CertificationStandard, 
-    ProductCertification, 
-    CertificationCategory, 
+import {
+    CertificationStandard,
+    ProductCertification,
+    CertificationCategory,
     TestingLaboratory,
-    ComplianceRequirement 
+    ComplianceRequirement
 } from '@/types/certification';
 
 // Certification Standards
@@ -13,7 +13,8 @@ export const certificationStandards: CertificationStandard[] = [
         id: 'hi-res-audio',
         name: 'Hi-Res Audio',
         fullName: 'High-Resolution Audio Certification',
-        description: 'Chứng nhận chất lượng âm thanh độ phân giải cao, đảm bảo tái tạo âm thanh với độ chính xác và chi tiết vượt trội',
+        description:
+            'Chứng nhận chất lượng âm thanh độ phân giải cao, đảm bảo tái tạo âm thanh với độ chính xác và chi tiết vượt trội',
         issuingOrganization: 'Japan Audio Society (JAS)',
         category: 'audio-quality',
         logo: '/certifications/hi-res-audio-logo.png',
@@ -377,39 +378,42 @@ export const complianceRequirements: ComplianceRequirement[] = [
 
 // Helper functions
 export const getCertificationsByProductId = (productId: string): ProductCertification[] => {
-    return productCertifications.filter(cert => cert.productId === productId);
+    return productCertifications.filter((cert) => cert.productId === productId);
 };
 
 export const getCertificationsByCategory = (categoryId: string): CertificationStandard[] => {
-    return certificationStandards.filter(standard => standard.category === categoryId);
+    return certificationStandards.filter((standard) => standard.category === categoryId);
 };
 
 export const getCertificationById = (id: string): ProductCertification | undefined => {
-    return productCertifications.find(cert => cert.id === id);
+    return productCertifications.find((cert) => cert.id === id);
 };
 
 export const getStandardById = (id: string): CertificationStandard | undefined => {
-    return certificationStandards.find(standard => standard.id === id);
+    return certificationStandards.find((standard) => standard.id === id);
 };
 
 export const getActiveCertifications = (): ProductCertification[] => {
-    return productCertifications.filter(cert => cert.isActive);
+    return productCertifications.filter((cert) => cert.isActive);
 };
 
-export const getCertificationsByImportance = (importance: 'critical' | 'important' | 'beneficial'): CertificationStandard[] => {
-    return certificationStandards.filter(standard => standard.importance === importance);
+export const getCertificationsByImportance = (
+    importance: 'critical' | 'important' | 'beneficial'
+): CertificationStandard[] => {
+    return certificationStandards.filter((standard) => standard.importance === importance);
 };
 
 export const getComplianceByRegion = (region: string): ComplianceRequirement[] => {
-    return complianceRequirements.filter(req => req.region === region);
+    return complianceRequirements.filter((req) => req.region === region);
 };
 
 export const searchCertifications = (query: string): CertificationStandard[] => {
     const searchTerm = query.toLowerCase();
-    return certificationStandards.filter(standard =>
-        standard.name.toLowerCase().includes(searchTerm) ||
-        standard.fullName.toLowerCase().includes(searchTerm) ||
-        standard.description.toLowerCase().includes(searchTerm)
+    return certificationStandards.filter(
+        (standard) =>
+            standard.name.toLowerCase().includes(searchTerm) ||
+            standard.fullName.toLowerCase().includes(searchTerm) ||
+            standard.description.toLowerCase().includes(searchTerm)
     );
 };
 

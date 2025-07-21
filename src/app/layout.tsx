@@ -4,6 +4,7 @@ import './globals.css';
 import ClientLayout from '@/components/layout/ClientLayout';
 import { AuthProvider } from '@/context/AuthContext';
 import { LoginModalProvider } from '@/context/LoginModalContext';
+import { LanguageProvider } from '@/contexts/LanguageContext';
 
 const geistSans = Geist({
     variable: '--font-geist-sans',
@@ -29,11 +30,13 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body id="__next" className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-                <AuthProvider>
-                    <LoginModalProvider>
-                        <ClientLayout>{children}</ClientLayout>
-                    </LoginModalProvider>
-                </AuthProvider>
+                <LanguageProvider>
+                    <AuthProvider>
+                        <LoginModalProvider>
+                            <ClientLayout>{children}</ClientLayout>
+                        </LoginModalProvider>
+                    </AuthProvider>
+                </LanguageProvider>
             </body>
         </html>
     );

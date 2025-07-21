@@ -1,4 +1,4 @@
-import { WarrantyPlan, ServiceCenter, WarrantyProcess, FAQ, WarrantyPolicy, WarrantyTerm } from '@/types/warranty';
+import { WarrantyPlan, ServiceCenter, WarrantyProcess, WarrantyFAQ, WarrantyPolicy, WarrantyTerm } from '@/types/warranty';
 
 // Warranty Terms
 export const warrantyTerms: WarrantyTerm[] = [
@@ -24,7 +24,7 @@ export const warrantyTerms: WarrantyTerm[] = [
         category: 'coverage',
         priority: 3
     },
-    
+
     // Condition Terms
     {
         id: 'original-purchase',
@@ -47,7 +47,7 @@ export const warrantyTerms: WarrantyTerm[] = [
         category: 'condition',
         priority: 3
     },
-    
+
     // Exclusion Terms
     {
         id: 'physical-damage',
@@ -86,8 +86,14 @@ export const warrantyPlans: WarrantyPlan[] = [
             'Hỗ trợ kỹ thuật qua hotline',
             'Kiểm tra và vệ sinh sản phẩm'
         ],
-        terms: warrantyTerms.filter(term => 
-            ['manufacturing-defects', 'component-failure', 'original-purchase', 'proper-usage', 'physical-damage'].includes(term.id)
+        terms: warrantyTerms.filter((term) =>
+            [
+                'manufacturing-defects',
+                'component-failure',
+                'original-purchase',
+                'proper-usage',
+                'physical-damage'
+            ].includes(term.id)
         ),
         registrationRequired: false,
         transferable: false,
@@ -207,12 +213,7 @@ export const serviceCenters: ServiceCenter[] = [
         phone: '0236-3987-654',
         email: 'danang@4thitek.com',
         workingHours: 'T2-T6: 8:00-17:00, T7: 8:00-12:00',
-        services: [
-            'Bảo hành sản phẩm',
-            'Sửa chữa cơ bản',
-            'Tư vấn kỹ thuật',
-            'Vệ sinh sản phẩm'
-        ],
+        services: ['Bảo hành sản phẩm', 'Sửa chữa cơ bản', 'Tư vấn kỹ thuật', 'Vệ sinh sản phẩm'],
         coordinates: {
             lat: 16.0471,
             lng: 108.2068
@@ -317,7 +318,7 @@ export const warrantyProcesses: WarrantyProcess[] = [
 ];
 
 // FAQs
-export const warrantyFAQs: FAQ[] = [
+export const warrantyFAQs: WarrantyFAQ[] = [
     {
         id: 'how-to-register-warranty',
         category: 'registration',
@@ -393,17 +394,13 @@ export const warrantyPolicy: WarrantyPolicy = {
             subsections: [
                 {
                     title: '1.1 Phạm vi áp dụng',
-                    content: 'Chính sách này áp dụng cho tất cả sản phẩm âm thanh 4THITEK được bán chính thức tại Việt Nam.'
+                    content:
+                        'Chính sách này áp dụng cho tất cả sản phẩm âm thanh 4THITEK được bán chính thức tại Việt Nam.'
                 },
                 {
                     title: '1.2 Thời gian bảo hành',
                     content: 'Thời gian bảo hành được tính từ ngày mua hàng và tùy thuộc vào dòng sản phẩm.',
-                    items: [
-                        'G Series: 12 tháng',
-                        'S Series: 18 tháng', 
-                        'SX Series: 24 tháng',
-                        'G+ Series: 36 tháng'
-                    ]
+                    items: ['G Series: 12 tháng', 'S Series: 18 tháng', 'SX Series: 24 tháng', 'G+ Series: 36 tháng']
                 }
             ]
         },
@@ -422,7 +419,8 @@ export const warrantyPolicy: WarrantyPolicy = {
                 },
                 {
                     title: '2.2 Đăng ký bảo hành',
-                    content: 'Khách hàng nên đăng ký bảo hành trong vòng 30 ngày kể từ ngày mua để được hỗ trợ tốt nhất.'
+                    content:
+                        'Khách hàng nên đăng ký bảo hành trong vòng 30 ngày kể từ ngày mua để được hỗ trợ tốt nhất.'
                 }
             ]
         },
@@ -459,34 +457,33 @@ export const warrantyPolicy: WarrantyPolicy = {
 
 // Helper functions
 export const getWarrantyPlanById = (id: string): WarrantyPlan | undefined => {
-    return warrantyPlans.find(plan => plan.id === id);
+    return warrantyPlans.find((plan) => plan.id === id);
 };
 
 export const getServiceCenterById = (id: string): ServiceCenter | undefined => {
-    return serviceCenters.find(center => center.id === id);
+    return serviceCenters.find((center) => center.id === id);
 };
 
 export const getServiceCentersByCity = (city: string): ServiceCenter[] => {
-    return serviceCenters.filter(center => center.city === city);
+    return serviceCenters.filter((center) => center.city === city);
 };
 
-export const getFAQsByCategory = (category: string): FAQ[] => {
-    return warrantyFAQs.filter(faq => faq.category === category);
+export const getFAQsByCategory = (category: string): WarrantyFAQ[] => {
+    return warrantyFAQs.filter((faq) => faq.category === category);
 };
 
-export const searchFAQs = (query: string): FAQ[] => {
+export const searchFAQs = (query: string): WarrantyFAQ[] => {
     const searchTerm = query.toLowerCase();
-    return warrantyFAQs.filter(faq =>
-        faq.question.toLowerCase().includes(searchTerm) ||
-        faq.answer.toLowerCase().includes(searchTerm) ||
-        faq.tags.some(tag => tag.toLowerCase().includes(searchTerm))
+    return warrantyFAQs.filter(
+        (faq) =>
+            faq.question.toLowerCase().includes(searchTerm) ||
+            faq.answer.toLowerCase().includes(searchTerm) ||
+            faq.tags.some((tag) => tag.toLowerCase().includes(searchTerm))
     );
 };
 
-export const getPopularFAQs = (limit: number = 5): FAQ[] => {
-    return warrantyFAQs
-        .sort((a, b) => b.popularity - a.popularity)
-        .slice(0, limit);
+export const getPopularFAQs = (limit: number = 5): WarrantyFAQ[] => {
+    return warrantyFAQs.sort((a, b) => b.popularity - a.popularity).slice(0, limit);
 };
 
 // Export counts

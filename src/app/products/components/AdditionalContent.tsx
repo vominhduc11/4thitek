@@ -4,11 +4,11 @@ import { motion } from 'framer-motion';
 import { FiMail, FiPhone, FiMapPin, FiArrowRight } from 'react-icons/fi';
 
 interface AdditionalContentProps {
-    selectedSeries: string;
+    selectedPosition: string;
     productCount: number;
 }
 
-export default function AdditionalContent({ selectedSeries, productCount }: AdditionalContentProps) {
+export default function AdditionalContent({ selectedPosition, productCount }: AdditionalContentProps) {
     if (productCount >= 8) return null;
 
     return (
@@ -53,9 +53,9 @@ export default function AdditionalContent({ selectedSeries, productCount }: Addi
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.6 }}
                         >
-                            {selectedSeries === 'ALL'
+                            {selectedPosition === 'ALL'
                                 ? 'Contact our team to learn more about our complete product range and find the perfect communication solution for your needs.'
-                                : `Get detailed specifications and pricing information for ${selectedSeries.replace(' SERIES', ' Series')} products from our expert team.`}
+                                : `Get detailed specifications and pricing information for ${selectedPosition} position products from our expert team.`}
                         </motion.p>
 
                         <div className="space-y-4">

@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import { FiBox } from 'react-icons/fi';
 import { motion, Variants } from 'framer-motion';
+import { useHydration } from '@/hooks/useHydration';
 
 // Animation variants
 const containerVariants: Variants = {
@@ -36,6 +37,9 @@ const copyrightVariants: Variants = {
 };
 
 export default function NotFound() {
+    const isHydrated = useHydration();
+    const currentYear = isHydrated ? new Date().getFullYear() : 2024;
+
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#111827] via-[#23283c] to-[#141820] px-2 xs:px-4 sm:px-8 md:px-12 lg:px-20">
             <motion.div
@@ -94,7 +98,7 @@ export default function NotFound() {
                     className="text-xs xs:text-sm text-gray-600 mt-4 xs:mt-6 text-center"
                     variants={copyrightVariants}
                 >
-                    © {new Date().getFullYear()} Nhà phân phối sản phẩm
+                    © {currentYear} Nhà phân phối sản phẩm
                 </motion.p>
             </motion.div>
         </div>

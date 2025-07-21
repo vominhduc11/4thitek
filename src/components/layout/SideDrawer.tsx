@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { FiX, FiChevronDown, FiCheck } from 'react-icons/fi';
+import { FiX, FiCheck } from 'react-icons/fi';
 import { FaFacebookF, FaTwitter } from 'react-icons/fa';
 import clsx from 'clsx';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SideDrawerProps {
     isOpen: boolean;
@@ -14,13 +15,10 @@ interface SideDrawerProps {
 }
 
 export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
-    const [isProductOpen, setIsProductOpen] = useState(false);
-    const [isProductHovered, setIsProductHovered] = useState(false);
-    const [language, setLanguage] = useState('vi');
+    const { language, setLanguage, t } = useLanguage();
     const router = useRouter();
 
-    const toggleProduct = () => setIsProductOpen((o) => !o);
-    const selectLanguage = (lang: string) => setLanguage(lang);
+    const selectLanguage = (lang: 'en' | 'vi') => setLanguage(lang);
 
     // Handle Products navigation
     const handleProductsNavigation = () => {
@@ -28,20 +26,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
         router.push('/products');
     };
 
-    // Navigate to products page with selected series
-    const handleSeriesNavigation = (seriesName: string) => {
-        // Convert display name to API format
-        const seriesMap: { [key: string]: string } = {
-            'SX Series': 'SX SERIES',
-            'S Series': 'S SERIES',
-            'G Series': 'G SERIES',
-            'G+ Series': 'G+ SERIES'
-        };
-
-        const seriesParam = encodeURIComponent(seriesMap[seriesName] || seriesName);
-        onClose(); // Close drawer first
-        router.push(`/products?series=${seriesParam}`);
-    };
+    // Remove series navigation as we now use individual products
 
     // Handle Home navigation
     const handleHomeNavigation = () => {
@@ -55,21 +40,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
         router.push('/blogs');
     };
 
-    // Handle hover effects
-    const handleProductMouseEnter = () => {
-        setIsProductHovered(true);
-        setIsProductOpen(true);
-    };
-
-    const handleProductMouseLeave = () => {
-        setIsProductHovered(false);
-        // Keep menu open for a short time to allow navigation to submenu
-        setTimeout(() => {
-            if (!isProductHovered) {
-                setIsProductOpen(false);
-            }
-        }, 200);
-    };
+    // Remove hover effects as no longer needed
 
     useEffect(() => {
         if (isOpen) {
@@ -135,18 +106,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
         }
     };
 
-    const productMenuVariants: Variants = {
-        closed: {
-            height: 0,
-            opacity: 0,
-            transition: { duration: 0.3, ease: 'easeInOut' }
-        },
-        open: {
-            height: 'auto',
-            opacity: 1,
-            transition: { duration: 0.3, ease: 'easeInOut' }
-        }
-    };
+    // Remove productMenuVariants as no longer needed
 
     return (
         <AnimatePresence mode="wait">
@@ -223,7 +183,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.4, duration: 0.3 }}
                             >
-                                <h2 className="text-lg sm:text-xl font-bold text-white mb-2">Navigation</h2>
+                                <h2 className="text-lg sm:text-xl font-bold text-white mb-2">{t('nav.navigation') || 'Navigation'}</h2>
                                 <motion.div
                                     className="w-10 sm:w-12 h-0.5 bg-blue-500"
                                     initial={{ width: 0 }}
@@ -245,66 +205,19 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                         whileHover={{ x: 4, color: '#ffffff' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                     >
-                                        Home
+                                        {t('nav.home')}
                                     </motion.button>
                                 </motion.li>
 
-                                <motion.li
-                                    variants={staggerItem}
-                                    onMouseEnter={handleProductMouseEnter}
-                                    onMouseLeave={handleProductMouseLeave}
-                                >
-                                    <div className="flex items-center">
-                                        <motion.button
-                                            onClick={handleProductsNavigation}
-                                            className="flex-1 text-left text-xs sm:text-sm font-medium uppercase tracking-wider py-1.5 sm:py-2 transition-all duration-200 hover:text-white"
-                                            whileHover={{ x: 4, color: '#ffffff' }}
-                                            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                                        >
-                                            Products
-                                        </motion.button>
-                                        <motion.button
-                                            onClick={toggleProduct}
-                                            className="p-1 text-blue-400 hover:text-white ml-2"
-                                            whileHover={{ scale: 1.1 }}
-                                            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                                        >
-                                            <motion.div
-                                                animate={{ rotate: isProductOpen ? 180 : 0 }}
-                                                transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                            >
-                                                <FiChevronDown size={16} />
-                                            </motion.div>
-                                        </motion.button>
-                                    </div>
-
-                                    <motion.ul
-                                        className="mt-2 sm:mt-3 ml-3 sm:ml-4 space-y-2 sm:space-y-3 overflow-hidden border-l border-gray-600/50 pl-3 sm:pl-4"
-                                        variants={productMenuVariants}
-                                        initial="closed"
-                                        animate={isProductOpen ? 'open' : 'closed'}
-                                        onMouseEnter={() => setIsProductHovered(true)}
-                                        onMouseLeave={() => setIsProductHovered(false)}
+                                <motion.li variants={staggerItem}>
+                                    <motion.button
+                                        onClick={handleProductsNavigation}
+                                        className="block text-xs sm:text-sm font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2 w-full text-left"
+                                        whileHover={{ x: 4, color: '#ffffff' }}
+                                        transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                     >
-                                        {['SX Series', 'S Series', 'G Series', 'G+ Series'].map((item, index) => (
-                                            <motion.li
-                                                key={item}
-                                                initial={{ opacity: 0, x: -10 }}
-                                                animate={isProductOpen ? { opacity: 1, x: 0 } : { opacity: 0, x: -10 }}
-                                                transition={{ delay: isProductOpen ? index * 0.1 : 0, duration: 0.2 }}
-                                            >
-                                                <motion.button
-                                                    onClick={() => handleSeriesNavigation(item)}
-                                                    className="block w-full text-left text-xs sm:text-sm py-0.5 sm:py-1 transition-all duration-200 text-gray-400 hover:text-white"
-                                                    whileHover={{ x: 4, color: '#ffffff' }}
-                                                    whileTap={{ scale: 0.98 }}
-                                                    transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                                                >
-                                                    {item}
-                                                </motion.button>
-                                            </motion.li>
-                                        ))}
-                                    </motion.ul>
+                                        {t('nav.products')}
+                                    </motion.button>
                                 </motion.li>
 
                                 {/* Company */}
@@ -318,7 +231,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                         whileHover={{ x: 4, color: '#ffffff' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                     >
-                                        Company
+                                        {t('nav.company')}
                                     </motion.button>
                                 </motion.li>
 
@@ -333,7 +246,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                         whileHover={{ x: 4, color: '#ffffff' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                     >
-                                        Reseller
+                                        {t('nav.reseller')}
                                     </motion.button>
                                 </motion.li>
 
@@ -345,7 +258,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                         whileHover={{ x: 4, color: '#ffffff' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                     >
-                                        Blog
+                                        {t('nav.blog')}
                                     </motion.button>
                                 </motion.li>
 
@@ -360,7 +273,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                         whileHover={{ x: 4, color: '#ffffff' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                     >
-                                        Contact Us
+                                        {t('nav.contact')}
                                     </motion.button>
                                 </motion.li>
                             </motion.ul>
@@ -393,12 +306,12 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                             >
                                 <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3 sm:mb-4 flex items-center">
                                     <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-blue-500 rounded-full mr-2"></span>
-                                    Language
+                                    {t('common.language')}
                                 </h4>
                                 <ul className="space-y-2 sm:space-y-3">
                                     {[
-                                        { code: 'vi', label: 'Tiếng Việt' },
-                                        { code: 'en', label: 'English' }
+                                        { code: 'vi', label: t('common.vietnamese') },
+                                        { code: 'en', label: t('common.english') }
                                     ].map((lang, index) => (
                                         <motion.li
                                             key={lang.code}
@@ -413,7 +326,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                                         ? 'bg-blue-500/20 text-white'
                                                         : 'hover:bg-white/5 hover:text-white'
                                                 )}
-                                                onClick={() => selectLanguage(lang.code)}
+                                                onClick={() => selectLanguage(lang.code as 'en' | 'vi')}
                                                 whileHover={{ scale: 1.02 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 transition={{ type: 'spring', stiffness: 400, damping: 17 }}
@@ -442,7 +355,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                             >
                                 <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3 sm:mb-4 flex items-center">
                                     <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-green-500 rounded-full mr-2"></span>
-                                    Contact Us
+                                    {t('common.contactUs')}
                                 </h4>
                                 <motion.div
                                     className="bg-white/5 rounded-lg p-3 sm:p-4 border border-gray-700/30"

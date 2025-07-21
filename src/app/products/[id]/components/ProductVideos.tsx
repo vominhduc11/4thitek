@@ -55,10 +55,10 @@ export default function ProductVideos({ productName }: ProductVideosProps) {
     return (
         <section id="product-details" className="bg-[#0a0f1a] relative z-50 -mt-20 min-h-screen">
             <div className="container mx-auto max-w-8xl relative -top-48 py-20">
-                <h2 className="text-3xl font-bold mb-8 text-white">VIDEO GALLERY</h2>
+                <h2 className="text-2xl md:text-3xl lg:text-3xl font-bold mb-6 md:mb-8 text-white">VIDEO GALLERY</h2>
 
                 {/* Featured Video */}
-                <div className="mb-12">
+                <div className="mb-8 md:mb-12">
                     <div className="bg-gray-900/50 rounded-2xl overflow-hidden border border-gray-700/50">
                         <div className="aspect-video bg-gray-800 relative group">
                             <video
@@ -74,8 +74,8 @@ export default function ProductVideos({ productName }: ProductVideosProps) {
                                 Your browser does not support the video tag.
                             </video>
                         </div>
-                        <div className="p-6">
-                            <h3 className="text-xl font-bold text-white mb-2">Đánh giá chi tiết {productName}</h3>
+                        <div className="p-4 md:p-6">
+                            <h3 className="text-lg md:text-xl font-bold text-white mb-2">Đánh giá chi tiết {productName}</h3>
                             <p className="text-gray-400 mb-4">
                                 Video đánh giá toàn diện về sản phẩm, từ unboxing đến test thực tế
                             </p>
@@ -94,7 +94,7 @@ export default function ProductVideos({ productName }: ProductVideosProps) {
                 </div>
 
                 {/* Video Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-12">
                     {videoList.map((video, index) => (
                         <motion.div
                             key={index}
@@ -149,9 +149,9 @@ export default function ProductVideos({ productName }: ProductVideosProps) {
                 </div>
 
                 {/* Video Categories */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="bg-gray-900/30 rounded-xl p-6 border border-gray-700/30">
-                        <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                    <div className="bg-gray-900/30 rounded-xl p-4 md:p-6 border border-gray-700/30">
+                        <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4 flex items-center gap-2">
                             🎓 Tutorials & Guides
                         </h3>
                         <p className="text-gray-400 mb-4">
@@ -173,8 +173,8 @@ export default function ProductVideos({ productName }: ProductVideosProps) {
                         </div>
                     </div>
 
-                    <div className="bg-gray-900/30 rounded-xl p-6 border border-gray-700/30">
-                        <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">💬 User Reviews</h3>
+                    <div className="bg-gray-900/30 rounded-xl p-4 md:p-6 border border-gray-700/30">
+                        <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4 flex items-center gap-2">💬 User Reviews</h3>
                         <p className="text-gray-400 mb-4">Chia sẻ và đánh giá từ người dùng thực tế về sản phẩm</p>
                         <div className="space-y-2">
                             <div className="flex justify-between items-center text-sm">

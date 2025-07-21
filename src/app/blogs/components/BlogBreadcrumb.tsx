@@ -1,49 +1,41 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { FiSearch, FiFilter } from 'react-icons/fi';
+import { blogCategories } from '@/data/blogs';
 
 interface BlogBreadcrumbProps {
     selectedCategory: string;
     onCategoryClick: (category: string) => void;
     totalBlogs: number;
     filteredCount: number;
+    searchQuery: string;
+    onSearchChange: (query: string) => void;
+    sortBy: 'date' | 'popularity' | 'views';
+    onSortChange: (sort: 'date' | 'popularity' | 'views') => void;
 }
 
-const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filteredCount }: BlogBreadcrumbProps) => {
-    const categoryList = ['TECHNOLOGY', 'TUTORIAL', 'NEWS', 'REVIEW', 'TIPS'];
+const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filteredCount, searchQuery, onSearchChange, sortBy, onSortChange }: BlogBreadcrumbProps) => {
+    const categoryList = blogCategories;
 
     // Format category title for display
     const getDisplayTitle = () => {
         if (selectedCategory === 'ALL') {
             return 'BLOG LIST';
         }
-        // Convert category to proper display format
-        const categoryNames: { [key: string]: string } = {
-            TECHNOLOGY: 'Technology',
-            TUTORIAL: 'Tutorial',
-            NEWS: 'News',
-            REVIEW: 'Review',
-            TIPS: 'Tips'
-        };
-        return categoryNames[selectedCategory] || selectedCategory;
+        // Find category by slug
+        const category = blogCategories.find(cat => cat.slug === selectedCategory.toLowerCase());
+        return category ? category.name : selectedCategory;
     };
 
     // Get category-specific description
     const getCategoryDescription = () => {
-        switch (selectedCategory) {
-            case 'TECHNOLOGY':
-                return 'Khám phá những công nghệ tiên tiến nhất trong lĩnh vực truyền thông không dây. Tìm hiểu về các xu hướng công nghệ mới, đột phá kỹ thuật và ứng dụng thực tế trong các sản phẩm SCS hiện đại.';
-            case 'TUTORIAL':
-                return 'Hướng dẫn chi tiết cách sử dụng và tối ưu hóa các sản phẩm SCS. Từ thiết lập ban đầu đến các mẹo nâng cao, giúp bạn khai thác tối đa hiệu suất thiết bị truyền thông của mình.';
-            case 'NEWS':
-                return 'Cập nhật những tin tức mới nhất về SCS và ngành công nghiệp truyền thông. Thông tin về sản phẩm mới, sự kiện quan trọng và các phát triển đáng chú ý trong lĩnh vực này.';
-            case 'REVIEW':
-                return 'Đánh giá chuyên sâu và khách quan về các sản phẩm SCS. Phân tích chi tiết về tính năng, hiệu suất và trải nghiệm thực tế để giúp bạn đưa ra quyết định mua hàng phù hợp.';
-            case 'TIPS':
-                return 'Những mẹo hay và kinh nghiệm thực tế từ các chuyên gia và người dùng lâu năm. Tối ưu hóa việc sử dụng thiết bị, bảo dưỡng đúng cách và nâng cao trải nghiệm truyền thông.';
-            default:
-                return 'Khám phá thế giới công nghệ truyền thông qua các bài viết chuyên sâu và hữu ích. Từ hướng dẫn sử dụng, đánh giá sản phẩm đến những xu hướng công nghệ mới nhất trong ngành.';
+        if (selectedCategory === 'ALL') {
+            return 'Khám phá thế giới công nghệ âm thanh gaming qua các bài viết chuyên sâu và hữu ích. Từ hướng dẫn sử dụng, đánh giá sản phẩm đến những xu hướng công nghệ mới nhất trong ngành.';
         }
+        // Find category by slug and return its description
+        const category = blogCategories.find(cat => cat.slug === selectedCategory.toLowerCase());
+        return category ? category.description : 'Khám phá các bài viết thú vị về công nghệ âm thanh gaming.';
     };
 
     return (
@@ -129,23 +121,23 @@ const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filtere
                                     <span className="text-gray-500 mx-2">/</span>
                                     <motion.button
                                         className={`transition-all duration-300 relative group ${
-                                            selectedCategory === category
+                                            selectedCategory === category.slug.toUpperCase()
                                                 ? 'text-[#4FC8FF] scale-105 font-semibold'
                                                 : 'text-gray-400 hover:text-white'
                                         }`}
-                                        whileHover={{ scale: selectedCategory === category ? 1.05 : 1.1 }}
+                                        whileHover={{ scale: selectedCategory === category.slug.toUpperCase() ? 1.05 : 1.1 }}
                                         whileTap={{ scale: 0.95 }}
-                                        onClick={() => onCategoryClick(category)}
+                                        onClick={() => onCategoryClick(category.slug.toUpperCase())}
                                     >
-                                        {category}
+                                        {category.name.toUpperCase()}
                                         <span
                                             className={`absolute bottom-0 left-0 h-0.5 bg-[#4FC8FF] transition-all duration-300 ${
-                                                selectedCategory === category ? 'w-full' : 'w-0 group-hover:w-full'
+                                                selectedCategory === category.slug.toUpperCase() ? 'w-full' : 'w-0 group-hover:w-full'
                                             }`}
                                         ></span>
 
                                         {/* Active indicator */}
-                                        {selectedCategory === category && (
+                                        {selectedCategory === category.slug.toUpperCase() && (
                                             <motion.div
                                                 className="absolute -top-1 -right-1 w-2 h-2 bg-[#4FC8FF] rounded-full"
                                                 initial={{ scale: 0 }}
@@ -181,18 +173,52 @@ const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filtere
                             </motion.button>
                             {categoryList.map((category) => (
                                 <motion.button
-                                    key={category}
+                                    key={category.id}
                                     className={`px-3 py-1.5 rounded text-xs font-sans uppercase tracking-wide transition-all duration-300 ${
-                                        selectedCategory === category
+                                        selectedCategory === category.slug.toUpperCase()
                                             ? 'bg-[#4FC8FF]/20 border border-[#4FC8FF]/50 text-[#4FC8FF]'
                                             : 'border border-gray-600 text-gray-400 hover:text-white hover:border-gray-500'
                                     }`}
                                     whileTap={{ scale: 0.95 }}
-                                    onClick={() => onCategoryClick(category)}
+                                    onClick={() => onCategoryClick(category.slug.toUpperCase())}
                                 >
-                                    {category}
+                                    {category.name.toUpperCase()}
                                 </motion.button>
                             ))}
+                        </div>
+                    </motion.div>
+
+                    {/* Search and Sort Controls */}
+                    <motion.div
+                        className="mt-6 flex flex-col sm:flex-row gap-4 justify-between items-center"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.5 }}
+                    >
+                        {/* Search Bar */}
+                        <div className="relative w-full sm:w-96">
+                            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                            <input
+                                type="text"
+                                placeholder="Tìm kiếm bài viết..."
+                                value={searchQuery}
+                                onChange={(e) => onSearchChange(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#4FC8FF] focus:bg-gray-800/70 transition-all duration-300"
+                            />
+                        </div>
+
+                        {/* Sort Options */}
+                        <div className="flex items-center gap-3">
+                            <FiFilter className="text-gray-400 w-5 h-5" />
+                            <select
+                                value={sortBy}
+                                onChange={(e) => onSortChange(e.target.value as 'date' | 'popularity' | 'views')}
+                                className="bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-[#4FC8FF] transition-all duration-300 cursor-pointer"
+                            >
+                                <option value="date">Mới nhất</option>
+                                <option value="popularity">Phổ biến nhất</option>
+                                <option value="views">Xem nhiều nhất</option>
+                            </select>
                         </div>
                     </motion.div>
 
@@ -202,6 +228,7 @@ const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filtere
                         initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.2 }}
+                        className="mt-4"
                     >
                         {getCategoryDescription()}
                     </motion.p>

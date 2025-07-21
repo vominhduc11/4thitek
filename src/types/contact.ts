@@ -103,7 +103,7 @@ export interface ContactForm {
     isActive: boolean;
 }
 
-export interface FAQ {
+export interface ContactFAQ {
     id: string;
     category: 'general' | 'products' | 'support' | 'business' | 'technical';
     question: string;

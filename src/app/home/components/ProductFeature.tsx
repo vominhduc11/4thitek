@@ -45,11 +45,11 @@ export const featuredItems: FeaturedItem[] = [
         title: 'SCS G+ Elite',
         img: '/products/product2.png',
         description:
-            'Premium series featuring enhanced noise cancellation, extended battery life, and seamless group communication capabilities.'
+            'Premium position featuring enhanced noise cancellation, extended battery life, and seamless group communication capabilities.'
     },
     {
         id: 3,
-        title: 'SCS S Series',
+        title: 'SCS S Ultimate',
         img: '/products/product3.png',
         description:
             'Reliable and durable communication solution designed for everyday use with superior sound quality and ergonomic design.'
@@ -160,15 +160,15 @@ export default function ProductFeature() {
     const handleDiscoveryClick = useCallback(() => {
         const activeItem = featuredItems[activeIndex];
 
-        // Navigate to appropriate product series based on the active product
+        // Navigate to appropriate product position based on the active product
         if (activeItem.title.includes('S8X')) {
-            router.push('/products?series=SX%20SERIES');
+            router.push('/products?position=Premium');
         } else if (activeItem.title.includes('G+')) {
-            router.push('/products?series=G%2B%20SERIES');
+            router.push('/products?position=Ultimate');
         } else if (activeItem.title.includes('G')) {
-            router.push('/products?series=G%20SERIES');
+            router.push('/products?position=Mid-range');
         } else if (activeItem.title.includes('S')) {
-            router.push('/products?series=S%20SERIES');
+            router.push('/products?position=Entry');
         } else {
             // Default to products page if no match
             router.push('/products');

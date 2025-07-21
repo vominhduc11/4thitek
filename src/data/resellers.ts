@@ -1,4 +1,10 @@
-import { ResellerTier, ResellerLocation, ResellerRequirement, ResellerBenefit, ResellerSupport } from '@/types/reseller';
+import {
+    ResellerTier,
+    ResellerLocation,
+    ResellerRequirement,
+    ResellerBenefit,
+    ResellerSupport
+} from '@/types/reseller';
 
 // Reseller Tiers
 export const resellerTiers: ResellerTier[] = [
@@ -7,17 +13,8 @@ export const resellerTiers: ResellerTier[] = [
         name: 'Authorized Dealer',
         description: 'Đại lý ủy quyền cấp cơ bản cho các cửa hàng nhỏ lẻ',
         level: 1,
-        requirements: [
-            'Đơn hàng tối thiểu 50 triệu VNĐ',
-            'Có cửa hàng thực tế',
-            '1+ năm kinh nghiệm bán lẻ điện tử'
-        ],
-        benefits: [
-            'Chiết khấu 15%',
-            'Hỗ trợ marketing cơ bản',
-            'Hỗ trợ kỹ thuật',
-            'Chương trình đào tạo'
-        ],
+        requirements: ['Đơn hàng tối thiểu 50 triệu VNĐ', 'Có cửa hàng thực tế', '1+ năm kinh nghiệm bán lẻ điện tử'],
+        benefits: ['Chiết khấu 15%', 'Hỗ trợ marketing cơ bản', 'Hỗ trợ kỹ thuật', 'Chương trình đào tạo'],
         commission: 15,
         minimumOrder: 50000000,
         color: '#3B82F6'
@@ -69,13 +66,13 @@ export const resellerLocations: ResellerLocation[] = [
             website: 'https://hanoitechstore.vn'
         },
         workingHours: {
-            'monday': '9:00 - 21:00',
-            'tuesday': '9:00 - 21:00',
-            'wednesday': '9:00 - 21:00',
-            'thursday': '9:00 - 21:00',
-            'friday': '9:00 - 21:00',
-            'saturday': '9:00 - 22:00',
-            'sunday': '10:00 - 20:00'
+            monday: '9:00 - 21:00',
+            tuesday: '9:00 - 21:00',
+            wednesday: '9:00 - 21:00',
+            thursday: '9:00 - 21:00',
+            friday: '9:00 - 21:00',
+            saturday: '9:00 - 22:00',
+            sunday: '10:00 - 20:00'
         },
         tier: resellerTiers[1],
         isActive: true,
@@ -109,11 +106,7 @@ export const resellerBenefits: ResellerBenefit[] = [
         type: 'financial',
         applicableTiers: ['authorized-dealer', 'premium-partner'],
         value: '15-25%',
-        details: [
-            'Chiết khấu theo số lượng',
-            'Ưu đãi đặc biệt cho sản phẩm mới',
-            'Chương trình khuyến mãi định kỳ'
-        ]
+        details: ['Chiết khấu theo số lượng', 'Ưu đãi đặc biệt cho sản phẩm mới', 'Chương trình khuyến mãi định kỳ']
     }
 ];
 
@@ -130,23 +123,19 @@ export const resellerSupport: ResellerSupport[] = [
             email: 'support@4thitek.com',
             person: 'Đội ngũ kỹ thuật'
         },
-        materials: [
-            'Tài liệu kỹ thuật sản phẩm',
-            'Video hướng dẫn',
-            'FAQ thường gặp'
-        ]
+        materials: ['Tài liệu kỹ thuật sản phẩm', 'Video hướng dẫn', 'FAQ thường gặp']
     }
 ];
 
 // Helper functions
 export const getTierById = (id: string): ResellerTier | undefined => {
-    return resellerTiers.find(tier => tier.id === id);
+    return resellerTiers.find((tier) => tier.id === id);
 };
 
 export const getLocationsByTier = (tierId: string): ResellerLocation[] => {
-    return resellerLocations.filter(location => location.tier.id === tierId);
+    return resellerLocations.filter((location) => location.tier.id === tierId);
 };
 
 export const getActiveLocations = (): ResellerLocation[] => {
-    return resellerLocations.filter(location => location.isActive);
+    return resellerLocations.filter((location) => location.isActive);
 };

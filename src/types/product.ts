@@ -52,14 +52,7 @@ export interface ProductAvailability {
     estimatedDelivery?: string;
 }
 
-export interface ProductSeries {
-    id: string;
-    name: string;
-    description: string;
-    targetAudience: string;
-    positionInMarket: string; // Entry, Mid-range, Premium, Ultimate
-    thumbnail: string;
-}
+// ProductSeries interface removed - using individual SKUs instead
 
 export interface ProductCategory {
     id: string;
@@ -74,41 +67,40 @@ export interface Product {
     subtitle: string;
     description: string;
     longDescription?: string;
-    series: ProductSeries;
     category: ProductCategory;
-    
+
     // Media
     images: ProductImage[];
     videos: ProductVideo[];
-    
+
     // Technical Details
     specifications: ProductSpecification;
     features: ProductFeature[];
-    
+
     // Business Info
     availability: ProductAvailability;
     warranty: ProductWarranty;
-    
+
     // Marketing
     highlights: string[];
     targetAudience: string[];
     useCases: string[];
-    
+
     // Metadata
     popularity: number;
     rating?: number;
     reviewCount?: number;
     tags: string[];
     sku: string;
-    
+
     // Related
     relatedProductIds: string[];
     accessories: string[];
-    
+
     // SEO
     seoTitle?: string;
     seoDescription?: string;
-    
+
     // Timestamps
     createdAt: string;
     updatedAt: string;
@@ -116,7 +108,6 @@ export interface Product {
 }
 
 export interface ProductFilter {
-    series?: string[];
     category?: string[];
     availability?: string[];
     features?: string[];
@@ -125,7 +116,7 @@ export interface ProductFilter {
 }
 
 export interface ProductSort {
-    field: 'name' | 'popularity' | 'rating' | 'releaseDate' | 'series';
+    field: 'name' | 'popularity' | 'rating' | 'releaseDate';
     direction: 'asc' | 'desc';
 }
 
@@ -144,7 +135,6 @@ export interface ProductListResponse {
     limit: number;
     totalPages: number;
     filters: {
-        availableSeries: ProductSeries[];
         availableCategories: ProductCategory[];
         availableFeatures: string[];
         availableTargetAudience: string[];
