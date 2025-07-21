@@ -97,18 +97,13 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             console.log('Target section found:', targetSection);
             
             if (targetSection) {
-                // Adjust offset so title appears right below header - smaller since targeting h2 directly
-                const headerOffset = window.innerWidth < 640 ? 200 : window.innerWidth < 1024 ? 100 : 120; // Fine-tuned for h2 title positioning
+                // Điều chỉnh offset dựa trên kích thước màn hình
+                const headerOffset = window.innerWidth < 480 ? 180 : 
+                                    window.innerWidth < 640 ? 200 : 
+                                    window.innerWidth < 700 ? 160 : 100;
+                                    
                 const elementPosition = targetSection.getBoundingClientRect().top;
                 const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-                console.log('Scrolling to content:', {
-                    isMobile: window.innerWidth < 640,
-                    headerOffset,
-                    elementPosition,
-                    offsetPosition,
-                    currentSection
-                });
 
                 // Force scroll with smooth behavior
                 try {
@@ -223,9 +218,31 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     if (!currentProduct) {
         return (
             <div className="min-h-screen bg-[#0a0f1a] flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-400">Loading product...</p>
+                <div className="w-full max-w-7xl mx-auto px-4">
+                    {/* Skeleton loader */}
+                    <div className="ml-16 md:ml-20">
+                        {/* Hero skeleton */}
+                        <div className="animate-pulse">
+                            <div className="h-8 w-48 bg-gray-700 rounded mb-4"></div>
+                            <div className="h-16 w-3/4 bg-gray-700 rounded mb-8"></div>
+                            
+                            <div className="flex flex-col md:flex-row gap-8">
+                                {/* Image skeleton */}
+                                <div className="w-full md:w-1/2">
+                                    <div className="aspect-square bg-gray-800 rounded-lg"></div>
+                                </div>
+                                
+                                {/* Content skeleton */}
+                                <div className="w-full md:w-1/2 space-y-4">
+                                    <div className="h-8 bg-gray-700 rounded w-3/4"></div>
+                                    <div className="h-4 bg-gray-700 rounded w-full"></div>
+                                    <div className="h-4 bg-gray-700 rounded w-5/6"></div>
+                                    <div className="h-4 bg-gray-700 rounded w-4/6"></div>
+                                    <div className="h-12 bg-gray-700 rounded w-48 mt-8"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         );
@@ -233,23 +250,22 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
     return (
         <div className="min-h-screen bg-[#0a0f1a] text-white">
-            {/* Mobile Layout */}
-            <div className="sm:hidden">
+            {/* Mobile Layout (Small screens) */}
+            <div className="md:hidden">
                 {/* Mobile Navigation Dropdown - Above Hero */}
-                <div className="ml-16 sticky top-16 sm:top-20 z-[9999] py-3 bg-[#0a0f1a]/95 backdrop-blur-sm border-b border-gray-800/50">
-                    <div className="px-4">
+                <div className="ml-[4rem] xs:ml-16 sticky top-16 z-[9999] py-3 bg-[#0a0f1a]/95 backdrop-blur-sm border-b border-gray-800/50">
+                    <div className="px-3 xs:px-4">
                         <div className="relative z-[9999]">
                             <select
                                 value={activeBreadcrumb}
                                 onChange={(e) => {
-                                    console.log('Mobile breadcrumb selected:', e.target.value);
                                     const selectedItem = breadcrumbItems.find(item => item.label === e.target.value);
                                     if (selectedItem) {
-                                        console.log('Found item:', selectedItem);
                                         handleBreadcrumbClick(selectedItem);
                                     }
                                 }}
-                                className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent appearance-none cursor-pointer"
+                                className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 xs:px-4 py-2.5 xs:py-3 text-white text-xs xs:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent appearance-none cursor-pointer"
+                                aria-label="Select section"
                             >
                                 {breadcrumbItems.map((item) => (
                                     <option key={item.label} value={item.label} className="bg-gray-800 text-white">
@@ -258,7 +274,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                 ))}
                             </select>
                             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
                             </div>
@@ -267,7 +283,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 </div>
 
                 {/* Mobile Hero - Compact */}
-                <div className="ml-16 pt-16 sm:pt-20">
+                <div className="ml-[4rem] xs:ml-16 pt-16">
                     <ProductHero
                         product={currentProduct}
                         relatedProducts={relatedProducts}
@@ -275,8 +291,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 </div>
 
                 {/* Mobile Content */}
-                <div className="ml-16">
-                    <div id="product-details" className="relative min-h-screen pt-4">
+                <div className="ml-[4rem] xs:ml-16 -mt-16 sm:-mt-20 relative z-30">
+                    <div id="product-details" className="relative min-h-[50vh] pt-20 sm:pt-24">
                         <AnimatePresence>
                             {isTransitioning && (
                                 <motion.div
@@ -286,22 +302,22 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                     transition={{ duration: 0.2 }}
                                     className="absolute inset-0 bg-[#0a0f1a]/30 backdrop-blur-sm z-50 flex items-center justify-center"
                                 >
-                                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                    <div className="w-6 xs:w-8 h-6 xs:h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                                 </motion.div>
                             )}
                         </AnimatePresence>
-                        <div className="px-4">
+                        <div className="bg-[#0a0f1a] px-3 xs:px-4 overflow-hidden">
                             <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
                         </div>
                     </div>
-                    <div className="pt-8">
+                    <div className="pt-6 xs:pt-8">
                         <RelatedProducts products={relatedProducts} />
                     </div>
                 </div>
             </div>
 
-            {/* Desktop Layout */}
-            <div className="hidden sm:block">
+            {/* Desktop Layout (md và lớn hơn) */}
+            <div className="hidden md:block">
                 {/* Desktop Hero */}
                 <div className="ml-20">
                     <ProductHero
@@ -313,10 +329,9 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                     />
                 </div>
 
-
                 {/* Desktop Content */}
-                <div className="ml-20">
-                    <div id="product-details" className="relative min-h-screen pt-6 md:pt-8 lg:pt-12">
+                <div className="ml-20 -mt-32 lg:-mt-40 xl:-mt-48 relative z-30">
+                    <div id="product-details" className="relative min-h-[60vh] pt-40 lg:pt-48 xl:pt-56">
                         <AnimatePresence>
                             {isTransitioning && (
                                 <motion.div
@@ -330,11 +345,11 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                 </motion.div>
                             )}
                         </AnimatePresence>
-                        <div className="container mx-auto px-4 lg:px-8">
+                        <div className="bg-[#0a0f1a] overflow-hidden">
                             <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
                         </div>
                     </div>
-                    <div className="pt-8 md:pt-12 lg:pt-16">
+                    <div className="pt-10 lg:pt-16">
                         <RelatedProducts products={relatedProducts} />
                     </div>
                 </div>

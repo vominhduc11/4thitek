@@ -106,18 +106,18 @@ export default function ProductHero({
                     wrapperDiv.className = 'pl-4';
                     
                     const containerDiv = document.createElement('div');
-                    containerDiv.className = 'container mx-auto max-w-6xl md:max-w-4xl px-4';
+                    containerDiv.className = 'container mx-auto max-w-6xl lg:max-w-5xl px-4';
                     
                     const nav = document.createElement('nav');
-                    nav.className = 'flex justify-center items-center space-x-2 md:space-x-1 text-sm';
+                    nav.className = 'flex justify-center items-center space-x-1 text-sm';
                     
                     // Create breadcrumb items with proper event listeners
                     breadcrumbItems.forEach((item, index) => {
                         const itemDiv = document.createElement('div');
-                        itemDiv.className = 'flex items-center space-x-2 md:space-x-1';
+                        itemDiv.className = 'flex items-center space-x-1';
                         
                         const button = document.createElement('button');
-                        button.className = `font-medium transition-colors duration-300 px-3 md:px-2 py-3 text-center ${
+                        button.className = `font-medium transition-colors duration-300 px-2 py-3 text-center ${
                             activeBreadcrumb === item.label
                                 ? 'text-blue-400'
                                 : 'text-gray-400 hover:text-white'
@@ -428,7 +428,7 @@ export default function ProductHero({
                         
                         {/* Mobile & Tablet Action Buttons - Positioned below image */}
                         <motion.div 
-                            className="flex justify-center gap-4 mt-6 sm:hidden md:flex lg:hidden"
+                            className="flex justify-center gap-4 mt-6 sm:hidden"
                             variants={{
                                 hidden: { opacity: 0, y: 20 },
                                 visible: { 
@@ -499,7 +499,7 @@ export default function ProductHero({
                 console.log('Desktop breadcrumb rendering, items:', breadcrumbItems);
                 return true;
             })() && (
-                <div className="absolute bottom-32 sm:bottom-40 md:bottom-64 lg:bottom-56 left-0 right-0 z-20 hidden sm:block" id="hero-breadcrumb">
+                <div className="absolute bottom-32 sm:bottom-40 md:bottom-64 lg:bottom-56 left-0 right-0 z-20 hidden md:block" id="hero-breadcrumb">
                     {/* Left line segment */}
                     <div
                         className="absolute top-1/2 left-0 h-px bg-gray-600 z-5"
@@ -518,22 +518,19 @@ export default function ProductHero({
                         }}
                     ></div>
 
-                    <div className="container mx-auto max-w-6xl md:max-w-4xl px-4">
-                        <nav className="flex justify-center items-center space-x-2 md:space-x-1 text-sm relative z-20">
+                    <div className="container mx-auto max-w-6xl lg:max-w-5xl px-4">
+                        <nav className="flex justify-center items-center space-x-1 text-sm relative z-20">
                             {breadcrumbItems.map((item, index) => (
-                                <div key={item.label} className="flex items-center space-x-2 md:space-x-1">
+                                <div key={item.label} className="flex items-center space-x-1">
                                     <motion.button
                                         onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            console.log('🖱️ Desktop breadcrumb clicked:', item.label, 'Screen width:', window.innerWidth);
                                             if (onBreadcrumbClick) {
                                                 onBreadcrumbClick(item);
-                                            } else {
-                                                console.error('onBreadcrumbClick function not provided!');
                                             }
                                         }}
-                                        className={`font-medium relative transition-colors duration-300 px-3 md:px-2 py-2 text-center ${
+                                        className={`font-medium relative transition-colors duration-300 px-2 py-2 text-center ${
                                             activeBreadcrumb === item.label
                                                 ? 'text-blue-400'
                                                 : 'text-gray-400 hover:text-white'

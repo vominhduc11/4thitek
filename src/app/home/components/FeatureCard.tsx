@@ -343,7 +343,7 @@ export default function FeatureCards() {
     return (
         <AvoidSidebar>
             <motion.section
-                className="py-8 sm:py-12 lg:py-16"
+                className="py-8 sm:py-12 lg:py-16 bg-[#1a1f2e]"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 transition={{ duration: 0.8 }}

@@ -96,9 +96,6 @@ export default function FeaturedProducts() {
     const [hoveredProductId, setHoveredProductId] = useState<string | null>(null);
     // const { language } = useLanguage();
 
-    const handleViewAllProducts = () => {
-        window.location.href = '/products';
-    };
 
     const renderProductCard = (product: FeaturedProduct, index: number) => {
         return (
@@ -238,7 +235,7 @@ export default function FeaturedProducts() {
     return (
         <AvoidSidebar>
             <section className="py-16 md:py-24 bg-[#0c131d] relative overflow-hidden">
-                <div className="container mx-auto px-4 max-w-[1800px]">
+                <div className="container mx-auto px-4 max-w-[1800px] -mt-32 md:-mt-40 lg:-mt-48 relative z-[100] pt-40 md:pt-48 lg:pt-56">
                     {/* Header */}
                     <div className="text-center mb-12 md:mb-16">
                         <motion.h2
@@ -272,30 +269,6 @@ export default function FeaturedProducts() {
                         </motion.div>
                     </div>
 
-                    {/* View All Button */}
-                    <motion.div
-                        className="text-center"
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.4 }}
-                    >
-                        <motion.button
-                            onClick={handleViewAllProducts}
-                            className="group relative bg-transparent hover:bg-gradient-to-r hover:from-[#4FC8FF] hover:to-[#3BA5CC] text-white px-10 py-4 rounded-lg font-medium transition-all duration-300 inline-flex items-center gap-3 shadow-lg hover:shadow-xl overflow-hidden border border-[#4FC8FF]/50 hover:border-[#4FC8FF]"
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-r from-[#4FC8FF] to-[#3BA5CC] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                            <span className="relative z-10 text-base">Xem tất cả sản phẩm</span>
-                            <motion.div
-                                className="relative z-10"
-                                whileHover={{ rotate: 45 }}
-                                transition={{ duration: 0.3 }}
-                            >
-                                <FiArrowUpRight className="w-5 h-5" />
-                            </motion.div>
-                        </motion.button>
-                    </motion.div>
                 </div>
             </section>
         </AvoidSidebar>

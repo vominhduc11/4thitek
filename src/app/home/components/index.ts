@@ -7,6 +7,7 @@ import SectionDivider from './SectionDivider';
 import AdvancedDivider from './AdvancedDivider';
 import TransitionDivider from './TransitionDivider';
 import FeaturedProducts from './FeaturedProducts';
+import FeaturedProductsCarousel from './FeaturedProductsCarousel';
 
 export {
     HeroSection,
@@ -17,5 +18,6 @@ export {
     SectionDivider,
     AdvancedDivider,
     TransitionDivider,
-    FeaturedProducts
+    FeaturedProducts,
+    FeaturedProductsCarousel
 };

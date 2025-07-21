@@ -142,7 +142,7 @@ export default function Newsroom() {
     return (
         <AvoidSidebar>
             <motion.section
-                className="relative bg-gradient-to-b from-[#001A35] to-[#0c131d] py-16 sm:py-20 md:py-24 overflow-hidden"
+                className="relative bg-gradient-to-b from-[#001A35] to-[#032d4c] py-16 sm:py-20 md:py-24 overflow-hidden"
                 {...animationVariants.section}
                 viewport={{ once: true, amount: 0.2 }}
             >

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiArrowUpRight } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import type { Product } from '@/types/product';
 
 interface RelatedProductsProps {
@@ -73,10 +74,13 @@ export default function RelatedProducts({ products }: RelatedProductsProps) {
 
                             {/* Product Image */}
                             <div className="flex justify-center items-center py-4 sm:py-6 lg:py-8 flex-1">
-                                <img
+                                <Image
                                     src="/products/product1.png"
                                     alt={product.name}
+                                    width={300}
+                                    height={300}
                                     className="w-[180px] h-[180px] sm:w-[220px] sm:h-[220px] lg:w-[300px] lg:h-[300px] object-contain"
+                                    sizes="(max-width: 640px) 180px, (max-width: 1024px) 220px, 300px"
                                     onError={(e) => {
                                         const target = e.target as HTMLImageElement;
                                         target.style.display = 'none';

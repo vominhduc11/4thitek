@@ -114,7 +114,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                 <>
                     {/* Backdrop */}
                     <motion.div
-                        className="fixed inset-0 bg-black/60 backdrop-blur-md z-1000"
+                        className="fixed inset-0 bg-black/60 backdrop-blur-md z-[99999]"
                         variants={backdropVariants}
                         initial="hidden"
                         animate="visible"
@@ -124,7 +124,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
 
                     {/* Drawer */}
                     <motion.aside
-                        className="fixed top-0 left-0 h-screen w-auto flex shadow-2xl max-w-[90vw] sm:max-w-none z-1000"
+                        className="fixed top-0 left-0 h-screen w-auto flex shadow-2xl max-w-[90vw] sm:max-w-none z-[99999]"
                         variants={drawerVariants}
                         initial="hidden"
                         animate="visible"

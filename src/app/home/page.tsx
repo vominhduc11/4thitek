@@ -1,4 +1,4 @@
-import { FeatureCards, HeroSection, Newsroom, TransitionDivider, FeaturedProducts } from './components';
+import { FeatureCards, HeroSection, Newsroom, TransitionDivider, FeaturedProducts, FeaturedProductsCarousel } from './components';
 
 function Home() {
     return (
@@ -9,11 +9,15 @@ function Home() {
 
             <FeaturedProducts />
 
-            <div className="h-16 bg-gradient-to-b from-transparent to-[#021a33]"></div>
+            <div className="h-16 bg-gradient-to-b from-[#0c131d] to-[#013A5E]"></div>
+
+            <FeaturedProductsCarousel />
+
+            <div className="h-16 bg-gradient-to-b from-[#032B4A] to-[#001A35]"></div>
 
             <Newsroom />
 
-            <TransitionDivider fromColor="#0c131d" toColor="#0c131d" height="sm" type="diagonal" />
+            <TransitionDivider fromColor="#032d4c" toColor="#1a1f2e" height="sm" type="diagonal" />
 
             <FeatureCards />
         </div>
