@@ -89,13 +89,13 @@ export default function ProductHero({
 
             const handleScroll = () => {
                 const heroBreadcrumbRect = heroBreadcrumb.getBoundingClientRect();
-                const hasScrolledPast = heroBreadcrumbRect.bottom < 80; // Header height
+                const hasScrolledPast = heroBreadcrumbRect.bottom < 60; // Adjusted for better spacing
 
                 if (hasScrolledPast && !stickyBreadcrumb) {
                     // Create simplified sticky breadcrumb
                     stickyBreadcrumb = document.createElement('div');
                     stickyBreadcrumb.id = 'sticky-breadcrumb-clone';
-                    stickyBreadcrumb.className = 'fixed top-13 sm:top-17 left-16 sm:left-20 right-0 z-[101] py-0 bg-gray-900/95 backdrop-blur-md shadow-lg transition-all duration-300 ease-out';
+                    stickyBreadcrumb.className = 'fixed top-16 sm:top-20 left-16 sm:left-20 right-0 z-[100] py-2 bg-gray-900/95 backdrop-blur-md border-b border-gray-800/50 shadow-lg transition-all duration-300 ease-out';
                     
                     // Initial state for animation (hidden)
                     stickyBreadcrumb.style.opacity = '0';
@@ -109,15 +109,15 @@ export default function ProductHero({
                     containerDiv.className = 'container mx-auto max-w-6xl lg:max-w-5xl px-4';
                     
                     const nav = document.createElement('nav');
-                    nav.className = 'flex justify-center items-center space-x-1 text-sm';
+                    nav.className = 'flex justify-center items-center space-x-4 text-sm';
                     
                     // Create breadcrumb items with proper event listeners
                     breadcrumbItems.forEach((item, index) => {
                         const itemDiv = document.createElement('div');
-                        itemDiv.className = 'flex items-center space-x-1';
+                        itemDiv.className = 'flex items-center space-x-2';
                         
                         const button = document.createElement('button');
-                        button.className = `font-medium transition-colors duration-300 px-2 py-3 text-center ${
+                        button.className = `font-medium transition-colors duration-300 px-3 py-3 text-center whitespace-nowrap ${
                             activeBreadcrumb === item.label
                                 ? 'text-blue-400'
                                 : 'text-gray-400 hover:text-white'
@@ -519,9 +519,9 @@ export default function ProductHero({
                     ></div>
 
                     <div className="container mx-auto max-w-6xl lg:max-w-5xl px-4">
-                        <nav className="flex justify-center items-center space-x-1 text-sm relative z-20">
+                        <nav className="flex justify-center items-center space-x-4 text-sm relative z-20">
                             {breadcrumbItems.map((item, index) => (
-                                <div key={item.label} className="flex items-center space-x-1">
+                                <div key={item.label} className="flex items-center space-x-2">
                                     <motion.button
                                         onClick={(e) => {
                                             e.preventDefault();
@@ -530,7 +530,7 @@ export default function ProductHero({
                                                 onBreadcrumbClick(item);
                                             }
                                         }}
-                                        className={`font-medium relative transition-colors duration-300 px-2 py-2 text-center ${
+                                        className={`font-medium relative transition-colors duration-300 px-3 py-2 text-center whitespace-nowrap ${
                                             activeBreadcrumb === item.label
                                                 ? 'text-blue-400'
                                                 : 'text-gray-400 hover:text-white'

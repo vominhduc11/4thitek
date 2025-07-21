@@ -2,8 +2,8 @@
 
 export default function ProductSpecifications() {
     return (
-        <section id="product-details" className="bg-[#0a0f1a] relative z-50 -mt-20 min-h-screen">
-            <div className="container mx-auto max-w-8xl relative -top-20 py-20">
+        <section id="product-details" className="bg-[#0a0f1a] relative z-50 min-h-screen -mt-40">
+            <div className="container mx-auto max-w-8xl relative py-8 pt-56">
                 <h2 className="text-2xl md:text-3xl lg:text-3xl font-bold mb-6 md:mb-8 text-white">THÔNG SỐ KỸ THUẬT</h2>
 
                 {/* Main Specifications Table */}
