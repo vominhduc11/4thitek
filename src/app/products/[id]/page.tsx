@@ -39,6 +39,46 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         }
     }, [resolvedParams]);
 
+    // Listen for sticky breadcrumb navigation events
+    useEffect(() => {
+        const handleStickyBreadcrumbNavigation = (event: CustomEvent) => {
+            console.log('📍 Received breadcrumbNavigation event:', event.detail);
+            const { label, section } = event.detail;
+            
+            // Use the same logic as handleBreadcrumbClick
+            if (activeBreadcrumb === label || isTransitioning) {
+                return;
+            }
+            
+            setIsTransitioning(true);
+            setActiveBreadcrumb(label);
+            
+            setTimeout(() => {
+                setCurrentSection(section);
+            }, 150);
+            
+            setTimeout(() => {
+                setIsTransitioning(false);
+                const targetSection = document.getElementById('product-details');
+                if (targetSection) {
+                    const headerOffset = 100;
+                    const elementPosition = targetSection.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                    
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            }, 600);
+        };
+        
+        window.addEventListener('breadcrumbNavigation', handleStickyBreadcrumbNavigation as EventListener);
+        return () => {
+            window.removeEventListener('breadcrumbNavigation', handleStickyBreadcrumbNavigation as EventListener);
+        };
+    }, [activeBreadcrumb, isTransitioning]);
+
     const breadcrumbItems = [
         { label: 'PRODUCT DETAILS', section: 'details' },
         { label: 'PRODUCT VIDEOS', section: 'videos' },

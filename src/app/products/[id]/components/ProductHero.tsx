@@ -83,7 +83,7 @@ export default function ProductHero({
     useEffect(() => {
         const createStickyBreadcrumb = () => {
             const heroBreadcrumb = document.getElementById('hero-breadcrumb');
-            if (!heroBreadcrumb || window.innerWidth < 640) return; // Only for tablet/desktop
+            if (!heroBreadcrumb || window.innerWidth < 1024) return; // Only for desktop (lg+)
 
             let stickyBreadcrumb = document.getElementById('sticky-breadcrumb-clone');
 
@@ -92,52 +92,106 @@ export default function ProductHero({
                 const hasScrolledPast = heroBreadcrumbRect.bottom < 60; // Adjusted for better spacing
 
                 if (hasScrolledPast && !stickyBreadcrumb) {
+                    // Remove any existing sticky breadcrumb first
+                    const existing = document.getElementById('sticky-breadcrumb-clone');
+                    if (existing) existing.remove();
+                    
                     // Create simplified sticky breadcrumb
                     stickyBreadcrumb = document.createElement('div');
                     stickyBreadcrumb.id = 'sticky-breadcrumb-clone';
-                    stickyBreadcrumb.className = 'fixed top-16 sm:top-20 left-16 sm:left-20 right-0 z-[100] py-2 bg-gray-900/95 backdrop-blur-md border-b border-gray-800/50 shadow-lg transition-all duration-300 ease-out';
+                    stickyBreadcrumb.className = 'hidden lg:block fixed top-20 left-20 right-0 z-[100] py-3 bg-[#0a0f1a]/40 backdrop-blur-md border-b border-gray-700/20 transition-all duration-300 ease-out';
                     
                     // Initial state for animation (hidden)
                     stickyBreadcrumb.style.opacity = '0';
                     stickyBreadcrumb.style.transform = 'translateY(-20px)';
                     
-                    // Create content structure
-                    const wrapperDiv = document.createElement('div');
-                    wrapperDiv.className = 'pl-4';
-                    
+                    // Create clean content structure
                     const containerDiv = document.createElement('div');
                     containerDiv.className = 'container mx-auto max-w-6xl lg:max-w-5xl px-4';
                     
                     const nav = document.createElement('nav');
-                    nav.className = 'flex justify-center items-center space-x-4 text-sm';
+                    nav.className = 'flex justify-center items-center space-x-6 text-sm relative z-20';
                     
                     // Create breadcrumb items with proper event listeners
+                    console.log('📍 Creating sticky breadcrumb with items:', breadcrumbItems);
+                    
+                    if (!breadcrumbItems || breadcrumbItems.length === 0) {
+                        console.warn('⚠️ No breadcrumb items available for sticky breadcrumb');
+                        // Add fallback items
+                        const fallbackItems = [
+                            { label: 'PRODUCT DETAILS', section: 'details' },
+                            { label: 'PRODUCT VIDEOS', section: 'videos' },
+                            { label: 'SPECIFICATIONS', section: 'specifications' },
+                            { label: 'WARRANTY', section: 'warranty' }
+                        ];
+                        breadcrumbItems = fallbackItems;
+                    }
+                    
                     breadcrumbItems.forEach((item, index) => {
                         const itemDiv = document.createElement('div');
                         itemDiv.className = 'flex items-center space-x-2';
                         
                         const button = document.createElement('button');
-                        button.className = `font-medium transition-colors duration-300 px-3 py-3 text-center whitespace-nowrap ${
-                            activeBreadcrumb === item.label
+                        button.className = `font-medium transition-colors duration-200 px-3 py-2 text-center whitespace-nowrap ${
+                            (activeBreadcrumb || 'PRODUCT DETAILS') === item.label
                                 ? 'text-blue-400'
                                 : 'text-gray-400 hover:text-white'
                         }`;
                         button.textContent = item.label;
                         
-                        // Add click event listener
-                        button.addEventListener('click', () => {
+                        // Add independent navigation logic - always works
+                        button.addEventListener('click', (e) => {
+                            e.preventDefault();
                             console.log('🖱️ Sticky breadcrumb clicked:', item.label);
+                            
+                            // Direct navigation logic that doesn't depend on onBreadcrumbClick
+                            const navigateToSection = (sectionType) => {
+                                console.log('📍 Navigating to section:', sectionType);
+                                
+                                // Trigger the same navigation as the main page
+                                // Try to find the main page's handleBreadcrumbClick function and call it
+                                const event = new CustomEvent('breadcrumbNavigation', {
+                                    detail: { label: item.label, section: item.section }
+                                });
+                                window.dispatchEvent(event);
+                                
+                                // Also manually trigger dropdown change for backup
+                                const dropdown = document.querySelector('select[aria-label="Select section"]');
+                                if (dropdown) {
+                                    console.log('📍 Triggering dropdown change to:', item.label);
+                                    dropdown.value = item.label;
+                                    dropdown.dispatchEvent(new Event('change', { bubbles: true }));
+                                }
+                                
+                                // Update sticky breadcrumb active state immediately
+                                const stickyButtons = document.querySelectorAll('#sticky-breadcrumb-clone button');
+                                stickyButtons.forEach(btn => {
+                                    if (btn.textContent && btn.textContent.trim() === item.label.trim()) {
+                                        btn.className = btn.className.replace('text-gray-400', 'text-blue-400');
+                                    } else {
+                                        btn.className = btn.className.replace('text-blue-400', 'text-gray-400');
+                                    }
+                                });
+                            };
+                            
+                            navigateToSection(item.section);
+                            
+                            // Fallback: also try the original method if available
                             if (onBreadcrumbClick) {
-                                onBreadcrumbClick(item);
+                                try {
+                                    onBreadcrumbClick(item);
+                                } catch (error) {
+                                    console.warn('📍 onBreadcrumbClick failed:', error);
+                                }
                             }
                         });
                         
                         itemDiv.appendChild(button);
                         
-                        // Add separator
+                        // Add simple separator
                         if (index < breadcrumbItems.length - 1) {
                             const separator = document.createElement('span');
-                            separator.className = 'text-gray-500';
+                            separator.className = 'text-gray-500 mx-1';
                             separator.textContent = '/';
                             itemDiv.appendChild(separator);
                         }
@@ -146,9 +200,9 @@ export default function ProductHero({
                     });
                     
                     containerDiv.appendChild(nav);
-                    wrapperDiv.appendChild(containerDiv);
-                    stickyBreadcrumb.appendChild(wrapperDiv);
+                    stickyBreadcrumb.appendChild(containerDiv);
                     
+                    console.log('📍 Appending sticky breadcrumb to DOM:', stickyBreadcrumb);
                     document.body.appendChild(stickyBreadcrumb);
                     
                     // Trigger animation after a small delay
