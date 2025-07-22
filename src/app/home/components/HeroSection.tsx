@@ -96,7 +96,7 @@ export default function HeroSection() {
 
     return (
         <section
-            className="relative w-full h-[450px] xs:h-[500px] sm:h-[600px] md:h-[700px] lg:h-[800px] overflow-hidden"
+            className="relative w-full h-[450px] xs:h-[500px] sm:h-[600px] md:h-[700px] lg:h-[800px] xl:h-[850px] 2xl:h-[900px] overflow-hidden"
             role="banner"
             aria-label="Hero section showcasing SCS S8X product"
         >
@@ -132,7 +132,7 @@ export default function HeroSection() {
 
             {/* Title */}
             <motion.h1
-                className="absolute top-[12%] xs:top-[15%] sm:top-[18%] md:top-[16%] left-1/2 transform -translate-x-1/2 text-white text-[35px] xs:text-[45px] sm:text-[60px] md:text-[80px] lg:text-[100px] xl:text-[120px] font-sans leading-none z-20 text-center px-2"
+                className="absolute top-[12%] xs:top-[15%] sm:top-[18%] md:top-[16%] left-16 sm:left-20 right-0 text-white text-[35px] xs:text-[45px] sm:text-[60px] md:text-[80px] lg:text-[100px] xl:text-[120px] font-sans leading-none z-20 text-center px-2"
                 variants={titleVariants}
                 initial="hidden"
                 animate="visible"
@@ -143,7 +143,7 @@ export default function HeroSection() {
 
             {/* Product Image */}
             <motion.div
-                className="absolute top-[16%] xs:top-[18%] sm:top-[20%] md:top-[18%] lg:top-[20%] left-1/2 transform -translate-x-1/2 z-25"
+                className="absolute top-[16%] xs:top-[18%] sm:top-[20%] md:top-[18%] lg:top-[20%] left-16 sm:left-20 right-0 flex justify-center z-25"
                 variants={productVariants}
                 initial="hidden"
                 animate="visible"
@@ -161,19 +161,27 @@ export default function HeroSection() {
 
             {/* Description & Button */}
             <motion.div
-                className="absolute bottom-[3%] xs:bottom-[4%] sm:bottom-[6%] md:bottom-[5%] left-1/2 transform -translate-x-1/2 text-center px-3 xs:px-4 sm:px-6 z-20 w-full max-w-[90%] sm:max-w-none"
+                className="absolute bottom-[12%] xs:bottom-[14%] sm:bottom-[6%] md:bottom-[5%] left-16 sm:left-20 right-0 text-center px-3 xs:px-4 sm:px-6 z-20"
                 variants={descWrapperVariants}
                 initial="hidden"
                 animate="visible"
             >
-                <motion.p
-                    className="text-white text-xs xs:text-sm sm:text-base md:text-lg max-w-sm xs:max-w-lg sm:max-w-xl md:max-w-2xl mx-auto mb-3 xs:mb-4 sm:mb-6 font-sans leading-relaxed"
+                <motion.div
+                    className="max-w-sm xs:max-w-lg sm:max-w-xl md:max-w-2xl mx-auto mb-3 xs:mb-4 sm:mb-6"
                     variants={descVariants}
                     initial="hidden"
                     animate="visible"
                 >
-                    {t('hero.subtitle')}
-                </motion.p>
+                    <motion.p
+                        className="text-white text-xs xs:text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-sans leading-relaxed line-clamp-3 xs:line-clamp-4 sm:line-clamp-3 md:line-clamp-4 lg:line-clamp-5 xl:line-clamp-5 2xl:line-clamp-6"
+                        variants={descVariants}
+                        initial="hidden"
+                        animate="visible"
+                    >
+                        {t('hero.subtitle')}
+                    </motion.p>
+                </motion.div>
+                
                 <motion.button
                     className="px-3 xs:px-4 sm:px-6 py-2 xs:py-2.5 sm:py-3 border border-white text-white text-xs xs:text-sm sm:text-base font-medium font-sans rounded-full hover:bg-white hover:text-black transition cursor-pointer min-w-[140px] xs:min-w-[160px] sm:min-w-auto"
                     variants={buttonVariants}

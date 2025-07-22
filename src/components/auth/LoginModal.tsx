@@ -27,10 +27,16 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
     useEffect(() => {
         console.log('LoginModal isOpen:', isOpen);
         if (isOpen) {
-            // Đảm bảo modal được hiển thị đúng cách
+            // Calculate scrollbar width to prevent layout shift
+            const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
+            
+            // Lock body scroll with scrollbar compensation
             document.body.style.overflow = 'hidden';
+            document.body.style.paddingRight = `${scrollBarWidth}px`;
         } else {
+            // Restore body scroll and remove padding
             document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
         }
     }, [isOpen]);
 

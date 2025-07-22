@@ -95,7 +95,7 @@ const translations = {
         },
         hero: {
             title: 'Professional Audio Communication',
-            subtitle: 'Experience the future of motorcycle communication with 4THITEK',
+            subtitle: `Discover a breakthrough era of motorcycle communication with 4T HITEK—a pioneering brand in Ho Chi Minh City specializing in telecom components and motorcycle accessories. The 4THITEK solution offers limitless connectivity, safety, and convenience. Featuring cutting-edge Bluetooth technology, a wind-noise reducing mic, and crisp audio, it lets you talk, listen to music, access GPS navigation, and receive real-time safety alerts—even at high speeds or in harsh terrain. Its compact, easy-to-install, and waterproof design fits most standard helmets. With group-connect capability for 2–8 riders and hundreds-of-meters range, you'll stay in touch during group rides or events. Firmware updates via mobile app ensure you always enjoy the latest features without replacing hardware. With 4THITEK, every journey becomes an intelligent, seamless, and stylish communication experience—truly the future of motorcycle connectivity.`,
             cta: 'Explore Products'
         },
         products: {

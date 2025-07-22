@@ -160,17 +160,23 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
         };
 
         if (isOpen) {
-            // Lock body scroll
+            // Calculate scrollbar width to prevent layout shift
+            const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
+            
+            // Lock body scroll with scrollbar compensation
             document.body.style.overflow = 'hidden';
+            document.body.style.paddingRight = `${scrollBarWidth}px`;
             document.addEventListener('keydown', handleEscape);
         } else {
-            // Restore body scroll
+            // Restore body scroll and remove padding
             document.body.style.overflow = 'unset';
+            document.body.style.paddingRight = '';
         }
 
         return () => {
             // Cleanup: always restore scroll when component unmounts
             document.body.style.overflow = 'unset';
+            document.body.style.paddingRight = '';
             document.removeEventListener('keydown', handleEscape);
         };
     }, [isOpen, onClose]);

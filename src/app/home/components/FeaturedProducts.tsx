@@ -115,7 +115,7 @@ export default function FeaturedProducts() {
                 className="relative w-full"
             >
                 <motion.div
-                    className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-all duration-500 cursor-pointer group overflow-hidden h-[600px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/30 shadow-lg hover:shadow-2xl hover:shadow-[#4FC8FF]/10"
+                    className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-all duration-500 cursor-pointer group overflow-hidden h-[400px] sm:h-[440px] md:h-[440px] lg:h-[450px] xl:h-[460px] 2xl:h-[620px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/30 shadow-lg hover:shadow-2xl hover:shadow-[#4FC8FF]/10"
                     onMouseEnter={() => setHoveredProductId(product.id)}
                     onMouseLeave={() => setHoveredProductId(null)}
                     whileHover={{
@@ -140,22 +140,26 @@ export default function FeaturedProducts() {
                     )}
 
                     <motion.div
-                        className="absolute left-1 xs:left-2 sm:left-3 md:left-4 top-1/2 -translate-y-1/2 font-bold text-sm xs:text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl uppercase tracking-wider xs:tracking-widest text-gray-400 z-10 font-sans"
-                        style={{
-                            writingMode: 'vertical-rl',
-                            transform: 'translateY(-50%) translateY(-60px) rotate(180deg)'
-                        }}
+                        className="absolute left-2 xs:left-3 sm:left-4 md:left-6 top-2 xs:top-3 sm:top-4 z-20"
                         whileHover={{
                             color: '#4FC8FF',
                             scale: 1.05,
                             transition: { duration: 0.3 }
                         }}
                     >
-                        PRODUCT
+                        <div
+                            className="font-bold text-sm xs:text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl uppercase tracking-wider xs:tracking-widest text-gray-400 group-hover:text-[#4FC8FF] transition-colors duration-300"
+                            style={{
+                                writingMode: 'vertical-rl',
+                                transform: 'rotate(180deg)'
+                            }}
+                        >
+                            PRODUCT
+                        </div>
                     </motion.div>
 
                     <motion.div
-                        className="flex justify-center items-center py-8 px-8 z-10 relative"
+                        className="flex justify-center items-center py-6 lg:py-4 xl:py-6 2xl:py-8 px-6 lg:px-4 xl:px-6 2xl:px-8 z-10 relative"
                         whileHover={{ scale: 1.03 }}
                         transition={{ duration: 0.3 }}
                     >
@@ -169,20 +173,20 @@ export default function FeaturedProducts() {
                             <ProductImageWithFallback
                                 src={product.image}
                                 alt={product.name}
-                                className="w-[300px] h-[300px] object-contain transition-opacity duration-200 ease-out"
+                                className="w-[160px] h-[160px] sm:w-[180px] sm:h-[180px] md:w-[200px] md:h-[200px] lg:w-[180px] lg:h-[180px] xl:w-[220px] xl:h-[220px] 2xl:w-[280px] 2xl:h-[280px] object-contain transition-opacity duration-200 ease-out"
                             />
                         </motion.div>
                     </motion.div>
 
                     <motion.div
-                        className="px-6 sm:px-8 pb-8 pt-4 z-10 relative flex flex-col h-full"
+                        className="px-6 sm:px-6 lg:px-5 xl:px-6 2xl:px-8 pb-8 sm:pb-8 md:pb-8 lg:pb-6 xl:pb-6 2xl:pb-8 pt-3 lg:pt-2 xl:pt-3 2xl:pt-4 z-10 relative flex flex-col h-full"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.3 + index * 0.05 }}
                     >
                         <Link href={`/products/${product.id}`}>
                             <motion.h3
-                                className="text-white font-bold text-lg sm:text-xl mb-3 font-sans h-[3rem] flex items-center cursor-pointer"
+                                className="text-white font-bold text-lg sm:text-xl 2xl:text-2xl mb-3 lg:mb-3 xl:mb-3 2xl:mb-4 font-sans h-[3rem] lg:h-[2.5rem] xl:h-[3rem] 2xl:h-[3.5rem] flex items-center cursor-pointer"
                                 whileHover={{
                                     color: '#4FC8FF',
                                     scale: 1.02,
@@ -192,13 +196,11 @@ export default function FeaturedProducts() {
                                 <span className="line-clamp-2">{product.name}</span>
                             </motion.h3>
                         </Link>
-                        <p className="text-gray-300 text-sm leading-relaxed mb-4 font-sans line-clamp-2 h-[2.5rem] flex-shrink-0">
+                        <p className="text-gray-300 text-sm 2xl:text-base leading-relaxed mb-3 sm:mb-4 md:mb-3 lg:mb-3 xl:mb-4 2xl:mb-5 font-sans line-clamp-2">
                             {product.description}
                         </p>
 
-                        <div className="flex-grow"></div>
-
-                        <div className="flex justify-end">
+                        <div className="flex justify-end mt-auto pt-2 sm:pt-3 lg:pt-2 xl:pt-3">
                             <Link href={`/products/${product.id}`}>
                                 <motion.div
                                     whileHover={{
@@ -207,12 +209,12 @@ export default function FeaturedProducts() {
                                         color: '#4FC8FF'
                                     }}
                                     transition={{ duration: 0.3 }}
-                                    className="p-3 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+                                    className="p-3 sm:p-3 lg:p-2 xl:p-3 2xl:p-4 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
                                 >
                                     <FiArrowUpRight
                                         size={20}
                                         className={clsx(
-                                            'transition-colors w-5 h-5',
+                                            'transition-colors w-4 h-4 sm:w-5 sm:h-5 lg:w-4 lg:h-4 xl:w-5 xl:h-5 2xl:w-6 2xl:h-6',
                                             hoveredProductId === product.id ? 'text-blue-400' : 'text-gray-500'
                                         )}
                                     />
@@ -235,7 +237,7 @@ export default function FeaturedProducts() {
     return (
         <AvoidSidebar>
             <section className="py-16 md:py-24 bg-[#0c131d] relative overflow-hidden">
-                <div className="container mx-auto px-4 max-w-[1800px] -mt-32 md:-mt-40 lg:-mt-48 relative z-[100] pt-40 md:pt-48 lg:pt-56">
+                <div className="container mx-auto px-4 lg:px-8 xl:px-4 max-w-[1800px] -mt-32 md:-mt-40 lg:-mt-48 relative z-[100] pt-40 md:pt-48 lg:pt-56">
                     {/* Header */}
                     <div className="text-center mb-12 md:mb-16">
                         <motion.h2
