@@ -115,19 +115,20 @@ export default function ProductHero({
                     // Create breadcrumb items with proper event listeners
                     console.log('📍 Creating sticky breadcrumb with items:', breadcrumbItems);
                     
-                    if (!breadcrumbItems || breadcrumbItems.length === 0) {
+                    // Use local variable instead of modifying the prop
+                    let itemsToUse = breadcrumbItems;
+                    if (!itemsToUse || itemsToUse.length === 0) {
                         console.warn('⚠️ No breadcrumb items available for sticky breadcrumb');
                         // Add fallback items
-                        const fallbackItems = [
+                        itemsToUse = [
                             { label: 'PRODUCT DETAILS', section: 'details' },
                             { label: 'PRODUCT VIDEOS', section: 'videos' },
                             { label: 'SPECIFICATIONS', section: 'specifications' },
                             { label: 'WARRANTY', section: 'warranty' }
                         ];
-                        breadcrumbItems = fallbackItems;
                     }
                     
-                    breadcrumbItems.forEach((item, index) => {
+                    itemsToUse.forEach((item, index) => {
                         const itemDiv = document.createElement('div');
                         itemDiv.className = 'flex items-center space-x-2';
                         
@@ -145,7 +146,7 @@ export default function ProductHero({
                             console.log('🖱️ Sticky breadcrumb clicked:', item.label);
                             
                             // Direct navigation logic that doesn't depend on onBreadcrumbClick
-                            const navigateToSection = (sectionType) => {
+                            const navigateToSection = (sectionType: string) => {
                                 console.log('📍 Navigating to section:', sectionType);
                                 
                                 // Trigger the same navigation as the main page
@@ -156,7 +157,7 @@ export default function ProductHero({
                                 window.dispatchEvent(event);
                                 
                                 // Also manually trigger dropdown change for backup
-                                const dropdown = document.querySelector('select[aria-label="Select section"]');
+                                const dropdown = document.querySelector('select[aria-label="Select section"]') as HTMLSelectElement;
                                 if (dropdown) {
                                     console.log('📍 Triggering dropdown change to:', item.label);
                                     dropdown.value = item.label;
@@ -189,7 +190,7 @@ export default function ProductHero({
                         itemDiv.appendChild(button);
                         
                         // Add simple separator
-                        if (index < breadcrumbItems.length - 1) {
+                        if (index < itemsToUse.length - 1) {
                             const separator = document.createElement('span');
                             separator.className = 'text-gray-500 mx-1';
                             separator.textContent = '/';

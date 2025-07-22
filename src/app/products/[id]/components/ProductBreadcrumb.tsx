@@ -42,7 +42,7 @@ export default function ProductBreadcrumb({
             scale: 1,
             transition: {
                 duration: 1.2,
-                ease: "easeOut",
+                ease: "easeOut" as const,
                 staggerChildren: 0.15
             }
         }
@@ -60,7 +60,7 @@ export default function ProductBreadcrumb({
             y: 0,
             transition: {
                 duration: 0.8,
-                ease: "easeOut"
+                ease: "easeOut" as const
             }
         }
     };
@@ -75,7 +75,7 @@ export default function ProductBreadcrumb({
             opacity: 1,
             transition: {
                 duration: 2.5,
-                ease: "easeInOut",
+                ease: "easeInOut" as const,
                 delay: 0.8
             }
         }
@@ -93,7 +93,7 @@ export default function ProductBreadcrumb({
             rotate: 0,
             transition: {
                 duration: 1.5,
-                ease: "easeOut",
+                ease: "easeOut" as const,
                 delay: 0.5
             }
         }
@@ -194,7 +194,7 @@ export default function ProductBreadcrumb({
                         </div>
                     </div>
                 </motion.div>
-            </div>
+            </motion.div>
 
             {/* Desktop Navigation */}
             <motion.div 
