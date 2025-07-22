@@ -347,9 +347,9 @@ export default function ProductHero({
             <div className="relative z-10 container mx-auto px-4 text-center -mt-16 sm:-mt-24 md:-mt-28 lg:-mt-32">
                 {/* Product Image with Navigation */}
                 <div className="flex items-center justify-center h-full px-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3 items-center w-full max-w-5xl lg:max-w-4xl">
-                        {/* Left Navigation - Shuffle Button - Hidden on mobile and tablet */}
-                        <div className="hidden sm:flex md:hidden lg:flex justify-center lg:justify-end lg:pr-[90px]">
+                    <div className="flex flex-col items-center justify-center w-full max-w-5xl lg:max-w-4xl">
+                        {/* Left Navigation - Hidden for all screen sizes */}
+                        <div className="hidden">
                             <motion.button
                                 onClick={(e) => {
                                     e.preventDefault();
@@ -382,7 +382,7 @@ export default function ProductHero({
                         </div>
 
                         {/* Product Image - Centered */}
-                        <div className="flex flex-col justify-center items-center relative">
+                        <div className="flex flex-col justify-center items-center relative w-full">
                             {/* Product Title with Animation */}
                             <div className="text-center mb-4 sm:mb-6 md:mb-8">
                                 <AnimatePresence mode="wait">
@@ -402,7 +402,7 @@ export default function ProductHero({
                                 </AnimatePresence>
                             </div>
 
-                            <div className="relative w-full max-w-md h-48 sm:h-56 md:h-72 lg:h-80 xl:h-96 2xl:h-[500px] -mt-4 sm:-mt-8 md:-mt-8 lg:-mt-16 xl:-mt-24">
+                            <div className="relative w-full max-w-md mx-auto h-48 sm:h-56 md:h-72 lg:h-80 xl:h-96 2xl:h-[500px] -mt-4 sm:-mt-8 md:-mt-8 lg:-mt-16 xl:-mt-24">
                                 <div className="relative w-full h-full flex items-center justify-center">
                                     {/* Product Image with Animation */}
                                     <AnimatePresence mode="wait">
@@ -444,8 +444,8 @@ export default function ProductHero({
                             </div>
                         </div>
 
-                        {/* Right Navigation - Find Retailer Button - Hidden on mobile and tablet */}
-                        <div className="hidden sm:flex md:hidden lg:flex justify-center lg:justify-start lg:pl-[90px]">
+                        {/* Right Navigation - Hidden for all screen sizes */}
+                        <div className="hidden">
                             <motion.button
                                 onClick={handleFindRetailer}
                                 className="bg-white/10 hover:bg-white hover:text-black text-white px-3 py-2 sm:px-4 sm:py-2 md:px-6 md:py-3 rounded-full font-medium tracking-wide flex items-center gap-1 sm:gap-2 backdrop-blur-sm border border-white/20 text-xs sm:text-sm md:text-base"
@@ -480,9 +480,9 @@ export default function ProductHero({
                             </motion.button>
                         </div>
                         
-                        {/* Mobile & Tablet Action Buttons - Positioned below image */}
+                        {/* Action Buttons - Positioned below image for all screen sizes */}
                         <motion.div 
-                            className="flex justify-center gap-4 mt-6 sm:hidden"
+                            className="flex justify-center gap-4 mt-6"
                             variants={{
                                 hidden: { opacity: 0, y: 20 },
                                 visible: { 
@@ -504,7 +504,7 @@ export default function ProductHero({
                                     console.log('Shuffle button clicked!');
                                     handleShuffleProduct();
                                 }}
-                                className="w-10 h-10 md:w-12 md:h-12 bg-white/10 hover:bg-white rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 hover:scale-110 cursor-pointer group/shuffle"
+                                className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-white/10 hover:bg-white rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 hover:scale-110 cursor-pointer group/shuffle"
                                 title="View other related products"
                                 variants={{
                                     hidden: { opacity: 0, scale: 0.8, x: -10 },
@@ -517,11 +517,11 @@ export default function ProductHero({
                                 }}
                                 whileTap={{ scale: 0.95 }}
                             >
-                                <CiShuffle className="w-5 h-5 md:w-6 md:h-6 text-white group-hover/shuffle:text-gray-800 pointer-events-none transition-colors duration-300" />
+                                <CiShuffle className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white group-hover/shuffle:text-gray-800 pointer-events-none transition-colors duration-300" />
                             </motion.button>
                             <motion.button
                                 onClick={handleFindRetailer}
-                                className="bg-white/10 hover:bg-white hover:text-black text-white px-4 py-2 md:px-6 md:py-3 rounded-full font-medium tracking-wide flex items-center gap-2 backdrop-blur-sm border border-white/20 text-sm md:text-base"
+                                className="bg-white/10 hover:bg-white hover:text-black text-white px-4 py-2 sm:px-6 sm:py-3 lg:px-8 lg:py-4 rounded-full font-medium tracking-wide flex items-center gap-2 backdrop-blur-sm border border-white/20 text-sm sm:text-base lg:text-lg"
                                 variants={{
                                     hidden: { opacity: 0, scale: 0.8, x: 10 },
                                     visible: { 
@@ -534,7 +534,7 @@ export default function ProductHero({
                                 whileTap={{ scale: 0.95 }}
                             >
                                 RETAILER
-                                <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path
                                         strokeLinecap="round"
                                         strokeLinejoin="round"

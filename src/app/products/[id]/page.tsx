@@ -8,6 +8,7 @@ import ProductVideos from '@/app/products/[id]/components/ProductVideos';
 import ProductSpecifications from '@/app/products/[id]/components/ProductSpecifications';
 import ProductWarranty from '@/app/products/[id]/components/ProductWarranty';
 import RelatedProducts from '@/app/products/[id]/components/RelatedProducts';
+import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { getProductById, getRelatedProducts } from '@/data/products';
 import type { Product } from '@/types/product';
 
@@ -294,7 +295,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             <div className="md:hidden">
                 {/* Mobile Navigation Dropdown - Above Hero */}
                 <motion.div 
-                    className="ml-[4rem] xs:ml-16 sticky top-16 z-[9999] py-3 bg-[#0a0f1a]/95 backdrop-blur-sm border-b border-gray-800/50"
+                    className="sticky top-[72px] z-[200] py-3 bg-[#0a0f1a]/95 backdrop-blur-sm border-b border-gray-800/50"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ 
@@ -303,8 +304,9 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                         delay: 0.2
                     }}
                 >
-                    <div className="px-3 xs:px-4">
-                        <div className="relative z-[9999]">
+                    <AvoidSidebar>
+                        <div className="px-4">
+                            <div className="relative z-10">
                             <select
                                 value={activeBreadcrumb}
                                 onChange={(e) => {
@@ -313,7 +315,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                         handleBreadcrumbClick(selectedItem);
                                     }
                                 }}
-                                className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 xs:px-4 py-2.5 xs:py-3 text-white text-xs xs:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent appearance-none cursor-pointer"
+                                className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent appearance-none cursor-pointer"
                                 aria-label="Select section"
                             >
                                 {breadcrumbItems.map((item) => (
@@ -327,20 +329,24 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
                             </div>
+                            </div>
                         </div>
-                    </div>
+                    </AvoidSidebar>
                 </motion.div>
 
                 {/* Mobile Hero - Compact */}
-                <div className="ml-[4rem] xs:ml-16 pt-16">
+                <AvoidSidebar>
+                    <div className="pt-16">
                     <ProductHero
                         product={currentProduct}
                         relatedProducts={relatedProducts}
                     />
-                </div>
+                    </div>
+                </AvoidSidebar>
 
                 {/* Mobile Content */}
-                <div className="ml-[4rem] xs:ml-16 -mt-16 sm:-mt-20 relative z-30 bg-transparent">
+                <AvoidSidebar>
+                    <div className="-mt-44 xs:-mt-48 relative z-30 bg-transparent">
                     <div id="product-details" className="relative bg-transparent">
                         <AnimatePresence>
                             {isTransitioning && (
@@ -351,22 +357,62 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                     transition={{ duration: 0.2 }}
                                     className="absolute inset-0 bg-[#0a0f1a]/30 backdrop-blur-sm z-50 flex items-center justify-center"
                                 >
-                                    <div className="w-6 xs:w-8 h-6 xs:h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                                 </motion.div>
                             )}
                         </AnimatePresence>
-                        <div className="px-3 xs:px-4 overflow-hidden -mt-16 sm:-mt-20">
+                        <div className="px-4 overflow-hidden -mt-36 xs:-mt-40">
                             <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
                         </div>
                     </div>
-                    <div className="pt-6 xs:pt-8">
+                    <div className="pt-8">
+                        <RelatedProducts products={relatedProducts} />
+                    </div>
+                    </div>
+                </AvoidSidebar>
+            </div>
+
+            {/* Tablet Layout (md to lg) */}
+            <div className="hidden md:block lg:hidden">
+                {/* Tablet Hero */}
+                <div className="ml-16 md:ml-20">
+                    <ProductHero
+                        product={currentProduct}
+                        relatedProducts={relatedProducts}
+                        breadcrumbItems={breadcrumbItems}
+                        activeBreadcrumb={activeBreadcrumb}
+                        onBreadcrumbClick={handleBreadcrumbClick}
+                    />
+                </div>
+
+                {/* Tablet Content */}
+                <div className="ml-16 md:ml-20 -mt-24 md:-mt-32 relative z-30 bg-transparent">
+                    <div id="product-details" className="relative bg-transparent">
+                        <AnimatePresence>
+                            {isTransitioning && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="absolute inset-0 bg-[#0a0f1a]/30 backdrop-blur-sm z-50 flex items-center justify-center"
+                                >
+                                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                        <div className="overflow-hidden -mt-16 md:-mt-20 px-4 md:px-6">
+                            <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
+                        </div>
+                    </div>
+                    <div className="pt-8 md:pt-12">
                         <RelatedProducts products={relatedProducts} />
                     </div>
                 </div>
             </div>
 
-            {/* Desktop Layout (md và lớn hơn) */}
-            <div className="hidden md:block">
+            {/* Desktop Layout (lg và lớn hơn) */}
+            <div className="hidden lg:block">
                 {/* Desktop Hero */}
                 <div className="ml-20">
                     <ProductHero
