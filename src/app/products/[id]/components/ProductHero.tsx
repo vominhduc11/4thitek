@@ -499,29 +499,84 @@ export default function ProductHero({
                 console.log('Desktop breadcrumb rendering, items:', breadcrumbItems);
                 return true;
             })() && (
-                <div className="absolute bottom-32 sm:bottom-40 md:bottom-64 lg:bottom-56 left-0 right-0 z-20 hidden md:block" id="hero-breadcrumb">
-                    {/* Left line segment */}
-                    <div
-                        className="absolute top-1/2 left-0 h-px bg-gray-600 z-5"
+                <motion.div 
+                    className="absolute bottom-32 sm:bottom-40 md:bottom-64 lg:bottom-56 left-0 right-0 z-20 hidden md:block" 
+                    id="hero-breadcrumb"
+                    initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ 
+                        duration: 1.2,
+                        ease: "easeOut",
+                        delay: 0.8
+                    }}
+                >
+                    {/* Left line segment with gradient */}
+                    <motion.div
+                        className="absolute top-1/2 left-0 h-px z-5"
                         style={{ 
-                            right: 'calc(50% + 280px)',
-                            width: 'calc(50% - 280px)'
+                            right: 'calc(50% + 320px)',
+                            width: 'calc(50% - 320px)',
+                            background: 'linear-gradient(to right, transparent, rgba(79, 200, 255, 0.6))'
                         }}
-                    ></div>
+                        initial={{ scaleX: 0, opacity: 0 }}
+                        animate={{ scaleX: 1, opacity: 1 }}
+                        transition={{ 
+                            duration: 1.5,
+                            ease: "easeOut",
+                            delay: 1.2
+                        }}
+                        style={{
+                            ...{
+                                right: 'calc(50% + 320px)',
+                                width: 'calc(50% - 320px)',
+                                background: 'linear-gradient(to right, transparent, rgba(79, 200, 255, 0.6))'
+                            },
+                            transformOrigin: 'right center'
+                        }}
+                    ></motion.div>
 
-                    {/* Right line segment */}
-                    <div
-                        className="absolute top-1/2 right-0 h-px bg-gray-600 z-5"
-                        style={{ 
-                            left: 'calc(50% + 280px)',
-                            width: 'calc(50% - 280px)'
+                    {/* Right line segment with gradient */}
+                    <motion.div
+                        className="absolute top-1/2 right-0 h-px z-5"
+                        initial={{ scaleX: 0, opacity: 0 }}
+                        animate={{ scaleX: 1, opacity: 1 }}
+                        transition={{ 
+                            duration: 1.5,
+                            ease: "easeOut",
+                            delay: 1.2
                         }}
-                    ></div>
+                        style={{ 
+                            left: 'calc(50% + 320px)',
+                            width: 'calc(50% - 320px)',
+                            background: 'linear-gradient(to left, transparent, rgba(79, 200, 255, 0.6))',
+                            transformOrigin: 'left center'
+                        }}
+                    ></motion.div>
 
                     <div className="container mx-auto max-w-6xl lg:max-w-5xl px-4">
-                        <nav className="flex justify-center items-center space-x-4 text-sm relative z-20">
+                        <motion.nav 
+                            className="flex justify-center items-center space-x-4 text-sm relative z-20"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{
+                                duration: 0.8,
+                                ease: "easeOut",
+                                delay: 1.4,
+                                staggerChildren: 0.15
+                            }}
+                        >
                             {breadcrumbItems.map((item, index) => (
-                                <div key={item.label} className="flex items-center space-x-2">
+                                <motion.div 
+                                    key={item.label} 
+                                    className="flex items-center space-x-2"
+                                    initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    transition={{
+                                        duration: 0.6,
+                                        ease: "easeOut",
+                                        delay: 1.6 + (index * 0.1)
+                                    }}
+                                >
                                     <motion.button
                                         onClick={(e) => {
                                             e.preventDefault();
@@ -535,17 +590,29 @@ export default function ProductHero({
                                                 ? 'text-blue-400'
                                                 : 'text-gray-400 hover:text-white'
                                         }`}
+                                        whileHover={{ 
+                                            scale: 1.05,
+                                            transition: { duration: 0.2 }
+                                        }}
+                                        whileTap={{ scale: 0.95 }}
                                     >
                                         {item.label}
                                     </motion.button>
                                     {index < breadcrumbItems.length - 1 && (
-                                        <span className="text-gray-500 relative">/</span>
+                                        <motion.span 
+                                            className="text-gray-500 relative"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ delay: 1.8 + (index * 0.1) }}
+                                        >
+                                            /
+                                        </motion.span>
                                     )}
-                                </div>
+                                </motion.div>
                             ))}
-                        </nav>
+                        </motion.nav>
                     </div>
-                </div>
+                </motion.div>
             )}
 
         </motion.section>
