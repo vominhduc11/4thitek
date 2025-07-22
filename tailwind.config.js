@@ -12,6 +12,7 @@ module.exports = {
         'sm': '640px',
         'md': '700px',  // Điều chỉnh từ 768px xuống 700px
         'lg': '844px',
+        'desktop': '1024px', // Standard desktop breakpoint
         'xl': '1280px',
         '2xl': '1536px',
       },

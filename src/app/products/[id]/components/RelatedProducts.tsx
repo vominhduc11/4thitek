@@ -39,7 +39,7 @@ export default function RelatedProducts({ products }: RelatedProductsProps) {
                             onMouseEnter={() => setHoveredProductId(product.id)}
                             onMouseLeave={() => setHoveredProductId(null)}
                             onClick={() => handleProductClick(product.id)}
-                            className="relative bg-gray-900/30 hover:bg-gray-800/50 transition-all duration-300 cursor-pointer group overflow-hidden h-[450px] sm:h-[500px] lg:h-[650px] flex flex-col border-t border-gray-700/50 sm:border-r sm:border-gray-700/50 lg:border-r lg:border-gray-700/50"
+                            className="relative bg-gray-900/30 hover:bg-gray-800/50 transition-all duration-300 cursor-pointer group overflow-hidden h-[450px] sm:h-[500px] lg:h-[480px] xl:h-[650px] flex flex-col border-t border-gray-700/50 sm:border-r sm:border-gray-700/50 lg:border-r lg:border-gray-700/50"
                         >
                             {/* Background Video */}
                             {hoveredProductId === product.id && (
@@ -60,12 +60,12 @@ export default function RelatedProducts({ products }: RelatedProductsProps) {
                             )}
 
                             {/* Series Label */}
-                            <div className="absolute left-1 xs:left-2 sm:left-3 md:left-4 top-1/2 -translate-y-1/2 z-20">
+                            <div className="absolute left-2 sm:left-4 lg:left-6 top-2 sm:top-3 lg:top-4 z-20">
                                 <div
                                     className="font-bold text-sm xs:text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl uppercase tracking-wider xs:tracking-widest text-gray-400 group-hover:text-[#4FC8FF] transition-colors duration-300"
                                     style={{
                                         writingMode: 'vertical-rl',
-                                        transform: 'translateY(-50%) rotate(180deg)'
+                                        transform: 'rotate(180deg)'
                                     }}
                                 >
                                     PRODUCT
@@ -79,8 +79,8 @@ export default function RelatedProducts({ products }: RelatedProductsProps) {
                                     alt={product.name}
                                     width={300}
                                     height={300}
-                                    className="w-[180px] h-[180px] sm:w-[220px] sm:h-[220px] lg:w-[300px] lg:h-[300px] object-contain"
-                                    sizes="(max-width: 640px) 180px, (max-width: 1024px) 220px, 300px"
+                                    className="w-[180px] h-[180px] sm:w-[220px] sm:h-[220px] lg:w-[200px] lg:h-[200px] xl:w-[250px] xl:h-[250px] object-contain"
+                                    sizes="(max-width: 640px) 180px, (max-width: 1024px) 220px, (max-width: 1280px) 200px, 250px"
                                     onError={(e) => {
                                         const target = e.target as HTMLImageElement;
                                         target.style.display = 'none';
@@ -93,7 +93,7 @@ export default function RelatedProducts({ products }: RelatedProductsProps) {
                             </div>
 
                             {/* Content */}
-                            <div className="px-3 sm:px-4 lg:px-6 pb-4 sm:pb-6 lg:pb-8 pl-8 sm:pl-12 lg:pl-16">
+                            <div className="px-6 sm:px-8 lg:px-12 pb-4 sm:pb-6 lg:pb-8">
                                 <h3 className="text-white font-bold text-sm sm:text-base lg:text-xl mb-2 sm:mb-3 font-sans group-hover:text-[#4FC8FF] transition-colors duration-300">
                                     {product.name}
                                 </h3>

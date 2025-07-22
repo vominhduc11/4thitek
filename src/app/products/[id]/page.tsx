@@ -62,7 +62,9 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 setIsTransitioning(false);
                 const targetSection = document.getElementById('product-details');
                 if (targetSection) {
-                    const headerOffset = 100;
+                    const headerOffset = window.innerWidth < 480 ? 250 : 
+                                    window.innerWidth < 640 ? 280 : 
+                                    window.innerWidth < 700 ? 220 : 100;
                     const elementPosition = targetSection.getBoundingClientRect().top;
                     const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
                     
@@ -138,10 +140,10 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             console.log('Target section found:', targetSection);
             
             if (targetSection) {
-                // Điều chỉnh offset dựa trên kích thước màn hình
-                const headerOffset = window.innerWidth < 480 ? 180 : 
-                                    window.innerWidth < 640 ? 200 : 
-                                    window.innerWidth < 700 ? 160 : 100;
+                // Điều chỉnh offset dựa trên kích thước màn hình (mobile có offset cao hơn để tránh hero buttons)
+                const headerOffset = window.innerWidth < 480 ? 250 : 
+                                    window.innerWidth < 640 ? 280 : 
+                                    window.innerWidth < 700 ? 220 : 100;
                                     
                 const elementPosition = targetSection.getBoundingClientRect().top;
                 const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
@@ -346,7 +348,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
                 {/* Mobile Content */}
                 <AvoidSidebar>
-                    <div className="-mt-44 xs:-mt-48 relative z-30 bg-transparent">
+                    <div className="-mt-32 xs:-mt-36 relative z-30 bg-transparent">
                     <div id="product-details" className="relative bg-transparent">
                         <AnimatePresence>
                             {isTransitioning && (
@@ -361,7 +363,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                 </motion.div>
                             )}
                         </AnimatePresence>
-                        <div className="px-4 overflow-hidden -mt-36 xs:-mt-40">
+                        <div className="px-4 overflow-hidden -mt-24 xs:-mt-28">
                             <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
                         </div>
                     </div>
@@ -425,7 +427,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 </div>
 
                 {/* Desktop Content */}
-                <div className="ml-20 -mt-32 lg:-mt-40 xl:-mt-48 relative z-30 bg-transparent">
+                <div className="ml-20 -mt-32 lg:-mt-48 xl:-mt-48 relative z-30 bg-transparent">
                     <div id="product-details" className="relative bg-transparent">
                         <AnimatePresence>
                             {isTransitioning && (
@@ -440,7 +442,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                 </motion.div>
                             )}
                         </AnimatePresence>
-                        <div className="overflow-hidden -mt-32 lg:-mt-40 xl:-mt-48 px-6 lg:px-8">
+                        <div className="overflow-hidden -mt-32 lg:-mt-48 xl:-mt-48 px-6 lg:px-8">
                             <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
                         </div>
                     </div>
