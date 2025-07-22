@@ -253,7 +253,16 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             {/* Mobile Layout (Small screens) */}
             <div className="md:hidden">
                 {/* Mobile Navigation Dropdown - Above Hero */}
-                <div className="ml-[4rem] xs:ml-16 sticky top-16 z-[9999] py-3 bg-[#0a0f1a]/95 backdrop-blur-sm border-b border-gray-800/50">
+                <motion.div 
+                    className="ml-[4rem] xs:ml-16 sticky top-16 z-[9999] py-3 bg-[#0a0f1a]/95 backdrop-blur-sm border-b border-gray-800/50"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ 
+                        duration: 0.6,
+                        ease: "easeOut",
+                        delay: 0.2
+                    }}
+                >
                     <div className="px-3 xs:px-4">
                         <div className="relative z-[9999]">
                             <select
@@ -280,7 +289,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             </div>
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Mobile Hero - Compact */}
                 <div className="ml-[4rem] xs:ml-16 pt-16">

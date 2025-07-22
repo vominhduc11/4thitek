@@ -510,50 +510,40 @@ export default function ProductHero({
                         delay: 0.8
                     }}
                 >
-                    {/* Left line segment with gradient */}
-                    <motion.div
-                        className="absolute top-1/2 left-0 h-px z-5"
-                        style={{ 
-                            right: 'calc(50% + 320px)',
-                            width: 'calc(50% - 320px)',
-                            background: 'linear-gradient(to right, transparent, rgba(79, 200, 255, 0.6))'
-                        }}
-                        initial={{ scaleX: 0, opacity: 0 }}
-                        animate={{ scaleX: 1, opacity: 1 }}
-                        transition={{ 
-                            duration: 1.5,
-                            ease: "easeOut",
-                            delay: 1.2
-                        }}
-                        style={{
-                            ...{
-                                right: 'calc(50% + 320px)',
-                                width: 'calc(50% - 320px)',
-                                background: 'linear-gradient(to right, transparent, rgba(79, 200, 255, 0.6))'
-                            },
-                            transformOrigin: 'right center'
-                        }}
-                    ></motion.div>
+                    <div className="container mx-auto max-w-6xl lg:max-w-5xl px-4 relative">
+                        {/* Left line segment with gradient */}
+                        <motion.div
+                            className="absolute top-1/2 left-4 h-px z-5"
+                            initial={{ scaleX: 0, opacity: 0 }}
+                            animate={{ scaleX: 1, opacity: 1 }}
+                            transition={{ 
+                                duration: 1.5,
+                                ease: "easeOut",
+                                delay: 1.2
+                            }}
+                            style={{
+                                width: 'calc(50% - 300px)',
+                                background: 'linear-gradient(to right, transparent, rgba(79, 200, 255, 0.6))',
+                                transformOrigin: 'right center'
+                            }}
+                        ></motion.div>
 
-                    {/* Right line segment with gradient */}
-                    <motion.div
-                        className="absolute top-1/2 right-0 h-px z-5"
-                        initial={{ scaleX: 0, opacity: 0 }}
-                        animate={{ scaleX: 1, opacity: 1 }}
-                        transition={{ 
-                            duration: 1.5,
-                            ease: "easeOut",
-                            delay: 1.2
-                        }}
-                        style={{ 
-                            left: 'calc(50% + 320px)',
-                            width: 'calc(50% - 320px)',
-                            background: 'linear-gradient(to left, transparent, rgba(79, 200, 255, 0.6))',
-                            transformOrigin: 'left center'
-                        }}
-                    ></motion.div>
-
-                    <div className="container mx-auto max-w-6xl lg:max-w-5xl px-4">
+                        {/* Right line segment with gradient */}
+                        <motion.div
+                            className="absolute top-1/2 right-4 h-px z-5"
+                            initial={{ scaleX: 0, opacity: 0 }}
+                            animate={{ scaleX: 1, opacity: 1 }}
+                            transition={{ 
+                                duration: 1.5,
+                                ease: "easeOut",
+                                delay: 1.2
+                            }}
+                            style={{ 
+                                width: 'calc(50% - 300px)',
+                                background: 'linear-gradient(to left, transparent, rgba(79, 200, 255, 0.6))',
+                                transformOrigin: 'left center'
+                            }}
+                        ></motion.div>
                         <motion.nav 
                             className="flex justify-center items-center space-x-4 text-sm relative z-20"
                             initial={{ opacity: 0, y: 20 }}
