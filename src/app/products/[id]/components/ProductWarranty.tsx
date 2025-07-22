@@ -2,8 +2,8 @@
 
 export default function ProductWarranty() {
     return (
-        <section id="product-details" className="bg-[#0a0f1a] relative z-50 min-h-screen -mt-40">
-            <div className="container mx-auto max-w-8xl relative py-8 pt-56">
+        <section id="product-details" className="relative z-[60] min-h-screen">
+            <div className="container mx-auto max-w-8xl relative py-8 pt-16 z-[70]">
                 <h2 className="text-2xl md:text-3xl lg:text-3xl font-bold mb-6 md:mb-8 text-white">CHÍNH SÁCH BẢO HÀNH</h2>
 
                 {/* Warranty Overview */}

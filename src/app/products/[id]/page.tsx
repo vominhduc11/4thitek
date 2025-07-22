@@ -291,8 +291,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 </div>
 
                 {/* Mobile Content */}
-                <div className="ml-[4rem] xs:ml-16 -mt-16 sm:-mt-20 relative z-30">
-                    <div id="product-details" className="relative min-h-[50vh] pt-20 sm:pt-24">
+                <div className="ml-[4rem] xs:ml-16 -mt-16 sm:-mt-20 relative z-30 bg-transparent">
+                    <div id="product-details" className="relative bg-transparent">
                         <AnimatePresence>
                             {isTransitioning && (
                                 <motion.div
@@ -306,7 +306,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                 </motion.div>
                             )}
                         </AnimatePresence>
-                        <div className="bg-[#0a0f1a] px-3 xs:px-4 overflow-hidden">
+                        <div className="px-3 xs:px-4 overflow-hidden -mt-16 sm:-mt-20">
                             <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
                         </div>
                     </div>
@@ -330,8 +330,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 </div>
 
                 {/* Desktop Content */}
-                <div className="ml-20 -mt-32 lg:-mt-40 xl:-mt-48 relative z-30">
-                    <div id="product-details" className="relative min-h-[60vh] pt-40 lg:pt-48 xl:pt-56">
+                <div className="ml-20 -mt-32 lg:-mt-40 xl:-mt-48 relative z-30 bg-transparent">
+                    <div id="product-details" className="relative bg-transparent">
                         <AnimatePresence>
                             {isTransitioning && (
                                 <motion.div
@@ -345,7 +345,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                 </motion.div>
                             )}
                         </AnimatePresence>
-                        <div className="bg-[#0a0f1a] overflow-hidden">
+                        <div className="overflow-hidden -mt-32 lg:-mt-40 xl:-mt-48 px-6 lg:px-8">
                             <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
                         </div>
                     </div>

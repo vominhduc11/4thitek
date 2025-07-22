@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { FiSearch } from 'react-icons/fi';
 import { motion, Variants } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import SearchModal from '@/components/ui/SearchModal';
+import { useSearchModal } from '@/context/SearchModalContext';
+import { Z_INDEX } from '@/constants/zIndex';
 
 const headerVariants: Variants = {
     hidden: { y: -48, opacity: 0 },
@@ -23,7 +24,7 @@ const searchVariants: Variants = {
 export default function Header() {
     const [scrollY, setScrollY] = useState(0);
     const [isHydrated, setIsHydrated] = useState(false);
-    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const { openSearch } = useSearchModal();
 
     useEffect(() => {
         setIsHydrated(true);
@@ -59,16 +60,16 @@ export default function Header() {
 
     return (
         <motion.header
-            className="fixed top-0 left-16 sm:left-20 right-0 flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 transition-all duration-300 ease-out bg-transparent z-1000"
+            className="fixed top-0 left-16 sm:left-20 right-0 flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 transition-all duration-300 ease-out bg-transparent"
             variants={headerVariants}
             initial="hidden"
             animate="visible"
-            style={headerStyle}
+            style={{ ...headerStyle, zIndex: Z_INDEX.HEADER }}
         >
             {/* Search icon (left) */}
             <motion.div variants={searchVariants}>
                 <button 
-                    onClick={() => setIsSearchOpen(true)}
+                    onClick={openSearch}
                     className="p-1.5 sm:p-2 rounded transition-all duration-200 hover:bg-white/10" 
                     aria-label="Search"
                 >
@@ -91,11 +92,6 @@ export default function Header() {
                 </Link>
             </motion.div>
 
-            {/* Search Modal */}
-            <SearchModal 
-                isOpen={isSearchOpen} 
-                onClose={() => setIsSearchOpen(false)} 
-            />
         </motion.header>
     );
 }

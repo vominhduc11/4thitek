@@ -17,9 +17,9 @@ interface ProductDetailsProps {
 
 export default function ProductDetails({ features, highlights, description }: ProductDetailsProps) {
     return (
-        <section className="bg-[#0a0f1a] relative z-50 min-h-screen -mt-40">
-            <div className="container mx-auto max-w-8xl relative py-8 pt-56">
-                    <h2 className="text-2xl md:text-3xl lg:text-3xl font-bold mb-6 md:mb-8 text-white">PRODUCT FEATURED</h2>
+        <section className="relative z-[150] min-h-screen">
+            <div className="container mx-auto max-w-8xl relative py-8 pt-16 z-[200]">
+                <h2 className="text-2xl md:text-3xl lg:text-3xl font-bold mb-6 md:mb-8 text-white">PRODUCT FEATURED</h2>
 
                     {/* Top row - 3 cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-12">
@@ -63,7 +63,7 @@ export default function ProductDetails({ features, highlights, description }: Pr
                             <div className="relative">
                                 <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl p-8 border border-gray-700/50">
                                     <Image
-                                        src="/products/helmet-detail.jpg"
+                                        src="/products/product1.png"
                                         alt="Tai nghe Bluetooth intercom cho mũ bảo hiểm"
                                         width={1200}
                                         height={800}

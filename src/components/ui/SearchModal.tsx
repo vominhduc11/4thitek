@@ -9,6 +9,7 @@ import { products } from '@/data/products';
 import { blogPosts } from '@/data/blogs';
 import type { Product } from '@/types/product';
 import type { BlogPost } from '@/types/blog';
+import { Z_INDEX } from '@/constants/zIndex';
 
 interface SearchModalProps {
     isOpen: boolean;
@@ -150,7 +151,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
         return true;
     });
 
-    // Handle escape key
+    // Handle escape key and body scroll lock
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
@@ -159,10 +160,17 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
         };
 
         if (isOpen) {
+            // Lock body scroll
+            document.body.style.overflow = 'hidden';
             document.addEventListener('keydown', handleEscape);
+        } else {
+            // Restore body scroll
+            document.body.style.overflow = 'unset';
         }
 
         return () => {
+            // Cleanup: always restore scroll when component unmounts
+            document.body.style.overflow = 'unset';
             document.removeEventListener('keydown', handleEscape);
         };
     }, [isOpen, onClose]);
@@ -173,7 +181,8 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                 <>
                     {/* Backdrop */}
                     <motion.div
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+                        style={{ zIndex: Z_INDEX.MODAL_BACKDROP }}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -182,13 +191,14 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
                     {/* Modal */}
                     <motion.div
-                        className="fixed top-0 left-16 sm:left-20 right-0 z-[9999]"
+                        className="fixed top-0 left-0 right-0"
+                        style={{ zIndex: Z_INDEX.MODAL }}
                         initial={{ y: -20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: -20, opacity: 0 }}
                         transition={{ duration: 0.2 }}
                     >
-                        <div className="bg-[#0c131d] border-b border-gray-700/30 shadow-2xl">
+                        <div className="bg-[#0c131d] border-b border-gray-700/30 shadow-2xl backdrop-blur-sm">
                             {/* Search Header */}
                             <div className="px-6 py-4 border-b border-gray-700/30">
                                 <div className="flex items-center gap-4">
@@ -247,7 +257,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                             </div>
 
                             {/* Search Content */}
-                            <div className="max-h-[70vh] overflow-y-auto">
+                            <div className="max-h-[70vh] overflow-y-auto custom-scrollbar">
                                 {!query ? (
                                     /* Empty State - Recent & Popular Searches */
                                     <div className="p-6 space-y-6">

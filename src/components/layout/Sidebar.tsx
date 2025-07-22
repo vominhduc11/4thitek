@@ -1,6 +1,7 @@
 import { FaFacebookF, FaTwitter } from 'react-icons/fa';
 import { FiMenu } from 'react-icons/fi';
 import { motion, Variants } from 'framer-motion';
+import { Z_INDEX } from '@/constants/zIndex';
 
 interface SidebarProps {
     onMenuClick: () => void;
@@ -18,7 +19,8 @@ const sidebarVariants: Variants = {
 export default function Sidebar({ onMenuClick }: SidebarProps) {
     return (
         <motion.aside
-            className="fixed top-0 left-0 h-full w-16 sm:w-20 bg-[#1e2631]/70 backdrop-blur-md flex flex-col items-center py-3 sm:py-4 shadow-lg z-100"
+            className="fixed top-0 left-0 h-full w-16 sm:w-20 bg-[#1e2631]/70 backdrop-blur-md flex flex-col items-center py-3 sm:py-4 shadow-lg"
+            style={{ zIndex: Z_INDEX.SIDEBAR }}
             variants={sidebarVariants}
             initial="hidden"
             animate="visible"

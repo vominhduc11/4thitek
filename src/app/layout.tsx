@@ -4,6 +4,7 @@ import './globals.css';
 import ClientLayout from '@/components/layout/ClientLayout';
 import { AuthProvider } from '@/context/AuthContext';
 import { LoginModalProvider } from '@/context/LoginModalContext';
+import { SearchModalProvider } from '@/context/SearchModalContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 
 const geistSans = Geist({
@@ -33,7 +34,9 @@ export default function RootLayout({
                 <LanguageProvider>
                     <AuthProvider>
                         <LoginModalProvider>
-                            <ClientLayout>{children}</ClientLayout>
+                            <SearchModalProvider>
+                                <ClientLayout>{children}</ClientLayout>
+                            </SearchModalProvider>
                         </LoginModalProvider>
                     </AuthProvider>
                 </LanguageProvider>

@@ -8,6 +8,7 @@ import clsx from 'clsx';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Z_INDEX } from '@/constants/zIndex';
 
 interface SideDrawerProps {
     isOpen: boolean;
@@ -114,7 +115,8 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                 <>
                     {/* Backdrop */}
                     <motion.div
-                        className="fixed inset-0 bg-black/60 backdrop-blur-md z-[99999]"
+                        className="fixed inset-0 bg-black/60 backdrop-blur-md"
+                        style={{ zIndex: Z_INDEX.DRAWER_BACKDROP }}
                         variants={backdropVariants}
                         initial="hidden"
                         animate="visible"
@@ -124,7 +126,8 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
 
                     {/* Drawer */}
                     <motion.aside
-                        className="fixed top-0 left-0 h-screen w-auto flex shadow-2xl max-w-[90vw] sm:max-w-none z-[99999]"
+                        className="fixed top-0 left-0 h-screen w-auto flex shadow-2xl max-w-[90vw] sm:max-w-none"
+                        style={{ zIndex: Z_INDEX.DRAWER }}
                         variants={drawerVariants}
                         initial="hidden"
                         animate="visible"
