@@ -3,7 +3,6 @@
 import { Suspense } from 'react';
 import { ProductsHero, ProductGrid } from './components';
 import ProductsSimpleHeader from './components/ProductsSimpleHeader';
-import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { products } from '@/data/products';
 
 function ProductsPageContent() {

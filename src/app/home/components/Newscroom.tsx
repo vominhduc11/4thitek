@@ -1,6 +1,5 @@
 'use client';
 
-import AvoidSidebar from '@/components/layout/AvoidSidebar';
 import { motion } from 'framer-motion';
 import { FiArrowUpRight } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';

@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { ResellerHero, ResellerSearch, ResellerResults } from './components';
-import AvoidSidebar from '@/components/layout/AvoidSidebar';
 
 export default function ResellerInformationPage() {
     const [searchFilters, setSearchFilters] = useState({

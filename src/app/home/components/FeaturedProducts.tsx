@@ -6,7 +6,6 @@ import { FiArrowUpRight } from 'react-icons/fi';
 import Image from 'next/image';
 import Link from 'next/link';
 import clsx from 'clsx';
-import AvoidSidebar from '@/components/layout/AvoidSidebar';
 // import { useLanguage } from '@/contexts/LanguageContext';
 
 interface FeaturedProduct {
