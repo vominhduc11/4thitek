@@ -31,13 +31,13 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
 
     return (
         <motion.div
-            className="max-w-2xl mx-auto bg-[#1a2332] p-8 rounded-lg shadow-lg border border-gray-700"
+            className="max-w-2xl mx-auto bg-[#1a2332] p-4 sm:p-6 lg:p-8 rounded-lg shadow-lg border border-gray-700"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
         >
             <motion.h2
-                className="text-2xl font-bold text-center mb-6 text-white"
+                className="text-xl sm:text-2xl font-bold text-center mb-4 sm:mb-6 text-white"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
@@ -47,7 +47,7 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
 
             <motion.form
                 onSubmit={handleSubmit}
-                className="space-y-6"
+                className="space-y-4 sm:space-y-6"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
@@ -101,7 +101,7 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                     <Button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:transform-none disabled:hover:scale-100"
+                        className="w-full bg-gradient-to-r from-[#4FC8FF] to-[#0EA5E9] hover:from-[#0EA5E9] hover:to-[#0284C7] text-white py-2 sm:py-3 text-base sm:text-lg font-medium rounded-lg border border-[#4FC8FF]/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-0.5 disabled:transform-none disabled:hover:scale-100 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isLoading ? (
                             <motion.div

@@ -194,7 +194,7 @@ export default function Newsroom() {
                                 onClick={() => handleNewsClick(post.id)}
                             >
                                 <motion.img
-                                    src={post.img}
+                                    src={post.img || "https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg"}
                                     alt={post.caption}
                                     className="w-full h-full object-cover"
                                     whileHover={{ scale: 1.1 }}

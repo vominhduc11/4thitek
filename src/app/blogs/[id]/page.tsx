@@ -77,11 +77,9 @@ export default function BlogDetailPageImproved() {
             {/* Simple Hero Section - Consistent with other pages */}
             <BlogDetailHero />
             {/* 1. Thanh tiêu đề bài viết (Post Header) */}
-            <AvoidSidebar>
                 <section className="bg-[#0c131d] w-full -mt-16 pt-16 pb-8">
-                    {/* Sử dụng chính xác cùng layout như breadcrumb */}
-                    <div className="pl-4 sm:pl-6 lg:pl-8 pr-4 sm:pr-6 lg:pr-8">
-                        <div className="px-4 sm:px-6 lg:px-8">
+                    {/* Sử dụng cùng layout như các trang khác */}
+                    <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20">
                             {/* Tiêu đề */}
                             <motion.h1
                                 className="text-white text-2xl sm:text-3xl lg:text-4xl font-bold text-left mb-4"
@@ -95,29 +93,29 @@ export default function BlogDetailPageImproved() {
 
                             {/* Thời gian đăng & Chuyên mục */}
                             <motion.div
-                                className="flex items-center gap-4 text-gray-400 text-sm"
+                                className="flex flex-wrap items-center gap-2 sm:gap-4 text-gray-400 text-sm"
                                 initial={{ opacity: 0, y: 20 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
                                 viewport={{ once: true, margin: '-50px' }}
                             >
-                                <div className="flex items-center gap-2">
-                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <div className="flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+                                    <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
                                     </svg>
-                                    <span>{formatDateSafe(post.publishedAt, isHydrated)}</span>
+                                    <span className="truncate">{formatDateSafe(post.publishedAt, isHydrated)}</span>
                                 </div>
                                 <span>•</span>
-                                <div className="flex items-center gap-2">
-                                    <span className="px-2 py-1 bg-[#4FC8FF]/10 text-[#4FC8FF] text-xs uppercase tracking-wide rounded-full font-medium">
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                    <span className="px-2 py-1 bg-[#4FC8FF]/10 text-[#4FC8FF] text-xs uppercase tracking-wide rounded-full font-medium whitespace-nowrap">
                                         {post.category.name}
                                     </span>
                                 </div>
                                 {post.readingTime && (
                                     <>
                                         <span>•</span>
-                                        <div className="flex items-center gap-2">
-                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <div className="flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+                                            <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                                             </svg>
                                             <span>{post.readingTime} phút đọc</span>
@@ -125,14 +123,13 @@ export default function BlogDetailPageImproved() {
                                     </>
                                 )}
                             </motion.div>
-                        </div>
                     </div>
                 </section>
 
                 {/* 2. Hình ảnh minh họa chính (Hero Image nhỏ) */}
                 <section className="bg-[#0c131d] pb-8">
-                    {/* Full width container để hình ảnh sát mép */}
-                    <div className="w-full">
+                    {/* Container có margin cho sidebar */}
+                    <div className="ml-16 sm:ml-20">
                         <motion.div
                             className="relative w-full h-[330px] sm:h-[430px] lg:h-[530px] overflow-hidden"
                             initial={{ opacity: 0, scale: 0.95 }}
@@ -151,11 +148,10 @@ export default function BlogDetailPageImproved() {
                         </motion.div>
                     </div>
                 </section>
-            </AvoidSidebar>
 
             {/* 3. Bố cục chính (Main Layout) */}
             <section className="bg-[#0c131d] py-12">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20">
                     <div className="grid grid-cols-1 lg:grid-cols-10 gap-8">
                         {/* 3.1. Cột Nội dung (Left Column, chiếm ~70%) */}
                         <div className="lg:col-span-7">
@@ -218,7 +214,7 @@ export default function BlogDetailPageImproved() {
                                             viewport={{ once: true, margin: '-50px' }}
                                         >
                                             {/* Card Container */}
-                                            <div className="w-full max-w-[350px] bg-[#1a2332] rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 ease-in-out overflow-hidden group border border-gray-800/30">
+                                            <div className="w-full bg-[#1a2332] rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 ease-in-out overflow-hidden group border border-gray-800/30">
                                                 {/* Post Thumbnail */}
                                                 <div className="relative w-full aspect-video overflow-hidden">
                                                     <Image
@@ -255,12 +251,12 @@ export default function BlogDetailPageImproved() {
                                                     </div>
 
                                                     {/* Title */}
-                                                    <h3 className="text-xl font-bold text-white leading-6 mb-2 line-clamp-2">
+                                                    <h3 className="text-lg font-bold text-white leading-6 mb-2 line-clamp-2">
                                                         {relatedPost.title}
                                                     </h3>
 
                                                     {/* Excerpt */}
-                                                    <p className="text-base text-gray-300 leading-6 line-clamp-3 mb-4">
+                                                    <p className="text-sm text-gray-300 leading-6 line-clamp-2 mb-4">
                                                         {relatedPost.excerpt}
                                                     </p>
 

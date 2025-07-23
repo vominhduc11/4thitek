@@ -88,7 +88,7 @@ const BlogGrid = ({ blogs }: BlogGridProps) => {
                             {/* Cover Image - 16:9 Aspect Ratio */}
                             <div className="relative w-full aspect-video overflow-hidden">
                                 <Image
-                                    src="https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg"
+                                    src={blog.featuredImage || "https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg"}
                                     alt={`Ảnh bìa bài viết: ${blog.title}`}
                                     fill
                                     className="object-cover transition-transform duration-300 group-hover:scale-105"

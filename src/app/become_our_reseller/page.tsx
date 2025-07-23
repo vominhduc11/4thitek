@@ -180,7 +180,7 @@ export default function BecomeOurReseller() {
             {/* Main Content */}
             <div className="relative">
                 {/* Header Section */}
-                <section className="py-16 px-4 sm:px-6 lg:px-8">
+                <section className="ml-16 sm:ml-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20">
                     <div className="max-w-6xl mx-auto text-center">
                         <motion.h1
                             className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight"
@@ -219,7 +219,7 @@ export default function BecomeOurReseller() {
                 </section>
 
                 {/* Benefits Section */}
-                <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-900/30">
+                <section className="ml-16 sm:ml-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20 bg-gray-900/30">
                     <div className="max-w-6xl mx-auto">
                         <motion.div
                             className="text-center mb-12"
@@ -228,13 +228,13 @@ export default function BecomeOurReseller() {
                             transition={{ duration: 0.8, ease: 'easeOut' }}
                             viewport={{ once: true }}
                         >
-                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Why Partner With Us?</h2>
-                            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+                            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4">Why Partner With Us?</h2>
+                            <p className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto">
                                 Join hundreds of successful partners worldwide and unlock your business potential
                             </p>
                         </motion.div>
 
-                        <div className="grid lg:grid-cols-2 gap-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             {benefits.map((benefit, index) => (
                                 <motion.div
                                     key={index}
@@ -279,7 +279,7 @@ export default function BecomeOurReseller() {
                 </section>
 
                 {/* Requirements Section */}
-                <section className="py-16 px-4 sm:px-6 lg:px-8">
+                <section className="ml-16 sm:ml-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20">
                     <div className="max-w-4xl mx-auto">
                         <motion.div
                             className="text-center mb-12"
@@ -329,7 +329,7 @@ export default function BecomeOurReseller() {
                 </section>
 
                 {/* Application Form Section */}
-                <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-900/30">
+                <section className="ml-16 sm:ml-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20 bg-gray-900/30">
                     <div className="max-w-4xl mx-auto">
                         <motion.div
                             className="text-center mb-12"
@@ -391,7 +391,7 @@ export default function BecomeOurReseller() {
                                             <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
                                                 Company Information
                                             </h3>
-                                            <div className="grid md:grid-cols-2 gap-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div>
                                                     <label
                                                         htmlFor="companyName"
@@ -436,7 +436,7 @@ export default function BecomeOurReseller() {
                                             <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
                                                 Contact Information
                                             </h3>
-                                            <div className="grid md:grid-cols-2 gap-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div>
                                                     <label
                                                         htmlFor="contactName"
@@ -521,7 +521,7 @@ export default function BecomeOurReseller() {
                                                     />
                                                 </div>
 
-                                                <div className="grid md:grid-cols-2 gap-6">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                     <div>
                                                         <label
                                                             htmlFor="city"
@@ -568,7 +568,7 @@ export default function BecomeOurReseller() {
                                             <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
                                                 Business Details
                                             </h3>
-                                            <div className="grid md:grid-cols-2 gap-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-300 mb-2">
                                                         Business Type *
@@ -821,7 +821,7 @@ export default function BecomeOurReseller() {
                 </section>
 
                 {/* Contact Information */}
-                <section className="py-16 px-4 sm:px-6 lg:px-8">
+                <section className="ml-16 sm:ml-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20">
                     <div className="max-w-4xl mx-auto">
                         <motion.div
                             className="text-center mb-12"
@@ -836,7 +836,7 @@ export default function BecomeOurReseller() {
                             </p>
                         </motion.div>
 
-                        <div className="grid md:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
                             {[
                                 {
                                     icon: <FiMail className="w-6 h-6 text-[#4FC8FF]" />,
@@ -861,7 +861,7 @@ export default function BecomeOurReseller() {
                                     transition={{ duration: 0.6, delay: index * 0.2, ease: 'easeOut' }}
                                     viewport={{ once: true }}
                                 >
-                                    <Card className="bg-gray-800/50 border-gray-700 text-center hover:bg-gray-800/70 hover:border-[#4FC8FF]/30 transition-all duration-300 hover:scale-105">
+                                    <Card className="bg-gray-800/50 border-gray-700 text-center hover:bg-gray-800/70 hover:border-[#4FC8FF]/30 transition-all duration-300 hover:scale-105 h-full">
                                         <CardContent className="p-6">
                                             <div className="mb-4">
                                                 <motion.div

@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion, Variants, useInView } from 'framer-motion';
 import { useRef } from 'react';
-import AvoidSidebar from './AvoidSidebar';
+import AvoidSidebar from '@/components/ui/AvoidSidebar';
 
 const containerVariants: Variants = {
     hidden: { opacity: 0, y: 48 },
@@ -32,7 +32,7 @@ const Footer = () => {
         <AvoidSidebar>
             <motion.footer
                 ref={ref}
-                className="bg-[#0c131d] text-gray-300 sm:py-12 px-4 sm:px-6"
+                className="bg-[#0c131d] text-gray-300 py-8 sm:py-12 px-4 sm:px-6"
                 variants={containerVariants}
                 initial="hidden"
                 animate={inView ? 'visible' : 'hidden'}
@@ -40,7 +40,7 @@ const Footer = () => {
                 <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
                     {/* COMPANY Column */}
                     <motion.div variants={columnVariants}>
-                        <h3 className="uppercase text-sm font-semibold text-white mb-3 sm:mb-4">Company</h3>
+                        <h3 className="uppercase text-base sm:text-sm font-semibold text-white mb-3 sm:mb-4">Company</h3>
                         <ul className="space-y-2">
                             <li>
                                 <Link
@@ -63,7 +63,7 @@ const Footer = () => {
 
                     {/* PRODUCT Column */}
                     <motion.div variants={columnVariants}>
-                        <h3 className="uppercase text-sm font-semibold text-white mb-3 sm:mb-4">Product</h3>
+                        <h3 className="uppercase text-base sm:text-sm font-semibold text-white mb-3 sm:mb-4">Product</h3>
                         <ul className="space-y-2">
                             <li>
                                 <Link
@@ -102,7 +102,7 @@ const Footer = () => {
 
                     {/* RESELLER Column */}
                     <motion.div variants={columnVariants}>
-                        <h3 className="uppercase text-sm font-semibold text-white mb-3 sm:mb-4">Reseller</h3>
+                        <h3 className="uppercase text-base sm:text-sm font-semibold text-white mb-3 sm:mb-4">Reseller</h3>
                         <ul className="space-y-2">
                             <li>
                                 <Link
@@ -125,7 +125,7 @@ const Footer = () => {
 
                     {/* OTHER Column */}
                     <motion.div variants={columnVariants}>
-                        <h3 className="uppercase text-sm font-semibold text-white mb-3 sm:mb-4">Other</h3>
+                        <h3 className="uppercase text-base sm:text-sm font-semibold text-white mb-3 sm:mb-4">Other</h3>
                         <ul className="space-y-2">
                             <li>
                                 <Link
@@ -165,7 +165,7 @@ const Footer = () => {
 
                 {/* Separator Line */}
                 <motion.hr
-                    className="border-gray-700 my-6 sm:my-8"
+                    className="border-gray-600 my-6 sm:my-8"
                     variants={lineVariants}
                     initial="hidden"
                     animate={inView ? 'visible' : 'hidden'}
@@ -173,7 +173,7 @@ const Footer = () => {
 
                 {/* Copyright & Language Selector */}
                 <motion.div
-                    className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center text-xs text-gray-500 gap-4 sm:gap-0"
+                    className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center text-xs text-gray-500 gap-4 sm:gap-0 text-center sm:text-left"
                     variants={copyrightVariants}
                     initial="hidden"
                     animate={inView ? 'visible' : 'hidden'}

@@ -22,7 +22,7 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, onReset }
     if (!warrantyInfo) {
         return (
             <motion.div
-                className="max-w-2xl mx-auto bg-[#1a2332] p-8 rounded-lg shadow-lg border border-gray-700"
+                className="max-w-2xl mx-auto bg-[#1a2332] p-4 sm:p-6 lg:p-8 rounded-lg shadow-lg border border-gray-700"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -52,7 +52,7 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, onReset }
                         </motion.svg>
                     </motion.div>
                     <motion.h2
-                        className="text-2xl font-bold text-white mb-2"
+                        className="text-xl sm:text-2xl font-bold text-white mb-2"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.3 }}
@@ -152,7 +152,7 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, onReset }
 
     return (
         <motion.div
-            className="max-w-2xl mx-auto bg-[#1a2332] p-8 rounded-lg shadow-lg border border-gray-700"
+            className="max-w-2xl mx-auto bg-[#1a2332] p-4 sm:p-6 lg:p-8 rounded-lg shadow-lg border border-gray-700"
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -167,7 +167,7 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, onReset }
                     {getStatusIcon(warrantyInfo.warrantyStatus)}
                 </motion.div>
                 <motion.h2
-                    className="text-2xl font-bold text-white mb-2"
+                    className="text-xl sm:text-2xl font-bold text-white mb-2"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.3 }}
@@ -190,14 +190,14 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, onReset }
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.5 }}
             >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <motion.div
-                        className="bg-[#0c131d] p-4 rounded-lg border border-gray-600 transition-all duration-300 hover:border-gray-500 hover:shadow-lg"
+                        className="bg-[#0c131d] p-3 sm:p-4 rounded-lg border border-gray-600 transition-all duration-300 hover:border-gray-500 hover:shadow-lg"
                         initial={{ opacity: 0, x: -30 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.5, delay: 0.6 }}
                     >
-                        <h3 className="font-semibold text-gray-300 mb-2">Thong tin san pham</h3>
+                        <h3 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">Thong tin san pham</h3>
                         <p className="text-sm text-gray-400 mb-1">
                             <span className="font-medium">So serial:</span> {warrantyInfo.serialNumber}
                         </p>
@@ -207,12 +207,12 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, onReset }
                     </motion.div>
 
                     <motion.div
-                        className="bg-[#0c131d] p-4 rounded-lg border border-gray-600 transition-all duration-300 hover:border-gray-500 hover:shadow-lg"
+                        className="bg-[#0c131d] p-3 sm:p-4 rounded-lg border border-gray-600 transition-all duration-300 hover:border-gray-500 hover:shadow-lg"
                         initial={{ opacity: 0, x: 30 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.5, delay: 0.7 }}
                     >
-                        <h3 className="font-semibold text-gray-300 mb-2">Thong tin bao hanh</h3>
+                        <h3 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">Thong tin bao hanh</h3>
                         <p className="text-sm text-gray-400 mb-1">
                             <span className="font-medium">Ngay mua:</span> {warrantyInfo.purchaseDate}
                         </p>
@@ -224,7 +224,7 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, onReset }
 
                 {warrantyInfo.warrantyStatus === 'active' && (
                     <motion.div
-                        className="bg-green-900/20 p-4 rounded-lg border border-green-700 transition-all duration-300 hover:bg-green-900/30 hover:border-green-600"
+                        className="bg-green-900/20 p-3 sm:p-4 rounded-lg border border-green-700 transition-all duration-300 hover:bg-green-900/30 hover:border-green-600"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.8 }}
@@ -251,7 +251,7 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, onReset }
 
                 {warrantyInfo.warrantyStatus === 'expired' && (
                     <motion.div
-                        className="bg-red-900/20 p-4 rounded-lg border border-red-700 transition-all duration-300 hover:bg-red-900/30 hover:border-red-600"
+                        className="bg-red-900/20 p-3 sm:p-4 rounded-lg border border-red-700 transition-all duration-300 hover:bg-red-900/30 hover:border-red-600"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.8 }}
@@ -278,7 +278,7 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, onReset }
 
                 {(warrantyInfo.customerName || warrantyInfo.dealerName) && (
                     <motion.div
-                        className="bg-blue-900/20 p-4 rounded-lg border border-blue-700 transition-all duration-300 hover:bg-blue-900/30 hover:border-blue-600"
+                        className="bg-blue-900/20 p-3 sm:p-4 rounded-lg border border-blue-700 transition-all duration-300 hover:bg-blue-900/30 hover:border-blue-600"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.8 }}
@@ -321,13 +321,16 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, onReset }
                 >
                     Kiem tra so serial khac
                 </Button>
-                <Button className="flex-1 bg-blue-600 hover:bg-blue-700 transition-all duration-300 hover:scale-105 hover:shadow-lg">
+                <Button className="flex-1 bg-gradient-to-r from-[#4FC8FF] to-[#0EA5E9] hover:from-[#0EA5E9] hover:to-[#0284C7] text-white font-medium rounded-lg border border-[#4FC8FF]/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-0.5">
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
                     Tai xuong thong tin
                 </Button>
             </motion.div>
 
             <motion.div
-                className="mt-6 p-4 bg-[#0c131d] rounded-lg border border-gray-600 transition-all duration-300 hover:border-gray-500"
+                className="mt-6 p-3 sm:p-4 bg-[#0c131d] rounded-lg border border-gray-600 transition-all duration-300 hover:border-gray-500"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 1.2 }}

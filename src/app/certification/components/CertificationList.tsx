@@ -96,7 +96,7 @@ export default function CertificationList() {
                             <div className="p-6 flex items-center justify-center h-40 bg-white/5">
                                 <div className="relative h-24 w-full">
                                     <Image
-                                        src={cert.logo}
+                                        src={cert.logo || "https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg"}
                                         alt={cert.name}
                                         fill
                                         className="object-contain"

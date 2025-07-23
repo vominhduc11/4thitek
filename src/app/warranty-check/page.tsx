@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HeroSection, WarrantyForm, WarrantyResult, LoginForm } from './components';
 import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 
 interface WarrantyInfo {
     serialNumber: string;
@@ -21,15 +22,14 @@ const WarrantyCheckPage = () => {
     const [showResult, setShowResult] = useState(false);
     const [showLogin, setShowLogin] = useState(false);
     const { isAuthenticated, isLoading, user } = useAuth();
+    const router = useRouter();
 
-    // Debug authentication state
-    console.log('WarrantyCheckPage - isAuthenticated:', isAuthenticated);
-    console.log('WarrantyCheckPage - isLoading:', isLoading);
-    console.log('WarrantyCheckPage - user:', user);
-    console.log(
-        'WarrantyCheckPage - localStorage:',
-        typeof window !== 'undefined' ? localStorage.getItem('4thitek_user') : 'server-side'
-    );
+    // Auto-redirect if already authenticated
+    useEffect(() => {
+        if (isAuthenticated && !isLoading) {
+            router.push('/account/user');
+        }
+    }, [isAuthenticated, isLoading, router]);
 
     // Mock data cho demo - trong thuc te se goi API
     const mockWarrantyData: Record<string, WarrantyInfo> = {
@@ -74,7 +74,7 @@ const WarrantyCheckPage = () => {
         <div className="min-h-screen bg-[#0c131d]">
             <HeroSection />
 
-            <div className="container mx-auto px-4 py-12">
+            <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20 py-12">
                 <AnimatePresence mode="wait">
                     {!showResult ? (
                         <motion.div
@@ -102,7 +102,7 @@ const WarrantyCheckPage = () => {
 
             {/* Instructions section */}
             <motion.div
-                className="container mx-auto px-4 py-8"
+                className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20 py-8"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
@@ -117,7 +117,7 @@ const WarrantyCheckPage = () => {
                         Huong dan kiem tra bao hanh
                     </motion.h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                         <motion.div
                             className="bg-[#1a2332] p-6 rounded-lg shadow-md text-center border border-gray-700 transition-all duration-300 hover:border-gray-500 hover:shadow-lg hover:scale-105"
                             initial={{ opacity: 0, y: 30 }}
@@ -203,55 +203,30 @@ const WarrantyCheckPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.8 }}
             >
-                <div className="container mx-auto px-4">
-                    <div className="max-w-2xl mx-auto text-center">
+                <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20">
+                    <div className="max-w-4xl mx-auto text-center">
                         <h3 className="text-xl font-semibold mb-4 text-white">Thu nghiem voi so serial mau</h3>
                         <p className="text-gray-300 mb-4">
                             Ban co the thu nghiem tinh nang kiem tra bao hanh voi cac so serial sau:
                         </p>
-                        <div className="bg-[#0c131d] p-4 rounded-lg border border-gray-600">
+                        <div className="bg-[#0c131d] p-4 rounded-lg border border-gray-600 max-w-md mx-auto">
                             <p className="text-sm font-mono mb-2 text-gray-300">ABC123456 - San pham con bao hanh</p>
                             <p className="text-sm font-mono text-gray-300">DEF789012 - San pham het bao hanh</p>
                         </div>
 
                         <div className="mt-4 text-center">
-                            {/* Debug info */}
-                            <div className="text-xs text-gray-500 mb-2">
-                                Debug: isLoading={isLoading.toString()}, isAuthenticated={isAuthenticated.toString()},
-                                user={user ? 'exists' : 'null'}
-                            </div>
-
                             {isLoading ? (
-                                <div className="text-gray-400">Dang kiem tra trang thai...</div>
-                            ) : !isAuthenticated ? (
+                                <div className="text-gray-400">Đang kiểm tra trạng thái...</div>
+                            ) : (
                                 <button
                                     onClick={() => setShowLogin(true)}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-all duration-300 hover:scale-105"
+                                    className="group bg-gradient-to-r from-[#4FC8FF] to-[#0EA5E9] hover:from-[#0EA5E9] hover:to-[#0284C7] text-white px-6 py-3 rounded-lg font-medium border border-[#4FC8FF]/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-0.5 flex items-center justify-center gap-2 mx-auto"
                                 >
-                                    Dang nhap de xem san pham da mua
+                                    <svg className="w-5 h-5 transition-transform group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                    Đăng nhập để xem sản phẩm đã mua
                                 </button>
-                            ) : (
-                                <div className="space-y-2">
-                                    <div className="text-green-400 font-medium">
-                                        Da dang nhap thanh cong -{' '}
-                                        <a href="/account/user" className="text-blue-400 hover:underline">
-                                            Xem tai khoan
-                                        </a>
-                                    </div>
-                                    <button
-                                        onClick={() => {
-                                            if (typeof window !== 'undefined') {
-                                                localStorage.removeItem('4thitek_user');
-                                                document.cookie =
-                                                    '4thitek_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-                                                window.location.reload();
-                                            }
-                                        }}
-                                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-1 rounded text-sm transition-all duration-300"
-                                    >
-                                        Dang xuat
-                                    </button>
-                                </div>
                             )}
                         </div>
                     </div>
@@ -262,7 +237,7 @@ const WarrantyCheckPage = () => {
             <AnimatePresence>
                 {showLogin && (
                     <motion.div
-                        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+                        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 pl-20 sm:pl-24"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}

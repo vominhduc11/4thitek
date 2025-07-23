@@ -377,7 +377,7 @@ const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({
                                         style={{ perspective: "1000px" }}
                                     >
                                         <Image
-                                            src={currentProduct.imageUrl}
+                                            src={currentProduct.imageUrl || "https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg"}
                                             alt={currentProduct.name}
                                             fill
                                             className="object-contain drop-shadow-2xl"
