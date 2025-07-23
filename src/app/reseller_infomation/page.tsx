@@ -20,13 +20,15 @@ export default function ResellerInformationPage() {
             {/* Hero Section with Breadcrumb */}
             <ResellerHero />
 
-            <AvoidSidebar>
-                {/* Search Section */}
+            {/* Search Section */}
+            <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20">
                 <ResellerSearch onSearch={handleSearch} />
+            </div>
 
-                {/* Results Section */}
+            {/* Results Section */}
+            <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20">
                 <ResellerResults searchFilters={searchFilters} />
-            </AvoidSidebar>
+            </div>
         </div>
     );
 }

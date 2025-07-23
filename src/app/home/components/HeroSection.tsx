@@ -132,7 +132,7 @@ export default function HeroSection() {
 
             {/* Title */}
             <motion.h1
-                className="absolute top-[12%] xs:top-[15%] sm:top-[18%] md:top-[16%] left-16 sm:left-20 right-0 text-white text-[35px] xs:text-[45px] sm:text-[60px] md:text-[80px] lg:text-[100px] xl:text-[120px] font-sans leading-none z-20 text-center px-2"
+                className="absolute top-[12%] xs:top-[15%] sm:top-[18%] md:top-[16%] left-16 sm:left-20 right-0 text-white text-2xl xs:text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-sans leading-none z-20 text-center px-2"
                 variants={titleVariants}
                 initial="hidden"
                 animate="visible"

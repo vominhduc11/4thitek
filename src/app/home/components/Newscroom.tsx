@@ -140,13 +140,12 @@ export default function Newsroom() {
     }));
 
     return (
-        <AvoidSidebar>
-            <motion.section
-                className="relative bg-gradient-to-b from-[#001A35] to-[#032d4c] py-16 sm:py-20 md:py-24 overflow-hidden"
-                {...animationVariants.section}
-                viewport={{ once: true, amount: 0.2 }}
-            >
-                <div className="sidebar-aware-container  pl-8 pr-8">
+        <motion.section
+            className="relative bg-gradient-to-b from-[#001A35] to-[#032d4c] py-16 sm:py-20 md:py-24 overflow-hidden"
+            {...animationVariants.section}
+            viewport={{ once: true, amount: 0.2 }}
+        >
+            <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20">
                     {/* Header Section */}
                     <motion.div
                         className="text-center text-white z-10 mb-8 sm:mb-10 md:mb-12"
@@ -154,7 +153,7 @@ export default function Newsroom() {
                         viewport={{ once: true }}
                     >
                         <motion.h2
-                            className="text-3xl sm:text-4xl md:text-5xl font-semibold font-sans"
+                            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold font-sans"
                             whileHover={{ scale: 1.05, color: '#4FC8FF', transition: { duration: 0.3 } }}
                         >
                             Newsroom
@@ -310,8 +309,7 @@ export default function Newsroom() {
                             />
                         ))}
                     </div>
-                </div>
-            </motion.section>
-        </AvoidSidebar>
+            </div>
+        </motion.section>
     );
 }

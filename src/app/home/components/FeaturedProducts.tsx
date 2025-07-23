@@ -235,13 +235,12 @@ export default function FeaturedProducts() {
     };
 
     return (
-        <AvoidSidebar>
-            <section className="py-16 md:py-24 bg-[#0c131d] relative overflow-hidden">
-                <div className="container mx-auto px-4 lg:px-8 xl:px-4 max-w-[1800px] -mt-32 md:-mt-40 lg:-mt-48 relative z-[100] pt-40 md:pt-48 lg:pt-56">
+        <section className="py-16 md:py-24 bg-[#0c131d] relative overflow-hidden">
+            <div className="mx-auto ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20 max-w-[1800px] -mt-32 md:-mt-40 lg:-mt-48 relative z-[100] pt-40 md:pt-48 lg:pt-56">
                     {/* Header */}
                     <div className="text-center mb-12 md:mb-16">
                         <motion.h2
-                            className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4"
+                            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4"
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6 }}
@@ -271,8 +270,7 @@ export default function FeaturedProducts() {
                         </motion.div>
                     </div>
 
-                </div>
-            </section>
-        </AvoidSidebar>
+            </div>
+        </section>
     );
 }

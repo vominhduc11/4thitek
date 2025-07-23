@@ -12,13 +12,13 @@ function ProductsPageContent() {
             {/* Hero Section */}
             <ProductsHero />
 
-            {/* Header Section and Main Content */}
-            <AvoidSidebar>
-                <ProductsSimpleHeader />
-                <main className="px-4 sm:px-6 lg:px-8 py-8">
-                    <ProductGrid products={products.slice(0, 10)} />
-                </main>
-            </AvoidSidebar>
+            {/* Header Section */}
+            <ProductsSimpleHeader />
+            
+            {/* Main Content */}
+            <main className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20 py-8">
+                <ProductGrid products={products.slice(0, 10)} />
+            </main>
         </div>
     );
 }

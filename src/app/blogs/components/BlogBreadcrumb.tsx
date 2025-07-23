@@ -71,7 +71,7 @@ const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filtere
                     transition={{ duration: 0.8, delay: 0.3 }}
                 >
                     <motion.h1
-                        className={`text-3xl sm:text-4xl lg:text-5xl font-bold mb-2 font-mono ${
+                        className={`text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 font-mono ${
                             selectedCategory === 'ALL' ? 'text-white' : 'text-[#4FC8FF]'
                         }`}
                         key={selectedCategory} // This will trigger re-animation when category changes

@@ -88,7 +88,7 @@ const UserAccountPage = () => {
                                     </div>
                                 </div>
                                 <div className="text-center sm:text-left flex-1">
-                                    <h1 className="text-3xl sm:text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-2">
+                                    <h1 className="text-2xl sm:text-3xl md:text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-2">
                                         Xin chao, {user.name}
                                     </h1>
                                     <p className="text-gray-400 mb-3 text-base sm:text-base">{user.email}</p>

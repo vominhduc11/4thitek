@@ -72,6 +72,7 @@ export default function ProductHero({
 }: ProductHeroProps) {
     const [, setVideoLoaded] = useState(false);
     const [, setVideoError] = useState(false);
+    const [isShuffling, setIsShuffling] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const router = useRouter();
 
@@ -370,13 +371,17 @@ export default function ProductHero({
         return cleanup;
     }, [breadcrumbItems, activeBreadcrumb, onBreadcrumbClick]);
 
-    const handleShuffleProduct = () => {
+    const handleShuffleProduct = async () => {
+        if (isShuffling) return;
+        
         console.log('Related products:', relatedProducts);
 
         if (relatedProducts.length === 0) {
             console.log('No related products available');
             return;
         }
+
+        setIsShuffling(true);
 
         // Use deterministic approach to avoid hydration mismatch
         // Use current time + product id as seed for better randomness during interaction
@@ -386,6 +391,9 @@ export default function ProductHero({
 
         console.log('Switching to product:', randomProduct);
 
+        // Small delay to show loading state and smooth transition
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
         // Navigate to the random product
         router.push(`/products/${randomProduct.id}`);
     };
@@ -479,7 +487,7 @@ export default function ProductHero({
             <div className="relative z-10 container mx-auto px-4 text-center -mt-16 sm:-mt-24 md:-mt-28 lg:-mt-32">
                 {/* Product Image with Navigation */}
                 <div className="flex items-center justify-center h-full px-4">
-                    <div className="flex flex-col lg:flex-row items-center justify-between w-full max-w-3xl xl:max-w-5xl lg:gap-1 xl:gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 items-center w-full max-w-3xl xl:max-w-5xl lg:gap-1 xl:gap-8">
                         {/* Left Navigation - Desktop only */}
                         <div className="hidden lg:flex items-center justify-center">
                             <motion.button
@@ -489,8 +497,9 @@ export default function ProductHero({
                                     console.log('Shuffle button clicked!');
                                     handleShuffleProduct();
                                 }}
-                                className="bg-white/10 hover:bg-white hover:text-black text-white px-4 py-2 xl:px-6 xl:py-3 rounded-full font-medium tracking-wide flex items-center gap-2 backdrop-blur-sm border border-white/20 text-xs xl:text-sm group/shuffle"
-                                title={`View other related products`}
+                                className={`bg-white/10 hover:bg-white hover:text-black text-white px-4 py-2 xl:px-6 xl:py-3 rounded-full font-medium tracking-wide flex items-center gap-2 backdrop-blur-sm border border-white/20 text-xs xl:text-sm group/shuffle transition-all duration-200 ${isShuffling ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                title={isShuffling ? 'Loading...' : 'View other related products'}
+                                disabled={isShuffling}
                                 initial={{ opacity: 0, x: -20, scale: 0.8 }}
                                 animate={{ 
                                     opacity: 1, 
@@ -509,8 +518,12 @@ export default function ProductHero({
                                     }
                                 }}
                             >
-                                <CiShuffle className="w-4 h-4 xl:w-5 xl:h-5 text-white group-hover/shuffle:text-gray-800 pointer-events-none transition-colors duration-300" />
-                                SHUFFLE
+                                {isShuffling ? (
+                                    <div className="w-4 h-4 xl:w-5 xl:h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <CiShuffle className="w-4 h-4 xl:w-5 xl:h-5 text-white group-hover/shuffle:text-gray-800 pointer-events-none transition-colors duration-300" />
+                                )}
+                                {isShuffling ? 'LOADING...' : 'SHUFFLE'}
                             </motion.button>
                         </div>
 
@@ -521,12 +534,12 @@ export default function ProductHero({
                                 <AnimatePresence mode="wait">
                                     <motion.h1
                                         key={product.id + '-title'}
-                                        initial={{ opacity: 0, y: -20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 20 }}
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
                                         transition={{
-                                            duration: 0.5,
-                                            ease: [0.25, 0.1, 0.25, 1]
+                                            duration: 0.25,
+                                            ease: [0.4, 0, 0.2, 1]
                                         }}
                                         className="text-xl sm:text-2xl md:text-2xl lg:text-3xl font-bold text-white max-w-[520px] px-4"
                                     >
@@ -544,26 +557,19 @@ export default function ProductHero({
                                             className="w-full h-full flex items-center justify-center"
                                             initial={{
                                                 opacity: 0,
-                                                scale: 0.8,
-                                                rotateY: -90
+                                                scale: 0.9
                                             }}
                                             animate={{
                                                 opacity: 1,
-                                                scale: 1,
-                                                rotateY: 0
+                                                scale: 1
                                             }}
                                             exit={{
                                                 opacity: 0,
-                                                scale: 1.2,
-                                                rotateY: 90
+                                                scale: 1.05
                                             }}
                                             transition={{
-                                                duration: 0.6,
-                                                ease: [0.25, 0.1, 0.25, 1],
-                                                rotateY: {
-                                                    duration: 0.6,
-                                                    ease: 'easeInOut'
-                                                }
+                                                duration: 0.3,
+                                                ease: [0.4, 0, 0.2, 1]
                                             }}
                                         >
                                             <ProductImageWithFallback
@@ -636,31 +642,34 @@ export default function ProductHero({
                                     console.log('Shuffle button clicked!');
                                     handleShuffleProduct();
                                 }}
-                                className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-white/10 hover:bg-white rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 hover:scale-110 cursor-pointer group/shuffle"
-                                title="View other related products"
+                                className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-white/10 hover:bg-white rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 hover:scale-110 cursor-pointer group/shuffle transition-all duration-200 ${isShuffling ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                title={isShuffling ? 'Loading...' : 'View other related products'}
+                                disabled={isShuffling}
                                 variants={{
-                                    hidden: { opacity: 0, scale: 0.8, x: -10 },
+                                    hidden: { opacity: 0, scale: 0.9 },
                                     visible: { 
                                         opacity: 1, 
-                                        scale: 1, 
-                                        x: 0,
-                                        transition: { duration: 0.4, ease: "easeOut" }
+                                        scale: 1,
+                                        transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] }
                                     }
                                 }}
                                 whileTap={{ scale: 0.95 }}
                             >
-                                <CiShuffle className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white group-hover/shuffle:text-gray-800 pointer-events-none transition-colors duration-300" />
+                                {isShuffling ? (
+                                    <div className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <CiShuffle className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white group-hover/shuffle:text-gray-800 pointer-events-none transition-colors duration-300" />
+                                )}
                             </motion.button>
                             <motion.button
                                 onClick={handleFindRetailer}
                                 className="bg-white/10 hover:bg-white hover:text-black text-white px-4 py-2 sm:px-6 sm:py-3 lg:px-8 lg:py-4 rounded-full font-medium tracking-wide flex items-center gap-2 backdrop-blur-sm border border-white/20 text-sm sm:text-base lg:text-lg"
                                 variants={{
-                                    hidden: { opacity: 0, scale: 0.8, x: 10 },
+                                    hidden: { opacity: 0, scale: 0.9 },
                                     visible: { 
                                         opacity: 1, 
-                                        scale: 1, 
-                                        x: 0,
-                                        transition: { duration: 0.4, ease: "easeOut" }
+                                        scale: 1,
+                                        transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] }
                                     }
                                 }}
                                 whileTap={{ scale: 0.95 }}

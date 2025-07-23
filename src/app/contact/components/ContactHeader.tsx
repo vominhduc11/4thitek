@@ -4,15 +4,15 @@ import { motion } from 'framer-motion';
 
 export default function ContactHeader() {
     return (
-        <div className="ml-16 sm:ml-20 -mt-16 sm:-mt-20 lg:-mt-24 relative z-20 py-4 sm:py-6 lg:py-8">
-            <div className="px-12 sm:px-16 lg:px-20">
+        <div className="ml-16 sm:ml-20 -mt-16 sm:-mt-20 lg:-mt-24 relative z-20 py-6 sm:py-8 lg:py-10">
+            <div className="px-4 sm:px-12 md:px-16 lg:px-20">
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.3 }}
                 >
                     <motion.h1
-                        className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2 font-mono text-[#4FC8FF]"
+                        className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 font-mono text-[#4FC8FF]"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, ease: 'easeOut' }}

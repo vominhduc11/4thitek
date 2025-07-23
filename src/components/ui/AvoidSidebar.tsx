@@ -7,5 +7,10 @@ interface AvoidSidebarProps {
 }
 
 export default function AvoidSidebar({ children }: AvoidSidebarProps) {
-    return <div className="ml-16 sm:ml-20">{children}</div>;
+    return (
+        <div className="flex">
+            <div className="w-16 sm:w-20 flex-shrink-0"></div>
+            <div className="flex-1 min-w-0">{children}</div>
+        </div>
+    );
 }
