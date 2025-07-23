@@ -55,9 +55,9 @@ export default function ResellerList({ resellers, onResellerSelect, selectedRese
                             }`}
                         >
                             {/* Header */}
-                            <div className="flex items-start justify-between mb-4">
-                                <div>
-                                    <h3 className="text-xl font-semibold text-white mb-1">{reseller.name}</h3>
+                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 gap-3">
+                                <div className="flex-1">
+                                    <h3 className="text-lg sm:text-xl font-semibold text-white mb-1">{reseller.name}</h3>
                                     <div className="flex items-center space-x-4 text-sm text-gray-300">
                                         <div className="flex items-center space-x-1">
                                             <FiStar className="w-4 h-4 text-yellow-400 fill-current" />
@@ -67,8 +67,8 @@ export default function ResellerList({ resellers, onResellerSelect, selectedRese
                                         <span>{reseller.distance}</span>
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <span className="bg-[#00d4ff] text-[#0c131d] px-3 py-1 rounded-full text-sm font-medium">
+                                <div className="flex-shrink-0 sm:text-right">
+                                    <span className="bg-[#00d4ff] text-[#0c131d] px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap">
                                         Đại lý chính thức
                                     </span>
                                 </div>

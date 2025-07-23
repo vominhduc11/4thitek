@@ -1,8 +1,9 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { FiSearch, FiFilter } from 'react-icons/fi';
+import { FiSearch, FiFilter, FiClock, FiTrendingUp, FiEye, FiChevronDown } from 'react-icons/fi';
 import { blogCategories } from '@/data/blogs';
+import { useState, useEffect, useRef } from 'react';
 
 interface BlogBreadcrumbProps {
     selectedCategory: string;
@@ -17,6 +18,29 @@ interface BlogBreadcrumbProps {
 
 const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filteredCount, searchQuery, onSearchChange, sortBy, onSortChange }: BlogBreadcrumbProps) => {
     const categoryList = blogCategories;
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    const sortOptions = [
+        { value: 'date', label: 'Mới nhất', icon: FiClock },
+        { value: 'popularity', label: 'Phổ biến nhất', icon: FiTrendingUp },
+        { value: 'views', label: 'Xem nhiều nhất', icon: FiEye }
+    ];
+
+    const currentSort = sortOptions.find(option => option.value === sortBy) || sortOptions[0];
+    const CurrentIcon = currentSort.icon;
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Format category title for display
     const getDisplayTitle = () => {
@@ -40,7 +64,7 @@ const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filtere
 
     return (
         <div className="ml-16 sm:ml-20 -mt-16 sm:-mt-20 lg:-mt-24 relative z-20 py-6 sm:py-8 lg:py-10">
-            <div className="px-12 sm:px-16 lg:px-20">
+            <div className="px-4 sm:px-12 md:px-16 lg:px-20">
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -77,16 +101,16 @@ const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filtere
                         )}
                     </motion.div>
 
-                    {/* Breadcrumb Section */}
+                    {/* Breadcrumb Section - Hidden on mobile/tablet, visible on desktop */}
                     <motion.div
-                        className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-8 mb-8 relative"
+                        className="hidden xl:flex xl:items-center gap-8 mb-8 relative"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.5 }}
                     >
                         {/* Decorative horizontal line */}
                         <motion.div
-                            className="absolute -left-12 sm:-left-16 lg:-left-20 -right-12 sm:-right-16 lg:-right-20 top-1/2 h-px bg-gradient-to-r from-gray-500/40 via-gray-500/70 to-gray-500/40 z-0 hidden lg:block"
+                            className="absolute -left-20 -right-20 top-1/2 h-px bg-gradient-to-r from-gray-500/40 via-gray-500/70 to-gray-500/40 z-0"
                             initial={{ scaleX: 0, opacity: 0 }}
                             animate={{ scaleX: 1, opacity: 1 }}
                             transition={{ duration: 1.2, delay: 0.8 }}
@@ -151,9 +175,9 @@ const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filtere
                         </div>
                     </motion.div>
 
-                    {/* Mobile Responsive Version */}
+                    {/* Mobile/Tablet Categories - Simple button layout */}
                     <motion.div
-                        className="block lg:hidden mb-6 space-y-3"
+                        className="block xl:hidden mb-6 space-y-3"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.6, delay: 0.7 }}
@@ -190,13 +214,13 @@ const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filtere
 
                     {/* Search and Sort Controls */}
                     <motion.div
-                        className="mt-6 flex flex-col sm:flex-row gap-4 justify-between items-center"
+                        className="mt-6 space-y-3 sm:space-y-0 sm:flex sm:justify-between sm:items-center"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.5 }}
                     >
-                        {/* Search Bar */}
-                        <div className="relative w-full sm:w-96">
+                        {/* Search Bar - Full width on mobile */}
+                        <div className="relative w-full sm:max-w-md">
                             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                             <input
                                 type="text"
@@ -207,18 +231,66 @@ const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filtere
                             />
                         </div>
 
-                        {/* Sort Options */}
-                        <div className="flex items-center gap-3">
-                            <FiFilter className="text-gray-400 w-5 h-5" />
-                            <select
-                                value={sortBy}
-                                onChange={(e) => onSortChange(e.target.value as 'date' | 'popularity' | 'views')}
-                                className="bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-[#4FC8FF] transition-all duration-300 cursor-pointer"
-                            >
-                                <option value="date">Mới nhất</option>
-                                <option value="popularity">Phổ biến nhất</option>
-                                <option value="views">Xem nhiều nhất</option>
-                            </select>
+                        {/* Mobile: Icon + Sort in one row */}
+                        <div className="flex items-center gap-3 sm:gap-3">
+                            <div className="flex items-center justify-center w-10 h-10 bg-gray-800/50 border border-gray-700 rounded-lg sm:bg-transparent sm:border-0 sm:w-auto sm:h-auto">
+                                <FiFilter className="text-gray-400 w-5 h-5" />
+                            </div>
+                            {/* Custom Dropdown */}
+                            <div ref={dropdownRef} className="relative flex-1 sm:flex-none sm:min-w-[140px]">
+                                <button
+                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    className="w-full flex items-center justify-between gap-2 bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-[#4FC8FF] hover:bg-gray-800/70 transition-all duration-300 cursor-pointer"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <CurrentIcon className="w-4 h-4 text-gray-400" />
+                                        <span>{currentSort.label}</span>
+                                    </div>
+                                    <FiChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {/* Dropdown Menu */}
+                                {isDropdownOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-50 overflow-hidden"
+                                    >
+                                        {sortOptions.map((option) => {
+                                            const OptionIcon = option.icon;
+                                            const isSelected = sortBy === option.value;
+                                            return (
+                                                <button
+                                                    key={option.value}
+                                                    onClick={() => {
+                                                        onSortChange(option.value as 'date' | 'popularity' | 'views');
+                                                        setIsDropdownOpen(false);
+                                                    }}
+                                                    className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-all duration-200 ${
+                                                        isSelected 
+                                                            ? 'bg-[#4FC8FF]/20 text-[#4FC8FF] border-l-2 border-[#4FC8FF]' 
+                                                            : 'text-white hover:bg-gray-700/50 hover:text-[#4FC8FF]'
+                                                    }`}
+                                                >
+                                                    <OptionIcon className={`w-4 h-4 ${
+                                                        isSelected ? 'text-[#4FC8FF]' : 'text-gray-400'
+                                                    }`} />
+                                                    <span>{option.label}</span>
+                                                    {isSelected && (
+                                                        <motion.div
+                                                            initial={{ scale: 0 }}
+                                                            animate={{ scale: 1 }}
+                                                            className="ml-auto w-2 h-2 bg-[#4FC8FF] rounded-full"
+                                                        />
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </motion.div>
+                                )}
+                            </div>
                         </div>
                     </motion.div>
 

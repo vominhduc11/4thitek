@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Hero from '@/components/ui/Hero';
-import { FiTrendingUp, FiHeadphones, FiUsers, FiAward, FiCheckCircle, FiMail, FiPhone, FiMapPin } from 'react-icons/fi';
+import { FiTrendingUp, FiHeadphones, FiUsers, FiAward, FiCheckCircle, FiMail, FiPhone, FiMapPin, FiChevronDown, FiBriefcase, FiClock, FiBarChart } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 
 interface FormData {
@@ -24,6 +24,14 @@ interface FormData {
 }
 
 export default function BecomeOurReseller() {
+    // Dropdown states
+    const [isBusinessTypeDropdownOpen, setIsBusinessTypeDropdownOpen] = useState(false);
+    const [isExperienceDropdownOpen, setIsExperienceDropdownOpen] = useState(false);
+    const [isVolumeDropdownOpen, setIsVolumeDropdownOpen] = useState(false);
+    const businessTypeDropdownRef = useRef<HTMLDivElement>(null);
+    const experienceDropdownRef = useRef<HTMLDivElement>(null);
+    const volumeDropdownRef = useRef<HTMLDivElement>(null);
+
     const [formData, setFormData] = useState<FormData>({
         companyName: '',
         contactName: '',
@@ -38,6 +46,47 @@ export default function BecomeOurReseller() {
         website: '',
         message: ''
     });
+
+    // Close dropdowns when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (businessTypeDropdownRef.current && !businessTypeDropdownRef.current.contains(event.target as Node)) {
+                setIsBusinessTypeDropdownOpen(false);
+            }
+            if (experienceDropdownRef.current && !experienceDropdownRef.current.contains(event.target as Node)) {
+                setIsExperienceDropdownOpen(false);
+            }
+            if (volumeDropdownRef.current && !volumeDropdownRef.current.contains(event.target as Node)) {
+                setIsVolumeDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Options data
+    const businessTypeOptions = [
+        { value: 'retailer', label: 'Retailer', icon: FiBriefcase },
+        { value: 'distributor', label: 'Distributor', icon: FiTrendingUp },
+        { value: 'online-store', label: 'Online Store', icon: FiUsers },
+        { value: 'system-integrator', label: 'System Integrator', icon: FiAward },
+        { value: 'other', label: 'Other', icon: FiBriefcase }
+    ];
+
+    const experienceOptions = [
+        { value: '0-2', label: '0-2 years', icon: FiClock },
+        { value: '3-5', label: '3-5 years', icon: FiClock },
+        { value: '6-10', label: '6-10 years', icon: FiClock },
+        { value: '10+', label: '10+ years', icon: FiClock }
+    ];
+
+    const volumeOptions = [
+        { value: '1-10', label: '1-10 units', icon: FiBarChart },
+        { value: '11-50', label: '11-50 units', icon: FiBarChart },
+        { value: '51-100', label: '51-100 units', icon: FiBarChart },
+        { value: '100+', label: '100+ units', icon: FiBarChart }
+    ];
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -521,73 +570,212 @@ export default function BecomeOurReseller() {
                                             </h3>
                                             <div className="grid md:grid-cols-2 gap-6">
                                                 <div>
-                                                    <label
-                                                        htmlFor="businessType"
-                                                        className="block text-sm font-medium text-gray-300 mb-2"
-                                                    >
+                                                    <label className="block text-sm font-medium text-gray-300 mb-2">
                                                         Business Type *
                                                     </label>
-                                                    <select
-                                                        id="businessType"
-                                                        name="businessType"
-                                                        required
-                                                        value={formData.businessType}
-                                                        onChange={handleInputChange}
-                                                        className="flex h-10 w-full rounded-md border border-gray-600 bg-gray-700/50 px-3 py-2 text-white ring-offset-background placeholder:text-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                                                    >
-                                                        <option value="">Select business type</option>
-                                                        <option value="retailer">Retailer</option>
-                                                        <option value="distributor">Distributor</option>
-                                                        <option value="online-store">Online Store</option>
-                                                        <option value="system-integrator">System Integrator</option>
-                                                        <option value="other">Other</option>
-                                                    </select>
+                                                    <div ref={businessTypeDropdownRef} className="relative">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setIsBusinessTypeDropdownOpen(!isBusinessTypeDropdownOpen)}
+                                                            className="flex h-10 w-full items-center justify-between gap-2 rounded-md border border-gray-600 bg-gray-700/50 px-3 py-2 text-white focus:border-[#4FC8FF] focus:ring-[#4FC8FF] transition-all duration-300"
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                {(() => {
+                                                                    const selected = businessTypeOptions.find(opt => opt.value === formData.businessType);
+                                                                    const Icon = selected?.icon || FiBriefcase;
+                                                                    return (
+                                                                        <>
+                                                                            <Icon className="w-4 h-4 text-gray-400" />
+                                                                            <span className={formData.businessType ? 'text-white' : 'text-gray-400'}>
+                                                                                {selected?.label || 'Select business type'}
+                                                                            </span>
+                                                                        </>
+                                                                    );
+                                                                })()}
+                                                            </div>
+                                                            <FiChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isBusinessTypeDropdownOpen ? 'rotate-180' : ''}`} />
+                                                        </button>
+
+                                                        {isBusinessTypeDropdownOpen && (
+                                                            <motion.div
+                                                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                                transition={{ duration: 0.2 }}
+                                                                className="absolute top-full left-0 right-0 mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-xl z-50 overflow-hidden"
+                                                            >
+                                                                {businessTypeOptions.map((option) => {
+                                                                    const isSelected = formData.businessType === option.value;
+                                                                    const Icon = option.icon;
+                                                                    return (
+                                                                        <button
+                                                                            key={option.value}
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setFormData(prev => ({ ...prev, businessType: option.value }));
+                                                                                setIsBusinessTypeDropdownOpen(false);
+                                                                            }}
+                                                                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-all duration-200 ${
+                                                                                isSelected 
+                                                                                    ? 'bg-[#4FC8FF]/20 text-[#4FC8FF] border-l-2 border-[#4FC8FF]' 
+                                                                                    : 'text-white hover:bg-gray-600/50 hover:text-[#4FC8FF]'
+                                                                            }`}
+                                                                        >
+                                                                            <Icon className={`w-4 h-4 ${
+                                                                                isSelected ? 'text-[#4FC8FF]' : 'text-gray-400'
+                                                                            }`} />
+                                                                            <span>{option.label}</span>
+                                                                            {isSelected && (
+                                                                                <motion.div
+                                                                                    initial={{ scale: 0 }}
+                                                                                    animate={{ scale: 1 }}
+                                                                                    className="ml-auto w-2 h-2 bg-[#4FC8FF] rounded-full"
+                                                                                />
+                                                                            )}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </motion.div>
+                                                        )}
+                                                    </div>
                                                 </div>
 
                                                 <div>
-                                                    <label
-                                                        htmlFor="experience"
-                                                        className="block text-sm font-medium text-gray-300 mb-2"
-                                                    >
+                                                    <label className="block text-sm font-medium text-gray-300 mb-2">
                                                         Years of Experience *
                                                     </label>
-                                                    <select
-                                                        id="experience"
-                                                        name="experience"
-                                                        required
-                                                        value={formData.experience}
-                                                        onChange={handleInputChange}
-                                                        className="flex h-10 w-full rounded-md border border-gray-600 bg-gray-700/50 px-3 py-2 text-white ring-offset-background placeholder:text-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                                                    >
-                                                        <option value="">Select experience</option>
-                                                        <option value="0-2">0-2 years</option>
-                                                        <option value="3-5">3-5 years</option>
-                                                        <option value="6-10">6-10 years</option>
-                                                        <option value="10+">10+ years</option>
-                                                    </select>
+                                                    <div ref={experienceDropdownRef} className="relative">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setIsExperienceDropdownOpen(!isExperienceDropdownOpen)}
+                                                            className="flex h-10 w-full items-center justify-between gap-2 rounded-md border border-gray-600 bg-gray-700/50 px-3 py-2 text-white focus:border-[#4FC8FF] focus:ring-[#4FC8FF] transition-all duration-300"
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                {(() => {
+                                                                    const selected = experienceOptions.find(opt => opt.value === formData.experience);
+                                                                    return (
+                                                                        <>
+                                                                            <FiClock className="w-4 h-4 text-gray-400" />
+                                                                            <span className={formData.experience ? 'text-white' : 'text-gray-400'}>
+                                                                                {selected?.label || 'Select experience'}
+                                                                            </span>
+                                                                        </>
+                                                                    );
+                                                                })()}
+                                                            </div>
+                                                            <FiChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isExperienceDropdownOpen ? 'rotate-180' : ''}`} />
+                                                        </button>
+
+                                                        {isExperienceDropdownOpen && (
+                                                            <motion.div
+                                                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                                transition={{ duration: 0.2 }}
+                                                                className="absolute top-full left-0 right-0 mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-xl z-50 overflow-hidden"
+                                                            >
+                                                                {experienceOptions.map((option) => {
+                                                                    const isSelected = formData.experience === option.value;
+                                                                    return (
+                                                                        <button
+                                                                            key={option.value}
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setFormData(prev => ({ ...prev, experience: option.value }));
+                                                                                setIsExperienceDropdownOpen(false);
+                                                                            }}
+                                                                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-all duration-200 ${
+                                                                                isSelected 
+                                                                                    ? 'bg-[#4FC8FF]/20 text-[#4FC8FF] border-l-2 border-[#4FC8FF]' 
+                                                                                    : 'text-white hover:bg-gray-600/50 hover:text-[#4FC8FF]'
+                                                                            }`}
+                                                                        >
+                                                                            <FiClock className={`w-4 h-4 ${
+                                                                                isSelected ? 'text-[#4FC8FF]' : 'text-gray-400'
+                                                                            }`} />
+                                                                            <span>{option.label}</span>
+                                                                            {isSelected && (
+                                                                                <motion.div
+                                                                                    initial={{ scale: 0 }}
+                                                                                    animate={{ scale: 1 }}
+                                                                                    className="ml-auto w-2 h-2 bg-[#4FC8FF] rounded-full"
+                                                                                />
+                                                                            )}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </motion.div>
+                                                        )}
+                                                    </div>
                                                 </div>
 
                                                 <div>
-                                                    <label
-                                                        htmlFor="expectedVolume"
-                                                        className="block text-sm font-medium text-gray-300 mb-2"
-                                                    >
+                                                    <label className="block text-sm font-medium text-gray-300 mb-2">
                                                         Expected Monthly Volume *
                                                     </label>
-                                                    <select
-                                                        id="expectedVolume"
-                                                        name="expectedVolume"
-                                                        required
-                                                        value={formData.expectedVolume}
-                                                        onChange={handleInputChange}
-                                                        className="flex h-10 w-full rounded-md border border-gray-600 bg-gray-700/50 px-3 py-2 text-white ring-offset-background placeholder:text-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                                                    >
-                                                        <option value="">Select expected volume</option>
-                                                        <option value="1-10">1-10 units</option>
-                                                        <option value="11-50">11-50 units</option>
-                                                        <option value="51-100">51-100 units</option>
-                                                        <option value="100+">100+ units</option>
-                                                    </select>
+                                                    <div ref={volumeDropdownRef} className="relative">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setIsVolumeDropdownOpen(!isVolumeDropdownOpen)}
+                                                            className="flex h-10 w-full items-center justify-between gap-2 rounded-md border border-gray-600 bg-gray-700/50 px-3 py-2 text-white focus:border-[#4FC8FF] focus:ring-[#4FC8FF] transition-all duration-300"
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                {(() => {
+                                                                    const selected = volumeOptions.find(opt => opt.value === formData.expectedVolume);
+                                                                    return (
+                                                                        <>
+                                                                            <FiBarChart className="w-4 h-4 text-gray-400" />
+                                                                            <span className={formData.expectedVolume ? 'text-white' : 'text-gray-400'}>
+                                                                                {selected?.label || 'Select expected volume'}
+                                                                            </span>
+                                                                        </>
+                                                                    );
+                                                                })()}
+                                                            </div>
+                                                            <FiChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isVolumeDropdownOpen ? 'rotate-180' : ''}`} />
+                                                        </button>
+
+                                                        {isVolumeDropdownOpen && (
+                                                            <motion.div
+                                                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                                transition={{ duration: 0.2 }}
+                                                                className="absolute top-full left-0 right-0 mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-xl z-50 overflow-hidden"
+                                                            >
+                                                                {volumeOptions.map((option) => {
+                                                                    const isSelected = formData.expectedVolume === option.value;
+                                                                    return (
+                                                                        <button
+                                                                            key={option.value}
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setFormData(prev => ({ ...prev, expectedVolume: option.value }));
+                                                                                setIsVolumeDropdownOpen(false);
+                                                                            }}
+                                                                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-all duration-200 ${
+                                                                                isSelected 
+                                                                                    ? 'bg-[#4FC8FF]/20 text-[#4FC8FF] border-l-2 border-[#4FC8FF]' 
+                                                                                    : 'text-white hover:bg-gray-600/50 hover:text-[#4FC8FF]'
+                                                                            }`}
+                                                                        >
+                                                                            <FiBarChart className={`w-4 h-4 ${
+                                                                                isSelected ? 'text-[#4FC8FF]' : 'text-gray-400'
+                                                                            }`} />
+                                                                            <span>{option.label}</span>
+                                                                            {isSelected && (
+                                                                                <motion.div
+                                                                                    initial={{ scale: 0 }}
+                                                                                    animate={{ scale: 1 }}
+                                                                                    className="ml-auto w-2 h-2 bg-[#4FC8FF] rounded-full"
+                                                                                />
+                                                                            )}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </motion.div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

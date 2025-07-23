@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { FiChevronDown, FiBox, FiAlertTriangle } from 'react-icons/fi';
 
 interface WarrantyRequest {
     id: string;
@@ -22,6 +23,12 @@ const WarrantyRequest = () => {
     const [description, setDescription] = useState('');
     const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // Dropdown states
+    const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
+    const [isIssueDropdownOpen, setIsIssueDropdownOpen] = useState(false);
+    const productDropdownRef = useRef<HTMLDivElement>(null);
+    const issueDropdownRef = useRef<HTMLDivElement>(null);
 
     const eligibleProducts = [
         { id: '1', name: 'Laptop Gaming 4T Pro', serial: 'ABC123456' },
@@ -37,6 +44,25 @@ const WarrantyRequest = () => {
         'Loi ket noi',
         'Khac'
     ];
+
+    // Close dropdowns when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (productDropdownRef.current && !productDropdownRef.current.contains(event.target as Node)) {
+                setIsProductDropdownOpen(false);
+            }
+            if (issueDropdownRef.current && !issueDropdownRef.current.contains(event.target as Node)) {
+                setIsIssueDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const getSelectedProduct = () => {
+        return eligibleProducts.find(p => p.id === selectedProduct);
+    };
 
     const mockRequests: WarrantyRequest[] = [
         {
@@ -242,40 +268,136 @@ const WarrantyRequest = () => {
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                                        Chon san pham
+                                        Chọn sản phẩm
                                     </label>
-                                    <select
-                                        value={selectedProduct}
-                                        onChange={(e) => setSelectedProduct(e.target.value)}
-                                        className="w-full bg-[#0c131d] border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        required
-                                    >
-                                        <option value="">Chon san pham</option>
-                                        {eligibleProducts.map((product) => (
-                                            <option key={product.id} value={product.id}>
-                                                {product.name} - {product.serial}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <div ref={productDropdownRef} className="relative">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsProductDropdownOpen(!isProductDropdownOpen)}
+                                            className="w-full flex items-center justify-between gap-2 bg-[#0c131d] border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <FiBox className="w-4 h-4 text-gray-400" />
+                                                <span className={selectedProduct ? 'text-white' : 'text-gray-400'}>
+                                                    {getSelectedProduct() ? `${getSelectedProduct()!.name} - ${getSelectedProduct()!.serial}` : 'Chọn sản phẩm'}
+                                                </span>
+                                            </div>
+                                            <FiChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isProductDropdownOpen ? 'rotate-180' : ''}`} />
+                                        </button>
+
+                                        {isProductDropdownOpen && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                transition={{ duration: 0.2 }}
+                                                className="absolute top-full left-0 right-0 mt-1 bg-[#0c131d] border border-gray-600 rounded-lg shadow-xl z-50 overflow-hidden"
+                                            >
+                                                {!selectedProduct && (
+                                                    <div className="px-3 py-2 text-gray-400 text-sm border-b border-gray-600">
+                                                        Chọn sản phẩm
+                                                    </div>
+                                                )}
+                                                {eligibleProducts.map((product) => {
+                                                    const isSelected = selectedProduct === product.id;
+                                                    return (
+                                                        <button
+                                                            key={product.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setSelectedProduct(product.id);
+                                                                setIsProductDropdownOpen(false);
+                                                            }}
+                                                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-all duration-200 ${
+                                                                isSelected 
+                                                                    ? 'bg-blue-500/20 text-blue-400 border-l-2 border-blue-400' 
+                                                                    : 'text-white hover:bg-gray-700/50 hover:text-blue-400'
+                                                            }`}
+                                                        >
+                                                            <FiBox className={`w-4 h-4 ${
+                                                                isSelected ? 'text-blue-400' : 'text-gray-400'
+                                                            }`} />
+                                                            <span>{product.name} - {product.serial}</span>
+                                                            {isSelected && (
+                                                                <motion.div
+                                                                    initial={{ scale: 0 }}
+                                                                    animate={{ scale: 1 }}
+                                                                    className="ml-auto w-2 h-2 bg-blue-400 rounded-full"
+                                                                />
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </motion.div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                                        Van de gap phai
+                                        Vấn đề gặp phải
                                     </label>
-                                    <select
-                                        value={issue}
-                                        onChange={(e) => setIssue(e.target.value)}
-                                        className="w-full bg-[#0c131d] border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        required
-                                    >
-                                        <option value="">Chon van de</option>
-                                        {commonIssues.map((commonIssue) => (
-                                            <option key={commonIssue} value={commonIssue}>
-                                                {commonIssue}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <div ref={issueDropdownRef} className="relative">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
+                                            className="w-full flex items-center justify-between gap-2 bg-[#0c131d] border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <FiAlertTriangle className="w-4 h-4 text-gray-400" />
+                                                <span className={issue ? 'text-white' : 'text-gray-400'}>
+                                                    {issue || 'Chọn vấn đề'}
+                                                </span>
+                                            </div>
+                                            <FiChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isIssueDropdownOpen ? 'rotate-180' : ''}`} />
+                                        </button>
+
+                                        {isIssueDropdownOpen && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                transition={{ duration: 0.2 }}
+                                                className="absolute top-full left-0 right-0 mt-1 bg-[#0c131d] border border-gray-600 rounded-lg shadow-xl z-50 overflow-hidden"
+                                            >
+                                                {!issue && (
+                                                    <div className="px-3 py-2 text-gray-400 text-sm border-b border-gray-600">
+                                                        Chọn vấn đề
+                                                    </div>
+                                                )}
+                                                {commonIssues.map((commonIssue) => {
+                                                    const isSelected = issue === commonIssue;
+                                                    return (
+                                                        <button
+                                                            key={commonIssue}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setIssue(commonIssue);
+                                                                setIsIssueDropdownOpen(false);
+                                                            }}
+                                                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-all duration-200 ${
+                                                                isSelected 
+                                                                    ? 'bg-blue-500/20 text-blue-400 border-l-2 border-blue-400' 
+                                                                    : 'text-white hover:bg-gray-700/50 hover:text-blue-400'
+                                                            }`}
+                                                        >
+                                                            <FiAlertTriangle className={`w-4 h-4 ${
+                                                                isSelected ? 'text-blue-400' : 'text-gray-400'
+                                                            }`} />
+                                                            <span>{commonIssue}</span>
+                                                            {isSelected && (
+                                                                <motion.div
+                                                                    initial={{ scale: 0 }}
+                                                                    animate={{ scale: 1 }}
+                                                                    className="ml-auto w-2 h-2 bg-blue-400 rounded-full"
+                                                                />
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </motion.div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div>

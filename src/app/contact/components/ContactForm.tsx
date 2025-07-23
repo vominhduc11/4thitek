@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import ContactMap from './ContactMap';
+import { FiChevronDown, FiHelpCircle, FiTool, FiAlertTriangle, FiUsers, FiMoreHorizontal } from 'react-icons/fi';
 
 interface FormData {
     name: string;
@@ -22,6 +23,32 @@ export default function ContactForm() {
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSubjectDropdownOpen, setIsSubjectDropdownOpen] = useState(false);
+    const subjectDropdownRef = useRef<HTMLDivElement>(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (subjectDropdownRef.current && !subjectDropdownRef.current.contains(event.target as Node)) {
+                setIsSubjectDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const subjectOptions = [
+        { value: 'product-inquiry', label: 'Tư vấn sản phẩm', icon: FiHelpCircle },
+        { value: 'warranty', label: 'Bảo hành', icon: FiTool },
+        { value: 'complaint', label: 'Khiếu nại', icon: FiAlertTriangle },
+        { value: 'partnership', label: 'Hợp tác', icon: FiUsers },
+        { value: 'other', label: 'Khác', icon: FiMoreHorizontal }
+    ];
+
+    const getSelectedSubject = () => {
+        return subjectOptions.find(opt => opt.value === formData.subject);
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -112,23 +139,74 @@ export default function ContactForm() {
                     </div>
 
                     <div>
-                        <label htmlFor="subject" className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
                             Chủ đề
                         </label>
-                        <select
-                            id="subject"
-                            name="subject"
-                            value={formData.subject}
-                            onChange={handleChange}
-                            className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-[#4FC8FF] focus:ring-1 focus:ring-[#4FC8FF] transition-colors"
-                        >
-                            <option value="">Chọn chủ đề</option>
-                            <option value="product-inquiry">Tư vấn sản phẩm</option>
-                            <option value="warranty">Bảo hành</option>
-                            <option value="complaint">Khiếu nại</option>
-                            <option value="partnership">Hợp tác</option>
-                            <option value="other">Khác</option>
-                        </select>
+                        <div ref={subjectDropdownRef} className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setIsSubjectDropdownOpen(!isSubjectDropdownOpen)}
+                                className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-[#4FC8FF] focus:ring-1 focus:ring-[#4FC8FF] transition-all duration-300"
+                            >
+                                <div className="flex items-center gap-2">
+                                    {(() => {
+                                        const selected = getSelectedSubject();
+                                        const Icon = selected?.icon || FiHelpCircle;
+                                        return (
+                                            <>
+                                                <Icon className="w-4 h-4 text-gray-400" />
+                                                <span className={formData.subject ? 'text-white' : 'text-gray-400'}>
+                                                    {selected?.label || 'Chọn chủ đề'}
+                                                </span>
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+                                <FiChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isSubjectDropdownOpen ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {isSubjectDropdownOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-50 overflow-hidden"
+                                >
+                                    {subjectOptions.map((option) => {
+                                        const isSelected = formData.subject === option.value;
+                                        const Icon = option.icon;
+                                        return (
+                                            <button
+                                                key={option.value}
+                                                type="button"
+                                                onClick={() => {
+                                                    setFormData(prev => ({ ...prev, subject: option.value }));
+                                                    setIsSubjectDropdownOpen(false);
+                                                }}
+                                                className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-all duration-200 ${
+                                                    isSelected 
+                                                        ? 'bg-[#4FC8FF]/20 text-[#4FC8FF] border-l-2 border-[#4FC8FF]' 
+                                                        : 'text-white hover:bg-gray-700/50 hover:text-[#4FC8FF]'
+                                                }`}
+                                            >
+                                                <Icon className={`w-4 h-4 ${
+                                                    isSelected ? 'text-[#4FC8FF]' : 'text-gray-400'
+                                                }`} />
+                                                <span>{option.label}</span>
+                                                {isSelected && (
+                                                    <motion.div
+                                                        initial={{ scale: 0 }}
+                                                        animate={{ scale: 1 }}
+                                                        className="ml-auto w-2 h-2 bg-[#4FC8FF] rounded-full"
+                                                    />
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </motion.div>
+                            )}
+                        </div>
                     </div>
 
                     <div>

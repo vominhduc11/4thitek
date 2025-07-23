@@ -37,7 +37,7 @@ export default function AboutHistory() {
 
     return (
         <section className="bg-[#0c131d] py-16 sm:py-20">
-            <div className="ml-16 sm:ml-20 px-12 sm:px-16 lg:px-20">
+            <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20">
                 <motion.div
                     className="text-center mb-16"
                     initial={{ opacity: 0, y: 20 }}
@@ -55,7 +55,7 @@ export default function AboutHistory() {
 
                 <div className="relative">
                     {/* Timeline line */}
-                    <div className="absolute left-0 md:left-1/2 transform md:-translate-x-1/2 h-full w-1 bg-[#4FC8FF]/30"></div>
+                    <div className="absolute left-6 md:left-1/2 transform md:-translate-x-1/2 h-full w-1 bg-[#4FC8FF]/30"></div>
 
                     {/* Timeline items */}
                     <div className="space-y-12">
@@ -71,22 +71,22 @@ export default function AboutHistory() {
                                 viewport={{ once: true, margin: '-100px' }}
                             >
                                 {/* Timeline dot */}
-                                <div className="absolute left-0 md:left-1/2 transform md:-translate-x-1/2 w-5 h-5 rounded-full bg-[#4FC8FF] border-4 border-[#0f1824] z-10"></div>
+                                <div className="absolute left-4 md:left-1/2 transform md:-translate-x-1/2 w-4 h-4 md:w-5 md:h-5 rounded-full bg-[#4FC8FF] border-2 md:border-4 border-[#0f1824] z-10"></div>
 
                                 {/* Year */}
                                 <div
-                                    className={`md:w-1/2 mb-4 md:mb-0 ${
+                                    className={`md:w-1/2 mb-4 md:mb-0 pl-12 md:pl-0 ${
                                         index % 2 === 0 ? 'md:text-right md:pr-8' : 'md:text-left md:pl-8'
                                     }`}
                                 >
-                                    <span className="inline-block bg-[#4FC8FF]/20 text-[#4FC8FF] text-xl font-bold px-4 py-1 rounded">
+                                    <span className="inline-block bg-[#4FC8FF]/20 text-[#4FC8FF] text-lg md:text-xl font-bold px-3 md:px-4 py-1 rounded">
                                         {milestone.year}
                                     </span>
                                 </div>
 
                                 {/* Content */}
                                 <div
-                                    className={`md:w-1/2 bg-[#151e2b] p-6 rounded-lg shadow-lg ${
+                                    className={`md:w-1/2 bg-[#151e2b] p-4 md:p-6 rounded-lg shadow-lg ml-12 md:ml-0 ${
                                         index % 2 === 0 ? 'md:text-left md:pl-8' : 'md:text-left md:pr-8'
                                     }`}
                                 >

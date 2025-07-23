@@ -51,7 +51,7 @@ export default function AboutTeam() {
 
     return (
         <section className="bg-[#0f1824] py-16 sm:py-20">
-            <div className="ml-16 sm:ml-20 px-12 sm:px-16 lg:px-20">
+            <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20">
                 <motion.div
                     className="text-center mb-16"
                     initial={{ opacity: 0, y: 20 }}
@@ -67,7 +67,7 @@ export default function AboutTeam() {
                     </p>
                 </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
                     {team.map((member, index) => (
                         <motion.div
                             key={member.name}
