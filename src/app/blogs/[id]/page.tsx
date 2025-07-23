@@ -8,7 +8,6 @@ import { motion } from 'framer-motion';
 import { getPublishedPosts } from '@/data/blogs';
 import type { BlogPost } from '@/types/blog';
 import BlogDetailHero from '@/app/blogs/[id]/components/BlogDetailHero';
-import AvoidSidebar from '@/components/layout/AvoidSidebar';
 import { useHydration } from '@/hooks/useHydration';
 import { formatDateSafe } from '@/utils/dateFormatter';
 

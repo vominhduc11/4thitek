@@ -21,7 +21,7 @@ const WarrantyCheckPage = () => {
     const [warrantyInfo, setWarrantyInfo] = useState<WarrantyInfo | null>(null);
     const [showResult, setShowResult] = useState(false);
     const [showLogin, setShowLogin] = useState(false);
-    const { isAuthenticated, isLoading, user } = useAuth();
+    const { isAuthenticated, isLoading } = useAuth();
     const router = useRouter();
 
     // Auto-redirect if already authenticated
