@@ -13,7 +13,7 @@ export default function ContactPage() {
 
             {/* Main Content */}
             <section className="bg-[#0c131d] text-white pt-8 pb-16">
-                <div className="ml-16 sm:ml-20">
+                <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20">
                     <div className="px-4 sm:px-12 md:px-16 lg:px-20">
                         {/* Contact Info Cards */}
                         <ContactInfo />

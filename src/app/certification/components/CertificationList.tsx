@@ -65,7 +65,7 @@ export default function CertificationList() {
 
     return (
         <section className="bg-[#0c131d] py-12 sm:py-16 2xl:py-20 3xl:py-24 4xl:py-32">
-            <div className="ml-16 sm:ml-20 px-12 sm:px-16 lg:px-20 2xl:px-24 3xl:px-32 4xl:px-40">
+            <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 2xl:mr-24 3xl:mr-32 4xl:mr-40 px-12 sm:px-16 lg:px-20 2xl:px-24 3xl:px-32 4xl:px-40">
                 <motion.div
                     className="mb-12 2xl:mb-16 3xl:mb-20 4xl:mb-24"
                     initial={{ opacity: 0, y: 20 }}

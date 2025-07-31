@@ -144,7 +144,7 @@ export default function Newsroom() {
             {...animationVariants.section}
             viewport={{ once: true, amount: 0.2 }}
         >
-            <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20">
+            <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-4 sm:px-12 md:px-16 lg:px-20">
                 {/* Header Section */}
                 <motion.div
                     className="text-center text-white z-10 mb-8 sm:mb-10 md:mb-12"

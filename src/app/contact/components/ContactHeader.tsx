@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 
 export default function ContactHeader() {
     return (
-        <div className="ml-16 sm:ml-20 -mt-16 sm:-mt-20 lg:-mt-24 relative z-20 py-6 sm:py-8 lg:py-10">
+        <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 -mt-16 sm:-mt-20 lg:-mt-24 relative z-20 py-6 sm:py-8 lg:py-10">
             <div className="px-4 sm:px-12 md:px-16 lg:px-20">
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}

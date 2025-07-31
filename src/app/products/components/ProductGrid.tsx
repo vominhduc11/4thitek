@@ -77,7 +77,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
                 className="relative w-full"
             >
                 <motion.div
-                    className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-all duration-500 cursor-pointer group overflow-hidden h-[600px] 2xl:h-[650px] 3xl:h-[700px] 4xl:h-[750px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/30 shadow-lg hover:shadow-2xl hover:shadow-[#4FC8FF]/10"
+                    className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-all duration-500 cursor-pointer group overflow-hidden h-[600px] sm:h-[480px] md:h-[480px] 2xl:h-[650px] 3xl:h-[700px] 4xl:h-[750px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/30 shadow-lg hover:shadow-2xl hover:shadow-[#4FC8FF]/10"
                     onMouseEnter={() => setHoveredProductId(product.id)}
                     onMouseLeave={() => setHoveredProductId(null)}
                     whileHover={{
@@ -117,7 +117,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
                     </motion.div>
 
                     <motion.div
-                        className="flex justify-center items-center py-8 px-8 z-10 relative"
+                        className="flex justify-center items-center py-8 px-8 sm:py-5 sm:px-5 md:py-4 md:px-4 z-10 relative"
                         whileHover={{ scale: 1.03 }}
                         transition={{ duration: 0.3 }}
                     >
@@ -131,7 +131,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
                             <ProductImageWithFallback
                                 src="/products/product1.png"
                                 alt={product.name}
-                                className="w-[300px] h-[300px] 2xl:w-[320px] 2xl:h-[320px] 3xl:w-[340px] 3xl:h-[340px] 4xl:w-[360px] 4xl:h-[360px] object-contain transition-opacity duration-200 ease-out"
+                                className="w-[300px] h-[300px] sm:w-[180px] sm:h-[180px] md:w-[200px] md:h-[200px] 2xl:w-[320px] 2xl:h-[320px] 3xl:w-[340px] 3xl:h-[340px] 4xl:w-[360px] 4xl:h-[360px] object-contain transition-opacity duration-200 ease-out"
                             />
                         </motion.div>
                     </motion.div>
@@ -197,7 +197,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
     return (
         <div className="w-full">
             <motion.div
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 4xl:grid-cols-8 divide-x divide-gray-700/30 relative"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-x divide-gray-700/30 relative"
                 layout
                 transition={{ duration: 0.5, ease: 'easeInOut' }}
             >

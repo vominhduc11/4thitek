@@ -74,7 +74,7 @@ const WarrantyCheckPage = () => {
         <div className="min-h-screen bg-[#0c131d]">
             <HeroSection />
 
-            <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20 py-12">
+            <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-4 sm:px-12 md:px-16 lg:px-20 py-12">
                 <AnimatePresence mode="wait">
                     {!showResult ? (
                         <motion.div
@@ -102,7 +102,7 @@ const WarrantyCheckPage = () => {
 
             {/* Instructions section */}
             <motion.div
-                className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20 py-8"
+                className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-4 sm:px-12 md:px-16 lg:px-20 py-8"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
@@ -203,7 +203,7 @@ const WarrantyCheckPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.8 }}
             >
-                <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20">
+                <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-4 sm:px-12 md:px-16 lg:px-20">
                     <div className="max-w-4xl mx-auto text-center">
                         <h3 className="text-xl font-semibold mb-4 text-white">Thu nghiem voi so serial mau</h3>
                         <p className="text-gray-300 mb-4">

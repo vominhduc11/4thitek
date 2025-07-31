@@ -74,7 +74,7 @@ const UserAccountPage = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
-                    <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20 py-8">
+                    <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-4 sm:px-12 md:px-16 lg:px-20 py-8">
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
                             <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-6">
                                 <div className="relative flex-shrink-0">
@@ -119,7 +119,7 @@ const UserAccountPage = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.2 }}
                 >
-                    <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20">
+                    <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-4 sm:px-12 md:px-16 lg:px-20">
                         <div className="flex space-x-1 overflow-x-auto scrollbar-hide pb-1">
                             {tabs.map((tab) => (
                                 <button
@@ -148,7 +148,7 @@ const UserAccountPage = () => {
 
                 {/* Content Area */}
                 <motion.div
-                    className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20 py-8"
+                    className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-4 sm:px-12 md:px-16 lg:px-20 py-8"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.4 }}

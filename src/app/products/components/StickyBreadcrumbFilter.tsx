@@ -53,7 +53,7 @@ export default function StickyBreadcrumbFilter({
                     exit={{ opacity: 0, y: -100 }}
                     transition={{ duration: 0.3, ease: 'easeOut' }}
                 >
-                    <div className="ml-16 sm:ml-20 py-3">
+                    <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 py-3">
                         <div className="px-4 sm:px-6 lg:px-8">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                 <div className="flex items-center space-x-3 overflow-x-auto">

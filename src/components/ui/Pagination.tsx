@@ -35,7 +35,7 @@ export default function Pagination({
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
     return (
-        <div className="ml-16 sm:ml-20 py-8 sm:py-12">
+        <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 py-8 sm:py-12">
             <div className="px-4 sm:px-6 lg:px-8">
                 <motion.div
                     className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 lg:gap-8 relative"

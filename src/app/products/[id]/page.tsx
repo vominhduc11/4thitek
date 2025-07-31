@@ -383,7 +383,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                 <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
                             </div>
                         </div>
-                        <div className="pt-8">
+                        <div className="pt-2">
                             <RelatedProducts products={relatedProducts} />
                         </div>
                     </div>
@@ -423,7 +423,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
                         </div>
                     </div>
-                    <div className="pt-8 md:pt-12">
+                    <div className="pt-2 md:pt-4">
                         <RelatedProducts products={relatedProducts} />
                     </div>
                 </div>
@@ -462,7 +462,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
                         </div>
                     </div>
-                    <div className="pt-10 lg:pt-16">
+                    <div className="pt-2 lg:pt-4">
                         <RelatedProducts products={relatedProducts} />
                     </div>
                 </div>

@@ -78,19 +78,9 @@ export default function ProductVideos({ productName }: ProductVideosProps) {
                             <h3 className="text-lg md:text-xl font-bold text-white mb-2">
                                 Đánh giá chi tiết {productName}
                             </h3>
-                            <p className="text-gray-400 mb-4">
+                            <p className="text-gray-400">
                                 Video đánh giá toàn diện về sản phẩm, từ unboxing đến test thực tế
                             </p>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4 text-sm text-gray-400">
-                                    <span>👀 150K views</span>
-                                    <span>👍 4.2K likes</span>
-                                    <span>📅 2 days ago</span>
-                                </div>
-                                <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-                                    Watch Now
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -136,9 +126,6 @@ export default function ProductVideos({ productName }: ProductVideosProps) {
                                 <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
                                     {video.duration}
                                 </div>
-                                <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                                    👀 {video.views}
-                                </div>
                             </div>
                             <div className="p-4">
                                 <h4 className="text-white font-medium mb-2 group-hover:text-blue-400 transition-colors line-clamp-2">
@@ -150,52 +137,6 @@ export default function ProductVideos({ productName }: ProductVideosProps) {
                     ))}
                 </div>
 
-                {/* Video Categories */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-                    <div className="bg-gray-900/30 rounded-xl p-4 md:p-6 border border-gray-700/30">
-                        <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4 flex items-center gap-2">
-                            🎓 Tutorials & Guides
-                        </h3>
-                        <p className="text-gray-400 mb-4">
-                            Tổng hợp các video hướng dẫn chi tiết về cách sử dụng sản phẩm
-                        </p>
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-300">Basic Setup</span>
-                                <span className="text-blue-400">8 videos</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-300">Advanced Usage</span>
-                                <span className="text-blue-400">12 videos</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-300">Tips & Tricks</span>
-                                <span className="text-blue-400">6 videos</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-gray-900/30 rounded-xl p-4 md:p-6 border border-gray-700/30">
-                        <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4 flex items-center gap-2">
-                            💬 User Reviews
-                        </h3>
-                        <p className="text-gray-400 mb-4">Chia sẻ và đánh giá từ người dùng thực tế về sản phẩm</p>
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-300">Expert Reviews</span>
-                                <span className="text-blue-400">5 videos</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-300">User Testimonials</span>
-                                <span className="text-blue-400">15 videos</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-300">Long-term Usage</span>
-                                <span className="text-blue-400">3 videos</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </section>
     );

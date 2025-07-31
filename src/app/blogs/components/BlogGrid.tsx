@@ -69,7 +69,7 @@ const BlogGrid = ({ blogs }: BlogGridProps) => {
     };
 
     return (
-        <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20 py-8">
+        <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-4 sm:px-12 md:px-16 lg:px-20 py-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6 gap-6 lg:gap-8 2xl:gap-10 3xl:gap-12 4xl:gap-16">
                 {blogs.map((blog, index) => (
                     <motion.article

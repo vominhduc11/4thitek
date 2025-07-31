@@ -193,7 +193,7 @@ export default function BecomeOurReseller() {
             {/* Main Content */}
             <div className="relative">
                 {/* Header Section */}
-                <section className="ml-16 sm:ml-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20">
+                <section className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20">
                     <div className="max-w-6xl mx-auto text-center">
                         <motion.h1
                             className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight"
@@ -232,7 +232,7 @@ export default function BecomeOurReseller() {
                 </section>
 
                 {/* Benefits Section */}
-                <section className="ml-16 sm:ml-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20 bg-gray-900/30">
+                <section className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20 bg-gray-900/30">
                     <div className="max-w-6xl mx-auto">
                         <motion.div
                             className="text-center mb-12"
@@ -294,7 +294,7 @@ export default function BecomeOurReseller() {
                 </section>
 
                 {/* Requirements Section */}
-                <section className="ml-16 sm:ml-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20">
+                <section className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20">
                     <div className="max-w-4xl mx-auto">
                         <motion.div
                             className="text-center mb-12"
@@ -344,7 +344,7 @@ export default function BecomeOurReseller() {
                 </section>
 
                 {/* Application Form Section */}
-                <section className="ml-16 sm:ml-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20 bg-gray-900/30">
+                <section className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20 bg-gray-900/30">
                     <div className="max-w-4xl mx-auto">
                         <motion.div
                             className="text-center mb-12"
@@ -900,7 +900,7 @@ export default function BecomeOurReseller() {
                 </section>
 
                 {/* Contact Information */}
-                <section className="ml-16 sm:ml-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20">
+                <section className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20">
                     <div className="max-w-4xl mx-auto">
                         <motion.div
                             className="text-center mb-12"

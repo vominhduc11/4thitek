@@ -19,7 +19,7 @@ export default function ProductSeries() {
             <div className="absolute top-20 right-10 w-96 h-96 bg-[#4FC8FF]/5 rounded-full blur-3xl"></div>
             <div className="absolute bottom-20 left-10 w-80 h-80 bg-[#00D4FF]/5 rounded-full blur-3xl"></div>
 
-            <div className="ml-16 sm:ml-20 px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-4 sm:px-6 lg:px-8 relative z-10">
                 <div className="max-w-7xl mx-auto">
                     {/* Header */}
                     <motion.div

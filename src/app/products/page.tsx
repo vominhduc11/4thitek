@@ -15,8 +15,10 @@ function ProductsPageContent() {
             <ProductsSimpleHeader />
 
             {/* Main Content */}
-            <main className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20 py-8">
-                <ProductGrid products={products.slice(0, 10)} />
+            <main className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20 py-8 flex justify-center">
+                <div className="w-full max-w-none">
+                    <ProductGrid products={products.slice(0, 10)} />
+                </div>
             </main>
         </div>
     );
