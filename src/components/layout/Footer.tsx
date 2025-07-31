@@ -40,7 +40,9 @@ const Footer = () => {
                 <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
                     {/* COMPANY Column */}
                     <motion.div variants={columnVariants}>
-                        <h3 className="uppercase text-base sm:text-sm font-semibold text-white mb-3 sm:mb-4">Company</h3>
+                        <h3 className="uppercase text-base sm:text-sm font-semibold text-white mb-3 sm:mb-4">
+                            Company
+                        </h3>
                         <ul className="space-y-2">
                             <li>
                                 <Link
@@ -63,7 +65,9 @@ const Footer = () => {
 
                     {/* PRODUCT Column */}
                     <motion.div variants={columnVariants}>
-                        <h3 className="uppercase text-base sm:text-sm font-semibold text-white mb-3 sm:mb-4">Product</h3>
+                        <h3 className="uppercase text-base sm:text-sm font-semibold text-white mb-3 sm:mb-4">
+                            Product
+                        </h3>
                         <ul className="space-y-2">
                             <li>
                                 <Link
@@ -102,7 +106,9 @@ const Footer = () => {
 
                     {/* RESELLER Column */}
                     <motion.div variants={columnVariants}>
-                        <h3 className="uppercase text-base sm:text-sm font-semibold text-white mb-3 sm:mb-4">Reseller</h3>
+                        <h3 className="uppercase text-base sm:text-sm font-semibold text-white mb-3 sm:mb-4">
+                            Reseller
+                        </h3>
                         <ul className="space-y-2">
                             <li>
                                 <Link

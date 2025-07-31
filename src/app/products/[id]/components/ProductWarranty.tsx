@@ -4,7 +4,9 @@ export default function ProductWarranty() {
     return (
         <section id="product-details" className="relative z-[60] min-h-screen">
             <div className="container mx-auto max-w-8xl relative py-8 pt-16 z-[70]">
-                <h2 className="text-2xl md:text-3xl lg:text-3xl font-bold mb-6 md:mb-8 text-white">CHÍNH SÁCH BẢO HÀNH</h2>
+                <h2 className="text-2xl md:text-3xl lg:text-3xl font-bold mb-6 md:mb-8 text-white">
+                    CHÍNH SÁCH BẢO HÀNH
+                </h2>
 
                 {/* Warranty Overview */}
                 <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl p-4 md:p-6 lg:p-8 border border-gray-700/50 mb-8 md:mb-12">
@@ -82,7 +84,9 @@ export default function ProductWarranty() {
 
                 {/* Warranty Process */}
                 <div className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50 mb-12">
-                    <h3 className="text-xl md:text-2xl font-bold text-white mb-6 md:mb-8 text-center">QUY TRÌNH BẢO HÀNH</h3>
+                    <h3 className="text-xl md:text-2xl font-bold text-white mb-6 md:mb-8 text-center">
+                        QUY TRÌNH BẢO HÀNH
+                    </h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                         <div className="text-center">
                             <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -117,7 +121,9 @@ export default function ProductWarranty() {
 
                 {/* Contact Information */}
                 <div className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50">
-                    <h3 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6 text-center">THÔNG TIN BẢO HÀNH</h3>
+                    <h3 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6 text-center">
+                        THÔNG TIN BẢO HÀNH
+                    </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
                         <div className="text-center">
                             <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">

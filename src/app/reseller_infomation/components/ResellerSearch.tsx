@@ -61,7 +61,7 @@ export default function ResellerSearch({
             'Tan Phu District',
             'Thu Duc District'
         ],
-        'Hanoi': [
+        Hanoi: [
             'Ba Dinh District',
             'Hoan Kiem District',
             'Tay Ho District',
@@ -92,13 +92,13 @@ export default function ResellerSearch({
     };
 
     const getSelectedCity = () => {
-        return cities.find(city => city === searchFilters.city);
+        return cities.find((city) => city === searchFilters.city);
     };
 
     const getSelectedDistrict = () => {
         if (!searchFilters.city || !searchFilters.district) return null;
         const cityDistricts = districts[searchFilters.city as keyof typeof districts];
-        return cityDistricts?.find(district => district === searchFilters.district);
+        return cityDistricts?.find((district) => district === searchFilters.district);
     };
 
     const getAvailableDistricts = () => {
@@ -142,7 +142,9 @@ export default function ResellerSearch({
                                                 {getSelectedCity() || t('reseller.selectCity')}
                                             </span>
                                         </div>
-                                        <FiChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isCityDropdownOpen ? 'rotate-180' : ''}`} />
+                                        <FiChevronDown
+                                            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isCityDropdownOpen ? 'rotate-180' : ''}`}
+                                        />
                                     </button>
 
                                     {isCityDropdownOpen && (
@@ -164,14 +166,16 @@ export default function ResellerSearch({
                                                             setIsCityDropdownOpen(false);
                                                         }}
                                                         className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-all duration-200 ${
-                                                            isSelected 
-                                                                ? 'bg-[#00d4ff]/20 text-[#00d4ff] border-l-2 border-[#00d4ff]' 
+                                                            isSelected
+                                                                ? 'bg-[#00d4ff]/20 text-[#00d4ff] border-l-2 border-[#00d4ff]'
                                                                 : 'text-white hover:bg-gray-700/50 hover:text-[#00d4ff]'
                                                         }`}
                                                     >
-                                                        <FiMapPin className={`w-4 h-4 ${
-                                                            isSelected ? 'text-[#00d4ff]' : 'text-gray-400'
-                                                        }`} />
+                                                        <FiMapPin
+                                                            className={`w-4 h-4 ${
+                                                                isSelected ? 'text-[#00d4ff]' : 'text-gray-400'
+                                                            }`}
+                                                        />
                                                         <span>{city}</span>
                                                         {isSelected && (
                                                             <motion.div
@@ -190,11 +194,15 @@ export default function ResellerSearch({
 
                             {/* District Selection */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">{t('reseller.district')}</label>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    {t('reseller.district')}
+                                </label>
                                 <div ref={districtDropdownRef} className="relative">
                                     <button
                                         type="button"
-                                        onClick={() => searchFilters.city && setIsDistrictDropdownOpen(!isDistrictDropdownOpen)}
+                                        onClick={() =>
+                                            searchFilters.city && setIsDistrictDropdownOpen(!isDistrictDropdownOpen)
+                                        }
                                         disabled={!searchFilters.city}
                                         className={`w-full flex items-center justify-between gap-2 px-4 py-3 bg-[#0c131d] border border-gray-600 rounded-lg text-white focus:outline-none focus:border-[#00d4ff] transition-all duration-300 ${
                                             !searchFilters.city ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
@@ -206,9 +214,11 @@ export default function ResellerSearch({
                                                 {getSelectedDistrict() || t('reseller.selectDistrict')}
                                             </span>
                                         </div>
-                                        <FiChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
-                                            isDistrictDropdownOpen ? 'rotate-180' : ''
-                                        }`} />
+                                        <FiChevronDown
+                                            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                                                isDistrictDropdownOpen ? 'rotate-180' : ''
+                                            }`}
+                                        />
                                     </button>
 
                                     {isDistrictDropdownOpen && searchFilters.city && (
@@ -230,14 +240,16 @@ export default function ResellerSearch({
                                                             setIsDistrictDropdownOpen(false);
                                                         }}
                                                         className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-all duration-200 ${
-                                                            isSelected 
-                                                                ? 'bg-[#00d4ff]/20 text-[#00d4ff] border-l-2 border-[#00d4ff]' 
+                                                            isSelected
+                                                                ? 'bg-[#00d4ff]/20 text-[#00d4ff] border-l-2 border-[#00d4ff]'
                                                                 : 'text-white hover:bg-gray-700/50 hover:text-[#00d4ff]'
                                                         }`}
                                                     >
-                                                        <FiMapPin className={`w-4 h-4 ${
-                                                            isSelected ? 'text-[#00d4ff]' : 'text-gray-400'
-                                                        }`} />
+                                                        <FiMapPin
+                                                            className={`w-4 h-4 ${
+                                                                isSelected ? 'text-[#00d4ff]' : 'text-gray-400'
+                                                            }`}
+                                                        />
                                                         <span>{district}</span>
                                                         {isSelected && (
                                                             <motion.div
@@ -256,7 +268,9 @@ export default function ResellerSearch({
 
                             {/* Address Input */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">{t('reseller.specificAddress')}</label>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    {t('reseller.specificAddress')}
+                                </label>
                                 <input
                                     type="text"
                                     value={searchFilters.address}

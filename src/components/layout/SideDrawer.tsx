@@ -186,7 +186,9 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.4, duration: 0.3 }}
                             >
-                                <h2 className="text-lg sm:text-xl font-bold text-white mb-2">{t('nav.navigation') || 'Navigation'}</h2>
+                                <h2 className="text-lg sm:text-xl font-bold text-white mb-2">
+                                    {t('nav.navigation') || 'Navigation'}
+                                </h2>
                                 <motion.div
                                     className="w-10 sm:w-12 h-0.5 bg-blue-500"
                                     initial={{ width: 0 }}

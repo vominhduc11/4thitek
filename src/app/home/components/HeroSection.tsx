@@ -96,7 +96,7 @@ export default function HeroSection() {
 
     return (
         <section
-            className="relative w-full h-[450px] xs:h-[500px] sm:h-[600px] md:h-[700px] lg:h-[800px] xl:h-[850px] 2xl:h-[900px] overflow-hidden"
+            className="relative w-full h-[450px] xs:h-[500px] sm:h-[600px] md:h-[700px] lg:h-[800px] xl:h-[850px] 2xl:h-[900px] 3xl:h-[1000px] 4xl:h-[1100px] overflow-hidden"
             role="banner"
             aria-label="Hero section showcasing SCS S8X product"
         >
@@ -173,7 +173,7 @@ export default function HeroSection() {
                     animate="visible"
                 >
                     <motion.p
-                        className="text-white text-xs xs:text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-sans leading-relaxed line-clamp-3 xs:line-clamp-4 sm:line-clamp-3 md:line-clamp-4 lg:line-clamp-5 xl:line-clamp-5 2xl:line-clamp-6"
+                        className="text-white text-xs xs:text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 3xl:text-3xl 4xl:text-4xl font-sans leading-relaxed line-clamp-3 xs:line-clamp-4 sm:line-clamp-3 md:line-clamp-4 lg:line-clamp-5 xl:line-clamp-5 2xl:line-clamp-6 3xl:line-clamp-7 4xl:line-clamp-8"
                         variants={descVariants}
                         initial="hidden"
                         animate="visible"
@@ -181,7 +181,7 @@ export default function HeroSection() {
                         {t('hero.subtitle')}
                     </motion.p>
                 </motion.div>
-                
+
                 <motion.button
                     className="px-3 xs:px-4 sm:px-6 py-2 xs:py-2.5 sm:py-3 border border-white text-white text-xs xs:text-sm sm:text-base font-medium font-sans rounded-full hover:bg-white hover:text-black transition cursor-pointer min-w-[140px] xs:min-w-[160px] sm:min-w-auto"
                     variants={buttonVariants}

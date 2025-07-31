@@ -58,7 +58,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onClose }) => {
             transition={{ duration: 0.4, ease: 'easeOut' }}
         >
             <div className="flex justify-between items-center mb-6">
-                <motion.h2 
+                <motion.h2
                     className="text-xl sm:text-2xl lg:text-3xl font-bold text-white"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -66,8 +66,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onClose }) => {
                 >
                     Đăng nhập
                 </motion.h2>
-                <motion.button 
-                    onClick={onClose} 
+                <motion.button
+                    onClick={onClose}
                     className="text-gray-400 hover:text-white transition-all duration-200 hover:bg-gray-700/50 p-1 sm:p-1.5 rounded-lg"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
@@ -78,8 +78,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onClose }) => {
                 </motion.button>
             </div>
 
-            <motion.form 
-                onSubmit={handleSubmit} 
+            <motion.form
+                onSubmit={handleSubmit}
                 className="space-y-3 sm:space-y-4 lg:space-y-5"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -143,7 +143,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onClose }) => {
                 </Button>
             </motion.form>
 
-            <motion.div 
+            <motion.div
                 className="mt-4 sm:mt-6 p-3 sm:p-4 lg:p-5 bg-[#0c131d] rounded-lg border border-gray-600/50"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -151,8 +151,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onClose }) => {
             >
                 <p className="text-xs sm:text-sm lg:text-base text-gray-400 mb-2 font-medium">Tài khoản demo:</p>
                 <div className="space-y-1">
-                    <p className="text-xs sm:text-sm lg:text-base text-gray-300"><span className="text-gray-400">Email:</span> user@4thitek.com</p>
-                    <p className="text-xs sm:text-sm lg:text-base text-gray-300"><span className="text-gray-400">Mật khẩu:</span> password123</p>
+                    <p className="text-xs sm:text-sm lg:text-base text-gray-300">
+                        <span className="text-gray-400">Email:</span> user@4thitek.com
+                    </p>
+                    <p className="text-xs sm:text-sm lg:text-base text-gray-300">
+                        <span className="text-gray-400">Mật khẩu:</span> password123
+                    </p>
                 </div>
             </motion.div>
         </motion.div>

@@ -28,7 +28,7 @@ export default function Header() {
 
     useEffect(() => {
         setIsHydrated(true);
-        
+
         if (typeof window !== 'undefined') {
             const handleScroll = () => setScrollY(window.scrollY);
             window.addEventListener('scroll', handleScroll, { passive: true });
@@ -37,26 +37,30 @@ export default function Header() {
     }, []);
 
     // Header style based on scroll position - only apply after hydration
-    const headerStyle = isHydrated ? {
-        backgroundColor: scrollY <= 0 ? 'transparent' : `rgba(12,19,29,${Math.min(scrollY / 400, 0.9)})`,
-        backdropFilter: scrollY > 20 ? `blur(${Math.min(scrollY / 80, 10)}px)` : 'none',
-        borderBottom: `1px solid rgba(255,255,255,${Math.min(scrollY / 200, 0.1)})`,
-        boxShadow: scrollY > 150 ? '0 4px 20px rgba(0,0,0,0.2)' : 'none'
-    } : {
-        backgroundColor: 'transparent',
-        backdropFilter: 'none',
-        borderBottom: '1px solid rgba(255,255,255,0)',
-        boxShadow: 'none'
-    };
+    const headerStyle = isHydrated
+        ? {
+              backgroundColor: scrollY <= 0 ? 'transparent' : `rgba(12,19,29,${Math.min(scrollY / 400, 0.9)})`,
+              backdropFilter: scrollY > 20 ? `blur(${Math.min(scrollY / 80, 10)}px)` : 'none',
+              borderBottom: `1px solid rgba(255,255,255,${Math.min(scrollY / 200, 0.1)})`,
+              boxShadow: scrollY > 150 ? '0 4px 20px rgba(0,0,0,0.2)' : 'none'
+          }
+        : {
+              backgroundColor: 'transparent',
+              backdropFilter: 'none',
+              borderBottom: '1px solid rgba(255,255,255,0)',
+              boxShadow: 'none'
+          };
 
     // Logo animation - only apply after hydration
-    const logoStyle = isHydrated ? {
-        transform: scrollY > 100 ? 'scale(0.95)' : 'scale(1)',
-        filter: scrollY > 200 ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' : 'none'
-    } : {
-        transform: 'scale(1)',
-        filter: 'none'
-    };
+    const logoStyle = isHydrated
+        ? {
+              transform: scrollY > 100 ? 'scale(0.95)' : 'scale(1)',
+              filter: scrollY > 200 ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' : 'none'
+          }
+        : {
+              transform: 'scale(1)',
+              filter: 'none'
+          };
 
     return (
         <motion.header
@@ -68,9 +72,9 @@ export default function Header() {
         >
             {/* Search icon (left) */}
             <motion.div variants={searchVariants}>
-                <button 
+                <button
                     onClick={openSearch}
-                    className="p-1.5 sm:p-2 rounded transition-all duration-200 hover:bg-white/10" 
+                    className="p-1.5 sm:p-2 rounded transition-all duration-200 hover:bg-white/10"
                     aria-label="Search"
                 >
                     <FiSearch size={20} className="sm:w-5 sm:h-5" color="#fff" />
@@ -91,7 +95,6 @@ export default function Header() {
                     />
                 </Link>
             </motion.div>
-
         </motion.header>
     );
 }

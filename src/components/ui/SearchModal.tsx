@@ -35,13 +35,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
     const inputRef = useRef<HTMLInputElement>(null);
 
     // Popular searches
-    const popularSearches = [
-        'Gaming Headset',
-        'Wireless',
-        'Bluetooth',
-        'Professional Audio',
-        'Review'
-    ];
+    const popularSearches = ['Gaming Headset', 'Wireless', 'Bluetooth', 'Professional Audio', 'Review'];
 
     // Load recent searches from localStorage
     useEffect(() => {
@@ -83,7 +77,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                     product.name.toLowerCase().includes(searchQuery) ||
                     product.description.toLowerCase().includes(searchQuery) ||
                     product.category.name.toLowerCase().includes(searchQuery) ||
-                    product.tags?.some(tag => tag.toLowerCase().includes(searchQuery))
+                    product.tags?.some((tag) => tag.toLowerCase().includes(searchQuery))
                 ) {
                     searchResults.push({
                         type: 'product',
@@ -103,7 +97,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                     blog.title.toLowerCase().includes(searchQuery) ||
                     blog.excerpt.toLowerCase().includes(searchQuery) ||
                     blog.category.name.toLowerCase().includes(searchQuery) ||
-                    blog.tags?.some(tag => tag.name.toLowerCase().includes(searchQuery))
+                    blog.tags?.some((tag) => tag.name.toLowerCase().includes(searchQuery))
                 ) {
                     searchResults.push({
                         type: 'blog',
@@ -129,11 +123,8 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
         if (!searchQuery.trim()) return;
 
         // Save to recent searches
-        const newRecentSearches = [
-            searchQuery,
-            ...recentSearches.filter(s => s !== searchQuery)
-        ].slice(0, 5);
-        
+        const newRecentSearches = [searchQuery, ...recentSearches.filter((s) => s !== searchQuery)].slice(0, 5);
+
         setRecentSearches(newRecentSearches);
         if (typeof window !== 'undefined') {
             localStorage.setItem('tunecore_recent_searches', JSON.stringify(newRecentSearches));
@@ -144,7 +135,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
     };
 
     // Filter results by tab
-    const filteredResults = results.filter(result => {
+    const filteredResults = results.filter((result) => {
         if (activeTab === 'all') return true;
         if (activeTab === 'products') return result.type === 'product';
         if (activeTab === 'blogs') return result.type === 'blog';
@@ -162,7 +153,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
         if (isOpen) {
             // Calculate scrollbar width to prevent layout shift
             const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
-            
+
             // Lock body scroll with scrollbar compensation
             document.body.style.overflow = 'hidden';
             document.body.style.paddingRight = `${scrollBarWidth}px`;
@@ -243,8 +234,16 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                                     <div className="flex items-center gap-1 mt-4">
                                         {[
                                             { id: 'all', label: 'Tất cả', count: results.length },
-                                            { id: 'products', label: 'Sản phẩm', count: results.filter(r => r.type === 'product').length },
-                                            { id: 'blogs', label: 'Bài viết', count: results.filter(r => r.type === 'blog').length }
+                                            {
+                                                id: 'products',
+                                                label: 'Sản phẩm',
+                                                count: results.filter((r) => r.type === 'product').length
+                                            },
+                                            {
+                                                id: 'blogs',
+                                                label: 'Bài viết',
+                                                count: results.filter((r) => r.type === 'blog').length
+                                            }
                                         ].map((tab) => (
                                             <button
                                                 key={tab.id}
@@ -272,7 +271,9 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                                             <div>
                                                 <div className="flex items-center gap-2 mb-3">
                                                     <FiClock className="w-4 h-4 text-gray-400" />
-                                                    <h3 className="text-sm font-medium text-gray-300">Tìm kiếm gần đây</h3>
+                                                    <h3 className="text-sm font-medium text-gray-300">
+                                                        Tìm kiếm gần đây
+                                                    </h3>
                                                 </div>
                                                 <div className="flex flex-wrap gap-2">
                                                     {recentSearches.map((search, index) => (
@@ -334,11 +335,13 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                                                     {/* Content */}
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2 mb-1">
-                                                            <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                                                result.type === 'product' 
-                                                                    ? 'bg-blue-500/20 text-blue-400' 
-                                                                    : 'bg-green-500/20 text-green-400'
-                                                            }`}>
+                                                            <span
+                                                                className={`text-xs px-2 py-0.5 rounded-full ${
+                                                                    result.type === 'product'
+                                                                        ? 'bg-blue-500/20 text-blue-400'
+                                                                        : 'bg-green-500/20 text-green-400'
+                                                                }`}
+                                                            >
                                                                 {result.type === 'product' ? 'Sản phẩm' : 'Bài viết'}
                                                             </span>
                                                             {result.category && (
@@ -379,7 +382,8 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                                         </div>
                                         <h3 className="text-white font-medium mb-2">Không tìm thấy kết quả</h3>
                                         <p className="text-gray-400 text-sm mb-4">
-                                            Không có kết quả nào cho &ldquo;{query}&rdquo;. Thử tìm kiếm với từ khóa khác.
+                                            Không có kết quả nào cho &ldquo;{query}&rdquo;. Thử tìm kiếm với từ khóa
+                                            khác.
                                         </p>
                                         <div className="flex flex-wrap gap-2 justify-center">
                                             {popularSearches.slice(0, 3).map((search, index) => (

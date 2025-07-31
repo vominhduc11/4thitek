@@ -4,7 +4,9 @@ export default function ProductSpecifications() {
     return (
         <section id="product-details" className="relative z-[60] min-h-screen">
             <div className="container mx-auto max-w-8xl relative py-8 pt-16 z-[70]">
-                <h2 className="text-2xl md:text-3xl lg:text-3xl font-bold mb-6 md:mb-8 text-white">THÔNG SỐ KỸ THUẬT</h2>
+                <h2 className="text-2xl md:text-3xl lg:text-3xl font-bold mb-6 md:mb-8 text-white">
+                    THÔNG SỐ KỸ THUẬT
+                </h2>
 
                 {/* Main Specifications Table */}
                 <div className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-4 md:p-6 lg:p-8 border border-gray-700/50 shadow-2xl mb-8 md:mb-12">

@@ -45,29 +45,34 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         const handleStickyBreadcrumbNavigation = (event: CustomEvent) => {
             console.log('📍 Received breadcrumbNavigation event:', event.detail);
             const { label, section } = event.detail;
-            
+
             // Use the same logic as handleBreadcrumbClick
             if (activeBreadcrumb === label || isTransitioning) {
                 return;
             }
-            
+
             setIsTransitioning(true);
             setActiveBreadcrumb(label);
-            
+
             setTimeout(() => {
                 setCurrentSection(section);
             }, 150);
-            
+
             setTimeout(() => {
                 setIsTransitioning(false);
                 const targetSection = document.getElementById('product-details');
                 if (targetSection) {
-                    const headerOffset = window.innerWidth < 480 ? 250 : 
-                                    window.innerWidth < 640 ? 280 : 
-                                    window.innerWidth < 700 ? 220 : 100;
+                    const headerOffset =
+                        window.innerWidth < 480
+                            ? 250
+                            : window.innerWidth < 640
+                              ? 280
+                              : window.innerWidth < 700
+                                ? 220
+                                : 100;
                     const elementPosition = targetSection.getBoundingClientRect().top;
                     const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                    
+
                     window.scrollTo({
                         top: offsetPosition,
                         behavior: 'smooth'
@@ -75,7 +80,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 }
             }, 600);
         };
-        
+
         window.addEventListener('breadcrumbNavigation', handleStickyBreadcrumbNavigation as EventListener);
         return () => {
             window.removeEventListener('breadcrumbNavigation', handleStickyBreadcrumbNavigation as EventListener);
@@ -114,9 +119,10 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             setIsTransitioning(false);
             // Try to find the actual content section title (h2)
             let targetSection = null;
-            
+
             // For desktop/tablet, try to find the section title first for better positioning
-            if (window.innerWidth >= 640) { // Tablet and Desktop
+            if (window.innerWidth >= 640) {
+                // Tablet and Desktop
                 // Try to find the h2 title element directly
                 const sectionTitles = document.querySelectorAll('.hidden.sm\\:block h2');
                 if (sectionTitles.length > 0) {
@@ -128,23 +134,23 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                         targetSection = document.querySelector('.ml-20 .container.mx-auto');
                     }
                 }
-            } else { // Mobile
+            } else {
+                // Mobile
                 targetSection = document.getElementById('product-details');
             }
-            
+
             // Fallback to original selector
             if (!targetSection) {
                 targetSection = document.getElementById('product-details');
             }
-            
+
             console.log('Target section found:', targetSection);
-            
+
             if (targetSection) {
                 // Điều chỉnh offset dựa trên kích thước màn hình (mobile có offset cao hơn để tránh hero buttons)
-                const headerOffset = window.innerWidth < 480 ? 250 : 
-                                    window.innerWidth < 640 ? 280 : 
-                                    window.innerWidth < 700 ? 220 : 100;
-                                    
+                const headerOffset =
+                    window.innerWidth < 480 ? 250 : window.innerWidth < 640 ? 280 : window.innerWidth < 700 ? 220 : 100;
+
                 const elementPosition = targetSection.getBoundingClientRect().top;
                 const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
 
@@ -268,13 +274,13 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                         <div className="animate-pulse">
                             <div className="h-8 w-48 bg-gray-700 rounded mb-4"></div>
                             <div className="h-16 w-3/4 bg-gray-700 rounded mb-8"></div>
-                            
+
                             <div className="flex flex-col md:flex-row gap-8">
                                 {/* Image skeleton */}
                                 <div className="w-full md:w-1/2">
                                     <div className="aspect-square bg-gray-800 rounded-lg"></div>
                                 </div>
-                                
+
                                 {/* Content skeleton */}
                                 <div className="w-full md:w-1/2 space-y-4">
                                     <div className="h-8 bg-gray-700 rounded w-3/4"></div>
@@ -296,41 +302,54 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             {/* Mobile Layout (Small screens) */}
             <div className="md:hidden">
                 {/* Mobile Navigation Dropdown - Above Hero */}
-                <motion.div 
+                <motion.div
                     className="sticky top-[72px] z-[200] py-3 bg-[#0a0f1a]/95 backdrop-blur-sm border-b border-gray-800/50"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ 
+                    transition={{
                         duration: 0.6,
-                        ease: "easeOut",
+                        ease: 'easeOut',
                         delay: 0.2
                     }}
                 >
                     <AvoidSidebar>
                         <div className="px-4">
                             <div className="relative z-10">
-                            <select
-                                value={activeBreadcrumb}
-                                onChange={(e) => {
-                                    const selectedItem = breadcrumbItems.find(item => item.label === e.target.value);
-                                    if (selectedItem) {
-                                        handleBreadcrumbClick(selectedItem);
-                                    }
-                                }}
-                                className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent appearance-none cursor-pointer"
-                                aria-label="Select section"
-                            >
-                                {breadcrumbItems.map((item) => (
-                                    <option key={item.label} value={item.label} className="bg-gray-800 text-white">
-                                        {item.label}
-                                    </option>
-                                ))}
-                            </select>
-                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </div>
+                                <select
+                                    value={activeBreadcrumb}
+                                    onChange={(e) => {
+                                        const selectedItem = breadcrumbItems.find(
+                                            (item) => item.label === e.target.value
+                                        );
+                                        if (selectedItem) {
+                                            handleBreadcrumbClick(selectedItem);
+                                        }
+                                    }}
+                                    className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent appearance-none cursor-pointer"
+                                    aria-label="Select section"
+                                >
+                                    {breadcrumbItems.map((item) => (
+                                        <option key={item.label} value={item.label} className="bg-gray-800 text-white">
+                                            {item.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                    <svg
+                                        className="w-4 h-4 text-gray-400"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                        aria-hidden="true"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 9l-7 7-7-7"
+                                        />
+                                    </svg>
+                                </div>
                             </div>
                         </div>
                     </AvoidSidebar>
@@ -339,37 +358,34 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 {/* Mobile Hero - Compact */}
                 <AvoidSidebar>
                     <div className="pt-16">
-                    <ProductHero
-                        product={currentProduct}
-                        relatedProducts={relatedProducts}
-                    />
+                        <ProductHero product={currentProduct} relatedProducts={relatedProducts} />
                     </div>
                 </AvoidSidebar>
 
                 {/* Mobile Content */}
                 <AvoidSidebar>
                     <div className="-mt-32 xs:-mt-36 relative z-30 bg-transparent">
-                    <div id="product-details" className="relative bg-transparent">
-                        <AnimatePresence>
-                            {isTransitioning && (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="absolute inset-0 bg-[#0a0f1a]/30 backdrop-blur-sm z-50 flex items-center justify-center"
-                                >
-                                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                        <div className="px-4 overflow-hidden -mt-24 xs:-mt-28">
-                            <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
+                        <div id="product-details" className="relative bg-transparent">
+                            <AnimatePresence>
+                                {isTransitioning && (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="absolute inset-0 bg-[#0a0f1a]/30 backdrop-blur-sm z-50 flex items-center justify-center"
+                                    >
+                                        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                            <div className="px-4 overflow-hidden -mt-24 xs:-mt-28">
+                                <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
+                            </div>
                         </div>
-                    </div>
-                    <div className="pt-8">
-                        <RelatedProducts products={relatedProducts} />
-                    </div>
+                        <div className="pt-8">
+                            <RelatedProducts products={relatedProducts} />
+                        </div>
                     </div>
                 </AvoidSidebar>
             </div>

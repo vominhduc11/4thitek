@@ -23,7 +23,7 @@ const WarrantyRequest = () => {
     const [description, setDescription] = useState('');
     const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
+
     // Dropdown states
     const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
     const [isIssueDropdownOpen, setIsIssueDropdownOpen] = useState(false);
@@ -61,7 +61,7 @@ const WarrantyRequest = () => {
     }, []);
 
     const getSelectedProduct = () => {
-        return eligibleProducts.find(p => p.id === selectedProduct);
+        return eligibleProducts.find((p) => p.id === selectedProduct);
     };
 
     const mockRequests: WarrantyRequest[] = [
@@ -279,10 +279,14 @@ const WarrantyRequest = () => {
                                             <div className="flex items-center gap-2">
                                                 <FiBox className="w-4 h-4 text-gray-400" />
                                                 <span className={selectedProduct ? 'text-white' : 'text-gray-400'}>
-                                                    {getSelectedProduct() ? `${getSelectedProduct()!.name} - ${getSelectedProduct()!.serial}` : 'Chọn sản phẩm'}
+                                                    {getSelectedProduct()
+                                                        ? `${getSelectedProduct()!.name} - ${getSelectedProduct()!.serial}`
+                                                        : 'Chọn sản phẩm'}
                                                 </span>
                                             </div>
-                                            <FiChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isProductDropdownOpen ? 'rotate-180' : ''}`} />
+                                            <FiChevronDown
+                                                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isProductDropdownOpen ? 'rotate-180' : ''}`}
+                                            />
                                         </button>
 
                                         {isProductDropdownOpen && (
@@ -309,15 +313,19 @@ const WarrantyRequest = () => {
                                                                 setIsProductDropdownOpen(false);
                                                             }}
                                                             className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-all duration-200 ${
-                                                                isSelected 
-                                                                    ? 'bg-blue-500/20 text-blue-400 border-l-2 border-blue-400' 
+                                                                isSelected
+                                                                    ? 'bg-blue-500/20 text-blue-400 border-l-2 border-blue-400'
                                                                     : 'text-white hover:bg-gray-700/50 hover:text-blue-400'
                                                             }`}
                                                         >
-                                                            <FiBox className={`w-4 h-4 ${
-                                                                isSelected ? 'text-blue-400' : 'text-gray-400'
-                                                            }`} />
-                                                            <span>{product.name} - {product.serial}</span>
+                                                            <FiBox
+                                                                className={`w-4 h-4 ${
+                                                                    isSelected ? 'text-blue-400' : 'text-gray-400'
+                                                                }`}
+                                                            />
+                                                            <span>
+                                                                {product.name} - {product.serial}
+                                                            </span>
                                                             {isSelected && (
                                                                 <motion.div
                                                                     initial={{ scale: 0 }}
@@ -349,7 +357,9 @@ const WarrantyRequest = () => {
                                                     {issue || 'Chọn vấn đề'}
                                                 </span>
                                             </div>
-                                            <FiChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isIssueDropdownOpen ? 'rotate-180' : ''}`} />
+                                            <FiChevronDown
+                                                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isIssueDropdownOpen ? 'rotate-180' : ''}`}
+                                            />
                                         </button>
 
                                         {isIssueDropdownOpen && (
@@ -376,14 +386,16 @@ const WarrantyRequest = () => {
                                                                 setIsIssueDropdownOpen(false);
                                                             }}
                                                             className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-all duration-200 ${
-                                                                isSelected 
-                                                                    ? 'bg-blue-500/20 text-blue-400 border-l-2 border-blue-400' 
+                                                                isSelected
+                                                                    ? 'bg-blue-500/20 text-blue-400 border-l-2 border-blue-400'
                                                                     : 'text-white hover:bg-gray-700/50 hover:text-blue-400'
                                                             }`}
                                                         >
-                                                            <FiAlertTriangle className={`w-4 h-4 ${
-                                                                isSelected ? 'text-blue-400' : 'text-gray-400'
-                                                            }`} />
+                                                            <FiAlertTriangle
+                                                                className={`w-4 h-4 ${
+                                                                    isSelected ? 'text-blue-400' : 'text-gray-400'
+                                                                }`}
+                                                            />
                                                             <span>{commonIssue}</span>
                                                             {isSelected && (
                                                                 <motion.div

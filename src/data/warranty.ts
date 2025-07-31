@@ -1,4 +1,11 @@
-import { WarrantyPlan, ServiceCenter, WarrantyProcess, WarrantyFAQ, WarrantyPolicy, WarrantyTerm } from '@/types/warranty';
+import {
+    WarrantyPlan,
+    ServiceCenter,
+    WarrantyProcess,
+    WarrantyFAQ,
+    WarrantyPolicy,
+    WarrantyTerm
+} from '@/types/warranty';
 
 // Warranty Terms
 export const warrantyTerms: WarrantyTerm[] = [

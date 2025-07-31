@@ -84,21 +84,24 @@ export const products: Product[] = [
         features: [
             {
                 id: 'anc-technology',
-                title: 'Active Noise Cancelling',
-                subtitle: 'Công nghệ khử tiếng ồn chủ động',
-                description: 'Loại bỏ tiếng ồn môi trường để tập trung hoàn toàn vào game'
+                title: 'Công nghệ Khử ồn Chủ động (ANC)',
+                subtitle: 'Tập trung vào âm thanh chính',
+                description:
+                    'Công nghệ ANC cao cấp loại bỏ tối đa tạp âm xung quanh, giúp bạn tận hưởng âm thanh trung thực và tập trung tuyệt đối.'
             },
             {
                 id: 'surround-sound',
-                title: '7.1 Virtual Surround',
-                subtitle: 'Âm thanh vòm ảo 7.1',
-                description: 'Định vị chính xác âm thanh trong game'
+                title: 'Âm thanh Vòm 7.1 (Surround 7.1)',
+                subtitle: 'Định vị âm thanh chính xác',
+                description:
+                    'Hệ thống âm thanh vòm mô phỏng 7.1 kênh, tái tạo môi trường âm thanh sống động trong game, dễ dàng xác định hướng âm thanh.'
             },
             {
                 id: 'rgb-lighting',
-                title: 'RGB Lighting',
-                subtitle: 'Đèn LED RGB tùy chỉnh',
-                description: '16.7 triệu màu với hiệu ứng lighting đa dạng'
+                title: 'Đèn LED RGB Động',
+                subtitle: 'Hệ màu sắc 16,7 triệu',
+                description:
+                    'Công nghệ chiếu sáng RGB đẳng cấp với 16,7 triệu màu có thể tùy chỉnh đa hiệu ứng, phản ánh phong cách riêng.'
             }
         ],
 

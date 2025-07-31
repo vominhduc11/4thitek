@@ -35,12 +35,12 @@ export default function UserMenu() {
             >
                 <div className="w-8 h-8 rounded-full bg-[#00d4ff] text-[#0c131d] flex items-center justify-center overflow-hidden">
                     {user.avatar ? (
-                        <Image 
-                            src={user.avatar} 
-                            alt={user.name} 
-                            width={32} 
-                            height={32} 
-                            className="w-full h-full object-cover" 
+                        <Image
+                            src={user.avatar}
+                            alt={user.name}
+                            width={32}
+                            height={32}
+                            className="w-full h-full object-cover"
                         />
                     ) : (
                         <FiUser className="w-4 h-4" />
@@ -55,12 +55,12 @@ export default function UserMenu() {
                         <div className="flex items-center space-x-3">
                             <div className="w-12 h-12 rounded-full bg-[#00d4ff] text-[#0c131d] flex items-center justify-center overflow-hidden">
                                 {user.avatar ? (
-                                    <Image 
-                                        src={user.avatar} 
-                                        alt={user.name} 
-                                        width={48} 
-                                        height={48} 
-                                        className="w-full h-full object-cover" 
+                                    <Image
+                                        src={user.avatar}
+                                        alt={user.name}
+                                        width={48}
+                                        height={48}
+                                        className="w-full h-full object-cover"
                                     />
                                 ) : (
                                     <FiUser className="w-6 h-6" />

@@ -4,7 +4,7 @@
  */
 
 export function formatDate(
-    dateString: string, 
+    dateString: string,
     locale: string = 'vi-VN',
     options: Intl.DateTimeFormatOptions = {
         day: '2-digit',
@@ -14,7 +14,7 @@ export function formatDate(
 ): string {
     try {
         const date = new Date(dateString);
-        
+
         // Check if date is valid
         if (isNaN(date.getTime())) {
             return dateString; // Return original string if invalid
@@ -40,7 +40,7 @@ export function formatDate(
 export function formatDateSafe(dateString: string, isHydrated: boolean = true): string {
     try {
         const date = new Date(dateString);
-        
+
         if (isNaN(date.getTime())) {
             return dateString;
         }

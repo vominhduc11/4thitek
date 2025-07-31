@@ -173,8 +173,7 @@ Kết nối không dây với độ trễ cực thấp.
         id: 'gaming-setup-guide',
         title: 'Cách thiết lập gaming setup hoàn hảo với TUNECORE',
         slug: 'cach-thiet-lap-gaming-setup-hoan-hao',
-        excerpt:
-            'Hướng dẫn chi tiết thiết lập bàn gaming với các sản phẩm TUNECORE để có trải nghiệm âm thanh tối ưu.',
+        excerpt: 'Hướng dẫn chi tiết thiết lập bàn gaming với các sản phẩm TUNECORE để có trải nghiệm âm thanh tối ưu.',
         content: `
 ## Lựa chọn thiết bị
 
@@ -203,8 +202,7 @@ Vai trò của sound card trong setup gaming.
         id: 'esports-audio-importance',
         title: 'Tầm quan trọng của âm thanh trong Esports chuyên nghiệp',
         slug: 'tam-quan-trong-cua-am-thanh-trong-esports',
-        excerpt:
-            'Phân tích vai trò của hệ thống âm thanh trong thành công của các game thủ esports chuyên nghiệp.',
+        excerpt: 'Phân tích vai trò của hệ thống âm thanh trong thành công của các game thủ esports chuyên nghiệp.',
         content: `
 ## Âm thanh trong Esports
 
@@ -263,8 +261,7 @@ Bảo vệ dây cáp khỏi hư hỏng.
         id: 'wireless-vs-wired-comparison',
         title: 'So sánh tai nghe gaming có dây vs không dây: Lựa chọn nào tốt hơn?',
         slug: 'so-sanh-tai-nghe-co-day-vs-khong-day',
-        excerpt:
-            'Phân tích ưu nhược điểm của tai nghe có dây và không dây để giúp bạn đưa ra lựa chọn phù hợp.',
+        excerpt: 'Phân tích ưu nhược điểm của tai nghe có dây và không dây để giúp bạn đưa ra lựa chọn phù hợp.',
         content: `
 ## So sánh chi tiết
 
@@ -293,8 +290,7 @@ Mobility và comfort.
         id: 'audio-codec-explained',
         title: 'Hiểu về Audio Codec: LDAC, aptX và những điều cần biết',
         slug: 'hieu-ve-audio-codec-ldac-aptx',
-        excerpt:
-            'Giải thích các chuẩn codec âm thanh phổ biến và ảnh hưởng của chúng đến chất lượng âm thanh gaming.',
+        excerpt: 'Giải thích các chuẩn codec âm thanh phổ biến và ảnh hưởng của chúng đến chất lượng âm thanh gaming.',
         content: `
 ## Các loại Audio Codec
 
@@ -323,8 +319,7 @@ Standard Bluetooth codec.
         id: 'fps-games-audio-guide',
         title: 'Tối ưu âm thanh cho FPS Games: CS2, Valorant, Apex Legends',
         slug: 'toi-uu-am-thanh-cho-fps-games',
-        excerpt:
-            'Hướng dẫn cài đặt và tối ưu âm thanh cho các game FPS phổ biến để có lợi thế cạnh tranh.',
+        excerpt: 'Hướng dẫn cài đặt và tối ưu âm thanh cho các game FPS phổ biến để có lợi thế cạnh tranh.',
         content: `
 ## Tối ưu cho từng game
 
@@ -353,8 +348,7 @@ Audio cues và environmental sounds.
         id: 'budget-gaming-headset-guide',
         title: 'Top 5 tai nghe gaming giá rẻ dưới 1 triệu đồng',
         slug: 'top-5-tai-nghe-gaming-gia-re-duoi-1-trieu',
-        excerpt:
-            'Gợi ý những mẫu tai nghe gaming chất lượng với mức giá phù hợp cho game thủ có ngân sách hạn chế.',
+        excerpt: 'Gợi ý những mẫu tai nghe gaming chất lượng với mức giá phù hợp cho game thủ có ngân sách hạn chế.',
         content: `
 ## Danh sách recommend
 
@@ -383,8 +377,7 @@ Lựa chọn có dây tốt.
         id: 'streaming-audio-setup',
         title: 'Setup âm thanh cho Streaming: Từ Microphone đến Audio Interface',
         slug: 'setup-am-thanh-cho-streaming',
-        excerpt:
-            'Hướng dẫn thiết lập hệ thống âm thanh chuyên nghiệp cho streamer và content creator.',
+        excerpt: 'Hướng dẫn thiết lập hệ thống âm thanh chuyên nghiệp cho streamer và content creator.',
         content: `
 ## Thiết bị cần thiết
 
@@ -443,8 +436,7 @@ Có ảnh hưởng đến hiệu suất không?
         id: 'mobile-gaming-audio',
         title: 'Âm thanh cho Mobile Gaming: Tai nghe nào phù hợp?',
         slug: 'am-thanh-cho-mobile-gaming-tai-nghe-nao-phu-hop',
-        excerpt:
-            'Hướng dẫn chọn tai nghe phù hợp cho mobile gaming với các tựa game như PUBG Mobile, Mobile Legends.',
+        excerpt: 'Hướng dẫn chọn tai nghe phù hợp cho mobile gaming với các tựa game như PUBG Mobile, Mobile Legends.',
         content: `
 ## Mobile Gaming Audio
 

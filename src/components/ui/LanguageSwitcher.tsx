@@ -14,12 +14,8 @@ export default function LanguageSwitcher() {
         return (
             <div className="flex items-center gap-2 px-3 py-2 text-gray-300 rounded-lg">
                 <FiGlobe className="w-4 h-4" />
-                <span className="text-sm font-medium hidden sm:inline">
-                    🇺🇸 English
-                </span>
-                <span className="text-sm font-medium sm:hidden">
-                    🇺🇸
-                </span>
+                <span className="text-sm font-medium hidden sm:inline">🇺🇸 English</span>
+                <span className="text-sm font-medium sm:hidden">🇺🇸</span>
                 <FiChevronDown className="w-4 h-4" />
             </div>
         );
@@ -30,7 +26,7 @@ export default function LanguageSwitcher() {
         { code: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' }
     ];
 
-    const currentLanguage = languages.find(lang => lang.code === language);
+    const currentLanguage = languages.find((lang) => lang.code === language);
 
     const handleLanguageSelect = (langCode: 'en' | 'vi') => {
         setLanguage(langCode);
@@ -49,23 +45,16 @@ export default function LanguageSwitcher() {
                 <span className="text-sm font-medium hidden sm:inline">
                     {currentLanguage?.flag} {currentLanguage?.label}
                 </span>
-                <span className="text-sm font-medium sm:hidden">
-                    {currentLanguage?.flag}
-                </span>
-                <FiChevronDown 
-                    className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
-                />
+                <span className="text-sm font-medium sm:hidden">{currentLanguage?.flag}</span>
+                <FiChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
             </motion.button>
 
             <AnimatePresence>
                 {isOpen && (
                     <>
                         {/* Backdrop */}
-                        <div 
-                            className="fixed inset-0 z-10" 
-                            onClick={() => setIsOpen(false)}
-                        />
-                        
+                        <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+
                         {/* Dropdown */}
                         <motion.div
                             initial={{ opacity: 0, y: -10 }}

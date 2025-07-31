@@ -76,77 +76,85 @@ export default function BlogDetailPageImproved() {
             {/* Simple Hero Section - Consistent with other pages */}
             <BlogDetailHero />
             {/* 1. Thanh tiêu đề bài viết (Post Header) */}
-                <section className="bg-[#0c131d] w-full -mt-16 pt-16 pb-8">
-                    {/* Sử dụng cùng layout như các trang khác */}
-                    <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20">
-                            {/* Tiêu đề */}
-                            <motion.h1
-                                className="text-white text-2xl sm:text-3xl lg:text-4xl font-bold text-left mb-4"
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.6, ease: 'easeOut' }}
-                                viewport={{ once: true, margin: '-50px' }}
-                            >
-                                {post.title}
-                            </motion.h1>
+            <section className="bg-[#0c131d] w-full -mt-16 pt-16 pb-8">
+                {/* Sử dụng cùng layout như các trang khác */}
+                <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20">
+                    {/* Tiêu đề */}
+                    <motion.h1
+                        className="text-white text-2xl sm:text-3xl lg:text-4xl font-bold text-left mb-4"
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, ease: 'easeOut' }}
+                        viewport={{ once: true, margin: '-50px' }}
+                    >
+                        {post.title}
+                    </motion.h1>
 
-                            {/* Thời gian đăng & Chuyên mục */}
-                            <motion.div
-                                className="flex flex-wrap items-center gap-2 sm:gap-4 text-gray-400 text-sm"
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
-                                viewport={{ once: true, margin: '-50px' }}
-                            >
+                    {/* Thời gian đăng & Chuyên mục */}
+                    <motion.div
+                        className="flex flex-wrap items-center gap-2 sm:gap-4 text-gray-400 text-sm"
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
+                        viewport={{ once: true, margin: '-50px' }}
+                    >
+                        <div className="flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+                            <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                    fillRule="evenodd"
+                                    d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                                    clipRule="evenodd"
+                                />
+                            </svg>
+                            <span className="truncate">{formatDateSafe(post.publishedAt, isHydrated)}</span>
+                        </div>
+                        <span>•</span>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                            <span className="px-2 py-1 bg-[#4FC8FF]/10 text-[#4FC8FF] text-xs uppercase tracking-wide rounded-full font-medium whitespace-nowrap">
+                                {post.category.name}
+                            </span>
+                        </div>
+                        {post.readingTime && (
+                            <>
+                                <span>•</span>
                                 <div className="flex items-center gap-1 sm:gap-2 whitespace-nowrap">
                                     <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                                        <path
+                                            fillRule="evenodd"
+                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                                            clipRule="evenodd"
+                                        />
                                     </svg>
-                                    <span className="truncate">{formatDateSafe(post.publishedAt, isHydrated)}</span>
+                                    <span>{post.readingTime} phút đọc</span>
                                 </div>
-                                <span>•</span>
-                                <div className="flex items-center gap-1 sm:gap-2">
-                                    <span className="px-2 py-1 bg-[#4FC8FF]/10 text-[#4FC8FF] text-xs uppercase tracking-wide rounded-full font-medium whitespace-nowrap">
-                                        {post.category.name}
-                                    </span>
-                                </div>
-                                {post.readingTime && (
-                                    <>
-                                        <span>•</span>
-                                        <div className="flex items-center gap-1 sm:gap-2 whitespace-nowrap">
-                                            <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                                            </svg>
-                                            <span>{post.readingTime} phút đọc</span>
-                                        </div>
-                                    </>
-                                )}
-                            </motion.div>
-                    </div>
-                </section>
+                            </>
+                        )}
+                    </motion.div>
+                </div>
+            </section>
 
-                {/* 2. Hình ảnh minh họa chính (Hero Image nhỏ) */}
-                <section className="bg-[#0c131d] pb-8">
-                    {/* Container có margin cho sidebar */}
-                    <div className="ml-16 sm:ml-20">
-                        <motion.div
-                            className="relative w-full h-[330px] sm:h-[430px] lg:h-[530px] overflow-hidden"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            whileInView={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.8, ease: 'easeOut' }}
-                            viewport={{ once: true, margin: '-100px' }}
-                        >
-                            <Image
-                                src={post.featuredImage || "https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg"}
-                                alt={post.title}
-                                fill
-                                className="object-cover"
-                                priority
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                        </motion.div>
-                    </div>
-                </section>
+            {/* 2. Hình ảnh minh họa chính (Hero Image nhỏ) */}
+            <section className="bg-[#0c131d] pb-8">
+                {/* Container có margin cho sidebar */}
+                <div className="ml-16 sm:ml-20">
+                    <motion.div
+                        className="relative w-full h-[330px] sm:h-[430px] lg:h-[530px] overflow-hidden"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.8, ease: 'easeOut' }}
+                        viewport={{ once: true, margin: '-100px' }}
+                    >
+                        <Image
+                            src={post.featuredImage || 'https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg'}
+                            alt={post.title}
+                            fill
+                            className="object-cover"
+                            priority
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                    </motion.div>
+                </div>
+            </section>
 
             {/* 3. Bố cục chính (Main Layout) */}
             <section className="bg-[#0c131d] py-12">
@@ -180,10 +188,19 @@ export default function BlogDetailPageImproved() {
                                     transition={{ duration: 0.8, delay: 0.4 }}
                                     viewport={{ once: true }}
                                 >
-                                    <div 
+                                    <div
                                         className="text-gray-300 leading-relaxed"
-                                        dangerouslySetInnerHTML={{ 
-                                            __html: post.content.replace(/\n/g, '<br/>').replace(/##\s/g, '<h2 class="text-2xl font-bold text-white mt-8 mb-4">').replace(/###\s/g, '<h3 class="text-xl font-bold text-white mt-6 mb-3">') 
+                                        dangerouslySetInnerHTML={{
+                                            __html: post.content
+                                                .replace(/\n/g, '<br/>')
+                                                .replace(
+                                                    /##\s/g,
+                                                    '<h2 class="text-2xl font-bold text-white mt-8 mb-4">'
+                                                )
+                                                .replace(
+                                                    /###\s/g,
+                                                    '<h3 class="text-xl font-bold text-white mt-6 mb-3">'
+                                                )
                                         }}
                                     />
                                 </motion.div>
@@ -217,7 +234,10 @@ export default function BlogDetailPageImproved() {
                                                 {/* Post Thumbnail */}
                                                 <div className="relative w-full aspect-video overflow-hidden">
                                                     <Image
-                                                        src={relatedPost.featuredImage || "https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg"}
+                                                        src={
+                                                            relatedPost.featuredImage ||
+                                                            'https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg'
+                                                        }
                                                         alt={relatedPost.title}
                                                         fill
                                                         className="object-cover transition-transform duration-200 group-hover:scale-105"

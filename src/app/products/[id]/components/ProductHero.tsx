@@ -87,19 +87,19 @@ export default function ProductHero({
                 windowWidth: window.innerWidth,
                 shouldActivate: window.innerWidth >= 1024
             });
-            
+
             const heroBreadcrumb = document.getElementById('hero-breadcrumb');
-            
+
             if (!heroBreadcrumb) {
                 console.warn('❌ Hero breadcrumb element not found! ID: hero-breadcrumb');
                 return;
             }
-            
+
             if (window.innerWidth < 768) {
                 console.log('📱 Screen too small for sticky breadcrumb (< 768px)');
                 return; // Only for tablet and desktop (md+ breakpoint)
             }
-            
+
             console.log('✅ Hero breadcrumb found and screen is tablet/desktop size', {
                 element: heroBreadcrumb,
                 computedStyle: {
@@ -115,17 +115,23 @@ export default function ProductHero({
             const handleScroll = () => {
                 const heroBreadcrumbRect = heroBreadcrumb.getBoundingClientRect();
                 const headerHeight = 64; // Height of the header (h-16 = 64px)
-                
+
                 // Trigger when hero breadcrumb is completely scrolled past (above viewport)
                 const hasScrolledPast = heroBreadcrumbRect.bottom < 0;
-                
+
                 // Simplified breakpoint detection - tablet and up (768+)
                 const isTabletOrDesktop = window.innerWidth >= 768;
-                const currentBreakpoint = window.innerWidth >= 1536 ? '2xl' : 
-                                         window.innerWidth >= 1280 ? 'xl' : 
-                                         window.innerWidth >= 1024 ? 'lg' : 
-                                         window.innerWidth >= 768 ? 'md' : 'mobile';
-                
+                const currentBreakpoint =
+                    window.innerWidth >= 1536
+                        ? '2xl'
+                        : window.innerWidth >= 1280
+                          ? 'xl'
+                          : window.innerWidth >= 1024
+                            ? 'lg'
+                            : window.innerWidth >= 768
+                              ? 'md'
+                              : 'mobile';
+
                 console.log('🔍 Breadcrumb scroll check:', {
                     screenWidth: window.innerWidth,
                     isTabletOrDesktop,
@@ -150,7 +156,7 @@ export default function ProductHero({
                         stickyExists: !!stickyBreadcrumb,
                         breadcrumbItemsCount: breadcrumbItems?.length || 0
                     });
-                    
+
                     try {
                         // Remove any existing sticky breadcrumb first
                         const existing = document.getElementById('sticky-breadcrumb-clone');
@@ -158,145 +164,150 @@ export default function ProductHero({
                             console.log('🗑️ Removing existing sticky breadcrumb');
                             existing.remove();
                         }
-                        
+
                         // Create simplified sticky breadcrumb
                         stickyBreadcrumb = document.createElement('div');
                         stickyBreadcrumb.id = 'sticky-breadcrumb-clone';
-                        stickyBreadcrumb.className = 'fixed top-16 left-16 md:left-20 right-0 z-[200] py-3 bg-[#0a0f1a]/95 backdrop-blur-md border-b border-gray-700/30 transition-all duration-300 ease-out';
-                        
+                        stickyBreadcrumb.className =
+                            'fixed top-16 left-16 md:left-20 right-0 z-[200] py-3 bg-[#0a0f1a]/95 backdrop-blur-md border-b border-gray-700/30 transition-all duration-300 ease-out';
+
                         console.log('✅ Sticky breadcrumb element created', {
                             element: stickyBreadcrumb,
                             className: stickyBreadcrumb.className,
                             id: stickyBreadcrumb.id
                         });
-                        
+
                         // Initial state for animation (hidden)
                         stickyBreadcrumb.style.opacity = '0';
                         stickyBreadcrumb.style.transform = 'translateY(-20px)';
                         stickyBreadcrumb.style.pointerEvents = 'all';
-                    
-                    // Create clean content structure
-                    const containerDiv = document.createElement('div');
-                    containerDiv.className = 'container mx-auto max-w-6xl lg:max-w-5xl px-4';
-                    
-                    const nav = document.createElement('nav');
-                    nav.className = 'flex justify-center items-center space-x-6 text-sm relative z-20';
-                    
-                    // Create breadcrumb items with proper event listeners
-                    console.log('📍 Creating sticky breadcrumb with items:', breadcrumbItems);
-                    
-                    // Use local variable instead of modifying the prop
-                    let itemsToUse = breadcrumbItems;
-                    if (!itemsToUse || itemsToUse.length === 0) {
-                        console.warn('⚠️ No breadcrumb items available for sticky breadcrumb');
-                        // Add fallback items
-                        itemsToUse = [
-                            { label: 'PRODUCT DETAILS', section: 'details' },
-                            { label: 'PRODUCT VIDEOS', section: 'videos' },
-                            { label: 'SPECIFICATIONS', section: 'specifications' },
-                            { label: 'WARRANTY', section: 'warranty' }
-                        ];
-                    }
-                    
-                    console.log('📍 Using items for sticky breadcrumb:', itemsToUse);
-                    
-                    itemsToUse.forEach((item, index) => {
-                        const itemDiv = document.createElement('div');
-                        itemDiv.className = 'flex items-center space-x-2';
-                        
-                        const button = document.createElement('button');
-                        button.className = `font-medium transition-colors duration-200 px-3 py-2 text-center whitespace-nowrap ${
-                            (activeBreadcrumb || 'PRODUCT DETAILS') === item.label
-                                ? 'text-blue-400'
-                                : 'text-gray-400 hover:text-white'
-                        }`;
-                        button.textContent = item.label;
-                        
-                        // Add independent navigation logic - always works
-                        button.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            console.log('🖱️ Sticky breadcrumb clicked:', item.label);
-                            
-                            // Direct navigation logic that doesn't depend on onBreadcrumbClick
-                            const navigateToSection = (sectionType: string) => {
-                                console.log('📍 Navigating to section:', sectionType);
-                                
-                                // Trigger the same navigation as the main page
-                                // Try to find the main page's handleBreadcrumbClick function and call it
-                                const event = new CustomEvent('breadcrumbNavigation', {
-                                    detail: { label: item.label, section: item.section }
-                                });
-                                window.dispatchEvent(event);
-                                
-                                // Also manually trigger dropdown change for backup
-                                const dropdown = document.querySelector('select[aria-label="Select section"]') as HTMLSelectElement;
-                                if (dropdown) {
-                                    console.log('📍 Triggering dropdown change to:', item.label);
-                                    dropdown.value = item.label;
-                                    dropdown.dispatchEvent(new Event('change', { bubbles: true }));
-                                }
-                                
-                                // Update sticky breadcrumb active state immediately
-                                const stickyButtons = document.querySelectorAll('#sticky-breadcrumb-clone button');
-                                stickyButtons.forEach(btn => {
-                                    if (btn.textContent && btn.textContent.trim() === item.label.trim()) {
-                                        btn.className = btn.className.replace('text-gray-400', 'text-blue-400');
-                                    } else {
-                                        btn.className = btn.className.replace('text-blue-400', 'text-gray-400');
-                                    }
-                                });
-                            };
-                            
-                            navigateToSection(item.section);
-                            
-                            // Fallback: also try the original method if available
-                            if (onBreadcrumbClick) {
-                                try {
-                                    onBreadcrumbClick(item);
-                                } catch (error) {
-                                    console.warn('📍 onBreadcrumbClick failed:', error);
-                                }
-                            }
-                        });
-                        
-                        itemDiv.appendChild(button);
-                        
-                        // Add simple separator
-                        if (index < itemsToUse.length - 1) {
-                            const separator = document.createElement('span');
-                            separator.className = 'text-gray-500 mx-1';
-                            separator.textContent = '/';
-                            itemDiv.appendChild(separator);
+
+                        // Create clean content structure
+                        const containerDiv = document.createElement('div');
+                        containerDiv.className = 'container mx-auto max-w-6xl lg:max-w-5xl px-4';
+
+                        const nav = document.createElement('nav');
+                        nav.className = 'flex justify-center items-center space-x-6 text-sm relative z-20';
+
+                        // Create breadcrumb items with proper event listeners
+                        console.log('📍 Creating sticky breadcrumb with items:', breadcrumbItems);
+
+                        // Use local variable instead of modifying the prop
+                        let itemsToUse = breadcrumbItems;
+                        if (!itemsToUse || itemsToUse.length === 0) {
+                            console.warn('⚠️ No breadcrumb items available for sticky breadcrumb');
+                            // Add fallback items
+                            itemsToUse = [
+                                { label: 'PRODUCT DETAILS', section: 'details' },
+                                { label: 'PRODUCT VIDEOS', section: 'videos' },
+                                { label: 'SPECIFICATIONS', section: 'specifications' },
+                                { label: 'WARRANTY', section: 'warranty' }
+                            ];
                         }
-                        
-                        nav.appendChild(itemDiv);
-                    });
-                    
-                    containerDiv.appendChild(nav);
-                    stickyBreadcrumb.appendChild(containerDiv);
-                    
+
+                        console.log('📍 Using items for sticky breadcrumb:', itemsToUse);
+
+                        itemsToUse.forEach((item, index) => {
+                            const itemDiv = document.createElement('div');
+                            itemDiv.className = 'flex items-center space-x-2';
+
+                            const button = document.createElement('button');
+                            button.className = `font-medium transition-colors duration-200 px-3 py-2 text-center whitespace-nowrap ${
+                                (activeBreadcrumb || 'PRODUCT DETAILS') === item.label
+                                    ? 'text-blue-400'
+                                    : 'text-gray-400 hover:text-white'
+                            }`;
+                            button.textContent = item.label;
+
+                            // Add independent navigation logic - always works
+                            button.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                console.log('🖱️ Sticky breadcrumb clicked:', item.label);
+
+                                // Direct navigation logic that doesn't depend on onBreadcrumbClick
+                                const navigateToSection = (sectionType: string) => {
+                                    console.log('📍 Navigating to section:', sectionType);
+
+                                    // Trigger the same navigation as the main page
+                                    // Try to find the main page's handleBreadcrumbClick function and call it
+                                    const event = new CustomEvent('breadcrumbNavigation', {
+                                        detail: { label: item.label, section: item.section }
+                                    });
+                                    window.dispatchEvent(event);
+
+                                    // Also manually trigger dropdown change for backup
+                                    const dropdown = document.querySelector(
+                                        'select[aria-label="Select section"]'
+                                    ) as HTMLSelectElement;
+                                    if (dropdown) {
+                                        console.log('📍 Triggering dropdown change to:', item.label);
+                                        dropdown.value = item.label;
+                                        dropdown.dispatchEvent(new Event('change', { bubbles: true }));
+                                    }
+
+                                    // Update sticky breadcrumb active state immediately
+                                    const stickyButtons = document.querySelectorAll('#sticky-breadcrumb-clone button');
+                                    stickyButtons.forEach((btn) => {
+                                        if (btn.textContent && btn.textContent.trim() === item.label.trim()) {
+                                            btn.className = btn.className.replace('text-gray-400', 'text-blue-400');
+                                        } else {
+                                            btn.className = btn.className.replace('text-blue-400', 'text-gray-400');
+                                        }
+                                    });
+                                };
+
+                                navigateToSection(item.section);
+
+                                // Fallback: also try the original method if available
+                                if (onBreadcrumbClick) {
+                                    try {
+                                        onBreadcrumbClick(item);
+                                    } catch (error) {
+                                        console.warn('📍 onBreadcrumbClick failed:', error);
+                                    }
+                                }
+                            });
+
+                            itemDiv.appendChild(button);
+
+                            // Add simple separator
+                            if (index < itemsToUse.length - 1) {
+                                const separator = document.createElement('span');
+                                separator.className = 'text-gray-500 mx-1';
+                                separator.textContent = '/';
+                                itemDiv.appendChild(separator);
+                            }
+
+                            nav.appendChild(itemDiv);
+                        });
+
+                        containerDiv.appendChild(nav);
+                        stickyBreadcrumb.appendChild(containerDiv);
+
                         console.log('📍 Appending sticky breadcrumb to DOM...', {
                             parent: document.body,
                             stickyElement: stickyBreadcrumb
                         });
                         document.body.appendChild(stickyBreadcrumb);
-                        
+
                         // Verify DOM attachment
                         const attached = document.getElementById('sticky-breadcrumb-clone');
                         console.log('🔍 Verification - sticky breadcrumb attached to DOM:', {
                             attached: !!attached,
                             element: attached,
-                            computedStyles: attached ? {
-                                display: window.getComputedStyle(attached).display,
-                                position: window.getComputedStyle(attached).position,
-                                top: window.getComputedStyle(attached).top,
-                                zIndex: window.getComputedStyle(attached).zIndex,
-                                opacity: window.getComputedStyle(attached).opacity,
-                                transform: window.getComputedStyle(attached).transform
-                            } : null,
+                            computedStyles: attached
+                                ? {
+                                      display: window.getComputedStyle(attached).display,
+                                      position: window.getComputedStyle(attached).position,
+                                      top: window.getComputedStyle(attached).top,
+                                      zIndex: window.getComputedStyle(attached).zIndex,
+                                      opacity: window.getComputedStyle(attached).opacity,
+                                      transform: window.getComputedStyle(attached).transform
+                                  }
+                                : null,
                             boundingBox: attached ? attached.getBoundingClientRect() : null
                         });
-                        
+
                         // Trigger animation after a small delay
                         console.log('📍 Starting animation for sticky breadcrumb...');
                         requestAnimationFrame(() => {
@@ -305,7 +316,7 @@ export default function ProductHero({
                                     console.log('✨ Showing sticky breadcrumb with animation');
                                     stickyBreadcrumb.style.opacity = '1';
                                     stickyBreadcrumb.style.transform = 'translateY(0)';
-                                    
+
                                     // Final verification
                                     setTimeout(() => {
                                         const finalCheck = document.getElementById('sticky-breadcrumb-clone');
@@ -328,7 +339,7 @@ export default function ProductHero({
                     // Animate out before removing
                     stickyBreadcrumb.style.opacity = '0';
                     stickyBreadcrumb.style.transform = 'translateY(-20px)';
-                    
+
                     // Remove after animation completes
                     setTimeout(() => {
                         if (stickyBreadcrumb) {
@@ -352,10 +363,10 @@ export default function ProductHero({
 
             window.addEventListener('scroll', handleScroll, { passive: true });
             window.addEventListener('resize', handleResize, { passive: true });
-            
+
             // Initial scroll check to handle page load at scrolled position
             handleScroll();
-            
+
             return () => {
                 window.removeEventListener('scroll', handleScroll);
                 window.removeEventListener('resize', handleResize);
@@ -373,7 +384,7 @@ export default function ProductHero({
 
     const handleShuffleProduct = async () => {
         if (isShuffling) return;
-        
+
         console.log('Related products:', relatedProducts);
 
         if (relatedProducts.length === 0) {
@@ -392,8 +403,8 @@ export default function ProductHero({
         console.log('Switching to product:', randomProduct);
 
         // Small delay to show loading state and smooth transition
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
         // Navigate to the random product
         router.push(`/products/${randomProduct.id}`);
     };
@@ -472,7 +483,7 @@ export default function ProductHero({
 
             {/* Side Navigation - Responsive Vertical Text */}
             <div className="absolute left-2 sm:left-4 md:left-8 lg:left-16 xl:left-20 top-1/2 transform -translate-y-1/2 z-30 hidden sm:block">
-                <div 
+                <div
                     className="text-white font-bold tracking-[0.2em] sm:tracking-[0.25em] md:tracking-[0.3em] text-xs sm:text-sm md:text-base lg:text-lg xl:text-2xl opacity-70 hover:opacity-100 transition-opacity duration-300"
                     style={{
                         writingMode: 'vertical-rl',
@@ -501,20 +512,20 @@ export default function ProductHero({
                                 title={isShuffling ? 'Loading...' : 'View other related products'}
                                 disabled={isShuffling}
                                 initial={{ opacity: 0, x: -20, scale: 0.8 }}
-                                animate={{ 
-                                    opacity: 1, 
-                                    x: 0, 
+                                animate={{
+                                    opacity: 1,
+                                    x: 0,
                                     scale: 1,
-                                    transition: { duration: 0.3, ease: "easeOut" }
+                                    transition: { duration: 0.3, ease: 'easeOut' }
                                 }}
                                 whileHover={{ scale: 1.1 }}
                                 variants={{
                                     hidden: { opacity: 0, x: -20, scale: 0.8 },
-                                    visible: { 
-                                        opacity: 1, 
-                                        x: 0, 
+                                    visible: {
+                                        opacity: 1,
+                                        x: 0,
                                         scale: 1,
-                                        transition: { duration: 0.4, ease: "easeOut", delay: 0.1 }
+                                        transition: { duration: 0.4, ease: 'easeOut', delay: 0.1 }
                                     }
                                 }}
                             >
@@ -548,7 +559,7 @@ export default function ProductHero({
                                 </AnimatePresence>
                             </div>
 
-                            <div className="relative w-full max-w-md mx-auto h-48 sm:h-56 md:h-72 lg:h-80 xl:h-96 2xl:h-[500px] -mt-4 sm:-mt-8 md:-mt-8 lg:-mt-16 xl:-mt-24">
+                            <div className="relative w-full max-w-md mx-auto h-48 sm:h-56 md:h-72 lg:h-80 xl:h-96 2xl:h-[500px] 3xl:h-[550px] 4xl:h-[600px] -mt-4 sm:-mt-8 md:-mt-8 lg:-mt-16 xl:-mt-24">
                                 <div className="relative w-full h-full flex items-center justify-center">
                                     {/* Product Image with Animation */}
                                     <AnimatePresence mode="wait">
@@ -589,25 +600,30 @@ export default function ProductHero({
                                 onClick={handleFindRetailer}
                                 className="bg-white/10 hover:bg-white hover:text-black text-white px-4 py-2 xl:px-6 xl:py-3 rounded-full font-medium tracking-wide flex items-center gap-2 backdrop-blur-sm border border-white/20 text-xs xl:text-sm"
                                 initial={{ opacity: 0, x: 20, scale: 0.8 }}
-                                animate={{ 
-                                    opacity: 1, 
-                                    x: 0, 
+                                animate={{
+                                    opacity: 1,
+                                    x: 0,
                                     scale: 1,
-                                    transition: { duration: 0.3, ease: "easeOut" }
+                                    transition: { duration: 0.3, ease: 'easeOut' }
                                 }}
                                 whileHover={{ scale: 1.05 }}
                                 variants={{
                                     hidden: { opacity: 0, x: 20, scale: 0.8 },
-                                    visible: { 
-                                        opacity: 1, 
-                                        x: 0, 
+                                    visible: {
+                                        opacity: 1,
+                                        x: 0,
                                         scale: 1,
-                                        transition: { duration: 0.4, ease: "easeOut", delay: 0.2 }
+                                        transition: { duration: 0.4, ease: 'easeOut', delay: 0.2 }
                                     }
                                 }}
                             >
                                 FIND RETAILER
-                                <svg className="w-4 h-4 xl:w-5 xl:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg
+                                    className="w-4 h-4 xl:w-5 xl:h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
                                     <path
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
@@ -617,18 +633,18 @@ export default function ProductHero({
                                 </svg>
                             </motion.button>
                         </div>
-                        
+
                         {/* Action Buttons - Mobile and Tablet only */}
-                        <motion.div 
+                        <motion.div
                             className="flex justify-center gap-4 mt-6 md:-mt-3 lg:hidden"
                             variants={{
                                 hidden: { opacity: 0, y: 20 },
-                                visible: { 
-                                    opacity: 1, 
+                                visible: {
+                                    opacity: 1,
                                     y: 0,
-                                    transition: { 
-                                        duration: 0.5, 
-                                        ease: "easeOut",
+                                    transition: {
+                                        duration: 0.5,
+                                        ease: 'easeOut',
                                         staggerChildren: 0.1,
                                         delayChildren: 0.3
                                     }
@@ -647,8 +663,8 @@ export default function ProductHero({
                                 disabled={isShuffling}
                                 variants={{
                                     hidden: { opacity: 0, scale: 0.9 },
-                                    visible: { 
-                                        opacity: 1, 
+                                    visible: {
+                                        opacity: 1,
                                         scale: 1,
                                         transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] }
                                     }
@@ -666,8 +682,8 @@ export default function ProductHero({
                                 className="bg-white/10 hover:bg-white hover:text-black text-white px-4 py-2 sm:px-6 sm:py-3 lg:px-8 lg:py-4 rounded-full font-medium tracking-wide flex items-center gap-2 backdrop-blur-sm border border-white/20 text-sm sm:text-base lg:text-lg"
                                 variants={{
                                     hidden: { opacity: 0, scale: 0.9 },
-                                    visible: { 
-                                        opacity: 1, 
+                                    visible: {
+                                        opacity: 1,
                                         scale: 1,
                                         transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] }
                                     }
@@ -675,7 +691,12 @@ export default function ProductHero({
                                 whileTap={{ scale: 0.95 }}
                             >
                                 RETAILER
-                                <svg className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg
+                                    className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
                                     <path
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
@@ -690,116 +711,116 @@ export default function ProductHero({
             </div>
 
             {/* Tablet & Desktop Breadcrumb Navigation - Bottom of Hero */}
-            {breadcrumbItems.length > 0 && (() => {
-                console.log('Desktop breadcrumb rendering, items:', breadcrumbItems);
-                return true;
-            })() && (
-                <motion.div 
-                    className="absolute bottom-32 sm:bottom-40 md:bottom-32 lg:bottom-64 desktop:bottom-56 xl:bottom-56 2xl:bottom-56 left-0 right-0 z-20 hidden md:block" 
-                    id="hero-breadcrumb"
-                    initial={{ opacity: 0, y: 30, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ 
-                        duration: 1.2,
-                        ease: "easeOut",
-                        delay: 0.8
-                    }}
-                >
-                    <div className="container mx-auto max-w-6xl lg:max-w-5xl px-4 relative">
-                        {/* Left line segment with gradient */}
-                        <motion.div
-                            className="absolute top-1/2 left-4 h-px z-5"
-                            initial={{ scaleX: 0, opacity: 0 }}
-                            animate={{ scaleX: 1, opacity: 1 }}
-                            transition={{ 
-                                duration: 1.5,
-                                ease: "easeOut",
-                                delay: 1.2
-                            }}
-                            style={{
-                                width: 'calc(50% - 300px)',
-                                background: 'linear-gradient(to right, transparent, rgba(79, 200, 255, 0.6))',
-                                transformOrigin: 'right center'
-                            }}
-                        ></motion.div>
+            {breadcrumbItems.length > 0 &&
+                (() => {
+                    console.log('Desktop breadcrumb rendering, items:', breadcrumbItems);
+                    return true;
+                })() && (
+                    <motion.div
+                        className="absolute bottom-32 sm:bottom-40 md:bottom-32 lg:bottom-64 desktop:bottom-56 xl:bottom-56 2xl:bottom-56 3xl:bottom-64 4xl:bottom-72 left-0 right-0 z-20 hidden md:block"
+                        id="hero-breadcrumb"
+                        initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{
+                            duration: 1.2,
+                            ease: 'easeOut',
+                            delay: 0.8
+                        }}
+                    >
+                        <div className="container mx-auto max-w-6xl lg:max-w-5xl px-4 relative">
+                            {/* Left line segment with gradient */}
+                            <motion.div
+                                className="absolute top-1/2 left-4 h-px z-5"
+                                initial={{ scaleX: 0, opacity: 0 }}
+                                animate={{ scaleX: 1, opacity: 1 }}
+                                transition={{
+                                    duration: 1.5,
+                                    ease: 'easeOut',
+                                    delay: 1.2
+                                }}
+                                style={{
+                                    width: 'calc(50% - 300px)',
+                                    background: 'linear-gradient(to right, transparent, rgba(79, 200, 255, 0.6))',
+                                    transformOrigin: 'right center'
+                                }}
+                            ></motion.div>
 
-                        {/* Right line segment with gradient */}
-                        <motion.div
-                            className="absolute top-1/2 right-4 h-px z-5"
-                            initial={{ scaleX: 0, opacity: 0 }}
-                            animate={{ scaleX: 1, opacity: 1 }}
-                            transition={{ 
-                                duration: 1.5,
-                                ease: "easeOut",
-                                delay: 1.2
-                            }}
-                            style={{ 
-                                width: 'calc(50% - 300px)',
-                                background: 'linear-gradient(to left, transparent, rgba(79, 200, 255, 0.6))',
-                                transformOrigin: 'left center'
-                            }}
-                        ></motion.div>
-                        <motion.nav 
-                            className="flex justify-center items-center space-x-4 md:space-x-0 text-sm relative z-20"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{
-                                duration: 0.8,
-                                ease: "easeOut",
-                                delay: 1.4,
-                                staggerChildren: 0.15
-                            }}
-                        >
-                            {breadcrumbItems.map((item, index) => (
-                                <motion.div 
-                                    key={item.label} 
-                                    className="flex items-center space-x-2 md:space-x-0"
-                                    initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    transition={{
-                                        duration: 0.6,
-                                        ease: "easeOut",
-                                        delay: 1.6 + (index * 0.1)
-                                    }}
-                                >
-                                    <motion.button
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            if (onBreadcrumbClick) {
-                                                onBreadcrumbClick(item);
-                                            }
+                            {/* Right line segment with gradient */}
+                            <motion.div
+                                className="absolute top-1/2 right-4 h-px z-5"
+                                initial={{ scaleX: 0, opacity: 0 }}
+                                animate={{ scaleX: 1, opacity: 1 }}
+                                transition={{
+                                    duration: 1.5,
+                                    ease: 'easeOut',
+                                    delay: 1.2
+                                }}
+                                style={{
+                                    width: 'calc(50% - 300px)',
+                                    background: 'linear-gradient(to left, transparent, rgba(79, 200, 255, 0.6))',
+                                    transformOrigin: 'left center'
+                                }}
+                            ></motion.div>
+                            <motion.nav
+                                className="flex justify-center items-center space-x-4 md:space-x-0 text-sm relative z-20"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{
+                                    duration: 0.8,
+                                    ease: 'easeOut',
+                                    delay: 1.4,
+                                    staggerChildren: 0.15
+                                }}
+                            >
+                                {breadcrumbItems.map((item, index) => (
+                                    <motion.div
+                                        key={item.label}
+                                        className="flex items-center space-x-2 md:space-x-0"
+                                        initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        transition={{
+                                            duration: 0.6,
+                                            ease: 'easeOut',
+                                            delay: 1.6 + index * 0.1
                                         }}
-                                        className={`font-medium relative transition-colors duration-300 px-3 py-2 text-center whitespace-nowrap ${
-                                            activeBreadcrumb === item.label
-                                                ? 'text-blue-400'
-                                                : 'text-gray-400 hover:text-white'
-                                        }`}
-                                        whileHover={{ 
-                                            scale: 1.05,
-                                            transition: { duration: 0.2 }
-                                        }}
-                                        whileTap={{ scale: 0.95 }}
                                     >
-                                        {item.label}
-                                    </motion.button>
-                                    {index < breadcrumbItems.length - 1 && (
-                                        <motion.span 
-                                            className="text-gray-500 relative"
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            transition={{ delay: 1.8 + (index * 0.1) }}
+                                        <motion.button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                if (onBreadcrumbClick) {
+                                                    onBreadcrumbClick(item);
+                                                }
+                                            }}
+                                            className={`font-medium relative transition-colors duration-300 px-3 py-2 text-center whitespace-nowrap ${
+                                                activeBreadcrumb === item.label
+                                                    ? 'text-blue-400'
+                                                    : 'text-gray-400 hover:text-white'
+                                            }`}
+                                            whileHover={{
+                                                scale: 1.05,
+                                                transition: { duration: 0.2 }
+                                            }}
+                                            whileTap={{ scale: 0.95 }}
                                         >
-                                            /
-                                        </motion.span>
-                                    )}
-                                </motion.div>
-                            ))}
-                        </motion.nav>
-                    </div>
-                </motion.div>
-            )}
-
+                                            {item.label}
+                                        </motion.button>
+                                        {index < breadcrumbItems.length - 1 && (
+                                            <motion.span
+                                                className="text-gray-500 relative"
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                transition={{ delay: 1.8 + index * 0.1 }}
+                                            >
+                                                /
+                                            </motion.span>
+                                        )}
+                                    </motion.div>
+                                ))}
+                            </motion.nav>
+                        </div>
+                    </motion.div>
+                )}
         </motion.section>
     );
 }

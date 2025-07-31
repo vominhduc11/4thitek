@@ -24,7 +24,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     // Load language from localStorage on mount - proper SSR handling
     useEffect(() => {
         setIsHydrated(true);
-        
+
         // Only access localStorage after hydration
         if (typeof window !== 'undefined') {
             const savedLanguage = localStorage.getItem('language') as Language;
@@ -47,7 +47,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     const t = (key: string): string => {
         const keys = key.split('.');
         let value: Record<string, unknown> | string = translations[language];
-        
+
         for (const k of keys) {
             if (typeof value === 'object' && value !== null) {
                 value = (value as Record<string, unknown>)[k] as Record<string, unknown> | string;
@@ -55,7 +55,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
                 return key;
             }
         }
-        
+
         return typeof value === 'string' ? value : key; // Return key if translation not found
     };
 
@@ -66,11 +66,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         isHydrated
     };
 
-    return (
-        <LanguageContext.Provider value={value}>
-            {children}
-        </LanguageContext.Provider>
-    );
+    return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
 export function useLanguage() {
@@ -113,7 +109,8 @@ const translations = {
         },
         reseller: {
             title: 'Find Authorized Dealers',
-            subtitle: 'Find the nearest 4THITEK authorized dealers to purchase products and receive the best technical support.',
+            subtitle:
+                'Find the nearest 4THITEK authorized dealers to purchase products and receive the best technical support.',
             city: 'City',
             district: 'District',
             specificAddress: 'Specific Address',

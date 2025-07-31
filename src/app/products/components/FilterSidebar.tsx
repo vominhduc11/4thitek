@@ -73,7 +73,7 @@ export default function FilterSidebar({
             <motion.div
                 className={`${
                     isOpen
-                        ? 'fixed lg:static inset-y-0 right-0 w-80 lg:w-full bg-[#0c131d]/95 lg:bg-transparent backdrop-blur-sm lg:backdrop-blur-none border-l lg:border-l-0 border-gray-700/50 z-50 lg:z-auto overflow-y-auto lg:overflow-visible'
+                        ? 'fixed lg:static inset-y-0 right-0 w-80 2xl:w-96 3xl:w-[28rem] 4xl:w-[32rem] lg:w-full bg-[#0c131d]/95 lg:bg-transparent backdrop-blur-sm lg:backdrop-blur-none border-l lg:border-l-0 border-gray-700/50 z-50 lg:z-auto overflow-y-auto lg:overflow-visible'
                         : 'hidden lg:block'
                 }`}
                 initial={false}
@@ -83,13 +83,13 @@ export default function FilterSidebar({
                 }}
                 transition={{ type: 'tween', duration: 0.3 }}
             >
-                <div className="bg-gradient-to-b from-gray-900/50 to-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700/30 lg:border-gray-700/50 p-6 h-fit">
+                <div className="bg-gradient-to-b from-gray-900/50 to-gray-800/30 backdrop-blur-sm rounded-2xl 3xl:rounded-3xl border border-gray-700/30 lg:border-gray-700/50 p-6 2xl:p-8 3xl:p-10 4xl:p-12 h-fit">
                     {/* Header */}
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center justify-between mb-6 2xl:mb-8 3xl:mb-10 4xl:mb-12">
                         <div>
-                            <h2 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
+                            <h2 className="text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl font-bold text-white mb-1 2xl:mb-2 3xl:mb-3 4xl:mb-4 flex items-center gap-2 2xl:gap-3 3xl:gap-4 4xl:gap-5">
                                 <svg
-                                    className="w-5 h-5 text-[#4FC8FF]"
+                                    className="w-5 h-5 2xl:w-6 2xl:h-6 3xl:w-7 3xl:h-7 4xl:w-8 4xl:h-8 text-[#4FC8FF]"
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -103,28 +103,28 @@ export default function FilterSidebar({
                                 </svg>
                                 Filters
                             </h2>
-                            <p className="text-sm text-gray-400">
+                            <p className="text-sm 2xl:text-base 3xl:text-lg 4xl:text-xl text-gray-400">
                                 {filteredCount} of {totalCount} products
                             </p>
                         </div>
                         <button
                             onClick={onClose}
-                            className="lg:hidden p-2 hover:bg-gray-700/50 rounded-lg transition-colors"
+                            className="lg:hidden p-2 2xl:p-3 3xl:p-4 4xl:p-5 hover:bg-gray-700/50 rounded-lg 2xl:rounded-xl 3xl:rounded-2xl transition-colors"
                         >
-                            <MdClose className="w-5 h-5 text-gray-400" />
+                            <MdClose className="w-5 h-5 2xl:w-6 2xl:h-6 3xl:w-7 3xl:h-7 4xl:w-8 4xl:h-8 text-gray-400" />
                         </button>
                     </div>
 
                     {/* Active Filters Indicator */}
                     {hasActiveFilters() && (
                         <motion.div
-                            className="mb-6 p-3 bg-[#4FC8FF]/10 border border-[#4FC8FF]/20 rounded-xl"
+                            className="mb-6 2xl:mb-8 3xl:mb-10 4xl:mb-12 p-3 2xl:p-4 3xl:p-5 4xl:p-6 bg-[#4FC8FF]/10 border border-[#4FC8FF]/20 rounded-xl 2xl:rounded-2xl 3xl:rounded-3xl"
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 0.1 }}
                         >
-                            <div className="flex items-center gap-2 text-[#4FC8FF] text-sm">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="flex items-center gap-2 2xl:gap-3 3xl:gap-4 4xl:gap-5 text-[#4FC8FF] text-sm 2xl:text-base 3xl:text-lg 4xl:text-xl">
+                                <svg className="w-4 h-4 2xl:w-5 2xl:h-5 3xl:w-6 3xl:h-6 4xl:w-7 4xl:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
@@ -139,14 +139,14 @@ export default function FilterSidebar({
 
                     {/* Category Filter */}
                     <motion.div
-                        className="mb-6"
+                        className="mb-6 2xl:mb-8 3xl:mb-10 4xl:mb-12"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
                     >
-                        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <h3 className="text-lg 2xl:text-xl 3xl:text-2xl 4xl:text-3xl font-semibold text-white mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10 flex items-center gap-2 2xl:gap-3 3xl:gap-4 4xl:gap-5">
                             <svg
-                                className="w-5 h-5 text-[#4FC8FF]"
+                                className="w-5 h-5 2xl:w-6 2xl:h-6 3xl:w-7 3xl:h-7 4xl:w-8 4xl:h-8 text-[#4FC8FF]"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -160,12 +160,12 @@ export default function FilterSidebar({
                             </svg>
                             Categories
                         </h3>
-                        <div className="space-y-2">
+                        <div className="space-y-2 2xl:space-y-3 3xl:space-y-4 4xl:space-y-5">
                             {categories.map((category) => (
                                 <motion.button
                                     key={category.id}
                                     onClick={() => handleFilterToggle('categories', category.id)}
-                                    className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 group ${
+                                    className={`w-full text-left px-4 py-3 2xl:px-6 2xl:py-4 3xl:px-8 3xl:py-5 4xl:px-10 4xl:py-6 rounded-xl 2xl:rounded-2xl 3xl:rounded-3xl transition-all duration-300 group ${
                                         currentFilters.categories.includes(category.id)
                                             ? 'bg-gradient-to-r from-[#4FC8FF]/20 to-[#00D4FF]/10 border border-[#4FC8FF]/30 text-[#4FC8FF]'
                                             : 'bg-gray-800/30 border border-gray-700/50 text-gray-300 hover:text-white hover:border-[#4FC8FF]/30 hover:bg-gray-700/30'
@@ -175,12 +175,12 @@ export default function FilterSidebar({
                                 >
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <span className="font-medium">{category.name}</span>
-                                            <p className="text-xs text-gray-400 mt-0.5">{category.description}</p>
+                                            <span className="font-medium text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl">{category.name}</span>
+                                            <p className="text-xs 2xl:text-sm 3xl:text-base 4xl:text-lg text-gray-400 mt-0.5 2xl:mt-1 3xl:mt-1.5 4xl:mt-2">{category.description}</p>
                                         </div>
                                         {currentFilters.categories.includes(category.id) && (
                                             <motion.div
-                                                className="w-2 h-2 bg-[#4FC8FF] rounded-full"
+                                                className="w-2 h-2 2xl:w-3 2xl:h-3 3xl:w-4 3xl:h-4 4xl:w-5 4xl:h-5 bg-[#4FC8FF] rounded-full"
                                                 initial={{ scale: 0 }}
                                                 animate={{ scale: 1 }}
                                                 transition={{ delay: 0.1 }}
@@ -194,14 +194,14 @@ export default function FilterSidebar({
 
                     {/* Features Filter */}
                     <motion.div
-                        className="mb-6"
+                        className="mb-6 2xl:mb-8 3xl:mb-10 4xl:mb-12"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
                     >
-                        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <h3 className="text-lg 2xl:text-xl 3xl:text-2xl 4xl:text-3xl font-semibold text-white mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10 flex items-center gap-2 2xl:gap-3 3xl:gap-4 4xl:gap-5">
                             <svg
-                                className="w-5 h-5 text-[#4FC8FF]"
+                                className="w-5 h-5 2xl:w-6 2xl:h-6 3xl:w-7 3xl:h-7 4xl:w-8 4xl:h-8 text-[#4FC8FF]"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -215,12 +215,12 @@ export default function FilterSidebar({
                             </svg>
                             Features
                         </h3>
-                        <div className="grid grid-cols-1 gap-2">
+                        <div className="grid grid-cols-1 gap-2 2xl:gap-3 3xl:gap-4 4xl:gap-5">
                             {['Wireless', 'Noise Cancelling', 'Gaming', 'Professional'].map((feature) => (
                                 <motion.button
                                     key={feature}
                                     onClick={() => handleFilterToggle('features', feature)}
-                                    className={`text-left px-4 py-2 rounded-lg transition-all duration-300 ${
+                                    className={`text-left px-4 py-2 2xl:px-6 2xl:py-3 3xl:px-8 3xl:py-4 4xl:px-10 4xl:py-5 rounded-lg 2xl:rounded-xl 3xl:rounded-2xl transition-all duration-300 ${
                                         currentFilters.features.includes(feature)
                                             ? 'bg-[#4FC8FF]/20 border border-[#4FC8FF]/30 text-[#4FC8FF]'
                                             : 'bg-gray-800/30 border border-gray-700/50 text-gray-300 hover:text-white hover:border-[#4FC8FF]/30'
@@ -229,10 +229,10 @@ export default function FilterSidebar({
                                     whileTap={{ scale: 0.98 }}
                                 >
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium">{feature}</span>
+                                        <span className="text-sm 2xl:text-base 3xl:text-lg 4xl:text-xl font-medium">{feature}</span>
                                         {currentFilters.features.includes(feature) && (
                                             <motion.div
-                                                className="w-1.5 h-1.5 bg-[#4FC8FF] rounded-full"
+                                                className="w-1.5 h-1.5 2xl:w-2 2xl:h-2 3xl:w-2.5 3xl:h-2.5 4xl:w-3 4xl:h-3 bg-[#4FC8FF] rounded-full"
                                                 initial={{ scale: 0 }}
                                                 animate={{ scale: 1 }}
                                                 transition={{ delay: 0.1 }}
@@ -248,14 +248,14 @@ export default function FilterSidebar({
                     {hasActiveFilters() && (
                         <motion.button
                             onClick={onClearAll}
-                            className="w-full bg-gradient-to-r from-red-600/20 to-red-500/10 hover:from-red-600/30 hover:to-red-500/20 border border-red-500/30 text-red-400 font-semibold py-3 px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
+                            className="w-full bg-gradient-to-r from-red-600/20 to-red-500/10 hover:from-red-600/30 hover:to-red-500/20 border border-red-500/30 text-red-400 font-semibold py-3 px-4 2xl:py-4 2xl:px-6 3xl:py-5 3xl:px-8 4xl:py-6 4xl:px-10 rounded-xl 2xl:rounded-2xl 3xl:rounded-3xl text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl transition-all duration-300 flex items-center justify-center gap-2 2xl:gap-3 3xl:gap-4 4xl:gap-5"
                             whileHover={{ scale: 1.02, y: -2 }}
                             whileTap={{ scale: 0.98 }}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.4 }}
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 2xl:w-5 2xl:h-5 3xl:w-6 3xl:h-6 4xl:w-7 4xl:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path
                                     strokeLinecap="round"
                                     strokeLinejoin="round"

@@ -29,7 +29,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
         if (isOpen) {
             // Calculate scrollbar width to prevent layout shift
             const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
-            
+
             // Lock body scroll with scrollbar compensation
             document.body.style.overflow = 'hidden';
             document.body.style.paddingRight = `${scrollBarWidth}px`;

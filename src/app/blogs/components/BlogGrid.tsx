@@ -10,7 +10,6 @@ import type { BlogPost } from '@/types/blog';
 import { useHydration } from '@/hooks/useHydration';
 import { formatDateSafe } from '@/utils/dateFormatter';
 
-
 interface BlogGridProps {
     blogs: BlogPost[];
 }
@@ -71,7 +70,7 @@ const BlogGrid = ({ blogs }: BlogGridProps) => {
 
     return (
         <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20 py-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6 gap-6 lg:gap-8 2xl:gap-10 3xl:gap-12 4xl:gap-16">
                 {blogs.map((blog, index) => (
                     <motion.article
                         key={blog.id}
@@ -88,7 +87,10 @@ const BlogGrid = ({ blogs }: BlogGridProps) => {
                             {/* Cover Image - 16:9 Aspect Ratio */}
                             <div className="relative w-full aspect-video overflow-hidden">
                                 <Image
-                                    src={blog.featuredImage || "https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg"}
+                                    src={
+                                        blog.featuredImage ||
+                                        'https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg'
+                                    }
                                     alt={`Ảnh bìa bài viết: ${blog.title}`}
                                     fill
                                     className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -127,7 +129,7 @@ const BlogGrid = ({ blogs }: BlogGridProps) => {
                                 </div>
 
                                 {/* Title */}
-                                <h3 className="text-lg sm:text-xl font-bold text-white mb-3 line-clamp-2 leading-tight group-hover:text-[#4FC8FF] transition-colors duration-300">
+                                <h3 className="text-lg sm:text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl font-bold text-white mb-3 2xl:mb-4 3xl:mb-5 4xl:mb-6 line-clamp-2 leading-tight group-hover:text-[#4FC8FF] transition-colors duration-300">
                                     {blog.title}
                                 </h3>
 
@@ -187,7 +189,7 @@ const BlogGrid = ({ blogs }: BlogGridProps) => {
                                 />
                             </svg>
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-4">Không tìm thấy bài viết</h3>
+                        <h3 className="text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl font-bold text-white mb-4 2xl:mb-5 3xl:mb-6 4xl:mb-7">Không tìm thấy bài viết</h3>
                         <p className="text-gray-400">
                             Hiện tại chưa có bài viết nào trong danh mục này.
                             <br />

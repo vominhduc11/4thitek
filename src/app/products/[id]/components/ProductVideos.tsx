@@ -75,7 +75,9 @@ export default function ProductVideos({ productName }: ProductVideosProps) {
                             </video>
                         </div>
                         <div className="p-4 md:p-6">
-                            <h3 className="text-lg md:text-xl font-bold text-white mb-2">Đánh giá chi tiết {productName}</h3>
+                            <h3 className="text-lg md:text-xl font-bold text-white mb-2">
+                                Đánh giá chi tiết {productName}
+                            </h3>
                             <p className="text-gray-400 mb-4">
                                 Video đánh giá toàn diện về sản phẩm, từ unboxing đến test thực tế
                             </p>
@@ -174,7 +176,9 @@ export default function ProductVideos({ productName }: ProductVideosProps) {
                     </div>
 
                     <div className="bg-gray-900/30 rounded-xl p-4 md:p-6 border border-gray-700/30">
-                        <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4 flex items-center gap-2">💬 User Reviews</h3>
+                        <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4 flex items-center gap-2">
+                            💬 User Reviews
+                        </h3>
                         <p className="text-gray-400 mb-4">Chia sẻ và đánh giá từ người dùng thực tế về sản phẩm</p>
                         <div className="space-y-2">
                             <div className="flex justify-between items-center text-sm">

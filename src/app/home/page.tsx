@@ -1,4 +1,11 @@
-import { FeatureCards, HeroSection, Newsroom, TransitionDivider, FeaturedProducts, FeaturedProductsCarousel } from './components';
+import {
+    FeatureCards,
+    HeroSection,
+    Newsroom,
+    TransitionDivider,
+    FeaturedProducts,
+    FeaturedProductsCarousel
+} from './components';
 
 function Home() {
     return (

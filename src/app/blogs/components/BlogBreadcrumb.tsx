@@ -16,7 +16,16 @@ interface BlogBreadcrumbProps {
     onSortChange: (sort: 'date' | 'popularity' | 'views') => void;
 }
 
-const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filteredCount, searchQuery, onSearchChange, sortBy, onSortChange }: BlogBreadcrumbProps) => {
+const BlogBreadcrumb = ({
+    selectedCategory,
+    onCategoryClick,
+    totalBlogs,
+    filteredCount,
+    searchQuery,
+    onSearchChange,
+    sortBy,
+    onSortChange
+}: BlogBreadcrumbProps) => {
     const categoryList = blogCategories;
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -27,7 +36,7 @@ const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filtere
         { value: 'views', label: 'Xem nhiều nhất', icon: FiEye }
     ];
 
-    const currentSort = sortOptions.find(option => option.value === sortBy) || sortOptions[0];
+    const currentSort = sortOptions.find((option) => option.value === sortBy) || sortOptions[0];
     const CurrentIcon = currentSort.icon;
 
     // Close dropdown when clicking outside
@@ -48,7 +57,7 @@ const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filtere
             return 'BLOG LIST';
         }
         // Find category by slug
-        const category = blogCategories.find(cat => cat.slug === selectedCategory.toLowerCase());
+        const category = blogCategories.find((cat) => cat.slug === selectedCategory.toLowerCase());
         return category ? category.name : selectedCategory;
     };
 
@@ -58,7 +67,7 @@ const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filtere
             return 'Khám phá thế giới công nghệ âm thanh gaming qua các bài viết chuyên sâu và hữu ích. Từ hướng dẫn sử dụng, đánh giá sản phẩm đến những xu hướng công nghệ mới nhất trong ngành.';
         }
         // Find category by slug and return its description
-        const category = blogCategories.find(cat => cat.slug === selectedCategory.toLowerCase());
+        const category = blogCategories.find((cat) => cat.slug === selectedCategory.toLowerCase());
         return category ? category.description : 'Khám phá các bài viết thú vị về công nghệ âm thanh gaming.';
     };
 
@@ -149,14 +158,18 @@ const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filtere
                                                 ? 'text-[#4FC8FF] scale-105 font-semibold'
                                                 : 'text-gray-400 hover:text-white'
                                         }`}
-                                        whileHover={{ scale: selectedCategory === category.slug.toUpperCase() ? 1.05 : 1.1 }}
+                                        whileHover={{
+                                            scale: selectedCategory === category.slug.toUpperCase() ? 1.05 : 1.1
+                                        }}
                                         whileTap={{ scale: 0.95 }}
                                         onClick={() => onCategoryClick(category.slug.toUpperCase())}
                                     >
                                         {category.name.toUpperCase()}
                                         <span
                                             className={`absolute bottom-0 left-0 h-0.5 bg-[#4FC8FF] transition-all duration-300 ${
-                                                selectedCategory === category.slug.toUpperCase() ? 'w-full' : 'w-0 group-hover:w-full'
+                                                selectedCategory === category.slug.toUpperCase()
+                                                    ? 'w-full'
+                                                    : 'w-0 group-hover:w-full'
                                             }`}
                                         ></span>
 
@@ -246,7 +259,9 @@ const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filtere
                                         <CurrentIcon className="w-4 h-4 text-gray-400" />
                                         <span>{currentSort.label}</span>
                                     </div>
-                                    <FiChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                                    <FiChevronDown
+                                        className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
+                                    />
                                 </button>
 
                                 {/* Dropdown Menu */}
@@ -269,14 +284,16 @@ const BlogBreadcrumb = ({ selectedCategory, onCategoryClick, totalBlogs, filtere
                                                         setIsDropdownOpen(false);
                                                     }}
                                                     className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-all duration-200 ${
-                                                        isSelected 
-                                                            ? 'bg-[#4FC8FF]/20 text-[#4FC8FF] border-l-2 border-[#4FC8FF]' 
+                                                        isSelected
+                                                            ? 'bg-[#4FC8FF]/20 text-[#4FC8FF] border-l-2 border-[#4FC8FF]'
                                                             : 'text-white hover:bg-gray-700/50 hover:text-[#4FC8FF]'
                                                     }`}
                                                 >
-                                                    <OptionIcon className={`w-4 h-4 ${
-                                                        isSelected ? 'text-[#4FC8FF]' : 'text-gray-400'
-                                                    }`} />
+                                                    <OptionIcon
+                                                        className={`w-4 h-4 ${
+                                                            isSelected ? 'text-[#4FC8FF]' : 'text-gray-400'
+                                                        }`}
+                                                    />
                                                     <span>{option.label}</span>
                                                     {isSelected && (
                                                         <motion.div

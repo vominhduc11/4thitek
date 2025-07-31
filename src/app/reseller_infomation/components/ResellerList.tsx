@@ -57,7 +57,9 @@ export default function ResellerList({ resellers, onResellerSelect, selectedRese
                             {/* Header */}
                             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 gap-3">
                                 <div className="flex-1">
-                                    <h3 className="text-lg sm:text-xl font-semibold text-white mb-1">{reseller.name}</h3>
+                                    <h3 className="text-lg sm:text-xl font-semibold text-white mb-1">
+                                        {reseller.name}
+                                    </h3>
                                     <div className="flex items-center space-x-4 text-sm text-gray-300">
                                         <div className="flex items-center space-x-1">
                                             <FiStar className="w-4 h-4 text-yellow-400 fill-current" />

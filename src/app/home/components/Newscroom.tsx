@@ -145,169 +145,169 @@ export default function Newsroom() {
             viewport={{ once: true, amount: 0.2 }}
         >
             <div className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20">
-                    {/* Header Section */}
-                    <motion.div
-                        className="text-center text-white z-10 mb-8 sm:mb-10 md:mb-12"
-                        {...animationVariants.header}
+                {/* Header Section */}
+                <motion.div
+                    className="text-center text-white z-10 mb-8 sm:mb-10 md:mb-12"
+                    {...animationVariants.header}
+                    viewport={{ once: true }}
+                >
+                    <motion.h2
+                        className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold font-sans"
+                        whileHover={{ scale: 1.05, color: '#4FC8FF', transition: { duration: 0.3 } }}
+                    >
+                        Newsroom
+                    </motion.h2>
+                    <motion.p
+                        className="mt-2 sm:mt-3 text-sm sm:text-base uppercase tracking-wider font-sans"
+                        {...animationVariants.subtitle}
                         viewport={{ once: true }}
                     >
-                        <motion.h2
-                            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold font-sans"
-                            whileHover={{ scale: 1.05, color: '#4FC8FF', transition: { duration: 0.3 } }}
+                        #RIDING, EXPLORING, ENJOYING
+                    </motion.p>
+                    <motion.span
+                        className="mt-1 sm:mt-2 text-xs sm:text-sm text-white/70 block font-sans"
+                        {...animationVariants.tagline}
+                        viewport={{ once: true }}
+                    >
+                        4T HITEK is here for your Ride...
+                    </motion.span>
+                </motion.div>
+
+                {/* News Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6 z-10 relative">
+                    {newsItems.map((post, index) => (
+                        <motion.div
+                            key={post.id}
+                            className="relative w-full h-64 sm:h-72 md:h-80 bg-black/10 rounded-lg overflow-hidden group cursor-pointer"
+                            variants={animationVariants.newsItem(index)}
+                            initial="initial"
+                            whileInView="animate"
+                            viewport={{ once: true, amount: 0.3 }}
+                            whileHover={{
+                                y: -10,
+                                scale: 1.02,
+                                boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+                                transition: { duration: 0.3 }
+                            }}
+                            onClick={() => handleNewsClick(post.id)}
                         >
-                            Newsroom
-                        </motion.h2>
-                        <motion.p
-                            className="mt-2 sm:mt-3 text-sm sm:text-base uppercase tracking-wider font-sans"
-                            {...animationVariants.subtitle}
-                            viewport={{ once: true }}
-                        >
-                            #RIDING, EXPLORING, ENJOYING
-                        </motion.p>
-                        <motion.span
-                            className="mt-1 sm:mt-2 text-xs sm:text-sm text-white/70 block font-sans"
-                            {...animationVariants.tagline}
-                            viewport={{ once: true }}
-                        >
-                            4T HITEK is here for your Ride...
-                        </motion.span>
-                    </motion.div>
+                            <motion.img
+                                src={post.img || 'https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg'}
+                                alt={post.caption}
+                                className="w-full h-full object-cover"
+                                whileHover={{ scale: 1.1 }}
+                                transition={{ duration: 0.4 }}
+                                loading={index < 3 ? 'eager' : 'lazy'}
+                            />
 
-                    {/* News Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6 z-10 relative">
-                        {newsItems.map((post, index) => (
-                            <motion.div
-                                key={post.id}
-                                className="relative w-full h-64 sm:h-72 md:h-80 bg-black/10 rounded-lg overflow-hidden group cursor-pointer"
-                                variants={animationVariants.newsItem(index)}
-                                initial="initial"
-                                whileInView="animate"
-                                viewport={{ once: true, amount: 0.3 }}
-                                whileHover={{
-                                    y: -10,
-                                    scale: 1.02,
-                                    boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
-                                    transition: { duration: 0.3 }
-                                }}
-                                onClick={() => handleNewsClick(post.id)}
-                            >
-                                <motion.img
-                                    src={post.img || "https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg"}
-                                    alt={post.caption}
-                                    className="w-full h-full object-cover"
-                                    whileHover={{ scale: 1.1 }}
-                                    transition={{ duration: 0.4 }}
-                                    loading={index < 3 ? 'eager' : 'lazy'}
-                                />
-
-                                {/* Overlay Content */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/80 to-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-3 md:p-4">
-                                    {/* Header */}
-                                    <div className="flex justify-between items-start">
-                                        <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-[#4FC8FF] text-white text-xs font-semibold rounded-full">
-                                            {post.category || 'News'}
-                                        </span>
-                                        <span className="text-white/70 text-xs font-medium">
-                                            {post.date || '2024-07-09'}
-                                        </span>
-                                    </div>
-
-                                    {/* Main Content */}
-                                    <div className="flex-1 flex flex-col justify-center space-y-2 my-3">
-                                        <h3 className="text-white font-bold text-xs sm:text-sm md:text-base leading-tight line-clamp-2">
-                                            {post.title || 'Sample Title'}
-                                        </h3>
-                                        <p className="text-white/90 text-xs leading-relaxed line-clamp-3">
-                                            {post.content ||
-                                                'Sample content preview of this article will show here. Add real content.'}
-                                        </p>
-                                    </div>
-
-                                    {/* Footer */}
-                                    <div className="flex justify-between items-end">
-                                        <div className="flex-1 mr-1 sm:mr-2">
-                                            <p className="text-white/70 text-xs leading-tight line-clamp-2">
-                                                {post.caption}
-                                            </p>
-                                        </div>
-                                        <motion.button
-                                            className="p-1.5 sm:p-2 bg-white/20 hover:bg-[#4FC8FF] rounded-full transition-colors duration-300 flex-shrink-0"
-                                            whileHover={{
-                                                scale: 1.2,
-                                                rotate: 45,
-                                                backgroundColor: '#4FC8FF'
-                                            }}
-                                            whileTap={{ scale: 0.9 }}
-                                            transition={{ duration: 0.2 }}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleNewsClick(post.id);
-                                            }}
-                                            aria-label={`Read more about ${post.title}`}
-                                        >
-                                            <FiArrowUpRight size={12} className="sm:w-3.5 sm:h-3.5" color="white" />
-                                        </motion.button>
-                                    </div>
+                            {/* Overlay Content */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/80 to-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-3 md:p-4">
+                                {/* Header */}
+                                <div className="flex justify-between items-start">
+                                    <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-[#4FC8FF] text-white text-xs font-semibold rounded-full">
+                                        {post.category || 'News'}
+                                    </span>
+                                    <span className="text-white/70 text-xs font-medium">
+                                        {post.date || '2024-07-09'}
+                                    </span>
                                 </div>
 
-                                {/* Animated border */}
-                                <motion.div
-                                    className="absolute inset-0 border-2 border-transparent rounded-lg pointer-events-none"
-                                    whileHover={{
-                                        borderColor: '#4FC8FF',
-                                        boxShadow: '0 0 20px rgba(79, 200, 255, 0.3)'
-                                    }}
-                                    transition={{ duration: 0.3 }}
-                                />
+                                {/* Main Content */}
+                                <div className="flex-1 flex flex-col justify-center space-y-2 my-3">
+                                    <h3 className="text-white font-bold text-xs sm:text-sm md:text-base leading-tight line-clamp-2">
+                                        {post.title || 'Sample Title'}
+                                    </h3>
+                                    <p className="text-white/90 text-xs leading-relaxed line-clamp-3">
+                                        {post.content ||
+                                            'Sample content preview of this article will show here. Add real content.'}
+                                    </p>
+                                </div>
 
-                                {/* Reading time indicator */}
-                                <motion.div
-                                    className="absolute top-2 sm:top-3 right-2 sm:right-3 bg-black/60 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                                    initial={{ scale: 0 }}
-                                    whileHover={{ scale: 1 }}
-                                    transition={{ duration: 0.3, delay: 0.2 }}
-                                >
-                                    <span className="text-white text-xs font-medium">2 min read</span>
-                                </motion.div>
-                            </motion.div>
-                        ))}
-                    </div>
+                                {/* Footer */}
+                                <div className="flex justify-between items-end">
+                                    <div className="flex-1 mr-1 sm:mr-2">
+                                        <p className="text-white/70 text-xs leading-tight line-clamp-2">
+                                            {post.caption}
+                                        </p>
+                                    </div>
+                                    <motion.button
+                                        className="p-1.5 sm:p-2 bg-white/20 hover:bg-[#4FC8FF] rounded-full transition-colors duration-300 flex-shrink-0"
+                                        whileHover={{
+                                            scale: 1.2,
+                                            rotate: 45,
+                                            backgroundColor: '#4FC8FF'
+                                        }}
+                                        whileTap={{ scale: 0.9 }}
+                                        transition={{ duration: 0.2 }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleNewsClick(post.id);
+                                        }}
+                                        aria-label={`Read more about ${post.title}`}
+                                    >
+                                        <FiArrowUpRight size={12} className="sm:w-3.5 sm:h-3.5" color="white" />
+                                    </motion.button>
+                                </div>
+                            </div>
 
-                    {/* Explore More Button */}
-                    <motion.div
-                        className="text-center mt-8 sm:mt-10 z-10 relative"
-                        {...animationVariants.button}
-                        viewport={{ once: true }}
-                    >
-                        <motion.button
-                            className="px-6 sm:px-8 py-2 sm:py-3 border border-white text-white hover:bg-white/10 rounded-full transition text-sm sm:text-base font-medium font-sans"
-                            whileHover={{
-                                scale: 1.05,
-                                borderColor: '#4FC8FF',
-                                color: '#4FC8FF',
-                                boxShadow: '0 10px 25px rgba(79, 200, 255, 0.2)'
-                            }}
-                            whileTap={{ scale: 0.95 }}
-                            transition={{ duration: 0.3 }}
-                            onClick={handleExploreMore}
-                            aria-label="Explore more news articles"
-                        >
-                            Explore More
-                        </motion.button>
-                    </motion.div>
-
-                    {/* Background Animated Elements */}
-                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                        {backgroundDots.map((dot) => (
+                            {/* Animated border */}
                             <motion.div
-                                key={dot.id}
-                                className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
-                                style={{ left: dot.left, top: dot.top }}
-                                animate={dot.animate}
-                                transition={dot.transition}
+                                className="absolute inset-0 border-2 border-transparent rounded-lg pointer-events-none"
+                                whileHover={{
+                                    borderColor: '#4FC8FF',
+                                    boxShadow: '0 0 20px rgba(79, 200, 255, 0.3)'
+                                }}
+                                transition={{ duration: 0.3 }}
                             />
-                        ))}
-                    </div>
+
+                            {/* Reading time indicator */}
+                            <motion.div
+                                className="absolute top-2 sm:top-3 right-2 sm:right-3 bg-black/60 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                initial={{ scale: 0 }}
+                                whileHover={{ scale: 1 }}
+                                transition={{ duration: 0.3, delay: 0.2 }}
+                            >
+                                <span className="text-white text-xs font-medium">2 min read</span>
+                            </motion.div>
+                        </motion.div>
+                    ))}
+                </div>
+
+                {/* Explore More Button */}
+                <motion.div
+                    className="text-center mt-8 sm:mt-10 z-10 relative"
+                    {...animationVariants.button}
+                    viewport={{ once: true }}
+                >
+                    <motion.button
+                        className="px-6 sm:px-8 py-2 sm:py-3 border border-white text-white hover:bg-white/10 rounded-full transition text-sm sm:text-base font-medium font-sans"
+                        whileHover={{
+                            scale: 1.05,
+                            borderColor: '#4FC8FF',
+                            color: '#4FC8FF',
+                            boxShadow: '0 10px 25px rgba(79, 200, 255, 0.2)'
+                        }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ duration: 0.3 }}
+                        onClick={handleExploreMore}
+                        aria-label="Explore more news articles"
+                    >
+                        Explore More
+                    </motion.button>
+                </motion.div>
+
+                {/* Background Animated Elements */}
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    {backgroundDots.map((dot) => (
+                        <motion.div
+                            key={dot.id}
+                            className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                            style={{ left: dot.left, top: dot.top }}
+                            animate={dot.animate}
+                            transition={dot.transition}
+                        />
+                    ))}
+                </div>
             </div>
         </motion.section>
     );
