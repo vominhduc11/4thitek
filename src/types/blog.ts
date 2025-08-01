@@ -33,12 +33,18 @@ export interface BlogCategory {
     isVisible?: boolean;
 }
 
+export interface BlogContentBlock {
+    type: 'image' | 'text' | 'title';
+    content?: string;
+    link?: string;
+}
+
 export interface BlogPost {
     id: string;
     title: string;
     slug: string;
     excerpt: string;
-    content: string;
+    content: string | BlogContentBlock[];
     featuredImage: string;
     images?: string[];
     author: BlogAuthor;

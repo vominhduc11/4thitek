@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { getPublishedPosts } from '@/data/blogs';
-import type { BlogPost } from '@/types/blog';
+import type { BlogPost, BlogContentBlock } from '@/types/blog';
 import BlogDetailHero from '@/app/blogs/[id]/components/BlogDetailHero';
 import { useHydration } from '@/hooks/useHydration';
 import { formatDateSafe } from '@/utils/dateFormatter';
@@ -180,7 +180,7 @@ export default function BlogDetailPageImproved() {
                                     {post.excerpt}
                                 </motion.p>
 
-                                {/* Nội dung markdown */}
+                                {/* Nội dung theo cấu trúc mới */}
                                 <motion.div
                                     className="prose prose-invert prose-lg max-w-none"
                                     initial={{ opacity: 0, y: 20 }}
@@ -188,21 +188,56 @@ export default function BlogDetailPageImproved() {
                                     transition={{ duration: 0.8, delay: 0.4 }}
                                     viewport={{ once: true }}
                                 >
-                                    <div
-                                        className="text-gray-300 leading-relaxed"
-                                        dangerouslySetInnerHTML={{
-                                            __html: post.content
-                                                .replace(/\n/g, '<br/>')
-                                                .replace(
-                                                    /##\s/g,
-                                                    '<h2 class="text-2xl font-bold text-white mt-8 mb-4">'
-                                                )
-                                                .replace(
-                                                    /###\s/g,
-                                                    '<h3 class="text-xl font-bold text-white mt-6 mb-3">'
-                                                )
-                                        }}
-                                    />
+                                    {Array.isArray(post.content) ? (
+                                        <div className="space-y-6">
+                                            {post.content.map((block: BlogContentBlock, index: number) => (
+                                                <motion.div
+                                                    key={index}
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    whileInView={{ opacity: 1, y: 0 }}
+                                                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                                                    viewport={{ once: true }}
+                                                >
+                                                    {block.type === 'title' && (
+                                                        <h2 className="text-2xl font-bold text-white mt-8 mb-4">
+                                                            {block.content}
+                                                        </h2>
+                                                    )}
+                                                    {block.type === 'text' && (
+                                                        <p className="text-gray-300 leading-relaxed mb-4">
+                                                            {block.content}
+                                                        </p>
+                                                    )}
+                                                    {block.type === 'image' && block.link && (
+                                                        <div className="relative w-full h-[300px] sm:h-[400px] my-8 rounded-lg overflow-hidden">
+                                                            <Image
+                                                                src={block.link}
+                                                                alt={block.content || 'Blog image'}
+                                                                fill
+                                                                className="object-cover"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div
+                                            className="text-gray-300 leading-relaxed"
+                                            dangerouslySetInnerHTML={{
+                                                __html: post.content
+                                                    .replace(/\n/g, '<br/>')
+                                                    .replace(
+                                                        /##\s/g,
+                                                        '<h2 class="text-2xl font-bold text-white mt-8 mb-4">'
+                                                    )
+                                                    .replace(
+                                                        /###\s/g,
+                                                        '<h3 class="text-xl font-bold text-white mt-6 mb-3">'
+                                                    )
+                                            }}
+                                        />
+                                    )}
                                 </motion.div>
                             </motion.article>
                         </div>
