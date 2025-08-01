@@ -60,24 +60,6 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
             setTimeout(() => {
                 setIsTransitioning(false);
-                const targetSection = document.getElementById('product-details');
-                if (targetSection) {
-                    const headerOffset =
-                        window.innerWidth < 480
-                            ? 250
-                            : window.innerWidth < 640
-                              ? 280
-                              : window.innerWidth < 700
-                                ? 220
-                                : 100;
-                    const elementPosition = targetSection.getBoundingClientRect().top;
-                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-                    window.scrollTo({
-                        top: offsetPosition,
-                        behavior: 'smooth'
-                    });
-                }
             }, 600);
         };
 
@@ -114,60 +96,9 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             setCurrentSection(item.section);
         }, 150);
 
-        // End transition and scroll
+        // End transition without scrolling
         setTimeout(() => {
             setIsTransitioning(false);
-            // Try to find the actual content section title (h2)
-            let targetSection = null;
-
-            // For desktop/tablet, try to find the section title first for better positioning
-            if (window.innerWidth >= 640) {
-                // Tablet and Desktop
-                // Try to find the h2 title element directly
-                const sectionTitles = document.querySelectorAll('.hidden.sm\\:block h2');
-                if (sectionTitles.length > 0) {
-                    targetSection = sectionTitles[0]; // First h2 in desktop layout
-                } else {
-                    // Fallback to container
-                    targetSection = document.querySelector('.hidden.sm\\:block .container.mx-auto.px-4');
-                    if (!targetSection) {
-                        targetSection = document.querySelector('.ml-20 .container.mx-auto');
-                    }
-                }
-            } else {
-                // Mobile
-                targetSection = document.getElementById('product-details');
-            }
-
-            // Fallback to original selector
-            if (!targetSection) {
-                targetSection = document.getElementById('product-details');
-            }
-
-            console.log('Target section found:', targetSection);
-
-            if (targetSection) {
-                // Điều chỉnh offset dựa trên kích thước màn hình (mobile có offset cao hơn để tránh hero buttons)
-                const headerOffset =
-                    window.innerWidth < 480 ? 250 : window.innerWidth < 640 ? 280 : window.innerWidth < 700 ? 220 : 100;
-
-                const elementPosition = targetSection.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-                // Force scroll with smooth behavior
-                try {
-                    window.scrollTo({
-                        top: offsetPosition,
-                        behavior: 'smooth'
-                    });
-                } catch {
-                    // Fallback for older browsers
-                    console.log('Smooth scroll failed, using instant scroll');
-                    window.scrollTo(0, offsetPosition);
-                }
-            } else {
-                console.log('Target section not found');
-            }
         }, 600);
     };
 
@@ -325,7 +256,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                             handleBreadcrumbClick(selectedItem);
                                         }
                                     }}
-                                    className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent appearance-none cursor-pointer"
+                                    className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 xs:px-4 xs:py-3 sm:px-5 sm:py-3.5 text-white text-xs xs:text-sm sm:text-base md:text-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent appearance-none cursor-pointer"
                                     aria-label="Select section"
                                 >
                                     {breadcrumbItems.map((item) => (
@@ -379,7 +310,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                     </motion.div>
                                 )}
                             </AnimatePresence>
-                            <div className="px-4 overflow-hidden -mt-24 xs:-mt-28">
+                            <div className="overflow-hidden -mt-20 xs:-mt-22 sm:-mt-24 md:-mt-28 lg:-mt-32 xl:-mt-36 2xl:-mt-40 3xl:-mt-44 4xl:-mt-48">
                                 <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
                             </div>
                         </div>
@@ -419,7 +350,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                 </motion.div>
                             )}
                         </AnimatePresence>
-                        <div className="overflow-hidden -mt-16 md:-mt-20 px-4 md:px-6">
+                        <div className="overflow-hidden -mt-12 sm:-mt-14 md:-mt-16 lg:-mt-20 xl:-mt-24 2xl:-mt-28 3xl:-mt-32 4xl:-mt-36">
                             <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
                         </div>
                     </div>
@@ -458,7 +389,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                 </motion.div>
                             )}
                         </AnimatePresence>
-                        <div className="overflow-hidden -mt-32 lg:-mt-48 xl:-mt-48 px-6 lg:px-8">
+                        <div className="overflow-hidden -mt-24 sm:-mt-28 md:-mt-32 lg:-mt-40 xl:-mt-48 2xl:-mt-56 3xl:-mt-64 4xl:-mt-72">
                             <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
                         </div>
                     </div>

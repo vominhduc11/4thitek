@@ -91,18 +91,18 @@ export default function ProductDetails({ features, highlights, description, cont
             case 'title':
                 return (
                     <div key={index} className="w-full">
-                        <h3 className="text-xl md:text-2xl lg:text-3xl font-bold text-white mb-4">{item.content}</h3>
+                        <h3 className="text-lg md:text-xl lg:text-2xl xl:text-3xl 2xl:text-4xl 3xl:text-5xl 4xl:text-6xl font-bold text-white mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10">{item.content}</h3>
                     </div>
                 );
             case 'list_text':
                 return (
                     <div key={index} className="text-justify">
-                        <ul className="space-y-3 list-disc list-inside text-gray-300 leading-relaxed">
+                        <ul className="space-y-3 2xl:space-y-4 3xl:space-y-5 4xl:space-y-6 list-disc list-inside text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl leading-relaxed">
                             {item.content
                                 ?.split('\n')
                                 .filter((line) => line.trim())
                                 .map((line, lineIndex) => (
-                                    <li key={lineIndex} className="pl-2">
+                                    <li key={lineIndex} className="pl-2 2xl:pl-3 3xl:pl-4 4xl:pl-5 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl">
                                         {line.trim()}
                                     </li>
                                 ))}
@@ -112,7 +112,7 @@ export default function ProductDetails({ features, highlights, description, cont
             case 'image':
                 return (
                     <div key={index} className="w-full">
-                        <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 h-192 overflow-hidden">
+                        <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 h-48 sm:h-56 md:h-64 lg:h-80 xl:h-96 overflow-hidden">
                             <Image
                                 src={item.link || '/products/product1.png'}
                                 alt="Product image"
@@ -133,7 +133,7 @@ export default function ProductDetails({ features, highlights, description, cont
             case 'text':
                 return (
                     <div key={index} className="text-justify">
-                        <p className="text-gray-300 leading-relaxed">{item.content}</p>
+                        <p className="text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl leading-relaxed">{item.content}</p>
                     </div>
                 );
             default:
@@ -142,25 +142,25 @@ export default function ProductDetails({ features, highlights, description, cont
     };
     return (
         <section className="relative z-[150] min-h-screen">
-            <div className="container mx-auto max-w-8xl px-4 relative py-8 pt-8 md:pt-16 z-[200]">
-                <h2 className="text-2xl md:text-3xl lg:text-3xl font-bold mb-6 md:mb-8 text-white">
+            <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-[200]">
+                <h2 className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl 3xl:text-7xl 4xl:text-8xl font-bold mb-6 md:mb-8 2xl:mb-10 3xl:mb-12 4xl:mb-16 text-white">
                     TÍNH NĂNG NỔI BẬT
                 </h2>
 
                 {/* Top row - 3 cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-12">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 2xl:grid-cols-3 3xl:grid-cols-3 4xl:grid-cols-3 gap-4 md:gap-6 2xl:gap-8 3xl:gap-10 4xl:gap-12 mb-8 md:mb-12 2xl:mb-16 3xl:mb-20 4xl:mb-24">
                     {(features.length > 0 ? features : demoFeatures).map((feature, index) => (
                         <div
                             key={index}
-                            className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-2xl"
+                            className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-6 2xl:p-8 3xl:p-10 4xl:p-12 border border-gray-700/50 shadow-2xl"
                         >
                             <div className="mb-4">
-                                <span className="text-4xl font-bold text-blue-400">{feature.title}</span>
+                                <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl 3xl:text-7xl 4xl:text-8xl font-bold text-blue-400">{feature.title}</span>
                                 {feature.subtitle && (
-                                    <h3 className="text-lg font-semibold text-blue-400 mt-2">{feature.subtitle}</h3>
+                                    <h3 className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl font-semibold text-blue-400 mt-2 2xl:mt-3 3xl:mt-4 4xl:mt-6">{feature.subtitle}</h3>
                                 )}
                             </div>
-                            <p className="text-gray-400 text-sm leading-relaxed">{feature.description}</p>
+                            <p className="text-gray-400 text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl leading-relaxed">{feature.description}</p>
                         </div>
                     ))}
                 </div>
@@ -191,7 +191,7 @@ export default function ProductDetails({ features, highlights, description, cont
                             <>
                                 {/* Fallback to original content */}
                                 <div className="w-full">
-                                    <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 h-192 overflow-hidden">
+                                    <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 h-48 sm:h-56 md:h-64 lg:h-80 xl:h-96 overflow-hidden">
                                         <Image
                                             src="/products/product1.png"
                                             alt="Tai nghe Bluetooth intercom cho mũ bảo hiểm"
@@ -216,15 +216,15 @@ export default function ProductDetails({ features, highlights, description, cont
                                 </div>
 
                                 <div className="space-y-6 text-justify">
-                                    <p className="text-gray-300 text-lg leading-relaxed">{description}</p>
-                                    <p className="text-gray-300 leading-relaxed">
+                                    <p className="text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl leading-relaxed">{description}</p>
+                                    <p className="text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl leading-relaxed">
                                         Tai nghe mũ bảo hiểm Bluetooth Intercom SCS S-9 là thiết bị liên lạc không dây
                                         hiện đại, được thiết kế đặc biệt cho người đi xe máy, mô tô và những người yêu
                                         thích phượt. Với khả năng kết nối Bluetooth, thiết bị cho phép người dùng giao
                                         tiếp với nhau trong khoảng cách lên đến 1000m, nghe nhạc, nhận cuộc gọi và điều
                                         khiển bằng giọng nói.
                                     </p>
-                                    <p className="text-gray-300 leading-relaxed">
+                                    <p className="text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl leading-relaxed">
                                         Sản phẩm được trang bị công nghệ khử tiếng ồn tiên tiến, đảm bảo chất lượng âm
                                         thanh rõ ràng ngay cả khi di chuyển ở tốc độ cao. Pin lithium dung lượng cao cho
                                         thời gian sử dụng lên đến 12 giờ đàm thoại liên tục hoặc 8 giờ khi vừa đàm thoại
