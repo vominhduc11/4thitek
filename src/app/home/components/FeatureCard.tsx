@@ -349,7 +349,7 @@ export default function FeatureCards() {
                 transition={{ duration: 0.8 }}
                 viewport={{ once: true, amount: 0.2 }}
             >
-                <div className="sidebar-aware-container pl-8 pr-8">
+                <div className="sidebar-aware-container pl-1 sm:pl-2 md:pl-2 lg:pl-3 xl:pl-4 2xl:pl-6 pr-1 sm:pr-2 md:pr-2 lg:pr-3 xl:pr-4 2xl:pr-6">
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
                         {featureCards.map((card, index) => renderCard(card, index))}
                     </div>

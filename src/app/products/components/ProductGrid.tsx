@@ -76,16 +76,17 @@ export default function ProductGrid({ products }: ProductGridProps) {
                 }}
                 className="relative w-full"
             >
-                <motion.div
-                    className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-all duration-500 cursor-pointer group overflow-hidden h-[600px] sm:h-[480px] md:h-[480px] 2xl:h-[650px] 3xl:h-[700px] 4xl:h-[750px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/30 shadow-lg hover:shadow-2xl hover:shadow-[#4FC8FF]/10"
-                    onMouseEnter={() => setHoveredProductId(product.id)}
-                    onMouseLeave={() => setHoveredProductId(null)}
-                    whileHover={{
-                        y: -5,
-                        boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-                        transition: { duration: 0.3 }
-                    }}
-                >
+                <Link href={`/products/${product.id}`}>
+                    <motion.div
+                        className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-all duration-500 cursor-pointer group overflow-hidden h-[600px] sm:h-[480px] md:h-[480px] 2xl:h-[650px] 3xl:h-[700px] 4xl:h-[750px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/30 shadow-lg hover:shadow-2xl hover:shadow-[#4FC8FF]/10"
+                        onMouseEnter={() => setHoveredProductId(product.id)}
+                        onMouseLeave={() => setHoveredProductId(null)}
+                        whileHover={{
+                            y: -5,
+                            boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                            transition: { duration: 0.3 }
+                        }}
+                    >
                     {hoveredProductId === product.id && (
                         <motion.video
                             src="/videos/futuristic-background-2022-08-04-19-57-56-utc.mp4"
@@ -142,7 +143,6 @@ export default function ProductGrid({ products }: ProductGridProps) {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.3 + index * 0.05 }}
                     >
-                        <Link href={`/products/${product.id}`}>
                             <motion.h3
                                 className="text-white font-bold text-lg sm:text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl mb-3 font-sans h-[3rem] 2xl:h-[3.5rem] 3xl:h-[4rem] 4xl:h-[4.5rem] flex items-center cursor-pointer"
                                 whileHover={{
@@ -153,7 +153,6 @@ export default function ProductGrid({ products }: ProductGridProps) {
                             >
                                 <span className="line-clamp-2">{product.name}</span>
                             </motion.h3>
-                        </Link>
                         <p className="text-gray-300 text-sm 2xl:text-base 3xl:text-lg 4xl:text-xl leading-relaxed mb-4 font-sans line-clamp-2 h-[2.5rem] 2xl:h-[3rem] 3xl:h-[3.5rem] 4xl:h-[4rem] flex-shrink-0">
                             {product.description}
                         </p>
@@ -161,7 +160,6 @@ export default function ProductGrid({ products }: ProductGridProps) {
                         <div className="flex-grow"></div>
 
                         <div className="flex justify-end">
-                            <Link href={`/products/${product.id}`}>
                                 <motion.div
                                     whileHover={{
                                         scale: 1.15,
@@ -179,17 +177,17 @@ export default function ProductGrid({ products }: ProductGridProps) {
                                         )}
                                     />
                                 </motion.div>
-                            </Link>
                         </div>
                     </motion.div>
 
-                    <motion.div
-                        className="absolute inset-0 border-2 border-transparent group-hover:border-[#4FC8FF]/40 transition-all duration-500 pointer-events-none"
-                        whileHover={{
-                            boxShadow: 'inset 0 0 30px rgba(79, 200, 255, 0.15), 0 0 40px rgba(79, 200, 255, 0.1)'
-                        }}
-                    />
-                </motion.div>
+                        <motion.div
+                            className="absolute inset-0 border-2 border-transparent group-hover:border-[#4FC8FF]/40 transition-all duration-500 pointer-events-none"
+                            whileHover={{
+                                boxShadow: 'inset 0 0 30px rgba(79, 200, 255, 0.15), 0 0 40px rgba(79, 200, 255, 0.1)'
+                            }}
+                        />
+                    </motion.div>
+                </Link>
             </motion.div>
         );
     };

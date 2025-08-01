@@ -284,7 +284,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                             </motion.ul>
 
                             <motion.div
-                                className="absolute bottom-6 sm:bottom-8 right-4 sm:right-6 opacity-20 hidden sm:block"
+                                className="absolute bottom-[4.5rem] sm:bottom-20 right-4 sm:right-6 opacity-20 hidden sm:block"
                                 initial={{ opacity: 0, rotate: 0 }}
                                 animate={{ opacity: 0.2, rotate: 90 }}
                                 transition={{ delay: 0.8, duration: 0.5 }}

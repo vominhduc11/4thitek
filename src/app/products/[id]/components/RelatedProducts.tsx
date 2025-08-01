@@ -75,13 +75,13 @@ export default function RelatedProducts({ products }: RelatedProductsProps) {
                             </div>
 
                             {/* Product Image */}
-                            <div className="flex justify-center items-center py-4 sm:py-6 lg:py-8 flex-1">
+                            <div className="flex justify-center items-center py-4 sm:py-6 lg:py-8 flex-1 relative z-30">
                                 <Image
                                     src="/products/product1.png"
                                     alt={product.name}
                                     width={300}
                                     height={300}
-                                    className="w-[180px] h-[180px] sm:w-[220px] sm:h-[220px] lg:w-[200px] lg:h-[200px] xl:w-[250px] xl:h-[250px] 2xl:w-[300px] 2xl:h-[300px] 3xl:w-[350px] 3xl:h-[350px] 4xl:w-[400px] 4xl:h-[400px] object-contain"
+                                    className="w-[180px] h-[180px] sm:w-[220px] sm:h-[220px] lg:w-[200px] lg:h-[200px] xl:w-[250px] xl:h-[250px] 2xl:w-[300px] 2xl:h-[300px] 3xl:w-[350px] 3xl:h-[350px] 4xl:w-[400px] 4xl:h-[400px] object-contain relative z-30"
                                     sizes="(max-width: 640px) 180px, (max-width: 1024px) 220px, (max-width: 1280px) 200px, (max-width: 1536px) 250px, (max-width: 1792px) 300px, (max-width: 2048px) 350px, 400px"
                                     onError={(e) => {
                                         const target = e.target as HTMLImageElement;
