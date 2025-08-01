@@ -110,7 +110,7 @@ export default function ProductHero({
                 boundingRect: heroBreadcrumb.getBoundingClientRect()
             });
 
-            let stickyBreadcrumb = null;
+            let stickyBreadcrumb: HTMLElement | null = null;
             let isVisible = false;
 
             const createStickyElement = () => {
@@ -218,7 +218,7 @@ export default function ProductHero({
                 });
             };
 
-            const updateStickyActiveState = (activeLabel) => {
+            const updateStickyActiveState = (activeLabel: string) => {
                 if (!stickyBreadcrumb) return;
                 
                 const buttons = stickyBreadcrumb.querySelectorAll('button');
@@ -301,7 +301,7 @@ export default function ProductHero({
             handleScroll();
 
             // Store update function for external access
-            window.updateStickyBreadcrumb = updateStickyActiveState;
+            Object.assign(window, { updateStickyBreadcrumb: updateStickyActiveState });
 
             return () => {
                 window.removeEventListener('scroll', handleScroll);
@@ -309,7 +309,7 @@ export default function ProductHero({
                 if (stickyBreadcrumb) {
                     stickyBreadcrumb.remove();
                 }
-                delete window.updateStickyBreadcrumb;
+                delete (window as unknown as Record<string, unknown>)['updateStickyBreadcrumb'];
             };
         };
 
@@ -318,8 +318,9 @@ export default function ProductHero({
 
     // Update sticky breadcrumb when activeBreadcrumb changes
     useEffect(() => {
-        if (window.updateStickyBreadcrumb && activeBreadcrumb) {
-            window.updateStickyBreadcrumb(activeBreadcrumb);
+        const updateFn = (window as unknown as Record<string, unknown>)['updateStickyBreadcrumb'];
+        if (updateFn && typeof updateFn === 'function' && activeBreadcrumb) {
+            (updateFn as (label: string) => void)(activeBreadcrumb);
         }
     }, [activeBreadcrumb]);
 
