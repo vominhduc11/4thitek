@@ -13,14 +13,12 @@ export default function ContactPage() {
 
             {/* Main Content */}
             <section className="bg-[#0c131d] text-white pt-8 pb-16">
-                <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20">
-                    <div className="px-4 sm:px-12 md:px-16 lg:px-20">
-                        {/* Contact Info Cards */}
-                        <ContactInfo />
+                <div className="ml-16 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
+                    {/* Contact Info Cards */}
+                    <ContactInfo />
 
-                        {/* Contact Form and Map */}
-                        <ContactForm />
-                    </div>
+                    {/* Contact Form and Map */}
+                    <ContactForm />
                 </div>
             </section>
         </div>

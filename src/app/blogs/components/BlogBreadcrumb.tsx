@@ -1,9 +1,9 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { FiSearch, FiFilter, FiClock, FiTrendingUp, FiEye, FiChevronDown } from 'react-icons/fi';
+import { FiSearch } from 'react-icons/fi';
 import { blogCategories } from '@/data/blogs';
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface BlogBreadcrumbProps {
     selectedCategory: string;
@@ -12,8 +12,6 @@ interface BlogBreadcrumbProps {
     filteredCount: number;
     searchQuery: string;
     onSearchChange: (query: string) => void;
-    sortBy: 'date' | 'popularity' | 'views';
-    onSortChange: (sort: 'date' | 'popularity' | 'views') => void;
 }
 
 const BlogBreadcrumb = ({
@@ -22,28 +20,18 @@ const BlogBreadcrumb = ({
     totalBlogs,
     filteredCount,
     searchQuery,
-    onSearchChange,
-    sortBy,
-    onSortChange
+    onSearchChange
 }: BlogBreadcrumbProps) => {
     const categoryList = blogCategories;
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    const sortOptions = [
-        { value: 'date', label: 'Mới nhất', icon: FiClock },
-        { value: 'popularity', label: 'Phổ biến nhất', icon: FiTrendingUp },
-        { value: 'views', label: 'Xem nhiều nhất', icon: FiEye }
-    ];
-
-    const currentSort = sortOptions.find((option) => option.value === sortBy) || sortOptions[0];
-    const CurrentIcon = currentSort.icon;
+    // Sort functionality can be added later if needed
 
     // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsDropdownOpen(false);
+                // Dropdown functionality can be added here if needed
             }
         };
 
@@ -64,16 +52,16 @@ const BlogBreadcrumb = ({
     // Get category-specific description
     const getCategoryDescription = () => {
         if (selectedCategory === 'ALL') {
-            return 'Khám phá thế giới công nghệ âm thanh gaming qua các bài viết chuyên sâu và hữu ích. Từ hướng dẫn sử dụng, đánh giá sản phẩm đến những xu hướng công nghệ mới nhất trong ngành.';
+            return '';
         }
         // Find category by slug and return its description
         const category = blogCategories.find((cat) => cat.slug === selectedCategory.toLowerCase());
-        return category ? category.description : 'Khám phá các bài viết thú vị về công nghệ âm thanh gaming.';
+        return category ? category.description : '';
     };
 
     return (
-        <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 -mt-16 sm:-mt-20 lg:-mt-24 relative z-20 py-6 sm:py-8 lg:py-10">
-            <div className="px-4 sm:px-12 md:px-16 lg:px-20">
+        <div className="ml-16 sm:ml-20 -mt-16 sm:-mt-20 lg:-mt-24 relative z-20 py-6 sm:py-8 lg:py-10">
+            <div className="px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -119,15 +107,21 @@ const BlogBreadcrumb = ({
                     >
                         {/* Decorative horizontal line */}
                         <motion.div
-                            className="absolute -left-20 -right-20 top-1/2 h-px bg-gradient-to-r from-gray-500/40 via-gray-500/70 to-gray-500/40 z-0"
+                            className="absolute top-1/2 h-px bg-gradient-to-r from-gray-500/40 via-gray-500/70 to-gray-500/40 z-0"
                             initial={{ scaleX: 0, opacity: 0 }}
                             animate={{ scaleX: 1, opacity: 1 }}
                             transition={{ duration: 1.2, delay: 0.8 }}
-                            style={{ transform: 'translateY(-0.5px)' }}
+                            style={{ 
+                                transform: 'translateY(-0.5px)',
+                                left: '-5rem',
+                                right: '0',
+                                width: '100vw'
+                            }}
                         />
 
                         {/* Breadcrumb / Category Navigation */}
-                        <div className="flex items-center space-x-1 text-sm font-sans uppercase tracking-wider bg-[#0c131d] pr-4 relative z-10">
+                        <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center space-x-1 text-sm font-sans uppercase tracking-wider bg-[#0c131d] px-6 relative z-10">
                             <motion.button
                                 className={`font-medium relative pb-1 border-b-2 transition-all duration-300 ${
                                     selectedCategory === 'ALL'
@@ -185,6 +179,26 @@ const BlogBreadcrumb = ({
                                     </motion.button>
                                 </div>
                             ))}
+                            </div>
+                            
+                            {/* Search Bar Desktop - Same Level as Breadcrumb */}
+                            <motion.div
+                                className="hidden xl:block bg-[#0c131d] pl-6 relative z-10"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.6, delay: 0.5 }}
+                            >
+                                <div className="relative w-64 xl:w-80 2xl:w-96">
+                                    <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                    <input
+                                        type="text"
+                                        placeholder="Tìm kiếm bài viết..."
+                                        value={searchQuery}
+                                        onChange={(e) => onSearchChange(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#4FC8FF] focus:bg-gray-800/70 transition-all duration-300"
+                                    />
+                                </div>
+                            </motion.div>
                         </div>
                     </motion.div>
 
@@ -223,90 +237,26 @@ const BlogBreadcrumb = ({
                                 </motion.button>
                             ))}
                         </div>
+
                     </motion.div>
 
-                    {/* Search and Sort Controls */}
+                    {/* Search Bar for mobile/tablet only */}
                     <motion.div
-                        className="mt-6 space-y-3 sm:space-y-0 sm:flex sm:justify-between sm:items-center"
+                        className="block xl:hidden mt-6 md:ml-20"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.5 }}
                     >
-                        {/* Search Bar - Full width on mobile */}
-                        <div className="relative w-full sm:max-w-md">
-                            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                            <input
-                                type="text"
-                                placeholder="Tìm kiếm bài viết..."
-                                value={searchQuery}
-                                onChange={(e) => onSearchChange(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#4FC8FF] focus:bg-gray-800/70 transition-all duration-300"
-                            />
-                        </div>
-
-                        {/* Mobile: Icon + Sort in one row */}
-                        <div className="flex items-center gap-3 sm:gap-3">
-                            <div className="flex items-center justify-center w-10 h-10 bg-gray-800/50 border border-gray-700 rounded-lg sm:bg-transparent sm:border-0 sm:w-auto sm:h-auto">
-                                <FiFilter className="text-gray-400 w-5 h-5" />
-                            </div>
-                            {/* Custom Dropdown */}
-                            <div ref={dropdownRef} className="relative flex-1 sm:flex-none sm:min-w-[140px]">
-                                <button
-                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                    className="w-full flex items-center justify-between gap-2 bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-[#4FC8FF] hover:bg-gray-800/70 transition-all duration-300 cursor-pointer"
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <CurrentIcon className="w-4 h-4 text-gray-400" />
-                                        <span>{currentSort.label}</span>
-                                    </div>
-                                    <FiChevronDown
-                                        className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
-                                    />
-                                </button>
-
-                                {/* Dropdown Menu */}
-                                {isDropdownOpen && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-50 overflow-hidden"
-                                    >
-                                        {sortOptions.map((option) => {
-                                            const OptionIcon = option.icon;
-                                            const isSelected = sortBy === option.value;
-                                            return (
-                                                <button
-                                                    key={option.value}
-                                                    onClick={() => {
-                                                        onSortChange(option.value as 'date' | 'popularity' | 'views');
-                                                        setIsDropdownOpen(false);
-                                                    }}
-                                                    className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-all duration-200 ${
-                                                        isSelected
-                                                            ? 'bg-[#4FC8FF]/20 text-[#4FC8FF] border-l-2 border-[#4FC8FF]'
-                                                            : 'text-white hover:bg-gray-700/50 hover:text-[#4FC8FF]'
-                                                    }`}
-                                                >
-                                                    <OptionIcon
-                                                        className={`w-4 h-4 ${
-                                                            isSelected ? 'text-[#4FC8FF]' : 'text-gray-400'
-                                                        }`}
-                                                    />
-                                                    <span>{option.label}</span>
-                                                    {isSelected && (
-                                                        <motion.div
-                                                            initial={{ scale: 0 }}
-                                                            animate={{ scale: 1 }}
-                                                            className="ml-auto w-2 h-2 bg-[#4FC8FF] rounded-full"
-                                                        />
-                                                    )}
-                                                </button>
-                                            );
-                                        })}
-                                    </motion.div>
-                                )}
+                        <div className="flex justify-center sm:justify-center md:justify-end md:pl-8 lg:pl-12">
+                            <div className="relative w-full sm:w-full md:w-64 lg:w-80">
+                                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                <input
+                                    type="text"
+                                    placeholder="Tìm kiếm bài viết..."
+                                    value={searchQuery}
+                                    onChange={(e) => onSearchChange(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#4FC8FF] focus:bg-gray-800/70 transition-all duration-300"
+                                />
                             </div>
                         </div>
                     </motion.div>

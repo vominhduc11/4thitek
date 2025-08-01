@@ -54,7 +54,7 @@ export default function ProductVideos({ productName }: ProductVideosProps) {
 
     return (
         <section id="product-details" className="relative z-[60] min-h-screen">
-            <div className="container mx-auto max-w-8xl relative py-8 pt-16 z-[70]">
+            <div className="container mx-auto max-w-8xl px-4 relative py-8 pt-8 md:pt-16 z-[70]">
                 <h2 className="text-2xl md:text-3xl lg:text-3xl font-bold mb-6 md:mb-8 text-white">VIDEO GALLERY</h2>
 
                 {/* Featured Video */}

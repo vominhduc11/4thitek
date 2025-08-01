@@ -184,7 +184,7 @@ export default function ProductHero({
 
                         // Create clean content structure
                         const containerDiv = document.createElement('div');
-                        containerDiv.className = 'container mx-auto max-w-6xl lg:max-w-5xl px-4';
+                        containerDiv.className = 'container mx-auto max-w-8xl px-4';
 
                         const nav = document.createElement('nav');
                         nav.className = 'flex justify-center items-center space-x-6 text-sm relative z-20';
@@ -495,7 +495,7 @@ export default function ProductHero({
             </div>
 
             {/* Main Content Area with Product Image */}
-            <div className="relative z-10 container mx-auto px-4 text-center -mt-16 sm:-mt-24 md:-mt-28 lg:-mt-32">
+            <div className="relative z-10 container mx-auto max-w-8xl px-4 text-center -mt-16 sm:-mt-24 md:-mt-28 lg:-mt-32">
                 {/* Product Image with Navigation */}
                 <div className="flex items-center justify-center h-full px-4">
                     <div className="grid grid-cols-1 lg:grid-cols-3 items-center w-full max-w-3xl xl:max-w-5xl lg:gap-1 xl:gap-8">
@@ -636,7 +636,7 @@ export default function ProductHero({
 
                         {/* Action Buttons - Mobile and Tablet only */}
                         <motion.div
-                            className="flex justify-center gap-4 mt-6 md:-mt-3 lg:hidden"
+                            className="flex justify-center gap-4 -mt-2 md:-mt-3 lg:hidden landscape:-mt-6 landscape:md:-mt-10"
                             variants={{
                                 hidden: { opacity: 0, y: 20 },
                                 visible: {
@@ -727,7 +727,7 @@ export default function ProductHero({
                             delay: 0.8
                         }}
                     >
-                        <div className="container mx-auto max-w-6xl lg:max-w-5xl px-4 relative">
+                        <div className="container mx-auto max-w-[1800px] px-4 relative">
                             {/* Left line segment with gradient */}
                             <motion.div
                                 className="absolute top-1/2 left-4 h-px z-5"

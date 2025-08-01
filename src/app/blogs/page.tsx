@@ -15,7 +15,7 @@ function BlogPageContent() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(9); // 3x3 grid
     const [searchQuery, setSearchQuery] = useState('');
-    const [sortBy, setSortBy] = useState<'date' | 'popularity' | 'views'>('date');
+    const [sortBy] = useState<'date' | 'popularity' | 'views'>('date');
 
     // Get URL parameters
     const searchParams = useSearchParams();
@@ -104,7 +104,7 @@ function BlogPageContent() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0c131d] text-white flex flex-col">
+        <div className="min-h-screen bg-[#0c131d] text-white flex flex-col overflow-x-hidden">
             {/* Hero Video Section */}
             <BlogHero />
 
@@ -116,8 +116,6 @@ function BlogPageContent() {
                 filteredCount={totalItems}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
-                sortBy={sortBy}
-                onSortChange={setSortBy}
             />
 
             {/* Blog Grid */}

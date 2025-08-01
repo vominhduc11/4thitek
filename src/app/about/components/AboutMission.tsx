@@ -28,7 +28,7 @@ export default function AboutMission() {
 
     return (
         <section className="bg-[#0c131d] py-12 sm:py-16">
-            <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-4 sm:px-12 md:px-16 lg:px-20">
+            <div className="ml-16 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
                     {/* Image Section */}
                     <motion.div

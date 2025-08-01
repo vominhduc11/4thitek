@@ -15,7 +15,7 @@ function ProductsPageContent() {
             <ProductsSimpleHeader />
 
             {/* Main Content */}
-            <main className="ml-16 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20 py-8 flex justify-center">
+            <main className="ml-16 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 py-8 flex justify-center">
                 <div className="w-full max-w-none">
                     <ProductGrid products={products.slice(0, 10)} />
                 </div>

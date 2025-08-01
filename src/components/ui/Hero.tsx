@@ -39,7 +39,7 @@ export default function Hero({ breadcrumbItems = [] }: HeroProps) {
 
             {/* Breadcrumb - Aligned with content below */}
             {breadcrumbItems.length > 0 && (
-                <div className="absolute bottom-8 xs:bottom-10 sm:bottom-12 left-[80px] sm:left-[128px] md:left-[144px] lg:left-[160px] 2xl:left-[192px] 3xl:left-[224px] 4xl:left-[256px] z-[110]">
+                <div className="absolute bottom-8 xs:bottom-10 sm:bottom-12 left-20 sm:left-26 md:left-28 lg:left-32 xl:left-36 2xl:left-40 z-[110]">
                     <Breadcrumb items={breadcrumbItems} />
                 </div>
             )}

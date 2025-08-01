@@ -3,7 +3,7 @@
 export default function ProductSpecifications() {
     return (
         <section id="product-details" className="relative z-[60]">
-            <div className="container mx-auto max-w-8xl relative py-4 pb-2 pt-8 z-[70]">
+            <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 z-[70]">
                 <h2 className="text-2xl md:text-3xl lg:text-3xl font-bold mb-4 md:mb-6 text-white">
                     THÔNG SỐ KỸ THUẬT
                 </h2>

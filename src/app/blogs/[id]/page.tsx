@@ -78,7 +78,7 @@ export default function BlogDetailPageImproved() {
             {/* 1. Thanh tiêu đề bài viết (Post Header) */}
             <section className="bg-[#0c131d] w-full -mt-16 pt-16 pb-8">
                 {/* Sử dụng cùng layout như các trang khác */}
-                <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-4 sm:px-12 md:px-16 lg:px-20">
+                <div className="ml-16 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
                     {/* Tiêu đề */}
                     <motion.h1
                         className="text-white text-2xl sm:text-3xl lg:text-4xl font-bold text-left mb-4"
@@ -136,7 +136,7 @@ export default function BlogDetailPageImproved() {
             {/* 2. Hình ảnh minh họa chính (Hero Image nhỏ) */}
             <section className="bg-[#0c131d] pb-8">
                 {/* Container có margin cho sidebar */}
-                <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20">
+                <div className="ml-16 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
                     <motion.div
                         className="relative w-full h-[330px] sm:h-[430px] lg:h-[530px] overflow-hidden"
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -158,7 +158,7 @@ export default function BlogDetailPageImproved() {
 
             {/* 3. Bố cục chính (Main Layout) */}
             <section className="bg-[#0c131d] py-12">
-                <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-4 sm:px-12 md:px-16 lg:px-20">
+                <div className="ml-16 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
                     <div className="grid grid-cols-1 lg:grid-cols-10 gap-8">
                         {/* 3.1. Cột Nội dung (Left Column, chiếm ~70%) */}
                         <div className="lg:col-span-7">

@@ -21,7 +21,7 @@ export default function RelatedProducts({ products }: RelatedProductsProps) {
 
     return (
         <section className="py-16 px-4 bg-[#0a0f1a]">
-            <div className="container mx-auto max-w-[1800px]">
+            <div className="container mx-auto max-w-[1800px] px-4">
                 <h2 className="text-2xl md:text-3xl font-bold text-white mb-12 text-center">SẢN PHẨM LIÊN QUAN</h2>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-0">

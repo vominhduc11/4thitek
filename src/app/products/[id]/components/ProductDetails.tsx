@@ -142,7 +142,7 @@ export default function ProductDetails({ features, highlights, description, cont
     };
     return (
         <section className="relative z-[150] min-h-screen">
-            <div className="container mx-auto max-w-8xl relative py-8 pt-16 z-[200]">
+            <div className="container mx-auto max-w-8xl px-4 relative py-8 pt-8 md:pt-16 z-[200]">
                 <h2 className="text-2xl md:text-3xl lg:text-3xl font-bold mb-6 md:mb-8 text-white">
                     TÍNH NĂNG NỔI BẬT
                 </h2>

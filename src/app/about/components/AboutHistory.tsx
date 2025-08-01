@@ -37,7 +37,7 @@ export default function AboutHistory() {
 
     return (
         <section className="bg-[#0c131d] py-16 sm:py-20 2xl:py-24 3xl:py-32 4xl:py-40">
-            <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 2xl:mr-24 3xl:mr-32 4xl:mr-40 px-4 sm:px-12 md:px-16 lg:px-20 2xl:px-24 3xl:px-32 4xl:px-40">
+            <div className="ml-16 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
                 <motion.div
                     className="text-center mb-16 2xl:mb-20 3xl:mb-24 4xl:mb-32"
                     initial={{ opacity: 0, y: 20 }}

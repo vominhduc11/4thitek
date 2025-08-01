@@ -17,16 +17,6 @@ interface BlogGridProps {
 const BlogGrid = ({ blogs }: BlogGridProps) => {
     const isHydrated = useHydration();
 
-    // Get author name
-    const getAuthorName = (author: BlogPost['author']) => {
-        if (typeof author === 'object' && author?.name) {
-            return author.name;
-        }
-        if (typeof author === 'string') {
-            return author;
-        }
-        return 'Tác giả';
-    };
 
     // Get category display name
     const getCategoryDisplay = (category: BlogPost['category']) => {
@@ -69,7 +59,7 @@ const BlogGrid = ({ blogs }: BlogGridProps) => {
     };
 
     return (
-        <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-4 sm:px-12 md:px-16 lg:px-20 py-8">
+        <div className="ml-16 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 py-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6 gap-6 lg:gap-8 2xl:gap-10 3xl:gap-12 4xl:gap-16">
                 {blogs.map((blog, index) => (
                     <motion.article
@@ -98,14 +88,6 @@ const BlogGrid = ({ blogs }: BlogGridProps) => {
                                     loading="lazy"
                                 />
 
-                                {/* Featured Badge */}
-                                {blog.isFeatured && (
-                                    <div className="absolute top-4 left-4">
-                                        <span className="bg-[#4FC8FF] text-white text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wide">
-                                            Nổi bật
-                                        </span>
-                                    </div>
-                                )}
 
                                 {/* Gradient Overlay */}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -140,10 +122,8 @@ const BlogGrid = ({ blogs }: BlogGridProps) => {
 
                                 {/* Bottom Section */}
                                 <div className="flex items-center justify-between">
-                                    {/* Author & Read Time */}
-                                    <div className="flex items-center space-x-4 text-xs text-gray-400">
-                                        <span className="font-medium">{getAuthorName(blog.author)}</span>
-                                        <span>•</span>
+                                    {/* Read Time Only */}
+                                    <div className="flex items-center text-xs text-gray-400">
                                         <span>{blog.readingTime} phút đọc</span>
                                     </div>
 
