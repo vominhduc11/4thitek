@@ -151,7 +151,7 @@ export default function ProductHero({
                 container.className = 'container mx-auto max-w-8xl px-4';
 
                 const nav = document.createElement('nav');
-                nav.className = 'flex justify-center items-center space-x-4 md:space-x-6 lg:space-x-8 xl:space-x-10 2xl:space-x-12 3xl:space-x-14 4xl:space-x-16 text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl';
+                nav.className = 'flex justify-center items-center space-x-4 md:space-x-6 lg:space-x-8 xl:space-x-10 2xl:space-x-12 3xl:space-x-14 4xl:space-x-16 text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl';
 
                 // Use breadcrumbItems or fallback
                 const itemsToUse = breadcrumbItems?.length ? breadcrumbItems : [
@@ -171,7 +171,7 @@ export default function ProductHero({
                     const button = document.createElement('button');
                     const isActive = (activeBreadcrumb || 'PRODUCT DETAILS') === item.label;
                     
-                    button.className = `font-medium transition-all duration-200 px-2 py-1 md:px-3 md:py-1.5 lg:px-4 lg:py-2 xl:px-5 xl:py-2.5 2xl:px-6 2xl:py-3 3xl:px-7 3xl:py-3.5 4xl:px-8 4xl:py-4 rounded-lg text-xs md:text-sm lg:text-base xl:text-lg 2xl:text-xl 3xl:text-2xl 4xl:text-3xl hover:bg-white/10 ${
+                    button.className = `font-medium transition-all duration-200 px-2 py-1 md:px-3 md:py-1.5 lg:px-4 lg:py-2 xl:px-5 xl:py-2.5 2xl:px-6 2xl:py-3 3xl:px-7 3xl:py-3.5 4xl:px-8 4xl:py-4 rounded-lg text-xs md:text-sm lg:text-base xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl hover:bg-white/10 ${
                         isActive 
                             ? 'text-blue-400 bg-blue-400/10' 
                             : 'text-gray-300 hover:text-white'
@@ -226,7 +226,7 @@ export default function ProductHero({
                     const label = btn.getAttribute('data-label');
                     const isActive = label === activeLabel;
                     
-                    btn.className = `font-medium transition-all duration-200 px-2 py-1 md:px-3 md:py-1.5 lg:px-4 lg:py-2 xl:px-5 xl:py-2.5 2xl:px-6 2xl:py-3 3xl:px-7 3xl:py-3.5 4xl:px-8 4xl:py-4 rounded-lg text-xs md:text-sm lg:text-base xl:text-lg 2xl:text-xl 3xl:text-2xl 4xl:text-3xl hover:bg-white/10 ${
+                    btn.className = `font-medium transition-all duration-200 px-2 py-1 md:px-3 md:py-1.5 lg:px-4 lg:py-2 xl:px-5 xl:py-2.5 2xl:px-6 2xl:py-3 3xl:px-7 3xl:py-3.5 4xl:px-8 4xl:py-4 rounded-lg text-xs md:text-sm lg:text-base xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl hover:bg-white/10 ${
                         isActive 
                             ? 'text-blue-400 bg-blue-400/10' 
                             : 'text-gray-300 hover:text-white'
@@ -705,7 +705,7 @@ export default function ProductHero({
                                 }}
                             ></motion.div>
                             <motion.nav
-                                className="flex justify-center items-center space-x-2 sm:space-x-3 md:space-x-4 lg:space-x-6 xl:space-x-8 2xl:space-x-10 3xl:space-x-12 4xl:space-x-14 text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl relative z-20"
+                                className="flex justify-center items-center space-x-2 sm:space-x-3 md:space-x-4 lg:space-x-6 xl:space-x-8 2xl:space-x-10 3xl:space-x-12 4xl:space-x-14 text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl relative z-20"
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{
@@ -735,7 +735,7 @@ export default function ProductHero({
                                                     onBreadcrumbClick(item);
                                                 }
                                             }}
-                                            className={`font-medium relative transition-colors duration-300 px-2 py-1 md:px-3 md:py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 2xl:px-6 2xl:py-3.5 3xl:px-7 3xl:py-4 4xl:px-8 4xl:py-4.5 text-center whitespace-nowrap text-xs md:text-sm lg:text-base xl:text-lg 2xl:text-xl 3xl:text-2xl 4xl:text-3xl ${
+                                            className={`font-medium relative transition-colors duration-300 px-2 py-1 md:px-3 md:py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 2xl:px-6 2xl:py-3.5 3xl:px-7 3xl:py-4 4xl:px-8 4xl:py-4.5 text-center whitespace-nowrap text-xs md:text-sm lg:text-base xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl ${
                                                 activeBreadcrumb === item.label
                                                     ? 'text-blue-400'
                                                     : 'text-gray-400 hover:text-white'
@@ -750,7 +750,7 @@ export default function ProductHero({
                                         </motion.button>
                                         {index < breadcrumbItems.length - 1 && (
                                             <motion.span
-                                                className="text-gray-500 relative text-xs md:text-sm lg:text-base xl:text-lg 2xl:text-xl 3xl:text-2xl 4xl:text-3xl"
+                                                className="text-gray-500 relative text-xs md:text-sm lg:text-base xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl"
                                                 initial={{ opacity: 0 }}
                                                 animate={{ opacity: 1 }}
                                                 transition={{ delay: 1.8 + index * 0.1 }}

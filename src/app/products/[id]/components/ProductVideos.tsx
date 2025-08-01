@@ -55,7 +55,7 @@ export default function ProductVideos({ productName }: ProductVideosProps) {
     return (
         <section id="product-details" className="relative z-[60] min-h-screen">
             <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-[70]">
-                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl 3xl:text-6xl 4xl:text-7xl font-bold mb-6 md:mb-8 text-white">VIDEO GALLERY</h2>
+                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-4xl 3xl:text-6xl 4xl:text-7xl font-bold mb-6 md:mb-8 text-white">VIDEO GALLERY</h2>
 
                 {/* Featured Video */}
                 <div className="mb-8 md:mb-12">
@@ -75,10 +75,10 @@ export default function ProductVideos({ productName }: ProductVideosProps) {
                             </video>
                         </div>
                         <div className="p-4 md:p-6">
-                            <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-2xl 2xl:text-3xl 3xl:text-4xl 4xl:text-5xl font-bold text-white mb-2">
+                            <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-2xl 2xl:text-2xl 3xl:text-4xl 4xl:text-5xl font-bold text-white mb-2">
                                 Đánh giá chi tiết {productName}
                             </h3>
-                            <p className="text-gray-400 text-sm sm:text-base md:text-lg lg:text-xl xl:text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl">
+                            <p className="text-gray-400 text-sm sm:text-base md:text-lg lg:text-xl xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">
                                 Video đánh giá toàn diện về sản phẩm, từ unboxing đến test thực tế
                             </p>
                         </div>
@@ -123,15 +123,15 @@ export default function ProductVideos({ productName }: ProductVideosProps) {
                                     <source src={video.videoUrl} type="video/mp4" />
                                     Your browser does not support the video tag.
                                 </video>
-                                <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 2xl:text-xl 3xl:text-2xl 4xl:text-3xl px-2 py-1 rounded">
+                                <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl px-2 py-1 rounded">
                                     {video.duration}
                                 </div>
                             </div>
                             <div className="p-4">
-                                <h4 className="text-white font-medium mb-2 group-hover:text-blue-400 transition-colors line-clamp-2 text-sm sm:text-base md:text-lg lg:text-xl xl:text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl">
+                                <h4 className="text-white font-medium mb-2 group-hover:text-blue-400 transition-colors line-clamp-2 text-sm sm:text-base md:text-lg lg:text-xl xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">
                                     {video.title}
                                 </h4>
-                                <p className="text-gray-400 text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 2xl:text-xl 3xl:text-2xl 4xl:text-3xl line-clamp-2">{video.description}</p>
+                                <p className="text-gray-400 text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl line-clamp-2">{video.description}</p>
                             </div>
                         </motion.div>
                     ))}
