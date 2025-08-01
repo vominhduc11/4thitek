@@ -112,7 +112,7 @@ export default function ProductDetails({ features, highlights, description, cont
             case 'image':
                 return (
                     <div key={index} className="w-full">
-                        <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 h-48 sm:h-56 md:h-64 lg:h-80 xl:h-96 overflow-hidden">
+                        <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 aspect-[2/1] overflow-hidden">
                             <Image
                                 src={item.link || '/products/product1.png'}
                                 alt="Product image"
@@ -191,7 +191,7 @@ export default function ProductDetails({ features, highlights, description, cont
                             <>
                                 {/* Fallback to original content */}
                                 <div className="w-full">
-                                    <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 h-48 sm:h-56 md:h-64 lg:h-80 xl:h-96 overflow-hidden">
+                                    <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 aspect-[2/1] overflow-hidden">
                                         <Image
                                             src="/products/product1.png"
                                             alt="Tai nghe Bluetooth intercom cho mũ bảo hiểm"

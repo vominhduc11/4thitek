@@ -114,6 +114,12 @@ export default function ProductHero({
             let isVisible = false;
 
             const createStickyElement = () => {
+                console.log('🏗️ Creating sticky breadcrumb with current props:', {
+                    breadcrumbItemsLength: breadcrumbItems?.length,
+                    activeBreadcrumb,
+                    hasOnBreadcrumbClick: !!onBreadcrumbClick
+                });
+                
                 // Remove existing sticky breadcrumb
                 const existing = document.getElementById('sticky-breadcrumb-clone');
                 if (existing) existing.remove();
@@ -181,10 +187,22 @@ export default function ProductHero({
 
                     // Add click handler
                     button.addEventListener('click', () => {
+                        console.log('🎯 Sticky breadcrumb clicked:', item.label);
+                        console.log('🔧 onBreadcrumbClick available:', !!onBreadcrumbClick);
+                        
                         if (onBreadcrumbClick) {
+                            console.log('📞 Calling onBreadcrumbClick with:', item);
                             onBreadcrumbClick(item);
+                        } else {
+                            console.error('❌ onBreadcrumbClick is not available!');
                         }
                         updateStickyActiveState(item.label);
+                        
+                        // Dispatch custom event as fallback
+                        console.log('📡 Dispatching breadcrumbNavigation event');
+                        window.dispatchEvent(new CustomEvent('breadcrumbNavigation', {
+                            detail: { label: item.label, section: item.section }
+                        }));
                     });
 
                     buttonWrapper.appendChild(button);
@@ -300,8 +318,11 @@ export default function ProductHero({
             // Initial check
             handleScroll();
 
-            // Store update function for external access
-            Object.assign(window, { updateStickyBreadcrumb: updateStickyActiveState });
+            // Store update functions for external access
+            Object.assign(window, { 
+                updateStickyBreadcrumb: updateStickyActiveState,
+                recreateStickyBreadcrumb: createStickyElement
+            });
 
             return () => {
                 window.removeEventListener('scroll', handleScroll);
@@ -310,6 +331,7 @@ export default function ProductHero({
                     stickyBreadcrumb.remove();
                 }
                 delete (window as unknown as Record<string, unknown>)['updateStickyBreadcrumb'];
+                delete (window as unknown as Record<string, unknown>)['recreateStickyBreadcrumb'];
             };
         };
 
@@ -323,6 +345,15 @@ export default function ProductHero({
             (updateFn as (label: string) => void)(activeBreadcrumb);
         }
     }, [activeBreadcrumb]);
+    
+    // Recreate sticky breadcrumb when critical props change
+    useEffect(() => {
+        const recreateFn = (window as unknown as Record<string, unknown>)['recreateStickyBreadcrumb'];
+        if (recreateFn && typeof recreateFn === 'function') {
+            console.log('🔄 Props changed, recreating sticky breadcrumb');
+            (recreateFn as () => void)();
+        }
+    }, [breadcrumbItems, onBreadcrumbClick]);
 
 
     const handleShuffleProduct = async () => {
