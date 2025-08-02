@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { FiArrowUpRight } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useLanguage } from '@/contexts/LanguageContext';
 import type { Product } from '@/types/product';
 
 interface RelatedProductsProps {
@@ -12,6 +13,7 @@ interface RelatedProductsProps {
 }
 
 export default function RelatedProducts({ products }: RelatedProductsProps) {
+    const { t } = useLanguage();
     const [hoveredProductId, setHoveredProductId] = useState<string | null>(null);
     const router = useRouter();
 
@@ -22,7 +24,7 @@ export default function RelatedProducts({ products }: RelatedProductsProps) {
     return (
         <section className="py-16 bg-[#0a0f1a]">
             <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8">
-                <h2 className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl 3xl:text-6xl 4xl:text-7xl font-bold text-white mb-12 2xl:mb-16 3xl:mb-20 4xl:mb-24 text-center">SẢN PHẨM LIÊN QUAN</h2>
+                <h2 className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl 3xl:text-6xl 4xl:text-7xl font-bold text-white mb-12 2xl:mb-16 3xl:mb-20 4xl:mb-24 text-center">{t('products.detail.relatedProducts')}</h2>
 
                 {/* Inner container to match breadcrumb content alignment */}
                 <div>

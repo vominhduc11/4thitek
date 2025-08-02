@@ -7,6 +7,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import clsx from 'clsx';
 import type { Product } from '@/types/product';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { ANIMATION_SCALE, ANIMATION_DURATION } from '@/constants/animations';
 
 interface ProductImageWithFallbackProps {
     src: string;
@@ -43,7 +45,6 @@ function ProductImageWithFallback({ src, alt, className }: ProductImageWithFallb
                 className={`w-full h-full object-contain transition-opacity duration-200 ease-out ${isLoading ? 'opacity-0' : 'opacity-100'}`}
                 onLoad={() => setIsLoading(false)}
                 onError={() => {
-                    console.error('Product image failed to load:', src);
                     setImageError(true);
                     setIsLoading(false);
                 }}
@@ -58,6 +59,7 @@ interface ProductGridProps {
 
 export default function ProductGrid({ products }: ProductGridProps) {
     const [hoveredProductId, setHoveredProductId] = useState<string | null>(null);
+    const { t } = useLanguage();
 
     const renderProductCard = (product: Product, index: number) => {
         return (
@@ -114,13 +116,13 @@ export default function ProductGrid({ products }: ProductGridProps) {
                             transition: { duration: 0.3 }
                         }}
                     >
-                        PRODUCT
+                        {t('products.featured.product')}
                     </motion.div>
 
                     <motion.div
                         className="flex justify-center items-center py-8 px-8 sm:py-5 sm:px-5 md:py-4 md:px-4 z-10 relative"
-                        whileHover={{ scale: 1.03 }}
-                        transition={{ duration: 0.3 }}
+                        whileHover={{ scale: ANIMATION_SCALE.hover }}
+                        transition={{ duration: ANIMATION_DURATION.normal }}
                     >
                         <motion.div
                             key={`product-${product.id}`}

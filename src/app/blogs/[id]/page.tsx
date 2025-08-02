@@ -10,11 +10,14 @@ import type { BlogPost, BlogContentBlock } from '@/types/blog';
 import BlogDetailHero from '@/app/blogs/[id]/components/BlogDetailHero';
 import { useHydration } from '@/hooks/useHydration';
 import { formatDateSafe } from '@/utils/dateFormatter';
+import { useLanguage } from '@/contexts/LanguageContext';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 
 // Get published blog posts
 const publishedBlogPosts: BlogPost[] = getPublishedPosts();
 
 export default function BlogDetailPageImproved() {
+    const { t } = useLanguage();
     const params = useParams();
     const [post, setPost] = useState<BlogPost | null>(null);
     const [loading, setLoading] = useState(true);
@@ -50,7 +53,7 @@ export default function BlogDetailPageImproved() {
             <div className="min-h-screen bg-[#0c131d] text-white flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4FC8FF] mx-auto mb-4"></div>
-                    <p>Loading...</p>
+                    <p>{t('blog.detail.loading')}</p>
                 </div>
             </div>
         );
@@ -60,9 +63,9 @@ export default function BlogDetailPageImproved() {
         return (
             <div className="min-h-screen bg-[#0c131d] text-white flex items-center justify-center">
                 <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-4">Article Not Found</h1>
+                    <h1 className="text-2xl font-bold mb-4">{t('blog.detail.notFound')}</h1>
                     <Link href="/blogs" className="text-[#4FC8FF] hover:underline">
-                        Back to Blog List
+                        {t('blog.detail.backToList')}
                     </Link>
                 </div>
             </div>
@@ -73,6 +76,11 @@ export default function BlogDetailPageImproved() {
 
     return (
         <div className="min-h-screen bg-[#0c131d] main-content scroll-smooth">
+            {/* Language Switcher */}
+            <div className="fixed top-4 right-4 z-50">
+                <LanguageSwitcher />
+            </div>
+
             {/* Simple Hero Section - Consistent with other pages */}
             <BlogDetailHero />
             {/* 1. Thanh tiêu đề bài viết (Post Header) */}
@@ -125,7 +133,7 @@ export default function BlogDetailPageImproved() {
                                             clipRule="evenodd"
                                         />
                                     </svg>
-                                    <span>{post.readingTime} phút đọc</span>
+                                    <span>{post.readingTime} {t('blog.detail.readTime')}</span>
                                 </div>
                             </>
                         )}
@@ -252,7 +260,7 @@ export default function BlogDetailPageImproved() {
                                 viewport={{ once: true, margin: '-100px' }}
                             >
                                 {/* Tiêu đề widget */}
-                                <h3 className="text-lg font-bold text-white mb-6">Bài viết liên quan</h3>
+                                <h3 className="text-lg font-bold text-white mb-6">{t('blog.detail.relatedArticles')}</h3>
 
                                 {/* Danh sách bài viết liên quan */}
                                 <div className="space-y-4">

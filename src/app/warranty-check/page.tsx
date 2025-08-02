@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { HeroSection, WarrantyForm, WarrantyResult, LoginForm } from './components';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface WarrantyInfo {
     serialNumber: string;
@@ -18,6 +19,7 @@ interface WarrantyInfo {
 }
 
 const WarrantyCheckPage = () => {
+    const { t } = useLanguage();
     const [warrantyInfo, setWarrantyInfo] = useState<WarrantyInfo | null>(null);
     const [showResult, setShowResult] = useState(false);
     const [showLogin, setShowLogin] = useState(false);
@@ -114,7 +116,7 @@ const WarrantyCheckPage = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.3 }}
                     >
-                        Hướng dẫn kiểm tra bảo hành
+                        {t('warrantyCheck.instructions.title')}
                     </motion.h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -139,8 +141,8 @@ const WarrantyCheckPage = () => {
                                     />
                                 </svg>
                             </div>
-                            <h3 className="text-base sm:text-lg font-semibold mb-2 text-white">Bước 1</h3>
-                            <p className="text-sm sm:text-base text-gray-300">Tìm số serial trên sản phẩm hoặc hộp đựng</p>
+                            <h3 className="text-base sm:text-lg font-semibold mb-2 text-white">{t('warrantyCheck.instructions.step1.title')}</h3>
+                            <p className="text-sm sm:text-base text-gray-300">{t('warrantyCheck.instructions.step1.description')}</p>
                         </motion.div>
 
                         <motion.div
@@ -164,8 +166,8 @@ const WarrantyCheckPage = () => {
                                     />
                                 </svg>
                             </div>
-                            <h3 className="text-base sm:text-lg font-semibold mb-2 text-white">Bước 2</h3>
-                            <p className="text-sm sm:text-base text-gray-300">Nhập số serial vào form kiểm tra</p>
+                            <h3 className="text-base sm:text-lg font-semibold mb-2 text-white">{t('warrantyCheck.instructions.step2.title')}</h3>
+                            <p className="text-sm sm:text-base text-gray-300">{t('warrantyCheck.instructions.step2.description')}</p>
                         </motion.div>
 
                         <motion.div
@@ -189,8 +191,8 @@ const WarrantyCheckPage = () => {
                                     />
                                 </svg>
                             </div>
-                            <h3 className="text-base sm:text-lg font-semibold mb-2 text-white">Bước 3</h3>
-                            <p className="text-sm sm:text-base text-gray-300">Xem kết quả và thông tin bảo hành</p>
+                            <h3 className="text-base sm:text-lg font-semibold mb-2 text-white">{t('warrantyCheck.instructions.step3.title')}</h3>
+                            <p className="text-sm sm:text-base text-gray-300">{t('warrantyCheck.instructions.step3.description')}</p>
                         </motion.div>
                     </div>
                 </div>
@@ -205,18 +207,18 @@ const WarrantyCheckPage = () => {
             >
                 <div className="ml-16 sm:ml-20 pl-1 sm:pl-2 md:pl-2 lg:pl-3 xl:pl-4 2xl:pl-6 pr-1 sm:pr-2 md:pr-2 lg:pr-3 xl:pr-4 2xl:pr-6">
                     <div className="max-w-4xl mx-auto text-center">
-                        <h3 className="text-lg sm:text-xl font-semibold mb-4 text-white">Thử nghiệm với số serial mẫu</h3>
+                        <h3 className="text-lg sm:text-xl font-semibold mb-4 text-white">{t('warrantyCheck.demo.title')}</h3>
                         <p className="text-sm sm:text-base text-gray-300 mb-4">
-                            Bạn có thể thử nghiệm tính năng kiểm tra bảo hành với các số serial sau:
+                            {t('warrantyCheck.demo.description')}
                         </p>
                         <div className="bg-[#0c131d] p-3 sm:p-4 rounded-lg border border-gray-600 max-w-md mx-auto">
-                            <p className="text-xs sm:text-sm font-mono mb-2 text-gray-300">ABC123456 - Sản phẩm còn bảo hành</p>
-                            <p className="text-xs sm:text-sm font-mono text-gray-300">DEF789012 - Sản phẩm hết bảo hành</p>
+                            <p className="text-xs sm:text-sm font-mono mb-2 text-gray-300">{t('warrantyCheck.demo.active')}</p>
+                            <p className="text-xs sm:text-sm font-mono text-gray-300">{t('warrantyCheck.demo.expired')}</p>
                         </div>
 
                         <div className="mt-4 text-center">
                             {isLoading ? (
-                                <div className="text-gray-400">Đang kiểm tra trạng thái...</div>
+                                <div className="text-gray-400">{t('common.loading')}</div>
                             ) : (
                                 <button
                                     onClick={() => setShowLogin(true)}
@@ -235,7 +237,7 @@ const WarrantyCheckPage = () => {
                                             d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                                         />
                                     </svg>
-                                    Đăng nhập để xem sản phẩm đã mua
+                                    {t('warrantyCheck.demo.loginButton')}
                                 </button>
                             )}
                         </div>

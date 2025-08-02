@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import ProductHero from '@/app/products/[id]/components/ProductHero';
 import ProductDetails from '@/app/products/[id]/components/ProductDetails';
@@ -9,14 +9,17 @@ import ProductSpecifications from '@/app/products/[id]/components/ProductSpecifi
 import ProductWarranty from '@/app/products/[id]/components/ProductWarranty';
 import RelatedProducts from '@/app/products/[id]/components/RelatedProducts';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import { getProductById, getRelatedProducts } from '@/data/products';
+import { useLanguage } from '@/contexts/LanguageContext';
 import type { Product } from '@/types/product';
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+    const { t } = useLanguage();
     const [resolvedParams, setResolvedParams] = useState<{ id: string } | null>(null);
     const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
     const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-    const [activeBreadcrumb, setActiveBreadcrumb] = useState('PRODUCT DETAILS');
+    const [activeBreadcrumb, setActiveBreadcrumb] = useState('');
     const [currentSection, setCurrentSection] = useState('details');
     const [isTransitioning, setIsTransitioning] = useState(false);
 
@@ -35,15 +38,28 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 setRelatedProducts(related);
             } else {
                 // Fallback for unknown product
-                console.error('Product not found:', resolvedParams.id);
             }
         }
     }, [resolvedParams]);
 
+    // Define breadcrumb items with useMemo to prevent unnecessary re-renders
+    const breadcrumbItems = useMemo(() => [
+        { label: t('products.detail.breadcrumbs.productDetails'), section: 'details' },
+        { label: t('products.detail.breadcrumbs.productVideos'), section: 'videos' },
+        { label: t('products.detail.breadcrumbs.specifications'), section: 'specifications' },
+        { label: t('products.detail.breadcrumbs.warranty'), section: 'warranty' }
+    ], [t]);
+
+    // Initialize activeBreadcrumb when language changes
+    useEffect(() => {
+        if (breadcrumbItems && breadcrumbItems.length > 0 && !activeBreadcrumb) {
+            setActiveBreadcrumb(breadcrumbItems[0].label);
+        }
+    }, [breadcrumbItems, activeBreadcrumb]);
+
     // Listen for sticky breadcrumb navigation events
     useEffect(() => {
         const handleStickyBreadcrumbNavigation = (event: CustomEvent) => {
-            console.log('📍 Received breadcrumbNavigation event:', event.detail);
             const { label, section } = event.detail;
 
             // Use the same logic as handleBreadcrumbClick
@@ -69,19 +85,10 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         };
     }, [activeBreadcrumb, isTransitioning]);
 
-    const breadcrumbItems = [
-        { label: 'PRODUCT DETAILS', section: 'details' },
-        { label: 'PRODUCT VIDEOS', section: 'videos' },
-        { label: 'SPECIFICATIONS', section: 'specifications' },
-        { label: 'WARRANTY', section: 'warranty' }
-    ];
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleBreadcrumbClick = (item: any) => {
-        console.log('handleBreadcrumbClick called with:', item);
         // Don't trigger if already active or transitioning
         if (activeBreadcrumb === item.label || isTransitioning) {
-            console.log('Skipping - already active or transitioning:', { activeBreadcrumb, isTransitioning });
             return;
         }
 
@@ -230,6 +237,11 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
     return (
         <div className="min-h-screen bg-[#0a0f1a] text-white">
+            {/* Language Switcher */}
+            <div className="fixed top-4 right-4 z-50">
+                <LanguageSwitcher />
+            </div>
+
             {/* Mobile Layout (Small screens) */}
             <div className="md:hidden">
                 {/* Mobile Navigation Dropdown - Above Hero */}

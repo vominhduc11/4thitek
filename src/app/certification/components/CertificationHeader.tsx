@@ -1,8 +1,11 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function CertificationHeader() {
+    const { t } = useLanguage();
+    
     return (
         <div className="ml-16 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 -mt-16 sm:-mt-20 lg:-mt-24 relative z-20 py-4 sm:py-6 lg:py-8">
             <div>
@@ -17,7 +20,7 @@ export default function CertificationHeader() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, ease: 'easeOut' }}
                     >
-                        CERTIFICATION
+                        {t('certification.title')}
                     </motion.h1>
 
                     <motion.p
@@ -26,9 +29,7 @@ export default function CertificationHeader() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.4 }}
                     >
-                        Our products meet the highest industry standards and have received certifications from leading
-                        international organizations. These certifications ensure that our audio devices deliver
-                        exceptional quality, safety, and performance.
+                        {t('certification.subtitle')}
                     </motion.p>
                 </motion.div>
             </div>

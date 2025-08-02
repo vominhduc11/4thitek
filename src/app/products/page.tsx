@@ -3,11 +3,17 @@
 import { Suspense } from 'react';
 import { ProductsHero, ProductGrid } from './components';
 import ProductsSimpleHeader from './components/ProductsSimpleHeader';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import { products } from '@/data/products';
 
 function ProductsPageContent() {
     return (
         <div className="min-h-screen bg-[#0c131d] text-white flex flex-col">
+            {/* Language Switcher */}
+            <div className="fixed top-4 right-4 z-50">
+                <LanguageSwitcher />
+            </div>
+
             {/* Hero Section */}
             <ProductsHero />
 

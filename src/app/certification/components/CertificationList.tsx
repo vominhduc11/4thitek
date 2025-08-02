@@ -4,61 +4,58 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FiExternalLink } from 'react-icons/fi';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function CertificationList() {
+    const { t } = useLanguage();
+    
     const certifications = [
         {
             id: 'ce',
-            name: 'CE Certification',
+            name: t('certification.certifications.ce.name'),
             logo: '/images/certifications/ce-logo.png',
-            description:
-                'The CE mark indicates that our products comply with health, safety, and environmental protection standards for products sold within the European Economic Area.',
-            issuedBy: 'European Union',
+            description: t('certification.certifications.ce.description'),
+            issuedBy: t('certification.certifications.ce.issuedBy'),
             link: '#'
         },
         {
             id: 'fcc',
-            name: 'FCC Certification',
+            name: t('certification.certifications.fcc.name'),
             logo: '/images/certifications/fcc-logo.png',
-            description:
-                'FCC certification confirms that the electromagnetic interference from our devices is under limits approved by the Federal Communications Commission.',
-            issuedBy: 'Federal Communications Commission, USA',
+            description: t('certification.certifications.fcc.description'),
+            issuedBy: t('certification.certifications.fcc.issuedBy'),
             link: '#'
         },
         {
             id: 'rohs',
-            name: 'RoHS Compliance',
+            name: t('certification.certifications.rohs.name'),
             logo: '/images/certifications/rohs-logo.png',
-            description:
-                'RoHS certification ensures our products are free from specific hazardous materials such as lead, mercury, and cadmium.',
-            issuedBy: 'European Union',
+            description: t('certification.certifications.rohs.description'),
+            issuedBy: t('certification.certifications.rohs.issuedBy'),
             link: '#'
         },
         {
             id: 'iso9001',
-            name: 'ISO 9001:2015',
+            name: t('certification.certifications.iso9001.name'),
             logo: '/images/certifications/iso-logo.png',
-            description:
-                'ISO 9001:2015 certification confirms that our quality management systems meet international standards for consistent quality products.',
-            issuedBy: 'International Organization for Standardization',
+            description: t('certification.certifications.iso9001.description'),
+            issuedBy: t('certification.certifications.iso9001.issuedBy'),
             link: '#'
         },
         {
             id: 'bluetooth',
-            name: 'Bluetooth SIG Certification',
+            name: t('certification.certifications.bluetooth.name'),
             logo: '/images/certifications/bluetooth-logo.png',
-            description:
-                'This certification ensures our wireless products meet Bluetooth technology standards for compatibility and performance.',
-            issuedBy: 'Bluetooth Special Interest Group',
+            description: t('certification.certifications.bluetooth.description'),
+            issuedBy: t('certification.certifications.bluetooth.issuedBy'),
             link: '#'
         },
         {
-            id: 'hi-res',
-            name: 'Hi-Res Audio Certification',
-            logo: '/images/certifications/hi-res-logo.png',
-            description:
-                'Hi-Res Audio certification confirms our products can reproduce high-resolution audio formats with exceptional clarity and detail.',
-            issuedBy: 'Japan Audio Society',
+            id: 'energy',
+            name: t('certification.certifications.energy.name'),
+            logo: '/images/certifications/energy-star-logo.png',
+            description: t('certification.certifications.energy.description'),
+            issuedBy: t('certification.certifications.energy.issuedBy'),
             link: '#'
         }
     ];
@@ -73,12 +70,10 @@ export default function CertificationList() {
                     transition={{ duration: 0.6 }}
                     viewport={{ once: true }}
                 >
-                    <h2 className="text-2xl sm:text-3xl 2xl:text-4xl 3xl:text-5xl 4xl:text-6xl font-bold mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10 text-white">Our Certifications</h2>
+                    <h2 className="text-2xl sm:text-3xl 2xl:text-4xl 3xl:text-5xl 4xl:text-6xl font-bold mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10 text-white">{t('certification.list.title')}</h2>
                     <div className="w-16 h-1 2xl:w-20 2xl:h-1.5 3xl:w-24 3xl:h-2 4xl:w-32 4xl:h-2.5 bg-[#4FC8FF] mb-6 2xl:mb-8 3xl:mb-10 4xl:mb-12"></div>
                     <p className="text-gray-300 text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl max-w-3xl 2xl:max-w-4xl 3xl:max-w-5xl 4xl:max-w-6xl">
-                        These certifications demonstrate our commitment to quality, safety, and environmental
-                        responsibility. Each certification represents our dedication to meeting or exceeding industry
-                        standards.
+                        {t('certification.list.description')}
                     </p>
                 </motion.div>
 
@@ -110,12 +105,12 @@ export default function CertificationList() {
                                 <h3 className="text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl font-bold text-white mb-2 2xl:mb-3 3xl:mb-4 4xl:mb-5">{cert.name}</h3>
                                 <p className="text-gray-400 text-sm 2xl:text-base 3xl:text-lg 4xl:text-xl mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10 leading-relaxed">{cert.description}</p>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-xs 2xl:text-sm 3xl:text-base 4xl:text-lg text-[#4FC8FF]">Issued by: {cert.issuedBy}</span>
+                                    <span className="text-xs 2xl:text-sm 3xl:text-base 4xl:text-lg text-[#4FC8FF]">{t('certification.list.issuedBy')}: {cert.issuedBy}</span>
                                     <Link
                                         href={cert.link}
                                         className="text-gray-400 hover:text-[#4FC8FF] transition-colors flex items-center gap-1 2xl:gap-2 3xl:gap-3 4xl:gap-4 text-sm 2xl:text-base 3xl:text-lg 4xl:text-xl"
                                     >
-                                        Details <FiExternalLink className="w-3.5 h-3.5 2xl:w-4 2xl:h-4 3xl:w-5 3xl:h-5 4xl:w-6 4xl:h-6" />
+                                        {t('certification.list.details')} <FiExternalLink className="w-3.5 h-3.5 2xl:w-4 2xl:h-4 3xl:w-5 3xl:h-5 4xl:w-6 4xl:h-6" />
                                     </Link>
                                 </div>
                             </div>

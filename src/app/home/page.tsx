@@ -6,10 +6,16 @@ import {
     FeaturedProducts,
     FeaturedProductsCarousel
 } from './components';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 
 function Home() {
     return (
         <div className="relative">
+            {/* Language Switcher */}
+            <div className="fixed top-4 right-4 z-50">
+                <LanguageSwitcher />
+            </div>
+
             <HeroSection />
 
             <TransitionDivider fromColor="#0c131d" toColor="#0c131d" height="md" type="wave" />

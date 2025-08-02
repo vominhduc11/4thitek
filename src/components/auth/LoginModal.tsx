@@ -10,9 +10,8 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 if (typeof window !== 'undefined') {
     try {
         Modal.setAppElement('#__next');
-        console.log('Modal.setAppElement set to #__next');
     } catch (error) {
-        console.error('Failed to set app element for Modal:', error);
+        // Modal app element setting failed
     }
 }
 
@@ -23,9 +22,7 @@ interface LoginModalProps {
 }
 
 export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
-    // Log khi modal được mở hoặc đóng
     useEffect(() => {
-        console.log('LoginModal isOpen:', isOpen);
         if (isOpen) {
             // Calculate scrollbar width to prevent layout shift
             const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
@@ -55,7 +52,6 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
         e.stopPropagation(); // Ngăn chặn sự kiện lan truyền
         setError('');
         setIsSubmitting(true);
-        console.log('Login form submitted with email:', email);
 
         try {
             // Simulate login API call - replace with actual API call
@@ -66,31 +62,26 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
             };
             login(mockUser);
             const success = true;
-            console.log('Login result:', success);
 
             if (!success) {
                 setError('Email hoặc mật khẩu không chính xác');
             } else {
-                console.log('Login successful, calling onSuccess callback');
                 setEmail('');
                 setPassword('');
 
                 // Đảm bảo callback được gọi sau khi state đã được cập nhật
                 setTimeout(() => {
-                    console.log('Calling onSuccess callback');
                     onSuccess?.();
                     onClose();
 
                     // Nếu không có onSuccess callback, reload trang để cập nhật UI
                     if (!onSuccess) {
-                        console.log('No onSuccess callback, reloading page');
                         window.location.reload();
                     }
                 }, 100); // Đợi 100ms để đảm bảo trạng thái đăng nhập đã được cập nhật
             }
         } catch (err) {
             setError('Đã xảy ra lỗi. Vui lòng thử lại sau.');
-            console.error(err);
         }
 
         setIsSubmitting(false);
@@ -121,7 +112,6 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
     // Đảm bảo modal được hiển thị đúng cách
     useEffect(() => {
         if (isOpen) {
-            console.log('Modal should be visible now');
         }
     }, [isOpen]);
 
@@ -129,11 +119,9 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
         <Modal
             isOpen={isOpen}
             onRequestClose={() => {
-                console.log('Modal onRequestClose triggered');
                 onClose();
             }}
             onAfterOpen={() => {
-                console.log('Modal opened');
             }}
             style={customStyles}
             contentLabel="Login Modal"

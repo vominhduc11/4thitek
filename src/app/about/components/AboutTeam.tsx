@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { FiLinkedin, FiTwitter } from 'react-icons/fi';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getStaggerTransition, ANIMATION_OFFSET } from '@/constants/animations';
 
 export default function AboutTeam() {
     const { t } = useLanguage();
@@ -74,9 +75,9 @@ export default function AboutTeam() {
                         <motion.div
                             key={member.nameKey}
                             className="bg-[#151e2b] rounded-lg overflow-hidden shadow-lg"
-                            initial={{ opacity: 0, y: 30 }}
+                            initial={{ opacity: 0, y: ANIMATION_OFFSET.medium }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, delay: index * 0.1 }}
+                            transition={getStaggerTransition(index)}
                             viewport={{ once: true }}
                             whileHover={{ y: -5, transition: { duration: 0.2 } }}
                         >

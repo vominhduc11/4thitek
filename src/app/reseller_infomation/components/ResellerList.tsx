@@ -1,6 +1,7 @@
 'use client';
 
 import { FiMapPin, FiPhone, FiMail, FiClock } from 'react-icons/fi';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Reseller {
     id: number;
@@ -27,19 +28,20 @@ interface ResellerListProps {
 }
 
 export default function ResellerList({ resellers, onResellerSelect, selectedReseller }: ResellerListProps) {
+    const { t } = useLanguage();
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-white">Kết quả tìm kiếm</h2>
-                <span className="text-gray-300">Tìm thấy {resellers.length} đại lý</span>
+                <h2 className="text-2xl font-semibold text-white">{t('reseller.searchResults')}</h2>
+                <span className="text-gray-300">{t('reseller.foundDealers').replace('{count}', resellers.length.toString())}</span>
             </div>
 
             {resellers.length === 0 ? (
                 <div className="bg-[#1a2332] rounded-lg p-8 text-center">
                     <FiMapPin className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-white mb-2">Không tìm thấy đại lý</h3>
+                    <h3 className="text-lg font-semibold text-white mb-2">{t('reseller.noResellersFound')}</h3>
                     <p className="text-gray-300">
-                        Vui lòng thử tìm kiếm với từ khóa khác hoặc mở rộng khu vực tìm kiếm.
+                        {t('reseller.noResellersMessage')}
                     </p>
                 </div>
             ) : (

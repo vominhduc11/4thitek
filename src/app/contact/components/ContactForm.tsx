@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import ContactMap from './ContactMap';
 import { FiChevronDown, FiHelpCircle, FiTool, FiAlertTriangle, FiUsers, FiMoreHorizontal } from 'react-icons/fi';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface FormData {
     name: string;
@@ -14,6 +15,7 @@ interface FormData {
 }
 
 export default function ContactForm() {
+    const { t } = useLanguage();
     const [formData, setFormData] = useState<FormData>({
         name: '',
         email: '',
@@ -39,11 +41,11 @@ export default function ContactForm() {
     }, []);
 
     const subjectOptions = [
-        { value: 'product-inquiry', label: 'Tư vấn sản phẩm', icon: FiHelpCircle },
-        { value: 'warranty', label: 'Bảo hành', icon: FiTool },
-        { value: 'complaint', label: 'Khiếu nại', icon: FiAlertTriangle },
-        { value: 'partnership', label: 'Hợp tác', icon: FiUsers },
-        { value: 'other', label: 'Khác', icon: FiMoreHorizontal }
+        { value: 'product-inquiry', label: t('contact.form.subjects.productInquiry'), icon: FiHelpCircle },
+        { value: 'warranty', label: t('contact.form.subjects.warranty'), icon: FiTool },
+        { value: 'complaint', label: t('contact.form.subjects.complaint'), icon: FiAlertTriangle },
+        { value: 'partnership', label: t('contact.form.subjects.partnership'), icon: FiUsers },
+        { value: 'other', label: t('contact.form.subjects.other'), icon: FiMoreHorizontal }
     ];
 
     const getSelectedSubject = () => {
@@ -65,7 +67,6 @@ export default function ContactForm() {
         // Simulate form submission
         await new Promise((resolve) => setTimeout(resolve, 2000));
 
-        console.log('Form submitted:', formData);
         setIsSubmitting(false);
 
         // Reset form
@@ -77,7 +78,7 @@ export default function ContactForm() {
             message: ''
         });
 
-        alert('Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong thời gian sớm nhất.');
+        alert(t('contact.form.successMessage'));
     };
 
     return (
@@ -88,12 +89,12 @@ export default function ContactForm() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
             >
-                <h2 className="text-2xl 2xl:text-3xl 3xl:text-4xl 4xl:text-5xl font-bold text-white mb-6 2xl:mb-8 3xl:mb-10 4xl:mb-12">Gửi tin nhắn</h2>
+                <h2 className="text-2xl 2xl:text-3xl 3xl:text-4xl 4xl:text-5xl font-bold text-white mb-6 2xl:mb-8 3xl:mb-10 4xl:mb-12">{t('contact.form.title')}</h2>
                 <form onSubmit={handleSubmit} className="space-y-6 2xl:space-y-8 3xl:space-y-10 4xl:space-y-12">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 2xl:gap-6 3xl:gap-8 4xl:gap-10">
                         <div>
                             <label htmlFor="name" className="block text-sm 2xl:text-base 3xl:text-lg 4xl:text-xl font-medium text-gray-300 mb-2 2xl:mb-3 3xl:mb-4 4xl:mb-5">
-                                Họ và tên *
+                                {t('contact.form.nameRequired')}
                             </label>
                             <input
                                 type="text"
@@ -103,12 +104,12 @@ export default function ContactForm() {
                                 onChange={handleChange}
                                 required
                                 className="w-full px-4 py-3 2xl:px-6 2xl:py-4 3xl:px-8 3xl:py-5 4xl:px-10 4xl:py-6 bg-gray-800/50 border border-gray-600 rounded-lg 2xl:rounded-xl 3xl:rounded-2xl text-white text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl placeholder-gray-400 focus:outline-none focus:border-[#4FC8FF] focus:ring-1 focus:ring-[#4FC8FF] transition-colors"
-                                placeholder="Nhập họ và tên"
+                                placeholder={t('contact.form.namePlaceholder')}
                             />
                         </div>
                         <div>
                             <label htmlFor="phone" className="block text-sm 2xl:text-base 3xl:text-lg 4xl:text-xl font-medium text-gray-300 mb-2 2xl:mb-3 3xl:mb-4 4xl:mb-5">
-                                Số điện thoại
+                                {t('contact.form.phone')}
                             </label>
                             <input
                                 type="tel"
@@ -117,14 +118,14 @@ export default function ContactForm() {
                                 value={formData.phone}
                                 onChange={handleChange}
                                 className="w-full px-4 py-3 2xl:px-6 2xl:py-4 3xl:px-8 3xl:py-5 4xl:px-10 4xl:py-6 bg-gray-800/50 border border-gray-600 rounded-lg 2xl:rounded-xl 3xl:rounded-2xl text-white text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl placeholder-gray-400 focus:outline-none focus:border-[#4FC8FF] focus:ring-1 focus:ring-[#4FC8FF] transition-colors"
-                                placeholder="Nhập số điện thoại"
+                                placeholder={t('contact.form.phonePlaceholder')}
                             />
                         </div>
                     </div>
 
                     <div>
                         <label htmlFor="email" className="block text-sm 2xl:text-base 3xl:text-lg 4xl:text-xl font-medium text-gray-300 mb-2 2xl:mb-3 3xl:mb-4 4xl:mb-5">
-                            Email *
+                            {t('contact.form.emailRequired')}
                         </label>
                         <input
                             type="email"
@@ -134,12 +135,12 @@ export default function ContactForm() {
                             onChange={handleChange}
                             required
                             className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#4FC8FF] focus:ring-1 focus:ring-[#4FC8FF] transition-colors"
-                            placeholder="Nhập địa chỉ email"
+                            placeholder={t('contact.form.emailPlaceholder')}
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm 2xl:text-base 3xl:text-lg 4xl:text-xl font-medium text-gray-300 mb-2 2xl:mb-3 3xl:mb-4 4xl:mb-5">Chủ đề</label>
+                        <label className="block text-sm 2xl:text-base 3xl:text-lg 4xl:text-xl font-medium text-gray-300 mb-2 2xl:mb-3 3xl:mb-4 4xl:mb-5">{t('contact.form.subject')}</label>
                         <div ref={subjectDropdownRef} className="relative">
                             <button
                                 type="button"
@@ -154,7 +155,7 @@ export default function ContactForm() {
                                             <>
                                                 <Icon className="w-4 h-4 2xl:w-5 2xl:h-5 3xl:w-6 3xl:h-6 4xl:w-7 4xl:h-7 text-gray-400" />
                                                 <span className={formData.subject ? 'text-white' : 'text-gray-400'}>
-                                                    {selected?.label || 'Chọn chủ đề'}
+                                                    {selected?.label || t('contact.form.selectSubject')}
                                                 </span>
                                             </>
                                         );
@@ -213,7 +214,7 @@ export default function ContactForm() {
 
                     <div>
                         <label htmlFor="message" className="block text-sm 2xl:text-base 3xl:text-lg 4xl:text-xl font-medium text-gray-300 mb-2 2xl:mb-3 3xl:mb-4 4xl:mb-5">
-                            Tin nhắn *
+                            {t('contact.form.messageRequired')}
                         </label>
                         <textarea
                             id="message"
@@ -223,7 +224,7 @@ export default function ContactForm() {
                             required
                             rows={6}
                             className="w-full px-4 py-3 2xl:px-6 2xl:py-4 3xl:px-8 3xl:py-5 4xl:px-10 4xl:py-6 bg-gray-800/50 border border-gray-600 rounded-lg 2xl:rounded-xl 3xl:rounded-2xl text-white text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl placeholder-gray-400 focus:outline-none focus:border-[#4FC8FF] focus:ring-1 focus:ring-[#4FC8FF] transition-colors resize-vertical"
-                            placeholder="Nhập nội dung tin nhắn..."
+                            placeholder={t('contact.form.messagePlaceholder')}
                         />
                     </div>
 
@@ -234,7 +235,7 @@ export default function ContactForm() {
                         whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
                         whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
                     >
-                        {isSubmitting ? 'Đang gửi...' : 'Gửi tin nhắn'}
+                        {isSubmitting ? t('contact.form.sendingButton') : t('contact.form.sendButton')}
                     </motion.button>
                 </form>
             </motion.div>
@@ -245,12 +246,12 @@ export default function ContactForm() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.4 }}
             >
-                <h2 className="text-2xl 2xl:text-3xl 3xl:text-4xl 4xl:text-5xl font-bold text-white mb-6 2xl:mb-8 3xl:mb-10 4xl:mb-12">Vị trí cửa hàng</h2>
+                <h2 className="text-2xl 2xl:text-3xl 3xl:text-4xl 4xl:text-5xl font-bold text-white mb-6 2xl:mb-8 3xl:mb-10 4xl:mb-12">{t('contact.map.title')}</h2>
                 <ContactMap />
 
                 {/* Additional Contact Methods */}
                 <div className="mt-8 2xl:mt-10 3xl:mt-12 4xl:mt-16 space-y-4 2xl:space-y-6 3xl:space-y-8 4xl:space-y-10">
-                    <h3 className="text-lg 2xl:text-xl 3xl:text-2xl 4xl:text-3xl font-semibold text-white mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10">Kết nối với chúng tôi</h3>
+                    <h3 className="text-lg 2xl:text-xl 3xl:text-2xl 4xl:text-3xl font-semibold text-white mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10">{t('contact.map.connectTitle')}</h3>
                     <div className="flex space-x-4 2xl:space-x-6 3xl:space-x-8 4xl:space-x-10">
                         <a
                             href="#"

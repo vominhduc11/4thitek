@@ -1,8 +1,11 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ContactHeader() {
+    const { t } = useLanguage();
+
     return (
         <div className="ml-16 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 -mt-16 sm:-mt-20 lg:-mt-24 relative z-20 py-6 sm:py-8 lg:py-10">
             <motion.div
@@ -16,7 +19,7 @@ export default function ContactHeader() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, ease: 'easeOut' }}
                 >
-                    CONTACT US
+                    {t('contact.title')}
                 </motion.h1>
 
                 <motion.p
@@ -25,8 +28,7 @@ export default function ContactHeader() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.4 }}
                 >
-                    Liên hệ với chúng tôi để được tư vấn và hỗ trợ tốt nhất. Đội ngũ chuyên viên của TuneZone luôn
-                    sẵn sàng giải đáp mọi thắc mắc và hỗ trợ bạn tìm được sản phẩm phù hợp nhất.
+                    {t('contact.description')}
                 </motion.p>
             </motion.div>
         </div>

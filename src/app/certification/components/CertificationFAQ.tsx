@@ -3,8 +3,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiChevronDown } from 'react-icons/fi';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { ANIMATION_SCALE, ANIMATION_EASING } from '@/constants/animations';
 
 export default function CertificationFAQ() {
+    const { t } = useLanguage();
     const [openIndex, setOpenIndex] = useState<number | null>(0);
 
     const toggleFAQ = (index: number) => {
@@ -13,24 +16,16 @@ export default function CertificationFAQ() {
 
     const faqs = [
         {
-            question: 'Why are certifications important for audio products?',
-            answer: 'Certifications ensure that audio products meet industry standards for safety, quality, and performance. They provide consumers with confidence that the products they purchase have been tested and verified by independent organizations. For manufacturers, certifications demonstrate a commitment to quality and compliance with regulations.'
+            question: t('certification.faq.questions.q1.question'),
+            answer: t('certification.faq.questions.q1.answer')
         },
         {
-            question: 'How can I verify the authenticity of your product certifications?',
-            answer: "All our certifications can be verified through the issuing certification bodies. Each product includes a unique certification number that can be checked on the respective certification authority's website. Additionally, you can contact our customer service team who can provide verification documentation upon request."
+            question: t('certification.faq.questions.q2.question'),
+            answer: t('certification.faq.questions.q2.answer')
         },
         {
-            question: 'Do all your products have the same certifications?',
-            answer: 'Different product lines may have different certifications based on their intended markets and features. While all our products meet basic safety and quality standards, specific certifications like Hi-Res Audio or specialized Bluetooth certifications may apply only to certain product lines. Each product page lists the specific certifications applicable to that model.'
-        },
-        {
-            question: 'What is the difference between CE and FCC certifications?',
-            answer: 'CE certification is required for products sold in the European Economic Area and confirms compliance with European health, safety, and environmental protection standards. FCC certification is required for electronic devices sold in the United States and focuses on electromagnetic interference limits. Both are important regulatory certifications but apply to different geographical markets.'
-        },
-        {
-            question: 'How often do you renew your certifications?',
-            answer: 'We maintain our certifications according to the requirements of each certification body. Some certifications require annual renewal, while others may be valid for longer periods with periodic audits. We also update certifications whenever there are significant changes to our products or manufacturing processes to ensure continued compliance.'
+            question: t('certification.faq.questions.q3.question'),
+            answer: t('certification.faq.questions.q3.answer')
         }
     ];
 
@@ -44,10 +39,10 @@ export default function CertificationFAQ() {
                     transition={{ duration: 0.6 }}
                     viewport={{ once: true }}
                 >
-                    <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-white">Frequently Asked Questions</h2>
+                    <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-white">{t('certification.faq.title')}</h2>
                     <div className="w-16 h-1 bg-[#4FC8FF] mb-6"></div>
                     <p className="text-gray-300 max-w-3xl">
-                        Find answers to common questions about our product certifications and quality standards.
+                        {t('certification.faq.subtitle')}
                     </p>
                 </motion.div>
 
@@ -68,8 +63,8 @@ export default function CertificationFAQ() {
                                         : 'bg-[#151e2b] text-gray-200 hover:bg-[#1a2332]/70'
                                 }`}
                                 onClick={() => toggleFAQ(index)}
-                                whileHover={{ scale: 1.01 }}
-                                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                                whileHover={{ scale: ANIMATION_SCALE.hover }}
+                                transition={ANIMATION_EASING.springBouncy}
                             >
                                 <span className="font-medium text-base sm:text-lg">{faq.question}</span>
                                 <motion.div

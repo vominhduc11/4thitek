@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { BlogHero, BlogBreadcrumb, BlogGrid, BlogPagination } from './components';
 import { getPublishedPosts } from '@/data/blogs';
 import type { BlogPost } from '@/types/blog';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Get published blog posts
 const publishedBlogPosts: BlogPost[] = getPublishedPosts();
@@ -105,6 +107,11 @@ function BlogPageContent() {
 
     return (
         <div className="min-h-screen bg-[#0c131d] text-white flex flex-col overflow-x-hidden">
+            {/* Language Switcher */}
+            <div className="fixed top-4 right-4 z-50">
+                <LanguageSwitcher />
+            </div>
+
             {/* Hero Video Section */}
             <BlogHero />
 
@@ -135,18 +142,21 @@ function BlogPageContent() {
     );
 }
 
+function LoadingFallback() {
+    const { t } = useLanguage();
+    return (
+        <div className="min-h-screen bg-[#0c131d] text-white flex items-center justify-center">
+            <div className="text-center">
+                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#4FC8FF]"></div>
+                <p className="mt-4 text-gray-300">{t('common.loading')}</p>
+            </div>
+        </div>
+    );
+}
+
 export default function BlogsPage() {
     return (
-        <Suspense
-            fallback={
-                <div className="min-h-screen bg-[#0c131d] text-white flex items-center justify-center">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#4FC8FF]"></div>
-                        <p className="mt-4 text-gray-300">Loading blogs...</p>
-                    </div>
-                </div>
-            }
-        >
+        <Suspense fallback={<LoadingFallback />}>
             <BlogPageContent />
         </Suspense>
     );

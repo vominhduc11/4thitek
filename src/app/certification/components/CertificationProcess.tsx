@@ -1,39 +1,32 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { FiFileText, FiCheckCircle, FiActivity, FiAward, FiRepeat } from 'react-icons/fi';
+import { FiFileText, FiCheckCircle, FiActivity, FiAward } from 'react-icons/fi';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function CertificationProcess() {
+    const { t } = useLanguage();
+    
     const steps = [
         {
             icon: <FiFileText className="w-6 h-6" />,
-            title: 'Documentation',
-            description:
-                'We prepare comprehensive technical documentation for each product, including design specifications, test results, and compliance declarations.'
+            title: t('certification.process.steps.design.title'),
+            description: t('certification.process.steps.design.description')
         },
         {
             icon: <FiActivity className="w-6 h-6" />,
-            title: 'Testing',
-            description:
-                'Our products undergo rigorous testing by both our internal quality assurance team and independent third-party laboratories.'
+            title: t('certification.process.steps.testing.title'),
+            description: t('certification.process.steps.testing.description')
         },
         {
             icon: <FiCheckCircle className="w-6 h-6" />,
-            title: 'Verification',
-            description:
-                'Certification bodies verify that our products meet all applicable standards and requirements through thorough assessment.'
+            title: t('certification.process.steps.documentation.title'),
+            description: t('certification.process.steps.documentation.description')
         },
         {
             icon: <FiAward className="w-6 h-6" />,
-            title: 'Certification',
-            description:
-                'Upon successful verification, official certifications are issued, allowing us to apply certification marks to our products.'
-        },
-        {
-            icon: <FiRepeat className="w-6 h-6" />,
-            title: 'Ongoing Compliance',
-            description:
-                'We maintain certification through regular audits and updates to ensure continued compliance with evolving standards.'
+            title: t('certification.process.steps.certification.title'),
+            description: t('certification.process.steps.certification.description')
         }
     ];
 
@@ -47,11 +40,10 @@ export default function CertificationProcess() {
                     transition={{ duration: 0.6 }}
                     viewport={{ once: true }}
                 >
-                    <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-white">Our Certification Process</h2>
+                    <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-white">{t('certification.process.title')}</h2>
                     <div className="w-20 h-1 bg-[#4FC8FF] mx-auto mb-6"></div>
                     <p className="text-gray-300 max-w-2xl mx-auto">
-                        We follow a comprehensive certification process to ensure our products meet the highest
-                        standards of quality, safety, and performance.
+                        {t('certification.process.subtitle')}
                     </p>
                 </motion.div>
 

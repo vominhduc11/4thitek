@@ -5,6 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Hero from '@/components/ui/Hero';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
     FiTrendingUp,
     FiHeadphones,
@@ -37,6 +39,8 @@ interface FormData {
 }
 
 export default function BecomeOurReseller() {
+    const { t } = useLanguage();
+    
     // Dropdown states
     const [isBusinessTypeDropdownOpen, setIsBusinessTypeDropdownOpen] = useState(false);
     const [isExperienceDropdownOpen, setIsExperienceDropdownOpen] = useState(false);
@@ -142,51 +146,46 @@ export default function BecomeOurReseller() {
     };
 
     const breadcrumbItems = [
-        { label: 'Home', href: '/' },
-        { label: 'Become Our Reseller', active: true }
+        { label: t('nav.home'), href: '/' },
+        { label: t('becomeReseller.title'), active: true }
     ];
 
     const benefits = [
         {
             icon: <FiTrendingUp className="w-8 h-8 text-[#4FC8FF]" />,
-            title: 'Competitive Margins',
-            description:
-                'Enjoy attractive profit margins on all our products with flexible pricing structures and volume discounts.',
-            highlight: 'Up to 40% margin'
+            title: t('becomeReseller.benefits.competitiveMargins.title'),
+            description: t('becomeReseller.benefits.competitiveMargins.description'),
+            highlight: t('becomeReseller.benefits.competitiveMargins.highlight')
         },
         {
             icon: <FiHeadphones className="w-8 h-8 text-[#4FC8FF]" />,
-            title: 'Marketing Support',
-            description:
-                'Access to comprehensive marketing materials, product training, and co-marketing opportunities.',
-            highlight: 'Full marketing kit'
+            title: t('becomeReseller.benefits.marketingSupport.title'),
+            description: t('becomeReseller.benefits.marketingSupport.description'),
+            highlight: t('becomeReseller.benefits.marketingSupport.highlight')
         },
         {
             icon: <FiUsers className="w-8 h-8 text-[#4FC8FF]" />,
-            title: 'Technical Support',
-            description:
-                'Dedicated technical support team to help you and your customers with any questions or issues.',
-            highlight: '24/7 support'
+            title: t('becomeReseller.benefits.technicalSupport.title'),
+            description: t('becomeReseller.benefits.technicalSupport.description'),
+            highlight: t('becomeReseller.benefits.technicalSupport.highlight')
         },
         {
             icon: <FiAward className="w-8 h-8 text-[#4FC8FF]" />,
-            title: 'Premium Products',
-            description:
-                'Access to our complete range of high-quality audio products with exclusive early access to new releases.',
-            highlight: 'Exclusive access'
+            title: t('becomeReseller.benefits.premiumProducts.title'),
+            description: t('becomeReseller.benefits.premiumProducts.description'),
+            highlight: t('becomeReseller.benefits.premiumProducts.highlight')
         }
     ];
 
-    const requirements = [
-        'Established business with proven track record',
-        'Minimum 2 years experience in audio/electronics',
-        'Committed to monthly volume targets',
-        'Professional sales and support capabilities',
-        'Adherence to brand guidelines and standards'
-    ];
+    const requirements = t('becomeReseller.requirements.list');
 
     return (
         <div className="min-h-screen bg-[#0c131d]">
+            {/* Language Switcher */}
+            <div className="fixed top-4 right-4 z-50">
+                <LanguageSwitcher />
+            </div>
+
             {/* Hero Section */}
             <Hero breadcrumbItems={breadcrumbItems} />
 
@@ -201,7 +200,7 @@ export default function BecomeOurReseller() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.8, ease: 'easeOut' }}
                         >
-                            Become Our <span className="text-[#4FC8FF]">Reseller</span>
+                            {t('becomeReseller.title')}
                         </motion.h1>
                         <motion.p
                             className="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto mb-8 leading-relaxed"
@@ -209,8 +208,7 @@ export default function BecomeOurReseller() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
                         >
-                            Join our network of trusted partners and grow your business with our premium audio products.
-                            We offer competitive pricing, marketing support, and comprehensive training.
+                            {t('becomeReseller.subtitle')}
                         </motion.p>
                         <motion.div
                             className="flex flex-col sm:flex-row gap-4 justify-center"
@@ -219,13 +217,13 @@ export default function BecomeOurReseller() {
                             transition={{ duration: 0.8, delay: 0.4, ease: 'easeOut' }}
                         >
                             <Button className="bg-[#4FC8FF] hover:bg-[#4FC8FF]/90 text-white px-8 py-3 text-lg">
-                                Apply Now
+                                {t('becomeReseller.applyNow')}
                             </Button>
                             <Button
                                 variant="outline"
                                 className="border-[#4FC8FF] text-[#4FC8FF] hover:bg-[#4FC8FF] hover:text-white px-8 py-3 text-lg"
                             >
-                                Download Brochure
+                                {t('becomeReseller.downloadBrochure')}
                             </Button>
                         </motion.div>
                     </div>
@@ -242,10 +240,10 @@ export default function BecomeOurReseller() {
                             viewport={{ once: true }}
                         >
                             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4">
-                                Why Partner With Us?
+                                {t('becomeReseller.whyPartner.title')}
                             </h2>
                             <p className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto">
-                                Join hundreds of successful partners worldwide and unlock your business potential
+                                {t('becomeReseller.whyPartner.subtitle')}
                             </p>
                         </motion.div>
 
@@ -303,9 +301,9 @@ export default function BecomeOurReseller() {
                             transition={{ duration: 0.8, ease: 'easeOut' }}
                             viewport={{ once: true }}
                         >
-                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Partner Requirements</h2>
+                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">{t('becomeReseller.requirements.title')}</h2>
                             <p className="text-xl text-gray-300">
-                                We&apos;re looking for committed partners who share our vision of excellence
+                                {t('becomeReseller.requirements.subtitle')}
                             </p>
                         </motion.div>
 
@@ -353,10 +351,9 @@ export default function BecomeOurReseller() {
                             transition={{ duration: 0.8, ease: 'easeOut' }}
                             viewport={{ once: true }}
                         >
-                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Submit Your Application</h2>
+                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">{t('becomeReseller.form.title')}</h2>
                             <p className="text-xl text-gray-300">
-                                Ready to join our partner network? Fill out the form below and we&apos;ll get back to
-                                you within 24 hours.
+                                {t('becomeReseller.form.subtitle')}
                             </p>
                         </motion.div>
 

@@ -82,7 +82,6 @@ function ProductImageWithFallback({ src, alt, className }: ProductImageWithFallb
                 className={`w-full h-full object-contain transition-opacity duration-200 ease-out ${isLoading ? 'opacity-0' : 'opacity-100'}`}
                 onLoad={() => setIsLoading(false)}
                 onError={() => {
-                    console.error('Product image failed to load:', src);
                     setImageError(true);
                     setIsLoading(false);
                 }}

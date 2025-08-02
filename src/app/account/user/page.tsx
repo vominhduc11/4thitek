@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { UserProfile, PurchasedProducts, WarrantyExtension, WarrantyRequest } from './components';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 
 const UserAccountPage = () => {
     const [activeTab, setActiveTab] = useState('warranty');
@@ -57,11 +58,16 @@ const UserAccountPage = () => {
 
     return (
         <div className="min-h-screen bg-[#0c131d] text-white relative">
+            {/* Language Switcher */}
+            <div className="fixed top-4 right-4 z-50">
+                <LanguageSwitcher />
+            </div>
+
             {/* Subtle gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0c131d]/50 to-[#0c131d] pointer-events-none"></div>
 
             {/* Main Content */}
-            <div className="relative z-10 pt-20">
+            <div className="relative z-10 pt-16 sm:pt-20">
                 {/* User Header Section */}
                 <motion.div
                     className="bg-[#1a2332]/80 backdrop-blur-md border-b border-gray-700/30 shadow-2xl"
@@ -109,7 +115,7 @@ const UserAccountPage = () => {
 
                 {/* Tab Navigation */}
                 <motion.div
-                    className="bg-[#1a2332]/60 backdrop-blur-md border-b border-gray-700/30 sticky top-16 z-20"
+                    className="bg-[#1a2332]/60 backdrop-blur-md border-b border-gray-700/30 sticky top-16 sm:top-20 z-20"
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.2 }}

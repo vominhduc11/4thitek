@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { motion, Variants, useInView } from 'framer-motion';
 import { useRef } from 'react';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { typographyComponents } from '@/styles/typography';
 
 const containerVariants: Variants = {
     hidden: { opacity: 0, y: 48 },
@@ -26,6 +28,7 @@ const copyrightVariants: Variants = {
 };
 
 const Footer = () => {
+    const { t, language } = useLanguage();
     const ref = useRef(null);
     const inView = useInView(ref, { margin: '-60px', once: true });
     return (
@@ -40,24 +43,24 @@ const Footer = () => {
                 <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
                     {/* COMPANY Column */}
                     <motion.div variants={columnVariants}>
-                        <h3 className="uppercase text-base sm:text-sm font-semibold text-white mb-3 sm:mb-4">
-                            Company
+                        <h3 className={`uppercase ${typographyComponents.footer.heading} mb-3 sm:mb-4`}>
+                            {t('footer.company.title')}
                         </h3>
                         <ul className="space-y-2">
                             <li>
                                 <Link
                                     href="/about"
-                                    className="text-sm hover:text-white hover:underline transition-colors"
+                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
                                 >
-                                    About Us
+                                    {t('footer.company.aboutUs')}
                                 </Link>
                             </li>
                             <li>
                                 <Link
                                     href="/certification"
-                                    className="text-sm hover:text-white hover:underline transition-colors"
+                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
                                 >
-                                    Exclusive Reseller Certifications
+                                    {t('footer.company.certifications')}
                                 </Link>
                             </li>
                         </ul>
@@ -65,14 +68,14 @@ const Footer = () => {
 
                     {/* PRODUCT Column */}
                     <motion.div variants={columnVariants}>
-                        <h3 className="uppercase text-base sm:text-sm font-semibold text-white mb-3 sm:mb-4">
-                            Product
+                        <h3 className={`uppercase ${typographyComponents.footer.heading} mb-3 sm:mb-4`}>
+                            {t('footer.product.title')}
                         </h3>
                         <ul className="space-y-2">
                             <li>
                                 <Link
                                     href="/products?series=S%20SERIES"
-                                    className="text-sm hover:text-white hover:underline transition-colors"
+                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
                                 >
                                     S Series
                                 </Link>
@@ -80,7 +83,7 @@ const Footer = () => {
                             <li>
                                 <Link
                                     href="/products?series=SX%20SERIES"
-                                    className="text-sm hover:text-white hover:underline transition-colors"
+                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
                                 >
                                     SX Series
                                 </Link>
@@ -88,7 +91,7 @@ const Footer = () => {
                             <li>
                                 <Link
                                     href="/products?series=G%20SERIES"
-                                    className="text-sm hover:text-white hover:underline transition-colors"
+                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
                                 >
                                     G Series
                                 </Link>
@@ -96,7 +99,7 @@ const Footer = () => {
                             <li>
                                 <Link
                                     href="/products?series=G%2B%20SERIES"
-                                    className="text-sm hover:text-white hover:underline transition-colors"
+                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
                                 >
                                     G+ Series
                                 </Link>
@@ -106,24 +109,24 @@ const Footer = () => {
 
                     {/* RESELLER Column */}
                     <motion.div variants={columnVariants}>
-                        <h3 className="uppercase text-base sm:text-sm font-semibold text-white mb-3 sm:mb-4">
-                            Reseller
+                        <h3 className={`uppercase ${typographyComponents.footer.heading} mb-3 sm:mb-4`}>
+                            {t('footer.reseller.title')}
                         </h3>
                         <ul className="space-y-2">
                             <li>
                                 <Link
                                     href="/reseller_infomation"
-                                    className="text-sm hover:text-white hover:underline transition-colors"
+                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
                                 >
-                                    Reseller Information
+                                    {t('footer.reseller.information')}
                                 </Link>
                             </li>
                             <li>
                                 <Link
                                     href="/become_our_reseller"
-                                    className="text-sm hover:text-white hover:underline transition-colors"
+                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
                                 >
-                                    Become Our Reseller
+                                    {t('footer.reseller.becomeReseller')}
                                 </Link>
                             </li>
                         </ul>
@@ -131,38 +134,38 @@ const Footer = () => {
 
                     {/* OTHER Column */}
                     <motion.div variants={columnVariants}>
-                        <h3 className="uppercase text-base sm:text-sm font-semibold text-white mb-3 sm:mb-4">Other</h3>
+                        <h3 className={`uppercase ${typographyComponents.footer.heading} mb-3 sm:mb-4`}>{t('footer.other.title')}</h3>
                         <ul className="space-y-2">
                             <li>
                                 <Link
                                     href="/warranty-check"
-                                    className="text-sm hover:text-white hover:underline transition-colors"
+                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
                                 >
-                                    Warranty Checking
+                                    {t('footer.other.warrantyCheck')}
                                 </Link>
                             </li>
                             <li>
                                 <Link
                                     href="/policy"
-                                    className="text-sm hover:text-white hover:underline transition-colors"
+                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
                                 >
-                                    Policy
+                                    {t('footer.other.policy')}
                                 </Link>
                             </li>
                             <li>
                                 <Link
                                     href="/blogs"
-                                    className="text-sm hover:text-white hover:underline transition-colors"
+                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
                                 >
-                                    Blog
+                                    {t('footer.other.blog')}
                                 </Link>
                             </li>
                             <li>
                                 <Link
                                     href="/contact"
-                                    className="text-sm hover:text-white hover:underline transition-colors"
+                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
                                 >
-                                    Contact Us
+                                    {t('footer.other.contact')}
                                 </Link>
                             </li>
                         </ul>
@@ -184,8 +187,8 @@ const Footer = () => {
                     initial="hidden"
                     animate={inView ? 'visible' : 'hidden'}
                 >
-                    <p className="mb-2 sm:mb-0 text-center sm:text-left">
-                        CopyRight © 2023 4T HITEK All Right Reserved.
+                    <p className={`mb-2 sm:mb-0 text-center sm:text-left ${typographyComponents.footer.copyright}`}>
+                        {t('footer.copyright')}
                     </p>
 
                     {/* Language Selector */}
@@ -198,11 +201,11 @@ const Footer = () => {
                             height={0}
                             sizes="100vw"
                             priority
-                            src="/flags/vn.svg"
-                            alt="Vietnam flag"
+                            src={language === 'vi' ? "/flags/vn.svg" : "/flags/us.svg"}
+                            alt={language === 'vi' ? "Vietnam flag" : "US flag"}
                             className="w-4 sm:w-5 h-4 sm:h-5 rounded-full"
                         />
-                        <span className="ml-1.5 sm:ml-2 text-xs sm:text-sm text-gray-300">Vietnam</span>
+                        <span className={`ml-1.5 sm:ml-2 ${typographyComponents.footer.copyright}`}>{t('footer.languageSelector')}</span>
                         <svg className="ml-1 w-3 h-3 fill-current" viewBox="0 0 20 20" aria-hidden="true">
                             <path
                                 fillRule="evenodd"

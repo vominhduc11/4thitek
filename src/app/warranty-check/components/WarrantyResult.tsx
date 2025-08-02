@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface WarrantyInfo {
     serialNumber: string;
@@ -19,6 +20,7 @@ interface WarrantyResultProps {
 }
 
 const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, onReset }) => {
+    const { t } = useLanguage();
     if (!warrantyInfo) {
         return (
             <motion.div
@@ -57,7 +59,7 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, onReset }
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.3 }}
                     >
-                        Khong tim thay thong tin
+                        {t('warrantyCheck.result.notFound')}
                     </motion.h2>
                     <motion.p
                         className="text-gray-300 mb-6"
@@ -65,8 +67,7 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, onReset }
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.4 }}
                     >
-                        Khong tim thay thong tin bao hanh cho so serial nay. Vui long kiem tra lai hoac lien he bo phan
-                        ho tro.
+                        {t('warrantyCheck.result.notFoundMessage')}
                     </motion.p>
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
@@ -78,7 +79,7 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, onReset }
                             variant="outline"
                             className="transition-all duration-300 hover:scale-105 hover:shadow-lg"
                         >
-                            Thu lai
+                            {t('warrantyCheck.result.backButton')}
                         </Button>
                     </motion.div>
                 </div>
@@ -102,13 +103,13 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, onReset }
     const getStatusText = (status: string) => {
         switch (status) {
             case 'active':
-                return 'Con bao hanh';
+                return t('warrantyCheck.result.status.active');
             case 'expired':
-                return 'Het bao hanh';
+                return t('warrantyCheck.result.status.expired');
             case 'invalid':
-                return 'Khong hop le';
+                return t('warrantyCheck.result.status.invalid');
             default:
-                return 'Khong xac dinh';
+                return t('warrantyCheck.result.status.invalid');
         }
     };
 

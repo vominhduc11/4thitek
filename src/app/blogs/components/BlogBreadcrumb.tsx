@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { FiSearch } from 'react-icons/fi';
 import { blogCategories } from '@/data/blogs';
 import { useEffect, useRef } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface BlogBreadcrumbProps {
     selectedCategory: string;
@@ -22,6 +23,7 @@ const BlogBreadcrumb = ({
     searchQuery,
     onSearchChange
 }: BlogBreadcrumbProps) => {
+    const { t } = useLanguage();
     const categoryList = blogCategories;
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -42,7 +44,7 @@ const BlogBreadcrumb = ({
     // Format category title for display
     const getDisplayTitle = () => {
         if (selectedCategory === 'ALL') {
-            return 'BLOG LIST';
+            return t('blog.list.title');
         }
         // Find category by slug
         const category = blogCategories.find((cat) => cat.slug === selectedCategory.toLowerCase());
@@ -88,12 +90,12 @@ const BlogBreadcrumb = ({
                     >
                         {selectedCategory === 'ALL' ? (
                             <span>
-                                Showing all <span className="text-[#4FC8FF] font-semibold">{totalBlogs}</span> articles
+                                {t('blog.list.showingAll')} <span className="text-[#4FC8FF] font-semibold">{totalBlogs}</span> {t('blog.list.articles')}
                             </span>
                         ) : (
                             <span>
-                                Showing <span className="text-[#4FC8FF] font-semibold">{filteredCount}</span> articles
-                                in <span className="text-white font-semibold">{getDisplayTitle()}</span>
+                                {t('blog.list.showingFiltered')} <span className="text-[#4FC8FF] font-semibold">{filteredCount}</span> {t('blog.list.articlesIn')}
+                                <span className="text-white font-semibold"> {getDisplayTitle()}</span>
                             </span>
                         )}
                     </motion.div>
@@ -132,7 +134,7 @@ const BlogBreadcrumb = ({
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => onCategoryClick('ALL')}
                             >
-                                ALL CATEGORIES
+                                {t('blog.list.allCategories')}
                                 {selectedCategory === 'ALL' && (
                                     <motion.div
                                         className="absolute -bottom-0.5 left-0 right-0 h-0.5 bg-[#4FC8FF]"
@@ -192,7 +194,7 @@ const BlogBreadcrumb = ({
                                     <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                                     <input
                                         type="text"
-                                        placeholder="Tìm kiếm bài viết..."
+                                        placeholder={t('blog.list.searchPlaceholder')}
                                         value={searchQuery}
                                         onChange={(e) => onSearchChange(e.target.value)}
                                         className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#4FC8FF] focus:bg-gray-800/70 transition-all duration-300"
@@ -220,7 +222,7 @@ const BlogBreadcrumb = ({
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => onCategoryClick('ALL')}
                             >
-                                ALL
+                                {t('blog.list.all')}
                             </motion.button>
                             {categoryList.map((category) => (
                                 <motion.button
@@ -252,7 +254,7 @@ const BlogBreadcrumb = ({
                                 <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                                 <input
                                     type="text"
-                                    placeholder="Tìm kiếm bài viết..."
+                                    placeholder={t('blog.list.searchPlaceholder')}
                                     value={searchQuery}
                                     onChange={(e) => onSearchChange(e.target.value)}
                                     className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#4FC8FF] focus:bg-gray-800/70 transition-all duration-300"

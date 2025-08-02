@@ -1,11 +1,14 @@
 'use client';
 
 import HeroSection from '@/components/ui/Hero';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function BlogHero() {
+    const { t } = useLanguage();
+
     const breadcrumbItems = [
-        { label: 'Home', href: '/' },
-        { label: 'Blogs', active: true }
+        { label: t('nav.home'), href: '/' },
+        { label: t('nav.blog'), active: true }
     ];
 
     return <HeroSection breadcrumbItems={breadcrumbItems} />;

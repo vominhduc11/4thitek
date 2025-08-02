@@ -1,6 +1,7 @@
 'use client';
 
 import { Pagination } from '@/components/ui';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface BlogPaginationProps {
     currentPage: number;
@@ -11,6 +12,8 @@ interface BlogPaginationProps {
 }
 
 const BlogPagination = ({ currentPage, totalPages, totalItems, onPageChange }: BlogPaginationProps) => {
+    const { t } = useLanguage();
+    
     return (
         <Pagination
             currentPage={currentPage}
@@ -18,7 +21,7 @@ const BlogPagination = ({ currentPage, totalPages, totalItems, onPageChange }: B
             totalItems={totalItems}
             onPageChange={onPageChange}
             showCount={false} // Blogs không hiển thị count
-            countLabel="bài viết"
+            countLabel={t('blog.list.articles')}
         />
     );
 };

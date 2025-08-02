@@ -3,6 +3,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { FiMaximize, FiMinimize, FiZoomIn, FiZoomOut } from 'react-icons/fi';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Reseller {
     id: number;
@@ -28,6 +29,7 @@ interface ResellerMapProps {
 }
 
 export default function ResellerMap({ resellers, selectedReseller }: ResellerMapProps) {
+    const { t } = useLanguage();
     const [mapSrc, setMapSrc] = useState('');
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [zoomLevel, setZoomLevel] = useState(12);
@@ -140,14 +142,14 @@ export default function ResellerMap({ resellers, selectedReseller }: ResellerMap
             <div className="p-4 border-b border-gray-600 bg-[#1a2332]">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h2 className="text-xl font-semibold text-white mb-2">Bản đồ đại lý</h2>
+                        <h2 className="text-xl font-semibold text-white mb-2">{t('reseller.resellerMapTitle')}</h2>
                         {selectedReseller ? (
                             <div>
                                 <p className="text-[#00d4ff] font-medium">{selectedReseller.name}</p>
                                 <p className="text-gray-300 text-sm">{selectedReseller.address}</p>
                             </div>
                         ) : (
-                            <p className="text-gray-300 text-sm">Nhấp vào đại lý để xem vị trí trên bản đồ</p>
+                            <p className="text-gray-300 text-sm">{t('reseller.clickToSelectReseller')}</p>
                         )}
                     </div>
 
@@ -157,7 +159,7 @@ export default function ResellerMap({ resellers, selectedReseller }: ResellerMap
                             onClick={handleZoomOut}
                             disabled={!mapSrc}
                             className="p-1.5 sm:p-2 bg-[#0c131d] text-white rounded-md sm:rounded-lg hover:bg-[#243447] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Phóng nhỏ"
+                            title={t('reseller.zoomOut')}
                         >
                             <FiZoomOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </button>
@@ -165,7 +167,7 @@ export default function ResellerMap({ resellers, selectedReseller }: ResellerMap
                             onClick={handleZoomIn}
                             disabled={!mapSrc}
                             className="p-1.5 sm:p-2 bg-[#0c131d] text-white rounded-md sm:rounded-lg hover:bg-[#243447] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Phóng to"
+                            title={t('reseller.zoomIn')}
                         >
                             <FiZoomIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </button>
@@ -173,7 +175,7 @@ export default function ResellerMap({ resellers, selectedReseller }: ResellerMap
                             onClick={toggleFullscreen}
                             disabled={!mapSrc}
                             className="p-1.5 sm:p-2 bg-[#0c131d] text-white rounded-md sm:rounded-lg hover:bg-[#243447] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={isFullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'}
+                            title={isFullscreen ? t('reseller.exitFullscreen') : t('reseller.fullscreen')}
                         >
                             {isFullscreen ? <FiMinimize className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <FiMaximize className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                         </button>
@@ -200,7 +202,7 @@ export default function ResellerMap({ resellers, selectedReseller }: ResellerMap
                     <div className="w-full h-full bg-[#0c131d] flex items-center justify-center">
                         <div className="text-center">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00d4ff] mx-auto mb-4"></div>
-                            <p className="text-gray-300">Đang tải bản đồ...</p>
+                            <p className="text-gray-300">{t('reseller.loadingMap')}</p>
                         </div>
                     </div>
                 )}
@@ -211,11 +213,11 @@ export default function ResellerMap({ resellers, selectedReseller }: ResellerMap
                         <div className="text-white text-sm">
                             <div className="flex items-center space-x-2 mb-2">
                                 <div className="w-3 h-3 bg-[#00d4ff] rounded-full"></div>
-                                <span>Đại lý được chọn</span>
+                                <span>{t('reseller.selectedDealer')}</span>
                             </div>
                             <div className="flex items-center space-x-2">
                                 <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                                <span>Đại lý khác</span>
+                                <span>{t('reseller.otherDealers')}</span>
                             </div>
                         </div>
                     </div>
@@ -232,11 +234,11 @@ export default function ResellerMap({ resellers, selectedReseller }: ResellerMap
             {/* Map Footer */}
             <div className="p-4 bg-[#0c131d] border-t border-gray-600">
                 <div className="flex items-center justify-between text-sm text-gray-300">
-                    <span>Hiển thị {resellers.length} đại lý trên bản đồ</span>
+                    <span>{t('reseller.showingOnMap').replace('{count}', resellers.length.toString())}</span>
                     <div className="flex items-center space-x-4">
-                        <span className="text-xs">Sử dụng Ctrl + Scroll để zoom</span>
+                        <span className="text-xs">{t('reseller.useCtrlScroll')}</span>
                         {isFullscreen && (
-                            <span className="text-xs text-[#00d4ff]">Nhấn ESC để thoát toàn màn hình</span>
+                            <span className="text-xs text-[#00d4ff]">{t('reseller.pressEscToExit')}</span>
                         )}
                     </div>
                 </div>

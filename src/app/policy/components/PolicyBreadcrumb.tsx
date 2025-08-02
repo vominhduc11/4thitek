@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface PolicyBreadcrumbProps {
     selectedPolicy?: string;
@@ -8,26 +9,28 @@ interface PolicyBreadcrumbProps {
 }
 
 const PolicyBreadcrumb = ({ selectedPolicy = 'warranty', onPolicyClick }: PolicyBreadcrumbProps) => {
+    const { t } = useLanguage();
+    
     const policyList = [
-        { key: 'warranty', label: 'Chính sách bảo hành' },
-        { key: 'return', label: 'Chính sách đổi trả hàng' },
-        { key: 'privacy', label: 'Bảo mật thông tin' },
-        { key: 'terms', label: 'Điều kiện, điều khoản' }
+        { key: 'warranty', label: t('policy.policies.warranty') },
+        { key: 'return', label: t('policy.policies.return') },
+        { key: 'privacy', label: t('policy.policies.privacy') },
+        { key: 'terms', label: t('policy.policies.terms') }
     ];
 
     // Get policy-specific description
     const getPolicyDescription = () => {
         switch (selectedPolicy) {
             case 'warranty':
-                return 'Tìm hiểu về chính sách bảo hành sản phẩm, quy trình xử lý và các điều kiện áp dụng. Chúng tôi cam kết bảo vệ quyền lợi khách hàng với dịch vụ bảo hành chuyên nghiệp và tận tâm.';
+                return t('policy.descriptions.warranty');
             case 'return':
-                return 'Hướng dẫn chi tiết về quy trình đổi trả hàng, thời gian xử lý và các điều kiện cần thiết. Đảm bảo trải nghiệm mua sắm an toàn và thuận tiện cho khách hàng.';
+                return t('policy.descriptions.return');
             case 'privacy':
-                return 'Cam kết bảo mật thông tin cá nhân của khách hàng. Tìm hiểu cách chúng tôi thu thập, sử dụng và bảo vệ dữ liệu của bạn một cách an toàn và minh bạch.';
+                return t('policy.descriptions.privacy');
             case 'terms':
-                return 'Các điều khoản và điều kiện sử dụng dịch vụ. Quy định về quyền và nghĩa vụ của khách hàng khi sử dụng sản phẩm và dịch vụ của TuneZone.';
+                return t('policy.descriptions.terms');
             default:
-                return 'Tìm hiểu về các chính sách và quy định của TuneZone. Chúng tôi cam kết mang đến trải nghiệm dịch vụ tốt nhất với các chính sách minh bạch và công bằng.';
+                return t('policy.descriptions.default');
         }
     };
 
@@ -45,7 +48,7 @@ const PolicyBreadcrumb = ({ selectedPolicy = 'warranty', onPolicyClick }: Policy
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, ease: 'easeOut' }}
                     >
-                        POLICY
+                        {t('policy.title')}
                     </motion.h1>
 
                     {/* Policy Description */}

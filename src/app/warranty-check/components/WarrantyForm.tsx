@@ -4,12 +4,14 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface WarrantyFormProps {
     onSubmit: (data: { serialNumber: string; invoiceNumber: string }) => void;
 }
 
 const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
+    const { t } = useLanguage();
     const [serialNumber, setSerialNumber] = useState('');
     const [invoiceNumber, setInvoiceNumber] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -17,7 +19,7 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!serialNumber.trim()) {
-            alert('Vui lòng nhập số serial');
+            alert(t('warrantyCheck.form.alertSerial'));
             return;
         }
 
@@ -42,7 +44,7 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
             >
-                Nhap thong tin kiem tra
+                {t('warrantyCheck.form.title')}
             </motion.h2>
 
             <motion.form
@@ -58,19 +60,19 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                     transition={{ duration: 0.5, delay: 0.4 }}
                 >
                     <label htmlFor="serialNumber" className="block text-sm font-medium text-gray-300 mb-2">
-                        Số Serial <span className="text-red-500">*</span>
+                        {t('warrantyCheck.form.serialNumberRequired')} <span className="text-red-500">*</span>
                     </label>
                     <Input
                         id="serialNumber"
                         type="text"
                         value={serialNumber}
                         onChange={(e) => setSerialNumber(e.target.value)}
-                        placeholder="Nhập số serial sản phẩm"
+                        placeholder={t('warrantyCheck.form.serialNumberPlaceholder')}
                         required
                         className="w-full transition-all duration-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-400"
                     />
                     <p className="text-xs sm:text-sm text-gray-400 mt-1">
-                        Số serial thường được in trên nhãn sản phẩm hoặc hộp đựng
+                        {t('warrantyCheck.form.serialNumberHelper')}
                     </p>
                 </motion.div>
 
@@ -80,17 +82,17 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                     transition={{ duration: 0.5, delay: 0.5 }}
                 >
                     <label htmlFor="invoiceNumber" className="block text-sm font-medium text-gray-300 mb-2">
-                        Số hóa đơn (tùy chọn)
+                        {t('warrantyCheck.form.invoiceNumber')}
                     </label>
                     <Input
                         id="invoiceNumber"
                         type="text"
                         value={invoiceNumber}
                         onChange={(e) => setInvoiceNumber(e.target.value)}
-                        placeholder="Nhập số hóa đơn (nếu có)"
+                        placeholder={t('warrantyCheck.form.invoiceNumberPlaceholder')}
                         className="w-full transition-all duration-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-400"
                     />
-                    <p className="text-xs sm:text-sm text-gray-400 mt-1">Số hóa đơn giúp tra cứu chính xác hơn</p>
+                    <p className="text-xs sm:text-sm text-gray-400 mt-1">{t('warrantyCheck.form.invoiceNumberHelper')}</p>
                 </motion.div>
 
                 <motion.div
@@ -110,10 +112,10 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                                 transition={{ duration: 1.5, repeat: Infinity }}
                             >
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                Đang kiểm tra...
+                                {t('warrantyCheck.form.checkingButton')}
                             </motion.div>
                         ) : (
-                            'Kiểm tra bảo hành'
+                            t('warrantyCheck.form.checkButton')
                         )}
                     </Button>
                 </motion.div>
@@ -125,7 +127,7 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.7 }}
             >
-                <h3 className="font-semibold text-gray-300 mb-2">Luu y:</h3>
+                <h3 className="font-semibold text-gray-300 mb-2">{t('warrantyCheck.form.notes.title')}</h3>
                 <motion.ul
                     className="text-sm text-gray-400 space-y-1"
                     initial={{ opacity: 0 }}
@@ -137,21 +139,21 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.3, delay: 0.9 }}
                     >
-                        • So serial la bat buoc de kiem tra bao hanh
+                        {t('warrantyCheck.form.notes.serialRequired')}
                     </motion.li>
                     <motion.li
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.3, delay: 1.0 }}
                     >
-                        • Thong tin bao hanh se hien thi ngay sau khi kiem tra
+                        {t('warrantyCheck.form.notes.infoDisplay')}
                     </motion.li>
                     <motion.li
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.3, delay: 1.1 }}
                     >
-                        • Lien he bo phan ho tro neu gap van de
+                        {t('warrantyCheck.form.notes.contactSupport')}
                     </motion.li>
                 </motion.ul>
             </motion.div>

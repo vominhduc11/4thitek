@@ -6,6 +6,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import Link from 'next/link';
 import AvoidSidebar from '@/components/layout/AvoidSidebar';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Product {
     id: string;
@@ -50,6 +51,7 @@ const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({
     products = defaultProducts,
     initialIndex = 0
 }) => {
+    const { t } = useLanguage();
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [touchStart, setTouchStart] = useState<number | null>(null);
     const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -289,7 +291,7 @@ const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({
                             whileInView={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6 }}
                         >
-                            Our Featured Products
+                            {t('products.featured.carouselTitle')}
                         </motion.h2>
 
                         {/* Decorative Corner Elements for Title */}
@@ -593,7 +595,7 @@ const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({
                                                         animate={{ opacity: 1 }}
                                                         transition={{ delay: 0.7 }}
                                                     >
-                                                        DISCOVERY NOW
+                                                        {t('products.featured.discoveryNow')}
                                                     </motion.span>
                                                 </motion.button>
                                             </Link>

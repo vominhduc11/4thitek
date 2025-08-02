@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import ResellerList from './ResellerList';
 import ResellerMap from './ResellerMap';
 
@@ -31,6 +32,7 @@ interface ResellerResultsProps {
 }
 
 export default function ResellerResults({ searchFilters }: ResellerResultsProps) {
+    const { t } = useLanguage();
     const [resellers, setResellers] = useState<Reseller[]>([]);
     const [selectedReseller, setSelectedReseller] = useState<Reseller | undefined>();
     const [loading, setLoading] = useState(false);
@@ -157,7 +159,7 @@ export default function ResellerResults({ searchFilters }: ResellerResultsProps)
                             <div className="bg-[#1a2332] rounded-lg p-8">
                                 <div className="flex items-center justify-center py-12">
                                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00d4ff]"></div>
-                                    <span className="ml-4 text-lg">Đang tìm kiếm đại lý...</span>
+                                    <span className="ml-4 text-lg">{t('reseller.searchingDealers')}</span>
                                 </div>
                             </div>
                         </div>
@@ -167,7 +169,7 @@ export default function ResellerResults({ searchFilters }: ResellerResultsProps)
                             <div className="bg-[#1a2332] rounded-lg p-8 h-[600px] lg:h-[700px] flex items-center justify-center">
                                 <div className="text-center">
                                     <div className="animate-pulse bg-gray-600 rounded-lg w-full h-32 mb-4"></div>
-                                    <span className="text-gray-400">Đang tải bản đồ...</span>
+                                    <span className="text-gray-400">{t('reseller.loadingMap')}</span>
                                 </div>
                             </div>
                         </div>
