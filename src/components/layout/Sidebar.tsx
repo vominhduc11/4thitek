@@ -19,7 +19,7 @@ const sidebarVariants: Variants = {
 export default function Sidebar({ onMenuClick }: SidebarProps) {
     return (
         <motion.aside
-            className="fixed top-0 left-0 h-full w-16 sm:w-20 bg-[#1e2631]/70 backdrop-blur-md flex flex-col items-center py-3 sm:py-4 shadow-lg"
+            className="fixed top-0 left-0 h-full w-16 sm:w-20 bg-[#1e2631]/50 backdrop-blur-md flex flex-col items-center py-3 sm:py-4 shadow-lg"
             style={{ zIndex: Z_INDEX.SIDEBAR }}
             variants={sidebarVariants}
             initial="hidden"
