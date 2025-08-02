@@ -6,13 +6,13 @@ import { FiArrowUpRight } from 'react-icons/fi';
 import Image from 'next/image';
 import Link from 'next/link';
 import clsx from 'clsx';
-// import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface FeaturedProduct {
     id: string;
     name: string;
-    category: string;
-    description: string;
+    categoryKey: string;
+    descriptionKey: string;
     image: string;
 }
 
@@ -20,29 +20,29 @@ const featuredProducts: FeaturedProduct[] = [
     {
         id: 'sx-pro-elite',
         name: 'TUNECORE SX Pro Elite',
-        category: 'Gaming Headsets',
-        description: 'Professional Gaming Headset với driver 50mm và công nghệ noise cancelling tiên tiến',
+        categoryKey: 'products.categories.gaming',
+        descriptionKey: 'products.featured.sxProElite',
         image: '/products/product1.png'
     },
     {
         id: 'gx-wireless-pro',
         name: 'TUNECORE GX Wireless Pro',
-        category: 'Wireless Headsets',
-        description: 'Wireless Gaming Headset với kết nối 2.4GHz và thời lượng pin 30 giờ',
+        categoryKey: 'products.categories.wirelessHeadsets',
+        descriptionKey: 'products.featured.gxWirelessPro',
         image: '/products/product1.png'
     },
     {
         id: 'hx-studio-master',
         name: 'TUNECORE HX Studio Master',
-        category: 'Professional Audio',
-        description: 'Professional Studio Headphones với driver planar magnetic chất lượng cao',
+        categoryKey: 'products.categories.professionalAudio',
+        descriptionKey: 'products.featured.hxStudioMaster',
         image: '/products/product1.png'
     },
     {
         id: 'mx-sport-elite',
         name: 'TUNECORE MX Sport Elite',
-        category: 'Wireless Headsets',
-        description: 'Sport Wireless Earbuds với khả năng chống nước IPX7 và sạc nhanh',
+        categoryKey: 'products.categories.wirelessHeadsets',
+        descriptionKey: 'products.featured.mxSportElite',
         image: '/products/product1.png'
     }
 ];
@@ -93,7 +93,7 @@ function ProductImageWithFallback({ src, alt, className }: ProductImageWithFallb
 
 export default function FeaturedProducts() {
     const [hoveredProductId, setHoveredProductId] = useState<string | null>(null);
-    // const { language } = useLanguage();
+    const { t } = useLanguage();
 
     const renderProductCard = (product: FeaturedProduct, index: number) => {
         return (
@@ -110,18 +110,21 @@ export default function FeaturedProducts() {
                     stiffness: 120,
                     damping: 20
                 }}
-                className="relative w-full"
+                className="relative w-full overflow-visible"
+                style={{ zIndex: hoveredProductId === product.id ? 50 : 1 }}
             >
                 <Link href={`/products/${product.id}`}>
                     <motion.div
-                        className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-all duration-500 cursor-pointer group overflow-hidden h-[380px] sm:h-[420px] md:h-[460px] lg:h-[480px] xl:h-[500px] 2xl:h-[620px] 3xl:h-[680px] 4xl:h-[720px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/30 shadow-lg hover:shadow-2xl hover:shadow-[#4FC8FF]/10"
+                        className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-all duration-500 cursor-pointer group overflow-hidden h-[380px] sm:h-[420px] md:h-[460px] lg:h-[480px] xl:h-[500px] 2xl:h-[620px] 3xl:h-[680px] 4xl:h-[720px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/40 shadow-lg hover:shadow-2xl hover:shadow-[#4FC8FF]/20 backdrop-blur-sm"
                         onMouseEnter={() => setHoveredProductId(product.id)}
                         onMouseLeave={() => setHoveredProductId(null)}
                         whileHover={{
-                            y: -5,
-                            boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-                            transition: { duration: 0.3 }
+                            y: -8,
+                            scale: 1.02,
+                            boxShadow: '0 20px 40px rgba(79, 200, 255, 0.15), 0 0 30px rgba(79, 200, 255, 0.1)',
+                            transition: { duration: 0.3, ease: 'easeOut' }
                         }}
+                        whileTap={{ scale: 0.98 }}
                     >
                     {hoveredProductId === product.id && (
                         <motion.video
@@ -153,7 +156,7 @@ export default function FeaturedProducts() {
                                 transform: 'rotate(180deg)'
                             }}
                         >
-                            PRODUCT
+                            {t('products.featured.product')}
                         </div>
                     </motion.div>
 
@@ -194,7 +197,7 @@ export default function FeaturedProducts() {
                                 <span className="line-clamp-2">{product.name}</span>
                             </motion.h3>
                         <p className="text-gray-300 text-xs sm:text-sm md:text-sm lg:text-sm xl:text-base 2xl:text-base 3xl:text-lg 4xl:text-xl leading-relaxed mb-2 sm:mb-3 md:mb-3 lg:mb-3 xl:mb-4 2xl:mb-5 3xl:mb-6 4xl:mb-7 font-sans line-clamp-2">
-                            {product.description}
+                            {t(product.descriptionKey)}
                         </p>
 
                         <div className="flex justify-end mt-auto pt-2 sm:pt-3 lg:pt-2 xl:pt-3 3xl:pt-4 4xl:pt-5">
@@ -219,9 +222,17 @@ export default function FeaturedProducts() {
                     </motion.div>
 
                         <motion.div
-                            className="absolute inset-0 border-2 border-transparent group-hover:border-[#4FC8FF]/40 transition-all duration-500 pointer-events-none"
+                            className="absolute inset-0 border-2 border-transparent group-hover:border-[#4FC8FF]/50 transition-all duration-500 pointer-events-none"
                             whileHover={{
-                                boxShadow: 'inset 0 0 30px rgba(79, 200, 255, 0.15), 0 0 40px rgba(79, 200, 255, 0.1)'
+                                boxShadow: 'inset 0 0 40px rgba(79, 200, 255, 0.2), 0 0 50px rgba(79, 200, 255, 0.15)'
+                            }}
+                        />
+                        
+                        {/* Glow effect on hover */}
+                        <motion.div
+                            className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                            style={{
+                                background: 'radial-gradient(circle at center, rgba(79, 200, 255, 0.1) 0%, transparent 70%)'
                             }}
                         />
                     </motion.div>
@@ -232,7 +243,7 @@ export default function FeaturedProducts() {
 
     return (
         <section className="py-16 md:py-24 bg-[#0c131d] relative overflow-hidden">
-            <div className="ml-16 sm:ml-20 pl-1 sm:pl-2 md:pl-2 lg:pl-3 xl:pl-4 2xl:pl-6 pr-1 sm:pr-2 md:pr-2 lg:pr-3 xl:pr-4 2xl:pr-6 -mt-32 md:-mt-40 lg:-mt-48 relative z-[100] pt-40 md:pt-48 lg:pt-56">
+            <div className="px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 2xl:px-16 -mt-32 md:-mt-40 lg:-mt-48 relative z-[100] pt-40 md:pt-48 lg:pt-56 ml-16 sm:ml-20">
                 {/* Header */}
                 <div className="text-center mb-12 md:mb-16">
                     <motion.h2
@@ -241,7 +252,7 @@ export default function FeaturedProducts() {
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
                     >
-                        Sản phẩm tiêu biểu
+                        {t('products.featured.title')}
                     </motion.h2>
                     <motion.p
                         className="text-gray-400 text-lg max-w-2xl mx-auto"
@@ -249,14 +260,14 @@ export default function FeaturedProducts() {
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.2 }}
                     >
-                        Khám phá những sản phẩm âm thanh hàng đầu được lựa chọn đặc biệt
+                        {t('products.featured.subtitle')}
                     </motion.p>
                 </div>
 
                 {/* Products Grid */}
-                <div className="w-full">
+                <div className="w-full overflow-visible">
                     <motion.div
-                        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 divide-x divide-gray-700/30 relative mb-12"
+                        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-px relative mb-12 overflow-visible"
                         layout
                         transition={{ duration: 0.5, ease: 'easeInOut' }}
                     >

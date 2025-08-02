@@ -1,8 +1,10 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AboutHeader() {
+    const { t } = useLanguage();
     return (
         <div className="ml-16 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 -mt-16 sm:-mt-20 lg:-mt-24 relative z-20 py-4 sm:py-6 lg:py-8">
             <motion.div
@@ -16,7 +18,7 @@ export default function AboutHeader() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, ease: 'easeOut' }}
                 >
-                    ABOUT US
+                    {t('about.title')}
                 </motion.h1>
 
                 <motion.p
@@ -25,9 +27,7 @@ export default function AboutHeader() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.4 }}
                 >
-                    At 4thitek, we believe that exceptional audio is not just heard—it&apos;s experienced. Our
-                    journey began with a simple mission: to create audio products that deliver uncompromising sound
-                    quality, innovative design, and reliable performance.
+                    {t('about.description')}
                 </motion.p>
             </motion.div>
         </div>

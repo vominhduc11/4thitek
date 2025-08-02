@@ -3,26 +3,26 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { FiTarget, FiEye, FiAward } from 'react-icons/fi';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AboutMission() {
+    const { t } = useLanguage();
+    
     const values = [
         {
             icon: <FiTarget className="w-6 h-6" />,
-            title: 'Our Mission',
-            description:
-                'To revolutionize the audio industry by creating products that deliver exceptional sound quality and user experience.'
+            titleKey: 'about.mission.title',
+            descriptionKey: 'about.mission.description'
         },
         {
             icon: <FiEye className="w-6 h-6" />,
-            title: 'Our Vision',
-            description:
-                'To become the leading global brand for premium audio solutions that enhance how people experience sound.'
+            titleKey: 'about.vision.title',
+            descriptionKey: 'about.vision.description'
         },
         {
             icon: <FiAward className="w-6 h-6" />,
-            title: 'Our Values',
-            description:
-                'Innovation, quality, customer satisfaction, and continuous improvement drive everything we do.'
+            titleKey: 'about.values.title',
+            descriptionKey: 'about.values.description'
         }
     ];
 
@@ -56,19 +56,17 @@ export default function AboutMission() {
                             transition={{ duration: 0.5 }}
                             viewport={{ once: true }}
                         >
-                            <h3 className="text-2xl font-bold text-white mb-2">Our Purpose</h3>
+                            <h3 className="text-2xl font-bold text-white mb-2">{t('about.purpose.title')}</h3>
                             <div className="w-16 h-1 bg-[#4FC8FF] mb-6"></div>
                             <p className="text-gray-300 mb-8">
-                                At 4thitek, we&apos;re driven by our passion for sound. We combine cutting-edge
-                                technology with meticulous craftsmanship to create audio products that deliver an
-                                immersive and authentic listening experience.
+                                {t('about.purpose.description')}
                             </p>
                         </motion.div>
 
                         <div className="space-y-6">
                             {values.map((item, index) => (
                                 <motion.div
-                                    key={item.title}
+                                    key={item.titleKey}
                                     className="flex items-start gap-4"
                                     initial={{ opacity: 0, y: 20 }}
                                     whileInView={{ opacity: 1, y: 0 }}
@@ -77,8 +75,8 @@ export default function AboutMission() {
                                 >
                                     <div className="p-3 bg-[#4FC8FF]/20 text-[#4FC8FF] rounded-lg">{item.icon}</div>
                                     <div>
-                                        <h4 className="text-lg font-semibold text-white mb-1">{item.title}</h4>
-                                        <p className="text-gray-400">{item.description}</p>
+                                        <h4 className="text-lg font-semibold text-white mb-1">{t(item.titleKey)}</h4>
+                                        <p className="text-gray-400">{t(item.descriptionKey)}</p>
                                     </div>
                                 </motion.div>
                             ))}

@@ -1,37 +1,36 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AboutHistory() {
+    const { t } = useLanguage();
+    
     const milestones = [
         {
             year: '2015',
-            title: 'Company Founded',
-            description: 'Founded in Vietnam with a vision to create premium audio products for discerning listeners.'
+            titleKey: 'about.history.milestones.2015.title',
+            descriptionKey: 'about.history.milestones.2015.description'
         },
         {
             year: '2017',
-            title: 'First Product Launch',
-            description:
-                'Released our first SX Series earphones, setting new standards for audio quality in its price range.'
+            titleKey: 'about.history.milestones.2017.title',
+            descriptionKey: 'about.history.milestones.2017.description'
         },
         {
             year: '2019',
-            title: 'International Expansion',
-            description:
-                'Expanded to international markets across Southeast Asia and established key distribution partnerships.'
+            titleKey: 'about.history.milestones.2019.title',
+            descriptionKey: 'about.history.milestones.2019.description'
         },
         {
             year: '2021',
-            title: 'Award-Winning Design',
-            description:
-                'Our G Series received multiple design awards for its innovative approach to comfort and sound quality.'
+            titleKey: 'about.history.milestones.2021.title',
+            descriptionKey: 'about.history.milestones.2021.description'
         },
         {
             year: '2023',
-            title: 'Technology Innovation',
-            description:
-                'Introduced proprietary acoustic technology in our flagship G+ Series, redefining premium audio experiences.'
+            titleKey: 'about.history.milestones.2023.title',
+            descriptionKey: 'about.history.milestones.2023.description'
         }
     ];
 
@@ -45,11 +44,10 @@ export default function AboutHistory() {
                     transition={{ duration: 0.6 }}
                     viewport={{ once: true }}
                 >
-                    <h2 className="text-3xl sm:text-4xl 2xl:text-5xl 3xl:text-6xl 4xl:text-7xl font-bold mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10 text-white">Our Journey</h2>
+                    <h2 className="text-3xl sm:text-4xl 2xl:text-5xl 3xl:text-6xl 4xl:text-7xl font-bold mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10 text-white">{t('about.history.title')}</h2>
                     <div className="w-20 h-1 2xl:w-24 2xl:h-1.5 3xl:w-32 3xl:h-2 4xl:w-40 4xl:h-2.5 bg-[#4FC8FF] mx-auto mb-6 2xl:mb-8 3xl:mb-10 4xl:mb-12"></div>
                     <p className="text-gray-300 text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl max-w-2xl 2xl:max-w-3xl 3xl:max-w-4xl 4xl:max-w-5xl mx-auto leading-relaxed">
-                        From our humble beginnings to becoming a recognized name in audio technology, our journey has
-                        been defined by innovation and excellence.
+                        {t('about.history.description')}
                     </p>
                 </motion.div>
 
@@ -90,8 +88,8 @@ export default function AboutHistory() {
                                         index % 2 === 0 ? 'md:text-left md:pl-8 2xl:pl-12 3xl:pl-16 4xl:pl-20' : 'md:text-left md:pr-8 2xl:pr-12 3xl:pr-16 4xl:pr-20'
                                     }`}
                                 >
-                                    <h3 className="text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl font-bold text-white mb-2 2xl:mb-3 3xl:mb-4 4xl:mb-5">{milestone.title}</h3>
-                                    <p className="text-gray-300 text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl leading-relaxed">{milestone.description}</p>
+                                    <h3 className="text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl font-bold text-white mb-2 2xl:mb-3 3xl:mb-4 4xl:mb-5">{t(milestone.titleKey)}</h3>
+                                    <p className="text-gray-300 text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl leading-relaxed">{t(milestone.descriptionKey)}</p>
                                 </div>
                             </motion.div>
                         ))}
