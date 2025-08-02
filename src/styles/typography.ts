@@ -131,7 +131,7 @@ export const getTypographyClasses = (
   color?: keyof typeof textColors,
   family?: keyof typeof fontFamilies
 ): string => {
-  const classes = [typographyScale[size]];
+  const classes: string[] = [typographyScale[size]];
   
   if (weight) classes.push(fontWeights[weight]);
   if (color) classes.push(textColors[color]);

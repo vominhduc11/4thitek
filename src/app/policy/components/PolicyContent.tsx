@@ -156,10 +156,10 @@ interface PolicyData {
 }
 
 export default function PolicyContent({ selectedPolicy }: PolicyContentProps) {
-    const { t, getTranslation } = useLanguage();
+    const { getTranslation } = useLanguage();
     
     // Get policy data from translations using the new getTranslation function
-    const currentPolicyData = getTranslation(`policy.content.${selectedPolicy}`) as PolicyData;
+    const currentPolicyData = getTranslation(`policy.content.${selectedPolicy}`) as unknown as PolicyData;
     
     // Check if we have valid policy data with sections
     if (!currentPolicyData || !currentPolicyData.sections) {

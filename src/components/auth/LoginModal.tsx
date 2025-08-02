@@ -10,7 +10,7 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 if (typeof window !== 'undefined') {
     try {
         Modal.setAppElement('#__next');
-    } catch (error) {
+    } catch {
         // Modal app element setting failed
     }
 }
@@ -80,7 +80,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
                     }
                 }, 100); // Đợi 100ms để đảm bảo trạng thái đăng nhập đã được cập nhật
             }
-        } catch (err) {
+        } catch {
             setError('Đã xảy ra lỗi. Vui lòng thử lại sau.');
         }
 

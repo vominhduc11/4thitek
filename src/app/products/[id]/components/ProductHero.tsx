@@ -90,13 +90,8 @@ export default function ProductHero({
                 return;
             }
             if (!breadcrumbItems?.length) {
-                // Use fallback breadcrumb items
-                const fallbackItems = [
-                    { label: 'PRODUCT DETAILS', section: 'details' },
-                    { label: 'PRODUCT VIDEOS', section: 'videos' },
-                    { label: 'SPECIFICATIONS', section: 'specifications' },
-                    { label: 'WARRANTY', section: 'warranty' }
-                ];
+                // Fallback breadcrumb items are handled in createStickyElement
+                return;
             }
 
             let stickyBreadcrumb: HTMLElement | null = null;
@@ -343,7 +338,7 @@ export default function ProductHero({
                             videoRef.current.play().catch(() => {});
                         }
                     }}
-                    onError={(e) => {
+                    onError={() => {
                         setVideoError(true);
                     }}
                     onCanPlay={() => {

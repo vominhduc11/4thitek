@@ -177,7 +177,8 @@ export default function BecomeOurReseller() {
         }
     ];
 
-    const requirements = t('becomeReseller.requirements.list');
+    const requirementsData = t('becomeReseller.requirements.list');
+    const requirements = Array.isArray(requirementsData) ? requirementsData : [];
 
     return (
         <div className="min-h-screen bg-[#0c131d]">

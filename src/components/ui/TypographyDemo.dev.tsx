@@ -67,7 +67,7 @@ export default function TypographyDemo() {
               className={`${typographyComponents.form.input} w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 mt-1`}
             />
             <p className={typographyComponents.form.helper}>
-              Form Helper - We'll never share your email with anyone else.
+              Form Helper - We&apos;ll never share your email with anyone else.
             </p>
           </div>
           <button className={`${typographyComponents.form.button} bg-[#4FC8FF] text-black px-6 py-2 rounded`}>
