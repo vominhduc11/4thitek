@@ -150,10 +150,10 @@ export default function ResellerResults({ searchFilters }: ResellerResultsProps)
     if (loading) {
         return (
             <section className="bg-[#0c131d] text-white py-8">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+                <div className="w-full">
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                         {/* Loading for List */}
-                        <div className="xl:col-span-3">
+                        <div className="lg:col-span-3">
                             <div className="bg-[#1a2332] rounded-lg p-8">
                                 <div className="flex items-center justify-center py-12">
                                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00d4ff]"></div>
@@ -163,7 +163,7 @@ export default function ResellerResults({ searchFilters }: ResellerResultsProps)
                         </div>
 
                         {/* Loading for Map */}
-                        <div className="xl:col-span-2">
+                        <div className="lg:col-span-2">
                             <div className="bg-[#1a2332] rounded-lg p-8 h-[600px] lg:h-[700px] flex items-center justify-center">
                                 <div className="text-center">
                                     <div className="animate-pulse bg-gray-600 rounded-lg w-full h-32 mb-4"></div>
@@ -179,10 +179,10 @@ export default function ResellerResults({ searchFilters }: ResellerResultsProps)
 
     return (
         <section className="bg-[#0c131d] text-white py-8">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+            <div className="w-full">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                     {/* Left Side - Reseller List (3/5 width) */}
-                    <div className="xl:col-span-3">
+                    <div className="lg:col-span-3">
                         <ResellerList
                             resellers={resellers}
                             onResellerSelect={handleResellerSelect}
@@ -191,7 +191,7 @@ export default function ResellerResults({ searchFilters }: ResellerResultsProps)
                     </div>
 
                     {/* Right Side - Map (2/5 width) */}
-                    <div className="xl:col-span-2">
+                    <div className="lg:col-span-2">
                         <div className="sticky top-8">
                             <ResellerMap resellers={resellers} selectedReseller={selectedReseller} />
                         </div>

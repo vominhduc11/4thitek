@@ -152,37 +152,37 @@ export default function ResellerMap({ resellers, selectedReseller }: ResellerMap
                     </div>
 
                     {/* Map Controls */}
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1 sm:space-x-2">
                         <button
                             onClick={handleZoomOut}
                             disabled={!mapSrc}
-                            className="p-2 bg-[#0c131d] text-white rounded-lg hover:bg-[#243447] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1.5 sm:p-2 bg-[#0c131d] text-white rounded-md sm:rounded-lg hover:bg-[#243447] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Phóng nhỏ"
                         >
-                            <FiZoomOut className="w-4 h-4" />
+                            <FiZoomOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </button>
                         <button
                             onClick={handleZoomIn}
                             disabled={!mapSrc}
-                            className="p-2 bg-[#0c131d] text-white rounded-lg hover:bg-[#243447] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1.5 sm:p-2 bg-[#0c131d] text-white rounded-md sm:rounded-lg hover:bg-[#243447] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Phóng to"
                         >
-                            <FiZoomIn className="w-4 h-4" />
+                            <FiZoomIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </button>
                         <button
                             onClick={toggleFullscreen}
                             disabled={!mapSrc}
-                            className="p-2 bg-[#0c131d] text-white rounded-lg hover:bg-[#243447] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1.5 sm:p-2 bg-[#0c131d] text-white rounded-md sm:rounded-lg hover:bg-[#243447] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title={isFullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'}
                         >
-                            {isFullscreen ? <FiMinimize className="w-4 h-4" /> : <FiMaximize className="w-4 h-4" />}
+                            {isFullscreen ? <FiMinimize className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <FiMaximize className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                         </button>
                     </div>
                 </div>
             </div>
 
             {/* Map Container */}
-            <div className={`relative ${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-[600px] lg:h-[700px]'}`}>
+            <div className={`relative ${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-[400px] sm:h-[500px] lg:h-[600px] xl:h-[700px]'}`}>
                 {mapSrc ? (
                     <iframe
                         ref={iframeRef}

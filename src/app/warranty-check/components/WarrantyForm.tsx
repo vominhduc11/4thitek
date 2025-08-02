@@ -17,7 +17,7 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!serialNumber.trim()) {
-            alert('Vui long nhap so serial');
+            alert('Vui lòng nhập số serial');
             return;
         }
 
@@ -58,19 +58,19 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                     transition={{ duration: 0.5, delay: 0.4 }}
                 >
                     <label htmlFor="serialNumber" className="block text-sm font-medium text-gray-300 mb-2">
-                        So Serial <span className="text-red-500">*</span>
+                        Số Serial <span className="text-red-500">*</span>
                     </label>
                     <Input
                         id="serialNumber"
                         type="text"
                         value={serialNumber}
                         onChange={(e) => setSerialNumber(e.target.value)}
-                        placeholder="Nhap so serial san pham"
+                        placeholder="Nhập số serial sản phẩm"
                         required
                         className="w-full transition-all duration-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-400"
                     />
-                    <p className="text-sm text-gray-400 mt-1">
-                        So serial thuong duoc in tren nhan san pham hoac hop dung
+                    <p className="text-xs sm:text-sm text-gray-400 mt-1">
+                        Số serial thường được in trên nhãn sản phẩm hoặc hộp đựng
                     </p>
                 </motion.div>
 
@@ -80,17 +80,17 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                     transition={{ duration: 0.5, delay: 0.5 }}
                 >
                     <label htmlFor="invoiceNumber" className="block text-sm font-medium text-gray-300 mb-2">
-                        So hoa don (tuy chon)
+                        Số hóa đơn (tùy chọn)
                     </label>
                     <Input
                         id="invoiceNumber"
                         type="text"
                         value={invoiceNumber}
                         onChange={(e) => setInvoiceNumber(e.target.value)}
-                        placeholder="Nhap so hoa don (neu co)"
+                        placeholder="Nhập số hóa đơn (nếu có)"
                         className="w-full transition-all duration-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-400"
                     />
-                    <p className="text-sm text-gray-400 mt-1">So hoa don giup tra cuu chinh xac hon</p>
+                    <p className="text-xs sm:text-sm text-gray-400 mt-1">Số hóa đơn giúp tra cứu chính xác hơn</p>
                 </motion.div>
 
                 <motion.div
@@ -110,10 +110,10 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                                 transition={{ duration: 1.5, repeat: Infinity }}
                             >
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                Dang kiem tra...
+                                Đang kiểm tra...
                             </motion.div>
                         ) : (
-                            'Kiem tra bao hanh'
+                            'Kiểm tra bảo hành'
                         )}
                     </Button>
                 </motion.div>

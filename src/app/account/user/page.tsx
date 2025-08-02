@@ -4,11 +4,13 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { UserProfile, PurchasedProducts, WarrantyExtension, WarrantyRequest } from './components';
 
 const UserAccountPage = () => {
     const [activeTab, setActiveTab] = useState('warranty');
     const { user, isAuthenticated, logout } = useAuth();
+    const { t } = useLanguage();
     const router = useRouter();
 
     // Redirect neu chua dang nhap
@@ -35,7 +37,7 @@ const UserAccountPage = () => {
             <div className="min-h-screen bg-[#0c131d] flex items-center justify-center">
                 <div className="text-center">
                     <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-400">Dang tai...</p>
+                    <p className="text-gray-400">{t('common.loading')}</p>
                 </div>
             </div>
         );
@@ -47,66 +49,59 @@ const UserAccountPage = () => {
     };
 
     const tabs = [
-        { id: 'warranty', label: 'Tong quan', icon: '🏠' },
-        { id: 'products', label: 'San pham da dang ky', icon: '📦' },
-        { id: 'extend', label: 'Gia han bao hanh', icon: '📅' },
-        { id: 'request', label: 'Yeu cau bao hanh', icon: '🔧' }
+        { id: 'warranty', label: t('account.overview'), icon: '🏠' },
+        { id: 'products', label: t('account.registeredProducts'), icon: '📦' },
+        { id: 'extend', label: t('account.warrantyExtension'), icon: '📅' },
+        { id: 'request', label: t('account.warrantyRequest'), icon: '🔧' }
     ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#0c131d] to-[#1a2332] text-white relative">
-            {/* Background Pattern */}
-            <div className="absolute inset-0 opacity-5 pointer-events-none">
-                <div
-                    className="absolute inset-0 bg-repeat"
-                    style={{
-                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='white' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-                    }}
-                ></div>
-            </div>
+        <div className="min-h-screen bg-[#0c131d] text-white relative">
+            {/* Subtle gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0c131d]/50 to-[#0c131d] pointer-events-none"></div>
 
             {/* Main Content */}
             <div className="relative z-10 pt-20">
                 {/* User Header Section */}
                 <motion.div
-                    className="bg-gradient-to-r from-[#1a2332] to-[#243447] backdrop-blur-sm border-b border-gray-700/50 shadow-xl"
+                    className="bg-[#1a2332]/80 backdrop-blur-md border-b border-gray-700/30 shadow-2xl"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
-                    <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-4 sm:px-12 md:px-16 lg:px-20 py-8">
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
-                            <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-6">
+                    <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-6 sm:px-8 md:px-12 lg:px-16 py-6 sm:py-8">
+                        <div className="flex flex-col lg:flex-row items-start justify-between gap-6">
+                            <div className="flex flex-col sm:flex-row items-start gap-6 flex-1">
                                 <div className="relative flex-shrink-0">
-                                    <div className="w-20 h-20 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
-                                        <span className="text-white font-bold text-3xl sm:text-2xl">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center shadow-lg ring-2 ring-blue-500/20">
+                                        <span className="text-white font-bold text-xl">
                                             {user.name.charAt(0).toUpperCase()}
                                         </span>
                                     </div>
-                                    <div className="absolute -bottom-1 -right-1 w-7 h-7 sm:w-6 sm:h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                                        <span className="text-sm sm:text-xs">✓</span>
+                                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-[#1a2332] flex items-center justify-center">
+                                        <span className="text-xs">✓</span>
                                     </div>
                                 </div>
-                                <div className="text-center sm:text-left flex-1">
-                                    <h1 className="text-2xl sm:text-3xl md:text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-2">
-                                        Xin chao, {user.name}
+                                <div className="flex-1 min-w-0">
+                                    <h1 className="text-xl sm:text-2xl font-bold text-white mb-1">
+                                        {t('account.welcome')}, {user.name}
                                     </h1>
-                                    <p className="text-gray-400 mb-3 text-base sm:text-base">{user.email}</p>
-                                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                                        <div className="px-4 py-2 sm:px-3 sm:py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-base sm:text-sm font-medium">
-                                            VIP Gold
-                                        </div>
-                                        <div className="px-4 py-2 sm:px-3 sm:py-1 bg-blue-500/20 text-blue-400 rounded-full text-base sm:text-sm font-medium">
-                                            Khách hàng từ 2022
-                                        </div>
+                                    <p className="text-gray-400 mb-3 text-sm sm:text-base">{user.email}</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        <span className="px-3 py-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-400 rounded-full text-xs font-medium border border-yellow-500/30">
+                                            {t('account.vipGold')}
+                                        </span>
+                                        <span className="px-3 py-1 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-blue-400 rounded-full text-xs font-medium border border-blue-500/30">
+                                            {t('account.customerSince')}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
                             <button
                                 onClick={handleLogout}
-                                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-all duration-300 hover:scale-105 shadow-lg font-medium text-sm sm:text-base"
+                                className="bg-red-600/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 px-4 py-2 rounded-lg transition-all duration-300 border border-red-600/30 hover:border-red-500/50 font-medium text-sm"
                             >
-                                Đăng xuất
+                                {t('account.logout')}
                             </button>
                         </div>
                     </div>
@@ -114,28 +109,28 @@ const UserAccountPage = () => {
 
                 {/* Tab Navigation */}
                 <motion.div
-                    className="bg-[#1a2332]/80 backdrop-blur-sm border-b border-gray-700/50 sticky top-16 z-20"
+                    className="bg-[#1a2332]/60 backdrop-blur-md border-b border-gray-700/30 sticky top-16 z-20"
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.2 }}
                 >
-                    <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-4 sm:px-12 md:px-16 lg:px-20">
-                        <div className="flex space-x-1 overflow-x-auto scrollbar-hide pb-1">
+                    <div className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-6 sm:px-8 md:px-12 lg:px-16">
+                        <div className="flex space-x-2 overflow-x-auto scrollbar-hide">
                             {tabs.map((tab) => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap transition-all duration-300 rounded-t-lg relative ${
+                                    className={`flex items-center gap-2 px-4 py-3 whitespace-nowrap transition-all duration-300 rounded-lg relative ${
                                         activeTab === tab.id
-                                            ? 'text-blue-400 bg-[#0c131d]/50 border-b-2 border-blue-400'
-                                            : 'text-gray-400 hover:text-white hover:bg-gray-800/30'
+                                            ? 'text-blue-400 bg-blue-500/10 border border-blue-500/30'
+                                            : 'text-gray-400 hover:text-white hover:bg-gray-700/30'
                                     }`}
                                 >
-                                    <span className="text-base sm:text-lg">{tab.icon}</span>
-                                    <span className="font-medium text-sm sm:text-base">{tab.label}</span>
+                                    <span className="text-sm">{tab.icon}</span>
+                                    <span className="font-medium text-sm">{tab.label}</span>
                                     {activeTab === tab.id && (
                                         <motion.div
-                                            className="absolute inset-0 bg-blue-500/10 rounded-t-lg"
+                                            className="absolute inset-0 bg-blue-500/5 rounded-lg border border-blue-500/20"
                                             layoutId="activeTab"
                                             transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
                                         />
@@ -148,13 +143,13 @@ const UserAccountPage = () => {
 
                 {/* Content Area */}
                 <motion.div
-                    className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-4 sm:px-12 md:px-16 lg:px-20 py-8"
+                    className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 px-6 sm:px-8 md:px-12 lg:px-16 py-6"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.4 }}
                 >
-                    <div className="bg-[#1a2332]/30 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-gray-700/50 shadow-2xl min-h-[400px] sm:min-h-[600px]">
-                        <div className="p-4 sm:p-6">
+                    <div className="bg-[#1a2332]/40 backdrop-blur-md rounded-xl border border-gray-700/40 shadow-xl min-h-[500px]">
+                        <div className="p-6">
                             {activeTab === 'products' && (
                                 <PurchasedProducts
                                     onWarrantyExtension={() => {

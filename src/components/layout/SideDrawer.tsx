@@ -297,7 +297,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
 
                         {/* Sub Panel */}
                         <motion.div
-                            className="w-56 sm:w-72 bg-[#1e2a3a]/20 backdrop-blur-sm px-4 sm:px-8 py-6 sm:py-10 text-gray-300 hidden sm:block"
+                            className="w-56 sm:w-72 bg-[#1e2a3a]/5 backdrop-blur-[1px] px-4 sm:px-8 py-6 sm:py-10 text-gray-300 hidden sm:block"
                             initial={{ opacity: 0, x: -30 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.3, duration: 0.4 }}
@@ -328,7 +328,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                                 className={clsx(
                                                     'flex justify-between items-center w-full text-xs sm:text-sm py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg',
                                                     language === lang.code
-                                                        ? 'bg-blue-500/20 text-white'
+                                                        ? 'text-white'
                                                         : 'hover:bg-white/5 hover:text-white'
                                                 )}
                                                 onClick={() => selectLanguage(lang.code as 'en' | 'vi')}
@@ -363,8 +363,8 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                     {t('common.contactUs')}
                                 </h4>
                                 <motion.div
-                                    className="bg-white/5 rounded-lg p-3 sm:p-4 border border-gray-700/30"
-                                    whileHover={{ scale: 1.02, borderColor: 'rgba(59, 130, 246, 0.3)' }}
+                                    className="p-3 sm:p-4"
+                                    whileHover={{ scale: 1.02 }}
                                     transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                 >
                                     <p className="text-xs sm:text-sm text-gray-300 mb-1 sm:mb-2">Email</p>

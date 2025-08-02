@@ -112,18 +112,17 @@ export default function ResellerSearch({
 
     return (
         <section className="bg-[#0c131d] text-white pt-8 pb-8">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="max-w-5xl mx-auto">
-                    <h1 className="text-4xl md:text-5xl font-bold mb-6 text-white text-center">
-                        {t('reseller.title')}
-                    </h1>
-                    <p className="text-lg text-gray-300 leading-relaxed mb-8 text-center max-w-3xl mx-auto">
-                        {t('reseller.subtitle')}
-                    </p>
+            <div className="max-w-6xl mx-auto">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 text-white text-center">
+                    {t('reseller.title')}
+                </h1>
+                <p className="text-base sm:text-lg text-gray-300 leading-relaxed mb-8 text-center max-w-3xl mx-auto">
+                    {t('reseller.subtitle')}
+                </p>
 
-                    {/* Search Form */}
-                    <div className="bg-[#1a2332] rounded-lg p-6 mb-8">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* Search Form */}
+                <div className="bg-[#1a2332] rounded-lg p-4 sm:p-6 mb-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                             {/* City Selection */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -290,7 +289,6 @@ export default function ResellerSearch({
                                     <span>{t('reseller.search')}</span>
                                 </button>
                             </div>
-                        </div>
                     </div>
                 </div>
             </div>

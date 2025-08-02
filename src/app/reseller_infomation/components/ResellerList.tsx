@@ -1,6 +1,6 @@
 'use client';
 
-import { FiMapPin, FiPhone, FiMail, FiClock, FiStar } from 'react-icons/fi';
+import { FiMapPin, FiPhone, FiMail, FiClock } from 'react-icons/fi';
 
 interface Reseller {
     id: number;
@@ -43,7 +43,7 @@ export default function ResellerList({ resellers, onResellerSelect, selectedRese
                     </p>
                 </div>
             ) : (
-                <div className="space-y-4 max-h-[700px] lg:max-h-[750px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="space-y-4 max-h-[400px] sm:max-h-[500px] lg:max-h-[600px] xl:max-h-[700px] overflow-y-auto pr-2 custom-scrollbar">
                     {resellers.map((reseller) => (
                         <div
                             key={reseller.id}
@@ -60,19 +60,6 @@ export default function ResellerList({ resellers, onResellerSelect, selectedRese
                                     <h3 className="text-lg sm:text-xl font-semibold text-white mb-1">
                                         {reseller.name}
                                     </h3>
-                                    <div className="flex items-center space-x-4 text-sm text-gray-300">
-                                        <div className="flex items-center space-x-1">
-                                            <FiStar className="w-4 h-4 text-yellow-400 fill-current" />
-                                            <span>{reseller.rating}</span>
-                                        </div>
-                                        <span>•</span>
-                                        <span>{reseller.distance}</span>
-                                    </div>
-                                </div>
-                                <div className="flex-shrink-0 sm:text-right">
-                                    <span className="bg-[#00d4ff] text-[#0c131d] px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap">
-                                        Đại lý chính thức
-                                    </span>
                                 </div>
                             </div>
 
@@ -105,17 +92,6 @@ export default function ResellerList({ resellers, onResellerSelect, selectedRese
                                 <span className="text-gray-300 text-sm">{reseller.hours}</span>
                             </div>
 
-                            {/* Specialties */}
-                            <div className="flex flex-wrap gap-2">
-                                {reseller.specialties.map((specialty, index) => (
-                                    <span
-                                        key={index}
-                                        className="bg-[#0c131d] text-gray-300 px-3 py-1 rounded-full text-xs"
-                                    >
-                                        {specialty}
-                                    </span>
-                                ))}
-                            </div>
                         </div>
                     ))}
                 </div>

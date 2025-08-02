@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Product {
     id: string;
@@ -24,6 +25,7 @@ interface PurchasedProductsProps {
 
 const PurchasedProducts = ({ onWarrantyExtension, onWarrantyRequest }: PurchasedProductsProps) => {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const { t } = useLanguage();
 
     // Mock data - trong thực tế sẽ lấy từ API
     const mockProducts: Product[] = [
@@ -81,11 +83,11 @@ const PurchasedProducts = ({ onWarrantyExtension, onWarrantyRequest }: Purchased
     const getStatusText = (status: string) => {
         switch (status) {
             case 'active':
-                return 'Con bao hanh';
+                return t('account.active');
             case 'expired':
-                return 'Het bao hanh';
+                return t('account.expired');
             case 'expiring':
-                return 'Sap het han';
+                return t('account.expiring');
             default:
                 return 'Khong xac dinh';
         }
@@ -101,35 +103,36 @@ const PurchasedProducts = ({ onWarrantyExtension, onWarrantyRequest }: Purchased
     return (
         <div className="space-y-6">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                <h2 className="text-2xl font-bold mb-6">San pham da dang ky bao hanh</h2>
+                <h2 className="text-xl font-bold mb-6 text-white">{t('account.registeredProducts')}</h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                     {mockProducts.map((product, index) => (
                         <motion.div
                             key={product.id}
-                            className="bg-[#1a2332] rounded-lg p-6 border border-gray-700 hover:border-gray-600 transition-all duration-300 hover:shadow-lg"
+                            className="bg-[#0c131d]/50 rounded-xl p-5 border border-gray-700/40 hover:border-gray-600/60 transition-all duration-300 hover:shadow-lg backdrop-blur-sm group"
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: index * 0.1 }}
+                            whileHover={{ scale: 1.01 }}
                         >
                             {/* Product Image */}
-                            <div className="w-full h-48 bg-gray-800 rounded-lg mb-4 flex items-center justify-center">
-                                <span className="text-gray-500 text-sm">Hinh san pham</span>
+                            <div className="w-full h-40 bg-gray-800/50 rounded-lg mb-4 flex items-center justify-center border border-gray-700/30 group-hover:border-gray-600/50 transition-all duration-300">
+                                <span className="text-gray-500 text-xs">{t('account.productImage')}</span>
                             </div>
 
                             {/* Product Info */}
                             <div className="space-y-3">
-                                <h3 className="text-lg font-semibold text-white">{product.name}</h3>
+                                <h3 className="text-base font-semibold text-white group-hover:text-blue-300 transition-colors duration-300 line-clamp-2">{product.name}</h3>
 
-                                <div className="text-sm text-gray-400 space-y-1">
+                                <div className="text-xs text-gray-400 space-y-1">
                                     <p>
-                                        <span className="font-medium">Serial:</span> {product.serial}
+                                        <span className="font-medium text-gray-300">{t('account.serial')}:</span> {product.serial}
                                     </p>
                                     <p>
-                                        <span className="font-medium">Ngay mua:</span> {product.purchaseDate}
+                                        <span className="font-medium text-gray-300">{t('account.purchaseDate')}:</span> {product.purchaseDate}
                                     </p>
-                                    <p>
-                                        <span className="font-medium">Dai ly:</span> {product.dealer}
+                                    <p className="truncate">
+                                        <span className="font-medium text-gray-300">{t('account.dealer')}:</span> {product.dealer}
                                     </p>
                                 </div>
 
@@ -141,16 +144,16 @@ const PurchasedProducts = ({ onWarrantyExtension, onWarrantyRequest }: Purchased
                                 </div>
 
                                 {/* Warranty Info */}
-                                <div className="bg-[#0c131d] p-3 rounded-lg border border-gray-600">
-                                    <p className="text-sm text-gray-300 mb-1">
-                                        <span className="font-medium">Bao hanh den:</span> {product.warrantyEndDate}
+                                <div className="bg-[#1a2332]/40 p-3 rounded-lg border border-gray-600/30">
+                                    <p className="text-xs text-gray-300 mb-1">
+                                        <span className="font-medium">{t('account.warrantyUntil')}:</span> {product.warrantyEndDate}
                                     </p>
                                     {product.warrantyStatus === 'active' && (
-                                        <p className="text-sm text-green-400">Con lai {product.remainingDays} ngay</p>
+                                        <p className="text-xs text-green-400">{product.remainingDays} {t('account.remainingDays')}</p>
                                     )}
                                     {product.warrantyStatus === 'expiring' && (
-                                        <p className="text-sm text-yellow-400">
-                                            Sap het han trong {product.remainingDays} ngay
+                                        <p className="text-xs text-yellow-400">
+                                            {t('account.expiringIn')} {product.remainingDays} {t('account.days')}
                                         </p>
                                     )}
                                 </div>
@@ -159,13 +162,16 @@ const PurchasedProducts = ({ onWarrantyExtension, onWarrantyRequest }: Purchased
                                 <div className="flex gap-2">
                                     <Button
                                         onClick={() => setSelectedProduct(product)}
-                                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm py-2"
+                                        className="flex-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 hover:text-blue-300 text-xs py-2 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300"
                                     >
-                                        Xem chi tiet
+                                        {t('account.viewDetails')}
                                     </Button>
                                     {product.warrantyStatus === 'active' && (
-                                        <Button variant="outline" className="flex-1 text-sm py-2">
-                                            Bao hanh
+                                        <Button 
+                                            variant="outline" 
+                                            className="flex-1 text-xs py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 hover:text-green-300 border-green-500/30 hover:border-green-400/50"
+                                        >
+                                            {t('account.warranty')}
                                         </Button>
                                     )}
                                 </div>
@@ -184,13 +190,13 @@ const PurchasedProducts = ({ onWarrantyExtension, onWarrantyRequest }: Purchased
                     onClick={() => setSelectedProduct(null)}
                 >
                     <motion.div
-                        className="bg-[#1a2332] rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-700"
+                        className="bg-[#1a2332]/90 backdrop-blur-md rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-700/50"
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-2xl font-bold text-white">Chi tiet san pham</h3>
+                            <h3 className="text-xl font-bold text-white">{t('account.productDetails')}</h3>
                             <button
                                 onClick={() => setSelectedProduct(null)}
                                 className="text-gray-400 hover:text-white transition-colors"
@@ -207,13 +213,13 @@ const PurchasedProducts = ({ onWarrantyExtension, onWarrantyRequest }: Purchased
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="w-full h-64 bg-gray-800 rounded-lg flex items-center justify-center">
-                                <span className="text-gray-500">Hinh san pham</span>
+                            <div className="w-full h-64 bg-gray-800/50 rounded-lg flex items-center justify-center border border-gray-700/30">
+                                <span className="text-gray-500 text-sm">{t('account.productImage')}</span>
                             </div>
 
                             <div className="space-y-4">
                                 <div>
-                                    <h4 className="text-xl font-semibold text-white mb-2">{selectedProduct.name}</h4>
+                                    <h4 className="text-lg font-semibold text-white mb-2">{selectedProduct.name}</h4>
                                     <div
                                         className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedProduct.warrantyStatus)}`}
                                     >
@@ -223,45 +229,44 @@ const PurchasedProducts = ({ onWarrantyExtension, onWarrantyRequest }: Purchased
 
                                 <div className="space-y-2 text-sm">
                                     <p className="text-gray-300">
-                                        <span className="font-medium text-white">Serial:</span> {selectedProduct.serial}
+                                        <span className="font-medium text-white">{t('account.serial')}:</span> {selectedProduct.serial}
                                     </p>
                                     <p className="text-gray-300">
-                                        <span className="font-medium text-white">Ngay mua:</span>{' '}
+                                        <span className="font-medium text-white">{t('account.purchaseDate')}:</span>{' '}
                                         {selectedProduct.purchaseDate}
                                     </p>
                                     <p className="text-gray-300">
-                                        <span className="font-medium text-white">Noi mua:</span>{' '}
+                                        <span className="font-medium text-white">{t('account.purchaseLocation')}:</span>{' '}
                                         {selectedProduct.dealer}
                                     </p>
                                     <p className="text-gray-300">
-                                        <span className="font-medium text-white">Gia ban le:</span>{' '}
+                                        <span className="font-medium text-white">{t('account.retailPrice')}:</span>{' '}
                                         {formatPrice(selectedProduct.price)}
                                     </p>
                                     <p className="text-gray-300">
-                                        <span className="font-medium text-white">Bao hanh den:</span>{' '}
+                                        <span className="font-medium text-white">{t('account.warrantyUntil')}:</span>{' '}
                                         {selectedProduct.warrantyEndDate}
                                     </p>
                                 </div>
 
                                 <div className="flex gap-2 pt-4">
                                     <Button
-                                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                        className="flex-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 hover:text-blue-300 border border-blue-500/30 hover:border-blue-400/50"
                                         onClick={() => {
                                             setSelectedProduct(null);
                                             onWarrantyExtension?.(selectedProduct);
                                         }}
                                     >
-                                        Gia han bao hanh
+                                        {t('account.extendWarranty')}
                                     </Button>
                                     <Button
-                                        variant="outline"
-                                        className="flex-1"
+                                        className="flex-1 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 hover:text-orange-300 border border-orange-500/30 hover:border-orange-400/50"
                                         onClick={() => {
                                             setSelectedProduct(null);
                                             onWarrantyRequest?.(selectedProduct);
                                         }}
                                     >
-                                        Yeu cau bao hanh
+                                        {t('account.requestWarranty')}
                                     </Button>
                                 </div>
                             </div>
