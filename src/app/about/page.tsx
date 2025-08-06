@@ -1,5 +1,3 @@
-'use client';
-
 import { AboutHero, AboutHeader, AboutMission, AboutTeam, AboutHistory } from './components';
 
 export default function AboutPage() {

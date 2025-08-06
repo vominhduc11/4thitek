@@ -57,3 +57,18 @@ logs
 # temporary files
 .tmp/
 temp/
+
+# cache files
+.eslintcache
+.prettier-cache
+.stylelintcache
+
+# turbo
+.turbo/
+
+# bundle analyzer
+.next/analyze/
+
+# alternative package managers
+yarn.lock
+pnpm-lock.yaml
