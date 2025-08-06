@@ -167,8 +167,8 @@ const PurchasedProducts = ({ onWarrantyExtension, onWarrantyRequest }: Purchased
                                         {t('account.viewDetails')}
                                     </Button>
                                     {product.warrantyStatus === 'active' && (
-                                        <Button 
-                                            variant="outline" 
+                                        <Button
+                                            variant="outline"
                                             className="flex-1 text-xs py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 hover:text-green-300 border-green-500/30 hover:border-green-400/50"
                                         >
                                             {t('account.warranty')}

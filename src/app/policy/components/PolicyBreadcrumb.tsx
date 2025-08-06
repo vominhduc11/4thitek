@@ -10,7 +10,7 @@ interface PolicyBreadcrumbProps {
 
 const PolicyBreadcrumb = ({ selectedPolicy = 'warranty', onPolicyClick }: PolicyBreadcrumbProps) => {
     const { t } = useLanguage();
-    
+
     const policyList = [
         { key: 'warranty', label: t('policy.policies.warranty') },
         { key: 'return', label: t('policy.policies.return') },

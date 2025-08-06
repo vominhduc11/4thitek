@@ -9,7 +9,7 @@ import { getStaggerTransition, ANIMATION_OFFSET } from '@/constants/animations';
 
 export default function AboutTeam() {
     const { t } = useLanguage();
-    
+
     const team = [
         {
             nameKey: 'about.team.members.johnSmith.name',

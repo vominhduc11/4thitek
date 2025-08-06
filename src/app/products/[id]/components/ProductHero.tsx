@@ -84,7 +84,7 @@ export default function ProductHero({
     // Create smooth sticky breadcrumb for md+ breakpoints
     useEffect(() => {
         const initStickyBreadcrumb = () => {
-            
+
             const heroBreadcrumb = document.getElementById('hero-breadcrumb');
             if (!heroBreadcrumb) {
                 return;
@@ -98,7 +98,7 @@ export default function ProductHero({
             let isVisible = false;
 
             const createStickyElement = () => {
-                
+
                 // Remove existing sticky breadcrumb
                 const existing = document.getElementById('sticky-breadcrumb-clone');
                 if (existing) existing.remove();
@@ -112,17 +112,17 @@ export default function ProductHero({
                     'bg-black/90', 'backdrop-blur-md', 'border-b', 'border-gray-700/30',
                     'transition-all', 'duration-300', 'ease-out'
                 ];
-                
+
                 // Add responsive left positioning based on current window width
                 if (window.innerWidth >= 768) { // md and above
                     baseClasses.push('left-20'); // Use left-20 for all md+ breakpoints
                 } else {
                     baseClasses.push('left-16'); // Use left-16 for smaller screens
                 }
-                
+
                 stickyBreadcrumb.className = baseClasses.join(' ');
-                
-                
+
+
                 // Set initial state using style properties
                 stickyBreadcrumb.style.opacity = '0';
                 stickyBreadcrumb.style.transform = 'translateY(-10px)';
@@ -141,8 +141,8 @@ export default function ProductHero({
                     { label: 'SPECIFICATIONS', section: 'specifications' },
                     { label: 'WARRANTY', section: 'warranty' }
                 ];
-                
-                
+
+
                 // Create breadcrumb buttons
                 itemsToUse.forEach((item, index) => {
                     const buttonWrapper = document.createElement('div');
@@ -150,10 +150,10 @@ export default function ProductHero({
 
                     const button = document.createElement('button');
                     const isActive = (activeBreadcrumb || 'PRODUCT DETAILS') === item.label;
-                    
+
                     button.className = `font-medium transition-all duration-200 px-2 py-1 md:px-3 md:py-1.5 lg:px-4 lg:py-2 xl:px-5 xl:py-2.5 2xl:px-6 2xl:py-3 3xl:px-7 3xl:py-3.5 4xl:px-8 4xl:py-4 rounded-lg text-xs md:text-sm lg:text-base xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl hover:bg-white/10 ${
-                        isActive 
-                            ? 'text-blue-400 bg-blue-400/10' 
+                        isActive
+                            ? 'text-blue-400 bg-blue-400/10'
                             : 'text-gray-300 hover:text-white'
                     }`;
                     button.textContent = item.label;
@@ -165,7 +165,7 @@ export default function ProductHero({
                             onBreadcrumbClick(item);
                         }
                         updateStickyActiveState(item.label);
-                        
+
                         // Dispatch custom event as fallback
                         window.dispatchEvent(new CustomEvent('breadcrumbNavigation', {
                             detail: { label: item.label, section: item.section }
@@ -192,15 +192,15 @@ export default function ProductHero({
 
             const updateStickyActiveState = (activeLabel: string) => {
                 if (!stickyBreadcrumb) return;
-                
+
                 const buttons = stickyBreadcrumb.querySelectorAll('button');
                 buttons.forEach(btn => {
                     const label = btn.getAttribute('data-label');
                     const isActive = label === activeLabel;
-                    
+
                     btn.className = `font-medium transition-all duration-200 px-2 py-1 md:px-3 md:py-1.5 lg:px-4 lg:py-2 xl:px-5 xl:py-2.5 2xl:px-6 2xl:py-3 3xl:px-7 3xl:py-3.5 4xl:px-8 4xl:py-4 rounded-lg text-xs md:text-sm lg:text-base xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl hover:bg-white/10 ${
-                        isActive 
-                            ? 'text-blue-400 bg-blue-400/10' 
+                        isActive
+                            ? 'text-blue-400 bg-blue-400/10'
                             : 'text-gray-300 hover:text-white'
                     }`;
                 });
@@ -218,7 +218,7 @@ export default function ProductHero({
                 if (shouldShow && !isVisible) {
                     // Show sticky breadcrumb
                     if (!stickyBreadcrumb) createStickyElement();
-                    
+
                     requestAnimationFrame(() => {
                         if (stickyBreadcrumb) {
                             stickyBreadcrumb.style.opacity = '1';
@@ -255,7 +255,7 @@ export default function ProductHero({
             handleScroll();
 
             // Store update functions for external access
-            Object.assign(window, { 
+            Object.assign(window, {
                 updateStickyBreadcrumb: updateStickyActiveState,
                 recreateStickyBreadcrumb: createStickyElement
             });
@@ -281,7 +281,7 @@ export default function ProductHero({
             (updateFn as (label: string) => void)(activeBreadcrumb);
         }
     }, [activeBreadcrumb]);
-    
+
     // Recreate sticky breadcrumb when critical props change
     useEffect(() => {
         const recreateFn = (window as unknown as Record<string, unknown>)['recreateStickyBreadcrumb'];

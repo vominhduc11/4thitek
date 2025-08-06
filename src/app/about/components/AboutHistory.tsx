@@ -5,7 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AboutHistory() {
     const { t } = useLanguage();
-    
+
     const milestones = [
         {
             year: '2015',

@@ -5,7 +5,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Hero from '@/components/ui/Hero';
-import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
     FiTrendingUp,
@@ -40,7 +39,16 @@ interface FormData {
 
 export default function BecomeOurReseller() {
     const { t } = useLanguage();
-    
+    const formSectionRef = useRef<HTMLElement>(null);
+
+    // Scroll to form function
+    const scrollToForm = () => {
+        formSectionRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+    };
+
     // Dropdown states
     const [isBusinessTypeDropdownOpen, setIsBusinessTypeDropdownOpen] = useState(false);
     const [isExperienceDropdownOpen, setIsExperienceDropdownOpen] = useState(false);
@@ -182,18 +190,13 @@ export default function BecomeOurReseller() {
 
     return (
         <div className="min-h-screen bg-[#0c131d]">
-            {/* Language Switcher */}
-            <div className="fixed top-4 right-4 z-50">
-                <LanguageSwitcher />
-            </div>
-
             {/* Hero Section */}
             <Hero breadcrumbItems={breadcrumbItems} />
 
             {/* Main Content */}
             <div className="relative">
                 {/* Header Section */}
-                <section className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20">
+                <section className="ml-16 sm:ml-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20">
                     <div className="max-w-6xl mx-auto text-center">
                         <motion.h1
                             className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight"
@@ -217,21 +220,18 @@ export default function BecomeOurReseller() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.8, delay: 0.4, ease: 'easeOut' }}
                         >
-                            <Button className="bg-[#4FC8FF] hover:bg-[#4FC8FF]/90 text-white px-8 py-3 text-lg">
-                                {t('becomeReseller.applyNow')}
-                            </Button>
                             <Button
-                                variant="outline"
-                                className="border-[#4FC8FF] text-[#4FC8FF] hover:bg-[#4FC8FF] hover:text-white px-8 py-3 text-lg"
+                                onClick={scrollToForm}
+                                className="bg-[#4FC8FF] hover:bg-[#4FC8FF]/90 text-white px-8 py-3 text-lg"
                             >
-                                {t('becomeReseller.downloadBrochure')}
+                                {t('becomeReseller.applyNow')}
                             </Button>
                         </motion.div>
                     </div>
                 </section>
 
                 {/* Benefits Section */}
-                <section className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20 bg-gray-900/30">
+                <section className="ml-16 sm:ml-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20 bg-gray-900/30">
                     <div className="max-w-6xl mx-auto">
                         <motion.div
                             className="text-center mb-12"
@@ -293,7 +293,7 @@ export default function BecomeOurReseller() {
                 </section>
 
                 {/* Requirements Section */}
-                <section className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20">
+                <section className="ml-16 sm:ml-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20">
                     <div className="max-w-4xl mx-auto">
                         <motion.div
                             className="text-center mb-12"
@@ -343,7 +343,7 @@ export default function BecomeOurReseller() {
                 </section>
 
                 {/* Application Form Section */}
-                <section className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20 bg-gray-900/30">
+                <section ref={formSectionRef} className="ml-16 sm:ml-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20 bg-gray-900/30">
                     <div className="max-w-4xl mx-auto">
                         <motion.div
                             className="text-center mb-12"
@@ -898,7 +898,7 @@ export default function BecomeOurReseller() {
                 </section>
 
                 {/* Contact Information */}
-                <section className="ml-16 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20">
+                <section className="ml-16 sm:ml-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20">
                     <div className="max-w-4xl mx-auto">
                         <motion.div
                             className="text-center mb-12"

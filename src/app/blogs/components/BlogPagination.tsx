@@ -13,7 +13,7 @@ interface BlogPaginationProps {
 
 const BlogPagination = ({ currentPage, totalPages, totalItems, onPageChange }: BlogPaginationProps) => {
     const { t } = useLanguage();
-    
+
     return (
         <Pagination
             currentPage={currentPage}

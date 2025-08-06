@@ -74,7 +74,7 @@ export default function ContactMap() {
                 setIsFullscreen(false);
             }
         } catch (error) {
-            console.error('Fullscreen error:', error);
+            // Handle fullscreen error silently
         }
     };
 

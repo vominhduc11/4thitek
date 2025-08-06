@@ -39,7 +39,7 @@ const renderSectionContent = (sectionKey: string, contentData: ContentData) => {
     const paragraphClass = `mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10 ${baseClass}`;
     const listClass = `list-disc list-inside mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10 space-y-2 2xl:space-y-3 3xl:space-y-4 4xl:space-y-5 ${baseClass}`;
     const strongClass = "text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl";
-    
+
     return (
         <>
             {contentData.intro && (
@@ -157,10 +157,10 @@ interface PolicyData {
 
 export default function PolicyContent({ selectedPolicy }: PolicyContentProps) {
     const { getTranslation } = useLanguage();
-    
+
     // Get policy data from translations using the new getTranslation function
     const currentPolicyData = getTranslation(`policy.content.${selectedPolicy}`) as unknown as PolicyData;
-    
+
     // Check if we have valid policy data with sections
     if (!currentPolicyData || !currentPolicyData.sections) {
         return (
@@ -212,10 +212,10 @@ export default function PolicyContent({ selectedPolicy }: PolicyContentProps) {
                                 ease: 'easeOut'
                             }}
                         >
-                            <PolicySection 
-                                id={sectionKey} 
-                                title={sectionData.title} 
-                                content={renderSectionContent(sectionKey, sectionData.content)} 
+                            <PolicySection
+                                id={sectionKey}
+                                title={sectionData.title}
+                                content={renderSectionContent(sectionKey, sectionData.content)}
                             />
                         </motion.div>
                     ))}

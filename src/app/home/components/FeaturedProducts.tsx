@@ -226,7 +226,7 @@ export default function FeaturedProducts() {
                                 boxShadow: 'inset 0 0 40px rgba(79, 200, 255, 0.2), 0 0 50px rgba(79, 200, 255, 0.15)'
                             }}
                         />
-                        
+
                         {/* Glow effect on hover */}
                         <motion.div
                             className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"

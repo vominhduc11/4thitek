@@ -6,7 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function CertificationProcess() {
     const { t } = useLanguage();
-    
+
     const steps = [
         {
             icon: <FiFileText className="w-6 h-6" />,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HeroSection, WarrantyForm, WarrantyResult, LoginForm } from './components';
 import { useAuth } from '@/context/AuthContext';

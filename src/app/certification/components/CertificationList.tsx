@@ -8,7 +8,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function CertificationList() {
     const { t } = useLanguage();
-    
+
     const certifications = [
         {
             id: 'ce',

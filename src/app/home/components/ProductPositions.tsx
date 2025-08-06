@@ -8,7 +8,6 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import AvoidSidebar from '@/components/layout/AvoidSidebar';
 import { useLanguage } from '@/contexts/LanguageContext';
-// import { getProductsByPosition } from '@/data/products'; // Function removed
 
 // Types
 interface PositionItem {
@@ -54,35 +53,27 @@ const positionItems: PositionItem[] = [
 // Main ProductPositions Component
 export default function ProductPositions() {
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [, setSelectedThumbIndex] = useState(0);
     const router = useRouter();
     const { t } = useLanguage();
 
     const currentPosition = positionItems[currentIndex];
-    const products: unknown[] = []; // Component no longer used, getProductsByPosition removed
 
     const handleNext = () => {
         setCurrentIndex((prev) => (prev + 1) % positionItems.length);
-        setSelectedThumbIndex(0);
     };
 
     const handlePrev = () => {
         setCurrentIndex((prev) => (prev - 1 + positionItems.length) % positionItems.length);
-        setSelectedThumbIndex(0);
     };
 
     const handlePositionClick = (index: number) => {
         setCurrentIndex(index);
-        setSelectedThumbIndex(0);
     };
 
     const handleViewProducts = () => {
         router.push(`/products?position=${currentPosition.position}`);
     };
 
-    // const handleProductClick = (productId: string) => {
-    //     router.push(`/products/${productId}`);
-    // }; // Function commented out as component is no longer used
 
     return (
         <AvoidSidebar>
@@ -188,17 +179,6 @@ export default function ProductPositions() {
                                     </div>
                                 </motion.div>
 
-                                {/* Product Thumbnails */}
-                                {products.length > 0 && (
-                                    <div className="mt-6">
-                                        <h4 className="text-white font-semibold mb-4">
-                                            Sản phẩm trong phân khúc {currentPosition.label}:
-                                        </h4>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                            {/* Products removed as component is no longer used */}
-                                        </div>
-                                    </div>
-                                )}
 
                                 {/* Navigation Arrows */}
                                 <button

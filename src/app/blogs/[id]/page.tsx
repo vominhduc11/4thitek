@@ -11,7 +11,6 @@ import BlogDetailHero from '@/app/blogs/[id]/components/BlogDetailHero';
 import { useHydration } from '@/hooks/useHydration';
 import { formatDateSafe } from '@/utils/dateFormatter';
 import { useLanguage } from '@/contexts/LanguageContext';
-import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 
 // Get published blog posts
 const publishedBlogPosts: BlogPost[] = getPublishedPosts();
@@ -76,11 +75,6 @@ export default function BlogDetailPageImproved() {
 
     return (
         <div className="min-h-screen bg-[#0c131d] main-content scroll-smooth">
-            {/* Language Switcher */}
-            <div className="fixed top-4 right-4 z-50">
-                <LanguageSwitcher />
-            </div>
-
             {/* Simple Hero Section - Consistent with other pages */}
             <BlogDetailHero />
             {/* 1. Thanh tiêu đề bài viết (Post Header) */}

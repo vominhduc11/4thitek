@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation';
 import { BlogHero, BlogBreadcrumb, BlogGrid, BlogPagination } from './components';
 import { getPublishedPosts } from '@/data/blogs';
 import type { BlogPost } from '@/types/blog';
-import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 // Get published blog posts
@@ -107,11 +106,6 @@ function BlogPageContent() {
 
     return (
         <div className="min-h-screen bg-[#0c131d] text-white flex flex-col overflow-x-hidden">
-            {/* Language Switcher */}
-            <div className="fixed top-4 right-4 z-50">
-                <LanguageSwitcher />
-            </div>
-
             {/* Hero Video Section */}
             <BlogHero />
 

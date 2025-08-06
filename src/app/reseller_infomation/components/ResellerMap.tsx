@@ -110,7 +110,7 @@ export default function ResellerMap({ resellers, selectedReseller }: ResellerMap
                 setIsFullscreen(false);
             }
         } catch (error) {
-            console.error('Fullscreen error:', error);
+            // Handle fullscreen error silently
         }
     };
 

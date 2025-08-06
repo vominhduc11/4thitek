@@ -5,7 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function WarrantyHero() {
     const { t } = useLanguage();
-    
+
     const breadcrumbItems = [
         { label: t('nav.home'), href: '/' },
         { label: t('warrantyCheck.breadcrumb'), active: true }

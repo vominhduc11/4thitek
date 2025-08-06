@@ -113,7 +113,7 @@ const BlogBreadcrumb = ({
                             initial={{ scaleX: 0, opacity: 0 }}
                             animate={{ scaleX: 1, opacity: 1 }}
                             transition={{ duration: 1.2, delay: 0.8 }}
-                            style={{ 
+                            style={{
                                 transform: 'translateY(-0.5px)',
                                 left: '-5rem',
                                 right: '0',
@@ -182,7 +182,7 @@ const BlogBreadcrumb = ({
                                 </div>
                             ))}
                             </div>
-                            
+
                             {/* Search Bar Desktop - Same Level as Breadcrumb */}
                             <motion.div
                                 className="hidden xl:block bg-[#0c131d] pl-6 relative z-10"

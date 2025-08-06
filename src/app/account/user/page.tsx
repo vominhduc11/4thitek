@@ -6,7 +6,6 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { UserProfile, PurchasedProducts, WarrantyExtension, WarrantyRequest } from './components';
-import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 
 const UserAccountPage = () => {
     const [activeTab, setActiveTab] = useState('warranty');
@@ -58,11 +57,6 @@ const UserAccountPage = () => {
 
     return (
         <div className="min-h-screen bg-[#0c131d] text-white relative">
-            {/* Language Switcher */}
-            <div className="fixed top-4 right-4 z-50">
-                <LanguageSwitcher />
-            </div>
-
             {/* Subtle gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0c131d]/50 to-[#0c131d] pointer-events-none"></div>
 

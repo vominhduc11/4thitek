@@ -7,7 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AboutMission() {
     const { t } = useLanguage();
-    
+
     const values = [
         {
             icon: <FiTarget className="w-6 h-6" />,

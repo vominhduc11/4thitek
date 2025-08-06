@@ -9,7 +9,6 @@ import ProductSpecifications from '@/app/products/[id]/components/ProductSpecifi
 import ProductWarranty from '@/app/products/[id]/components/ProductWarranty';
 import RelatedProducts from '@/app/products/[id]/components/RelatedProducts';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
-import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import { getProductById, getRelatedProducts } from '@/data/products';
 import { useLanguage } from '@/contexts/LanguageContext';
 import type { Product } from '@/types/product';
@@ -237,11 +236,6 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
     return (
         <div className="min-h-screen bg-[#0a0f1a] text-white">
-            {/* Language Switcher */}
-            <div className="fixed top-4 right-4 z-50">
-                <LanguageSwitcher />
-            </div>
-
             {/* Mobile Layout (Small screens) */}
             <div className="md:hidden">
                 {/* Mobile Navigation Dropdown - Above Hero */}
