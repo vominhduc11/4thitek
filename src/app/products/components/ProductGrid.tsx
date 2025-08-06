@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiArrowUpRight } from 'react-icons/fi';
 import Image from 'next/image';
@@ -16,7 +16,7 @@ interface ProductImageWithFallbackProps {
     className?: string;
 }
 
-function ProductImageWithFallback({ src, alt, className }: ProductImageWithFallbackProps) {
+const ProductImageWithFallback = memo(function ProductImageWithFallback({ src, alt, className }: ProductImageWithFallbackProps) {
     const [imageError, setImageError] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -51,7 +51,7 @@ function ProductImageWithFallback({ src, alt, className }: ProductImageWithFallb
             />
         </div>
     );
-}
+});
 
 interface ProductGridProps {
     products: Product[];
@@ -61,7 +61,16 @@ export default function ProductGrid({ products }: ProductGridProps) {
     const [hoveredProductId, setHoveredProductId] = useState<string | null>(null);
     const { t } = useLanguage();
 
-    const renderProductCard = (product: Product, index: number) => {
+    // Optimized event handlers
+    const handleProductHover = useCallback((productId: string | null) => {
+        setHoveredProductId(productId);
+    }, []);
+
+    const handleProductLeave = useCallback(() => {
+        setHoveredProductId(null);
+    }, []);
+
+    const renderProductCard = useCallback((product: Product, index: number) => {
         return (
             <motion.div
                 key={product.id}
@@ -81,8 +90,8 @@ export default function ProductGrid({ products }: ProductGridProps) {
                 <Link href={`/products/${product.id}`}>
                     <motion.div
                         className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-all duration-500 cursor-pointer group overflow-hidden h-[600px] sm:h-[480px] md:h-[480px] 2xl:h-[650px] 3xl:h-[700px] 4xl:h-[750px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/30 shadow-lg hover:shadow-2xl hover:shadow-[#4FC8FF]/10"
-                        onMouseEnter={() => setHoveredProductId(product.id)}
-                        onMouseLeave={() => setHoveredProductId(null)}
+                        onMouseEnter={() => handleProductHover(product.id)}
+                        onMouseLeave={handleProductLeave}
                         whileHover={{
                             y: -5,
                             boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
@@ -192,7 +201,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
                 </Link>
             </motion.div>
         );
-    };
+    }, [hoveredProductId, handleProductHover, handleProductLeave, t]);
 
     return (
         <div className="w-full">

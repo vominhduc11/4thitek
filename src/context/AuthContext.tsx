@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 
 interface User {
     id: string;
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return () => clearTimeout(timer);
     }, []);
 
-    const login = (user: User) => {
+    const login = useCallback((user: User) => {
         console.log('Login user:', user);
         setUser(user);
 
@@ -98,9 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             document.cookie = '4thitek_auth=true; path=/; max-age=86400'; // Hết hạn sau 1 ngày
             console.log('Auth cookie set');
         }
-    };
+    }, []);
 
-    const logout = () => {
+    const logout = useCallback(() => {
         console.log('Logging out user');
 
         // Xóa dữ liệu người dùng khỏi localStorage
@@ -118,10 +118,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Đặt user state về null sau khi đã xóa dữ liệu
         setUser(null);
         console.log('User state set to null');
-    };
+    }, []);
 
     // Function để clear authentication manually
-    const clearAuth = () => {
+    const clearAuth = useCallback(() => {
         if (typeof window !== 'undefined') {
             localStorage.removeItem('4thitek_user');
             if (typeof document !== 'undefined') {
@@ -129,9 +129,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
         }
         setUser(null);
-    };
+    }, []);
 
-    const value = {
+    // Memoized context value to prevent unnecessary re-renders
+    const value = useMemo(() => ({
         user,
         isAuthenticated: !!user,
         isLoading,
@@ -139,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         clearAuth
-    };
+    }), [user, isLoading, isHydrated, login, logout, clearAuth]);
 
     // Log để kiểm tra trạng thái đăng nhập
     useEffect(() => {

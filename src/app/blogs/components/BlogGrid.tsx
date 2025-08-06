@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useMemo, useCallback, memo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { MdArrowForward } from 'react-icons/md';
@@ -14,12 +15,11 @@ interface BlogGridProps {
     blogs: BlogPost[];
 }
 
-const BlogGrid = ({ blogs }: BlogGridProps) => {
+const BlogGrid = memo(function BlogGrid({ blogs }: BlogGridProps) {
     const isHydrated = useHydration();
 
-
-    // Get category display name
-    const getCategoryDisplay = (category: BlogPost['category']) => {
+    // Memoized category display helper
+    const getCategoryDisplay = useCallback((category: BlogPost['category']) => {
         // Handle new data structure from src/data/blogs.ts
         if (typeof category === 'object' && category?.name) {
             return category.name.toUpperCase();
@@ -36,10 +36,10 @@ const BlogGrid = ({ blogs }: BlogGridProps) => {
             return categoryNames[category] || category;
         }
         return 'DANH MỤC';
-    };
+    }, []);
 
-    // Get category color
-    const getCategoryColor = (category: BlogPost['category']) => {
+    // Memoized category color helper
+    const getCategoryColor = useCallback((category: BlogPost['category']) => {
         // Handle new data structure from src/data/blogs.ts
         if (typeof category === 'object' && category?.color) {
             return `text-[${category.color}]`;
@@ -56,12 +56,22 @@ const BlogGrid = ({ blogs }: BlogGridProps) => {
             return categoryColors[category] || 'text-gray-400';
         }
         return 'text-gray-400';
-    };
+    }, []);
+
+    // Memoized processed blogs data
+    const processedBlogs = useMemo(() => {
+        return blogs.map(blog => ({
+            ...blog,
+            categoryDisplay: getCategoryDisplay(blog.category),
+            categoryColor: getCategoryColor(blog.category),
+            formattedDate: formatDateSafe(blog.publishedAt, isHydrated)
+        }));
+    }, [blogs, isHydrated, getCategoryDisplay, getCategoryColor]);
 
     return (
         <div className="ml-16 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 py-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6 gap-6 lg:gap-8 2xl:gap-10 3xl:gap-12 4xl:gap-16">
-                {blogs.map((blog, index) => (
+                {processedBlogs.map((blog, index) => (
                     <motion.article
                         key={blog.id}
                         className="group bg-transparent rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer border border-white/10 hover:border-white/20"
@@ -101,12 +111,12 @@ const BlogGrid = ({ blogs }: BlogGridProps) => {
                                         dateTime={blog.publishedAt}
                                         className="text-xs font-medium text-gray-400 uppercase tracking-wide"
                                     >
-                                        {formatDateSafe(blog.publishedAt, isHydrated)}
+                                        {blog.formattedDate}
                                     </time>
                                     <span
-                                        className={`text-xs font-bold uppercase tracking-wide ${getCategoryColor(blog.category)}`}
+                                        className={`text-xs font-bold uppercase tracking-wide ${blog.categoryColor}`}
                                     >
-                                        {getCategoryDisplay(blog.category)}
+                                        {blog.categoryDisplay}
                                     </span>
                                 </div>
 
@@ -180,6 +190,6 @@ const BlogGrid = ({ blogs }: BlogGridProps) => {
             )}
         </div>
     );
-};
+});
 
 export default BlogGrid;

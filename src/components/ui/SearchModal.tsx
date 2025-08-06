@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiSearch, FiX, FiArrowRight, FiClock, FiTrendingUp } from 'react-icons/fi';
 import Link from 'next/link';
@@ -34,8 +34,11 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
     const [recentSearches, setRecentSearches] = useState<string[]>([]);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Popular searches
-    const popularSearches = ['Gaming Headset', 'Wireless', 'Bluetooth', 'Professional Audio', 'Review'];
+    // Popular searches - memoize to prevent re-creation
+    const popularSearches = useMemo(() => 
+        ['Gaming Headset', 'Wireless', 'Bluetooth', 'Professional Audio', 'Review'],
+        []  
+    );
 
     // Load recent searches from localStorage
     useEffect(() => {
@@ -56,7 +59,57 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
         }
     }, [isOpen]);
 
-    // Handle search
+    // Optimized search results with useMemo
+    const searchResults = useMemo(() => {
+        const searchQuery = query.toLowerCase().trim();
+        if (!searchQuery) return [];
+
+        const results: SearchResult[] = [];
+
+        // Search products
+        products.forEach((product: Product) => {
+            if (
+                product.name.toLowerCase().includes(searchQuery) ||
+                product.description.toLowerCase().includes(searchQuery) ||
+                product.category.name.toLowerCase().includes(searchQuery) ||
+                product.tags?.some((tag) => tag.toLowerCase().includes(searchQuery))
+            ) {
+                results.push({
+                    type: 'product',
+                    id: product.id,
+                    title: product.name,
+                    subtitle: product.description,
+                    image: '/products/product1.png',
+                    href: `/products/${product.id}`,
+                    category: product.category.name
+                });
+            }
+        });
+
+        // Search blogs
+        blogPosts.forEach((blog: BlogPost) => {
+            if (
+                blog.title.toLowerCase().includes(searchQuery) ||
+                blog.excerpt.toLowerCase().includes(searchQuery) ||
+                blog.category.name.toLowerCase().includes(searchQuery) ||
+                blog.tags?.some((tag) => tag.name.toLowerCase().includes(searchQuery))
+            ) {
+                results.push({
+                    type: 'blog',
+                    id: blog.id,
+                    title: blog.title,
+                    subtitle: blog.excerpt,
+                    image: blog.featuredImage || 'https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg',
+                    href: `/blogs/${blog.id}`,
+                    category: blog.category.name
+                });
+            }
+        });
+
+        return results.slice(0, 10); // Limit to 10 results
+    }, [query]);
+
+    // Handle search with debouncing
     useEffect(() => {
         if (!query.trim()) {
             setResults([]);
@@ -65,61 +118,16 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
         }
 
         setIsSearching(true);
-        const searchQuery = query.toLowerCase().trim();
-
-        // Simulate search delay
         const searchTimeout = setTimeout(() => {
-            const searchResults: SearchResult[] = [];
-
-            // Search products
-            products.forEach((product: Product) => {
-                if (
-                    product.name.toLowerCase().includes(searchQuery) ||
-                    product.description.toLowerCase().includes(searchQuery) ||
-                    product.category.name.toLowerCase().includes(searchQuery) ||
-                    product.tags?.some((tag) => tag.toLowerCase().includes(searchQuery))
-                ) {
-                    searchResults.push({
-                        type: 'product',
-                        id: product.id,
-                        title: product.name,
-                        subtitle: product.description,
-                        image: '/products/product1.png',
-                        href: `/products/${product.id}`,
-                        category: product.category.name
-                    });
-                }
-            });
-
-            // Search blogs
-            blogPosts.forEach((blog: BlogPost) => {
-                if (
-                    blog.title.toLowerCase().includes(searchQuery) ||
-                    blog.excerpt.toLowerCase().includes(searchQuery) ||
-                    blog.category.name.toLowerCase().includes(searchQuery) ||
-                    blog.tags?.some((tag) => tag.name.toLowerCase().includes(searchQuery))
-                ) {
-                    searchResults.push({
-                        type: 'blog',
-                        id: blog.id,
-                        title: blog.title,
-                        subtitle: blog.excerpt,
-                        image: blog.featuredImage || 'https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg',
-                        href: `/blogs/${blog.id}`,
-                        category: blog.category.name
-                    });
-                }
-            });
-
-            setResults(searchResults.slice(0, 10)); // Limit to 10 results
+            setResults(searchResults);
             setIsSearching(false);
         }, 300);
 
         return () => clearTimeout(searchTimeout);
-    }, [query]);
+    }, [query, searchResults]);
 
-    // Handle search submit
-    const handleSearch = (searchQuery: string) => {
+    // Optimized search submit handler
+    const handleSearch = useCallback((searchQuery: string) => {
         if (!searchQuery.trim()) return;
 
         // Save to recent searches
@@ -132,15 +140,17 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
         // Navigate to search results page or handle search
         window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
-    };
+    }, [recentSearches]);
 
-    // Filter results by tab
-    const filteredResults = results.filter((result) => {
-        if (activeTab === 'all') return true;
-        if (activeTab === 'products') return result.type === 'product';
-        if (activeTab === 'blogs') return result.type === 'blog';
-        return true;
-    });
+    // Optimized filtered results with useMemo
+    const filteredResults = useMemo(() => {
+        return results.filter((result) => {
+            if (activeTab === 'all') return true;
+            if (activeTab === 'products') return result.type === 'product';
+            if (activeTab === 'blogs') return result.type === 'blog';
+            return true;
+        });
+    }, [results, activeTab]);
 
     // Handle escape key and body scroll lock
     useEffect(() => {
