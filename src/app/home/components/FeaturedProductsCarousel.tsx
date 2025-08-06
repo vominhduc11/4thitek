@@ -227,48 +227,11 @@ const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({
                     </div>
                 </div>
 
-                {/* Animated Floating Particles */}
+                {/* Optimized Floating Particles - CSS Animations */}
                 <div className="absolute inset-0 pointer-events-none">
-                    <motion.div
-                        className="absolute top-1/4 left-1/3 w-2 h-2 bg-[#48C7FF] rounded-full opacity-30"
-                        animate={{
-                            y: [-20, 20, -20],
-                            x: [-10, 10, -10],
-                            opacity: [0.3, 0.6, 0.3]
-                        }}
-                        transition={{
-                            duration: 8,
-                            repeat: Infinity,
-                            ease: 'easeInOut'
-                        }}
-                    />
-                    <motion.div
-                        className="absolute top-2/3 right-1/4 w-1.5 h-1.5 bg-[#E1F0FF] rounded-full opacity-40"
-                        animate={{
-                            y: [20, -20, 20],
-                            x: [10, -10, 10],
-                            opacity: [0.4, 0.8, 0.4]
-                        }}
-                        transition={{
-                            duration: 6,
-                            repeat: Infinity,
-                            ease: 'easeInOut',
-                            delay: 2
-                        }}
-                    />
-                    <motion.div
-                        className="absolute top-1/2 left-1/5 w-1 h-1 bg-[#48C7FF] rounded-full opacity-50"
-                        animate={{
-                            y: [-15, 15, -15],
-                            opacity: [0.5, 1, 0.5]
-                        }}
-                        transition={{
-                            duration: 4,
-                            repeat: Infinity,
-                            ease: 'easeInOut',
-                            delay: 4
-                        }}
-                    />
+                    <div className="absolute top-1/4 left-1/3 w-2 h-2 bg-[#48C7FF] rounded-full opacity-30 animate-float-slow" />
+                    <div className="absolute top-2/3 right-1/4 w-1.5 h-1.5 bg-[#E1F0FF] rounded-full opacity-40 animate-float-medium" />
+                    <div className="absolute top-1/2 left-1/5 w-1 h-1 bg-[#48C7FF] rounded-full opacity-50 animate-float-fast" />
                 </div>
 
                 <div className="container mx-auto px-4 max-w-[1400px] relative z-10">

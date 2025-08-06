@@ -8,6 +8,7 @@ import Link from 'next/link';
 import clsx from 'clsx';
 import type { Product } from '@/types/product';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAnimationConfig } from '@/hooks/useReducedMotion';
 import { ANIMATION_SCALE, ANIMATION_DURATION } from '@/constants/animations';
 
 interface ProductImageWithFallbackProps {
@@ -60,6 +61,7 @@ interface ProductGridProps {
 export default function ProductGrid({ products }: ProductGridProps) {
     const [hoveredProductId, setHoveredProductId] = useState<string | null>(null);
     const { t } = useLanguage();
+    const animationConfig = useAnimationConfig();
 
     // Optimized event handlers
     const handleProductHover = useCallback((productId: string | null) => {
@@ -74,17 +76,15 @@ export default function ProductGrid({ products }: ProductGridProps) {
         return (
             <motion.div
                 key={product.id}
-                layout
-                initial={{ opacity: 0, y: 50, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -30, scale: 0.9 }}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
                 transition={{
-                    duration: 0.6,
-                    delay: index * 0.1,
-                    type: 'spring',
-                    stiffness: 120,
-                    damping: 20
+                    duration: animationConfig.duration,
+                    delay: animationConfig.enableComplexAnimations ? Math.min(index * animationConfig.stagger, 0.5) : 0,
+                    ease: animationConfig.ease
                 }}
+                style={{ willChange: 'transform, opacity' }}
                 className="relative w-full"
             >
                 <Link href={`/products/${product.id}`}>
@@ -92,24 +92,19 @@ export default function ProductGrid({ products }: ProductGridProps) {
                         className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-all duration-500 cursor-pointer group overflow-hidden h-[600px] sm:h-[480px] md:h-[480px] 2xl:h-[650px] 3xl:h-[700px] 4xl:h-[750px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/30 shadow-lg hover:shadow-2xl hover:shadow-[#4FC8FF]/10"
                         onMouseEnter={() => handleProductHover(product.id)}
                         onMouseLeave={handleProductLeave}
-                        whileHover={{
-                            y: -5,
-                            boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-                            transition: { duration: 0.3 }
-                        }}
+                        whileHover={animationConfig.enableComplexAnimations ? {
+                            y: -3,
+                            transition: { duration: animationConfig.duration }
+                        } : {}}
                     >
+                    {/* Background gradient animation on hover - more performant than video */}
                     {hoveredProductId === product.id && (
-                        <motion.video
-                            src="/videos/futuristic-background-2022-08-04-19-57-56-utc.mp4"
-                            className="absolute inset-0 w-full h-full object-cover -z-10 hidden sm:block"
-                            autoPlay
-                            loop
-                            muted
-                            playsInline
-                            initial={{ opacity: 0, scale: 1.1 }}
-                            animate={{ opacity: 0.4, scale: 1 }}
+                        <motion.div
+                            className="absolute inset-0 bg-gradient-to-br from-[#4FC8FF]/10 via-[#00D4FF]/5 to-transparent pointer-events-none"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            transition={{ duration: 0.5 }}
+                            transition={{ duration: 0.3 }}
                         />
                     )}
 
@@ -201,7 +196,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
                 </Link>
             </motion.div>
         );
-    }, [hoveredProductId, handleProductHover, handleProductLeave, t]);
+    }, [hoveredProductId, handleProductHover, handleProductLeave, t, animationConfig]);
 
     return (
         <div className="w-full">

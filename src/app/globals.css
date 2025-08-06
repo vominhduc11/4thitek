@@ -88,6 +88,79 @@ html {
     box-shadow: 0 2px 8px rgba(79, 200, 255, 0.3);
 }
 
+/* Performance-optimized animations using CSS */
+@keyframes float-slow {
+    0%, 100% { transform: translate(0, 0); opacity: 0.3; }
+    25% { transform: translate(-10px, -20px); opacity: 0.5; }
+    50% { transform: translate(10px, 20px); opacity: 0.6; }
+    75% { transform: translate(-5px, -10px); opacity: 0.4; }
+}
+
+@keyframes float-medium {
+    0%, 100% { transform: translate(0, 0); opacity: 0.4; }
+    33% { transform: translate(10px, -15px); opacity: 0.7; }
+    66% { transform: translate(-8px, 15px); opacity: 0.8; }
+}
+
+@keyframes float-fast {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    50% { transform: translate(-5px, -8px) rotate(180deg); }
+}
+
+.animate-float-slow {
+    animation: float-slow 8s infinite ease-in-out;
+}
+
+.animate-float-medium {
+    animation: float-medium 6s infinite ease-in-out 2s;
+}
+
+.animate-float-fast {
+    animation: float-fast 4s infinite ease-in-out 1s;
+}
+
+/* Mobile performance optimization - Reduced animations */
+@media (max-width: 768px) {
+    .animate-float-slow,
+    .animate-float-medium,
+    .animate-float-fast {
+        animation-duration: 12s; /* Slower on mobile to reduce battery drain */
+    }
+    
+    /* Disable expensive animations on mobile */
+    .motion-reduce-mobile {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* Respect user's reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    .animate-float-slow,
+    .animate-float-medium,
+    .animate-float-fast,
+    .animate-pulse {
+        animation: none !important;
+    }
+    
+    * {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+    }
+}
+
+/* Performance optimization utilities */
+.gpu-accelerated {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+.animation-paused {
+    animation-play-state: paused !important;
+}
+
 ::-webkit-scrollbar-corner {
     background: rgba(26, 35, 50, 0.6);
 }

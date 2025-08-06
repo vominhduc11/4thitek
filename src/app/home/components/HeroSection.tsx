@@ -205,25 +205,21 @@ export default function HeroSection() {
                 aria-hidden="true"
             />
 
-            {/* Floating Particles Effect */}
-            {particles.map((p) => (
-                <motion.div
+            {/* Optimized Particles - Reduced count and CSS animations */}
+            {particles.slice(0, 3).map((p) => (
+                <div
                     key={p.id}
-                    className="absolute w-2 h-2 bg-blue-400 rounded-full opacity-60"
-                    style={{ left: p.left, top: p.top }}
-                    animate={{ y: [-20, 20, -20], opacity: [0.3, 0.8, 0.3] }}
-                    transition={{ duration: p.duration, delay: p.delay, repeat: Infinity, ease: 'easeInOut' }}
+                    className="absolute w-2 h-2 bg-blue-400 rounded-full opacity-60 animate-float-slow"
+                    style={{ left: p.left, top: p.top, animationDelay: `${p.delay}s` }}
                 />
             ))}
 
-            {/* Animated Light Rays */}
-            {lightRays.map((r) => (
-                <motion.div
+            {/* Optimized Light Rays - Reduced count */}
+            {lightRays.slice(0, 2).map((r) => (
+                <div
                     key={r.id}
-                    className="absolute w-1 h-32 bg-gradient-to-b from-blue-400/30 to-transparent"
-                    style={{ left: r.left, top: '10%', transform: 'rotate(12deg)' }}
-                    animate={{ opacity: [0, 0.6, 0], scaleY: [0.5, 1, 0.5] }}
-                    transition={{ duration: r.duration, delay: r.delay, repeat: Infinity, ease: 'easeInOut' }}
+                    className="absolute w-1 h-32 bg-gradient-to-b from-blue-400/30 to-transparent animate-pulse"
+                    style={{ left: r.left, top: '10%', transform: 'rotate(12deg)', animationDelay: `${r.delay}s`, animationDuration: `${r.duration}s` }}
                 />
             ))}
         </section>
