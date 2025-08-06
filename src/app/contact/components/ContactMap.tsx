@@ -73,7 +73,7 @@ export default function ContactMap() {
                 }
                 setIsFullscreen(false);
             }
-        } catch (error) {
+        } catch {
             // Handle fullscreen error silently
         }
     };

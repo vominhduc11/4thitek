@@ -109,7 +109,7 @@ export default function ResellerMap({ resellers, selectedReseller }: ResellerMap
                 }
                 setIsFullscreen(false);
             }
-        } catch (error) {
+        } catch {
             // Handle fullscreen error silently
         }
     };
