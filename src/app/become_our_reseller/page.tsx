@@ -38,7 +38,7 @@ interface FormData {
 }
 
 export default function BecomeOurReseller() {
-    const { t } = useLanguage();
+    const { t, getTranslation } = useLanguage();
     const formSectionRef = useRef<HTMLElement>(null);
 
     // Scroll to form function
@@ -91,26 +91,29 @@ export default function BecomeOurReseller() {
     }, []);
 
     // Options data
+    const businessTypesData = getTranslation('becomeReseller.form.businessTypes') as Record<string, string> | null;
     const businessTypeOptions = [
-        { value: 'retailer', label: 'Retailer', icon: FiBriefcase },
-        { value: 'distributor', label: 'Distributor', icon: FiTrendingUp },
-        { value: 'online-store', label: 'Online Store', icon: FiUsers },
-        { value: 'system-integrator', label: 'System Integrator', icon: FiAward },
-        { value: 'other', label: 'Other', icon: FiBriefcase }
+        { value: 'retailer', label: businessTypesData?.retailer || 'Retailer', icon: FiBriefcase },
+        { value: 'distributor', label: businessTypesData?.distributor || 'Distributor', icon: FiTrendingUp },
+        { value: 'online-store', label: businessTypesData?.onlineStore || 'Online Store', icon: FiUsers },
+        { value: 'system-integrator', label: businessTypesData?.systemIntegrator || 'System Integrator', icon: FiAward },
+        { value: 'other', label: businessTypesData?.other || 'Other', icon: FiBriefcase }
     ];
 
+    const experienceOptionsData = getTranslation('becomeReseller.form.experienceOptions') as Record<string, string> | null;
     const experienceOptions = [
-        { value: '0-2', label: '0-2 years', icon: FiClock },
-        { value: '3-5', label: '3-5 years', icon: FiClock },
-        { value: '6-10', label: '6-10 years', icon: FiClock },
-        { value: '10+', label: '10+ years', icon: FiClock }
+        { value: '0-2', label: experienceOptionsData?.['0-2'] || '0-2 years', icon: FiClock },
+        { value: '3-5', label: experienceOptionsData?.['3-5'] || '3-5 years', icon: FiClock },
+        { value: '6-10', label: experienceOptionsData?.['6-10'] || '6-10 years', icon: FiClock },
+        { value: '10+', label: experienceOptionsData?.['10+'] || '10+ years', icon: FiClock }
     ];
 
+    const volumeOptionsData = getTranslation('becomeReseller.form.volumeOptions') as Record<string, string> | null;
     const volumeOptions = [
-        { value: '1-10', label: '1-10 units', icon: FiBarChart },
-        { value: '11-50', label: '11-50 units', icon: FiBarChart },
-        { value: '51-100', label: '51-100 units', icon: FiBarChart },
-        { value: '100+', label: '100+ units', icon: FiBarChart }
+        { value: '1-10', label: volumeOptionsData?.['1-10'] || '1-10 units', icon: FiBarChart },
+        { value: '11-50', label: volumeOptionsData?.['11-50'] || '11-50 units', icon: FiBarChart },
+        { value: '51-100', label: volumeOptionsData?.['51-100'] || '51-100 units', icon: FiBarChart },
+        { value: '100+', label: volumeOptionsData?.['100+'] || '100+ units', icon: FiBarChart }
     ];
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -185,8 +188,6 @@ export default function BecomeOurReseller() {
         }
     ];
 
-    const requirementsData = t('becomeReseller.requirements.list');
-    const requirements = Array.isArray(requirementsData) ? requirementsData : [];
 
     return (
         <div className="min-h-screen bg-[#0c131d]">
@@ -292,55 +293,6 @@ export default function BecomeOurReseller() {
                     </div>
                 </section>
 
-                {/* Requirements Section */}
-                <section className="ml-16 sm:ml-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20">
-                    <div className="max-w-4xl mx-auto">
-                        <motion.div
-                            className="text-center mb-12"
-                            initial={{ opacity: 0, y: 30 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8, ease: 'easeOut' }}
-                            viewport={{ once: true }}
-                        >
-                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">{t('becomeReseller.requirements.title')}</h2>
-                            <p className="text-xl text-gray-300">
-                                {t('becomeReseller.requirements.subtitle')}
-                            </p>
-                        </motion.div>
-
-                        <motion.div
-                            initial={{ opacity: 0, x: -30 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
-                            viewport={{ once: true }}
-                        >
-                            <Card className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-all duration-300">
-                                <CardContent className="p-8">
-                                    <div className="space-y-4">
-                                        {requirements.map((requirement, index) => (
-                                            <motion.div
-                                                key={index}
-                                                className="flex items-center gap-4"
-                                                initial={{ opacity: 0, x: -20 }}
-                                                whileInView={{ opacity: 1, x: 0 }}
-                                                transition={{ duration: 0.5, delay: 0.1 * index, ease: 'easeOut' }}
-                                                viewport={{ once: true }}
-                                            >
-                                                <motion.div
-                                                    whileHover={{ scale: 1.2, rotate: 360 }}
-                                                    transition={{ duration: 0.3 }}
-                                                >
-                                                    <FiCheckCircle className="w-6 h-6 text-[#4FC8FF] flex-shrink-0" />
-                                                </motion.div>
-                                                <span className="text-gray-300 text-lg">{requirement}</span>
-                                            </motion.div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-                    </div>
-                </section>
 
                 {/* Application Form Section */}
                 <section ref={formSectionRef} className="ml-16 sm:ml-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20 bg-gray-900/30">
@@ -372,11 +324,10 @@ export default function BecomeOurReseller() {
                                                 <FiCheckCircle className="w-6 h-6" />
                                                 <div>
                                                     <h3 className="font-semibold">
-                                                        Application Submitted Successfully!
+                                                        {t('becomeReseller.form.successTitle')}
                                                     </h3>
                                                     <p className="text-sm opacity-90">
-                                                        We&apos;ll review your application and get back to you within 24
-                                                        hours.
+                                                        {t('becomeReseller.form.successMessage')}
                                                     </p>
                                                 </div>
                                             </div>
@@ -388,10 +339,9 @@ export default function BecomeOurReseller() {
                                             <div className="flex items-center gap-3">
                                                 <FiMail className="w-6 h-6" />
                                                 <div>
-                                                    <h3 className="font-semibold">Submission Failed</h3>
+                                                    <h3 className="font-semibold">{t('becomeReseller.form.errorTitle')}</h3>
                                                     <p className="text-sm opacity-90">
-                                                        There was an error submitting your application. Please try
-                                                        again.
+                                                        {t('becomeReseller.form.errorMessage')}
                                                     </p>
                                                 </div>
                                             </div>
@@ -402,7 +352,7 @@ export default function BecomeOurReseller() {
                                         {/* Company Information */}
                                         <div className="space-y-6">
                                             <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
-                                                Company Information
+                                                {t('becomeReseller.form.companyInfo')}
                                             </h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div>
@@ -410,7 +360,7 @@ export default function BecomeOurReseller() {
                                                         htmlFor="companyName"
                                                         className="block text-sm font-medium text-gray-300 mb-2"
                                                     >
-                                                        Company Name *
+                                                        {t('becomeReseller.form.companyNameRequired')}
                                                     </label>
                                                     <Input
                                                         id="companyName"
@@ -419,7 +369,7 @@ export default function BecomeOurReseller() {
                                                         required
                                                         value={formData.companyName}
                                                         onChange={handleInputChange}
-                                                        placeholder="Your company name"
+                                                        placeholder={t('becomeReseller.form.companyNamePlaceholder')}
                                                         className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
                                                     />
                                                 </div>
@@ -429,7 +379,7 @@ export default function BecomeOurReseller() {
                                                         htmlFor="website"
                                                         className="block text-sm font-medium text-gray-300 mb-2"
                                                     >
-                                                        Website
+                                                        {t('becomeReseller.form.website')}
                                                     </label>
                                                     <Input
                                                         id="website"
@@ -437,7 +387,7 @@ export default function BecomeOurReseller() {
                                                         type="url"
                                                         value={formData.website}
                                                         onChange={handleInputChange}
-                                                        placeholder="https://yourwebsite.com"
+                                                        placeholder={t('becomeReseller.form.websitePlaceholder')}
                                                         className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
                                                     />
                                                 </div>
@@ -447,7 +397,7 @@ export default function BecomeOurReseller() {
                                         {/* Contact Information */}
                                         <div className="space-y-6">
                                             <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
-                                                Contact Information
+                                                {t('becomeReseller.form.contactInfo')}
                                             </h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div>
@@ -455,7 +405,7 @@ export default function BecomeOurReseller() {
                                                         htmlFor="contactName"
                                                         className="block text-sm font-medium text-gray-300 mb-2"
                                                     >
-                                                        Contact Name *
+                                                        {t('becomeReseller.form.contactNameRequired')}
                                                     </label>
                                                     <Input
                                                         id="contactName"
@@ -464,7 +414,7 @@ export default function BecomeOurReseller() {
                                                         required
                                                         value={formData.contactName}
                                                         onChange={handleInputChange}
-                                                        placeholder="Your full name"
+                                                        placeholder={t('becomeReseller.form.contactNamePlaceholder')}
                                                         className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
                                                     />
                                                 </div>
@@ -474,7 +424,7 @@ export default function BecomeOurReseller() {
                                                         htmlFor="email"
                                                         className="block text-sm font-medium text-gray-300 mb-2"
                                                     >
-                                                        Email Address *
+                                                        {t('becomeReseller.form.emailRequired')}
                                                     </label>
                                                     <Input
                                                         id="email"
@@ -483,7 +433,7 @@ export default function BecomeOurReseller() {
                                                         required
                                                         value={formData.email}
                                                         onChange={handleInputChange}
-                                                        placeholder="your@email.com"
+                                                        placeholder={t('becomeReseller.form.emailPlaceholder')}
                                                         className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
                                                     />
                                                 </div>
@@ -493,7 +443,7 @@ export default function BecomeOurReseller() {
                                                         htmlFor="phone"
                                                         className="block text-sm font-medium text-gray-300 mb-2"
                                                     >
-                                                        Phone Number *
+                                                        {t('becomeReseller.form.phoneRequired')}
                                                     </label>
                                                     <Input
                                                         id="phone"
@@ -502,7 +452,7 @@ export default function BecomeOurReseller() {
                                                         required
                                                         value={formData.phone}
                                                         onChange={handleInputChange}
-                                                        placeholder="+1 (555) 123-4567"
+                                                        placeholder={t('becomeReseller.form.phonePlaceholder')}
                                                         className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
                                                     />
                                                 </div>
@@ -512,7 +462,7 @@ export default function BecomeOurReseller() {
                                         {/* Business Address */}
                                         <div className="space-y-6">
                                             <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
-                                                Business Address
+                                                {t('becomeReseller.form.businessAddress')}
                                             </h3>
                                             <div className="space-y-4">
                                                 <div>
@@ -520,7 +470,7 @@ export default function BecomeOurReseller() {
                                                         htmlFor="address"
                                                         className="block text-sm font-medium text-gray-300 mb-2"
                                                     >
-                                                        Street Address *
+                                                        {t('becomeReseller.form.streetAddressRequired')}
                                                     </label>
                                                     <Input
                                                         id="address"
@@ -529,7 +479,7 @@ export default function BecomeOurReseller() {
                                                         required
                                                         value={formData.address}
                                                         onChange={handleInputChange}
-                                                        placeholder="123 Business Street"
+                                                        placeholder={t('becomeReseller.form.streetAddressPlaceholder')}
                                                         className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
                                                     />
                                                 </div>
@@ -540,7 +490,7 @@ export default function BecomeOurReseller() {
                                                             htmlFor="city"
                                                             className="block text-sm font-medium text-gray-300 mb-2"
                                                         >
-                                                            City *
+                                                            {t('becomeReseller.form.cityRequired')}
                                                         </label>
                                                         <Input
                                                             id="city"
@@ -549,7 +499,7 @@ export default function BecomeOurReseller() {
                                                             required
                                                             value={formData.city}
                                                             onChange={handleInputChange}
-                                                            placeholder="Your city"
+                                                            placeholder={t('becomeReseller.form.cityPlaceholder')}
                                                             className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
                                                         />
                                                     </div>
@@ -559,7 +509,7 @@ export default function BecomeOurReseller() {
                                                             htmlFor="country"
                                                             className="block text-sm font-medium text-gray-300 mb-2"
                                                         >
-                                                            Country *
+                                                            {t('becomeReseller.form.countryRequired')}
                                                         </label>
                                                         <Input
                                                             id="country"
@@ -568,7 +518,7 @@ export default function BecomeOurReseller() {
                                                             required
                                                             value={formData.country}
                                                             onChange={handleInputChange}
-                                                            placeholder="Your country"
+                                                            placeholder={t('becomeReseller.form.countryPlaceholder')}
                                                             className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
                                                         />
                                                     </div>
@@ -579,12 +529,12 @@ export default function BecomeOurReseller() {
                                         {/* Business Details */}
                                         <div className="space-y-6">
                                             <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
-                                                Business Details
+                                                {t('becomeReseller.form.businessDetails')}
                                             </h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                                                        Business Type *
+                                                        {t('becomeReseller.form.businessTypeRequired')}
                                                     </label>
                                                     <div ref={businessTypeDropdownRef} className="relative">
                                                         <button
@@ -613,7 +563,7 @@ export default function BecomeOurReseller() {
                                                                                 }
                                                                             >
                                                                                 {selected?.label ||
-                                                                                    'Select business type'}
+                                                                                    t('becomeReseller.form.selectBusinessType')}
                                                                             </span>
                                                                         </>
                                                                     );
@@ -678,7 +628,7 @@ export default function BecomeOurReseller() {
 
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                                                        Years of Experience *
+                                                        {t('becomeReseller.form.experienceRequired')}
                                                     </label>
                                                     <div ref={experienceDropdownRef} className="relative">
                                                         <button
@@ -703,7 +653,7 @@ export default function BecomeOurReseller() {
                                                                                         : 'text-gray-400'
                                                                                 }
                                                                             >
-                                                                                {selected?.label || 'Select experience'}
+                                                                                {selected?.label || t('becomeReseller.form.selectExperience')}
                                                                             </span>
                                                                         </>
                                                                     );
@@ -767,7 +717,7 @@ export default function BecomeOurReseller() {
 
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                                                        Expected Monthly Volume *
+                                                        {t('becomeReseller.form.expectedVolumeRequired')}
                                                     </label>
                                                     <div ref={volumeDropdownRef} className="relative">
                                                         <button
@@ -793,7 +743,7 @@ export default function BecomeOurReseller() {
                                                                                 }
                                                                             >
                                                                                 {selected?.label ||
-                                                                                    'Select expected volume'}
+                                                                                    t('becomeReseller.form.selectExpectedVolume')}
                                                                             </span>
                                                                         </>
                                                                     );
@@ -860,14 +810,14 @@ export default function BecomeOurReseller() {
                                         {/* Additional Information */}
                                         <div className="space-y-6">
                                             <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
-                                                Additional Information
+                                                {t('becomeReseller.form.additionalInfo')}
                                             </h3>
                                             <div>
                                                 <label
                                                     htmlFor="message"
                                                     className="block text-sm font-medium text-gray-300 mb-2"
                                                 >
-                                                    Tell us about your business
+                                                    {t('becomeReseller.form.message')}
                                                 </label>
                                                 <textarea
                                                     id="message"
@@ -875,7 +825,7 @@ export default function BecomeOurReseller() {
                                                     rows={5}
                                                     value={formData.message}
                                                     onChange={handleInputChange}
-                                                    placeholder="Tell us about your business, target markets, or any specific requirements..."
+                                                    placeholder={t('becomeReseller.form.messagePlaceholder')}
                                                     className="flex w-full rounded-md border border-gray-600 bg-gray-700/50 px-3 py-2 text-white ring-offset-background placeholder:text-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                                                 />
                                             </div>
@@ -887,7 +837,7 @@ export default function BecomeOurReseller() {
                                                 disabled={isSubmitting}
                                                 className="bg-[#4FC8FF] hover:bg-[#4FC8FF]/90 text-white px-12 py-3 text-lg font-semibold"
                                             >
-                                                {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                                                {isSubmitting ? t('becomeReseller.form.submittingButton') : t('becomeReseller.form.submitButton')}
                                             </Button>
                                         </div>
                                     </form>
@@ -907,9 +857,9 @@ export default function BecomeOurReseller() {
                             transition={{ duration: 0.8, ease: 'easeOut' }}
                             viewport={{ once: true }}
                         >
-                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Have Questions?</h2>
+                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">{t('becomeReseller.contact.title')}</h2>
                             <p className="text-xl text-gray-300">
-                                Our partnership team is here to help you get started
+                                {t('becomeReseller.contact.subtitle')}
                             </p>
                         </motion.div>
 
@@ -917,18 +867,18 @@ export default function BecomeOurReseller() {
                             {[
                                 {
                                     icon: <FiMail className="w-6 h-6 text-[#4FC8FF]" />,
-                                    title: 'Email Us',
-                                    content: 'reseller@tunezonehifi.com'
+                                    title: t('becomeReseller.contact.email'),
+                                    content: t('becomeReseller.contact.emailContent')
                                 },
                                 {
                                     icon: <FiPhone className="w-6 h-6 text-[#4FC8FF]" />,
-                                    title: 'Call Us',
-                                    content: '+1 (555) 123-4567'
+                                    title: t('becomeReseller.contact.phone'),
+                                    content: t('becomeReseller.contact.phoneContent')
                                 },
                                 {
                                     icon: <FiMapPin className="w-6 h-6 text-[#4FC8FF]" />,
-                                    title: 'Visit Us',
-                                    content: 'Business hours: Mon-Fri 9AM-6PM'
+                                    title: t('becomeReseller.contact.visit'),
+                                    content: t('becomeReseller.contact.visitContent')
                                 }
                             ].map((contact, index) => (
                                 <motion.div
