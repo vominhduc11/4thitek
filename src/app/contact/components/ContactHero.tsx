@@ -1,7 +1,7 @@
 'use client';
 
 import HeroSection from '@/components/ui/Hero';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function ContactHero() {
     const { t } = useLanguage();

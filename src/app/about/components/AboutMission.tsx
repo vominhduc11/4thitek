@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { FiTarget, FiEye, FiAward } from 'react-icons/fi';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function AboutMission() {
     const { t } = useLanguage();
@@ -44,7 +44,7 @@ export default function AboutMission() {
                             alt="4thitek mission"
                             fill
                             className="object-cover"
-                            sizes="(max-width: 768px) 100vw, 50vw"
+                            sizes="(max-width: 768px) 100vw, (max-width: 3200px) 50vw, 60vw"
                         />
                     </motion.div>
 

@@ -10,7 +10,7 @@ import ProductWarranty from '@/app/products/[id]/components/ProductWarranty';
 import RelatedProducts from '@/app/products/[id]/components/RelatedProducts';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { getProductById, getRelatedProducts } from '@/data/products';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 import type { Product } from '@/types/product';
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {

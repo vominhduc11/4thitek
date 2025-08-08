@@ -6,7 +6,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import Link from 'next/link';
 import AvoidSidebar from '@/components/layout/AvoidSidebar';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface Product {
     id: string;
@@ -395,7 +395,7 @@ const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({
                                             alt={currentProduct.name}
                                             fill
                                             className="object-contain drop-shadow-2xl"
-                                            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 400px, 600px"
+                                            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 400px, (max-width: 3200px) 600px, 800px"
                                             priority
                                         />
                                     </motion.div>

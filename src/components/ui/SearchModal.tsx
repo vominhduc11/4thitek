@@ -10,6 +10,8 @@ import { blogPosts } from '@/data/blogs';
 import type { Product } from '@/types/product';
 import type { BlogPost } from '@/types/blog';
 import { Z_INDEX } from '@/constants/zIndex';
+import { modalManager } from '@/utils/modalManager';
+import { useAnimationCoordinator } from '@/utils/animationCoordinator';
 
 interface SearchModalProps {
     isOpen: boolean;
@@ -33,6 +35,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
     const [activeTab, setActiveTab] = useState<'all' | 'products' | 'blogs'>('all');
     const [recentSearches, setRecentSearches] = useState<string[]>([]);
     const inputRef = useRef<HTMLInputElement>(null);
+    const { registerAnimation, completeAnimation, cancelAnimation } = useAnimationCoordinator();
 
     // Popular searches - memoize to prevent re-creation
     const popularSearches = useMemo(() => 
@@ -161,26 +164,24 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
         };
 
         if (isOpen) {
-            // Calculate scrollbar width to prevent layout shift
-            const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
-
-            // Lock body scroll with scrollbar compensation
-            document.body.style.overflow = 'hidden';
-            document.body.style.paddingRight = `${scrollBarWidth}px`;
+            modalManager.openModal('search-modal');
             document.addEventListener('keydown', handleEscape);
+            
+            // Register modal opening animation
+            registerAnimation('search-modal-open', () => {
+                // Modal opening animation handled by Framer Motion
+            }, 2);
         } else {
-            // Restore body scroll and remove padding
-            document.body.style.overflow = 'unset';
-            document.body.style.paddingRight = '';
+            modalManager.closeModal('search-modal');
+            cancelAnimation('search-modal-open');
         }
 
         return () => {
-            // Cleanup: always restore scroll when component unmounts
-            document.body.style.overflow = 'unset';
-            document.body.style.paddingRight = '';
+            modalManager.closeModal('search-modal');
             document.removeEventListener('keydown', handleEscape);
+            cancelAnimation('search-modal-open');
         };
-    }, [isOpen, onClose]);
+    }, [isOpen, onClose, cancelAnimation, registerAnimation]);
 
     return (
         <AnimatePresence>
@@ -204,6 +205,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: -20, opacity: 0 }}
                         transition={{ duration: 0.2 }}
+                        onAnimationComplete={() => completeAnimation('search-modal-open')}
                     >
                         <div className="bg-[#0c131d] border-b border-gray-700/30 shadow-2xl backdrop-blur-sm">
                             {/* Search Header */}

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { FiSearch } from 'react-icons/fi';
 import { blogCategories } from '@/data/blogs';
 import { useEffect, useRef } from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface BlogBreadcrumbProps {
     selectedCategory: string;

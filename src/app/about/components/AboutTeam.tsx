@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { FiLinkedin, FiTwitter } from 'react-icons/fi';
 import Link from 'next/link';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { getStaggerTransition, ANIMATION_OFFSET } from '@/constants/animations';
 
 export default function AboutTeam() {
@@ -87,7 +87,7 @@ export default function AboutTeam() {
                                     alt={t(member.nameKey)}
                                     fill
                                     className="object-cover"
-                                    sizes="(max-width: 768px) 100vw, 25vw"
+                                    sizes="(max-width: 768px) 100vw, (max-width: 3200px) 25vw, 30vw"
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-[#0c131d] to-transparent opacity-70"></div>
                                 <div className="absolute bottom-0 left-0 w-full p-4">

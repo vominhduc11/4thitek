@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { motion, Variants, useInView } from 'framer-motion';
 import { useRef } from 'react';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { typographyComponents } from '@/styles/typography';
 
 const containerVariants: Variants = {

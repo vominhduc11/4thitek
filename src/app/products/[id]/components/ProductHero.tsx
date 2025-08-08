@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { CiShuffle } from 'react-icons/ci';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 import type { Product } from '@/types/product';
 
 interface ProductImageWithFallbackProps {

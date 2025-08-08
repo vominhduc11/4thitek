@@ -1,7 +1,7 @@
 'use client';
 
 import { Pagination } from '@/components/ui';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface BlogPaginationProps {
     currentPage: number;

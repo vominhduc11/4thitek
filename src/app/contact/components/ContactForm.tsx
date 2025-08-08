@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import ContactMap from './ContactMap';
 import { FiChevronDown, FiHelpCircle, FiTool, FiAlertTriangle, FiUsers, FiMoreHorizontal } from 'react-icons/fi';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface FormData {
     name: string;

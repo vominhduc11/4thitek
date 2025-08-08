@@ -69,8 +69,8 @@ const BlogGrid = memo(function BlogGrid({ blogs }: BlogGridProps) {
     }, [blogs, isHydrated, getCategoryDisplay, getCategoryColor]);
 
     return (
-        <div className="ml-16 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 py-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6 gap-6 lg:gap-8 2xl:gap-10 3xl:gap-12 4xl:gap-16">
+        <div className="ml-16 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 5xl:px-24 py-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6 5xl:grid-cols-8 gap-6 lg:gap-8 2xl:gap-10 3xl:gap-12 4xl:gap-16 5xl:gap-20">
                 {processedBlogs.map((blog, index) => (
                     <motion.article
                         key={blog.id}
@@ -94,7 +94,7 @@ const BlogGrid = memo(function BlogGrid({ blogs }: BlogGridProps) {
                                     alt={`Ảnh bìa bài viết: ${blog.title}`}
                                     fill
                                     className="object-cover transition-transform duration-300 group-hover:scale-105"
-                                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, (max-width: 3200px) 33vw, 40vw"
                                     loading="lazy"
                                 />
 

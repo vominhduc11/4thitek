@@ -5,7 +5,7 @@ import ClientLayout from '@/components/layout/ClientLayout';
 import { AuthProvider } from '@/context/AuthContext';
 import { LoginModalProvider } from '@/context/LoginModalContext';
 import { SearchModalProvider } from '@/context/SearchModalContext';
-import { LanguageProvider } from '@/contexts/LanguageContext';
+import { LanguageProvider } from '@/context/LanguageContext';
 
 const geistSans = Geist({
     variable: '--font-geist-sans',

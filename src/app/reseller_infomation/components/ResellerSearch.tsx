@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { FiSearch, FiMapPin, FiChevronDown } from 'react-icons/fi';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { motion } from 'framer-motion';
 
 export default function ResellerSearch({

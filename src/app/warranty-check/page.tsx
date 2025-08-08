@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { HeroSection, WarrantyForm, WarrantyResult, LoginForm } from './components';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface WarrantyInfo {
     serialNumber: string;

@@ -10,7 +10,7 @@ import type { BlogPost, BlogContentBlock } from '@/types/blog';
 import BlogDetailHero from '@/app/blogs/[id]/components/BlogDetailHero';
 import { useHydration } from '@/hooks/useHydration';
 import { formatDateSafe } from '@/utils/dateFormatter';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 // Get published blog posts
 const publishedBlogPosts: BlogPost[] = getPublishedPosts();

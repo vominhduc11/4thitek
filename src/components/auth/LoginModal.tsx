@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import { FiX, FiMail, FiLock, FiAlertCircle } from 'react-icons/fi';
 import { useAuth } from '@/context/AuthContext';
-import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { modalManager } from '@/utils/modalManager';
 
 // Đảm bảo bind modal với app container cho accessibility
 if (typeof window !== 'undefined') {
@@ -22,23 +22,18 @@ interface LoginModalProps {
 }
 
 export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
+    // Handle body scroll lock with centralized modal manager
     useEffect(() => {
         if (isOpen) {
-            // Calculate scrollbar width to prevent layout shift
-            const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
-
-            // Lock body scroll with scrollbar compensation
-            document.body.style.overflow = 'hidden';
-            document.body.style.paddingRight = `${scrollBarWidth}px`;
+            modalManager.openModal('login-modal');
         } else {
-            // Restore body scroll and remove padding
-            document.body.style.overflow = '';
-            document.body.style.paddingRight = '';
+            modalManager.closeModal('login-modal');
         }
-    }, [isOpen]);
 
-    // Sử dụng hook để khóa cuộn trang khi modal mở
-    useBodyScrollLock(isOpen);
+        return () => {
+            modalManager.closeModal('login-modal');
+        };
+    }, [isOpen]);
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');

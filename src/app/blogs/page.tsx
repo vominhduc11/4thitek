@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { BlogHero, BlogBreadcrumb, BlogGrid, BlogPagination } from './components';
 import { getPublishedPosts } from '@/data/blogs';
 import type { BlogPost } from '@/types/blog';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 // Get published blog posts
 const publishedBlogPosts: BlogPost[] = getPublishedPosts();

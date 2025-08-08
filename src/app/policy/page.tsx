@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import HeroSection from '@/components/ui/Hero';
 import { PolicyBreadcrumb, PolicyContent } from './components';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function Policy() {
     const { t } = useLanguage();

@@ -4,9 +4,9 @@ import { motion } from 'framer-motion';
 
 export default function Loading() {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="min-h-screen bg-[#0a0f1a] flex items-center justify-center px-4">
             <motion.div
-                className="bg-white rounded-2xl shadow-2xl p-12 flex flex-col items-center space-y-6"
+                className="bg-[#151e2b] rounded-2xl shadow-2xl p-8 sm:p-12 flex flex-col items-center space-y-6 border border-gray-700/50 max-w-md w-full"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -14,7 +14,7 @@ export default function Loading() {
                 {/* Main spinner */}
                 <div className="relative">
                     <motion.div
-                        className="w-16 h-16 border-4 border-gray-200 border-t-[#4FC8FF] rounded-full"
+                        className="w-16 h-16 border-4 border-gray-700 border-t-[#4FC8FF] rounded-full"
                         animate={{ rotate: 360 }}
                         transition={{
                             duration: 1,
@@ -24,7 +24,7 @@ export default function Loading() {
                     />
                     {/* Inner spinner */}
                     <motion.div
-                        className="absolute inset-3 border-2 border-transparent border-b-blue-400 rounded-full"
+                        className="absolute inset-3 border-2 border-transparent border-b-[#4FC8FF]/60 rounded-full"
                         animate={{ rotate: -360 }}
                         transition={{
                             duration: 0.8,
@@ -41,9 +41,9 @@ export default function Loading() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2, duration: 0.5 }}
                 >
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Loading Home</h2>
+                    <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl 3xl:text-7xl 4xl:text-8xl 5xl:text-9xl font-bold text-white mb-2">Đang tải trang chủ</h2>
                     <motion.p
-                        className="text-gray-600"
+                        className="text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl 3xl:text-4xl 4xl:text-5xl 5xl:text-6xl"
                         initial={{ opacity: 0.5 }}
                         animate={{ opacity: 1 }}
                         transition={{
@@ -53,7 +53,7 @@ export default function Loading() {
                             ease: 'easeInOut'
                         }}
                     >
-                        Preparing your experience...
+                        Đang chuẩn bị trải nghiệm tuyệt vời...
                     </motion.p>
                 </motion.div>
 

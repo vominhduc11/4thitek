@@ -7,7 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import clsx from 'clsx';
 import type { Product } from '@/types/product';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
 import { ANIMATION_SCALE, ANIMATION_DURATION } from '@/constants/animations';
 
@@ -89,7 +89,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
             >
                 <Link href={`/products/${product.id}`}>
                     <motion.div
-                        className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-all duration-500 cursor-pointer group overflow-hidden h-[600px] sm:h-[480px] md:h-[480px] 2xl:h-[650px] 3xl:h-[700px] 4xl:h-[750px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/30 shadow-lg hover:shadow-2xl hover:shadow-[#4FC8FF]/10"
+                        className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-all duration-500 cursor-pointer group overflow-hidden h-[600px] sm:h-[480px] md:h-[480px] 2xl:h-[650px] 3xl:h-[700px] 4xl:h-[750px] 5xl:h-[800px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/30 shadow-lg hover:shadow-2xl hover:shadow-[#4FC8FF]/10"
                         onMouseEnter={() => handleProductHover(product.id)}
                         onMouseLeave={handleProductLeave}
                         whileHover={animationConfig.enableComplexAnimations ? {
@@ -138,7 +138,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
                             <ProductImageWithFallback
                                 src="/products/product1.png"
                                 alt={product.name}
-                                className="w-[300px] h-[300px] sm:w-[180px] sm:h-[180px] md:w-[200px] md:h-[200px] 2xl:w-[320px] 2xl:h-[320px] 3xl:w-[340px] 3xl:h-[340px] 4xl:w-[360px] 4xl:h-[360px] object-contain transition-opacity duration-200 ease-out"
+                                className="w-[300px] h-[300px] sm:w-[180px] sm:h-[180px] md:w-[200px] md:h-[200px] 2xl:w-[320px] 2xl:h-[320px] 3xl:w-[340px] 3xl:h-[340px] 4xl:w-[360px] 4xl:h-[360px] 5xl:w-[400px] 5xl:h-[400px] object-contain transition-opacity duration-200 ease-out"
                             />
                         </motion.div>
                     </motion.div>
@@ -150,7 +150,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
                         transition={{ duration: 0.6, delay: 0.3 + index * 0.05 }}
                     >
                             <motion.h3
-                                className="text-white font-bold text-lg sm:text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl mb-3 font-sans h-[3rem] 2xl:h-[3.5rem] 3xl:h-[4rem] 4xl:h-[4.5rem] flex items-center cursor-pointer"
+                                className="text-white font-bold text-lg sm:text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl 5xl:text-5xl mb-3 font-sans h-[3rem] 2xl:h-[3.5rem] 3xl:h-[4rem] 4xl:h-[4.5rem] 5xl:h-[5rem] flex items-center cursor-pointer"
                                 whileHover={{
                                     color: '#4FC8FF',
                                     scale: 1.02,
@@ -159,7 +159,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
                             >
                                 <span className="line-clamp-2">{product.name}</span>
                             </motion.h3>
-                        <p className="text-gray-300 text-sm 2xl:text-base 3xl:text-lg 4xl:text-xl leading-relaxed mb-4 font-sans line-clamp-2 h-[2.5rem] 2xl:h-[3rem] 3xl:h-[3.5rem] 4xl:h-[4rem] flex-shrink-0">
+                        <p className="text-gray-300 text-sm 2xl:text-base 3xl:text-lg 4xl:text-xl 5xl:text-2xl leading-relaxed mb-4 font-sans line-clamp-2 h-[2.5rem] 2xl:h-[3rem] 3xl:h-[3.5rem] 4xl:h-[4rem] 5xl:h-[4.5rem] flex-shrink-0">
                             {product.description}
                         </p>
 

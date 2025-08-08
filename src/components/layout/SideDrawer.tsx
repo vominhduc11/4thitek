@@ -7,8 +7,9 @@ import { FaFacebookF, FaTwitter } from 'react-icons/fa';
 import clsx from 'clsx';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { Z_INDEX } from '@/constants/zIndex';
+import { modalManager } from '@/utils/modalManager';
 
 interface SideDrawerProps {
     isOpen: boolean;
@@ -43,18 +44,16 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
 
     // Remove hover effects as no longer needed
 
+    // Handle body scroll lock with centralized modal manager
     useEffect(() => {
         if (isOpen) {
-            const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-            document.body.style.overflow = 'hidden';
-            document.body.style.paddingRight = `${scrollbarWidth}px`;
+            modalManager.openModal('side-drawer');
         } else {
-            document.body.style.overflow = 'unset';
-            document.body.style.paddingRight = '0px';
+            modalManager.closeModal('side-drawer');
         }
+
         return () => {
-            document.body.style.overflow = 'unset';
-            document.body.style.paddingRight = '0px';
+            modalManager.closeModal('side-drawer');
         };
     }, [isOpen]);
 

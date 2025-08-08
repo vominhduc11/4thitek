@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { MapPinIcon, PhoneIcon, EnvelopeIcon, ClockIcon } from '@heroicons/react/24/outline';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { getStaggerTransition, ANIMATION_OFFSET } from '@/constants/animations';
 
 export default function ContactInfo() {

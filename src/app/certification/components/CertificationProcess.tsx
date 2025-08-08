@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { FiFileText, FiCheckCircle, FiActivity, FiAward } from 'react-icons/fi';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function CertificationProcess() {
     const { t } = useLanguage();

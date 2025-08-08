@@ -6,7 +6,7 @@ import { FiArrowUpRight } from 'react-icons/fi';
 import Image from 'next/image';
 import Link from 'next/link';
 import clsx from 'clsx';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface FeaturedProduct {
     id: string;
@@ -114,7 +114,7 @@ export default function FeaturedProducts() {
             >
                 <Link href={`/products/${product.id}`}>
                     <motion.div
-                        className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-all duration-500 cursor-pointer group overflow-hidden h-[380px] sm:h-[420px] md:h-[460px] lg:h-[480px] xl:h-[500px] 2xl:h-[620px] 3xl:h-[680px] 4xl:h-[720px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/40 shadow-lg hover:shadow-2xl hover:shadow-[#4FC8FF]/20 backdrop-blur-sm"
+                        className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-all duration-500 cursor-pointer group overflow-hidden h-[380px] sm:h-[420px] md:h-[460px] lg:h-[480px] xl:h-[500px] 2xl:h-[620px] 3xl:h-[680px] 4xl:h-[720px] 5xl:h-[800px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/40 shadow-lg hover:shadow-2xl hover:shadow-[#4FC8FF]/20 backdrop-blur-sm"
                         onMouseEnter={() => setHoveredProductId(product.id)}
                         onMouseLeave={() => setHoveredProductId(null)}
                         whileHover={{
@@ -160,7 +160,7 @@ export default function FeaturedProducts() {
                     </motion.div>
 
                     <motion.div
-                        className="flex justify-center items-center py-4 sm:py-5 md:py-6 lg:py-6 xl:py-6 2xl:py-8 3xl:py-10 4xl:py-12 px-4 sm:px-5 md:px-6 lg:px-6 xl:px-6 2xl:px-8 3xl:px-10 4xl:px-12 z-10 relative"
+                        className="flex justify-center items-center py-4 sm:py-5 md:py-6 lg:py-6 xl:py-6 2xl:py-8 3xl:py-10 4xl:py-12 5xl:py-16 px-4 sm:px-5 md:px-6 lg:px-6 xl:px-6 2xl:px-8 3xl:px-10 4xl:px-12 5xl:px-16 z-10 relative"
                         whileHover={{ scale: 1.03 }}
                         transition={{ duration: 0.3 }}
                     >
@@ -174,19 +174,19 @@ export default function FeaturedProducts() {
                             <ProductImageWithFallback
                                 src={product.image}
                                 alt={product.name}
-                                className="w-[140px] h-[140px] sm:w-[160px] sm:h-[160px] md:w-[180px] md:h-[180px] lg:w-[200px] lg:h-[200px] xl:w-[220px] xl:h-[220px] 2xl:w-[280px] 2xl:h-[280px] 3xl:w-[320px] 3xl:h-[320px] 4xl:w-[360px] 4xl:h-[360px] object-contain transition-opacity duration-200 ease-out"
+                                className="w-[140px] h-[140px] sm:w-[160px] sm:h-[160px] md:w-[180px] md:h-[180px] lg:w-[200px] lg:h-[200px] xl:w-[220px] xl:h-[220px] 2xl:w-[280px] 2xl:h-[280px] 3xl:w-[320px] 3xl:h-[320px] 4xl:w-[360px] 4xl:h-[360px] 5xl:w-[400px] 5xl:h-[400px] object-contain transition-opacity duration-200 ease-out"
                             />
                         </motion.div>
                     </motion.div>
 
                     <motion.div
-                        className="px-4 sm:px-5 md:px-6 lg:px-6 xl:px-6 2xl:px-8 3xl:px-10 4xl:px-12 pb-6 sm:pb-7 md:pb-8 lg:pb-8 xl:pb-8 2xl:pb-8 3xl:pb-10 4xl:pb-12 pt-2 sm:pt-3 md:pt-3 lg:pt-3 xl:pt-3 2xl:pt-4 3xl:pt-5 4xl:pt-6 z-10 relative flex flex-col h-full"
+                        className="px-4 sm:px-5 md:px-6 lg:px-6 xl:px-6 2xl:px-8 3xl:px-10 4xl:px-12 5xl:px-16 pb-6 sm:pb-7 md:pb-8 lg:pb-8 xl:pb-8 2xl:pb-8 3xl:pb-10 4xl:pb-12 5xl:pb-16 pt-2 sm:pt-3 md:pt-3 lg:pt-3 xl:pt-3 2xl:pt-4 3xl:pt-5 4xl:pt-6 5xl:pt-8 z-10 relative flex flex-col h-full"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.3 + index * 0.05 }}
                     >
                             <motion.h3
-                                className="text-white font-bold text-base sm:text-lg md:text-xl lg:text-xl xl:text-2xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl mb-2 sm:mb-3 md:mb-3 lg:mb-3 xl:mb-3 2xl:mb-4 3xl:mb-5 4xl:mb-6 font-sans h-[2.5rem] sm:h-[3rem] md:h-[3rem] lg:h-[3rem] xl:h-[3rem] 2xl:h-[3.5rem] 3xl:h-[4rem] 4xl:h-[4.5rem] flex items-center cursor-pointer"
+                                className="text-white font-bold text-base sm:text-lg md:text-xl lg:text-xl xl:text-2xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl 5xl:text-5xl mb-2 sm:mb-3 md:mb-3 lg:mb-3 xl:mb-3 2xl:mb-4 3xl:mb-5 4xl:mb-6 5xl:mb-8 font-sans h-[2.5rem] sm:h-[3rem] md:h-[3rem] lg:h-[3rem] xl:h-[3rem] 2xl:h-[3.5rem] 3xl:h-[4rem] 4xl:h-[4.5rem] 5xl:h-[5rem] flex items-center cursor-pointer"
                                 whileHover={{
                                     color: '#4FC8FF',
                                     scale: 1.02,

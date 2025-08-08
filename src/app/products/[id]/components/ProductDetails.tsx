@@ -91,18 +91,18 @@ export default function ProductDetails({ features, highlights, description, cont
             case 'title':
                 return (
                     <div key={index} className="w-full">
-                        <h3 className="text-lg md:text-xl lg:text-2xl xl:text-3xl 2xl:text-3xl 3xl:text-5xl 4xl:text-6xl font-bold text-white mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10">{item.content}</h3>
+                        <h3 className="text-lg md:text-xl lg:text-2xl xl:text-3xl 2xl:text-3xl 3xl:text-5xl 4xl:text-6xl 5xl:text-7xl font-bold text-white mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10 5xl:mb-12">{item.content}</h3>
                     </div>
                 );
             case 'list_text':
                 return (
                     <div key={index} className="text-justify">
-                        <ul className="space-y-3 2xl:space-y-4 3xl:space-y-5 4xl:space-y-6 list-disc list-inside text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl leading-relaxed">
+                        <ul className="space-y-3 2xl:space-y-4 3xl:space-y-5 4xl:space-y-6 5xl:space-y-8 list-disc list-inside text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl 5xl:text-5xl leading-relaxed">
                             {item.content
                                 ?.split('\n')
                                 .filter((line) => line.trim())
                                 .map((line, lineIndex) => (
-                                    <li key={lineIndex} className="pl-2 2xl:pl-3 3xl:pl-4 4xl:pl-5 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">
+                                    <li key={lineIndex} className="pl-2 2xl:pl-3 3xl:pl-4 4xl:pl-5 5xl:pl-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl 5xl:text-5xl">
                                         {line.trim()}
                                     </li>
                                 ))}
@@ -120,7 +120,7 @@ export default function ProductDetails({ features, highlights, description, cont
                                 height={400}
                                 className="w-full h-full object-cover rounded-lg"
                                 priority
-                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1200px"
+                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, (max-width: 3200px) 1200px, 1500px"
                                 onError={(e) => {
                                     const target = e.target as HTMLImageElement;
                                     target.src =
@@ -199,7 +199,7 @@ export default function ProductDetails({ features, highlights, description, cont
                                             height={400}
                                             className="w-full h-full object-cover rounded-lg"
                                             priority
-                                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1200px"
+                                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, (max-width: 3200px) 1200px, 1500px"
                                             onError={(e) => {
                                                 const target = e.target as HTMLImageElement;
                                                 target.src =

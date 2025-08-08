@@ -7,7 +7,7 @@ import clsx from 'clsx';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import AvoidSidebar from '@/components/layout/AvoidSidebar';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 // Types
 interface PositionItem {

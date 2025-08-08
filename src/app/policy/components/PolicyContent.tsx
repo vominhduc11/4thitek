@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import TableOfContents from './TableOfContents';
 import PolicySection from './PolicySection';
 import SectionContainer from './SectionContainer';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface PolicyContentProps {
     selectedPolicy: string;

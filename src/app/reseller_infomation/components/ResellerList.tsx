@@ -1,7 +1,7 @@
 'use client';
 
 import { FiMapPin, FiPhone, FiMail, FiClock } from 'react-icons/fi';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface Reseller {
     id: number;

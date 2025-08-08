@@ -49,3 +49,17 @@ export const getZIndexClass = (level: ZIndexValue): string => {
     if (level <= 50) return `z-${level}`;
     return `z-[${level}]`;
 };
+
+// Migration mapping for common z-index values to proper constants
+export const Z_INDEX_MIGRATION = {
+    'z-5': Z_INDEX.CONTENT,
+    'z-10': Z_INDEX.ELEVATED,
+    'z-20': Z_INDEX.TOOLTIP,
+    'z-25': Z_INDEX.TOOLTIP,
+    'z-30': Z_INDEX.DROPDOWN,
+    'z-50': Z_INDEX.TOOLTIP,
+    'z-[110]': Z_INDEX.OVERLAY,
+    'z-[200]': Z_INDEX.STICKY,
+    'z-[300]': Z_INDEX.OVERLAY,
+    'z-[600]': Z_INDEX.SIDEBAR,
+} as const;
