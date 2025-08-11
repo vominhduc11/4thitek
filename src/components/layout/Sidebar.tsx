@@ -2,6 +2,7 @@ import { FaFacebookF, FaTwitter } from 'react-icons/fa';
 import { FiMenu } from 'react-icons/fi';
 import { motion, Variants } from 'framer-motion';
 import { Z_INDEX } from '@/constants/zIndex';
+import { SOCIAL_URLS } from '@/constants/urls';
 
 interface SidebarProps {
     onMenuClick: () => void;
@@ -37,7 +38,7 @@ export default function Sidebar({ onMenuClick }: SidebarProps) {
             {/* Social icons */}
             <div className="mb-3 sm:mb-4 flex flex-col gap-3 sm:gap-4">
                 <a
-                    href="https://facebook.com"
+                    href={SOCIAL_URLS.FACEBOOK}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-1.5 sm:p-2 rounded hover:bg-[#263040] transition flex items-center justify-center"
@@ -45,7 +46,7 @@ export default function Sidebar({ onMenuClick }: SidebarProps) {
                     <FaFacebookF size={14} className="sm:w-4.5 sm:h-4.5" color="#fff" />
                 </a>
                 <a
-                    href="https://twitter.com"
+                    href={SOCIAL_URLS.TWITTER}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-1.5 sm:p-2 rounded hover:bg-[#263040] transition flex items-center justify-center"

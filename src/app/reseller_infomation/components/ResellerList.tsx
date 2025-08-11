@@ -1,6 +1,6 @@
 'use client';
 
-import { FiMapPin, FiPhone, FiMail, FiClock } from 'react-icons/fi';
+import { FiMapPin, FiPhone, FiMail } from 'react-icons/fi';
 import { useLanguage } from '@/context/LanguageContext';
 
 interface Reseller {
@@ -11,11 +11,7 @@ interface Reseller {
     district: string;
     phone: string;
     email: string;
-    hours: string;
-    rating: number;
-    distance: string;
-    specialties: string[];
-    coordinates: {
+    coordinates?: {
         lat: number;
         lng: number;
     };
@@ -77,7 +73,7 @@ export default function ResellerList({ resellers, onResellerSelect, selectedRese
                             </div>
 
                             {/* Contact Info */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                            <div className="space-y-3 mb-4">
                                 <div className="flex items-center space-x-3">
                                     <FiPhone className="w-4 h-4 text-[#00d4ff]" />
                                     <span className="text-gray-300 text-sm">{reseller.phone}</span>
@@ -88,11 +84,6 @@ export default function ResellerList({ resellers, onResellerSelect, selectedRese
                                 </div>
                             </div>
 
-                            {/* Hours */}
-                            <div className="flex items-center space-x-3 mb-4">
-                                <FiClock className="w-4 h-4 text-[#00d4ff]" />
-                                <span className="text-gray-300 text-sm">{reseller.hours}</span>
-                            </div>
 
                         </div>
                     ))}

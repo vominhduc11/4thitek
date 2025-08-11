@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Hero from '@/components/ui/Hero';
 import { useLanguage } from '@/context/LanguageContext';
+import axios from 'axios';
 import {
     FiTrendingUp,
     FiHeadphones,
@@ -14,31 +15,24 @@ import {
     FiCheckCircle,
     FiMail,
     FiPhone,
-    FiMapPin,
-    FiChevronDown,
-    FiBriefcase,
-    FiClock,
-    FiBarChart
+    FiMapPin
 } from 'react-icons/fi';
 import { motion } from 'framer-motion';
+import { TIMEOUTS } from '@/constants/timeouts';
 
 interface FormData {
-    companyName: string;
-    contactName: string;
-    email: string;
-    phone: string;
+    name: string;
+    username: string;
+    password: string;
     address: string;
+    district: string;
     city: string;
-    country: string;
-    businessType: string;
-    experience: string;
-    expectedVolume: string;
-    website: string;
-    message: string;
+    phone: string;
+    email: string;
 }
 
 export default function BecomeOurReseller() {
-    const { t, getTranslation } = useLanguage();
+    const { t } = useLanguage();
     const formSectionRef = useRef<HTMLElement>(null);
 
     // Scroll to form function
@@ -49,107 +43,282 @@ export default function BecomeOurReseller() {
         });
     };
 
-    // Dropdown states
-    const [isBusinessTypeDropdownOpen, setIsBusinessTypeDropdownOpen] = useState(false);
-    const [isExperienceDropdownOpen, setIsExperienceDropdownOpen] = useState(false);
-    const [isVolumeDropdownOpen, setIsVolumeDropdownOpen] = useState(false);
-    const businessTypeDropdownRef = useRef<HTMLDivElement>(null);
-    const experienceDropdownRef = useRef<HTMLDivElement>(null);
-    const volumeDropdownRef = useRef<HTMLDivElement>(null);
-
     const [formData, setFormData] = useState<FormData>({
-        companyName: '',
-        contactName: '',
-        email: '',
-        phone: '',
+        name: '',
+        username: '',
+        password: '',
         address: '',
+        district: '',
         city: '',
-        country: '',
-        businessType: '',
-        experience: '',
-        expectedVolume: '',
-        website: '',
-        message: ''
+        phone: '+84',
+        email: ''
     });
 
-    // Close dropdowns when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (businessTypeDropdownRef.current && !businessTypeDropdownRef.current.contains(event.target as Node)) {
-                setIsBusinessTypeDropdownOpen(false);
-            }
-            if (experienceDropdownRef.current && !experienceDropdownRef.current.contains(event.target as Node)) {
-                setIsExperienceDropdownOpen(false);
-            }
-            if (volumeDropdownRef.current && !volumeDropdownRef.current.contains(event.target as Node)) {
-                setIsVolumeDropdownOpen(false);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    // Options data
-    const businessTypesData = getTranslation('becomeReseller.form.businessTypes') as Record<string, string> | null;
-    const businessTypeOptions = [
-        { value: 'retailer', label: businessTypesData?.retailer || 'Retailer', icon: FiBriefcase },
-        { value: 'distributor', label: businessTypesData?.distributor || 'Distributor', icon: FiTrendingUp },
-        { value: 'online-store', label: businessTypesData?.onlineStore || 'Online Store', icon: FiUsers },
-        { value: 'system-integrator', label: businessTypesData?.systemIntegrator || 'System Integrator', icon: FiAward },
-        { value: 'other', label: businessTypesData?.other || 'Other', icon: FiBriefcase }
-    ];
-
-    const experienceOptionsData = getTranslation('becomeReseller.form.experienceOptions') as Record<string, string> | null;
-    const experienceOptions = [
-        { value: '0-2', label: experienceOptionsData?.['0-2'] || '0-2 years', icon: FiClock },
-        { value: '3-5', label: experienceOptionsData?.['3-5'] || '3-5 years', icon: FiClock },
-        { value: '6-10', label: experienceOptionsData?.['6-10'] || '6-10 years', icon: FiClock },
-        { value: '10+', label: experienceOptionsData?.['10+'] || '10+ years', icon: FiClock }
-    ];
-
-    const volumeOptionsData = getTranslation('becomeReseller.form.volumeOptions') as Record<string, string> | null;
-    const volumeOptions = [
-        { value: '1-10', label: volumeOptionsData?.['1-10'] || '1-10 units', icon: FiBarChart },
-        { value: '11-50', label: volumeOptionsData?.['11-50'] || '11-50 units', icon: FiBarChart },
-        { value: '51-100', label: volumeOptionsData?.['51-100'] || '51-100 units', icon: FiBarChart },
-        { value: '100+', label: volumeOptionsData?.['100+'] || '100+ units', icon: FiBarChart }
-    ];
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+    const [errorMessage, setErrorMessage] = useState<string>('');
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
+        
+        // Handle phone input to ensure +84 prefix
+        if (name === 'phone') {
+            if (value === '' || value === '+') {
+                setFormData((prev) => ({ ...prev, [name]: '+84' }));
+                return;
+            } else if (!value.startsWith('+84')) {
+                // If user tries to type something that doesn't start with +84, prepend it
+                const cleanValue = value.replace(/^\+?84?/, '');
+                setFormData((prev) => ({ ...prev, [name]: '+84' + cleanValue }));
+                return;
+            }
+        }
+        
         setFormData((prev) => ({
             ...prev,
             [name]: value
         }));
+        
+        // Clear validation error when user starts typing
+        if (validationErrors[name]) {
+            setValidationErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[name];
+                return newErrors;
+            });
+        }
+        
+        // Clear general error message when user starts typing
+        if (errorMessage) {
+            setErrorMessage('');
+            setSubmitStatus('idle');
+        }
+
+        // Real-time validation for email and phone
+        if (name === 'email' && value.trim()) {
+            const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+            if (!emailRegex.test(value.trim())) {
+                setValidationErrors(prev => ({
+                    ...prev,
+                    email: t('becomeReseller.form.invalidEmail')
+                }));
+            }
+        }
+
+        if (name === 'phone' && value.trim()) {
+            // Updated phone regex for +84 format
+            const phoneRegex = /^\+84(3|5|7|8|9)\d{8}$/;
+            if (!phoneRegex.test(value)) {
+                setValidationErrors(prev => ({
+                    ...prev,
+                    phone: t('becomeReseller.form.invalidPhone')
+                }));
+            }
+        }
+
+        if (name === 'username' && value.trim()) {
+            // Username validation: alphanumeric, underscore, hyphen, 3-20 characters
+            const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
+            if (!usernameRegex.test(value.trim())) {
+                setValidationErrors(prev => ({
+                    ...prev,
+                    username: t('becomeReseller.form.invalidUsername')
+                }));
+            }
+        }
+
+        if (name === 'password' && value.trim()) {
+            // Password validation: minimum 8 characters
+            if (value.trim().length < 8) {
+                setValidationErrors(prev => ({
+                    ...prev,
+                    password: t('becomeReseller.form.invalidPassword')
+                }));
+            }
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Validate all required fields are filled
+        const requiredFields = {
+            name: formData.name.trim(),
+            username: formData.username.trim(),
+            password: formData.password.trim(),
+            address: formData.address.trim(),
+            district: formData.district.trim(),
+            city: formData.city.trim(),
+            phone: formData.phone.trim(),
+            email: formData.email.trim()
+        };
+
+        // Clear previous validation errors
+        setValidationErrors({});
+        const newErrors: {[key: string]: string} = {};
+
+        // Check if any required field is empty
+        const emptyFields = Object.entries(requiredFields).filter(([, value]) => !value);
+        
+        if (emptyFields.length > 0) {
+            emptyFields.forEach(([key]) => {
+                newErrors[key] = t('becomeReseller.form.fieldRequired');
+            });
+        }
+
+        // Enhanced email validation
+        const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+        if (requiredFields.email && !emailRegex.test(requiredFields.email)) {
+            newErrors.email = t('becomeReseller.form.invalidEmail');
+        }
+
+        // Enhanced phone validation for Vietnamese phone numbers with +84 prefix
+        // Format: +84 followed by 9 digits starting with 3,5,7,8,9
+        // Example: +84987654321
+        const phoneRegex = /^\+84(3|5|7|8|9)\d{8}$/;
+        if (requiredFields.phone && !phoneRegex.test(requiredFields.phone)) {
+            newErrors.phone = t('becomeReseller.form.invalidPhone');
+        }
+
+        // Username validation
+        const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
+        if (requiredFields.username && !usernameRegex.test(requiredFields.username)) {
+            newErrors.username = t('becomeReseller.form.invalidUsername');
+        }
+
+        // Password validation
+        if (requiredFields.password && requiredFields.password.length < 8) {
+            newErrors.password = t('becomeReseller.form.invalidPassword');
+        }
+
+        // If there are validation errors, set them and focus on first error field
+        if (Object.keys(newErrors).length > 0) {
+            setValidationErrors(newErrors);
+            const firstErrorField = Object.keys(newErrors)[0];
+            const fieldElement = document.getElementById(firstErrorField);
+            if (fieldElement) {
+                fieldElement.focus();
+                fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return; // Don't submit if validation fails
+        }
+
         setIsSubmitting(true);
 
         try {
-            // TODO: Implement API call to submit reseller application
-            await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate API call
-            setSubmitStatus('success');
-            setFormData({
-                companyName: '',
-                contactName: '',
-                email: '',
-                phone: '',
-                address: '',
-                city: '',
-                country: '',
-                businessType: '',
-                experience: '',
-                expectedVolume: '',
-                website: '',
-                message: ''
+            // Submit reseller application via API
+            const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/register-reseller`;
+            
+            const response = await axios.post(apiUrl, {
+                name: requiredFields.name,
+                username: requiredFields.username,
+                password: requiredFields.password,
+                address: requiredFields.address,
+                district: requiredFields.district,
+                city: requiredFields.city,
+                phone: requiredFields.phone,
+                email: requiredFields.email
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                timeout: TIMEOUTS.API_REQUEST,
             });
-        } catch {
+
+            if (response.status === 200 || response.status === 201) {
+                setSubmitStatus('success');
+                setFormData({
+                    name: '',
+                    username: '',
+                    password: '',
+                    address: '',
+                    district: '',
+                    city: '',
+                    phone: '',
+                    email: ''
+                });
+            } else {
+                throw new Error('Unexpected response status');
+            }
+        } catch (error) {
+            
+            // Handle specific error responses from backend
+            if (axios.isAxiosError(error) && error.response) {
+                const responseData = error.response.data;
+                
+                // Check if error response has specific error messages
+                if (responseData && typeof responseData === 'object') {
+                    // Handle validation errors from backend
+                    if (responseData.errors) {
+                        const backendErrors: {[key: string]: string} = {};
+                        
+                        // Map backend field errors to frontend validation errors
+                        if (responseData.errors.email) {
+                            backendErrors.email = responseData.errors.email;
+                        }
+                        if (responseData.errors.phone) {
+                            backendErrors.phone = responseData.errors.phone;
+                        }
+                        if (responseData.errors.name) {
+                            backendErrors.name = responseData.errors.name;
+                        }
+                        if (responseData.errors.username) {
+                            backendErrors.username = responseData.errors.username;
+                        }
+                        if (responseData.errors.password) {
+                            backendErrors.password = responseData.errors.password;
+                        }
+                        
+                        if (Object.keys(backendErrors).length > 0) {
+                            setValidationErrors(backendErrors);
+                            setSubmitStatus('idle'); // Keep form available for correction
+                            return;
+                        }
+                    }
+                    
+                    // Handle specific validation error messages from backend
+                    if (responseData.error === 'VALIDATION_ERROR' && responseData.message) {
+                        const message = responseData.message;
+                        const backendErrors: {[key: string]: string} = {};
+                        
+                        
+                        // Check for email duplicate error
+                        if (message.includes('Account already exists with email:')) {
+                            backendErrors.email = message;
+                        }
+                        // Check for phone duplicate error - be more flexible with the text
+                        if (message.includes('Phone number already exists:') || 
+                            message.includes('phone number already exists') ||
+                            (message.toLowerCase().includes('phone') && message.toLowerCase().includes('exists'))) {
+                            backendErrors.phone = message;
+                        }
+                        
+                        
+                        // If we have field-specific errors, show them on the fields
+                        if (Object.keys(backendErrors).length > 0) {
+                            setValidationErrors(backendErrors);
+                            setSubmitStatus('idle'); // Keep form available for correction
+                            return;
+                        }
+                    }
+                    
+                    // Handle general error message
+                    if (responseData.message) {
+                        setErrorMessage(responseData.message);
+                    } else if (responseData.error) {
+                        setErrorMessage(responseData.error);
+                    } else {
+                        setErrorMessage(t('becomeReseller.form.errorMessage'));
+                    }
+                } else {
+                    setErrorMessage(t('becomeReseller.form.errorMessage'));
+                }
+            } else {
+                setErrorMessage(t('becomeReseller.form.errorMessage'));
+            }
+            
             setSubmitStatus('error');
         } finally {
             setIsSubmitting(false);
@@ -341,108 +510,90 @@ export default function BecomeOurReseller() {
                                                 <div>
                                                     <h3 className="font-semibold">{t('becomeReseller.form.errorTitle')}</h3>
                                                     <p className="text-sm opacity-90">
-                                                        {t('becomeReseller.form.errorMessage')}
+                                                        {errorMessage || t('becomeReseller.form.errorMessage')}
                                                     </p>
                                                 </div>
                                             </div>
                                         </div>
                                     )}
 
-                                    <form onSubmit={handleSubmit} className="space-y-8">
-                                        {/* Company Information */}
+                                    <form onSubmit={handleSubmit} className="space-y-6">
+                                        {/* Reseller Registration Form */}
                                         <div className="space-y-6">
                                             <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
-                                                {t('becomeReseller.form.companyInfo')}
+                                                {t('becomeReseller.form.resellerRegistration')}
                                             </h3>
+                                            
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {/* Name */}
                                                 <div>
-                                                    <label
-                                                        htmlFor="companyName"
-                                                        className="block text-sm font-medium text-gray-300 mb-2"
-                                                    >
-                                                        {t('becomeReseller.form.companyNameRequired')}
+                                                    <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
+                                                        {t('becomeReseller.form.nameRequired')}
                                                     </label>
                                                     <Input
-                                                        id="companyName"
-                                                        name="companyName"
+                                                        id="name"
+                                                        name="name"
                                                         type="text"
                                                         required
-                                                        value={formData.companyName}
+                                                        value={formData.name}
                                                         onChange={handleInputChange}
-                                                        placeholder={t('becomeReseller.form.companyNamePlaceholder')}
-                                                        className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
+                                                        placeholder={t('becomeReseller.form.namePlaceholder')}
+                                                        className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
+                                                            validationErrors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                                        }`}
                                                     />
+                                                    {validationErrors.name && (
+                                                        <p className="text-red-400 text-sm mt-1">{validationErrors.name}</p>
+                                                    )}
                                                 </div>
 
+                                                {/* Username */}
                                                 <div>
-                                                    <label
-                                                        htmlFor="website"
-                                                        className="block text-sm font-medium text-gray-300 mb-2"
-                                                    >
-                                                        {t('becomeReseller.form.website')}
+                                                    <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
+                                                        {t('becomeReseller.form.usernameRequired')}
                                                     </label>
                                                     <Input
-                                                        id="website"
-                                                        name="website"
-                                                        type="url"
-                                                        value={formData.website}
-                                                        onChange={handleInputChange}
-                                                        placeholder={t('becomeReseller.form.websitePlaceholder')}
-                                                        className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Contact Information */}
-                                        <div className="space-y-6">
-                                            <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
-                                                {t('becomeReseller.form.contactInfo')}
-                                            </h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                <div>
-                                                    <label
-                                                        htmlFor="contactName"
-                                                        className="block text-sm font-medium text-gray-300 mb-2"
-                                                    >
-                                                        {t('becomeReseller.form.contactNameRequired')}
-                                                    </label>
-                                                    <Input
-                                                        id="contactName"
-                                                        name="contactName"
+                                                        id="username"
+                                                        name="username"
                                                         type="text"
                                                         required
-                                                        value={formData.contactName}
+                                                        value={formData.username}
                                                         onChange={handleInputChange}
-                                                        placeholder={t('becomeReseller.form.contactNamePlaceholder')}
-                                                        className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
+                                                        placeholder={t('becomeReseller.form.usernamePlaceholder')}
+                                                        className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
+                                                            validationErrors.username ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                                        }`}
                                                     />
+                                                    {validationErrors.username && (
+                                                        <p className="text-red-400 text-sm mt-1">{validationErrors.username}</p>
+                                                    )}
                                                 </div>
 
-                                                <div>
-                                                    <label
-                                                        htmlFor="email"
-                                                        className="block text-sm font-medium text-gray-300 mb-2"
-                                                    >
-                                                        {t('becomeReseller.form.emailRequired')}
+                                                {/* Password */}
+                                                <div className="md:col-span-2">
+                                                    <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+                                                        {t('becomeReseller.form.passwordRequired')}
                                                     </label>
                                                     <Input
-                                                        id="email"
-                                                        name="email"
-                                                        type="email"
+                                                        id="password"
+                                                        name="password"
+                                                        type="password"
                                                         required
-                                                        value={formData.email}
+                                                        value={formData.password}
                                                         onChange={handleInputChange}
-                                                        placeholder={t('becomeReseller.form.emailPlaceholder')}
-                                                        className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
+                                                        placeholder={t('becomeReseller.form.passwordPlaceholder')}
+                                                        className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
+                                                            validationErrors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                                        }`}
                                                     />
+                                                    {validationErrors.password && (
+                                                        <p className="text-red-400 text-sm mt-1">{validationErrors.password}</p>
+                                                    )}
                                                 </div>
 
+                                                {/* Phone */}
                                                 <div>
-                                                    <label
-                                                        htmlFor="phone"
-                                                        className="block text-sm font-medium text-gray-300 mb-2"
-                                                    >
+                                                    <label htmlFor="phone" className="block text-sm font-medium text-gray-300 mb-2">
                                                         {t('becomeReseller.form.phoneRequired')}
                                                     </label>
                                                     <Input
@@ -453,23 +604,40 @@ export default function BecomeOurReseller() {
                                                         value={formData.phone}
                                                         onChange={handleInputChange}
                                                         placeholder={t('becomeReseller.form.phonePlaceholder')}
-                                                        className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
+                                                        className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
+                                                            validationErrors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                                        }`}
                                                     />
+                                                    {validationErrors.phone && (
+                                                        <p className="text-red-400 text-sm mt-1">{validationErrors.phone}</p>
+                                                    )}
                                                 </div>
-                                            </div>
-                                        </div>
 
-                                        {/* Business Address */}
-                                        <div className="space-y-6">
-                                            <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
-                                                {t('becomeReseller.form.businessAddress')}
-                                            </h3>
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <label
-                                                        htmlFor="address"
-                                                        className="block text-sm font-medium text-gray-300 mb-2"
-                                                    >
+                                                {/* Email */}
+                                                <div className="md:col-span-2">
+                                                    <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                                                        {t('becomeReseller.form.emailRequired')}
+                                                    </label>
+                                                    <Input
+                                                        id="email"
+                                                        name="email"
+                                                        type="email"
+                                                        required
+                                                        value={formData.email}
+                                                        onChange={handleInputChange}
+                                                        placeholder={t('becomeReseller.form.emailPlaceholder')}
+                                                        className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
+                                                            validationErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                                        }`}
+                                                    />
+                                                    {validationErrors.email && (
+                                                        <p className="text-red-400 text-sm mt-1">{validationErrors.email}</p>
+                                                    )}
+                                                </div>
+
+                                                {/* Address */}
+                                                <div className="md:col-span-2">
+                                                    <label htmlFor="address" className="block text-sm font-medium text-gray-300 mb-2">
                                                         {t('becomeReseller.form.streetAddressRequired')}
                                                     </label>
                                                     <Input
@@ -480,354 +648,58 @@ export default function BecomeOurReseller() {
                                                         value={formData.address}
                                                         onChange={handleInputChange}
                                                         placeholder={t('becomeReseller.form.streetAddressPlaceholder')}
-                                                        className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
+                                                        className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
+                                                            validationErrors.address ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                                        }`}
                                                     />
+                                                    {validationErrors.address && (
+                                                        <p className="text-red-400 text-sm mt-1">{validationErrors.address}</p>
+                                                    )}
                                                 </div>
 
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                    <div>
-                                                        <label
-                                                            htmlFor="city"
-                                                            className="block text-sm font-medium text-gray-300 mb-2"
-                                                        >
-                                                            {t('becomeReseller.form.cityRequired')}
-                                                        </label>
-                                                        <Input
-                                                            id="city"
-                                                            name="city"
-                                                            type="text"
-                                                            required
-                                                            value={formData.city}
-                                                            onChange={handleInputChange}
-                                                            placeholder={t('becomeReseller.form.cityPlaceholder')}
-                                                            className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
-                                                        />
-                                                    </div>
-
-                                                    <div>
-                                                        <label
-                                                            htmlFor="country"
-                                                            className="block text-sm font-medium text-gray-300 mb-2"
-                                                        >
-                                                            {t('becomeReseller.form.countryRequired')}
-                                                        </label>
-                                                        <Input
-                                                            id="country"
-                                                            name="country"
-                                                            type="text"
-                                                            required
-                                                            value={formData.country}
-                                                            onChange={handleInputChange}
-                                                            placeholder={t('becomeReseller.form.countryPlaceholder')}
-                                                            className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF]"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Business Details */}
-                                        <div className="space-y-6">
-                                            <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
-                                                {t('becomeReseller.form.businessDetails')}
-                                            </h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {/* District */}
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                                                        {t('becomeReseller.form.businessTypeRequired')}
+                                                    <label htmlFor="district" className="block text-sm font-medium text-gray-300 mb-2">
+                                                        {t('becomeReseller.form.districtRequired')}
                                                     </label>
-                                                    <div ref={businessTypeDropdownRef} className="relative">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                setIsBusinessTypeDropdownOpen(
-                                                                    !isBusinessTypeDropdownOpen
-                                                                )
-                                                            }
-                                                            className="flex h-10 w-full items-center justify-between gap-2 rounded-md border border-gray-600 bg-gray-700/50 px-3 py-2 text-white focus:border-[#4FC8FF] focus:ring-[#4FC8FF] transition-all duration-300"
-                                                        >
-                                                            <div className="flex items-center gap-2">
-                                                                {(() => {
-                                                                    const selected = businessTypeOptions.find(
-                                                                        (opt) => opt.value === formData.businessType
-                                                                    );
-                                                                    const Icon = selected?.icon || FiBriefcase;
-                                                                    return (
-                                                                        <>
-                                                                            <Icon className="w-4 h-4 text-gray-400" />
-                                                                            <span
-                                                                                className={
-                                                                                    formData.businessType
-                                                                                        ? 'text-white'
-                                                                                        : 'text-gray-400'
-                                                                                }
-                                                                            >
-                                                                                {selected?.label ||
-                                                                                    t('becomeReseller.form.selectBusinessType')}
-                                                                            </span>
-                                                                        </>
-                                                                    );
-                                                                })()}
-                                                            </div>
-                                                            <FiChevronDown
-                                                                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isBusinessTypeDropdownOpen ? 'rotate-180' : ''}`}
-                                                            />
-                                                        </button>
-
-                                                        {isBusinessTypeDropdownOpen && (
-                                                            <motion.div
-                                                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                                                                transition={{ duration: 0.2 }}
-                                                                className="absolute top-full left-0 right-0 mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-xl z-50 overflow-hidden"
-                                                            >
-                                                                {businessTypeOptions.map((option) => {
-                                                                    const isSelected =
-                                                                        formData.businessType === option.value;
-                                                                    const Icon = option.icon;
-                                                                    return (
-                                                                        <button
-                                                                            key={option.value}
-                                                                            type="button"
-                                                                            onClick={() => {
-                                                                                setFormData((prev) => ({
-                                                                                    ...prev,
-                                                                                    businessType: option.value
-                                                                                }));
-                                                                                setIsBusinessTypeDropdownOpen(false);
-                                                                            }}
-                                                                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-all duration-200 ${
-                                                                                isSelected
-                                                                                    ? 'bg-[#4FC8FF]/20 text-[#4FC8FF] border-l-2 border-[#4FC8FF]'
-                                                                                    : 'text-white hover:bg-gray-600/50 hover:text-[#4FC8FF]'
-                                                                            }`}
-                                                                        >
-                                                                            <Icon
-                                                                                className={`w-4 h-4 ${
-                                                                                    isSelected
-                                                                                        ? 'text-[#4FC8FF]'
-                                                                                        : 'text-gray-400'
-                                                                                }`}
-                                                                            />
-                                                                            <span>{option.label}</span>
-                                                                            {isSelected && (
-                                                                                <motion.div
-                                                                                    initial={{ scale: 0 }}
-                                                                                    animate={{ scale: 1 }}
-                                                                                    className="ml-auto w-2 h-2 bg-[#4FC8FF] rounded-full"
-                                                                                />
-                                                                            )}
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                            </motion.div>
-                                                        )}
-                                                    </div>
+                                                    <Input
+                                                        id="district"
+                                                        name="district"
+                                                        type="text"
+                                                        required
+                                                        value={formData.district}
+                                                        onChange={handleInputChange}
+                                                        placeholder={t('becomeReseller.form.districtPlaceholder')}
+                                                        className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
+                                                            validationErrors.district ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                                        }`}
+                                                    />
+                                                    {validationErrors.district && (
+                                                        <p className="text-red-400 text-sm mt-1">{validationErrors.district}</p>
+                                                    )}
                                                 </div>
 
+                                                {/* City */}
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                                                        {t('becomeReseller.form.experienceRequired')}
+                                                    <label htmlFor="city" className="block text-sm font-medium text-gray-300 mb-2">
+                                                        {t('becomeReseller.form.cityRequired')}
                                                     </label>
-                                                    <div ref={experienceDropdownRef} className="relative">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                setIsExperienceDropdownOpen(!isExperienceDropdownOpen)
-                                                            }
-                                                            className="flex h-10 w-full items-center justify-between gap-2 rounded-md border border-gray-600 bg-gray-700/50 px-3 py-2 text-white focus:border-[#4FC8FF] focus:ring-[#4FC8FF] transition-all duration-300"
-                                                        >
-                                                            <div className="flex items-center gap-2">
-                                                                {(() => {
-                                                                    const selected = experienceOptions.find(
-                                                                        (opt) => opt.value === formData.experience
-                                                                    );
-                                                                    return (
-                                                                        <>
-                                                                            <FiClock className="w-4 h-4 text-gray-400" />
-                                                                            <span
-                                                                                className={
-                                                                                    formData.experience
-                                                                                        ? 'text-white'
-                                                                                        : 'text-gray-400'
-                                                                                }
-                                                                            >
-                                                                                {selected?.label || t('becomeReseller.form.selectExperience')}
-                                                                            </span>
-                                                                        </>
-                                                                    );
-                                                                })()}
-                                                            </div>
-                                                            <FiChevronDown
-                                                                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isExperienceDropdownOpen ? 'rotate-180' : ''}`}
-                                                            />
-                                                        </button>
-
-                                                        {isExperienceDropdownOpen && (
-                                                            <motion.div
-                                                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                                                                transition={{ duration: 0.2 }}
-                                                                className="absolute top-full left-0 right-0 mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-xl z-50 overflow-hidden"
-                                                            >
-                                                                {experienceOptions.map((option) => {
-                                                                    const isSelected =
-                                                                        formData.experience === option.value;
-                                                                    return (
-                                                                        <button
-                                                                            key={option.value}
-                                                                            type="button"
-                                                                            onClick={() => {
-                                                                                setFormData((prev) => ({
-                                                                                    ...prev,
-                                                                                    experience: option.value
-                                                                                }));
-                                                                                setIsExperienceDropdownOpen(false);
-                                                                            }}
-                                                                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-all duration-200 ${
-                                                                                isSelected
-                                                                                    ? 'bg-[#4FC8FF]/20 text-[#4FC8FF] border-l-2 border-[#4FC8FF]'
-                                                                                    : 'text-white hover:bg-gray-600/50 hover:text-[#4FC8FF]'
-                                                                            }`}
-                                                                        >
-                                                                            <FiClock
-                                                                                className={`w-4 h-4 ${
-                                                                                    isSelected
-                                                                                        ? 'text-[#4FC8FF]'
-                                                                                        : 'text-gray-400'
-                                                                                }`}
-                                                                            />
-                                                                            <span>{option.label}</span>
-                                                                            {isSelected && (
-                                                                                <motion.div
-                                                                                    initial={{ scale: 0 }}
-                                                                                    animate={{ scale: 1 }}
-                                                                                    className="ml-auto w-2 h-2 bg-[#4FC8FF] rounded-full"
-                                                                                />
-                                                                            )}
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                            </motion.div>
-                                                        )}
-                                                    </div>
+                                                    <Input
+                                                        id="city"
+                                                        name="city"
+                                                        type="text"
+                                                        required
+                                                        value={formData.city}
+                                                        onChange={handleInputChange}
+                                                        placeholder={t('becomeReseller.form.cityPlaceholder')}
+                                                        className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
+                                                            validationErrors.city ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                                        }`}
+                                                    />
+                                                    {validationErrors.city && (
+                                                        <p className="text-red-400 text-sm mt-1">{validationErrors.city}</p>
+                                                    )}
                                                 </div>
-
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                                                        {t('becomeReseller.form.expectedVolumeRequired')}
-                                                    </label>
-                                                    <div ref={volumeDropdownRef} className="relative">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                setIsVolumeDropdownOpen(!isVolumeDropdownOpen)
-                                                            }
-                                                            className="flex h-10 w-full items-center justify-between gap-2 rounded-md border border-gray-600 bg-gray-700/50 px-3 py-2 text-white focus:border-[#4FC8FF] focus:ring-[#4FC8FF] transition-all duration-300"
-                                                        >
-                                                            <div className="flex items-center gap-2">
-                                                                {(() => {
-                                                                    const selected = volumeOptions.find(
-                                                                        (opt) => opt.value === formData.expectedVolume
-                                                                    );
-                                                                    return (
-                                                                        <>
-                                                                            <FiBarChart className="w-4 h-4 text-gray-400" />
-                                                                            <span
-                                                                                className={
-                                                                                    formData.expectedVolume
-                                                                                        ? 'text-white'
-                                                                                        : 'text-gray-400'
-                                                                                }
-                                                                            >
-                                                                                {selected?.label ||
-                                                                                    t('becomeReseller.form.selectExpectedVolume')}
-                                                                            </span>
-                                                                        </>
-                                                                    );
-                                                                })()}
-                                                            </div>
-                                                            <FiChevronDown
-                                                                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isVolumeDropdownOpen ? 'rotate-180' : ''}`}
-                                                            />
-                                                        </button>
-
-                                                        {isVolumeDropdownOpen && (
-                                                            <motion.div
-                                                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                                                                transition={{ duration: 0.2 }}
-                                                                className="absolute top-full left-0 right-0 mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-xl z-50 overflow-hidden"
-                                                            >
-                                                                {volumeOptions.map((option) => {
-                                                                    const isSelected =
-                                                                        formData.expectedVolume === option.value;
-                                                                    return (
-                                                                        <button
-                                                                            key={option.value}
-                                                                            type="button"
-                                                                            onClick={() => {
-                                                                                setFormData((prev) => ({
-                                                                                    ...prev,
-                                                                                    expectedVolume: option.value
-                                                                                }));
-                                                                                setIsVolumeDropdownOpen(false);
-                                                                            }}
-                                                                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-all duration-200 ${
-                                                                                isSelected
-                                                                                    ? 'bg-[#4FC8FF]/20 text-[#4FC8FF] border-l-2 border-[#4FC8FF]'
-                                                                                    : 'text-white hover:bg-gray-600/50 hover:text-[#4FC8FF]'
-                                                                            }`}
-                                                                        >
-                                                                            <FiBarChart
-                                                                                className={`w-4 h-4 ${
-                                                                                    isSelected
-                                                                                        ? 'text-[#4FC8FF]'
-                                                                                        : 'text-gray-400'
-                                                                                }`}
-                                                                            />
-                                                                            <span>{option.label}</span>
-                                                                            {isSelected && (
-                                                                                <motion.div
-                                                                                    initial={{ scale: 0 }}
-                                                                                    animate={{ scale: 1 }}
-                                                                                    className="ml-auto w-2 h-2 bg-[#4FC8FF] rounded-full"
-                                                                                />
-                                                                            )}
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                            </motion.div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Additional Information */}
-                                        <div className="space-y-6">
-                                            <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
-                                                {t('becomeReseller.form.additionalInfo')}
-                                            </h3>
-                                            <div>
-                                                <label
-                                                    htmlFor="message"
-                                                    className="block text-sm font-medium text-gray-300 mb-2"
-                                                >
-                                                    {t('becomeReseller.form.message')}
-                                                </label>
-                                                <textarea
-                                                    id="message"
-                                                    name="message"
-                                                    rows={5}
-                                                    value={formData.message}
-                                                    onChange={handleInputChange}
-                                                    placeholder={t('becomeReseller.form.messagePlaceholder')}
-                                                    className="flex w-full rounded-md border border-gray-600 bg-gray-700/50 px-3 py-2 text-white ring-offset-background placeholder:text-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                                                />
                                             </div>
                                         </div>
 

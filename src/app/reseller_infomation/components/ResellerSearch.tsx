@@ -5,10 +5,48 @@ import { FiSearch, FiMapPin, FiChevronDown } from 'react-icons/fi';
 import { useLanguage } from '@/context/LanguageContext';
 import { motion } from 'framer-motion';
 
+interface Reseller {
+    id: number;
+    name: string;
+    address: string;
+    city: string;
+    district: string;
+    phone: string;
+    email: string;
+    coordinates?: {
+        lat: number;
+        lng: number;
+    };
+}
+
+// Function to extract unique locations from reseller data
+const extractLocationsFromResellers = (resellers: Reseller[]) => {
+    const cities = [...new Set(resellers.map(reseller => reseller.city))].sort();
+    
+    const districts: { [key: string]: string[] } = {};
+    resellers.forEach(reseller => {
+        if (!districts[reseller.city]) {
+            districts[reseller.city] = [];
+        }
+        if (!districts[reseller.city].includes(reseller.district)) {
+            districts[reseller.city].push(reseller.district);
+        }
+    });
+    
+    // Sort districts for each city
+    Object.keys(districts).forEach(city => {
+        districts[city] = districts[city].sort();
+    });
+    
+    return { cities, districts };
+};
+
 export default function ResellerSearch({
-    onSearch
+    onSearch,
+    resellers = []
 }: {
     onSearch: (filters: { city: string; district: string; address: string }) => void;
+    resellers?: Reseller[];
 }) {
     const { t } = useLanguage();
     const [searchFilters, setSearchFilters] = useState({
@@ -38,49 +76,8 @@ export default function ResellerSearch({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const cities = ['Ho Chi Minh City', 'Hanoi', 'Da Nang', 'Can Tho', 'Hai Phong', 'Nha Trang', 'Hue', 'Vung Tau'];
-
-    const districts = {
-        'Ho Chi Minh City': [
-            'District 1',
-            'District 2',
-            'District 3',
-            'District 4',
-            'District 5',
-            'District 6',
-            'District 7',
-            'District 8',
-            'District 9',
-            'District 10',
-            'District 11',
-            'District 12',
-            'Binh Thanh District',
-            'Go Vap District',
-            'Phu Nhuan District',
-            'Tan Binh District',
-            'Tan Phu District',
-            'Thu Duc District'
-        ],
-        Hanoi: [
-            'Ba Dinh District',
-            'Hoan Kiem District',
-            'Tay Ho District',
-            'Long Bien District',
-            'Cau Giay District',
-            'Dong Da District',
-            'Hai Ba Trung District',
-            'Hoang Mai District',
-            'Thanh Xuan District'
-        ],
-        'Da Nang': [
-            'Hai Chau District',
-            'Thanh Khe District',
-            'Son Tra District',
-            'Ngu Hanh Son District',
-            'Lien Chieu District',
-            'Cam Le District'
-        ]
-    };
+    // Extract dynamic location data from resellers
+    const { cities, districts } = extractLocationsFromResellers(resellers);
 
     const handleInputChange = (field: string, value: string) => {
         const newFilters = { ...searchFilters, [field]: value };

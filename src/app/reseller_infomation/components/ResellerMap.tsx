@@ -13,11 +13,7 @@ interface Reseller {
     district: string;
     phone: string;
     email: string;
-    hours: string;
-    rating: number;
-    distance: string;
-    specialties: string[];
-    coordinates: {
+    coordinates?: {
         lat: number;
         lng: number;
     };
@@ -37,17 +33,23 @@ export default function ResellerMap({ resellers, selectedReseller }: ResellerMap
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
     const updateMapSrc = useCallback(() => {
-        if (selectedReseller) {
+        if (selectedReseller && selectedReseller.coordinates) {
             const lat = selectedReseller.coordinates.lat;
             const lng = selectedReseller.coordinates.lng;
             const bbox = `${lng - 0.01},${lat - 0.01},${lng + 0.01},${lat + 0.01}`;
             setMapSrc(`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`);
         } else if (resellers.length > 0) {
-            const firstReseller = resellers[0];
-            const lat = firstReseller.coordinates.lat;
-            const lng = firstReseller.coordinates.lng;
-            const bbox = `${lng - 0.02},${lat - 0.02},${lng + 0.02},${lat + 0.02}`;
-            setMapSrc(`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik`);
+            // Find first reseller with coordinates
+            const resellerWithCoords = resellers.find(r => r.coordinates);
+            if (resellerWithCoords && resellerWithCoords.coordinates) {
+                const lat = resellerWithCoords.coordinates.lat;
+                const lng = resellerWithCoords.coordinates.lng;
+                const bbox = `${lng - 0.02},${lat - 0.02},${lng + 0.02},${lat + 0.02}`;
+                setMapSrc(`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik`);
+            } else {
+                // Default Vietnam view if no coordinates available
+                setMapSrc(`https://www.openstreetmap.org/export/embed.html?bbox=102,8,110,24&layer=mapnik`);
+            }
         } else {
             // Default Vietnam view
             setMapSrc(`https://www.openstreetmap.org/export/embed.html?bbox=102,8,110,24&layer=mapnik`);
@@ -74,7 +76,7 @@ export default function ResellerMap({ resellers, selectedReseller }: ResellerMap
     };
 
     const updateMapWithZoom = (newZoom: number) => {
-        if (selectedReseller) {
+        if (selectedReseller && selectedReseller.coordinates) {
             const lat = selectedReseller.coordinates.lat;
             const lng = selectedReseller.coordinates.lng;
             const offset = 0.01 / Math.pow(2, newZoom - 12);
