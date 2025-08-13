@@ -4,11 +4,12 @@ import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BlogHero, BlogBreadcrumb, BlogGrid, BlogPagination } from './components';
 import { getPublishedPosts } from '@/data/blogs';
+import { apiService } from '@/services/apiService';
 import type { BlogPost } from '@/types/blog';
 import { useLanguage } from '@/context/LanguageContext';
 
-// Get published blog posts
-const publishedBlogPosts: BlogPost[] = getPublishedPosts();
+// Fallback mock data
+const fallbackBlogPosts: BlogPost[] = getPublishedPosts();
 
 function BlogPageContent() {
     // State management
@@ -17,9 +18,43 @@ function BlogPageContent() {
     const [itemsPerPage] = useState(9); // 3x3 grid
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy] = useState<'date' | 'popularity' | 'views'>('date');
+    const [blogPosts, setBlogPosts] = useState<BlogPost[]>(fallbackBlogPosts);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
 
     // Get URL parameters
     const searchParams = useSearchParams();
+
+    // Fetch blogs from API
+    useEffect(() => {
+        const fetchBlogs = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                setConnectionStatus('checking');
+                
+                const response = await apiService.fetchBlogs();
+                
+                if (response.success && response.data) {
+                    setConnectionStatus('connected');
+                    // Transform API data to BlogPost format if needed
+                    setBlogPosts(response.data);
+                } else {
+                    throw new Error(response.error || 'Failed to fetch blogs');
+                }
+            } catch (fetchError) {
+                console.error('Error fetching blogs:', fetchError);
+                setConnectionStatus('disconnected');
+                setError('Unable to load latest blog data. Showing cached information.');
+                setBlogPosts(fallbackBlogPosts);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchBlogs();
+    }, []);
 
     // Handle URL parameters on component mount
     useEffect(() => {
@@ -34,7 +69,7 @@ function BlogPageContent() {
 
     // Filter and sort blogs
     const filteredBlogs = useMemo(() => {
-        let filtered = publishedBlogPosts;
+        let filtered = blogPosts;
 
         // Filter by category
         if (selectedCategory !== 'ALL') {
@@ -67,7 +102,7 @@ function BlogPageContent() {
         });
 
         return filtered;
-    }, [selectedCategory, searchQuery, sortBy]);
+    }, [selectedCategory, searchQuery, sortBy, blogPosts]);
 
     // Pagination calculations
     const { currentBlogs, totalPages, totalItems } = useMemo(() => {
@@ -113,11 +148,32 @@ function BlogPageContent() {
             <BlogBreadcrumb
                 selectedCategory={selectedCategory}
                 onCategoryClick={handleCategoryClick}
-                totalBlogs={publishedBlogPosts.length}
+                totalBlogs={blogPosts.length}
                 filteredCount={totalItems}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
             />
+
+            {/* Connection Status Indicator */}
+            {connectionStatus !== 'connected' && !loading && (
+                <div className="ml-16 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 pb-4">
+                    <div className={`rounded-lg p-3 text-sm flex items-center gap-3 ${
+                        connectionStatus === 'disconnected' 
+                            ? 'bg-yellow-900/20 border border-yellow-600 text-yellow-300'
+                            : 'bg-gray-700/20 border border-gray-600 text-gray-300'
+                    }`}>
+                        <div className={`w-2 h-2 rounded-full ${
+                            connectionStatus === 'disconnected' ? 'bg-yellow-500' : 'bg-gray-500'
+                        }`}></div>
+                        <span>
+                            {connectionStatus === 'disconnected' 
+                                ? 'Using cached blog data - API temporarily unavailable'
+                                : 'Checking connection...'
+                            }
+                        </span>
+                    </div>
+                </div>
+            )}
 
             {/* Blog Grid */}
             <div data-blog-grid>

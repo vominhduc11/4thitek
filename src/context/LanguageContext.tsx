@@ -182,6 +182,10 @@ const translations = {
             foundDealers: 'Found {count} dealers',
             noResellersFound: 'No dealers found',
             noResellersMessage: 'Please try searching with different keywords or expand the search area.',
+            processingLocations: 'Processing locations...',
+            loadingDealers: 'Loading dealers...',
+            errorTitle: 'Error Loading Resellers',
+            fallbackMessage: 'Showing fallback data instead.',
             hours: 'Hours',
             phone: 'Phone',
             email: 'Email',
@@ -325,6 +329,12 @@ const translations = {
         certification: {
             title: 'CERTIFICATION',
             subtitle: 'Our products meet the highest industry standards and have received certifications from leading international organizations. These certifications ensure that our audio devices deliver exceptional quality, safety, and performance.',
+            list: {
+                title: 'Our Certifications',
+                description: 'Our products meet the highest industry standards and have received certifications from leading international organizations.',
+                issuedBy: 'Issued by',
+                details: 'View Details'
+            },
             certifications: {
                 ce: {
                     name: 'CE Certification',
@@ -963,6 +973,10 @@ const translations = {
             foundDealers: 'Tìm thấy {count} đại lý',
             noResellersFound: 'Không tìm thấy đại lý',
             noResellersMessage: 'Vui lòng thử tìm kiếm với từ khóa khác hoặc mở rộng khu vực tìm kiếm.',
+            processingLocations: 'Đang xử lý vị trí...',
+            loadingDealers: 'Đang tải đại lý...',
+            errorTitle: 'Lỗi Tải Dữ Liệu Đại Lý',
+            fallbackMessage: 'Hiển thị dữ liệu dự phòng thay thế.',
             hours: 'Giờ Mở Cửa',
             phone: 'Điện Thoại',
             email: 'Email',
@@ -1106,6 +1120,12 @@ const translations = {
         certification: {
             title: 'CHỨNG NHẬN',
             subtitle: 'Sản phẩm của chúng tôi đáp ứng các tiêu chuẩn công nghiệp cao nhất và đã nhận được chứng nhận từ các tổ chức quốc tế hàng đầu. Những chứng nhận này đảm bảo rằng các thiết bị âm thanh của chúng tôi mang lại chất lượng, an toàn và hiệu suất đặc biệt.',
+            list: {
+                title: 'Chứng Nhận Của Chúng Tôi',
+                description: 'Sản phẩm của chúng tôi đáp ứng các tiêu chuẩn công nghiệp cao nhất và đã nhận được chứng nhận từ các tổ chức quốc tế hàng đầu.',
+                issuedBy: 'Được cấp bởi',
+                details: 'Xem Chi Tiết'
+            },
             certifications: {
                 ce: {
                     name: 'Chứng Nhận CE',

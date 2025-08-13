@@ -6,14 +6,15 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { getPublishedPosts } from '@/data/blogs';
+import { apiService } from '@/services/apiService';
 import type { BlogPost, BlogContentBlock } from '@/types/blog';
 import BlogDetailHero from '@/app/blogs/[id]/components/BlogDetailHero';
 import { useHydration } from '@/hooks/useHydration';
 import { formatDateSafe } from '@/utils/dateFormatter';
 import { useLanguage } from '@/context/LanguageContext';
 
-// Get published blog posts
-const publishedBlogPosts: BlogPost[] = getPublishedPosts();
+// Fallback blog posts
+const fallbackBlogPosts: BlogPost[] = getPublishedPosts();
 
 export default function BlogDetailPageImproved() {
     const { t } = useLanguage();
@@ -21,31 +22,85 @@ export default function BlogDetailPageImproved() {
     const [post, setPost] = useState<BlogPost | null>(null);
     const [loading, setLoading] = useState(true);
     const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [allPosts, setAllPosts] = useState<BlogPost[]>(fallbackBlogPosts);
     const isHydrated = useHydration();
 
+    // Fetch blog posts from API
+    useEffect(() => {
+        const fetchBlogs = async () => {
+            try {
+                const response = await apiService.fetchBlogs();
+                if (response.success && response.data) {
+                    setAllPosts(response.data);
+                }
+            } catch (fetchError) {
+                console.error('Error fetching blogs:', fetchError);
+                setAllPosts(fallbackBlogPosts);
+            }
+        };
+
+        fetchBlogs();
+    }, []);
+
+    // Find current post and related posts
     useEffect(() => {
         if (!params?.id) return;
 
         const postId = params.id as string;
-        const foundPost = publishedBlogPosts.find((p) => p.id === postId);
+        
+        // Try to fetch specific blog post from API first
+        const fetchSpecificPost = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                
+                const response = await apiService.fetchBlogById(postId);
+                
+                if (response.success && response.data) {
+                    setPost(response.data);
+                } else {
+                    // Fallback to searching in allPosts
+                    const foundPost = allPosts.find((p) => p.id === postId);
+                    if (foundPost) {
+                        setPost(foundPost);
+                    } else {
+                        setError('Blog post not found');
+                    }
+                }
+            } catch (fetchError) {
+                console.error('Error fetching blog post:', fetchError);
+                // Fallback to searching in allPosts
+                const foundPost = allPosts.find((p) => p.id === postId);
+                if (foundPost) {
+                    setPost(foundPost);
+                } else {
+                    setError('Blog post not found');
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
 
-        if (foundPost) {
-            setPost(foundPost);
-            // Get related posts (excluding current post, same category preferred)
-            const related = publishedBlogPosts
-                .filter((p) => p.id !== postId)
-                .sort((a, b) => {
-                    // Prioritize same category
-                    if (a.category.id === foundPost.category.id && b.category.id !== foundPost.category.id) return -1;
-                    if (b.category.id === foundPost.category.id && a.category.id !== foundPost.category.id) return 1;
-                    // Then by date
-                    return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-                })
-                .slice(0, 3);
-            setRelatedPosts(related);
-        }
-        setLoading(false);
-    }, [params?.id]);
+        fetchSpecificPost();
+    }, [params?.id, allPosts]);
+
+    // Set related posts when post changes
+    useEffect(() => {
+        if (!post) return;
+
+        const related = allPosts
+            .filter((p) => p.id !== post.id)
+            .sort((a, b) => {
+                // Prioritize same category
+                if (a.category.id === post.category.id && b.category.id !== post.category.id) return -1;
+                if (b.category.id === post.category.id && a.category.id !== post.category.id) return 1;
+                // Then by date
+                return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+            })
+            .slice(0, 3);
+        setRelatedPosts(related);
+    }, [post, allPosts]);
 
     if (loading) {
         return (
