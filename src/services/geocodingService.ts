@@ -1,0 +1,253 @@
+interface GeocodingCache {
+    [address: string]: {
+        coordinates: { lat: number; lng: number };
+        timestamp: number;
+    };
+}
+
+interface GeocodingResult {
+    lat: number;
+    lng: number;
+}
+
+class GeocodingService {
+    private cache: GeocodingCache = {};
+    private readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+    private readonly REQUEST_TIMEOUT = 10000; // 10 seconds
+    private readonly RATE_LIMIT_DELAY = 1000; // 1 second between requests
+    private readonly MAX_RETRIES = 3;
+    private readonly BATCH_SIZE = 5; // Process 5 addresses at a time
+    
+    private lastRequestTime = 0;
+    private pendingRequests = new Map<string, Promise<GeocodingResult | null>>();
+
+    // Default coordinates for major Vietnamese cities
+    private readonly DEFAULT_COORDINATES: { [key: string]: GeocodingResult } = {
+        'ho chi minh city': { lat: 10.762622, lng: 106.660172 },
+        'hanoi': { lat: 21.028511, lng: 105.804817 },
+        'da nang': { lat: 16.047079, lng: 108.206230 },
+        'can tho': { lat: 10.045162, lng: 105.746857 },
+        'hai phong': { lat: 20.844912, lng: 106.687972 },
+    };
+
+    private getCacheKey(address: string): string {
+        return address.toLowerCase().trim();
+    }
+
+    private isCacheValid(cacheEntry: { timestamp: number }): boolean {
+        return Date.now() - cacheEntry.timestamp < this.CACHE_DURATION;
+    }
+
+    private getFromCache(address: string): GeocodingResult | null {
+        const cacheKey = this.getCacheKey(address);
+        const cached = this.cache[cacheKey];
+        
+        if (cached && this.isCacheValid(cached)) {
+            return cached.coordinates;
+        }
+        
+        // Remove expired cache entry
+        if (cached) {
+            delete this.cache[cacheKey];
+        }
+        
+        return null;
+    }
+
+    private saveToCache(address: string, coordinates: GeocodingResult): void {
+        const cacheKey = this.getCacheKey(address);
+        this.cache[cacheKey] = {
+            coordinates,
+            timestamp: Date.now()
+        };
+    }
+
+    private getDefaultCoordinates(address: string): GeocodingResult | null {
+        const normalizedAddress = address.toLowerCase();
+        
+        for (const [city, coords] of Object.entries(this.DEFAULT_COORDINATES)) {
+            if (normalizedAddress.includes(city)) {
+                return coords;
+            }
+        }
+        
+        return null;
+    }
+
+    private async enforceRateLimit(): Promise<void> {
+        const timeSinceLastRequest = Date.now() - this.lastRequestTime;
+        if (timeSinceLastRequest < this.RATE_LIMIT_DELAY) {
+            const delay = this.RATE_LIMIT_DELAY - timeSinceLastRequest;
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        this.lastRequestTime = Date.now();
+    }
+
+    private async fetchWithTimeout(url: string): Promise<Response> {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.REQUEST_TIMEOUT);
+        
+        try {
+            const response = await fetch(url, {
+                signal: controller.signal,
+                headers: {
+                    'User-Agent': '4THITEK-Reseller-Locator/1.0'
+                }
+            });
+            return response;
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    }
+
+    private async geocodeSingleAddress(fullAddress: string, retryCount = 0): Promise<GeocodingResult | null> {
+        try {
+            // Check if we already have a pending request for this address
+            if (this.pendingRequests.has(fullAddress)) {
+                return await this.pendingRequests.get(fullAddress)!;
+            }
+
+            // Check cache first
+            const cached = this.getFromCache(fullAddress);
+            if (cached) {
+                return cached;
+            }
+
+            // Create the geocoding promise
+            const geocodingPromise = this.performGeocodingRequest(fullAddress);
+            this.pendingRequests.set(fullAddress, geocodingPromise);
+
+            try {
+                const result = await geocodingPromise;
+                return result;
+            } finally {
+                this.pendingRequests.delete(fullAddress);
+            }
+        } catch (error) {
+            console.error(`Geocoding error for "${fullAddress}" (attempt ${retryCount + 1}):`, error);
+            
+            // Retry logic
+            if (retryCount < this.MAX_RETRIES) {
+                await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+                return this.geocodeSingleAddress(fullAddress, retryCount + 1);
+            }
+            
+            // Return default coordinates as fallback
+            const defaultCoords = this.getDefaultCoordinates(fullAddress);
+            if (defaultCoords) {
+                console.log(`Using default coordinates for "${fullAddress}":`, defaultCoords);
+                return defaultCoords;
+            }
+            
+            return null;
+        }
+    }
+
+    private async performGeocodingRequest(fullAddress: string): Promise<GeocodingResult | null> {
+        await this.enforceRateLimit();
+
+        const searchQuery = `${fullAddress}, Vietnam`;
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1&addressdetails=1`;
+        
+        const response = await this.fetchWithTimeout(url);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data && data.length > 0) {
+            const coordinates = {
+                lat: parseFloat(data[0].lat),
+                lng: parseFloat(data[0].lon)
+            };
+            
+            // Validate coordinates
+            if (!isNaN(coordinates.lat) && !isNaN(coordinates.lng)) {
+                this.saveToCache(fullAddress, coordinates);
+                return coordinates;
+            }
+        }
+        
+        return null;
+    }
+
+    async geocodeAddresses(addresses: string[]): Promise<(GeocodingResult | null)[]> {
+        if (addresses.length === 0) return [];
+
+        const results: (GeocodingResult | null)[] = new Array(addresses.length).fill(null);
+        const addressesToGeocode: { address: string; index: number }[] = [];
+
+        // First pass: check cache and collect addresses that need geocoding
+        addresses.forEach((address, index) => {
+            const cached = this.getFromCache(address);
+            if (cached) {
+                results[index] = cached;
+            } else {
+                addressesToGeocode.push({ address, index });
+            }
+        });
+
+        // Process addresses in batches
+        for (let i = 0; i < addressesToGeocode.length; i += this.BATCH_SIZE) {
+            const batch = addressesToGeocode.slice(i, i + this.BATCH_SIZE);
+            
+            // Process batch concurrently (with rate limiting handled internally)
+            const batchResults = await Promise.allSettled(
+                batch.map(({ address }) => this.geocodeSingleAddress(address))
+            );
+
+            // Store results
+            batch.forEach(({ index }, batchIndex) => {
+                const result = batchResults[batchIndex];
+                if (result.status === 'fulfilled') {
+                    results[index] = result.value;
+                } else {
+                    console.error(`Failed to geocode address at index ${index}:`, result.reason);
+                    // Try to get default coordinates as final fallback
+                    const defaultCoords = this.getDefaultCoordinates(batch[batchIndex].address);
+                    results[index] = defaultCoords || { lat: 10.762622, lng: 106.660172 }; // Ho Chi Minh City center
+                }
+            });
+        }
+
+        return results;
+    }
+
+    async geocodeSingle(address: string): Promise<GeocodingResult | null> {
+        const results = await this.geocodeAddresses([address]);
+        return results[0];
+    }
+
+    // Method to preload coordinates for known addresses
+    preloadCoordinates(addressCoordinateMap: { [address: string]: GeocodingResult }): void {
+        Object.entries(addressCoordinateMap).forEach(([address, coordinates]) => {
+            this.saveToCache(address, coordinates);
+        });
+    }
+
+    // Clear expired cache entries
+    clearExpiredCache(): void {
+        const now = Date.now();
+        Object.keys(this.cache).forEach(key => {
+            if (now - this.cache[key].timestamp > this.CACHE_DURATION) {
+                delete this.cache[key];
+            }
+        });
+    }
+
+    // Get cache statistics
+    getCacheStats(): { totalEntries: number; validEntries: number } {
+        const totalEntries = Object.keys(this.cache).length;
+        const validEntries = Object.values(this.cache).filter(entry => 
+            this.isCacheValid(entry)
+        ).length;
+        
+        return { totalEntries, validEntries };
+    }
+}
+
+// Export singleton instance
+export const geocodingService = new GeocodingService();
+export type { GeocodingResult };

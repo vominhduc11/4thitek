@@ -4,7 +4,7 @@ import { motion, Variants, useInView } from 'framer-motion';
 import { useRef } from 'react';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { useLanguage } from '@/context/LanguageContext';
-import { typographyComponents } from '@/styles/typography';
+import { typographyComponents, ultraWideSpacing } from '@/styles/typography';
 
 const containerVariants: Variants = {
     hidden: { opacity: 0, y: 48 },
@@ -35,12 +35,12 @@ const Footer = () => {
         <AvoidSidebar>
             <motion.footer
                 ref={ref}
-                className="bg-[#0c131d] text-gray-300 py-8 sm:py-12 px-4 sm:px-6"
+                className={`bg-[#0c131d] text-gray-300 ${ultraWideSpacing['section-spacing']} ${ultraWideSpacing['container-padding']}`}
                 variants={containerVariants}
                 initial="hidden"
                 animate={inView ? 'visible' : 'hidden'}
             >
-                <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+                <div className={`${ultraWideSpacing['content-width-xl']} mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 ${ultraWideSpacing['grid-gap-md']}`}>
                     {/* COMPANY Column */}
                     <motion.div variants={columnVariants}>
                         <h3 className={`uppercase ${typographyComponents.footer.heading} mb-3 sm:mb-4`}>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
 import ResellerList from './ResellerList';
 import ResellerMap from './ResellerMap';
+import { geocodingService } from '@/services/geocodingService';
 
 interface Reseller {
     id: number;
@@ -19,33 +20,6 @@ interface Reseller {
     };
 }
 
-// Geocoding function to convert address to coordinates
-const geocodeAddress = async (fullAddress: string): Promise<{ lat: number; lng: number } | null> => {
-    try {
-        // Add Vietnam to the address for better accuracy
-        const searchQuery = `${fullAddress}, Vietnam`;
-        const response = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`
-        );
-        
-        if (!response.ok) {
-            throw new Error('Geocoding request failed');
-        }
-        
-        const data = await response.json();
-        
-        if (data.length > 0) {
-            return {
-                lat: parseFloat(data[0].lat),
-                lng: parseFloat(data[0].lon)
-            };
-        }
-    } catch (error) {
-        console.error('Geocoding error:', error);
-    }
-    
-    return null;
-};
 
 interface ResellerResultsProps {
     searchFilters: {
@@ -63,16 +37,15 @@ export default function ResellerResults({ searchFilters, mockResellers, loading:
     const [resellers, setResellers] = useState<Reseller[]>([]);
     const [selectedReseller, setSelectedReseller] = useState<Reseller | undefined>();
     const [loading, setLoading] = useState(false);
+    const [geocodingProgress, setGeocodingProgress] = useState({ current: 0, total: 0 });
 
 
     useEffect(() => {
         const processResellers = async () => {
             setLoading(true);
+            setGeocodingProgress({ current: 0, total: 0 });
             
             try {
-                // Simulate API call delay
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
                 let filteredResellers = mockResellers;
 
                 // Filter by city
@@ -94,34 +67,53 @@ export default function ResellerResults({ searchFilters, mockResellers, loading:
                     );
                 }
 
-                // Geocode addresses to get coordinates
-                const resellersWithCoordinates = await Promise.all(
-                    filteredResellers.map(async (reseller) => {
-                        // Skip if coordinates already exist
-                        if (reseller.coordinates) {
-                            return reseller;
-                        }
+                // Separate resellers that need geocoding from those that already have coordinates
+                const resellersWithCoords = filteredResellers.filter(r => r.coordinates);
+                const resellersNeedingGeocode = filteredResellers.filter(r => !r.coordinates);
+                
+                if (resellersNeedingGeocode.length === 0) {
+                    // All resellers already have coordinates
+                    setResellers(filteredResellers);
+                    setSelectedReseller(undefined);
+                    setLoading(false);
+                    return;
+                }
 
-                        // Create full address string
-                        const fullAddress = `${reseller.address}, ${reseller.district}, ${reseller.city}`;
-                        
-                        // Add delay between requests to respect rate limiting (1 request per second for Nominatim)
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                        
-                        const coordinates = await geocodeAddress(fullAddress);
-                        
-                        return {
-                            ...reseller,
-                            coordinates: coordinates || { lat: 10.762622, lng: 106.660172 } // Default to Ho Chi Minh City center if geocoding fails
-                        };
-                    })
+                // Set up progress tracking
+                setGeocodingProgress({ 
+                    current: 0, 
+                    total: resellersNeedingGeocode.length 
+                });
+
+                // Prepare addresses for batch geocoding
+                const addresses = resellersNeedingGeocode.map(reseller => 
+                    `${reseller.address}, ${reseller.district}, ${reseller.city}`
                 );
 
-                setResellers(resellersWithCoordinates);
+                // Batch geocode addresses
+                const coordinates = await geocodingService.geocodeAddresses(addresses);
+
+                // Combine results
+                const geocodedResellers = resellersNeedingGeocode.map((reseller, index) => ({
+                    ...reseller,
+                    coordinates: coordinates[index] || { lat: 10.762622, lng: 106.660172 }
+                }));
+
+                // Combine all resellers and sort by name for consistent ordering
+                const allResellers = [...resellersWithCoords, ...geocodedResellers]
+                    .sort((a, b) => a.name.localeCompare(b.name));
+
+                setResellers(allResellers);
                 setSelectedReseller(undefined);
+                setGeocodingProgress({ current: coordinates.length, total: coordinates.length });
+                
             } catch (error) {
                 console.error('Error processing resellers:', error);
-                setResellers([]);
+                // In case of error, still show resellers without coordinates
+                setResellers(filteredResellers.map(reseller => ({
+                    ...reseller,
+                    coordinates: reseller.coordinates || { lat: 10.762622, lng: 106.660172 }
+                })));
             } finally {
                 setLoading(false);
             }
@@ -188,6 +180,10 @@ export default function ResellerResults({ searchFilters, mockResellers, loading:
 
     // Show processing loading when filtering/geocoding
     if (loading) {
+        const progressPercentage = geocodingProgress.total > 0 
+            ? Math.round((geocodingProgress.current / geocodingProgress.total) * 100)
+            : 0;
+
         return (
             <section className="bg-[#0c131d] text-white py-8">
                 <div className="w-full">
@@ -195,9 +191,25 @@ export default function ResellerResults({ searchFilters, mockResellers, loading:
                         {/* Loading for List */}
                         <div className="lg:col-span-3">
                             <div className="bg-[#1a2332] rounded-lg p-8">
-                                <div className="flex items-center justify-center py-12">
-                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00d4ff]"></div>
-                                    <span className="ml-4 text-lg">{t('reseller.searchingDealers')}</span>
+                                <div className="flex flex-col items-center justify-center py-12">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00d4ff] mb-4"></div>
+                                    <span className="text-lg mb-2">
+                                        {geocodingProgress.total > 0 ? t('reseller.processingLocations') : t('reseller.searchingDealers')}
+                                    </span>
+                                    {geocodingProgress.total > 0 && (
+                                        <div className="w-full max-w-xs">
+                                            <div className="flex justify-between text-sm text-gray-400 mb-1">
+                                                <span>{geocodingProgress.current} / {geocodingProgress.total}</span>
+                                                <span>{progressPercentage}%</span>
+                                            </div>
+                                            <div className="w-full bg-gray-700 rounded-full h-2">
+                                                <div 
+                                                    className="bg-[#00d4ff] h-2 rounded-full transition-all duration-300" 
+                                                    style={{ width: `${progressPercentage}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

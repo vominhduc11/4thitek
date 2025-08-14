@@ -10,6 +10,7 @@ import type { Product } from '@/types/product';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
 import { ANIMATION_SCALE, ANIMATION_DURATION } from '@/constants/animations';
+import { ultraWideSpacing } from '@/styles/typography';
 
 interface ProductImageWithFallbackProps {
     src: string;
@@ -201,7 +202,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
     return (
         <div className="w-full">
             <motion.div
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-x divide-gray-700/30 relative"
+                className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-x divide-gray-700/30 relative ${ultraWideSpacing['grid-gap-md']}`}
                 layout
                 transition={{ duration: 0.5, ease: 'easeInOut' }}
             >

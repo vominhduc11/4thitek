@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import ContactMap from './ContactMap';
 import { FiChevronDown, FiHelpCircle, FiTool, FiAlertTriangle, FiUsers, FiMoreHorizontal } from 'react-icons/fi';
 import { useLanguage } from '@/context/LanguageContext';
+import { typographyComponents } from '@/styles/typography';
 
 interface FormData {
     name: string;
@@ -89,7 +90,7 @@ export default function ContactForm() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
             >
-                <h2 className="text-2xl 2xl:text-3xl 3xl:text-4xl 4xl:text-5xl font-bold text-white mb-6 2xl:mb-8 3xl:mb-10 4xl:mb-12">{t('contact.form.title')}</h2>
+                <h2 className={`${typographyComponents.section.title} mb-6 2xl:mb-8 3xl:mb-10 4xl:mb-12 5xl:mb-16`}>{t('contact.form.title')}</h2>
                 <form onSubmit={handleSubmit} className="space-y-6 2xl:space-y-8 3xl:space-y-10 4xl:space-y-12">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 2xl:gap-6 3xl:gap-8 4xl:gap-10">
                         <div>
@@ -103,7 +104,7 @@ export default function ContactForm() {
                                 value={formData.name}
                                 onChange={handleChange}
                                 required
-                                className="w-full px-4 py-3 2xl:px-6 2xl:py-4 3xl:px-8 3xl:py-5 4xl:px-10 4xl:py-6 bg-gray-800/50 border border-gray-600 rounded-lg 2xl:rounded-xl 3xl:rounded-2xl text-white text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl placeholder-gray-400 focus:outline-none focus:border-[#4FC8FF] focus:ring-1 focus:ring-[#4FC8FF] transition-colors"
+                                className={`w-full px-4 py-3 2xl:px-6 2xl:py-4 3xl:px-8 3xl:py-5 4xl:px-10 4xl:py-6 5xl:px-12 5xl:py-8 bg-gray-800/50 border border-gray-600 rounded-lg 2xl:rounded-xl 3xl:rounded-2xl 5xl:rounded-3xl ${typographyComponents.form.input} placeholder-gray-400 focus:outline-none focus:border-[#4FC8FF] focus:ring-1 focus:ring-[#4FC8FF] transition-colors`}
                                 placeholder={t('contact.form.namePlaceholder')}
                             />
                         </div>
@@ -117,7 +118,7 @@ export default function ContactForm() {
                                 name="phone"
                                 value={formData.phone}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 2xl:px-6 2xl:py-4 3xl:px-8 3xl:py-5 4xl:px-10 4xl:py-6 bg-gray-800/50 border border-gray-600 rounded-lg 2xl:rounded-xl 3xl:rounded-2xl text-white text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl placeholder-gray-400 focus:outline-none focus:border-[#4FC8FF] focus:ring-1 focus:ring-[#4FC8FF] transition-colors"
+                                className={`w-full px-4 py-3 2xl:px-6 2xl:py-4 3xl:px-8 3xl:py-5 4xl:px-10 4xl:py-6 5xl:px-12 5xl:py-8 bg-gray-800/50 border border-gray-600 rounded-lg 2xl:rounded-xl 3xl:rounded-2xl 5xl:rounded-3xl ${typographyComponents.form.input} placeholder-gray-400 focus:outline-none focus:border-[#4FC8FF] focus:ring-1 focus:ring-[#4FC8FF] transition-colors`}
                                 placeholder={t('contact.form.phonePlaceholder')}
                             />
                         </div>
