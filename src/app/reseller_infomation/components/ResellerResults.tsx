@@ -27,12 +27,12 @@ interface ResellerResultsProps {
         district: string;
         address: string;
     };
-    mockResellers: Reseller[];
+    resellers: Reseller[];
     loading?: boolean;
     error?: string | null;
 }
 
-export default function ResellerResults({ searchFilters, mockResellers, loading: parentLoading, error: parentError }: ResellerResultsProps) {
+export default function ResellerResults({ searchFilters, resellers: initialResellers, loading: parentLoading, error: parentError }: ResellerResultsProps) {
     const { t } = useLanguage();
     const [resellers, setResellers] = useState<Reseller[]>([]);
     const [selectedReseller, setSelectedReseller] = useState<Reseller | undefined>();
@@ -46,7 +46,7 @@ export default function ResellerResults({ searchFilters, mockResellers, loading:
             setGeocodingProgress({ current: 0, total: 0 });
             
             try {
-                let filteredResellers = mockResellers;
+                let filteredResellers = initialResellers;
 
                 // Filter by city
                 if (searchFilters.city) {
@@ -109,18 +109,23 @@ export default function ResellerResults({ searchFilters, mockResellers, loading:
                 
             } catch (error) {
                 console.error('Error processing resellers:', error);
-                // In case of error, still show resellers without coordinates
-                setResellers(filteredResellers.map(reseller => ({
+                // In case of geocoding error, still show resellers with fallback coordinates
+                const fallbackResellers = filteredResellers.map(reseller => ({
                     ...reseller,
                     coordinates: reseller.coordinates || { lat: 10.762622, lng: 106.660172 }
-                })));
+                }));
+                setResellers(fallbackResellers);
+                setSelectedReseller(undefined);
+                
+                // Show user-friendly error message
+                console.warn('Some locations may not be accurately displayed due to geocoding issues');
             } finally {
                 setLoading(false);
             }
         };
 
         processResellers();
-    }, [searchFilters, mockResellers]);
+    }, [searchFilters, initialResellers]);
 
     const handleResellerSelect = (reseller: Reseller) => {
         setSelectedReseller(reseller);

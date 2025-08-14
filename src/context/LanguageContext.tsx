@@ -329,6 +329,12 @@ const translations = {
         certification: {
             title: 'CERTIFICATION',
             subtitle: 'Our products meet the highest industry standards and have received certifications from leading international organizations. These certifications ensure that our audio devices deliver exceptional quality, safety, and performance.',
+            list: {
+                title: 'Our Certifications',
+                description: 'Our products meet the highest industry standards and have received certifications from leading international organizations.',
+                issuedBy: 'Issued by',
+                details: 'View Details'
+            },
             certifications: {
                 ce: {
                     name: 'CE Certification',
@@ -1114,6 +1120,12 @@ const translations = {
         certification: {
             title: 'CHỨNG NHẬN',
             subtitle: 'Sản phẩm của chúng tôi đáp ứng các tiêu chuẩn công nghiệp cao nhất và đã nhận được chứng nhận từ các tổ chức quốc tế hàng đầu. Những chứng nhận này đảm bảo rằng các thiết bị âm thanh của chúng tôi mang lại chất lượng, an toàn và hiệu suất đặc biệt.',
+            list: {
+                title: 'Chứng Nhận Của Chúng Tôi',
+                description: 'Sản phẩm của chúng tôi đáp ứng các tiêu chuẩn công nghiệp cao nhất và đã nhận được chứng nhận từ các tổ chức quốc tế hàng đầu.',
+                issuedBy: 'Được cấp bởi',
+                details: 'Xem Chi Tiết'
+            },
             certifications: {
                 ce: {
                     name: 'Chứng Nhận CE',

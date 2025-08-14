@@ -93,31 +93,11 @@ export default function ResellerInformationPage() {
                 setError(null);
                 setConnectionStatus('checking');
                 
-                // Check API health first
-                const isHealthy = await apiService.healthCheck();
-                if (!isHealthy) {
-                    console.warn('API health check failed, using fallback data');
-                    setConnectionStatus('disconnected');
-                    setError('API temporarily unavailable. Showing cached data.');
-                    setResellers(MOCK_RESELLERS);
-                    return;
-                }
-
-                // Fetch resellers with retry logic
+                // Fetch resellers directly with retry logic
                 const response = await apiService.fetchResellers();
                 
                 if (response.success && response.data) {
                     setConnectionStatus('connected');
-                    
-                    // Preload known coordinates to improve performance
-                    const mockCoordinatesMap: { [key: string]: { lat: number; lng: number } } = {};
-                    MOCK_RESELLERS.forEach(reseller => {
-                        if (reseller.coordinates) {
-                            const fullAddress = `${reseller.address}, ${reseller.district}, ${reseller.city}`;
-                            mockCoordinatesMap[fullAddress] = reseller.coordinates;
-                        }
-                    });
-                    geocodingService.preloadCoordinates(mockCoordinatesMap);
                     
                     setResellers(response.data);
                 } else {
@@ -126,7 +106,20 @@ export default function ResellerInformationPage() {
             } catch (fetchError) {
                 console.error('Error fetching resellers:', fetchError);
                 setConnectionStatus('disconnected');
-                setError('Unable to load latest reseller data. Showing cached information.');
+                
+                // More specific error messages based on error type
+                if (fetchError instanceof Error) {
+                    if (fetchError.message.includes('fetch')) {
+                        setError('Network connection failed. Showing cached information.');
+                    } else if (fetchError.message.includes('timeout')) {
+                        setError('Request timed out. Showing cached information.');
+                    } else {
+                        setError('Unable to load latest reseller data. Showing cached information.');
+                    }
+                } else {
+                    setError('An unexpected error occurred. Showing cached information.');
+                }
+                
                 setResellers(MOCK_RESELLERS);
             } finally {
                 setLoading(false);
@@ -178,7 +171,7 @@ export default function ResellerInformationPage() {
             <div className="ml-16 sm:ml-20 pl-1 sm:pl-2 md:pl-2 lg:pl-3 xl:pl-4 2xl:pl-6 pr-1 sm:pr-2 md:pr-2 lg:pr-3 xl:pr-4 2xl:pl-6">
                 <ResellerResults 
                     searchFilters={searchFilters} 
-                    mockResellers={resellers}
+                    resellers={resellers}
                     loading={loading}
                     error={error}
                 />

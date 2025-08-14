@@ -54,7 +54,7 @@ class ApiService {
         customConfig?: Partial<ApiRetryConfig>
     ): Promise<ApiResponse<T>> {
         const config = { ...this.defaultRetryConfig, ...customConfig };
-        let lastError: AxiosError | Error;
+        let lastError: AxiosError | Error | undefined;
 
         for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
             try {
@@ -91,11 +91,15 @@ class ApiService {
             ? lastError.message 
             : 'Unknown API error';
 
-        console.error('API call failed after all retries:', {
+        const errorDetails = {
             error: errorMessage,
             attempts: config.maxRetries + 1,
-            status: (lastError as AxiosError).response?.status
-        });
+            status: lastError && 'response' in lastError ? lastError.response?.status : undefined,
+            code: lastError && 'code' in lastError ? lastError.code : undefined,
+            url: lastError && 'config' in lastError ? lastError.config?.url : undefined
+        };
+
+        console.error('API call failed after all retries:', errorDetails);
 
         return {
             data: null as T,
@@ -167,6 +171,42 @@ class ApiService {
         } catch {
             return false;
         }
+    }
+
+
+    // Blog API methods
+    async fetchBlogs(): Promise<ApiResponse<any[]>> {
+        return this.withRetry(
+            () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/blogs`, {
+                timeout: TIMEOUTS.GEOCODING_REQUEST,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            }),
+            {
+                maxRetries: 2,
+                baseDelay: 500,
+                maxDelay: 5000
+            }
+        );
+    }
+
+    async fetchBlogById(id: string): Promise<ApiResponse<any>> {
+        return this.withRetry(
+            () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/blogs/${id}`, {
+                timeout: TIMEOUTS.GEOCODING_REQUEST,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            }),
+            {
+                maxRetries: 2,
+                baseDelay: 500,
+                maxDelay: 5000
+            }
+        );
     }
 }
 

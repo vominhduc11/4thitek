@@ -146,31 +146,135 @@ class GeocodingService {
     private async performGeocodingRequest(fullAddress: string): Promise<GeocodingResult | null> {
         await this.enforceRateLimit();
 
-        const searchQuery = `${fullAddress}, Vietnam`;
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1&addressdetails=1`;
-        
-        const response = await this.fetchWithTimeout(url);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Try LocationIQ first if available
+        const locationIqResult = await this.tryLocationIqGeocoding(fullAddress);
+        if (locationIqResult) {
+            return locationIqResult;
         }
-        
-        const data = await response.json();
-        
-        if (data && data.length > 0) {
-            const coordinates = {
-                lat: parseFloat(data[0].lat),
-                lng: parseFloat(data[0].lon)
-            };
+
+        // Try HERE API if available
+        const hereResult = await this.tryHereGeocoding(fullAddress);
+        if (hereResult) {
+            return hereResult;
+        }
+
+        // Fallback to OpenStreetMap
+        return this.tryOpenStreetMapGeocoding(fullAddress);
+    }
+
+    private async tryLocationIqGeocoding(fullAddress: string): Promise<GeocodingResult | null> {
+        const locationIqApiKey = process.env.NEXT_PUBLIC_LOCATIONIQ_API_KEY;
+        if (!locationIqApiKey) {
+            console.warn('LocationIQ API key not found, trying other providers');
+            return null;
+        }
+
+        try {
+            const searchQuery = `${fullAddress}, Vietnam`;
+            const url = `https://us1.locationiq.com/v1/search.php?key=${locationIqApiKey}&q=${encodeURIComponent(searchQuery)}&format=json&limit=1`;
             
-            // Validate coordinates
-            if (!isNaN(coordinates.lat) && !isNaN(coordinates.lng)) {
-                this.saveToCache(fullAddress, coordinates);
-                return coordinates;
+            const response = await this.fetchWithTimeout(url);
+            
+            if (!response.ok) {
+                throw new Error(`LocationIQ API HTTP ${response.status}: ${response.statusText}`);
             }
+            
+            const data = await response.json();
+            
+            if (data && data.length > 0) {
+                const coordinates = {
+                    lat: parseFloat(data[0].lat),
+                    lng: parseFloat(data[0].lon)
+                };
+                
+                // Validate coordinates
+                if (!isNaN(coordinates.lat) && !isNaN(coordinates.lng)) {
+                    this.saveToCache(fullAddress, coordinates);
+                    console.log(`LocationIQ geocoding successful for: ${fullAddress}`);
+                    return coordinates;
+                }
+            }
+            
+            return null;
+        } catch (error) {
+            console.warn('LocationIQ geocoding failed:', error);
+            return null;
         }
-        
-        return null;
+    }
+
+    private async tryHereGeocoding(fullAddress: string): Promise<GeocodingResult | null> {
+        const hereApiKey = process.env.NEXT_PUBLIC_HERE_API_KEY;
+        if (!hereApiKey) {
+            console.warn('HERE API key not found, falling back to OpenStreetMap');
+            return null;
+        }
+
+        try {
+            const searchQuery = `${fullAddress}, Vietnam`;
+            const url = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(searchQuery)}&apikey=${hereApiKey}&limit=1`;
+            
+            const response = await this.fetchWithTimeout(url);
+            
+            if (!response.ok) {
+                throw new Error(`HERE API HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data?.items && data.items.length > 0) {
+                const item = data.items[0];
+                const coordinates = {
+                    lat: item.position?.lat,
+                    lng: item.position?.lng
+                };
+                
+                // Validate coordinates
+                if (!isNaN(coordinates.lat) && !isNaN(coordinates.lng)) {
+                    this.saveToCache(fullAddress, coordinates);
+                    console.log(`HERE geocoding successful for: ${fullAddress}`);
+                    return coordinates;
+                }
+            }
+            
+            return null;
+        } catch (error) {
+            console.warn('HERE geocoding failed:', error);
+            return null;
+        }
+    }
+
+    private async tryOpenStreetMapGeocoding(fullAddress: string): Promise<GeocodingResult | null> {
+        try {
+            const searchQuery = `${fullAddress}, Vietnam`;
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1&addressdetails=1`;
+            
+            const response = await this.fetchWithTimeout(url);
+            
+            if (!response.ok) {
+                throw new Error(`OpenStreetMap HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data && data.length > 0) {
+                const coordinates = {
+                    lat: parseFloat(data[0].lat),
+                    lng: parseFloat(data[0].lon)
+                };
+                
+                // Validate coordinates
+                if (!isNaN(coordinates.lat) && !isNaN(coordinates.lng)) {
+                    this.saveToCache(fullAddress, coordinates);
+                    console.log(`OpenStreetMap geocoding successful for: ${fullAddress}`);
+                    return coordinates;
+                }
+            }
+            
+            return null;
+        } catch (error) {
+            console.warn('OpenStreetMap geocoding failed:', error);
+            return null;
+        }
     }
 
     async geocodeAddresses(addresses: string[]): Promise<(GeocodingResult | null)[]> {
