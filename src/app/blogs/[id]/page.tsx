@@ -22,7 +22,7 @@ export default function BlogDetailPageImproved() {
     const [post, setPost] = useState<BlogPost | null>(null);
     const [loading, setLoading] = useState(true);
     const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
-    const [error, setError] = useState<string | null>(null);
+    const [, setError] = useState<string | null>(null);
     const [allPosts, setAllPosts] = useState<BlogPost[]>(fallbackBlogPosts);
     const isHydrated = useHydration();
 

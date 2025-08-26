@@ -20,7 +20,7 @@ function BlogPageContent() {
     const [sortBy] = useState<'date' | 'popularity' | 'views'>('date');
     const [blogPosts, setBlogPosts] = useState<BlogPost[]>(fallbackBlogPosts);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [, setError] = useState<string | null>(null);
     const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
 
     // Get URL parameters

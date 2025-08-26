@@ -45,8 +45,9 @@ export default function ResellerResults({ searchFilters, resellers: initialResel
             setLoading(true);
             setGeocodingProgress({ current: 0, total: 0 });
             
+            let filteredResellers = initialResellers;
+            
             try {
-                let filteredResellers = initialResellers;
 
                 // Filter by city
                 if (searchFilters.city) {

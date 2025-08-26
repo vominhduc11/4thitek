@@ -1,5 +1,7 @@
 import axios, { AxiosResponse, AxiosError } from 'axios';
 import { TIMEOUTS } from '@/constants/timeouts';
+import { ResellerLocation } from '@/types/reseller';
+import { BlogPost } from '@/types/blog';
 
 interface ApiRetryConfig {
     maxRetries: number;
@@ -109,7 +111,7 @@ class ApiService {
     }
 
     // Specific method for fetching resellers with retry logic
-    async fetchResellers(): Promise<ApiResponse<any[]>> {
+    async fetchResellers(): Promise<ApiResponse<ResellerLocation[]>> {
         return this.withRetry(
             () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/resellers`, {
                 timeout: TIMEOUTS.GEOCODING_REQUEST,
@@ -141,6 +143,7 @@ class ApiService {
     }
 
     // Method for POST requests with retry
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async post<T>(url: string, data?: any, config?: Partial<ApiRetryConfig>): Promise<ApiResponse<T>> {
         return this.withRetry(
             () => axios.post(url, data, {
@@ -175,7 +178,7 @@ class ApiService {
 
 
     // Blog API methods
-    async fetchBlogs(): Promise<ApiResponse<any[]>> {
+    async fetchBlogs(): Promise<ApiResponse<BlogPost[]>> {
         return this.withRetry(
             () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/blogs`, {
                 timeout: TIMEOUTS.GEOCODING_REQUEST,
@@ -192,7 +195,7 @@ class ApiService {
         );
     }
 
-    async fetchBlogById(id: string): Promise<ApiResponse<any>> {
+    async fetchBlogById(id: string): Promise<ApiResponse<BlogPost>> {
         return this.withRetry(
             () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/blogs/${id}`, {
                 timeout: TIMEOUTS.GEOCODING_REQUEST,

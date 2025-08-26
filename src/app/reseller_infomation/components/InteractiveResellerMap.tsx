@@ -7,6 +7,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import L from 'leaflet';
 
 // Fix for default markers in react-leaflet
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -103,8 +104,10 @@ export default function InteractiveResellerMap({
                 if (element.requestFullscreen) {
                     await element.requestFullscreen();
                 } else if ('webkitRequestFullscreen' in element) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     await (element as any).webkitRequestFullscreen();
                 } else if ('msRequestFullscreen' in element) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     await (element as any).msRequestFullscreen();
                 }
                 setIsFullscreen(true);
@@ -112,8 +115,10 @@ export default function InteractiveResellerMap({
                 if (document.exitFullscreen) {
                     await document.exitFullscreen();
                 } else if ('webkitExitFullscreen' in document) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     await (document as any).webkitExitFullscreen();
                 } else if ('msExitFullscreen' in document) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     await (document as any).msExitFullscreen();
                 }
                 setIsFullscreen(false);

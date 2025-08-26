@@ -31,8 +31,8 @@ export default function ResellerInformationPage() {
     const [error, setError] = useState<string | null>(null);
     const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
 
-    // Fallback mock data
-    const MOCK_RESELLERS: Reseller[] = [
+    // Fallback mock data - moved inside useEffect to avoid dependency warning
+    const getMockResellers = (): Reseller[] => [
         {
             id: 1,
             name: '4THITEK Audio Center Nguyen Hue',
@@ -99,7 +99,19 @@ export default function ResellerInformationPage() {
                 if (response.success && response.data) {
                     setConnectionStatus('connected');
                     
-                    setResellers(response.data);
+                    // Convert ResellerLocation to local Reseller format
+                    const convertedResellers = response.data.map(location => ({
+                        id: parseInt(location.id) || 0,
+                        name: location.name,
+                        address: location.address?.street || '',
+                        city: location.address?.city || '',
+                        district: location.address?.street || '',
+                        phone: location.contactInfo?.phone || '',
+                        email: location.contactInfo?.email || '',
+                        coordinates: location.coordinates || { lat: 10.762622, lng: 106.660172 }
+                    }));
+                    
+                    setResellers(convertedResellers);
                 } else {
                     throw new Error(response.error || 'Failed to fetch resellers');
                 }
@@ -120,7 +132,7 @@ export default function ResellerInformationPage() {
                     setError('An unexpected error occurred. Showing cached information.');
                 }
                 
-                setResellers(MOCK_RESELLERS);
+                setResellers(getMockResellers());
             } finally {
                 setLoading(false);
             }
