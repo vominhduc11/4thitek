@@ -30,34 +30,64 @@ interface FormData {
 export default function BecomeOurReseller() {
     const { t } = useLanguage();
 
-    // Memoized validation regexes for performance
+    // Memoized validation regexes for performance - matching backend validation
     const emailRegex = useMemo(() => /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/, []);
-    const phoneRegex = useMemo(() => /^\+84(3|5|7|8|9)\d{8}$/, []);
-    const usernameRegex = useMemo(() => /^[a-zA-Z0-9_-]{3,20}$/, []);
+    const phoneRegex = useMemo(() => /^[\d\-\+\(\)\s]+$/, []);
+    const usernameRegex = useMemo(() => /^[a-zA-Z0-9_]+$/, []);
+    const passwordRegex = useMemo(() => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/, []);
 
-    // Centralized field validation
+    // Centralized field validation - matching backend requirements
     const validateField = useCallback((name: string, value: string) => {
         let error = '';
+        const trimmedValue = value.trim();
         
         switch (name) {
             case 'email':
-                if (value.trim() && !emailRegex.test(value.trim())) {
+                if (trimmedValue && !emailRegex.test(trimmedValue)) {
                     error = t('becomeReseller.form.invalidEmail');
+                } else if (trimmedValue.length > 100) {
+                    error = 'Email cannot exceed 100 characters';
                 }
                 break;
             case 'phone':
-                if (value.trim() && value !== '+84' && value !== '+' && !phoneRegex.test(value)) {
+                if (trimmedValue && !phoneRegex.test(trimmedValue)) {
                     error = t('becomeReseller.form.invalidPhone');
+                } else if (trimmedValue.length > 0 && (trimmedValue.length < 10 || trimmedValue.length > 15)) {
+                    error = 'Phone number must be between 10 and 15 characters';
                 }
                 break;
             case 'username':
-                if (value.trim() && !usernameRegex.test(value.trim())) {
-                    error = t('becomeReseller.form.invalidUsername');
+                if (trimmedValue && !usernameRegex.test(trimmedValue)) {
+                    error = 'Username can only contain letters, numbers, and underscores';
+                } else if (trimmedValue.length > 0 && (trimmedValue.length < 3 || trimmedValue.length > 50)) {
+                    error = 'Username must be between 3 and 50 characters';
                 }
                 break;
             case 'password':
-                if (value.trim() && value.trim().length < 8) {
-                    error = t('becomeReseller.form.invalidPassword');
+                if (trimmedValue && !passwordRegex.test(trimmedValue)) {
+                    error = 'Password must contain at least 1 uppercase, 1 lowercase, 1 number, and 1 special character (@$!%*?&)';
+                } else if (trimmedValue.length > 0 && (trimmedValue.length < 8 || trimmedValue.length > 100)) {
+                    error = 'Password must be between 8 and 100 characters';
+                }
+                break;
+            case 'name':
+                if (trimmedValue.length > 0 && (trimmedValue.length < 2 || trimmedValue.length > 100)) {
+                    error = 'Full name must be between 2 and 100 characters';
+                }
+                break;
+            case 'address':
+                if (trimmedValue.length > 255) {
+                    error = 'Address cannot exceed 255 characters';
+                }
+                break;
+            case 'district':
+                if (trimmedValue.length > 100) {
+                    error = 'District cannot exceed 100 characters';
+                }
+                break;
+            case 'city':
+                if (trimmedValue.length > 100) {
+                    error = 'City cannot exceed 100 characters';
                 }
                 break;
         }
@@ -66,7 +96,7 @@ export default function BecomeOurReseller() {
             ...prev,
             [name]: error
         }));
-    }, [emailRegex, phoneRegex, usernameRegex, t]);
+    }, [emailRegex, phoneRegex, usernameRegex, passwordRegex, t]);
 
     // Debounced validation for better UX
     const debouncedValidate = useMemo(
@@ -121,7 +151,7 @@ export default function BecomeOurReseller() {
         address: '',
         district: '',
         city: '',
-        phone: '+84',
+        phone: '',
         email: ''
     });
 
@@ -130,68 +160,24 @@ export default function BecomeOurReseller() {
     const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
     const [errorMessage, setErrorMessage] = useState<string>('');
 
-    // Phone number formatting functions
+    // Phone number handling - flexible format matching backend
     const handlePhoneChange = useCallback((value: string) => {
-        // Always maintain +84 prefix
-        let cleanValue = value.replace(/[^\d]/g, '');
-        
-        // If user tries to delete +84, reset to +84
-        if (value.length < 3 || !value.startsWith('+84')) {
-            cleanValue = cleanValue.replace(/^84/, ''); // Remove leading 84 if present
-        } else {
-            // Extract digits after +84
-            cleanValue = value.substring(3).replace(/[^\d]/g, '');
-        }
-        
-        // Limit to 9 digits after +84
-        if (cleanValue.length > 9) {
-            cleanValue = cleanValue.substring(0, 9);
-        }
-        
-        return `+84${cleanValue}`;
+        // Allow flexible phone format as per backend validation
+        return value;
     }, []);
 
     const formatPhoneDisplay = useCallback((value: string) => {
-        if (value.length <= 3) return value;
-        const digits = value.substring(3);
-        if (digits.length === 0) return '+84 ';
-        if (digits.length <= 3) return `+84 ${digits}`;
-        if (digits.length <= 6) return `+84 ${digits.substring(0, 3)} ${digits.substring(3)}`;
-        return `+84 ${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}`;
+        return value;
     }, []);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         
-        // Special handling for phone input
-        if (name === 'phone') {
-            const formattedPhone = handlePhoneChange(value);
-            setFormData((prev) => ({ ...prev, [name]: formattedPhone }));
-            
-            // Clear validation error when user starts typing
-            if (validationErrors.phone) {
-                setValidationErrors(prev => {
-                    const newErrors = { ...prev };
-                    delete newErrors.phone;
-                    return newErrors;
-                });
-            }
-            return;
-        }
-        
+        // Update form data
         setFormData((prev) => ({
             ...prev,
             [name]: value
         }));
-        
-        // Clear validation error when user starts typing
-        if (validationErrors[name]) {
-            setValidationErrors(prev => {
-                const newErrors = { ...prev };
-                delete newErrors[name];
-                return newErrors;
-            });
-        }
         
         // Clear general error message when user starts typing
         if (errorMessage) {
@@ -199,15 +185,15 @@ export default function BecomeOurReseller() {
             setSubmitStatus('idle');
         }
 
-        // Debounced validation for better performance
+        // Debounced validation for better performance - will clear/set errors appropriately
         debouncedValidate(name, value);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        // Validate all required fields are filled
-        const requiredFields = {
+        // Prepare form data for validation and submission
+        const formFields = {
             name: formData.name.trim(),
             username: formData.username.trim(),
             password: formData.password.trim(),
@@ -222,44 +208,79 @@ export default function BecomeOurReseller() {
         setValidationErrors({});
         const newErrors: {[key: string]: string} = {};
 
-        // Check if any required field is empty
-        const emptyFields = Object.entries(requiredFields).filter(([key, value]) => {
-            if (key === 'phone') {
-                return !value || value === '+84' || value === '+';
-            }
-            return !value;
+        // Check if required fields are empty (only username, password, name, email are required per backend)
+        const requiredFieldNames = ['username', 'password', 'name', 'email'];
+        const emptyRequiredFields = requiredFieldNames.filter(fieldName => {
+            return !formFields[fieldName as keyof typeof formFields];
         });
         
-        if (emptyFields.length > 0) {
-            emptyFields.forEach(([key]) => {
-                newErrors[key] = t('becomeReseller.form.fieldRequired');
+        if (emptyRequiredFields.length > 0) {
+            emptyRequiredFields.forEach((fieldName) => {
+                newErrors[fieldName] = t('becomeReseller.form.fieldRequired');
             });
         }
 
-        // Use centralized validation for submit
-        Object.entries(requiredFields).forEach(([key, value]) => {
-            if (key === 'phone' && (value === '+84' || value === '+')) return;
+        // Validate all fields with values according to backend requirements
+        Object.entries(formFields).forEach(([key, value]) => {
+            const isOptionalField = !requiredFieldNames.includes(key);
+            if (isOptionalField && !value) return; // Skip empty optional fields
             
-            // Validate format using centralized logic
+            // Validate each field according to backend rules
             switch (key) {
                 case 'email':
-                    if (value && !emailRegex.test(value)) {
-                        newErrors.email = t('becomeReseller.form.invalidEmail');
+                    if (value) {
+                        if (!emailRegex.test(value)) {
+                            newErrors.email = 'Invalid email format';
+                        } else if (value.length > 100) {
+                            newErrors.email = 'Email cannot exceed 100 characters';
+                        }
                     }
                     break;
                 case 'phone':
-                    if (value && !phoneRegex.test(value)) {
-                        newErrors.phone = t('becomeReseller.form.invalidPhone');
+                    if (value) {
+                        if (!phoneRegex.test(value)) {
+                            newErrors.phone = 'Phone number format is invalid';
+                        } else if (value.length < 10 || value.length > 15) {
+                            newErrors.phone = 'Phone number must be between 10 and 15 characters';
+                        }
                     }
                     break;
                 case 'username':
-                    if (value && !usernameRegex.test(value)) {
-                        newErrors.username = t('becomeReseller.form.invalidUsername');
+                    if (value) {
+                        if (!usernameRegex.test(value)) {
+                            newErrors.username = 'Username can only contain letters, numbers, and underscores';
+                        } else if (value.length < 3 || value.length > 50) {
+                            newErrors.username = 'Username must be between 3 and 50 characters';
+                        }
                     }
                     break;
                 case 'password':
-                    if (value && value.length < 8) {
-                        newErrors.password = t('becomeReseller.form.invalidPassword');
+                    if (value) {
+                        if (!passwordRegex.test(value)) {
+                            newErrors.password = 'Password must contain at least 1 uppercase, 1 lowercase, 1 number, and 1 special character';
+                        } else if (value.length < 8 || value.length > 100) {
+                            newErrors.password = 'Password must be between 8 and 100 characters';
+                        }
+                    }
+                    break;
+                case 'name':
+                    if (value && (value.length < 2 || value.length > 100)) {
+                        newErrors.name = 'Full name must be between 2 and 100 characters';
+                    }
+                    break;
+                case 'address':
+                    if (value && value.length > 255) {
+                        newErrors.address = 'Address cannot exceed 255 characters';
+                    }
+                    break;
+                case 'district':
+                    if (value && value.length > 100) {
+                        newErrors.district = 'District cannot exceed 100 characters';
+                    }
+                    break;
+                case 'city':
+                    if (value && value.length > 100) {
+                        newErrors.city = 'City cannot exceed 100 characters';
                     }
                     break;
             }
@@ -284,14 +305,14 @@ export default function BecomeOurReseller() {
             const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/reseller/register`;
             
             const response = await axios.post(apiUrl, {
-                name: requiredFields.name,
-                username: requiredFields.username,
-                password: requiredFields.password,
-                address: requiredFields.address,
-                district: requiredFields.district,
-                city: requiredFields.city,
-                phone: requiredFields.phone,
-                email: requiredFields.email
+                name: formFields.name,
+                username: formFields.username,
+                password: formFields.password,
+                address: formFields.address,
+                district: formFields.district,
+                city: formFields.city,
+                phone: formFields.phone,
+                email: formFields.email
             }, {
                 headers: {
                     'Content-Type': 'application/json',
@@ -301,6 +322,8 @@ export default function BecomeOurReseller() {
 
             if (response.status === 200 || response.status === 201) {
                 setSubmitStatus('success');
+                setValidationErrors({});
+                setErrorMessage('');
                 setFormData({
                     name: '',
                     username: '',
@@ -308,7 +331,7 @@ export default function BecomeOurReseller() {
                     address: '',
                     district: '',
                     city: '',
-                    phone: '+84',
+                    phone: '',
                     email: ''
                 });
             } else {
@@ -542,9 +565,9 @@ export default function BecomeOurReseller() {
                                                     id="phone"
                                                     name="phone"
                                                     type="tel"
-                                                    value={formatPhoneDisplay(formData.phone)}
+                                                    value={formData.phone}
                                                     onChange={handleInputChange}
-                                                    placeholder="+84 123 456 789"
+                                                    placeholder="123-456-7890 or +84 123 456 789"
                                                     className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
                                                         validationErrors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
                                                     }`}
