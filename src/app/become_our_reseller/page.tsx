@@ -33,8 +33,8 @@ export default function BecomeOurReseller() {
     // Memoized validation regexes for performance - matching backend validation
     const emailRegex = useMemo(() => /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/, []);
     const phoneRegex = useMemo(() => /^[\d\-\+\(\)\s]+$/, []);
-    const usernameRegex = useMemo(() => /^[a-zA-Z0-9_]+$/, []);
-    const passwordRegex = useMemo(() => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/, []);
+    const usernameRegex = useMemo(() => /^[a-zA-Z][a-zA-Z0-9]*$/, []);
+    const passwordRegex = useMemo(() => /^.{6,}$/, []);
 
     // Centralized field validation - matching backend requirements
     const validateField = useCallback((name: string, value: string) => {
@@ -58,16 +58,14 @@ export default function BecomeOurReseller() {
                 break;
             case 'username':
                 if (trimmedValue && !usernameRegex.test(trimmedValue)) {
-                    error = 'Username can only contain letters, numbers, and underscores';
-                } else if (trimmedValue.length > 0 && (trimmedValue.length < 3 || trimmedValue.length > 50)) {
-                    error = 'Username must be between 3 and 50 characters';
+                    error = 'Username must start with a letter and contain only letters and numbers';
+                } else if (trimmedValue.length > 0 && (trimmedValue.length < 6 || trimmedValue.length > 50)) {
+                    error = 'Username must be at least 6 characters';
                 }
                 break;
             case 'password':
-                if (trimmedValue && !passwordRegex.test(trimmedValue)) {
-                    error = 'Password must contain at least 1 uppercase, 1 lowercase, 1 number, and 1 special character (@$!%*?&)';
-                } else if (trimmedValue.length > 0 && (trimmedValue.length < 8 || trimmedValue.length > 100)) {
-                    error = 'Password must be between 8 and 100 characters';
+                if (trimmedValue.length > 0 && (trimmedValue.length < 6 || trimmedValue.length > 100)) {
+                    error = 'Password must be at least 6 characters';
                 }
                 break;
             case 'name':
@@ -248,18 +246,16 @@ export default function BecomeOurReseller() {
                 case 'username':
                     if (value) {
                         if (!usernameRegex.test(value)) {
-                            newErrors.username = 'Username can only contain letters, numbers, and underscores';
-                        } else if (value.length < 3 || value.length > 50) {
-                            newErrors.username = 'Username must be between 3 and 50 characters';
+                            newErrors.username = 'Username must start with a letter and contain only letters and numbers';
+                        } else if (value.length < 6 || value.length > 50) {
+                            newErrors.username = 'Username must be at least 6 characters';
                         }
                     }
                     break;
                 case 'password':
                     if (value) {
-                        if (!passwordRegex.test(value)) {
-                            newErrors.password = 'Password must contain at least 1 uppercase, 1 lowercase, 1 number, and 1 special character';
-                        } else if (value.length < 8 || value.length > 100) {
-                            newErrors.password = 'Password must be between 8 and 100 characters';
+                        if (value.length < 6 || value.length > 100) {
+                            newErrors.password = 'Password must be at least 6 characters';
                         }
                     }
                     break;
