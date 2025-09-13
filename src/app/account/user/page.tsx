@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
-import { UserProfile, PurchasedProducts, WarrantyExtension, WarrantyRequest } from './components';
+import { UserProfile, PurchasedProducts, WarrantyRequest } from './components';
 
 const UserAccountPage = () => {
     const [activeTab, setActiveTab] = useState('warranty');
@@ -51,7 +51,6 @@ const UserAccountPage = () => {
     const tabs = [
         { id: 'warranty', label: t('account.overview'), icon: '🏠' },
         { id: 'products', label: t('account.registeredProducts'), icon: '📦' },
-        { id: 'extend', label: t('account.warrantyExtension'), icon: '📅' },
         { id: 'request', label: t('account.warrantyRequest'), icon: '🔧' }
     ];
 
@@ -152,16 +151,12 @@ const UserAccountPage = () => {
                         <div className="p-6">
                             {activeTab === 'products' && (
                                 <PurchasedProducts
-                                    onWarrantyExtension={() => {
-                                        setActiveTab('extend');
-                                    }}
                                     onWarrantyRequest={() => {
                                         setActiveTab('request');
                                     }}
                                 />
                             )}
                             {activeTab === 'warranty' && <UserProfile />}
-                            {activeTab === 'extend' && <WarrantyExtension />}
                             {activeTab === 'request' && <WarrantyRequest />}
                         </div>
                     </div>

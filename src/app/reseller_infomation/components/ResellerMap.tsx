@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { FiMaximize, FiMinimize, FiZoomIn, FiZoomOut } from 'react-icons/fi';
+import { FiMaximize, FiMinimize } from 'react-icons/fi';
 import { useLanguage } from '@/context/LanguageContext';
 
 interface Reseller {
@@ -28,62 +28,48 @@ export default function ResellerMap({ resellers, selectedReseller }: ResellerMap
     const { t } = useLanguage();
     const [mapSrc, setMapSrc] = useState('');
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [zoomLevel, setZoomLevel] = useState(12);
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
     const updateMapSrc = useCallback(() => {
+        console.log('🗺️ Updating map with selectedReseller:', selectedReseller);
+        
         if (selectedReseller && selectedReseller.coordinates) {
             const lat = selectedReseller.coordinates.lat;
             const lng = selectedReseller.coordinates.lng;
-            const bbox = `${lng - 0.01},${lat - 0.01},${lng + 0.01},${lat + 0.01}`;
-            setMapSrc(`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`);
+            
+            console.log(`🎯 Setting map to dealer "${selectedReseller.name}" coordinates:`, { lat, lng });
+            
+            const query = encodeURIComponent(`${selectedReseller.name}, ${selectedReseller.address}`);
+            const newMapSrc = `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3875!2d${lng}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2z!5e0!3m2!1sen!2s!4v1609459200000!5m2!1sen!2s&q=${query}`;
+            
+            console.log('🗺️ New map URL:', newMapSrc);
+            setMapSrc(newMapSrc);
         } else if (resellers.length > 0) {
-            // Find first reseller with coordinates
+            // Find first reseller with coordinates or use Ho Chi Minh City as center
             const resellerWithCoords = resellers.find(r => r.coordinates);
             if (resellerWithCoords && resellerWithCoords.coordinates) {
                 const lat = resellerWithCoords.coordinates.lat;
                 const lng = resellerWithCoords.coordinates.lng;
-                const bbox = `${lng - 0.02},${lat - 0.02},${lng + 0.02},${lat + 0.02}`;
-                setMapSrc(`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik`);
+                setMapSrc(`https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15500!2d${lng}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2z!5e0!3m2!1sen!2s!4v1609459200000!5m2!1sen!2s`);
             } else {
-                // Default Vietnam view if no coordinates available
-                setMapSrc(`https://www.openstreetmap.org/export/embed.html?bbox=102,8,110,24&layer=mapnik`);
+                // Default Ho Chi Minh City view with dealers search
+                setMapSrc(`https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1000000!2d106.660172!3d10.762622!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2z!5e0!3m2!1sen!2s!4v1609459200000!5m2!1sen!2s&q=dealers+Ho+Chi+Minh+City`);
             }
         } else {
-            // Default Vietnam view
-            setMapSrc(`https://www.openstreetmap.org/export/embed.html?bbox=102,8,110,24&layer=mapnik`);
+            // Default Ho Chi Minh City view
+            setMapSrc(`https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1000000!2d106.660172!3d10.762622!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2z!5e0!3m2!1sen!2s!4v1609459200000!5m2!1sen!2s`);
         }
     }, [selectedReseller, resellers]);
 
     useEffect(() => {
         updateMapSrc();
-    }, [updateMapSrc, zoomLevel]);
+    }, [updateMapSrc]);
 
     // Initialize map on component mount
     useEffect(() => {
         updateMapSrc();
     }, [updateMapSrc]);
-
-    const handleZoomIn = () => {
-        setZoomLevel((prev) => Math.min(prev + 1, 18));
-        updateMapWithZoom(zoomLevel + 1);
-    };
-
-    const handleZoomOut = () => {
-        setZoomLevel((prev) => Math.max(prev - 1, 1));
-        updateMapWithZoom(zoomLevel - 1);
-    };
-
-    const updateMapWithZoom = (newZoom: number) => {
-        if (selectedReseller && selectedReseller.coordinates) {
-            const lat = selectedReseller.coordinates.lat;
-            const lng = selectedReseller.coordinates.lng;
-            const offset = 0.01 / Math.pow(2, newZoom - 12);
-            const bbox = `${lng - offset},${lat - offset},${lng + offset},${lat + offset}`;
-            setMapSrc(`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`);
-        }
-    };
 
     const toggleFullscreen = async () => {
         if (!mapContainerRef.current) return;
@@ -158,22 +144,6 @@ export default function ResellerMap({ resellers, selectedReseller }: ResellerMap
                     {/* Map Controls */}
                     <div className="flex items-center space-x-1 sm:space-x-2">
                         <button
-                            onClick={handleZoomOut}
-                            disabled={!mapSrc}
-                            className="p-1.5 sm:p-2 bg-[#0c131d] text-white rounded-md sm:rounded-lg hover:bg-[#243447] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={t('reseller.zoomOut')}
-                        >
-                            <FiZoomOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        </button>
-                        <button
-                            onClick={handleZoomIn}
-                            disabled={!mapSrc}
-                            className="p-1.5 sm:p-2 bg-[#0c131d] text-white rounded-md sm:rounded-lg hover:bg-[#243447] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={t('reseller.zoomIn')}
-                        >
-                            <FiZoomIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        </button>
-                        <button
                             onClick={toggleFullscreen}
                             disabled={!mapSrc}
                             className="p-1.5 sm:p-2 bg-[#0c131d] text-white rounded-md sm:rounded-lg hover:bg-[#243447] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -210,25 +180,14 @@ export default function ResellerMap({ resellers, selectedReseller }: ResellerMap
                 )}
 
                 {/* Map Overlay for better UX - only show when map is loaded */}
-                {mapSrc && (
+                {mapSrc && selectedReseller && (
                     <div className="absolute top-4 right-4 bg-[#0c131d] bg-opacity-90 rounded-lg p-3">
                         <div className="text-white text-sm">
-                            <div className="flex items-center space-x-2 mb-2">
+                            <div className="flex items-center space-x-2">
                                 <div className="w-3 h-3 bg-[#00d4ff] rounded-full"></div>
                                 <span>{t('reseller.selectedDealer')}</span>
                             </div>
-                            <div className="flex items-center space-x-2">
-                                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                                <span>{t('reseller.otherDealers')}</span>
-                            </div>
                         </div>
-                    </div>
-                )}
-
-                {/* Zoom Level Indicator - only show when map is loaded */}
-                {mapSrc && (
-                    <div className="absolute bottom-4 left-4 bg-[#0c131d] bg-opacity-90 rounded-lg px-3 py-2">
-                        <span className="text-white text-sm">Zoom: {zoomLevel}</span>
                     </div>
                 )}
             </div>
@@ -238,7 +197,7 @@ export default function ResellerMap({ resellers, selectedReseller }: ResellerMap
                 <div className="flex items-center justify-between text-sm text-gray-300">
                     <span>{t('reseller.showingOnMap').replace('{count}', resellers.length.toString())}</span>
                     <div className="flex items-center space-x-4">
-                        <span className="text-xs">{t('reseller.useCtrlScroll')}</span>
+                        <span className="text-xs">Powered by Google Maps</span>
                         {isFullscreen && (
                             <span className="text-xs text-[#00d4ff]">{t('reseller.pressEscToExit')}</span>
                         )}

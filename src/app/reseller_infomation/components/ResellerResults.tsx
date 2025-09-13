@@ -129,6 +129,7 @@ export default function ResellerResults({ searchFilters, resellers: initialResel
     }, [searchFilters, initialResellers]);
 
     const handleResellerSelect = (reseller: Reseller) => {
+        console.log('✅ Setting selected dealer:', reseller.name, 'Coordinates:', reseller.coordinates);
         setSelectedReseller(reseller);
     };
 

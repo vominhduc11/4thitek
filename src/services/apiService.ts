@@ -61,6 +61,23 @@ class ApiService {
         for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
             try {
                 const response = await apiCall();
+                
+                // Handle wrapped API responses with success/data structure
+                if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+                    const apiResponse = response.data as any;
+                    if (apiResponse.success) {
+                        return {
+                            data: apiResponse.data,
+                            success: true
+                        };
+                    } else {
+                        // Include more details from API error response
+                        const errorMsg = apiResponse.message || apiResponse.error || 'API returned unsuccessful response';
+                        throw new Error(`API Error: ${errorMsg}`);
+                    }
+                }
+                
+                // Handle direct data responses
                 return {
                     data: response.data,
                     success: true
@@ -113,7 +130,7 @@ class ApiService {
     // Specific method for fetching resellers with retry logic
     async fetchResellers(): Promise<ApiResponse<ResellerLocation[]>> {
         return this.withRetry(
-            () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/resellers`, {
+            () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/dealers`, {
                 timeout: TIMEOUTS.GEOCODING_REQUEST,
                 headers: {
                     'Accept': 'application/json',

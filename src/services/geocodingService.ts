@@ -146,7 +146,13 @@ class GeocodingService {
     private async performGeocodingRequest(fullAddress: string): Promise<GeocodingResult | null> {
         await this.enforceRateLimit();
 
-        // Try LocationIQ first if available
+        // Try OpenWeatherMap first (most reliable)
+        const openWeatherResult = await this.tryOpenWeatherMapGeocoding(fullAddress);
+        if (openWeatherResult) {
+            return openWeatherResult;
+        }
+
+        // Try LocationIQ if available
         const locationIqResult = await this.tryLocationIqGeocoding(fullAddress);
         if (locationIqResult) {
             return locationIqResult;
@@ -160,6 +166,112 @@ class GeocodingService {
 
         // Fallback to OpenStreetMap
         return this.tryOpenStreetMapGeocoding(fullAddress);
+    }
+
+    private async tryOpenWeatherMapGeocoding(fullAddress: string): Promise<GeocodingResult | null> {
+        const openWeatherApiKey = process.env.NEXT_PUBLIC_OPENWEATHERMAP_API_KEY;
+        if (!openWeatherApiKey) {
+            console.warn('OpenWeatherMap API key not found, trying other providers');
+            return null;
+        }
+
+        try {
+            // Parse address components
+            const addressParts = fullAddress.split(',').map(part => part.trim());
+            
+            // Format: {location name},{state code},{country code}
+            let locationName = '';
+            let stateCode = '';
+            let countryCode = 'VN'; // Vietnam country code
+            
+            // Special logic for Vietnamese addresses
+            if (addressParts.length >= 2) {
+                const lastPart = addressParts[addressParts.length - 1].toLowerCase(); // Usually city
+                const secondLastPart = addressParts.length >= 2 ? addressParts[addressParts.length - 2].toLowerCase() : ''; // Usually district
+                
+                // Handle Vietnam suffix
+                if (lastPart.includes('vietnam') || lastPart.includes('việt nam')) {
+                    countryCode = 'VN';
+                    if (secondLastPart) {
+                        locationName = secondLastPart;
+                    }
+                } else {
+                    // Vietnamese address pattern: [street], [district], [city]
+                    let city = lastPart;
+                    let district = secondLastPart;
+                    
+                    // Standardize major cities
+                    if (city.includes('ho chi minh') || city.includes('hồ chí minh')) {
+                        city = 'ho chi minh city';
+                    } else if (city.includes('ha noi') || city.includes('hà nội') || city.includes('hanoi')) {
+                        city = 'hanoi';
+                    } else if (city.includes('da nang') || city.includes('đà nẵng')) {
+                        city = 'da nang';
+                    }
+                    
+                    // For Ho Chi Minh City, include district for better precision
+                    if (city.includes('ho chi minh') && district && district.includes('quận')) {
+                        // Format: "District 1, Ho Chi Minh City" or "Quan 11, Ho Chi Minh City"
+                        const districtNumber = district.replace(/quận|quan/gi, '').trim();
+                        locationName = `District ${districtNumber}, Ho Chi Minh City`;
+                    } else if (city.includes('hanoi') && district && district.includes('quận')) {
+                        // Format: "District Ba Dinh, Hanoi"
+                        const districtName = district.replace(/quận|quan/gi, '').trim();
+                        locationName = `District ${districtName}, Hanoi`;
+                    } else {
+                        // Default: use city only
+                        locationName = city;
+                    }
+                }
+            } else {
+                // Single part address, use as is
+                locationName = addressParts[0] || '';
+            }
+            
+            // Clean location name
+            locationName = locationName.replace(/city|thành phố|tỉnh|province/gi, '').trim();
+            
+            // Format query according to OpenWeatherMap specification
+            const searchQuery = stateCode 
+                ? `${locationName},${stateCode},${countryCode}`
+                : `${locationName},,${countryCode}`;
+                
+            const url = `http://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(searchQuery)}&limit=1&appid=${openWeatherApiKey}`;
+            
+            console.log('🏠 Original address:', fullAddress);
+            console.log('📝 Address parts:', addressParts);
+            console.log('🎯 Parsed components:', { locationName, stateCode, countryCode });
+            console.log('🔗 OpenWeatherMap URL:', url);
+            
+            const response = await this.fetchWithTimeout(url);
+            
+            if (!response.ok) {
+                throw new Error(`OpenWeatherMap API HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            console.log('OpenWeatherMap response:', data);
+            
+            if (data && data.length > 0) {
+                const location = data[0];
+                const coordinates = {
+                    lat: parseFloat(location.lat),
+                    lng: parseFloat(location.lon)
+                };
+                
+                // Validate coordinates
+                if (!isNaN(coordinates.lat) && !isNaN(coordinates.lng)) {
+                    this.saveToCache(fullAddress, coordinates);
+                    console.log(`OpenWeatherMap geocoding successful for: ${fullAddress}`, coordinates);
+                    return coordinates;
+                }
+            }
+            
+            return null;
+        } catch (error) {
+            console.warn('OpenWeatherMap geocoding failed:', error);
+            return null;
+        }
     }
 
     private async tryLocationIqGeocoding(fullAddress: string): Promise<GeocodingResult | null> {

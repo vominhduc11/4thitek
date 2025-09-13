@@ -1,5 +1,4 @@
 import {
-    FeatureCards,
     HeroSection,
     Newsroom,
     TransitionDivider,
@@ -23,10 +22,6 @@ function Home() {
             <div className="h-16 bg-gradient-to-b from-[#032B4A] to-[#001A35]"></div>
 
             <Newsroom />
-
-            <TransitionDivider fromColor="#032d4c" toColor="#1a1f2e" height="sm" type="diagonal" />
-
-            <FeatureCards />
         </div>
     );
 }

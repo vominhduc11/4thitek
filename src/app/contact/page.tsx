@@ -1,4 +1,4 @@
-import { ContactHero, ContactHeader, ContactInfo, ContactForm } from './components';
+import { ContactHero, ContactHeader, ContactInfo } from './components';
 
 export default function ContactPage() {
     return (
@@ -14,9 +14,6 @@ export default function ContactPage() {
                 <div className="ml-16 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
                     {/* Contact Info Cards */}
                     <ContactInfo />
-
-                    {/* Contact Form and Map */}
-                    <ContactForm />
                 </div>
             </section>
         </div>

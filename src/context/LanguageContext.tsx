@@ -142,7 +142,7 @@ const translations = {
             },
             detail: {
                 breadcrumbs: {
-                    productDetails: 'PRODUCT DETAILS',
+                    productDetails: 'PRODUCT DESCRIPTION',
                     productVideos: 'PRODUCT VIDEOS',
                     specifications: 'SPECIFICATIONS',
                     warranty: 'WARRANTY'
@@ -934,7 +934,7 @@ const translations = {
             },
             detail: {
                 breadcrumbs: {
-                    productDetails: 'CHI TIẾT SẢN PHẨM',
+                    productDetails: 'MÔ TẢ SẢN PHẨM',
                     productVideos: 'VIDEO SẢN PHẨM',
                     specifications: 'THÔNG SỐ KỸ THUẬT',
                     warranty: 'BẢO HÀNH'

@@ -1,7 +1,6 @@
 import HeroSection from './HeroSection';
 import ProductFeature from './ProductFeature';
 import Newsroom from './Newscroom';
-import FeatureCards from './FeatureCard';
 import ProductPositions from './ProductPositions';
 import SectionDivider from './SectionDivider';
 import AdvancedDivider from './AdvancedDivider';
@@ -13,7 +12,6 @@ export {
     HeroSection,
     ProductFeature,
     Newsroom,
-    FeatureCards,
     ProductPositions,
     SectionDivider,
     AdvancedDivider,

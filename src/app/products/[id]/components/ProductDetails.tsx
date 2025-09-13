@@ -143,42 +143,7 @@ export default function ProductDetails({ features, highlights, description, cont
     return (
         <section className="relative z-[150] min-h-screen">
             <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-[200]">
-                <h2 className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-4xl 3xl:text-7xl 4xl:text-8xl font-bold mb-6 md:mb-8 2xl:mb-10 3xl:mb-12 4xl:mb-16 text-white">
-                    TÍNH NĂNG NỔI BẬT
-                </h2>
 
-                {/* Top row - 3 cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 2xl:grid-cols-3 3xl:grid-cols-3 4xl:grid-cols-3 gap-4 md:gap-6 2xl:gap-8 3xl:gap-10 4xl:gap-12 mb-8 md:mb-12 2xl:mb-16 3xl:mb-20 4xl:mb-24">
-                    {(features.length > 0 ? features : demoFeatures).map((feature, index) => (
-                        <div
-                            key={index}
-                            className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-6 2xl:p-8 3xl:p-10 4xl:p-12 border border-gray-700/50 shadow-2xl"
-                        >
-                            <div className="mb-4">
-                                <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-5xl 3xl:text-7xl 4xl:text-8xl font-bold text-blue-400">{feature.title}</span>
-                                {feature.subtitle && (
-                                    <h3 className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl font-semibold text-blue-400 mt-2 2xl:mt-3 3xl:mt-4 4xl:mt-6">{feature.subtitle}</h3>
-                                )}
-                            </div>
-                            <p className="text-gray-400 text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl leading-relaxed">{feature.description}</p>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Product Highlights */}
-                {highlights.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-12 md:mb-16">
-                        {highlights.map((highlight, index) => (
-                            <div
-                                key={index}
-                                className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-2xl flex items-center gap-4"
-                            >
-                                <div className="text-blue-400 text-3xl">✨</div>
-                                <p className="text-gray-300 text-sm">{highlight}</p>
-                            </div>
-                        ))}
-                    </div>
-                )}
 
                 {/* Product Description */}
                 <div className="mb-12 md:mb-16">

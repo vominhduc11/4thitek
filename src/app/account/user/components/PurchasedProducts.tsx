@@ -19,11 +19,10 @@ interface Product {
 }
 
 interface PurchasedProductsProps {
-    onWarrantyExtension?: (product: Product) => void;
     onWarrantyRequest?: (product: Product) => void;
 }
 
-const PurchasedProducts = ({ onWarrantyExtension, onWarrantyRequest }: PurchasedProductsProps) => {
+const PurchasedProducts = ({ onWarrantyRequest }: PurchasedProductsProps) => {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const { t } = useLanguage();
 
@@ -251,16 +250,7 @@ const PurchasedProducts = ({ onWarrantyExtension, onWarrantyRequest }: Purchased
 
                                 <div className="flex gap-2 pt-4">
                                     <Button
-                                        className="flex-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 hover:text-blue-300 border border-blue-500/30 hover:border-blue-400/50"
-                                        onClick={() => {
-                                            setSelectedProduct(null);
-                                            onWarrantyExtension?.(selectedProduct);
-                                        }}
-                                    >
-                                        {t('account.extendWarranty')}
-                                    </Button>
-                                    <Button
-                                        className="flex-1 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 hover:text-orange-300 border border-orange-500/30 hover:border-orange-400/50"
+                                        className="w-full bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 hover:text-orange-300 border border-orange-500/30 hover:border-orange-400/50"
                                         onClick={() => {
                                             setSelectedProduct(null);
                                             onWarrantyRequest?.(selectedProduct);

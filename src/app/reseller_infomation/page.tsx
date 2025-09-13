@@ -30,6 +30,7 @@ export default function ResellerInformationPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
+    const [geocodingStatus, setGeocodingStatus] = useState<'idle' | 'geocoding' | 'completed'>('idle');
 
     // Fallback mock data - moved inside useEffect to avoid dependency warning
     const getMockResellers = (): Reseller[] => [
@@ -99,17 +100,137 @@ export default function ResellerInformationPage() {
                 if (response.success && response.data) {
                     setConnectionStatus('connected');
                     
-                    // Convert ResellerLocation to local Reseller format
-                    const convertedResellers = response.data.map(location => ({
-                        id: parseInt(location.id) || 0,
-                        name: location.name,
-                        address: location.address?.street || '',
-                        city: location.address?.city || '',
-                        district: location.address?.street || '',
-                        phone: location.contactInfo?.phone || '',
-                        email: location.contactInfo?.email || '',
-                        coordinates: location.coordinates || { lat: 10.762622, lng: 106.660172 }
-                    }));
+                    // Debug: Log the response structure
+                    console.log('=== API RESPONSE DEBUG ===');
+                    console.log('Full response:', response);
+                    console.log('Response data:', response.data);
+                    console.log('Response type:', typeof response.data);
+                    console.log('Is array:', Array.isArray(response.data));
+                    console.log('Data keys:', response.data ? Object.keys(response.data) : 'No data');
+                    console.log('==========================')
+                    
+                    // Ensure response.data is an array
+                    let dealersArray = response.data;
+                    
+                    // Handle different response structures
+                    if (!Array.isArray(dealersArray)) {
+                        // If response.data has a property containing the array
+                        if (dealersArray.dealers && Array.isArray(dealersArray.dealers)) {
+                            dealersArray = dealersArray.dealers;
+                        } else if (dealersArray.data && Array.isArray(dealersArray.data)) {
+                            dealersArray = dealersArray.data;
+                        } else if (dealersArray.items && Array.isArray(dealersArray.items)) {
+                            dealersArray = dealersArray.items;
+                        } else {
+                            console.error('Invalid response structure:', dealersArray);
+                            throw new Error('Response data is not in expected format');
+                        }
+                    }
+                    
+                    // Convert API response to local Reseller format and geocode addresses
+                    const convertedResellers = dealersArray.map((dealer, index) => {
+                        console.log(`Processing dealer ${index}:`, dealer);
+                        
+                        // Map actual API response fields
+                        return {
+                            id: dealer.accountId || (index + 1),
+                            name: dealer.companyName || `Dealer ${index + 1}`,
+                            address: dealer.address || '',
+                            city: dealer.city || '',
+                            district: dealer.district || '',
+                            phone: dealer.phone || '',
+                            email: dealer.email || '',
+                            coordinates: dealer.coordinates || { lat: 10.762622, lng: 106.660172 }
+                        };
+                    });
+
+                    // Geocode addresses for dealers without coordinates
+                    const dealersNeedingGeocode = convertedResellers.filter(dealer => 
+                        !dealer.coordinates || 
+                        (dealer.coordinates.lat === 10.762622 && dealer.coordinates.lng === 106.660172)
+                    );
+
+                    if (dealersNeedingGeocode.length > 0) {
+                        console.log(`Geocoding ${dealersNeedingGeocode.length} dealer addresses...`);
+                        setGeocodingStatus('geocoding');
+                        
+                        // Create full addresses for geocoding
+                        const addressesToGeocode = dealersNeedingGeocode.map(dealer => {
+                            const parts = [dealer.address, dealer.district, dealer.city].filter(Boolean);
+                            const fullAddress = parts.join(', ');
+                            console.log(`Will geocode: "${fullAddress}" for ${dealer.name}`);
+                            return fullAddress;
+                        });
+
+                        console.log('Addresses to geocode:', addressesToGeocode);
+
+                        // Test geocoding service first
+                        console.log('Testing OpenWeatherMap geocoding service...');
+                        geocodingService.geocodeSingle('Ho Chi Minh City').then(testResult => {
+                            console.log('✅ OpenWeatherMap geocoding test result for HCMC:', testResult);
+                        }).catch(testError => {
+                            console.error('❌ OpenWeatherMap geocoding test failed:', testError);
+                        });
+                        
+                        // Geocode addresses in background
+                        geocodingService.geocodeAddresses(addressesToGeocode).then(geocodedCoords => {
+                            console.log('Geocoding results:', geocodedCoords);
+                            const updatedResellers = [...convertedResellers];
+                            
+                            // Fallback coordinates for major Vietnamese cities
+                            const fallbackCoords = {
+                                'ho chi minh city': { lat: 10.762622, lng: 106.660172 },
+                                'hanoi': { lat: 21.028511, lng: 105.804817 },
+                                'da nang': { lat: 16.047079, lng: 108.206230 },
+                                'can tho': { lat: 10.045162, lng: 105.746857 },
+                                'hai phong': { lat: 20.844912, lng: 106.687972 },
+                                'district 1': { lat: 10.762622, lng: 106.660172 }, // Ho Chi Minh City center
+                                'business district': { lat: 10.762622, lng: 106.660172 } // Ho Chi Minh City center
+                            };
+                            
+                            dealersNeedingGeocode.forEach((dealer, index) => {
+                                let coords = geocodedCoords[index];
+                                console.log(`Processing dealer ${index}: ${dealer.name}`, {
+                                    originalCoords: dealer.coordinates,
+                                    newCoords: coords
+                                });
+                                
+                                // If geocoding failed, try to get fallback coordinates
+                                if (!coords) {
+                                    const cityKey = dealer.city?.toLowerCase() || '';
+                                    const districtKey = dealer.district?.toLowerCase() || '';
+                                    
+                                    coords = fallbackCoords[cityKey] || fallbackCoords[districtKey];
+                                    if (coords) {
+                                        console.log(`🔄 Using fallback coordinates for ${dealer.name} (${cityKey || districtKey}):`, coords);
+                                    }
+                                }
+                                
+                                if (coords && (coords.lat !== 10.762622 || coords.lng !== 106.660172)) {
+                                    const dealerIndex = updatedResellers.findIndex(r => r.id === dealer.id);
+                                    if (dealerIndex !== -1) {
+                                        updatedResellers[dealerIndex] = {
+                                            ...updatedResellers[dealerIndex],
+                                            coordinates: coords
+                                        };
+                                        console.log(`✅ Successfully set coordinates for ${dealer.name}:`, coords);
+                                    }
+                                } else {
+                                    console.log(`❌ No valid coordinates found for ${dealer.name}, keeping default`);
+                                }
+                            });
+                            
+                            // Update state with geocoded coordinates
+                            setResellers(updatedResellers);
+                            setGeocodingStatus('completed');
+                            console.log(`Geocoding completed for ${dealersNeedingGeocode.length} dealers`);
+                        }).catch(error => {
+                            console.warn('Geocoding failed, using default coordinates:', error);
+                            setGeocodingStatus('completed');
+                        });
+                    } else {
+                        setGeocodingStatus('completed');
+                    }
                     
                     setResellers(convertedResellers);
                 } else {
@@ -121,12 +242,20 @@ export default function ResellerInformationPage() {
                 
                 // More specific error messages based on error type
                 if (fetchError instanceof Error) {
-                    if (fetchError.message.includes('fetch')) {
-                        setError('Network connection failed. Showing cached information.');
+                    if (fetchError.message.includes('fetch') || fetchError.message.includes('ERR_CONNECTION_REFUSED')) {
+                        setError('Cannot connect to server. Showing cached information.');
                     } else if (fetchError.message.includes('timeout')) {
                         setError('Request timed out. Showing cached information.');
+                    } else if (fetchError.message.includes('404')) {
+                        setError('API endpoint not found. Please check server configuration.');
+                    } else if (fetchError.message.includes('500')) {
+                        setError('Server error occurred. Showing cached information.');
+                    } else if (fetchError.message.includes('API returned unsuccessful response')) {
+                        setError('Server returned error response. Showing cached information.');
+                    } else if (fetchError.message.includes('Response data is not in expected format')) {
+                        setError('Server response format changed. Please update application.');
                     } else {
-                        setError('Unable to load latest reseller data. Showing cached information.');
+                        setError(`Unable to load dealers: ${fetchError.message}. Showing cached information.`);
                     }
                 } else {
                     setError('An unexpected error occurred. Showing cached information.');
@@ -158,24 +287,35 @@ export default function ResellerInformationPage() {
                 <ResellerSearch onSearch={handleSearch} resellers={resellers} />
             </div>
 
-            {/* Connection Status Indicator */}
-            {connectionStatus !== 'connected' && !loading && (
-                <div className="ml-16 sm:ml-20 pl-1 sm:pl-2 md:pl-2 lg:pl-3 xl:pl-4 2xl:pl-6 pr-1 sm:pr-2 md:pr-2 lg:pr-3 xl:pr-4 2xl:pr-6 pb-4">
-                    <div className={`rounded-lg p-3 text-sm flex items-center gap-3 ${
-                        connectionStatus === 'disconnected' 
-                            ? 'bg-yellow-900/20 border border-yellow-600 text-yellow-300'
-                            : 'bg-gray-700/20 border border-gray-600 text-gray-300'
-                    }`}>
-                        <div className={`w-2 h-2 rounded-full ${
-                            connectionStatus === 'disconnected' ? 'bg-yellow-500' : 'bg-gray-500'
-                        }`}></div>
-                        <span>
-                            {connectionStatus === 'disconnected' 
-                                ? 'Using cached data - API temporarily unavailable'
-                                : 'Checking connection...'
-                            }
-                        </span>
-                    </div>
+            {/* Status Indicators */}
+            {(connectionStatus !== 'connected' && !loading) || geocodingStatus === 'geocoding' && (
+                <div className="ml-16 sm:ml-20 pl-1 sm:pl-2 md:pl-2 lg:pl-3 xl:pl-4 2xl:pl-6 pr-1 sm:pr-2 md:pr-2 lg:pr-3 xl:pr-4 2xl:pr-6 pb-4 space-y-2">
+                    {/* Connection Status */}
+                    {connectionStatus !== 'connected' && !loading && (
+                        <div className={`rounded-lg p-3 text-sm flex items-center gap-3 ${
+                            connectionStatus === 'disconnected' 
+                                ? 'bg-yellow-900/20 border border-yellow-600 text-yellow-300'
+                                : 'bg-gray-700/20 border border-gray-600 text-gray-300'
+                        }`}>
+                            <div className={`w-2 h-2 rounded-full ${
+                                connectionStatus === 'disconnected' ? 'bg-yellow-500' : 'bg-gray-500'
+                            }`}></div>
+                            <span>
+                                {connectionStatus === 'disconnected' 
+                                    ? 'Using cached data - API temporarily unavailable'
+                                    : 'Checking connection...'
+                                }
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Geocoding Status */}
+                    {geocodingStatus === 'geocoding' && (
+                        <div className="rounded-lg p-3 text-sm flex items-center gap-3 bg-blue-900/20 border border-blue-600 text-blue-300">
+                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                            <span>Getting precise locations for dealers...</span>
+                        </div>
+                    )}
                 </div>
             )}
 

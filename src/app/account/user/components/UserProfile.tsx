@@ -32,14 +32,6 @@ const UserProfile = () => {
             description: 'Laptop Gaming 4T Pro - ' + t('account.warrantyRepair'),
             date: '15/10/2023',
             icon: '🔧'
-        },
-        {
-            id: '3',
-            type: 'extension',
-            title: t('account.warrantyExtension'),
-            description: 'Man hinh Gaming 4T Ultra - ' + t('account.warrantyExtended'),
-            date: '05/09/2023',
-            icon: '📅'
         }
     ];
 
@@ -114,7 +106,7 @@ const UserProfile = () => {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <motion.button
                         className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 hover:text-blue-300 p-4 rounded-lg transition-all duration-300 border border-blue-500/30 hover:border-blue-400/50 group"
                         whileHover={{ scale: 1.02 }}
@@ -123,19 +115,6 @@ const UserProfile = () => {
                     >
                         <div className="text-lg mb-2 group-hover:scale-110 transition-transform duration-300">👁️</div>
                         <div className="font-medium text-sm">{t('account.viewProducts')}</div>
-                    </motion.button>
-
-                    <motion.button
-                        className="bg-green-500/20 hover:bg-green-500/30 text-green-400 hover:text-green-300 p-4 rounded-lg transition-all duration-300 border border-green-500/30 hover:border-green-400/50 group"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => {
-                            const event = new CustomEvent('switchTab', { detail: 'extend' });
-                            window.dispatchEvent(event);
-                        }}
-                    >
-                        <div className="text-lg mb-2 group-hover:scale-110 transition-transform duration-300">📅</div>
-                        <div className="font-medium text-sm">{t('account.extendWarranty')}</div>
                     </motion.button>
 
                     <motion.button

@@ -18,8 +18,6 @@ import { ultraWideSpacing } from '@/styles/typography';
 
 interface FormData {
     name: string;
-    username: string;
-    password: string;
     address: string;
     district: string;
     city: string;
@@ -32,9 +30,7 @@ export default function BecomeOurReseller() {
 
     // Memoized validation regexes for performance - matching backend validation
     const emailRegex = useMemo(() => /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/, []);
-    const phoneRegex = useMemo(() => /^[\d\-\+\(\)\s]+$/, []);
-    const usernameRegex = useMemo(() => /^[a-zA-Z][a-zA-Z0-9]*$/, []);
-    const passwordRegex = useMemo(() => /^.{6,}$/, []);
+    const phoneRegex = useMemo(() => /^(0[0-9]{9})$/, []);
 
     // Centralized field validation - matching backend requirements
     const validateField = useCallback((name: string, value: string) => {
@@ -44,28 +40,14 @@ export default function BecomeOurReseller() {
         switch (name) {
             case 'email':
                 if (trimmedValue && !emailRegex.test(trimmedValue)) {
-                    error = t('becomeReseller.form.invalidEmail');
+                    error = 'Email không hợp lệ';
                 } else if (trimmedValue.length > 100) {
                     error = 'Email cannot exceed 100 characters';
                 }
                 break;
             case 'phone':
                 if (trimmedValue && !phoneRegex.test(trimmedValue)) {
-                    error = t('becomeReseller.form.invalidPhone');
-                } else if (trimmedValue.length > 0 && (trimmedValue.length < 10 || trimmedValue.length > 15)) {
-                    error = 'Phone number must be between 10 and 15 characters';
-                }
-                break;
-            case 'username':
-                if (trimmedValue && !usernameRegex.test(trimmedValue)) {
-                    error = 'Username must start with a letter and contain only letters and numbers';
-                } else if (trimmedValue.length > 0 && (trimmedValue.length < 6 || trimmedValue.length > 50)) {
-                    error = 'Username must be at least 6 characters';
-                }
-                break;
-            case 'password':
-                if (trimmedValue.length > 0 && (trimmedValue.length < 6 || trimmedValue.length > 100)) {
-                    error = 'Password must be at least 6 characters';
+                    error = 'Số điện thoại không hợp lệ (phải bắt đầu bằng 0 và đủ 10 số)';
                 }
                 break;
             case 'name':
@@ -94,7 +76,7 @@ export default function BecomeOurReseller() {
             ...prev,
             [name]: error
         }));
-    }, [emailRegex, phoneRegex, usernameRegex, passwordRegex, t]);
+    }, [emailRegex, phoneRegex]);
 
     // Debounced validation for better UX
     const debouncedValidate = useMemo(
@@ -117,11 +99,6 @@ export default function BecomeOurReseller() {
                 patterns: ['phone', 'Phone', 'điện thoại', 'số'],
                 keywords: ['exists', 'taken', 'already', 'tồn tại', 'đã sử dụng']
             },
-            {
-                field: 'username',
-                patterns: ['username', 'Username', 'đăng nhập', 'tên'],
-                keywords: ['exists', 'taken', 'already', 'tồn tại', 'đã sử dụng']
-            }
         ];
 
         const lowerMessage = message.toLowerCase();
@@ -144,8 +121,6 @@ export default function BecomeOurReseller() {
 
     const [formData, setFormData] = useState<FormData>({
         name: '',
-        username: '',
-        password: '',
         address: '',
         district: '',
         city: '',
@@ -158,15 +133,6 @@ export default function BecomeOurReseller() {
     const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
     const [errorMessage, setErrorMessage] = useState<string>('');
 
-    // Phone number handling - flexible format matching backend
-    const handlePhoneChange = useCallback((value: string) => {
-        // Allow flexible phone format as per backend validation
-        return value;
-    }, []);
-
-    const formatPhoneDisplay = useCallback((value: string) => {
-        return value;
-    }, []);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -193,8 +159,6 @@ export default function BecomeOurReseller() {
         // Prepare form data for validation and submission
         const formFields = {
             name: formData.name.trim(),
-            username: formData.username.trim(),
-            password: formData.password.trim(),
             address: formData.address.trim(),
             district: formData.district.trim(),
             city: formData.city.trim(),
@@ -206,76 +170,57 @@ export default function BecomeOurReseller() {
         setValidationErrors({});
         const newErrors: {[key: string]: string} = {};
 
-        // Check if required fields are empty (only username, password, name, email are required per backend)
-        const requiredFieldNames = ['username', 'password', 'name', 'email'];
-        const emptyRequiredFields = requiredFieldNames.filter(fieldName => {
-            return !formFields[fieldName as keyof typeof formFields];
-        });
+        // Check if required fields are empty - all fields are now required
+        const requiredFields = {
+            name: 'Tên công ty không được để trống',
+            email: 'Email không được để trống',
+            address: 'Địa chỉ không được để trống',
+            phone: 'Số điện thoại không được để trống',
+            district: 'Quận không được để trống',
+            city: 'Thành phố không được để trống'
+        };
         
-        if (emptyRequiredFields.length > 0) {
-            emptyRequiredFields.forEach((fieldName) => {
-                newErrors[fieldName] = t('becomeReseller.form.fieldRequired');
-            });
-        }
+        Object.entries(requiredFields).forEach(([fieldName, errorMessage]) => {
+            if (!formFields[fieldName as keyof typeof formFields]) {
+                newErrors[fieldName] = errorMessage;
+            }
+        });
 
         // Validate all fields with values according to backend requirements
         Object.entries(formFields).forEach(([key, value]) => {
-            const isOptionalField = !requiredFieldNames.includes(key);
-            if (isOptionalField && !value) return; // Skip empty optional fields
+            if (!value) return; // Skip validation if already handled by required field check
             
             // Validate each field according to backend rules
             switch (key) {
                 case 'email':
-                    if (value) {
-                        if (!emailRegex.test(value)) {
-                            newErrors.email = 'Invalid email format';
-                        } else if (value.length > 100) {
-                            newErrors.email = 'Email cannot exceed 100 characters';
-                        }
+                    if (!emailRegex.test(value)) {
+                        newErrors.email = 'Email không hợp lệ';
+                    } else if (value.length > 100) {
+                        newErrors.email = 'Email cannot exceed 100 characters';
                     }
                     break;
                 case 'phone':
-                    if (value) {
-                        if (!phoneRegex.test(value)) {
-                            newErrors.phone = 'Phone number format is invalid';
-                        } else if (value.length < 10 || value.length > 15) {
-                            newErrors.phone = 'Phone number must be between 10 and 15 characters';
-                        }
-                    }
-                    break;
-                case 'username':
-                    if (value) {
-                        if (!usernameRegex.test(value)) {
-                            newErrors.username = 'Username must start with a letter and contain only letters and numbers';
-                        } else if (value.length < 6 || value.length > 50) {
-                            newErrors.username = 'Username must be at least 6 characters';
-                        }
-                    }
-                    break;
-                case 'password':
-                    if (value) {
-                        if (value.length < 6 || value.length > 100) {
-                            newErrors.password = 'Password must be at least 6 characters';
-                        }
+                    if (!phoneRegex.test(value)) {
+                        newErrors.phone = 'Số điện thoại không hợp lệ (phải bắt đầu bằng 0 và đủ 10 số)';
                     }
                     break;
                 case 'name':
-                    if (value && (value.length < 2 || value.length > 100)) {
+                    if (value.length < 2 || value.length > 100) {
                         newErrors.name = 'Full name must be between 2 and 100 characters';
                     }
                     break;
                 case 'address':
-                    if (value && value.length > 255) {
+                    if (value.length > 255) {
                         newErrors.address = 'Address cannot exceed 255 characters';
                     }
                     break;
                 case 'district':
-                    if (value && value.length > 100) {
+                    if (value.length > 100) {
                         newErrors.district = 'District cannot exceed 100 characters';
                     }
                     break;
                 case 'city':
-                    if (value && value.length > 100) {
+                    if (value.length > 100) {
                         newErrors.city = 'City cannot exceed 100 characters';
                     }
                     break;
@@ -298,12 +243,10 @@ export default function BecomeOurReseller() {
 
         try {
             // Submit reseller application via API
-            const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/reseller/register`;
+            const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/dealers`;
             
             const response = await axios.post(apiUrl, {
-                name: formFields.name,
-                username: formFields.username,
-                password: formFields.password,
+                companyName: formFields.name,
                 address: formFields.address,
                 district: formFields.district,
                 city: formFields.city,
@@ -322,8 +265,6 @@ export default function BecomeOurReseller() {
                 setErrorMessage('');
                 setFormData({
                     name: '',
-                    username: '',
-                    password: '',
                     address: '',
                     district: '',
                     city: '',
@@ -360,12 +301,6 @@ export default function BecomeOurReseller() {
                         }
                         if (responseData.errors.name) {
                             backendErrors.name = responseData.errors.name;
-                        }
-                        if (responseData.errors.username) {
-                            backendErrors.username = responseData.errors.username;
-                        }
-                        if (responseData.errors.password) {
-                            backendErrors.password = responseData.errors.password;
                         }
                         
                         if (Object.keys(backendErrors).length > 0) {
@@ -490,7 +425,7 @@ export default function BecomeOurReseller() {
                                         
                                         <div className={`grid grid-cols-1 md:grid-cols-2 ${ultraWideSpacing['grid-gap-md']}`}>
                                             {/* Name */}
-                                            <div>
+                                            <div className="md:col-span-2">
                                                 <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
                                                     {t('becomeReseller.form.nameRequired')}
                                                 </label>
@@ -510,48 +445,6 @@ export default function BecomeOurReseller() {
                                                 )}
                                             </div>
 
-                                            {/* Username */}
-                                            <div>
-                                                <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
-                                                    {t('becomeReseller.form.usernameRequired')}
-                                                </label>
-                                                <Input
-                                                    id="username"
-                                                    name="username"
-                                                    type="text"
-                                                    value={formData.username}
-                                                    onChange={handleInputChange}
-                                                    placeholder={t('becomeReseller.form.usernamePlaceholder')}
-                                                    className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
-                                                        validationErrors.username ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-                                                    }`}
-                                                />
-                                                {validationErrors.username && (
-                                                    <p className="text-red-400 text-sm mt-1">{validationErrors.username}</p>
-                                                )}
-                                            </div>
-
-                                            {/* Password */}
-                                            <div className="md:col-span-2">
-                                                <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                                                    {t('becomeReseller.form.passwordRequired')}
-                                                </label>
-                                                <Input
-                                                    id="password"
-                                                    name="password"
-                                                    type="password"
-                                                    value={formData.password}
-                                                    onChange={handleInputChange}
-                                                    placeholder={t('becomeReseller.form.passwordPlaceholder')}
-                                                    className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
-                                                        validationErrors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-                                                    }`}
-                                                />
-                                                {validationErrors.password && (
-                                                    <p className="text-red-400 text-sm mt-1">{validationErrors.password}</p>
-                                                )}
-                                            </div>
-
                                             {/* Phone */}
                                             <div>
                                                 <label htmlFor="phone" className="block text-sm font-medium text-gray-300 mb-2">
@@ -563,7 +456,7 @@ export default function BecomeOurReseller() {
                                                     type="tel"
                                                     value={formData.phone}
                                                     onChange={handleInputChange}
-                                                    placeholder="123-456-7890 or +84 123 456 789"
+                                                    placeholder="0123456789"
                                                     className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
                                                         validationErrors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
                                                     }`}
