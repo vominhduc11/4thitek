@@ -452,7 +452,7 @@ export default function ProductHero({
                                             duration: 0.25,
                                             ease: [0.4, 0, 0.2, 1]
                                         }}
-                                        className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-white max-w-[520px] px-4"
+                                        className="text-sm xs:text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl 2xl:text-4xl font-bold text-white leading-tight xs:leading-tight sm:leading-tight md:leading-tight lg:leading-tight xl:leading-tight max-w-[280px] xs:max-w-[320px] sm:max-w-[400px] md:max-w-[480px] lg:max-w-[560px] xl:max-w-[640px] 2xl:max-w-[720px] px-2 xs:px-3 sm:px-4 text-center line-clamp-3"
                                     >
                                         {product.name}
                                     </motion.h1>
@@ -484,7 +484,7 @@ export default function ProductHero({
                                             }}
                                         >
                                             <ProductImageWithFallback
-                                                src="/products/product1.png"
+                                                src={product.featuredImage || product.images?.[0] || "/products/product1.png"}
                                                 alt={product.name}
                                                 className="w-full h-full object-contain max-w-[240px] sm:max-w-[320px] md:max-w-[400px] lg:max-w-[480px] xl:max-w-[560px] 2xl:max-w-[720px] 3xl:max-w-[850px] 4xl:max-w-[1000px] max-h-[240px] sm:max-h-[320px] md:max-h-[400px] lg:max-h-[480px] xl:max-h-[560px] 2xl:max-h-[720px] 3xl:max-h-[850px] 4xl:max-h-[1000px]"
                                             />

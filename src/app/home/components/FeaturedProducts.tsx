@@ -1,51 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiArrowUpRight } from 'react-icons/fi';
 import Image from 'next/image';
 import Link from 'next/link';
 import clsx from 'clsx';
 import { useLanguage } from '@/context/LanguageContext';
+import { apiService } from '@/services/apiService';
 
 interface FeaturedProduct {
-    id: string;
+    id: number;
     name: string;
-    categoryKey: string;
-    descriptionKey: string;
+    shortDescription: string;
     image: string;
 }
 
-const featuredProducts: FeaturedProduct[] = [
-    {
-        id: 'sx-pro-elite',
-        name: 'TUNECORE SX Pro Elite',
-        categoryKey: 'products.categories.gaming',
-        descriptionKey: 'products.featured.sxProElite',
-        image: '/products/product1.png'
-    },
-    {
-        id: 'gx-wireless-pro',
-        name: 'TUNECORE GX Wireless Pro',
-        categoryKey: 'products.categories.wirelessHeadsets',
-        descriptionKey: 'products.featured.gxWirelessPro',
-        image: '/products/product1.png'
-    },
-    {
-        id: 'hx-studio-master',
-        name: 'TUNECORE HX Studio Master',
-        categoryKey: 'products.categories.professionalAudio',
-        descriptionKey: 'products.featured.hxStudioMaster',
-        image: '/products/product1.png'
-    },
-    {
-        id: 'mx-sport-elite',
-        name: 'TUNECORE MX Sport Elite',
-        categoryKey: 'products.categories.wirelessHeadsets',
-        descriptionKey: 'products.featured.mxSportElite',
-        image: '/products/product1.png'
-    }
-];
+interface ParsedImage {
+    imageUrl: string;
+    public_id: string;
+}
+
 
 interface ProductImageWithFallbackProps {
     src: string;
@@ -91,8 +66,51 @@ function ProductImageWithFallback({ src, alt, className }: ProductImageWithFallb
 }
 
 export default function FeaturedProducts() {
-    const [hoveredProductId, setHoveredProductId] = useState<string | null>(null);
+    const [hoveredProductId, setHoveredProductId] = useState<number | null>(null);
+    const [products, setProducts] = useState<FeaturedProduct[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const { t } = useLanguage();
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                setIsLoading(true);
+                const response = await apiService.fetchHomepageProducts();
+
+                if (response.success && response.data) {
+                    const processedProducts: FeaturedProduct[] = response.data.map((product: any) => {
+                        // Parse image JSON string
+                        let imageUrl = '/products/product1.png'; // fallback
+                        try {
+                            const parsedImage: ParsedImage = JSON.parse(product.image);
+                            imageUrl = parsedImage.imageUrl;
+                        } catch (e) {
+                            console.warn('Failed to parse product image JSON:', e);
+                        }
+
+                        return {
+                            id: product.id,
+                            name: product.name,
+                            shortDescription: product.shortDescription,
+                            image: imageUrl
+                        };
+                    });
+
+                    setProducts(processedProducts);
+                } else {
+                    setError('Failed to load products');
+                }
+            } catch (err) {
+                setError('Failed to load products');
+                console.error('Error fetching products:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchProducts();
+    }, []);
 
     const renderProductCard = (product: FeaturedProduct, index: number) => {
         return (
@@ -196,7 +214,7 @@ export default function FeaturedProducts() {
                                 <span className="line-clamp-2">{product.name}</span>
                             </motion.h3>
                         <p className="text-gray-300 text-xs sm:text-sm md:text-sm lg:text-sm xl:text-base 2xl:text-base 3xl:text-lg 4xl:text-xl leading-relaxed mb-2 sm:mb-3 md:mb-3 lg:mb-3 xl:mb-4 2xl:mb-5 3xl:mb-6 4xl:mb-7 font-sans line-clamp-2">
-                            {t(product.descriptionKey)}
+                            {product.shortDescription}
                         </p>
 
                         <div className="flex justify-end mt-auto pt-2 sm:pt-3 lg:pt-2 xl:pt-3 3xl:pt-4 4xl:pt-5">
@@ -271,7 +289,40 @@ export default function FeaturedProducts() {
                         transition={{ duration: 0.5, ease: 'easeInOut' }}
                     >
                         <AnimatePresence mode="popLayout">
-                            {featuredProducts.map((product, index) => renderProductCard(product, index))}
+                            {isLoading ? (
+                                // Loading skeleton
+                                Array.from({ length: 4 }).map((_, index) => (
+                                    <motion.div
+                                        key={`skeleton-${index}`}
+                                        className="relative w-full h-[380px] sm:h-[420px] md:h-[460px] lg:h-[480px] xl:h-[500px] 2xl:h-[620px] 3xl:h-[680px] 4xl:h-[720px] 5xl:h-[800px] bg-gray-800/40 border border-gray-700/30 animate-pulse"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ duration: 0.6, delay: index * 0.1 }}
+                                    >
+                                        <div className="p-4 h-full flex flex-col">
+                                            <div className="flex-1 flex items-center justify-center">
+                                                <div className="w-32 h-32 bg-gray-700/50 rounded"></div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <div className="h-4 bg-gray-700/50 rounded w-3/4"></div>
+                                                <div className="h-3 bg-gray-700/50 rounded w-1/2"></div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))
+                            ) : error ? (
+                                // Error state
+                                <motion.div
+                                    className="col-span-full text-center py-12"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                >
+                                    <p className="text-red-400 mb-4">⚠️ {error}</p>
+                                    <p className="text-gray-500 text-sm">Please try again later</p>
+                                </motion.div>
+                            ) : (
+                                products.map((product, index) => renderProductCard(product, index))
+                            )}
                         </AnimatePresence>
                     </motion.div>
                 </div>

@@ -7,13 +7,18 @@ import Image from 'next/image';
 import Link from 'next/link';
 import AvoidSidebar from '@/components/layout/AvoidSidebar';
 import { useLanguage } from '@/context/LanguageContext';
+import { apiService } from '@/services/apiService';
 
 interface Product {
-    id: string;
+    id: number;
     name: string;
-    description: string;
+    shortDescription: string;
+    image: string;
+}
+
+interface ParsedImage {
     imageUrl: string;
-    link: string;
+    public_id: string;
 }
 
 interface FeaturedProductsCarouselProps {
@@ -21,40 +26,57 @@ interface FeaturedProductsCarouselProps {
     initialIndex?: number;
 }
 
-const defaultProducts: Product[] = [
-    {
-        id: '1',
-        name: 'SCSETC G7+',
-        description:
-            'Premium gaming headset với công nghệ âm thanh 7.1 surround và microphone noise-cancelling tiên tiến.',
-        imageUrl: '/products/product1.png',
-        link: '/products/1'
-    },
-    {
-        id: '2',
-        name: 'SCSETC G7+ Pro',
-        description:
-            'Professional gaming headset với driver 50mm và hệ thống làm mát thông minh cho những trận đấu dài.',
-        imageUrl: '/products/product1.png',
-        link: '/products/2'
-    },
-    {
-        id: '3',
-        name: 'SCSETC G7+ Elite',
-        description: 'Elite gaming headset với RGB lighting và wireless connectivity cho trải nghiệm gaming hoàn hảo.',
-        imageUrl: '/products/product1.png',
-        link: '/products/3'
-    }
-];
 
 const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({
-    products = defaultProducts,
     initialIndex = 0
 }) => {
     const { t } = useLanguage();
+    const [products, setProducts] = useState<Product[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [touchStart, setTouchStart] = useState<number | null>(null);
     const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                setIsLoading(true);
+                const response = await apiService.fetchHomepageProducts();
+
+                if (response.success && response.data) {
+                    const processedProducts: Product[] = response.data.map((product: any) => {
+                        // Parse image JSON string
+                        let imageUrl = '/products/product1.png'; // fallback
+                        try {
+                            const parsedImage: ParsedImage = JSON.parse(product.image);
+                            imageUrl = parsedImage.imageUrl;
+                        } catch (e) {
+                            console.warn('Failed to parse product image JSON:', e);
+                        }
+
+                        return {
+                            id: product.id,
+                            name: product.name,
+                            shortDescription: product.shortDescription,
+                            image: imageUrl
+                        };
+                    });
+
+                    setProducts(processedProducts);
+                } else {
+                    setError('Failed to load products');
+                }
+            } catch (err) {
+                setError('Failed to load products');
+                console.error('Error fetching products:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchProducts();
+    }, []);
 
     const nextProduct = useCallback(() => {
         setCurrentIndex((prev) => (prev + 1) % products.length);
@@ -103,6 +125,38 @@ const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({
     }, [nextProduct, prevProduct]);
 
     const currentProduct = products[currentIndex];
+
+    // Handle empty products or loading
+    if (isLoading || products.length === 0) {
+        return (
+            <AvoidSidebar>
+                <section className="py-16 md:py-24 bg-gradient-to-b from-[#013A5E] to-[#032B4A] relative overflow-hidden">
+                    <div className="container mx-auto px-4 max-w-[1400px] relative z-10">
+                        <div className="text-center mb-16">
+                            <h2 className="text-[2rem] font-semibold text-[#E1F0FF] mb-4">
+                                {t('products.featured.carouselTitle')}
+                            </h2>
+                        </div>
+                        <div className="flex items-center justify-center h-96">
+                            {isLoading ? (
+                                <div className="text-white text-center">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#48C7FF] mx-auto mb-4"></div>
+                                    <p>Loading products...</p>
+                                </div>
+                            ) : error ? (
+                                <div className="text-center">
+                                    <p className="text-red-400 mb-4">⚠️ {error}</p>
+                                    <p className="text-gray-500 text-sm">Please try again later</p>
+                                </div>
+                            ) : (
+                                <p className="text-gray-400">No products available</p>
+                            )}
+                        </div>
+                    </div>
+                </section>
+            </AvoidSidebar>
+        );
+    }
 
     const containerVariants = {
         enter: (direction: number) => ({
@@ -389,8 +443,8 @@ const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({
                                     >
                                         <Image
                                             src={
-                                                currentProduct.imageUrl ||
-                                                'https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg'
+                                                currentProduct.image ||
+                                                '/products/product1.png'
                                             }
                                             alt={currentProduct.name}
                                             fill
@@ -502,7 +556,7 @@ const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({
                                                     exit: { opacity: 0, y: -20 }
                                                 }}
                                             >
-                                                {currentProduct.description}
+                                                {currentProduct.shortDescription}
                                             </motion.p>
                                         </motion.div>
 
@@ -528,7 +582,7 @@ const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({
                                                     ease: 'easeInOut'
                                                 }}
                                             />
-                                            <Link href={currentProduct.link}>
+                                            <Link href={`/products/${currentProduct.id}`}>
                                                 <motion.button
                                                     className="relative border border-white rounded-full px-6 py-2 text-[0.875rem] text-white hover:bg-[rgba(72,199,255,0.2)] hover:border-[#48C7FF] focus:outline-none focus:ring-2 focus:ring-[#48C7FF] focus:bg-[rgba(72,199,255,0.2)] focus:border-[#48C7FF] transition-all duration-300 overflow-hidden"
                                                     whileHover={{

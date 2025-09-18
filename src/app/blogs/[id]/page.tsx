@@ -48,17 +48,54 @@ export default function BlogDetailPageImproved() {
         if (!params?.id) return;
 
         const postId = params.id as string;
-        
+
         // Try to fetch specific blog post from API first
         const fetchSpecificPost = async () => {
             try {
                 setLoading(true);
                 setError(null);
-                
+
                 const response = await apiService.fetchBlogById(postId);
-                
+
                 if (response.success && response.data) {
-                    setPost(response.data);
+                    // Transform API data to match BlogPost interface
+                    const blogData = response.data;
+
+                    // Parse image JSON string
+                    let featuredImage = 'https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg';
+                    try {
+                        const parsedImage = JSON.parse(blogData.image);
+                        featuredImage = parsedImage.imageUrl;
+                    } catch (e) {
+                        console.warn('Failed to parse blog image JSON:', e);
+                    }
+
+                    // Parse introduction JSON for content
+                    let content: any = blogData.description || '';
+                    let introductionBlocks: any[] = [];
+
+                    try {
+                        introductionBlocks = JSON.parse(blogData.introduction || '[]');
+                    } catch (e) {
+                        console.warn('Failed to parse introduction JSON:', e);
+                    }
+
+                    const transformedPost: BlogPost = {
+                        id: blogData.id.toString(),
+                        title: blogData.title,
+                        excerpt: blogData.description,
+                        content: content,
+                        featuredImage: featuredImage,
+                        publishedAt: blogData.createdAt,
+                        readingTime: '5 min',
+                        category: {
+                            id: blogData.category,
+                            name: blogData.category
+                        },
+                        introductionBlocks: introductionBlocks
+                    };
+
+                    setPost(transformedPost);
                 } else {
                     // Fallback to searching in allPosts
                     const foundPost = allPosts.find((p) => p.id === postId);
@@ -245,7 +282,42 @@ export default function BlogDetailPageImproved() {
                                     transition={{ duration: 0.8, delay: 0.4 }}
                                     viewport={{ once: true }}
                                 >
-                                    {Array.isArray(post.content) ? (
+                                    {/* Render introduction blocks from API */}
+                                    {post.introductionBlocks && post.introductionBlocks.length > 0 ? (
+                                        <div className="space-y-6">
+                                            {post.introductionBlocks.map((block: any, index: number) => (
+                                                <motion.div
+                                                    key={index}
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    whileInView={{ opacity: 1, y: 0 }}
+                                                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                                                    viewport={{ once: true }}
+                                                >
+                                                    {block.type === 'title' && (
+                                                        <h2 className="text-2xl font-bold text-white mt-8 mb-4">
+                                                            {block.text}
+                                                        </h2>
+                                                    )}
+                                                    {block.type === 'description' && (
+                                                        <div
+                                                            className="text-gray-300 leading-relaxed mb-4"
+                                                            dangerouslySetInnerHTML={{ __html: block.text }}
+                                                        />
+                                                    )}
+                                                    {block.type === 'image' && block.imageUrl && (
+                                                        <div className="relative w-full h-[300px] sm:h-[400px] my-8 rounded-lg overflow-hidden">
+                                                            <Image
+                                                                src={block.imageUrl}
+                                                                alt={block.text || 'Blog content image'}
+                                                                fill
+                                                                className="object-cover"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                    ) : Array.isArray(post.content) ? (
                                         <div className="space-y-6">
                                             {post.content.map((block: BlogContentBlock, index: number) => (
                                                 <motion.div

@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { motion, Variants } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
+import { useState, useEffect } from 'react';
+import { apiService } from '@/services/apiService';
 
 // Product info
 const PRODUCT_INFO = {
@@ -86,13 +88,67 @@ const gradientVariants: Variants = {
     visible: { opacity: 1, transition: { duration: 2.0, delay: 1.5 } }
 };
 
+interface Product {
+    id: number;
+    name: string;
+    shortDescription: string;
+    image: string;
+}
+
+interface ParsedImage {
+    imageUrl: string;
+    public_id: string;
+}
+
 export default function HeroSection() {
     const router = useRouter();
     const { t } = useLanguage();
+    const [product, setProduct] = useState<Product | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchProduct = async () => {
+            try {
+                setIsLoading(true);
+                const response = await apiService.fetchHomepageProducts();
+
+                if (response.success && response.data && response.data.length > 0) {
+                    const productData = response.data[0];
+
+                    // Parse image JSON string
+                    let imageUrl = PRODUCT_INFO.IMAGE; // fallback
+                    try {
+                        const parsedImage: ParsedImage = JSON.parse(productData.image);
+                        imageUrl = parsedImage.imageUrl;
+                    } catch (e) {
+                        console.warn('Failed to parse product image JSON:', e);
+                    }
+
+                    setProduct({
+                        ...productData,
+                        image: imageUrl
+                    });
+                } else {
+                    setError('No products found');
+                }
+            } catch (err) {
+                setError('Failed to load product data');
+                console.error('Error fetching product:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchProduct();
+    }, []);
 
     const handleDiscoveryClick = () => {
         router.push('/products?position=Premium');
     };
+
+    const displayName = product?.name || PRODUCT_INFO.NAME;
+    const displayImage = product?.image || PRODUCT_INFO.IMAGE;
 
     return (
         <section
@@ -138,7 +194,11 @@ export default function HeroSection() {
                 animate="visible"
                 whileHover="hover"
             >
-                {PRODUCT_INFO.NAME}
+                {isLoading ? (
+                    <div className="animate-pulse bg-white/20 rounded h-16 mx-auto max-w-md"></div>
+                ) : (
+                    displayName
+                )}
             </motion.h1>
 
             {/* Product Image */}
@@ -149,14 +209,18 @@ export default function HeroSection() {
                 animate="visible"
                 whileHover="hover"
             >
-                <Image
-                    src={PRODUCT_INFO.IMAGE}
-                    alt={PRODUCT_INFO.NAME}
-                    width={384}
-                    height={216}
-                    className="object-contain drop-shadow-2xl w-[180px] xs:w-[220px] sm:w-[280px] md:w-[350px] lg:w-[384px] h-auto"
-                    priority
-                />
+                {isLoading ? (
+                    <div className="animate-pulse bg-white/20 rounded-lg w-[180px] xs:w-[220px] sm:w-[280px] md:w-[350px] lg:w-[384px] h-[100px] xs:h-[120px] sm:h-[157px] md:h-[197px] lg:h-[216px]"></div>
+                ) : (
+                    <Image
+                        src={displayImage}
+                        alt={displayName}
+                        width={384}
+                        height={216}
+                        className="object-contain drop-shadow-2xl w-[180px] xs:w-[220px] sm:w-[280px] md:w-[350px] lg:w-[384px] h-auto"
+                        priority
+                    />
+                )}
             </motion.div>
 
             {/* Description & Button */}
@@ -178,7 +242,15 @@ export default function HeroSection() {
                         initial="hidden"
                         animate="visible"
                     >
-                        {t('hero.subtitle')}
+                        {isLoading ? (
+                            <>
+                                <span className="block animate-pulse bg-white/20 rounded h-4 mx-auto max-w-xl mb-2"></span>
+                                <span className="block animate-pulse bg-white/20 rounded h-4 mx-auto max-w-lg mb-2"></span>
+                                <span className="block animate-pulse bg-white/20 rounded h-4 mx-auto max-w-md"></span>
+                            </>
+                        ) : (
+                            product?.shortDescription || t('hero.subtitle')
+                        )}
                     </motion.p>
                 </motion.div>
 
@@ -190,7 +262,8 @@ export default function HeroSection() {
                     whileHover="hover"
                     whileTap="tap"
                     onClick={handleDiscoveryClick}
-                    aria-label={`Discover more about ${PRODUCT_INFO.NAME}`}
+                    aria-label={`Discover more about ${displayName}`}
+                    disabled={isLoading}
                 >
                     {t('hero.cta')}
                 </motion.button>
@@ -222,6 +295,19 @@ export default function HeroSection() {
                     style={{ left: r.left, top: '10%', transform: 'rotate(12deg)', animationDelay: `${r.delay}s`, animationDuration: `${r.duration}s` }}
                 />
             ))}
+
+            {/* Error Display */}
+            {error && (
+                <motion.div
+                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-500/80 text-white px-4 py-2 rounded-lg z-30"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                >
+                    <p className="text-sm font-medium">⚠️ {error}</p>
+                    <p className="text-xs opacity-75 mt-1">Using fallback content</p>
+                </motion.div>
+            )}
         </section>
     );
 }

@@ -17,6 +17,12 @@ const nextConfig: NextConfig = {
                 hostname: 'thinkzone.vn',
                 port: '',
                 pathname: '/uploads/**'
+            },
+            {
+                protocol: 'https',
+                hostname: 'res.cloudinary.com',
+                port: '',
+                pathname: '/**'
             }
         ],
         formats: ['image/avif', 'image/webp'],

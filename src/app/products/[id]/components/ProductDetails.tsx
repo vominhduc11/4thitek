@@ -20,6 +20,7 @@ interface ProductDetailsProps {
     highlights: string[];
     description: string;
     content?: ContentItem[];
+    descriptions?: any[];
 }
 
 // Demo data structure:
@@ -42,7 +43,7 @@ interface ProductDetailsProps {
 //     }
 // ];
 
-export default function ProductDetails({ features, highlights, description, content }: ProductDetailsProps) {
+export default function ProductDetails({ features, highlights, description, content, descriptions }: ProductDetailsProps) {
     // Demo features data
     const demoFeatures = [
         {
@@ -140,6 +141,50 @@ export default function ProductDetails({ features, highlights, description, cont
                 return null;
         }
     };
+
+    // Render descriptions from API
+    const renderApiDescription = (item: any, index: number) => {
+        switch (item.type) {
+            case 'title':
+                return (
+                    <div key={index} className="w-full">
+                        <h3 className="text-lg md:text-xl lg:text-2xl xl:text-3xl 2xl:text-3xl 3xl:text-5xl 4xl:text-6xl 5xl:text-7xl font-bold text-white mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10 5xl:mb-12">{item.text}</h3>
+                    </div>
+                );
+            case 'description':
+                return (
+                    <div key={index} className="text-justify">
+                        <div
+                            className="text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl leading-relaxed"
+                            dangerouslySetInnerHTML={{ __html: item.text }}
+                        />
+                    </div>
+                );
+            case 'image':
+                return (
+                    <div key={index} className="w-full">
+                        <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 aspect-[2/1] overflow-hidden">
+                            <Image
+                                src={item.link?.url || '/products/product1.png'}
+                                alt="Product detail image"
+                                width={1200}
+                                height={400}
+                                className="w-full h-full object-cover rounded-lg"
+                                priority
+                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, (max-width: 3200px) 1200px, 1500px"
+                                onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.src =
+                                        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMTExIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZmlsbD0iIzU1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkhlbG1ldCBEZXRhaWw8L3RleHQ+PC9zdmc+';
+                                }}
+                            />
+                        </div>
+                    </div>
+                );
+            default:
+                return null;
+        }
+    };
     return (
         <section className="relative z-[150] min-h-screen">
             <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-[200]">
@@ -148,7 +193,9 @@ export default function ProductDetails({ features, highlights, description, cont
                 {/* Product Description */}
                 <div className="mb-12 md:mb-16">
                     <div className="flex flex-col space-y-6">
-                        {content && content.length > 0 ? (
+                        {descriptions && descriptions.length > 0 ? (
+                            descriptions.map((item, index) => renderApiDescription(item, index))
+                        ) : content && content.length > 0 ? (
                             content.map((item, index) => renderContent(item, index))
                         ) : demoContent ? (
                             demoContent.map((item, index) => renderContent(item, index))

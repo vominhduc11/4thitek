@@ -11,6 +11,7 @@ import RelatedProducts from '@/app/products/[id]/components/RelatedProducts';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { getProductById, getRelatedProducts } from '@/data/products';
 import { useLanguage } from '@/context/LanguageContext';
+import { apiService } from '@/services/apiService';
 import type { Product } from '@/types/product';
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
@@ -21,6 +22,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     const [activeBreadcrumb, setActiveBreadcrumb] = useState('');
     const [currentSection, setCurrentSection] = useState('details');
     const [isTransitioning, setIsTransitioning] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         params.then(setResolvedParams);
@@ -28,16 +31,118 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
     useEffect(() => {
         if (resolvedParams?.id) {
-            const product = getProductById(resolvedParams.id);
+            const fetchProduct = async () => {
+                try {
+                    setIsLoading(true);
+                    setError(null);
 
-            if (product) {
-                setCurrentProduct(product);
-                // Get related products based on category and position
-                const related = getRelatedProducts(product.id, 4);
-                setRelatedProducts(related);
-            } else {
-                // Fallback for unknown product
-            }
+                    const response = await apiService.fetchProductById(resolvedParams.id);
+
+                    if (response.success && response.data) {
+                        // Transform API data to match Product interface
+                        const productData = response.data;
+
+                        // Parse image JSON string
+                        let featuredImage = '/products/product1.png';
+                        try {
+                            const parsedImage = JSON.parse(productData.image);
+                            featuredImage = parsedImage.imageUrl;
+                        } catch (e) {
+                            console.warn('Failed to parse product image JSON:', e);
+                        }
+
+                        // Parse descriptions JSON for content
+                        let descriptions: any[] = [];
+                        try {
+                            descriptions = JSON.parse(productData.descriptions || '[]');
+                        } catch (e) {
+                            console.warn('Failed to parse descriptions JSON:', e);
+                        }
+
+                        // Parse videos JSON
+                        let videos: any[] = [];
+                        try {
+                            videos = JSON.parse(productData.videos || '[]');
+                        } catch (e) {
+                            console.warn('Failed to parse videos JSON:', e);
+                        }
+
+                        // Parse specifications JSON
+                        let specifications: any = {};
+                        try {
+                            specifications = JSON.parse(productData.specifications || '{}');
+                        } catch (e) {
+                            console.warn('Failed to parse specifications JSON:', e);
+                        }
+
+                        // Parse wholesale price JSON
+                        let wholesalePrices: any[] = [];
+                        try {
+                            wholesalePrices = JSON.parse(productData.wholesalePrice || '[]');
+                        } catch (e) {
+                            console.warn('Failed to parse wholesale price JSON:', e);
+                        }
+
+                        const transformedProduct: Product = {
+                            id: productData.id.toString(),
+                            name: productData.name,
+                            sku: productData.sku,
+                            description: productData.shortDescription,
+                            longDescription: productData.shortDescription,
+                            price: productData.price,
+                            compareAtPrice: productData.price * 1.2, // Placeholder
+                            images: [featuredImage],
+                            featuredImage: featuredImage,
+                            position: 'Premium', // Default position
+                            category: {
+                                id: 'electronics',
+                                name: 'Electronics'
+                            },
+                            features: descriptions.filter(d => d.type === 'title').map(d => d.text),
+                            highlights: descriptions.filter(d => d.type === 'description').map(d => d.text),
+                            specifications: specifications,
+                            videos: videos,
+                            wholesalePrices: wholesalePrices,
+                            createdAt: productData.createdAt,
+                            isActive: true,
+                            isFeatured: productData.isFeatured,
+                            descriptions: descriptions
+                        };
+
+                        setCurrentProduct(transformedProduct);
+
+                        // Get related products (fallback to mock data for now)
+                        const related = getRelatedProducts(productData.id.toString(), 4);
+                        setRelatedProducts(related);
+
+                    } else {
+                        // Fallback to mock data
+                        const product = getProductById(resolvedParams.id);
+                        if (product) {
+                            setCurrentProduct(product);
+                            const related = getRelatedProducts(product.id, 4);
+                            setRelatedProducts(related);
+                        } else {
+                            setError('Product not found');
+                        }
+                    }
+                } catch (fetchError) {
+                    console.error('Error fetching product:', fetchError);
+                    // Fallback to mock data
+                    const product = getProductById(resolvedParams.id);
+                    if (product) {
+                        setCurrentProduct(product);
+                        const related = getRelatedProducts(product.id, 4);
+                        setRelatedProducts(related);
+                    } else {
+                        setError('Product not found');
+                    }
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            fetchProduct();
         }
     }, [resolvedParams]);
 
@@ -143,7 +248,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             ease: 'easeOut'
                         }}
                     >
-                        <ProductVideos productName={currentProduct?.name} />
+                        <ProductVideos productName={currentProduct?.name} videos={currentProduct?.videos || []} />
                     </motion.div>
                 );
             case 'specifications':
@@ -159,7 +264,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             ease: 'easeOut'
                         }}
                     >
-                        <ProductSpecifications />
+                        <ProductSpecifications specifications={currentProduct?.specifications || {}} />
                     </motion.div>
                 );
             case 'warranty':
@@ -195,13 +300,14 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             features={currentProduct?.features || []}
                             highlights={currentProduct?.highlights || []}
                             description={currentProduct?.longDescription || currentProduct?.description || ''}
+                            descriptions={currentProduct?.descriptions || []}
                         />
                     </motion.div>
                 );
         }
     };
 
-    if (!currentProduct) {
+    if (isLoading || !currentProduct) {
         return (
             <div className="min-h-screen bg-[#0a0f1a] flex items-center justify-center">
                 <div className="w-full max-w-7xl mx-auto px-4">

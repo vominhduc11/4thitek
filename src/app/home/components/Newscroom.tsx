@@ -1,13 +1,60 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiArrowUpRight } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
+import { apiService } from '@/services/apiService';
 
 export default function Newsroom() {
     const router = useRouter();
     const { t } = useLanguage();
+    const [blogs, setBlogs] = useState<BlogItem[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchBlogs = async () => {
+            try {
+                setIsLoading(true);
+                const response = await apiService.fetchHomepageBlogs();
+
+                if (response.success && response.data) {
+                    const processedBlogs: BlogItem[] = response.data.map((blog: any) => {
+                        // Parse image JSON string
+                        let imageUrl = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=500&fit=crop'; // fallback
+                        try {
+                            const parsedImage: ParsedImage = JSON.parse(blog.image);
+                            imageUrl = parsedImage.imageUrl;
+                        } catch (e) {
+                            console.warn('Failed to parse blog image JSON:', e);
+                        }
+
+                        return {
+                            id: blog.id,
+                            title: blog.title,
+                            description: blog.description,
+                            image: imageUrl,
+                            category: blog.category,
+                            createdAt: blog.createdAt
+                        };
+                    });
+
+                    setBlogs(processedBlogs);
+                } else {
+                    setError('Failed to load blogs');
+                }
+            } catch (err) {
+                setError('Failed to load blogs');
+                console.error('Error fetching blogs:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchBlogs();
+    }, []);
 
     const handleExploreMore = () => {
         router.push('/blogs');
@@ -17,74 +64,34 @@ export default function Newsroom() {
         router.push(`/blogs/${newsId}`);
     };
 
+    const formatDate = (dateString: string) => {
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('vi-VN', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        } catch {
+            return 'Recently';
+        }
+    };
+
     // Types and interfaces (inline)
-    interface NewsItem {
+    interface BlogItem {
         id: number;
-        img: string;
-        captionKey: string;
-        titleKey: string;
-        contentKey: string;
-        dateKey: string;
-        categoryKey: string;
+        title: string;
+        description: string;
+        image: string;
+        category: string;
+        createdAt: string;
     }
 
-    // Mock data (inline)
-    const newsItems: NewsItem[] = [
-        {
-            id: 1,
-            img: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=500&fit=crop',
-            captionKey: 'newsroom.news.1.caption',
-            titleKey: 'newsroom.news.1.title',
-            contentKey: 'newsroom.news.1.content',
-            dateKey: 'newsroom.news.1.date',
-            categoryKey: 'newsroom.categories.technology'
-        },
-        {
-            id: 2,
-            img: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=400&h=500&fit=crop',
-            captionKey: 'newsroom.news.2.caption',
-            titleKey: 'newsroom.news.2.title',
-            contentKey: 'newsroom.news.2.content',
-            dateKey: 'newsroom.news.2.date',
-            categoryKey: 'newsroom.categories.tutorial'
-        },
-        {
-            id: 3,
-            img: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400&h=500&fit=crop',
-            captionKey: 'newsroom.news.3.caption',
-            titleKey: 'newsroom.news.3.title',
-            contentKey: 'newsroom.news.3.content',
-            dateKey: 'newsroom.news.3.date',
-            categoryKey: 'newsroom.categories.news'
-        },
-        {
-            id: 4,
-            img: 'https://images.unsplash.com/photo-1571068316344-75bc76f77890?w=400&h=500&fit=crop',
-            captionKey: 'newsroom.news.4.caption',
-            titleKey: 'newsroom.news.4.title',
-            contentKey: 'newsroom.news.4.content',
-            dateKey: 'newsroom.news.4.date',
-            categoryKey: 'newsroom.categories.review'
-        },
-        {
-            id: 5,
-            img: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=500&fit=crop',
-            captionKey: 'newsroom.news.5.caption',
-            titleKey: 'newsroom.news.5.title',
-            contentKey: 'newsroom.news.5.content',
-            dateKey: 'newsroom.news.5.date',
-            categoryKey: 'newsroom.categories.tips'
-        },
-        {
-            id: 6,
-            img: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=400&h=500&fit=crop',
-            captionKey: 'newsroom.news.6.caption',
-            titleKey: 'newsroom.news.6.title',
-            contentKey: 'newsroom.news.6.content',
-            dateKey: 'newsroom.news.6.date',
-            categoryKey: 'newsroom.categories.review'
-        }
-    ];
+    interface ParsedImage {
+        imageUrl: string;
+        public_id: string;
+    }
+
 
     // Animation variants (inline)
     const animationVariants = {
@@ -171,7 +178,31 @@ export default function Newsroom() {
 
                 {/* News Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6 z-10 relative">
-                    {newsItems.map((post, index) => (
+                    {isLoading ? (
+                        // Loading skeleton
+                        Array.from({ length: 6 }).map((_, index) => (
+                            <motion.div
+                                key={`skeleton-${index}`}
+                                className="relative w-full h-64 sm:h-72 md:h-80 bg-gray-800/40 rounded-lg animate-pulse"
+                                variants={animationVariants.newsItem(index)}
+                                initial="initial"
+                                whileInView="animate"
+                                viewport={{ once: true, amount: 0.3 }}
+                            >
+                                <div className="w-full h-2/3 bg-gray-700/50 rounded-t-lg"></div>
+                                <div className="p-3 space-y-2">
+                                    <div className="h-3 bg-gray-700/50 rounded w-3/4"></div>
+                                    <div className="h-2 bg-gray-700/50 rounded w-1/2"></div>
+                                </div>
+                            </motion.div>
+                        ))
+                    ) : error ? (
+                        <div className="col-span-full text-center py-12">
+                            <p className="text-red-400 mb-4">⚠️ {error}</p>
+                            <p className="text-gray-500 text-sm">Please try again later</p>
+                        </div>
+                    ) : (
+                        blogs.map((post, index) => (
                         <motion.div
                             key={post.id}
                             className="relative w-full h-64 sm:h-72 md:h-80 bg-black/10 rounded-lg overflow-hidden group cursor-pointer"
@@ -188,8 +219,8 @@ export default function Newsroom() {
                             onClick={() => handleNewsClick(post.id)}
                         >
                             <motion.img
-                                src={post.img || 'https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg'}
-                                alt={t(post.captionKey)}
+                                src={post.image || 'https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg'}
+                                alt={post.title}
                                 className="w-full h-full object-cover"
                                 whileHover={{ scale: 1.1 }}
                                 transition={{ duration: 0.4 }}
@@ -201,20 +232,20 @@ export default function Newsroom() {
                                 {/* Header */}
                                 <div className="flex justify-between items-start">
                                     <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-[#4FC8FF] text-white text-xs font-semibold rounded-full">
-                                        {t(post.categoryKey)}
+                                        {post.category}
                                     </span>
                                     <span className="text-white/70 text-xs font-medium">
-                                        {t(post.dateKey)}
+                                        {formatDate(post.createdAt)}
                                     </span>
                                 </div>
 
                                 {/* Main Content */}
                                 <div className="flex-1 flex flex-col justify-center space-y-2 my-3">
                                     <h3 className="text-white font-bold text-xs sm:text-sm md:text-base leading-tight line-clamp-2">
-                                        {t(post.titleKey)}
+                                        {post.title}
                                     </h3>
                                     <p className="text-white/90 text-xs leading-relaxed line-clamp-3">
-                                        {t(post.contentKey)}
+                                        {post.description}
                                     </p>
                                 </div>
 
@@ -222,7 +253,7 @@ export default function Newsroom() {
                                 <div className="flex justify-between items-end">
                                     <div className="flex-1 mr-1 sm:mr-2">
                                         <p className="text-white/70 text-xs leading-tight line-clamp-2">
-                                            {t(post.captionKey)}
+                                            {post.category} • {formatDate(post.createdAt)}
                                         </p>
                                     </div>
                                     <motion.button
@@ -238,7 +269,7 @@ export default function Newsroom() {
                                             e.stopPropagation();
                                             handleNewsClick(post.id);
                                         }}
-                                        aria-label={`Read more about ${t(post.titleKey)}`}
+                                        aria-label={`Read more about ${post.title}`}
                                     >
                                         <FiArrowUpRight size={12} className="sm:w-3.5 sm:h-3.5" color="white" />
                                     </motion.button>
@@ -265,7 +296,8 @@ export default function Newsroom() {
                                 <span className="text-white text-xs font-medium">2 min read</span>
                             </motion.div>
                         </motion.div>
-                    ))}
+                        ))
+                    )}
                 </div>
 
                 {/* Explore More Button */}

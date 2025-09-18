@@ -2,11 +2,18 @@
 
 import { motion } from 'framer-motion';
 
-interface ProductVideosProps {
-    productName?: string;
+interface VideoItem {
+    title: string;
+    videoUrl: string;
+    description?: string;
 }
 
-export default function ProductVideos({ productName }: ProductVideosProps) {
+interface ProductVideosProps {
+    productName?: string;
+    videos?: VideoItem[];
+}
+
+export default function ProductVideos({ productName, videos = [] }: ProductVideosProps) {
     const videoList = [
         {
             title: 'Setup & Installation Guide',
@@ -58,36 +65,38 @@ export default function ProductVideos({ productName }: ProductVideosProps) {
                 <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-4xl 3xl:text-6xl 4xl:text-7xl font-bold mb-6 md:mb-8 text-white">VIDEO GALLERY</h2>
 
                 {/* Featured Video */}
-                <div className="mb-8 md:mb-12">
-                    <div className="bg-gray-900/50 rounded-2xl overflow-hidden border border-gray-700/50">
-                        <div className="aspect-video bg-gray-800 relative group">
-                            <video
-                                className="w-full h-full object-cover"
-                                controls
-                                preload="metadata"
-                                poster="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQ1MCIgdmlld0JveD0iMCAwIDgwMCA0NTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNDUwIiBmaWxsPSIjMTExODI3Ii8+CjxwYXRoIGQ9Ik0zNTAgMjAwTDQ1MCAyMjVMMzUwIDI1MFYyMDBaIiBmaWxsPSIjNEY5NEZGIi8+Cjwvc3ZnPgo="
-                            >
-                                <source
-                                    src="/videos/futuristic-background-2022-08-04-19-57-56-utc.mp4"
-                                    type="video/mp4"
-                                />
-                                Your browser does not support the video tag.
-                            </video>
-                        </div>
-                        <div className="p-4 md:p-6">
-                            <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-2xl 2xl:text-2xl 3xl:text-4xl 4xl:text-5xl font-bold text-white mb-2">
-                                Đánh giá chi tiết {productName}
-                            </h3>
-                            <p className="text-gray-400 text-sm sm:text-base md:text-lg lg:text-xl xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">
-                                Video đánh giá toàn diện về sản phẩm, từ unboxing đến test thực tế
-                            </p>
+                {(videos.length > 0 || videoList.length > 0) && (
+                    <div className="mb-8 md:mb-12">
+                        <div className="bg-gray-900/50 rounded-2xl overflow-hidden border border-gray-700/50">
+                            <div className="aspect-video bg-gray-800 relative group">
+                                <video
+                                    className="w-full h-full object-cover"
+                                    controls
+                                    preload="metadata"
+                                    poster="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQ1MCIgdmlld0JveD0iMCAwIDgwMCA0NTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNDUwIiBmaWxsPSIjMTExODI3Ii8+CjxwYXRoIGQ9Ik0zNTAgMjAwTDQ1MCAyMjVMMzUwIDI1MFYyMDBaIiBmaWxsPSIjNEY5NEZGIi8+Cjwvc3ZnPgo="
+                                >
+                                    <source
+                                        src={videos.length > 0 ? videos[0].videoUrl : "/videos/futuristic-background-2022-08-04-19-57-56-utc.mp4"}
+                                        type="video/mp4"
+                                    />
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
+                            <div className="p-4 md:p-6">
+                                <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-2xl 2xl:text-2xl 3xl:text-4xl 4xl:text-5xl font-bold text-white mb-2">
+                                    {videos.length > 0 ? videos[0].title : `Đánh giá chi tiết ${productName}`}
+                                </h3>
+                                <p className="text-gray-400 text-sm sm:text-base md:text-lg lg:text-xl xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">
+                                    {videos.length > 0 ? videos[0].description || `Video ${videos[0].title}` : "Video đánh giá toàn diện về sản phẩm, từ unboxing đến test thực tế"}
+                                </p>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 {/* Video Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-12">
-                    {videoList.map((video, index) => (
+                    {(videos.length > 0 ? videos : videoList).map((video, index) => (
                         <motion.div
                             key={index}
                             initial={{ opacity: 0, y: 30 }}
@@ -123,15 +132,19 @@ export default function ProductVideos({ productName }: ProductVideosProps) {
                                     <source src={video.videoUrl} type="video/mp4" />
                                     Your browser does not support the video tag.
                                 </video>
-                                <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl px-2 py-1 rounded">
-                                    {video.duration}
-                                </div>
+                                {('duration' in video) && (
+                                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl px-2 py-1 rounded">
+                                        {(video as any).duration}
+                                    </div>
+                                )}
                             </div>
                             <div className="p-4">
                                 <h4 className="text-white font-medium mb-2 group-hover:text-blue-400 transition-colors line-clamp-2 text-sm sm:text-base md:text-lg lg:text-xl xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">
                                     {video.title}
                                 </h4>
-                                <p className="text-gray-400 text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl line-clamp-2">{video.description}</p>
+                                <p className="text-gray-400 text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl line-clamp-2">
+                                    {video.description || `Video về ${video.title}`}
+                                </p>
                             </div>
                         </motion.div>
                     ))}

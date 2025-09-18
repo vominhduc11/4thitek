@@ -212,9 +212,78 @@ class ApiService {
         );
     }
 
-    async fetchBlogById(id: string): Promise<ApiResponse<BlogPost>> {
+    async fetchBlogById(id: string): Promise<ApiResponse<any>> {
         return this.withRetry(
-            () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/blogs/${id}`, {
+            () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/blog/${id}`, {
+                timeout: TIMEOUTS.GEOCODING_REQUEST,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            }),
+            {
+                maxRetries: 2,
+                baseDelay: 500,
+                maxDelay: 5000
+            }
+        );
+    }
+
+    // Product API methods
+    async fetchHomepageProducts(): Promise<ApiResponse<any[]>> {
+        return this.withRetry(
+            () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/product/products/showhomepageandlimit4?fields=id%2Cname%2CshortDescription%2Cimage`, {
+                timeout: TIMEOUTS.GEOCODING_REQUEST,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            }),
+            {
+                maxRetries: 2,
+                baseDelay: 500,
+                maxDelay: 5000
+            }
+        );
+    }
+
+    async fetchHomepageBlogs(): Promise<ApiResponse<any[]>> {
+        return this.withRetry(
+            () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/blog/blogs/showhomepageandlimit6?fields=id%2Ctitle%2Cdescription%2Cimage%2Ccategory%2CcreatedAt`, {
+                timeout: TIMEOUTS.GEOCODING_REQUEST,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            }),
+            {
+                maxRetries: 2,
+                baseDelay: 500,
+                maxDelay: 5000
+            }
+        );
+    }
+
+    async fetchProductById(id: string): Promise<ApiResponse<any>> {
+        return this.withRetry(
+            () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/product/${id}`, {
+                timeout: TIMEOUTS.GEOCODING_REQUEST,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            }),
+            {
+                maxRetries: 2,
+                baseDelay: 500,
+                maxDelay: 5000
+            }
+        );
+    }
+
+    async fetchRelatedProducts(productId: string, limit: number = 4): Promise<ApiResponse<any[]>> {
+        return this.withRetry(
+            () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/product/products/related/${productId}?limit=${limit}&fields=id%2Cname%2CshortDescription%2Cimage%2Cprice`, {
                 timeout: TIMEOUTS.GEOCODING_REQUEST,
                 headers: {
                     'Accept': 'application/json',
