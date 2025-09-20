@@ -107,6 +107,21 @@ export default function HeroSection() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Helper function to format product title
+    const formatProductTitle = (title: string) => {
+        // Nếu quá dài, chia thành nhiều dòng tại vị trí hợp lý
+        if (title.length > 25) {
+            // Tìm khoảng trắng gần giữa để ngắt dòng
+            const midpoint = Math.floor(title.length / 2);
+            const spaceIndex = title.indexOf(' ', midpoint);
+
+            if (spaceIndex !== -1 && spaceIndex < title.length - 5) {
+                return title.substring(0, spaceIndex) + '\n' + title.substring(spaceIndex + 1);
+            }
+        }
+        return title;
+    };
+
     useEffect(() => {
         const fetchProduct = async () => {
             try {
@@ -188,16 +203,19 @@ export default function HeroSection() {
 
             {/* Title */}
             <motion.h1
-                className="absolute top-[12%] xs:top-[15%] sm:top-[18%] md:top-[16%] left-16 sm:left-20 right-0 text-white text-2xl xs:text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-sans leading-none z-20 text-center px-2"
+                className="absolute top-[12%] xs:top-[15%] sm:top-[18%] md:top-[16%] left-16 sm:left-20 right-0 text-white text-2xl xs:text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-sans leading-tight z-20 text-center px-2 line-clamp-2 xs:line-clamp-2 sm:line-clamp-1 md:line-clamp-1"
                 variants={titleVariants}
                 initial="hidden"
                 animate="visible"
                 whileHover="hover"
+                title={displayName} // Tooltip hiển thị tên đầy đủ
             >
                 {isLoading ? (
                     <div className="animate-pulse bg-white/20 rounded h-16 mx-auto max-w-md"></div>
                 ) : (
-                    displayName
+                    <span style={{ whiteSpace: 'pre-line' }}>
+                        {formatProductTitle(displayName)}
+                    </span>
                 )}
             </motion.h1>
 

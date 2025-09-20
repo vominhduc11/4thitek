@@ -5,16 +5,39 @@ interface SpecificationItem {
     value: string;
 }
 
-interface SpecificationGroup {
-    general?: SpecificationItem[];
-    technical?: SpecificationItem[];
-}
-
 interface ProductSpecificationsProps {
-    specifications?: SpecificationGroup;
+    specifications?: SpecificationItem[] | { general?: SpecificationItem[]; technical?: SpecificationItem[] };
 }
 
-export default function ProductSpecifications({ specifications = {} }: ProductSpecificationsProps) {
+export default function ProductSpecifications({ specifications = [] }: ProductSpecificationsProps) {
+    // Handle both array and object formats
+    const specsArray = Array.isArray(specifications) ? specifications : [];
+    const specsObject = !Array.isArray(specifications) ? specifications : { general: [], technical: [] };
+
+    // Use array format if available, otherwise use object format
+    const displaySpecs = specsArray.length > 0 ? specsArray : [
+        ...(specsObject.general || []),
+        ...(specsObject.technical || [])
+    ];
+
+    // Default specs if no data available
+    const defaultSpecs = [
+        { label: "Model", value: "SCS S-9" },
+        { label: "Bluetooth Version", value: "5.0" },
+        { label: "Khoảng Cách Kết Nối", value: "1000m" },
+        { label: "Số Người Kết Nối", value: "6 người" },
+        { label: "Thời Gian Đàm Thoại", value: "12 giờ" },
+        { label: "Thời Gian Chờ", value: "300 giờ" },
+        { label: "Pin", value: "Li-ion 900mAh" },
+        { label: "Thời Gian Sạc", value: "2.5 giờ" },
+        { label: "Chống Nước", value: "IPX6" },
+        { label: "Nhiệt Độ Hoạt Động", value: "-10°C ~ +55°C" },
+        { label: "Trọng Lượng", value: "85g" },
+        { label: "Kích Thước", value: "120 x 60 x 25mm" }
+    ];
+
+    const finalSpecs = displaySpecs.length > 0 ? displaySpecs : defaultSpecs;
+
     return (
         <section id="product-details" className="relative z-[60]">
             <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-[70]">
@@ -24,93 +47,22 @@ export default function ProductSpecifications({ specifications = {} }: ProductSp
 
                 {/* Main Specifications Table */}
                 <div className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-4 md:p-6 lg:p-8 border border-gray-700/50 shadow-2xl">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-                        {/* Left Column */}
-                        <div className="space-y-6">
-                            <h3 className="text-xl font-bold text-blue-400 mb-6">Thông Số Chung</h3>
-                            <div className="space-y-4">
-                                {specifications.general && specifications.general.length > 0 ? (
-                                    specifications.general.map((spec, index) => (
-                                        <div key={index} className="flex justify-between items-center py-3 border-b border-gray-600/50">
-                                            <span className="text-gray-300 font-medium text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">{spec.label}</span>
-                                            <span className="text-white text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">{spec.value}</span>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-600/50">
-                                            <span className="text-gray-300 font-medium text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">Model</span>
-                                            <span className="text-white text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">SCS S-9</span>
-                                        </div>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-600/50">
-                                            <span className="text-gray-300 font-medium text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">Bluetooth Version</span>
-                                            <span className="text-white text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">5.0</span>
-                                        </div>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-600/50">
-                                            <span className="text-gray-300 font-medium text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">Khoảng Cách Kết Nối</span>
-                                            <span className="text-white text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">1000m</span>
-                                        </div>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-600/50">
-                                            <span className="text-gray-300 font-medium text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">Số Người Kết Nối</span>
-                                            <span className="text-white text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">6 người</span>
-                                        </div>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-600/50">
-                                            <span className="text-gray-300 font-medium text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">Thời Gian Đàm Thoại</span>
-                                            <span className="text-white text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">12 giờ</span>
-                                        </div>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-600/50">
-                                            <span className="text-gray-300 font-medium text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">Thời Gian Chờ</span>
-                                            <span className="text-white text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">300 giờ</span>
-                                        </div>
-                                    </>
-                                )}
+                    <div className="grid grid-cols-1 gap-3 md:gap-4">
+                        {finalSpecs.map((spec, index) => (
+                            <div
+                                key={index}
+                                className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-3 px-4 bg-gray-700/30 rounded-lg border border-gray-600/30 hover:bg-gray-600/40 transition-colors duration-200"
+                            >
+                                <span className="text-blue-300 font-semibold text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl mb-1 sm:mb-0">
+                                    {spec.label}
+                                </span>
+                                <span className="text-white font-medium text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">
+                                    {spec.value}
+                                </span>
                             </div>
-                        </div>
-
-                        {/* Right Column */}
-                        <div className="space-y-6">
-                            <h3 className="text-xl font-bold text-blue-400 mb-6">Thông Số Kỹ Thuật</h3>
-                            <div className="space-y-4">
-                                {specifications.technical && specifications.technical.length > 0 ? (
-                                    specifications.technical.map((spec, index) => (
-                                        <div key={index} className="flex justify-between items-center py-3 border-b border-gray-600/50">
-                                            <span className="text-gray-300 font-medium text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">{spec.label}</span>
-                                            <span className="text-white text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">{spec.value}</span>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-600/50">
-                                            <span className="text-gray-300 font-medium text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">Pin</span>
-                                            <span className="text-white text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">Li-ion 900mAh</span>
-                                        </div>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-600/50">
-                                            <span className="text-gray-300 font-medium text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">Thời Gian Sạc</span>
-                                            <span className="text-white text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">2.5 giờ</span>
-                                        </div>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-600/50">
-                                            <span className="text-gray-300 font-medium text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">Chống Nước</span>
-                                            <span className="text-white text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">IPX6</span>
-                                        </div>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-600/50">
-                                            <span className="text-gray-300 font-medium text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">Nhiệt Độ Hoạt Động</span>
-                                            <span className="text-white text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">-10°C ~ +55°C</span>
-                                        </div>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-600/50">
-                                            <span className="text-gray-300 font-medium text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">Trọng Lượng</span>
-                                            <span className="text-white text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">85g</span>
-                                        </div>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-600/50">
-                                            <span className="text-gray-300 font-medium text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">Kích Thước</span>
-                                            <span className="text-white text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">120 x 60 x 25mm</span>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 </div>
-
             </div>
         </section>
     );

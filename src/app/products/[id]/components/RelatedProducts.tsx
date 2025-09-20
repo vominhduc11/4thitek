@@ -79,7 +79,7 @@ export default function RelatedProducts({ products }: RelatedProductsProps) {
                             {/* Product Image */}
                             <div className="flex justify-center items-center py-4 sm:py-6 lg:py-8 flex-1 relative z-30">
                                 <Image
-                                    src="/products/product1.png"
+                                    src={product.featuredImage || '/products/product1.png'}
                                     alt={product.name}
                                     width={300}
                                     height={300}
@@ -87,11 +87,7 @@ export default function RelatedProducts({ products }: RelatedProductsProps) {
                                     sizes="(max-width: 640px) 180px, (max-width: 1024px) 220px, (max-width: 1280px) 200px, (max-width: 1536px) 250px, (max-width: 1792px) 300px, (max-width: 2048px) 350px, (max-width: 3200px) 400px, 450px"
                                     onError={(e) => {
                                         const target = e.target as HTMLImageElement;
-                                        target.style.display = 'none';
-                                        const fallback = document.createElement('div');
-                                        fallback.className = 'text-6xl text-gray-500';
-                                        fallback.textContent = '🎧';
-                                        target.parentNode?.appendChild(fallback);
+                                        target.src = '/products/product1.png';
                                     }}
                                 />
                             </div>

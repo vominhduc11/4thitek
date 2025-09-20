@@ -126,17 +126,66 @@ export default function BlogDetailPageImproved() {
     useEffect(() => {
         if (!post) return;
 
-        const related = allPosts
-            .filter((p) => p.id !== post.id)
-            .sort((a, b) => {
-                // Prioritize same category
-                if (a.category.id === post.category.id && b.category.id !== post.category.id) return -1;
-                if (b.category.id === post.category.id && a.category.id !== post.category.id) return 1;
-                // Then by date
-                return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-            })
-            .slice(0, 3);
-        setRelatedPosts(related);
+        const fetchRelatedPosts = async () => {
+            try {
+                const response = await apiService.fetchRelatedBlogs(post.id, 4);
+                if (response.success && response.data) {
+                    // Transform API data to match BlogPost interface
+                    const transformedRelated = response.data.map((blog: any) => {
+                        let featuredImage = 'https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg';
+                        try {
+                            const parsedImage = JSON.parse(blog.image);
+                            featuredImage = parsedImage.imageUrl;
+                        } catch (e) {
+                            console.warn('Failed to parse related blog image JSON:', e);
+                        }
+
+                        return {
+                            id: blog.id.toString(),
+                            title: blog.title,
+                            excerpt: blog.description,
+                            featuredImage: featuredImage,
+                            publishedAt: blog.createdAt,
+                            readingTime: '5 min',
+                            category: {
+                                id: blog.category,
+                                name: blog.category
+                            }
+                        };
+                    });
+                    setRelatedPosts(transformedRelated);
+                } else {
+                    // Fallback to existing logic
+                    const related = allPosts
+                        .filter((p) => p.id !== post.id)
+                        .sort((a, b) => {
+                            // Prioritize same category
+                            if (a.category.id === post.category.id && b.category.id !== post.category.id) return -1;
+                            if (b.category.id === post.category.id && a.category.id !== post.category.id) return 1;
+                            // Then by date
+                            return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+                        })
+                        .slice(0, 3);
+                    setRelatedPosts(related);
+                }
+            } catch (error) {
+                console.error('Error fetching related blogs:', error);
+                // Fallback to existing logic
+                const related = allPosts
+                    .filter((p) => p.id !== post.id)
+                    .sort((a, b) => {
+                        // Prioritize same category
+                        if (a.category.id === post.category.id && b.category.id !== post.category.id) return -1;
+                        if (b.category.id === post.category.id && a.category.id !== post.category.id) return 1;
+                        // Then by date
+                        return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+                    })
+                    .slice(0, 3);
+                setRelatedPosts(related);
+            }
+        };
+
+        fetchRelatedPosts();
     }, [post, allPosts]);
 
     if (loading) {

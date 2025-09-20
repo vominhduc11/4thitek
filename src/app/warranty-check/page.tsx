@@ -57,7 +57,7 @@ const WarrantyCheckPage = () => {
         }
     };
 
-    const handleFormSubmit = async (data: { serialNumber: string; invoiceNumber: string }) => {
+    const handleFormSubmit = async (data: { serialNumber: string }) => {
         // Simulate API call
         await new Promise((resolve) => setTimeout(resolve, 1500));
 

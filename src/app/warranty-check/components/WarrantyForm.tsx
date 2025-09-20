@@ -7,13 +7,12 @@ import { Input } from '@/components/ui/input';
 import { useLanguage } from '@/context/LanguageContext';
 
 interface WarrantyFormProps {
-    onSubmit: (data: { serialNumber: string; invoiceNumber: string }) => void;
+    onSubmit: (data: { serialNumber: string }) => void;
 }
 
 const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
     const { t } = useLanguage();
     const [serialNumber, setSerialNumber] = useState('');
-    const [invoiceNumber, setInvoiceNumber] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -25,7 +24,7 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
 
         setIsLoading(true);
         try {
-            await onSubmit({ serialNumber, invoiceNumber });
+            await onSubmit({ serialNumber });
         } finally {
             setIsLoading(false);
         }
@@ -77,28 +76,9 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                 </motion.div>
 
                 <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 0.5 }}
-                >
-                    <label htmlFor="invoiceNumber" className="block text-sm font-medium text-gray-300 mb-2">
-                        {t('warrantyCheck.form.invoiceNumber')}
-                    </label>
-                    <Input
-                        id="invoiceNumber"
-                        type="text"
-                        value={invoiceNumber}
-                        onChange={(e) => setInvoiceNumber(e.target.value)}
-                        placeholder={t('warrantyCheck.form.invoiceNumberPlaceholder')}
-                        className="w-full transition-all duration-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-400"
-                    />
-                    <p className="text-xs sm:text-sm text-gray-400 mt-1">{t('warrantyCheck.form.invoiceNumberHelper')}</p>
-                </motion.div>
-
-                <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.6 }}
+                    transition={{ duration: 0.5, delay: 0.5 }}
                 >
                     <Button
                         type="submit"
@@ -125,33 +105,33 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                 className="mt-6 p-4 bg-[#0c131d] rounded-lg border border-gray-600"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.7 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
             >
                 <h3 className="font-semibold text-gray-300 mb-2">{t('warrantyCheck.form.notes.title')}</h3>
                 <motion.ul
                     className="text-sm text-gray-400 space-y-1"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 0.8 }}
+                    transition={{ duration: 0.5, delay: 0.7 }}
                 >
                     <motion.li
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: 0.9 }}
+                        transition={{ duration: 0.3, delay: 0.8 }}
                     >
                         {t('warrantyCheck.form.notes.serialRequired')}
                     </motion.li>
                     <motion.li
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: 1.0 }}
+                        transition={{ duration: 0.3, delay: 0.9 }}
                     >
                         {t('warrantyCheck.form.notes.infoDisplay')}
                     </motion.li>
                     <motion.li
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: 1.1 }}
+                        transition={{ duration: 0.3, delay: 1.0 }}
                     >
                         {t('warrantyCheck.form.notes.contactSupport')}
                     </motion.li>

@@ -111,9 +111,55 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
                         setCurrentProduct(transformedProduct);
 
-                        // Get related products (fallback to mock data for now)
-                        const related = getRelatedProducts(productData.id.toString(), 4);
-                        setRelatedProducts(related);
+                        // Fetch related products from API
+                        try {
+                            const relatedResponse = await apiService.fetchRelatedProducts(productData.id.toString(), 4);
+                            if (relatedResponse.success && relatedResponse.data) {
+                                // Transform API data to match Product interface
+                                const transformedRelated = relatedResponse.data.map((product: any) => {
+                                    let featuredImage = '/products/product1.png';
+                                    try {
+                                        const parsedImage = JSON.parse(product.image);
+                                        featuredImage = parsedImage.imageUrl;
+                                    } catch (e) {
+                                        console.warn('Failed to parse related product image JSON:', e);
+                                    }
+
+                                    return {
+                                        id: product.id.toString(),
+                                        name: product.name,
+                                        sku: product.sku || '',
+                                        description: product.shortDescription || '',
+                                        longDescription: product.shortDescription || '',
+                                        price: product.price,
+                                        compareAtPrice: product.price * 1.2,
+                                        images: [featuredImage],
+                                        featuredImage: featuredImage,
+                                        position: 'Premium',
+                                        category: { id: 'electronics', name: 'Electronics' },
+                                        features: [],
+                                        highlights: [],
+                                        specifications: {},
+                                        videos: [],
+                                        wholesalePrices: [],
+                                        createdAt: product.createdAt || new Date().toISOString(),
+                                        isActive: true,
+                                        isFeatured: false,
+                                        descriptions: []
+                                    };
+                                });
+                                setRelatedProducts(transformedRelated);
+                            } else {
+                                // Fallback to mock data
+                                const related = getRelatedProducts(productData.id.toString(), 4);
+                                setRelatedProducts(related);
+                            }
+                        } catch (relatedError) {
+                            console.error('Error fetching related products:', relatedError);
+                            // Fallback to mock data
+                            const related = getRelatedProducts(productData.id.toString(), 4);
+                            setRelatedProducts(related);
+                        }
 
                     } else {
                         // Fallback to mock data

@@ -165,7 +165,7 @@ export default function ProductDetails({ features, highlights, description, cont
                     <div key={index} className="w-full">
                         <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 aspect-[2/1] overflow-hidden">
                             <Image
-                                src={item.link?.url || '/products/product1.png'}
+                                src={item.imageUrl || item.link || '/products/product1.png'}
                                 alt="Product detail image"
                                 width={1200}
                                 height={400}

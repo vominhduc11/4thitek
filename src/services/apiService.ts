@@ -297,6 +297,24 @@ class ApiService {
             }
         );
     }
+
+    async fetchRelatedBlogs(blogId: string, limit: number = 4): Promise<ApiResponse<any[]>> {
+        return this.withRetry(
+            () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/blog/blogs/related/${blogId}?limit=${limit}&fields=id%2Ctitle%2Cdescription%2Cimage%2Ccategory%2CcreatedAt`, {
+                timeout: TIMEOUTS.GEOCODING_REQUEST,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            }),
+            {
+                maxRetries: 2,
+                baseDelay: 500,
+                maxDelay: 5000
+            }
+        );
+    }
+
 }
 
 // Export singleton instance
