@@ -6,17 +6,8 @@ import { HeroSection, WarrantyForm, WarrantyResult, LoginForm } from './componen
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
-
-interface WarrantyInfo {
-    serialNumber: string;
-    productName: string;
-    purchaseDate: string;
-    warrantyStatus: 'active' | 'expired' | 'invalid';
-    warrantyEndDate: string;
-    remainingDays: number;
-    customerName?: string;
-    dealerName?: string;
-}
+import { WarrantyInfo, WarrantyCheckData } from '@/types/warranty';
+import { apiService } from '@/services/apiService';
 
 const WarrantyCheckPage = () => {
     const { t } = useLanguage();
@@ -33,37 +24,52 @@ const WarrantyCheckPage = () => {
         }
     }, [isAuthenticated, isLoading, router]);
 
-    // Mock data cho demo - trong thuc te se goi API
-    const mockWarrantyData: Record<string, WarrantyInfo> = {
-        ABC123456: {
-            serialNumber: 'ABC123456',
-            productName: 'Laptop Gaming 4T Pro',
-            purchaseDate: '15/03/2023',
-            warrantyStatus: 'active',
-            warrantyEndDate: '15/03/2025',
-            remainingDays: 245,
-            customerName: 'Nguyen Van A',
-            dealerName: 'Sieu thi dien may XYZ'
-        },
-        DEF789012: {
-            serialNumber: 'DEF789012',
-            productName: 'Man hinh Gaming 4T Ultra',
-            purchaseDate: '10/01/2022',
-            warrantyStatus: 'expired',
-            warrantyEndDate: '10/01/2024',
-            remainingDays: 0,
-            customerName: 'Tran Thi B',
-            dealerName: 'Cua hang cong nghe ABC'
-        }
+    // Helper function to convert API data to UI format
+    const convertApiDataToWarrantyInfo = (apiData: WarrantyCheckData, serialNumber: string): WarrantyInfo => {
+        const purchaseDate = new Date(apiData.purchaseDate);
+        const expirationDate = new Date(apiData.expirationDate);
+        const now = new Date();
+
+        // Calculate remaining days
+        const remainingMs = expirationDate.getTime() - now.getTime();
+        const remainingDays = Math.max(0, Math.ceil(remainingMs / (1000 * 60 * 60 * 24)));
+
+        // Map API status to UI status
+        const statusMapping: { [key: string]: 'active' | 'expired' | 'invalid' } = {
+            'ACTIVE': 'active',
+            'EXPIRED': 'expired',
+            'INVALID': 'invalid'
+        };
+
+        return {
+            serialNumber,
+            productName: `Product ID ${apiData.productId}`, // This would need to be fetched separately or included in API
+            purchaseDate: purchaseDate.toLocaleDateString('vi-VN'),
+            warrantyStatus: statusMapping[apiData.status] || 'invalid',
+            warrantyEndDate: expirationDate.toLocaleDateString('vi-VN'),
+            remainingDays,
+            customerName: apiData.customerName,
+            warrantyCode: apiData.warrantyCode,
+            warrantyPeriodMonths: apiData.warrantyPeriodMonths
+        };
     };
 
     const handleFormSubmit = async (data: { serialNumber: string }) => {
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        try {
+            const response = await apiService.checkWarranty(data.serialNumber);
 
-        // Mock warranty check
-        const foundWarranty = mockWarrantyData[data.serialNumber.toUpperCase()];
-        setWarrantyInfo(foundWarranty || null);
+            if (response.success && response.data) {
+                const warrantyData = convertApiDataToWarrantyInfo(response.data.data, data.serialNumber);
+                setWarrantyInfo(warrantyData);
+            } else {
+                // API returned unsuccessful response or no data
+                setWarrantyInfo(null);
+            }
+        } catch (error) {
+            console.error('Error checking warranty:', error);
+            setWarrantyInfo(null);
+        }
+
         setShowResult(true);
     };
 
@@ -212,8 +218,12 @@ const WarrantyCheckPage = () => {
                             {t('warrantyCheck.demo.description')}
                         </p>
                         <div className="bg-[#0c131d] p-3 sm:p-4 rounded-lg border border-gray-600 max-w-md mx-auto">
-                            <p className="text-xs sm:text-sm font-mono mb-2 text-gray-300">{t('warrantyCheck.demo.active')}</p>
-                            <p className="text-xs sm:text-sm font-mono text-gray-300">{t('warrantyCheck.demo.expired')}</p>
+                            <p className="text-xs sm:text-sm font-mono mb-2 text-gray-300">
+                                Enter your product's serial number above to check warranty status
+                            </p>
+                            <p className="text-xs sm:text-sm font-mono text-gray-300">
+                                Real-time warranty information from our database
+                            </p>
                         </div>
 
                         <div className="mt-4 text-center">

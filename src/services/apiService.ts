@@ -2,6 +2,7 @@ import axios, { AxiosResponse, AxiosError } from 'axios';
 import { TIMEOUTS } from '@/constants/timeouts';
 import { ResellerLocation } from '@/types/reseller';
 import { BlogPost } from '@/types/blog';
+import { WarrantyCheckResponse } from '@/types/warranty';
 
 interface ApiRetryConfig {
     maxRetries: number;
@@ -301,6 +302,24 @@ class ApiService {
     async fetchRelatedBlogs(blogId: string, limit: number = 4): Promise<ApiResponse<any[]>> {
         return this.withRetry(
             () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/blog/blogs/related/${blogId}?limit=${limit}&fields=id%2Ctitle%2Cdescription%2Cimage%2Ccategory%2CcreatedAt`, {
+                timeout: TIMEOUTS.GEOCODING_REQUEST,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            }),
+            {
+                maxRetries: 2,
+                baseDelay: 500,
+                maxDelay: 5000
+            }
+        );
+    }
+
+    // Warranty API methods
+    async checkWarranty(serialNumber: string): Promise<ApiResponse<WarrantyCheckResponse>> {
+        return this.withRetry(
+            () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/warranty/check/${serialNumber}`, {
                 timeout: TIMEOUTS.GEOCODING_REQUEST,
                 headers: {
                     'Accept': 'application/json',

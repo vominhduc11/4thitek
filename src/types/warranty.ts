@@ -129,3 +129,37 @@ export interface WarrantyPolicy {
     applicableProducts: string[];
     applicableRegions: string[];
 }
+
+// API Response types for warranty check
+export interface WarrantyCheckResponse {
+    success: boolean;
+    message: string;
+    data: WarrantyCheckData;
+}
+
+export interface WarrantyCheckData {
+    id: number;
+    warrantyCode: string;
+    productId: number;
+    productSerialId: number;
+    customerId: number;
+    customerName: string;
+    purchaseDate: string;
+    status: 'ACTIVE' | 'EXPIRED' | 'INVALID';
+    warrantyPeriodMonths: number;
+    expirationDate: string;
+}
+
+// UI interface for warranty check results
+export interface WarrantyInfo {
+    serialNumber: string;
+    productName: string;
+    purchaseDate: string;
+    warrantyStatus: 'active' | 'expired' | 'invalid';
+    warrantyEndDate: string;
+    remainingDays: number;
+    customerName?: string;
+    dealerName?: string;
+    warrantyCode?: string;
+    warrantyPeriodMonths?: number;
+}

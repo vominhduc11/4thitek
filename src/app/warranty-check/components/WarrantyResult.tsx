@@ -2,17 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/context/LanguageContext';
-
-interface WarrantyInfo {
-    serialNumber: string;
-    productName: string;
-    purchaseDate: string;
-    warrantyStatus: 'active' | 'expired' | 'invalid';
-    warrantyEndDate: string;
-    remainingDays: number;
-    customerName?: string;
-    dealerName?: string;
-}
+import { WarrantyInfo } from '@/types/warranty';
 
 interface WarrantyResultProps {
     warrantyInfo: WarrantyInfo | null;
