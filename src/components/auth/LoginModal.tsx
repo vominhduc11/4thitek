@@ -52,8 +52,13 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
             // Simulate login API call - replace with actual API call
             const mockUser = {
                 id: '1',
-                email: email,
-                name: 'User Name'
+                username: email,
+                roles: ['user'],
+                accountId: 1,
+                accessToken: 'mock-access-token',
+                refreshToken: 'mock-refresh-token',
+                expiresIn: 3600,
+                refreshExpiresIn: 7200
             };
             login(mockUser);
             const success = true;

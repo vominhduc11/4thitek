@@ -45,7 +45,7 @@ const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({
                 const response = await apiService.fetchHomepageProducts();
 
                 if (response.success && response.data) {
-                    const processedProducts: Product[] = response.data.map((product: any) => {
+                    const processedProducts: Product[] = response.data.map((product: { id: number; name: string; shortDescription: string; image: string; price?: number }) => {
                         // Parse image JSON string
                         let imageUrl = '/products/product1.png'; // fallback
                         try {

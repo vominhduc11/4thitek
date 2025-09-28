@@ -181,7 +181,7 @@ class GeocodingService {
             
             // Format: {location name},{state code},{country code}
             let locationName = '';
-            let stateCode = '';
+            const stateCode = '';
             let countryCode = 'VN'; // Vietnam country code
             
             // Special logic for Vietnamese addresses
@@ -198,7 +198,7 @@ class GeocodingService {
                 } else {
                     // Vietnamese address pattern: [street], [district], [city]
                     let city = lastPart;
-                    let district = secondLastPart;
+                    const district = secondLastPart;
                     
                     // Standardize major cities
                     if (city.includes('ho chi minh') || city.includes('hồ chí minh')) {

@@ -40,7 +40,7 @@ const Footer = () => {
                 initial="hidden"
                 animate={inView ? 'visible' : 'hidden'}
             >
-                <div className={`${ultraWideSpacing['content-width-xl']} mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 ${ultraWideSpacing['grid-gap-md']}`}>
+                <div className={`${ultraWideSpacing['content-width-xl']} mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${ultraWideSpacing['grid-gap-md']}`}>
                     {/* COMPANY Column */}
                     <motion.div variants={columnVariants}>
                         <h3 className={`uppercase ${typographyComponents.footer.heading} mb-3 sm:mb-4`}>
@@ -63,49 +63,25 @@ const Footer = () => {
                                     {t('footer.company.certifications')}
                                 </Link>
                             </li>
+                            <li>
+                                <Link
+                                    href="/products"
+                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
+                                >
+                                    Sản phẩm
+                                </Link>
+                            </li>
+                            <li>
+                                <Link
+                                    href="/contact"
+                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
+                                >
+                                    Liên hệ
+                                </Link>
+                            </li>
                         </ul>
                     </motion.div>
 
-                    {/* PRODUCT Column */}
-                    <motion.div variants={columnVariants}>
-                        <h3 className={`uppercase ${typographyComponents.footer.heading} mb-3 sm:mb-4`}>
-                            {t('footer.product.title')}
-                        </h3>
-                        <ul className="space-y-2">
-                            <li>
-                                <Link
-                                    href="/products?series=S%20SERIES"
-                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
-                                >
-                                    S Series
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    href="/products?series=SX%20SERIES"
-                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
-                                >
-                                    SX Series
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    href="/products?series=G%20SERIES"
-                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
-                                >
-                                    G Series
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    href="/products?series=G%2B%20SERIES"
-                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
-                                >
-                                    G+ Series
-                                </Link>
-                            </li>
-                        </ul>
-                    </motion.div>
 
                     {/* RESELLER Column */}
                     <motion.div variants={columnVariants}>
@@ -158,14 +134,6 @@ const Footer = () => {
                                     className={`${typographyComponents.footer.link} hover:underline transition-colors`}
                                 >
                                     {t('footer.other.blog')}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    href="/contact"
-                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
-                                >
-                                    {t('footer.other.contact')}
                                 </Link>
                             </li>
                         </ul>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ResellerHero, ResellerSearch, ResellerResults } from './components';
 import { apiService } from '@/services/apiService';
 import { geocodingService } from '@/services/geocodingService';
+import { ResellerLocation } from '@/types/reseller';
 
 interface Reseller {
     id: number;
@@ -115,12 +116,12 @@ export default function ResellerInformationPage() {
                     // Handle different response structures
                     if (!Array.isArray(dealersArray)) {
                         // If response.data has a property containing the array
-                        if (dealersArray.dealers && Array.isArray(dealersArray.dealers)) {
-                            dealersArray = dealersArray.dealers;
-                        } else if (dealersArray.data && Array.isArray(dealersArray.data)) {
-                            dealersArray = dealersArray.data;
-                        } else if (dealersArray.items && Array.isArray(dealersArray.items)) {
-                            dealersArray = dealersArray.items;
+                        if ((dealersArray as { dealers?: unknown }).dealers && Array.isArray((dealersArray as { dealers: unknown[] }).dealers)) {
+                            dealersArray = (dealersArray as { dealers: unknown[] }).dealers as ResellerLocation[];
+                        } else if ((dealersArray as { data?: unknown }).data && Array.isArray((dealersArray as { data: unknown[] }).data)) {
+                            dealersArray = (dealersArray as { data: unknown[] }).data as ResellerLocation[];
+                        } else if ((dealersArray as { items?: unknown }).items && Array.isArray((dealersArray as { items: unknown[] }).items)) {
+                            dealersArray = (dealersArray as { items: unknown[] }).items as ResellerLocation[];
                         } else {
                             console.error('Invalid response structure:', dealersArray);
                             throw new Error('Response data is not in expected format');
@@ -130,17 +131,27 @@ export default function ResellerInformationPage() {
                     // Convert API response to local Reseller format and geocode addresses
                     const convertedResellers = dealersArray.map((dealer, index) => {
                         console.log(`Processing dealer ${index}:`, dealer);
-                        
+                        const typedDealer = dealer as unknown as {
+                            accountId?: number;
+                            companyName?: string;
+                            address?: string;
+                            city?: string;
+                            district?: string;
+                            phone?: string;
+                            email?: string;
+                            coordinates?: { lat: number; lng: number };
+                        };
+
                         // Map actual API response fields
                         return {
-                            id: dealer.accountId || (index + 1),
-                            name: dealer.companyName || `Dealer ${index + 1}`,
-                            address: dealer.address || '',
-                            city: dealer.city || '',
-                            district: dealer.district || '',
-                            phone: dealer.phone || '',
-                            email: dealer.email || '',
-                            coordinates: dealer.coordinates || { lat: 10.762622, lng: 106.660172 }
+                            id: typedDealer.accountId || (index + 1),
+                            name: typedDealer.companyName || `Dealer ${index + 1}`,
+                            address: typedDealer.address || '',
+                            city: typedDealer.city || '',
+                            district: typedDealer.district || '',
+                            phone: typedDealer.phone || '',
+                            email: typedDealer.email || '',
+                            coordinates: typedDealer.coordinates || { lat: 10.762622, lng: 106.660172 }
                         };
                     });
 
@@ -200,7 +211,7 @@ export default function ResellerInformationPage() {
                                     const cityKey = dealer.city?.toLowerCase() || '';
                                     const districtKey = dealer.district?.toLowerCase() || '';
                                     
-                                    coords = fallbackCoords[cityKey] || fallbackCoords[districtKey];
+                                    coords = (fallbackCoords as { [key: string]: { lat: number; lng: number } })[cityKey] || (fallbackCoords as { [key: string]: { lat: number; lng: number } })[districtKey];
                                     if (coords) {
                                         console.log(`🔄 Using fallback coordinates for ${dealer.name} (${cityKey || districtKey}):`, coords);
                                     }

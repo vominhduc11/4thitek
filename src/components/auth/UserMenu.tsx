@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { FiUser, FiLogOut, FiSettings, FiPackage, FiHelpCircle } from 'react-icons/fi';
 import { useAuth } from '@/context/AuthContext';
-import Image from 'next/image';
 
 export default function UserMenu() {
     const { user, logout, isAuthenticated } = useAuth();
@@ -34,19 +33,9 @@ export default function UserMenu() {
                 className="flex items-center space-x-2 bg-[#1a2332] hover:bg-[#243447] text-white rounded-full p-1 pr-3 transition-colors"
             >
                 <div className="w-8 h-8 rounded-full bg-[#00d4ff] text-[#0c131d] flex items-center justify-center overflow-hidden">
-                    {user.avatar ? (
-                        <Image
-                            src={user.avatar}
-                            alt={user.name}
-                            width={32}
-                            height={32}
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <FiUser className="w-4 h-4" />
-                    )}
+                    <FiUser className="w-4 h-4" />
                 </div>
-                <span className="text-sm font-medium">{user.name.split(' ')[0]}</span>
+                <span className="text-sm font-medium">{user.username}</span>
             </button>
 
             {isOpen && (
@@ -54,21 +43,11 @@ export default function UserMenu() {
                     <div className="p-4 border-b border-gray-600">
                         <div className="flex items-center space-x-3">
                             <div className="w-12 h-12 rounded-full bg-[#00d4ff] text-[#0c131d] flex items-center justify-center overflow-hidden">
-                                {user.avatar ? (
-                                    <Image
-                                        src={user.avatar}
-                                        alt={user.name}
-                                        width={48}
-                                        height={48}
-                                        className="w-full h-full object-cover"
-                                    />
-                                ) : (
-                                    <FiUser className="w-6 h-6" />
-                                )}
+                                <FiUser className="w-6 h-6" />
                             </div>
                             <div>
-                                <p className="text-white font-medium">{user.name}</p>
-                                <p className="text-gray-400 text-sm">{user.email}</p>
+                                <p className="text-white font-medium">{user.username}</p>
+                                <p className="text-gray-400 text-sm">ID: {user.id}</p>
                             </div>
                         </div>
                     </div>

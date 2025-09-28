@@ -1,26 +1,28 @@
 'use client';
 
 import Image from 'next/image';
+import { sanitizeHtml } from '@/utils/sanitize';
 
-interface Feature {
-    title: string;
-    subtitle?: string;
-    description: string;
-    value?: string;
-}
+// Unused interface - commented out to fix linting
+// interface Feature {
+//     title: string;
+//     subtitle?: string;
+//     description: string;
+//     value?: string;
+// }
 
 interface ContentItem {
-    type: 'title' | 'list_text' | 'image' | 'text';
+    type: 'title' | 'list_text' | 'image' | 'text' | 'video';
     content?: string;
     link?: string;
+    videoUrl?: string;
+    videoTitle?: string;
 }
 
 interface ProductDetailsProps {
-    features: Feature[];
-    highlights: string[];
     description: string;
     content?: ContentItem[];
-    descriptions?: any[];
+    descriptions?: unknown[];
 }
 
 // Demo data structure:
@@ -43,28 +45,28 @@ interface ProductDetailsProps {
 //     }
 // ];
 
-export default function ProductDetails({ features, highlights, description, content, descriptions }: ProductDetailsProps) {
-    // Demo features data
-    const demoFeatures = [
-        {
-            title: 'Quantum ANC',
-            subtitle: 'Công nghệ khử tiếng ồn lượng tử',
-            description:
-                'Sử dụng thuật toán AI tiên tiến để phân tích và loại bỏ 99% tạp âm trong thời gian thực, tạo ra bong bóng âm thanh hoàn hảo cho trải nghiệm gaming đỉnh cao'
-        },
-        {
-            title: 'HyperSonic 7.1',
-            subtitle: 'Hệ thống âm thanh không gian 360°',
-            description:
-                'Công nghệ âm thanh vòm thế hệ mới với 8 driver ảo, cho phép cảm nhận từng chi tiết âm thanh từ mọi hướng với độ chính xác đến từng miligiây'
-        },
-        {
-            title: 'Aurora RGB Pro',
-            subtitle: 'Hệ sinh thái ánh sáng thông minh',
-            description:
-                'Hơn 50 triệu tổ hợp màu sắc với 25+ hiệu ứng động đồng bộ theo nhịp tim, nhạc và gameplay, tạo nên trải nghiệm thị giác choáng ngợp'
-        }
-    ];
+export default function ProductDetails({ description, content, descriptions }: ProductDetailsProps) {
+    // Demo features data (unused but kept for future reference)
+    // const demoFeatures = [
+    //     {
+    //         title: 'Quantum ANC',
+    //         subtitle: 'Công nghệ khử tiếng ồn lượng tử',
+    //         description:
+    //             'Sử dụng thuật toán AI tiên tiến để phân tích và loại bỏ 99% tạp âm trong thời gian thực, tạo ra bong bóng âm thanh hoàn hảo cho trải nghiệm gaming đỉnh cao'
+    //     },
+    //     {
+    //         title: 'HyperSonic 7.1',
+    //         subtitle: 'Hệ thống âm thanh không gian 360°',
+    //         description:
+    //             'Công nghệ âm thanh vòm thế hệ mới với 8 driver ảo, cho phép cảm nhận từng chi tiết âm thanh từ mọi hướng với độ chính xác đến từng miligiây'
+    //     },
+    //     {
+    //         title: 'Aurora RGB Pro',
+    //         subtitle: 'Hệ sinh thái ánh sáng thông minh',
+    //         description:
+    //             'Hơn 50 triệu tổ hợp màu sắc với 25+ hiệu ứng động đồng bộ theo nhịp tim, nhạc và gameplay, tạo nên trải nghiệm thị giác choáng ngợp'
+    //     }
+    // ];
 
     // Demo data for testing
     const demoContent = [
@@ -137,18 +139,51 @@ export default function ProductDetails({ features, highlights, description, cont
                         <p className="text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl leading-relaxed">{item.content}</p>
                     </div>
                 );
+            case 'video':
+                return (
+                    <div key={index} className="w-full">
+                        <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 aspect-video overflow-hidden">
+                            {item.videoUrl ? (
+                                <iframe
+                                    className="w-full h-full"
+                                    src={item.videoUrl.includes('youtube.com') || item.videoUrl.includes('youtu.be')
+                                        ? `https://www.youtube.com/embed/${item.videoUrl.includes('watch?v=')
+                                            ? item.videoUrl.split('watch?v=')[1].split('&')[0]
+                                            : item.videoUrl.split('/').pop()}`
+                                        : item.videoUrl}
+                                    title={item.videoTitle || item.content || 'Product Video'}
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowFullScreen
+                                ></iframe>
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                                    <p className="text-gray-400 text-center">Video không khả dụng</p>
+                                </div>
+                            )}
+                        </div>
+                        {(item.videoTitle || item.content) && (
+                            <div className="mt-4">
+                                <h4 className="text-lg md:text-xl lg:text-2xl xl:text-3xl 2xl:text-3xl 3xl:text-5xl 4xl:text-6xl font-semibold text-white mb-2">
+                                    {item.videoTitle || item.content}
+                                </h4>
+                            </div>
+                        )}
+                    </div>
+                );
             default:
                 return null;
         }
     };
 
     // Render descriptions from API
-    const renderApiDescription = (item: any, index: number) => {
-        switch (item.type) {
+    const renderApiDescription = (item: unknown, index: number) => {
+        const typedItem = item as { type: string; text?: string; [key: string]: unknown };
+        switch (typedItem.type) {
             case 'title':
                 return (
                     <div key={index} className="w-full">
-                        <h3 className="text-lg md:text-xl lg:text-2xl xl:text-3xl 2xl:text-3xl 3xl:text-5xl 4xl:text-6xl 5xl:text-7xl font-bold text-white mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10 5xl:mb-12">{item.text}</h3>
+                        <h3 className="text-lg md:text-xl lg:text-2xl xl:text-3xl 2xl:text-3xl 3xl:text-5xl 4xl:text-6xl 5xl:text-7xl font-bold text-white mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10 5xl:mb-12">{typedItem.text}</h3>
                     </div>
                 );
             case 'description':
@@ -156,7 +191,7 @@ export default function ProductDetails({ features, highlights, description, cont
                     <div key={index} className="text-justify">
                         <div
                             className="text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl leading-relaxed"
-                            dangerouslySetInnerHTML={{ __html: item.text }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(typedItem.text || '') }}
                         />
                     </div>
                 );
@@ -165,7 +200,7 @@ export default function ProductDetails({ features, highlights, description, cont
                     <div key={index} className="w-full">
                         <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 aspect-[2/1] overflow-hidden">
                             <Image
-                                src={item.imageUrl || item.link || '/products/product1.png'}
+                                src={(typedItem.imageUrl as string) || (typedItem.link as string) || '/products/product1.png'}
                                 alt="Product detail image"
                                 width={1200}
                                 height={400}
@@ -179,6 +214,38 @@ export default function ProductDetails({ features, highlights, description, cont
                                 }}
                             />
                         </div>
+                    </div>
+                );
+            case 'video':
+                return (
+                    <div key={index} className="w-full">
+                        <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 aspect-video overflow-hidden">
+                            {(typedItem.videoUrl as string) ? (
+                                <iframe
+                                    className="w-full h-full"
+                                    src={(typedItem.videoUrl as string).includes('youtube.com') || (typedItem.videoUrl as string).includes('youtu.be')
+                                        ? `https://www.youtube.com/embed/${(typedItem.videoUrl as string).includes('watch?v=')
+                                            ? (typedItem.videoUrl as string).split('watch?v=')[1].split('&')[0]
+                                            : (typedItem.videoUrl as string).split('/').pop()}`
+                                        : (typedItem.videoUrl as string)}
+                                    title={typedItem.text || 'Product Video'}
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowFullScreen
+                                ></iframe>
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                                    <p className="text-gray-400 text-center">Video không khả dụng</p>
+                                </div>
+                            )}
+                        </div>
+                        {typedItem.text && (
+                            <div className="mt-4">
+                                <h4 className="text-lg md:text-xl lg:text-2xl xl:text-3xl 2xl:text-3xl 3xl:text-5xl 4xl:text-6xl font-semibold text-white mb-2">
+                                    {typedItem.text}
+                                </h4>
+                            </div>
+                        )}
                     </div>
                 );
             default:

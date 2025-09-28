@@ -14,6 +14,8 @@ interface ProductVideosProps {
 }
 
 export default function ProductVideos({ productName, videos = [] }: ProductVideosProps) {
+    // Debug logging
+    console.log('ProductVideos props:', { productName, videos });
     // Helper function to extract YouTube video ID from URL
     const getYouTubeVideoId = (url: string): string | null => {
         const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -23,10 +25,27 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
 
     // Helper function to get YouTube embed URL
     const getYouTubeEmbedUrl = (url: string): string => {
+        console.log('Processing video URL:', url);
+
+        // Return empty string if no URL provided
+        if (!url || !url.trim()) {
+            console.log('Empty URL provided');
+            return '';
+        }
+
+        // If already an embed URL, return as is
+        if (url.includes('/embed/')) {
+            console.log('Already embed URL, returning:', url);
+            return url;
+        }
+
         const videoId = getYouTubeVideoId(url);
         if (videoId) {
-            return `https://www.youtube.com/embed/${videoId}`;
+            const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+            console.log('Generated embed URL:', embedUrl);
+            return embedUrl;
         }
+        console.log('Not a YouTube URL, returning original:', url);
         return url; // Return original URL if not YouTube
     };
     const videoList = [
@@ -84,14 +103,21 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                     <div className="mb-8 md:mb-12">
                         <div className="bg-gray-900/50 rounded-2xl overflow-hidden border border-gray-700/50">
                             <div className="aspect-video bg-gray-800 relative group">
-                                <iframe
-                                    className="w-full h-full"
-                                    src={videos.length > 0 ? getYouTubeEmbedUrl(videos[0].videoUrl) : getYouTubeEmbedUrl(videoList[0].videoUrl)}
-                                    title={videos.length > 0 ? videos[0].title : videoList[0].title}
-                                    frameBorder="0"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                    allowFullScreen
-                                ></iframe>
+                                {videos.length > 0 && videos[0].videoUrl && videos[0].videoUrl.trim() ? (
+                                    <iframe
+                                        className="w-full h-full"
+                                        src={getYouTubeEmbedUrl(videos[0].videoUrl)}
+                                        title={videos[0].title}
+                                        frameBorder="0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                        allowFullScreen
+                                        onError={() => console.error('Failed to load video:', videos[0].videoUrl)}
+                                    ></iframe>
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                        <p className="text-gray-400 text-center">Không có video để hiển thị</p>
+                                    </div>
+                                )}
                             </div>
                             <div className="p-4 md:p-6">
                                 <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-2xl 2xl:text-2xl 3xl:text-4xl 4xl:text-5xl font-bold text-white mb-2">
@@ -116,17 +142,24 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                             className="bg-gray-900/50 rounded-lg overflow-hidden border border-gray-700/30 hover:border-blue-400/50 transition-all duration-300 group cursor-pointer"
                         >
                             <div className="aspect-video bg-gray-800 relative">
-                                <iframe
-                                    className="w-full h-full"
-                                    src={getYouTubeEmbedUrl(video.videoUrl)}
-                                    title={video.title}
-                                    frameBorder="0"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                    allowFullScreen
-                                ></iframe>
+                                {video.videoUrl && video.videoUrl.trim() ? (
+                                    <iframe
+                                        className="w-full h-full"
+                                        src={getYouTubeEmbedUrl(video.videoUrl)}
+                                        title={video.title}
+                                        frameBorder="0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                        allowFullScreen
+                                        onError={() => console.error('Failed to load video:', video.videoUrl)}
+                                    ></iframe>
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                        <p className="text-gray-400 text-center text-sm">Video không khả dụng</p>
+                                    </div>
+                                )}
                                 {('duration' in video) && (
                                     <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl px-2 py-1 rounded pointer-events-none">
-                                        {(video as any).duration}
+                                        {(video as { duration?: string }).duration}
                                     </div>
                                 )}
                             </div>

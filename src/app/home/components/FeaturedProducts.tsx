@@ -79,7 +79,7 @@ export default function FeaturedProducts() {
                 const response = await apiService.fetchHomepageProducts();
 
                 if (response.success && response.data) {
-                    const processedProducts: FeaturedProduct[] = response.data.map((product: any) => {
+                    const processedProducts: FeaturedProduct[] = response.data.map((product: { id: number; name: string; shortDescription: string; image: string; price?: number }) => {
                         // Parse image JSON string
                         let imageUrl = '/products/product1.png'; // fallback
                         try {

@@ -2,14 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { TIMEOUTS } from '@/constants/timeouts';
-
-interface User {
-    id: string;
-    name: string;
-    email: string;
-    phone?: string;
-    avatar?: string;
-}
+import { User } from '@/types/auth';
+import { cookieHelper } from '@/utils/cookieHelper';
+import { WARRANTY_CONSTANTS } from '@/constants/warranty';
 
 interface AuthContextType {
     user: User | null;
@@ -19,6 +14,7 @@ interface AuthContextType {
     login: (user: User) => void;
     logout: () => void;
     clearAuth: () => void;
+    getToken: () => string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,30 +37,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 return;
             }
 
-            const storedUser = localStorage.getItem('4thitek_user');
+            const storedUser = localStorage.getItem(WARRANTY_CONSTANTS.STORAGE_KEY);
 
             if (storedUser) {
                 try {
                     const parsedUser = JSON.parse(storedUser);
 
                     // Đảm bảo dữ liệu người dùng hợp lệ
-                    if (parsedUser && parsedUser.id && parsedUser.email) {
+                    if (parsedUser && parsedUser.id && parsedUser.username) {
                         setUser(parsedUser);
 
                         // Đảm bảo cookie được đặt nếu có dữ liệu người dùng trong localStorage
-                        if (typeof document !== 'undefined' && !document.cookie.includes('4thitek_auth=')) {
-                            document.cookie = `4thitek_auth=true; path=/; max-age=${TIMEOUTS.COOKIE_EXPIRY}`; // 1 day
-                        } else if (typeof document !== 'undefined') {
+                        if (!cookieHelper.hasAuthCookie()) {
+                            cookieHelper.setAuthCookie();
                         }
                     } else {
-                        localStorage.removeItem('4thitek_user');
+                        localStorage.removeItem(WARRANTY_CONSTANTS.STORAGE_KEY);
                         setUser(null);
                     }
                 } catch {
-                    localStorage.removeItem('4thitek_user');
-                    if (typeof document !== 'undefined') {
-                        document.cookie = '4thitek_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-                    }
+                    localStorage.removeItem(WARRANTY_CONSTANTS.STORAGE_KEY);
+                    cookieHelper.clearAuthCookie();
                     setUser(null);
                 }
             } else {
@@ -82,25 +75,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(user);
 
         // Lưu thông tin người dùng vào localStorage
-        localStorage.setItem('4thitek_user', JSON.stringify(user));
+        localStorage.setItem(WARRANTY_CONSTANTS.STORAGE_KEY, JSON.stringify(user));
 
         // Đặt cookie để middleware có thể nhận diện
-        if (typeof document !== 'undefined') {
-            document.cookie = '4thitek_auth=true; path=/; max-age=86400'; // Hết hạn sau 1 ngày
-            console.log('Auth cookie set');
-        }
+        cookieHelper.setAuthCookie();
     }, []);
 
-    const logout = useCallback(() => {
+    const logout = useCallback(async () => {
 
         // Xóa dữ liệu người dùng khỏi localStorage
         if (typeof window !== 'undefined') {
-            localStorage.removeItem('4thitek_user');
-
-            // Xóa cookie xác thực
-            if (typeof document !== 'undefined') {
-                document.cookie = '4thitek_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-            }
+            localStorage.removeItem(WARRANTY_CONSTANTS.STORAGE_KEY);
+            cookieHelper.clearAuthCookie();
         }
 
         // Đặt user state về null sau khi đã xóa dữ liệu
@@ -110,13 +96,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Function để clear authentication manually
     const clearAuth = useCallback(() => {
         if (typeof window !== 'undefined') {
-            localStorage.removeItem('4thitek_user');
-            if (typeof document !== 'undefined') {
-                document.cookie = '4thitek_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-            }
+            localStorage.removeItem(WARRANTY_CONSTANTS.STORAGE_KEY);
+            cookieHelper.clearAuthCookie();
         }
         setUser(null);
     }, []);
+
+    const getToken = useCallback(() => {
+        if (user?.accessToken) {
+            return user.accessToken;
+        }
+        // Fallback: try to get token from localStorage
+        if (typeof window !== 'undefined') {
+            const storedUser = localStorage.getItem(WARRANTY_CONSTANTS.STORAGE_KEY);
+            if (storedUser) {
+                try {
+                    const parsedUser = JSON.parse(storedUser);
+                    return parsedUser?.accessToken || null;
+                } catch {
+                    return null;
+                }
+            }
+        }
+        return null;
+    }, [user]);
 
     // Memoized context value to prevent unnecessary re-renders
     const value = useMemo(() => ({
@@ -126,8 +129,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isHydrated,
         login,
         logout,
-        clearAuth
-    }), [user, isLoading, isHydrated, login, logout, clearAuth]);
+        clearAuth,
+        getToken
+    }), [user, isLoading, isHydrated, login, logout, clearAuth, getToken]);
 
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

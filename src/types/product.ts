@@ -107,6 +107,26 @@ export interface Product {
     publishedAt?: string;
 }
 
+// Simplified interface for product listing
+export interface SimpleProduct {
+    id: string;
+    name: string;
+    shortDescription: string;
+    description: string;
+    image: string;
+    price?: number;
+    category?: string;
+    specifications?: unknown[];
+    inStock?: boolean;
+    featured?: boolean;
+    rating?: number;
+    reviews?: number;
+    tags?: string[];
+    videos?: unknown[];
+    relatedProducts?: unknown[];
+    wholesalePrice?: string;
+}
+
 export interface ProductFilter {
     category?: string[];
     availability?: string[];

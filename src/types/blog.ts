@@ -63,6 +63,19 @@ export interface BlogPost {
         metaDescription?: string;
         keywords?: string[];
     };
+    introductionBlocks?: ApiBlogBlock[];
+}
+
+// Interface for API blog content blocks
+export interface ApiBlogBlock {
+    type: 'title' | 'description' | 'image';
+    text?: string;
+    imageUrl?: string;
+}
+
+// Add mapping function type
+export interface BlogContentBlockMapped extends BlogContentBlock {
+    type: 'title' | 'text' | 'image';
 }
 
 export interface BlogComment {

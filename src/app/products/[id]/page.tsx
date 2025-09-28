@@ -14,6 +14,22 @@ import { useLanguage } from '@/context/LanguageContext';
 import { apiService } from '@/services/apiService';
 import type { Product, ProductSpecification, ProductVideo } from '@/types/product';
 
+interface ApiProductData {
+    id: number;
+    name: string;
+    shortDescription: string;
+    description?: string;
+    descriptions?: string;
+    image: string;
+    videos: string;
+    specifications: string;
+    price?: number;
+    wholesalePrice?: string;
+    category?: string;
+    features?: string[];
+    tags?: string[];
+}
+
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
     const { t } = useLanguage();
     const [resolvedParams, setResolvedParams] = useState<{ id: string } | null>(null);
@@ -24,6 +40,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [, setError] = useState<string | null>(null);
+    const [descriptions, setDescriptions] = useState<unknown[]>([]);
+    const [apiSpecifications, setApiSpecifications] = useState<{label: string; value: string}[]>([]);
 
     useEffect(() => {
         params.then(setResolvedParams);
@@ -40,7 +58,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
                     if (response.success && response.data) {
                         // Transform API data to match Product interface
-                        const productData = response.data;
+                        const productData = response.data as ApiProductData;
 
                         // Parse image JSON string
                         let featuredImage = '/products/product1.png';
@@ -52,12 +70,13 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                         }
 
                         // Parse descriptions JSON for content
-                        let descriptions: unknown[] = [];
+                        let parsedDescriptions: unknown[] = [];
                         try {
-                            descriptions = JSON.parse(productData.description || '[]');
+                            parsedDescriptions = JSON.parse(productData.descriptions || '[]');
                         } catch (e) {
                             console.warn('Failed to parse descriptions JSON:', e);
                         }
+                        setDescriptions(parsedDescriptions);
 
                         // Parse videos JSON
                         let videos: unknown[] = [];
@@ -71,11 +90,28 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             console.warn('Failed to parse videos JSON:', e);
                         }
 
-                        // Parse specifications JSON
+                        // Parse specifications JSON - API returns array format
                         let specifications: unknown = {};
+                        let specsArray: {label: string; value: string}[] = [];
                         try {
                             if (typeof productData.specifications === 'string') {
-                                specifications = JSON.parse(productData.specifications || '{}');
+                                specsArray = JSON.parse(productData.specifications || '[]');
+                                setApiSpecifications(specsArray);
+                                // Convert array format to object format for compatibility
+                                if (Array.isArray(specsArray)) {
+                                    specifications = specsArray.reduce((acc: Record<string, string>, spec: { label: string; value: string }) => {
+                                        // Map API labels to our expected keys
+                                        const labelMap: Record<string, string> = {
+                                            'Camera / Video': 'camera',
+                                            'Dung lượng pin': 'battery',
+                                            'Thời gian ghi hình liên tục': 'recordingTime',
+                                            'Thời gian đàm thoại / intercom': 'talkTime'
+                                        };
+                                        const key = labelMap[spec.label] || spec.label.toLowerCase().replace(/\s+/g, '');
+                                        acc[key] = spec.value;
+                                        return acc;
+                                    }, {});
+                                }
                             } else if (typeof productData.specifications === 'object') {
                                 specifications = productData.specifications;
                             }
@@ -104,12 +140,12 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                 description: 'Electronic products',
                                 slug: 'electronics'
                             },
-                            features: descriptions.filter(d => (d as { type: string }).type === 'title').map((d, index) => ({
+                            features: parsedDescriptions.filter(d => (d as { type: string }).type === 'title').map((d, index) => ({
                                 id: `feature-${index}`,
                                 title: (d as { text: string }).text,
                                 description: (d as { text: string }).text
                             })),
-                            highlights: descriptions.filter(d => (d as { type: string }).type === 'description').map(d => (d as { text: string }).text),
+                            highlights: parsedDescriptions.filter(d => (d as { type: string }).type === 'description').map(d => (d as { text: string }).text),
                             specifications: specifications as ProductSpecification || {
                                 driver: 'Unknown',
                                 frequencyResponse: 'Unknown',
@@ -126,7 +162,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                 id: `video-${index}`,
                                 title: (v as { title: string }).title || 'Product Video',
                                 description: (v as { description?: string }).description || '',
-                                url: (v as { url: string }).url || '',
+                                url: (v as { videoUrl: string }).videoUrl || '',
                                 type: 'demo' as const
                             })) as ProductVideo[],
                             availability: {
@@ -387,17 +423,17 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             ease: 'easeOut'
                         }}
                     >
-                        <ProductSpecifications specifications={currentProduct?.specifications ? [
-                            { label: 'Driver', value: currentProduct.specifications.driver },
-                            { label: 'Frequency Response', value: currentProduct.specifications.frequencyResponse },
-                            { label: 'Impedance', value: currentProduct.specifications.impedance },
-                            { label: 'Sensitivity', value: currentProduct.specifications.sensitivity },
-                            { label: 'Max Power', value: currentProduct.specifications.maxPower },
-                            { label: 'Cable', value: currentProduct.specifications.cable },
-                            { label: 'Weight', value: currentProduct.specifications.weight },
-                            { label: 'Dimensions', value: currentProduct.specifications.dimensions },
-                            { label: 'Connector', value: currentProduct.specifications.connector }
-                        ] : []} />
+                        <ProductSpecifications specifications={apiSpecifications.length > 0 ? apiSpecifications : [
+                            { label: 'Driver', value: currentProduct?.specifications?.driver || 'Unknown' },
+                            { label: 'Frequency Response', value: currentProduct?.specifications?.frequencyResponse || 'Unknown' },
+                            { label: 'Impedance', value: currentProduct?.specifications?.impedance || 'Unknown' },
+                            { label: 'Sensitivity', value: currentProduct?.specifications?.sensitivity || 'Unknown' },
+                            { label: 'Max Power', value: currentProduct?.specifications?.maxPower || 'Unknown' },
+                            { label: 'Cable', value: currentProduct?.specifications?.cable || 'Unknown' },
+                            { label: 'Weight', value: currentProduct?.specifications?.weight || 'Unknown' },
+                            { label: 'Dimensions', value: currentProduct?.specifications?.dimensions || 'Unknown' },
+                            { label: 'Connector', value: currentProduct?.specifications?.connector || 'Unknown' }
+                        ]} />
                     </motion.div>
                 );
             case 'warranty':
@@ -431,6 +467,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                     >
                         <ProductDetails
                             description={currentProduct?.longDescription || currentProduct?.description || ''}
+                            descriptions={descriptions}
                         />
                     </motion.div>
                 );

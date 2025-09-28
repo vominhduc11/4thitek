@@ -6,6 +6,7 @@ import { BlogHero, BlogBreadcrumb, BlogGrid, BlogPagination } from './components
 import { getPublishedPosts } from '@/data/blogs';
 import { apiService } from '@/services/apiService';
 import type { BlogPost } from '@/types/blog';
+import { BlogCategory } from '@/types/api';
 import { useLanguage } from '@/context/LanguageContext';
 
 // Fallback mock data
@@ -19,6 +20,7 @@ function BlogPageContent() {
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy] = useState<'date' | 'popularity' | 'views'>('date');
     const [blogPosts, setBlogPosts] = useState<BlogPost[]>(fallbackBlogPosts);
+    const [blogCategories, setBlogCategories] = useState<BlogCategory[]>([]);
     const [loading, setLoading] = useState(true);
     const [, setError] = useState<string | null>(null);
     const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
@@ -26,22 +28,51 @@ function BlogPageContent() {
     // Get URL parameters
     const searchParams = useSearchParams();
 
-    // Fetch blogs from API
+    // Fetch categories on mount
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const categoriesResponse = await apiService.fetchBlogCategories();
+                if (categoriesResponse.success && categoriesResponse.data) {
+                    setBlogCategories(categoriesResponse.data);
+                }
+            } catch (error) {
+                console.error('Error fetching categories:', error);
+            }
+        };
+
+        fetchCategories();
+    }, []);
+
+    // Fetch blogs when category changes
     useEffect(() => {
         const fetchBlogs = async () => {
             try {
                 setLoading(true);
                 setError(null);
                 setConnectionStatus('checking');
-                
-                const response = await apiService.fetchBlogs();
-                
-                if (response.success && response.data) {
-                    setConnectionStatus('connected');
-                    // Transform API data to BlogPost format if needed
-                    setBlogPosts(response.data);
+
+                const fields = 'id%2Ctitle%2Cdescription%2Cimage%2Ccategory%2CcreatedAt';
+                let blogsResponse;
+
+                if (selectedCategory === 'ALL') {
+                    // Fetch all blogs
+                    blogsResponse = await apiService.fetchBlogs(fields);
                 } else {
-                    throw new Error(response.error || 'Failed to fetch blogs');
+                    // Find category ID by name
+                    const category = blogCategories.find(cat => cat.name === selectedCategory);
+                    if (category) {
+                        blogsResponse = await apiService.fetchBlogsByCategory(category.id, fields);
+                    } else {
+                        throw new Error('Category not found');
+                    }
+                }
+
+                if (blogsResponse?.success && blogsResponse.data) {
+                    setConnectionStatus('connected');
+                    setBlogPosts(blogsResponse.data as BlogPost[]);
+                } else {
+                    throw new Error(blogsResponse?.error || 'Failed to fetch blogs');
                 }
             } catch (fetchError) {
                 console.error('Error fetching blogs:', fetchError);
@@ -53,8 +84,11 @@ function BlogPageContent() {
             }
         };
 
-        fetchBlogs();
-    }, []);
+        // Only fetch blogs if we have categories loaded (for category filtering)
+        if (blogCategories.length > 0 || selectedCategory === 'ALL') {
+            fetchBlogs();
+        }
+    }, [selectedCategory, blogCategories]);
 
     // Handle URL parameters on component mount
     useEffect(() => {
@@ -67,23 +101,18 @@ function BlogPageContent() {
         }
     }, [searchParams, selectedCategory]);
 
-    // Filter and sort blogs
+    // Filter and sort blogs (only search query and sorting, category is handled by API)
     const filteredBlogs = useMemo(() => {
         let filtered = blogPosts;
 
-        // Filter by category
-        if (selectedCategory !== 'ALL') {
-            filtered = filtered.filter((blog) => blog.category.slug === selectedCategory.toLowerCase());
-        }
-
-        // Filter by search query
+        // Filter by search query (client-side)
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase().trim();
             filtered = filtered.filter(
                 (blog) =>
-                    blog.title.toLowerCase().includes(query) ||
-                    blog.excerpt.toLowerCase().includes(query) ||
-                    blog.tags.some((tag) => tag.name.toLowerCase().includes(query))
+                    blog.title?.toLowerCase().includes(query) ||
+                    blog.excerpt?.toLowerCase().includes(query) ||
+                    blog.category?.name?.toLowerCase().includes(query)
             );
         }
 
@@ -91,7 +120,7 @@ function BlogPageContent() {
         filtered.sort((a, b) => {
             switch (sortBy) {
                 case 'date':
-                    return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+                    return new Date(b.publishedAt || '').getTime() - new Date(a.publishedAt || '').getTime();
                 case 'popularity':
                     return (b.likes || 0) - (a.likes || 0);
                 case 'views':
@@ -102,7 +131,7 @@ function BlogPageContent() {
         });
 
         return filtered;
-    }, [selectedCategory, searchQuery, sortBy, blogPosts]);
+    }, [searchQuery, sortBy, blogPosts]);
 
     // Pagination calculations
     const { currentBlogs, totalPages, totalItems } = useMemo(() => {
@@ -152,6 +181,7 @@ function BlogPageContent() {
                 filteredCount={totalItems}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
+                apiCategories={blogCategories.length > 0 ? blogCategories : undefined}
             />
 
             {/* Connection Status Indicator */}

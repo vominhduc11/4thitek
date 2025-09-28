@@ -58,13 +58,24 @@ const BlogGrid = memo(function BlogGrid({ blogs }: BlogGridProps) {
         return 'text-gray-400';
     }, []);
 
+    // Helper function to parse blog image JSON (commented out as unused)
+    // const parseImageUrl = (imageData: string): string => {
+    //     try {
+    //         const parsed = JSON.parse(imageData);
+    //         return parsed.imageUrl || '';
+    //     } catch {
+    //         return '';
+    //     }
+    // };
+
     // Memoized processed blogs data
     const processedBlogs = useMemo(() => {
         return blogs.map(blog => ({
             ...blog,
             categoryDisplay: getCategoryDisplay(blog.category),
             categoryColor: getCategoryColor(blog.category),
-            formattedDate: formatDateSafe(blog.publishedAt, isHydrated)
+            formattedDate: formatDateSafe(blog.publishedAt, isHydrated),
+            imageUrl: blog.featuredImage || ''
         }));
     }, [blogs, isHydrated, getCategoryDisplay, getCategoryColor]);
 
@@ -88,7 +99,7 @@ const BlogGrid = memo(function BlogGrid({ blogs }: BlogGridProps) {
                             <div className="relative w-full aspect-video overflow-hidden">
                                 <Image
                                     src={
-                                        blog.featuredImage ||
+                                        blog.imageUrl ||
                                         'https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg'
                                     }
                                     alt={`Ảnh bìa bài viết: ${blog.title}`}
@@ -125,18 +136,13 @@ const BlogGrid = memo(function BlogGrid({ blogs }: BlogGridProps) {
                                     {blog.title}
                                 </h3>
 
-                                {/* Excerpt */}
+                                {/* Description */}
                                 <p className="text-sm sm:text-base text-gray-300 mb-4 line-clamp-3 leading-relaxed">
                                     {blog.excerpt}
                                 </p>
 
                                 {/* Bottom Section */}
-                                <div className="flex items-center justify-between">
-                                    {/* Read Time Only */}
-                                    <div className="flex items-center text-xs text-gray-400">
-                                        <span>{blog.readingTime} phút đọc</span>
-                                    </div>
-
+                                <div className="flex items-center justify-end">
                                     {/* CTA Arrow Button */}
                                     <motion.div
                                         className="flex items-center justify-center w-11 h-11 bg-white/10 rounded-full group-hover:bg-[#4FC8FF] transition-all duration-300 backdrop-blur-sm"

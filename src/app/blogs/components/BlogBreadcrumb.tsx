@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { FiSearch } from 'react-icons/fi';
 import { blogCategories } from '@/data/blogs';
+import { BlogCategory as ApiCategory } from '@/types/api';
 import { useEffect, useRef } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -13,6 +14,7 @@ interface BlogBreadcrumbProps {
     filteredCount: number;
     searchQuery: string;
     onSearchChange: (query: string) => void;
+    apiCategories?: ApiCategory[];
 }
 
 const BlogBreadcrumb = ({
@@ -21,10 +23,16 @@ const BlogBreadcrumb = ({
     totalBlogs,
     filteredCount,
     searchQuery,
-    onSearchChange
+    onSearchChange,
+    apiCategories
 }: BlogBreadcrumbProps) => {
     const { t } = useLanguage();
-    const categoryList = blogCategories;
+
+    // Use API categories if available, otherwise fallback to static data
+    const categoryList = apiCategories
+        ? [{ id: 0, name: 'Tất cả' }, ...apiCategories]
+        : blogCategories;
+
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     // Sort functionality can be added later if needed
@@ -145,32 +153,38 @@ const BlogBreadcrumb = ({
                                 )}
                             </motion.button>
 
-                            {categoryList.map((category, index) => (
+                            {categoryList.map((category, index) => {
+                                const isApiCategory = !('slug' in category);
+                                const categoryKey = isApiCategory ? category.name : category.slug.toUpperCase();
+                                const isSelected = selectedCategory === categoryKey ||
+                                    (selectedCategory === 'ALL' && category.id === 0);
+
+                                return (
                                 <div key={index} className="flex items-center">
                                     <span className="text-gray-500 mx-2">/</span>
                                     <motion.button
                                         className={`transition-all duration-300 relative group ${
-                                            selectedCategory === category.slug.toUpperCase()
+                                            isSelected
                                                 ? 'text-[#4FC8FF] scale-105 font-semibold'
                                                 : 'text-gray-400 hover:text-white'
                                         }`}
                                         whileHover={{
-                                            scale: selectedCategory === category.slug.toUpperCase() ? 1.05 : 1.1
+                                            scale: isSelected ? 1.05 : 1.1
                                         }}
                                         whileTap={{ scale: 0.95 }}
-                                        onClick={() => onCategoryClick(category.slug.toUpperCase())}
+                                        onClick={() => onCategoryClick(isApiCategory && category.id === 0 ? 'ALL' : categoryKey)}
                                     >
                                         {category.name.toUpperCase()}
                                         <span
                                             className={`absolute bottom-0 left-0 h-0.5 bg-[#4FC8FF] transition-all duration-300 ${
-                                                selectedCategory === category.slug.toUpperCase()
+                                                isSelected
                                                     ? 'w-full'
                                                     : 'w-0 group-hover:w-full'
                                             }`}
                                         ></span>
 
                                         {/* Active indicator */}
-                                        {selectedCategory === category.slug.toUpperCase() && (
+                                        {isSelected && (
                                             <motion.div
                                                 className="absolute -top-1 -right-1 w-2 h-2 bg-[#4FC8FF] rounded-full"
                                                 initial={{ scale: 0 }}
@@ -180,7 +194,8 @@ const BlogBreadcrumb = ({
                                         )}
                                     </motion.button>
                                 </div>
-                            ))}
+                                );
+                            })}
                             </div>
 
                             {/* Search Bar Desktop - Same Level as Breadcrumb */}
@@ -224,20 +239,28 @@ const BlogBreadcrumb = ({
                             >
                                 {t('blog.list.all')}
                             </motion.button>
-                            {categoryList.map((category) => (
-                                <motion.button
-                                    key={category.id}
-                                    className={`px-3 py-1.5 rounded text-xs font-sans uppercase tracking-wide transition-all duration-300 ${
-                                        selectedCategory === category.slug.toUpperCase()
-                                            ? 'bg-[#4FC8FF]/20 border border-[#4FC8FF]/50 text-[#4FC8FF]'
-                                            : 'border border-gray-600 text-gray-400 hover:text-white hover:border-gray-500'
-                                    }`}
+                            {categoryList
+                                .filter(cat => cat.id !== 0) // Skip "Tất cả" since we have ALL button
+                                .map((category) => {
+                                    const isApiCategory = !('slug' in category);
+                                    const categoryKey = isApiCategory ? category.name : category.slug.toUpperCase();
+                                    const isSelected = selectedCategory === categoryKey;
+
+                                    return (
+                                    <motion.button
+                                        key={category.id}
+                                        className={`px-3 py-1.5 rounded text-xs font-sans uppercase tracking-wide transition-all duration-300 ${
+                                            isSelected
+                                                ? 'bg-[#4FC8FF]/20 border border-[#4FC8FF]/50 text-[#4FC8FF]'
+                                                : 'border border-gray-600 text-gray-400 hover:text-white hover:border-gray-500'
+                                        }`}
                                     whileTap={{ scale: 0.95 }}
-                                    onClick={() => onCategoryClick(category.slug.toUpperCase())}
+                                    onClick={() => onCategoryClick(categoryKey)}
                                 >
                                     {category.name.toUpperCase()}
                                 </motion.button>
-                            ))}
+                                    );
+                                })}
                         </div>
 
                     </motion.div>

@@ -484,7 +484,7 @@ export default function ProductHero({
                                             }}
                                         >
                                             <ProductImageWithFallback
-                                                src={product.featuredImage || product.images?.[0] || "/products/product1.png"}
+                                                src={product.images?.[0]?.url || "/products/product1.png"}
                                                 alt={product.name}
                                                 className="w-full h-full object-contain max-w-[240px] sm:max-w-[320px] md:max-w-[400px] lg:max-w-[480px] xl:max-w-[560px] 2xl:max-w-[720px] 3xl:max-w-[850px] 4xl:max-w-[1000px] max-h-[240px] sm:max-h-[320px] md:max-h-[400px] lg:max-h-[480px] xl:max-h-[560px] 2xl:max-h-[720px] 3xl:max-h-[850px] 4xl:max-h-[1000px]"
                                             />

@@ -21,7 +21,7 @@ export default function Newsroom() {
                 const response = await apiService.fetchHomepageBlogs();
 
                 if (response.success && response.data) {
-                    const processedBlogs: BlogItem[] = response.data.map((blog: any) => {
+                    const processedBlogs: BlogItem[] = response.data.map((blog: { id: string; title: string; description: string; image: string; category: string; createdAt: string }) => {
                         // Parse image JSON string
                         let imageUrl = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=500&fit=crop'; // fallback
                         try {
@@ -36,7 +36,7 @@ export default function Newsroom() {
                             title: blog.title,
                             description: blog.description,
                             image: imageUrl,
-                            category: blog.category,
+                            category: blog.category || 'Uncategorized',
                             createdAt: blog.createdAt
                         };
                     });
@@ -60,7 +60,7 @@ export default function Newsroom() {
         router.push('/blogs');
     };
 
-    const handleNewsClick = (newsId: number) => {
+    const handleNewsClick = (newsId: string) => {
         router.push(`/blogs/${newsId}`);
     };
 
@@ -79,7 +79,7 @@ export default function Newsroom() {
 
     // Types and interfaces (inline)
     interface BlogItem {
-        id: number;
+        id: string;
         title: string;
         description: string;
         image: string;
