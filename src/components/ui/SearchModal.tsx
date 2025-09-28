@@ -1,17 +1,18 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiSearch, FiX, FiArrowRight, FiClock, FiTrendingUp } from 'react-icons/fi';
 import Link from 'next/link';
 import Image from 'next/image';
-import { products } from '@/data/products';
-import { blogPosts } from '@/data/blogs';
-import type { Product } from '@/types/product';
-import type { BlogPost } from '@/types/blog';
+import { apiService } from '@/services/apiService';
+// import type { Product } from '@/types/product';
+// import type { BlogPost } from '@/types/blog';
 import { Z_INDEX } from '@/constants/zIndex';
 import { modalManager } from '@/utils/modalManager';
 import { useAnimationCoordinator } from '@/utils/animationCoordinator';
+import { POPULAR_SEARCHES, ANIMATION_DURATIONS } from '@/constants/ui';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
 
 interface SearchModalProps {
     isOpen: boolean;
@@ -28,7 +29,17 @@ interface SearchResult {
     category?: string;
 }
 
-export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
+// Helper function to parse image JSON string
+const parseImageUrl = (imageString: string): string => {
+    try {
+        const imageData = JSON.parse(imageString);
+        return imageData.imageUrl || '';
+    } catch {
+        return '';
+    }
+};
+
+const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalProps) {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<SearchResult[]>([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -36,12 +47,10 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
     const [recentSearches, setRecentSearches] = useState<string[]>([]);
     const inputRef = useRef<HTMLInputElement>(null);
     const { registerAnimation, completeAnimation, cancelAnimation } = useAnimationCoordinator();
+    const { handleError } = useErrorHandler();
 
     // Popular searches - memoize to prevent re-creation
-    const popularSearches = useMemo(() => 
-        ['Gaming Headset', 'Wireless', 'Bluetooth', 'Professional Audio', 'Review'],
-        []  
-    );
+    const popularSearches = useMemo(() => POPULAR_SEARCHES, []);
 
     // Load recent searches from localStorage
     useEffect(() => {
@@ -62,55 +71,52 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
         }
     }, [isOpen]);
 
-    // Optimized search results with useMemo
-    const searchResults = useMemo(() => {
-        const searchQuery = query.toLowerCase().trim();
-        if (!searchQuery) return [];
+    // API search function
+    const performSearch = useCallback(async (searchQuery: string): Promise<SearchResult[]> => {
+        if (!searchQuery.trim()) return [];
 
-        const results: SearchResult[] = [];
+        try {
+            const response = await apiService.search(searchQuery, 10);
 
-        // Search products
-        products.forEach((product: Product) => {
-            if (
-                product.name.toLowerCase().includes(searchQuery) ||
-                product.description.toLowerCase().includes(searchQuery) ||
-                product.category.name.toLowerCase().includes(searchQuery) ||
-                product.tags?.some((tag) => tag.toLowerCase().includes(searchQuery))
-            ) {
+            if (!response.success) {
+                console.error('Search failed:', response.error);
+                return [];
+            }
+
+            const results: SearchResult[] = [];
+
+            // Process products
+            response.data.products.forEach((product: { id: number; name: string; shortDescription: string; image: string }) => {
                 results.push({
                     type: 'product',
-                    id: product.id,
+                    id: product.id?.toString() || `product-${Date.now()}`,
                     title: product.name,
-                    subtitle: product.description,
-                    image: '/products/product1.png',
+                    subtitle: product.shortDescription,
+                    image: parseImageUrl(product.image),
                     href: `/products/${product.id}`,
-                    category: product.category.name
+                    category: 'Sản phẩm'
                 });
-            }
-        });
+            });
 
-        // Search blogs
-        blogPosts.forEach((blog: BlogPost) => {
-            if (
-                blog.title.toLowerCase().includes(searchQuery) ||
-                blog.excerpt.toLowerCase().includes(searchQuery) ||
-                blog.category.name.toLowerCase().includes(searchQuery) ||
-                blog.tags?.some((tag) => tag.name.toLowerCase().includes(searchQuery))
-            ) {
+            // Process blogs
+            response.data.blogs.forEach((blog: { id: number; title: string; description: string; image: string; category?: string }) => {
                 results.push({
                     type: 'blog',
-                    id: blog.id,
+                    id: blog.id?.toString() || `blog-${Date.now()}`,
                     title: blog.title,
-                    subtitle: blog.excerpt,
-                    image: blog.featuredImage || 'https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg',
+                    subtitle: blog.description,
+                    image: parseImageUrl(blog.image),
                     href: `/blogs/${blog.id}`,
-                    category: blog.category.name
+                    category: blog.category || 'Blog'
                 });
-            }
-        });
+            });
 
-        return results.slice(0, 10); // Limit to 10 results
-    }, [query]);
+            return results;
+        } catch (error) {
+            handleError(error instanceof Error ? error : new Error('Search failed'), 'SearchModal.performSearch');
+            return [];
+        }
+    }, [handleError]);
 
     // Handle search with debouncing
     useEffect(() => {
@@ -121,13 +127,14 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
         }
 
         setIsSearching(true);
-        const searchTimeout = setTimeout(() => {
+        const searchTimeout = setTimeout(async () => {
+            const searchResults = await performSearch(query);
             setResults(searchResults);
             setIsSearching(false);
-        }, 300);
+        }, ANIMATION_DURATIONS.NORMAL * 1000);
 
         return () => clearTimeout(searchTimeout);
-    }, [query, searchResults]);
+    }, [query, performSearch]);
 
     // Optimized search submit handler
     const handleSearch = useCallback((searchQuery: string) => {
@@ -409,6 +416,17 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                                             ))}
                                         </div>
                                     </div>
+                                ) : isSearching ? (
+                                    /* Loading State */
+                                    <div className="p-8 text-center">
+                                        <div className="w-16 h-16 mx-auto mb-4 bg-gray-700/30 rounded-full flex items-center justify-center">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4FC8FF]"></div>
+                                        </div>
+                                        <h3 className="text-white font-medium mb-2">Đang tìm kiếm...</h3>
+                                        <p className="text-gray-400 text-sm">
+                                            Đang tìm kiếm &ldquo;{query}&rdquo;
+                                        </p>
+                                    </div>
                                 ) : null}
                             </div>
                         </div>
@@ -417,4 +435,6 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
             )}
         </AnimatePresence>
     );
-}
+});
+
+export default SearchModal;

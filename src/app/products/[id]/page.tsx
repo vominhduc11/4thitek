@@ -12,7 +12,7 @@ import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { getProductById, getRelatedProducts } from '@/data/products';
 import { useLanguage } from '@/context/LanguageContext';
 import { apiService } from '@/services/apiService';
-import type { Product } from '@/types/product';
+import type { Product, ProductSpecification, ProductVideo } from '@/types/product';
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
     const { t } = useLanguage();
@@ -23,7 +23,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     const [currentSection, setCurrentSection] = useState('details');
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [, setError] = useState<string | null>(null);
 
     useEffect(() => {
         params.then(setResolvedParams);
@@ -52,112 +52,185 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                         }
 
                         // Parse descriptions JSON for content
-                        let descriptions: any[] = [];
+                        let descriptions: unknown[] = [];
                         try {
-                            descriptions = JSON.parse(productData.descriptions || '[]');
+                            descriptions = JSON.parse(productData.description || '[]');
                         } catch (e) {
                             console.warn('Failed to parse descriptions JSON:', e);
                         }
 
                         // Parse videos JSON
-                        let videos: any[] = [];
+                        let videos: unknown[] = [];
                         try {
-                            videos = JSON.parse(productData.videos || '[]');
+                            if (typeof productData.videos === 'string') {
+                                videos = JSON.parse(productData.videos || '[]');
+                            } else if (Array.isArray(productData.videos)) {
+                                videos = productData.videos;
+                            }
                         } catch (e) {
                             console.warn('Failed to parse videos JSON:', e);
                         }
 
                         // Parse specifications JSON
-                        let specifications: any = {};
+                        let specifications: unknown = {};
                         try {
-                            specifications = JSON.parse(productData.specifications || '{}');
+                            if (typeof productData.specifications === 'string') {
+                                specifications = JSON.parse(productData.specifications || '{}');
+                            } else if (typeof productData.specifications === 'object') {
+                                specifications = productData.specifications;
+                            }
                         } catch (e) {
                             console.warn('Failed to parse specifications JSON:', e);
                         }
 
-                        // Parse wholesale price JSON
-                        let wholesalePrices: any[] = [];
-                        try {
-                            wholesalePrices = JSON.parse(productData.wholesalePrice || '[]');
-                        } catch (e) {
-                            console.warn('Failed to parse wholesale price JSON:', e);
-                        }
 
                         const transformedProduct: Product = {
-                            id: productData.id.toString(),
+                            id: productData.id?.toString() || resolvedParams.id,
                             name: productData.name,
-                            sku: productData.sku,
+                            sku: `SKU-${productData.id}`,
                             description: productData.shortDescription,
                             longDescription: productData.shortDescription,
-                            price: productData.price,
-                            compareAtPrice: productData.price * 1.2, // Placeholder
-                            images: [featuredImage],
-                            featuredImage: featuredImage,
-                            position: 'Premium', // Default position
+                            images: [{
+                                id: '1',
+                                url: featuredImage,
+                                alt: productData.name,
+                                type: 'main' as const,
+                                order: 0
+                            }],
+                            subtitle: productData.shortDescription,
                             category: {
                                 id: 'electronics',
-                                name: 'Electronics'
+                                name: 'Electronics',
+                                description: 'Electronic products',
+                                slug: 'electronics'
                             },
-                            features: descriptions.filter(d => d.type === 'title').map(d => d.text),
-                            highlights: descriptions.filter(d => d.type === 'description').map(d => d.text),
-                            specifications: specifications,
-                            videos: videos,
-                            wholesalePrices: wholesalePrices,
-                            createdAt: productData.createdAt,
-                            isActive: true,
-                            isFeatured: productData.isFeatured,
-                            descriptions: descriptions
+                            features: descriptions.filter(d => (d as { type: string }).type === 'title').map((d, index) => ({
+                                id: `feature-${index}`,
+                                title: (d as { text: string }).text,
+                                description: (d as { text: string }).text
+                            })),
+                            highlights: descriptions.filter(d => (d as { type: string }).type === 'description').map(d => (d as { text: string }).text),
+                            specifications: specifications as ProductSpecification || {
+                                driver: 'Unknown',
+                                frequencyResponse: 'Unknown',
+                                impedance: 'Unknown',
+                                sensitivity: 'Unknown',
+                                maxPower: 'Unknown',
+                                cable: 'Unknown',
+                                weight: 'Unknown',
+                                dimensions: 'Unknown',
+                                connector: 'Unknown',
+                                compatibility: []
+                            },
+                            videos: videos.map((v, index) => ({
+                                id: `video-${index}`,
+                                title: (v as { title: string }).title || 'Product Video',
+                                description: (v as { description?: string }).description || '',
+                                url: (v as { url: string }).url || '',
+                                type: 'demo' as const
+                            })) as ProductVideo[],
+                            availability: {
+                                status: 'available' as const
+                            },
+                            warranty: {
+                                period: '1 year',
+                                coverage: ['Manufacturing defects'],
+                                conditions: ['Normal use'],
+                                excludes: ['Physical damage'],
+                                registrationRequired: false
+                            },
+                            targetAudience: ['General'],
+                            useCases: ['General use'],
+                            popularity: 0,
+                            tags: [],
+                            relatedProductIds: [],
+                            accessories: [],
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString()
                         };
 
                         setCurrentProduct(transformedProduct);
 
                         // Fetch related products from API
                         try {
-                            const relatedResponse = await apiService.fetchRelatedProducts(productData.id.toString(), 4);
+                            const relatedResponse = await apiService.fetchRelatedProducts(productData.id?.toString() || resolvedParams.id, 4);
                             if (relatedResponse.success && relatedResponse.data) {
                                 // Transform API data to match Product interface
-                                const transformedRelated = relatedResponse.data.map((product: any) => {
+                                const transformedRelated = (relatedResponse.data as unknown[]).map((product: unknown) => {
+                                    const typedProduct = product as { id: number; name: string; shortDescription: string; image: string; category: string; price?: number };
                                     let featuredImage = '/products/product1.png';
                                     try {
-                                        const parsedImage = JSON.parse(product.image);
+                                        const parsedImage = JSON.parse(typedProduct.image);
                                         featuredImage = parsedImage.imageUrl;
                                     } catch (e) {
                                         console.warn('Failed to parse related product image JSON:', e);
                                     }
 
                                     return {
-                                        id: product.id.toString(),
-                                        name: product.name,
-                                        sku: product.sku || '',
-                                        description: product.shortDescription || '',
-                                        longDescription: product.shortDescription || '',
-                                        price: product.price,
-                                        compareAtPrice: product.price * 1.2,
-                                        images: [featuredImage],
-                                        featuredImage: featuredImage,
-                                        position: 'Premium',
-                                        category: { id: 'electronics', name: 'Electronics' },
+                                        id: typedProduct.id?.toString() || `product-${Date.now()}`,
+                                        name: typedProduct.name,
+                                        sku: `SKU-${typedProduct.id}`,
+                                        description: typedProduct.shortDescription || '',
+                                        longDescription: typedProduct.shortDescription || '',
+                                        subtitle: typedProduct.shortDescription || '',
+                                        images: [{
+                                            id: '1',
+                                            url: featuredImage,
+                                            alt: typedProduct.name,
+                                            type: 'main' as const,
+                                            order: 0
+                                        }],
+                                        category: {
+                                            id: 'electronics',
+                                            name: 'Electronics',
+                                            description: 'Electronic products',
+                                            slug: 'electronics'
+                                        },
                                         features: [],
                                         highlights: [],
-                                        specifications: {},
+                                        specifications: {
+                                            driver: 'Unknown',
+                                            frequencyResponse: 'Unknown',
+                                            impedance: 'Unknown',
+                                            sensitivity: 'Unknown',
+                                            maxPower: 'Unknown',
+                                            cable: 'Unknown',
+                                            weight: 'Unknown',
+                                            dimensions: 'Unknown',
+                                            connector: 'Unknown',
+                                            compatibility: []
+                                        },
                                         videos: [],
-                                        wholesalePrices: [],
-                                        createdAt: product.createdAt || new Date().toISOString(),
-                                        isActive: true,
-                                        isFeatured: false,
-                                        descriptions: []
+                                        availability: {
+                                            status: 'available' as const
+                                        },
+                                        warranty: {
+                                            period: '1 year',
+                                            coverage: ['Manufacturing defects'],
+                                            conditions: ['Normal use'],
+                                            excludes: ['Physical damage'],
+                                            registrationRequired: false
+                                        },
+                                        targetAudience: ['General'],
+                                        useCases: ['General use'],
+                                        popularity: 0,
+                                        tags: [],
+                                        relatedProductIds: [],
+                                        accessories: [],
+                                        createdAt: new Date().toISOString(),
+                                        updatedAt: new Date().toISOString()
                                     };
                                 });
                                 setRelatedProducts(transformedRelated);
                             } else {
                                 // Fallback to mock data
-                                const related = getRelatedProducts(productData.id.toString(), 4);
+                                const related = getRelatedProducts(productData.id?.toString() || resolvedParams.id, 4);
                                 setRelatedProducts(related);
                             }
                         } catch (relatedError) {
                             console.error('Error fetching related products:', relatedError);
                             // Fallback to mock data
-                            const related = getRelatedProducts(productData.id.toString(), 4);
+                            const related = getRelatedProducts(productData.id?.toString() || resolvedParams.id, 4);
                             setRelatedProducts(related);
                         }
 
@@ -294,7 +367,11 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             ease: 'easeOut'
                         }}
                     >
-                        <ProductVideos productName={currentProduct?.name} videos={currentProduct?.videos || []} />
+                        <ProductVideos productName={currentProduct?.name} videos={currentProduct?.videos?.map(v => ({
+                            title: v.title,
+                            videoUrl: v.url,
+                            description: v.description
+                        })) || []} />
                     </motion.div>
                 );
             case 'specifications':
@@ -310,7 +387,17 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             ease: 'easeOut'
                         }}
                     >
-                        <ProductSpecifications specifications={currentProduct?.specifications || {}} />
+                        <ProductSpecifications specifications={currentProduct?.specifications ? [
+                            { label: 'Driver', value: currentProduct.specifications.driver },
+                            { label: 'Frequency Response', value: currentProduct.specifications.frequencyResponse },
+                            { label: 'Impedance', value: currentProduct.specifications.impedance },
+                            { label: 'Sensitivity', value: currentProduct.specifications.sensitivity },
+                            { label: 'Max Power', value: currentProduct.specifications.maxPower },
+                            { label: 'Cable', value: currentProduct.specifications.cable },
+                            { label: 'Weight', value: currentProduct.specifications.weight },
+                            { label: 'Dimensions', value: currentProduct.specifications.dimensions },
+                            { label: 'Connector', value: currentProduct.specifications.connector }
+                        ] : []} />
                     </motion.div>
                 );
             case 'warranty':
@@ -343,10 +430,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                         }}
                     >
                         <ProductDetails
-                            features={currentProduct?.features || []}
-                            highlights={currentProduct?.highlights || []}
                             description={currentProduct?.longDescription || currentProduct?.description || ''}
-                            descriptions={currentProduct?.descriptions || []}
                         />
                     </motion.div>
                 );

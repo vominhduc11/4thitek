@@ -1,17 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { getPublishedPosts } from '@/data/blogs';
 import { apiService } from '@/services/apiService';
-import type { BlogPost, BlogContentBlock } from '@/types/blog';
+import type { BlogPost, BlogContentBlock, ApiBlogBlock } from '@/types/blog';
 import BlogDetailHero from '@/app/blogs/[id]/components/BlogDetailHero';
 import { useHydration } from '@/hooks/useHydration';
 import { formatDateSafe } from '@/utils/dateFormatter';
 import { useLanguage } from '@/context/LanguageContext';
+import { sanitizeBlogContent } from '@/utils/sanitize';
 
 // Fallback blog posts
 const fallbackBlogPosts: BlogPost[] = getPublishedPosts();
@@ -23,27 +24,27 @@ export default function BlogDetailPageImproved() {
     const [loading, setLoading] = useState(true);
     const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
     const [, setError] = useState<string | null>(null);
-    const [allPosts, setAllPosts] = useState<BlogPost[]>(fallbackBlogPosts);
     const isHydrated = useHydration();
 
-    // Fetch blog posts from API
-    useEffect(() => {
-        const fetchBlogs = async () => {
-            try {
-                const response = await apiService.fetchBlogs();
-                if (response.success && response.data) {
-                    setAllPosts(response.data);
-                }
-            } catch (fetchError) {
-                console.error('Error fetching blogs:', fetchError);
-                setAllPosts(fallbackBlogPosts);
-            }
-        };
+    // Helper function to parse JSON strings from API
+    const parseImageUrl = (imageData: string): string => {
+        try {
+            const parsed = JSON.parse(imageData);
+            return parsed.imageUrl || '';
+        } catch {
+            return '';
+        }
+    };
 
-        fetchBlogs();
-    }, []);
+    const parseIntroduction = (introData: string): ApiBlogBlock[] => {
+        try {
+            return JSON.parse(introData);
+        } catch {
+            return [];
+        }
+    };
 
-    // Find current post and related posts
+    // Fetch current blog post and all blogs
     useEffect(() => {
         if (!params?.id) return;
 
@@ -61,44 +62,45 @@ export default function BlogDetailPageImproved() {
                     // Transform API data to match BlogPost interface
                     const blogData = response.data;
 
-                    // Parse image JSON string
-                    let featuredImage = 'https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg';
-                    try {
-                        const parsedImage = JSON.parse(blogData.image);
-                        featuredImage = parsedImage.imageUrl;
-                    } catch (e) {
-                        console.warn('Failed to parse blog image JSON:', e);
-                    }
-
-                    // Parse introduction JSON for content
-                    let content: any = blogData.description || '';
-                    let introductionBlocks: any[] = [];
-
-                    try {
-                        introductionBlocks = JSON.parse(blogData.introduction || '[]');
-                    } catch (e) {
-                        console.warn('Failed to parse introduction JSON:', e);
-                    }
+                    // Parse image and introduction using helper functions
+                    const featuredImage = parseImageUrl(blogData.image) || 'https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg';
+                    const introductionBlocks = parseIntroduction(blogData.introduction || '[]');
 
                     const transformedPost: BlogPost = {
-                        id: blogData.id.toString(),
+                        id: blogData.id?.toString() || postId,
                         title: blogData.title,
+                        slug: blogData.title.toLowerCase().replace(/\s+/g, '-'),
                         excerpt: blogData.description,
-                        content: content,
+                        content: blogData.description, // Use description as string content
                         featuredImage: featuredImage,
                         publishedAt: blogData.createdAt,
-                        readingTime: '5 min',
                         category: {
                             id: blogData.category,
-                            name: blogData.category
+                            name: blogData.category,
+                            slug: blogData.category.toLowerCase().replace(/\s+/g, '-'),
+                            description: blogData.category
                         },
-                        introductionBlocks: introductionBlocks
+                        introductionBlocks: introductionBlocks,
+                        // Add default fields that might be expected
+                        author: {
+                            id: 'api-author',
+                            name: '4THITEK Team',
+                            title: 'Technical Team',
+                            avatar: '/authors/tech-team.png',
+                            bio: '4THITEK Technical Team'
+                        },
+                        tags: [],
+                        isPublished: true,
+                        seo: {
+                            metaTitle: blogData.title,
+                            metaDescription: blogData.description
+                        }
                     };
 
                     setPost(transformedPost);
                 } else {
-                    // Fallback to searching in allPosts
-                    const foundPost = allPosts.find((p) => p.id === postId);
+                    // Fallback to searching in fallbackBlogPosts
+                    const foundPost = fallbackBlogPosts.find((p) => p.id === postId);
                     if (foundPost) {
                         setPost(foundPost);
                     } else {
@@ -107,8 +109,8 @@ export default function BlogDetailPageImproved() {
                 }
             } catch (fetchError) {
                 console.error('Error fetching blog post:', fetchError);
-                // Fallback to searching in allPosts
-                const foundPost = allPosts.find((p) => p.id === postId);
+                // Fallback to searching in fallbackBlogPosts
+                const foundPost = fallbackBlogPosts.find((p) => p.id === postId);
                 if (foundPost) {
                     setPost(foundPost);
                 } else {
@@ -120,48 +122,53 @@ export default function BlogDetailPageImproved() {
         };
 
         fetchSpecificPost();
-    }, [params?.id, allPosts]);
+    }, [params?.id]);
 
-    // Set related posts when post changes
-    useEffect(() => {
-        if (!post) return;
-
-        const fetchRelatedPosts = async () => {
+    // Memoize the fetch function to avoid dependency issues
+    const fetchRelatedPosts = useCallback(async (currentPost: BlogPost) => {
             try {
-                const response = await apiService.fetchRelatedBlogs(post.id, 4);
+                const fields = 'id%2Ctitle%2Cdescription%2Cimage%2Ccategory%2CcreatedAt';
+                const response = await apiService.fetchRelatedBlogs(currentPost.id, 4, fields);
                 if (response.success && response.data) {
                     // Transform API data to match BlogPost interface
-                    const transformedRelated = response.data.map((blog: any) => {
-                        let featuredImage = 'https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg';
-                        try {
-                            const parsedImage = JSON.parse(blog.image);
-                            featuredImage = parsedImage.imageUrl;
-                        } catch (e) {
-                            console.warn('Failed to parse related blog image JSON:', e);
-                        }
+                    const transformedRelated = (response.data as { id: number; title: string; description: string; image: string; category: string; createdAt: string }[]).map((blog) => {
+                        const featuredImage = parseImageUrl(blog.image) || 'https://thinkzone.vn/uploads/2022_01/blogging-1641375905.jpg';
 
                         return {
-                            id: blog.id.toString(),
+                            id: blog.id?.toString() || `blog-${Date.now()}`,
                             title: blog.title,
+                            slug: blog.title.toLowerCase().replace(/\s+/g, '-'),
                             excerpt: blog.description,
+                            content: blog.description,
                             featuredImage: featuredImage,
                             publishedAt: blog.createdAt,
-                            readingTime: '5 min',
+                            readingTime: 5,
                             category: {
                                 id: blog.category,
-                                name: blog.category
-                            }
+                                name: blog.category,
+                                slug: blog.category.toLowerCase().replace(/\s+/g, '-'),
+                                description: blog.category
+                            },
+                            author: {
+                                id: 'api-author',
+                                name: '4THITEK Team',
+                                title: 'Technical Team',
+                                avatar: '/authors/tech-team.png',
+                                bio: '4THITEK Technical Team'
+                            },
+                            tags: [],
+                            isPublished: true
                         };
                     });
                     setRelatedPosts(transformedRelated);
                 } else {
-                    // Fallback to existing logic
-                    const related = allPosts
-                        .filter((p) => p.id !== post.id)
+                    // Fallback: use fallbackBlogPosts instead of allPosts to avoid dependency issues
+                    const related = fallbackBlogPosts
+                        .filter((p) => p.id !== currentPost.id)
                         .sort((a, b) => {
                             // Prioritize same category
-                            if (a.category.id === post.category.id && b.category.id !== post.category.id) return -1;
-                            if (b.category.id === post.category.id && a.category.id !== post.category.id) return 1;
+                            if (a.category.id === currentPost.category.id && b.category.id !== currentPost.category.id) return -1;
+                            if (b.category.id === currentPost.category.id && a.category.id !== currentPost.category.id) return 1;
                             // Then by date
                             return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
                         })
@@ -170,23 +177,26 @@ export default function BlogDetailPageImproved() {
                 }
             } catch (error) {
                 console.error('Error fetching related blogs:', error);
-                // Fallback to existing logic
-                const related = allPosts
-                    .filter((p) => p.id !== post.id)
+                // Fallback: use fallbackBlogPosts instead of allPosts to avoid dependency issues
+                const related = fallbackBlogPosts
+                    .filter((p) => p.id !== currentPost.id)
                     .sort((a, b) => {
                         // Prioritize same category
-                        if (a.category.id === post.category.id && b.category.id !== post.category.id) return -1;
-                        if (b.category.id === post.category.id && a.category.id !== post.category.id) return 1;
+                        if (a.category.id === currentPost.category.id && b.category.id !== currentPost.category.id) return -1;
+                        if (b.category.id === currentPost.category.id && a.category.id !== currentPost.category.id) return 1;
                         // Then by date
                         return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
                     })
                     .slice(0, 3);
                 setRelatedPosts(related);
             }
-        };
+    }, []);
 
-        fetchRelatedPosts();
-    }, [post, allPosts]);
+    // Set related posts when post changes
+    useEffect(() => {
+        if (!post) return;
+        fetchRelatedPosts(post);
+    }, [post, fetchRelatedPosts]);
 
     if (loading) {
         return (
@@ -257,21 +267,6 @@ export default function BlogDetailPageImproved() {
                                 {post.category.name}
                             </span>
                         </div>
-                        {post.readingTime && (
-                            <>
-                                <span>•</span>
-                                <div className="flex items-center gap-1 sm:gap-2 whitespace-nowrap">
-                                    <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                                            clipRule="evenodd"
-                                        />
-                                    </svg>
-                                    <span>{post.readingTime} {t('blog.detail.readTime')}</span>
-                                </div>
-                            </>
-                        )}
                     </motion.div>
                 </div>
             </section>
@@ -334,7 +329,7 @@ export default function BlogDetailPageImproved() {
                                     {/* Render introduction blocks from API */}
                                     {post.introductionBlocks && post.introductionBlocks.length > 0 ? (
                                         <div className="space-y-6">
-                                            {post.introductionBlocks.map((block: any, index: number) => (
+                                            {post.introductionBlocks.map((block: ApiBlogBlock, index: number) => (
                                                 <motion.div
                                                     key={index}
                                                     initial={{ opacity: 0, y: 20 }}
@@ -350,7 +345,7 @@ export default function BlogDetailPageImproved() {
                                                     {block.type === 'description' && (
                                                         <div
                                                             className="text-gray-300 leading-relaxed mb-4"
-                                                            dangerouslySetInnerHTML={{ __html: block.text }}
+                                                            dangerouslySetInnerHTML={{ __html: sanitizeBlogContent(block.text || '') }}
                                                         />
                                                     )}
                                                     {block.type === 'image' && block.imageUrl && (
@@ -403,7 +398,7 @@ export default function BlogDetailPageImproved() {
                                         <div
                                             className="text-gray-300 leading-relaxed"
                                             dangerouslySetInnerHTML={{
-                                                __html: post.content
+                                                __html: sanitizeBlogContent(post.content
                                                     .replace(/\n/g, '<br/>')
                                                     .replace(
                                                         /##\s/g,
@@ -412,7 +407,7 @@ export default function BlogDetailPageImproved() {
                                                     .replace(
                                                         /###\s/g,
                                                         '<h3 class="text-xl font-bold text-white mt-6 mb-3">'
-                                                    )
+                                                    ))
                                             }}
                                         />
                                     )}
@@ -434,7 +429,8 @@ export default function BlogDetailPageImproved() {
 
                                 {/* Danh sách bài viết liên quan */}
                                 <div className="space-y-4">
-                                    {relatedPosts.map((relatedPost, index) => (
+                                    {relatedPosts.length > 0 ? (
+                                        relatedPosts.map((relatedPost, index) => (
                                         <motion.div
                                             key={relatedPost.id}
                                             initial={{ opacity: 0, y: 20 }}
@@ -519,7 +515,55 @@ export default function BlogDetailPageImproved() {
                                                 </div>
                                             </div>
                                         </motion.div>
-                                    ))}
+                                        ))
+                                    ) : (
+                                        /* Empty State */
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 20 }}
+                                            whileInView={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.6 }}
+                                            viewport={{ once: true }}
+                                            className="text-center py-8"
+                                        >
+                                            <div className="bg-[#1a2332] rounded-2xl p-8 border border-gray-800/30">
+                                                {/* Icon */}
+                                                <div className="w-16 h-16 mx-auto mb-4 bg-gray-800/50 rounded-full flex items-center justify-center">
+                                                    <svg
+                                                        className="w-8 h-8 text-gray-400"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                                        />
+                                                    </svg>
+                                                </div>
+
+                                                {/* Text */}
+                                                <h4 className="text-lg font-semibold text-white mb-2">
+                                                    Chưa có bài viết liên quan
+                                                </h4>
+                                                <p className="text-gray-400 mb-6">
+                                                    Hiện tại chưa có bài viết nào liên quan đến chủ đề này. Hãy khám phá thêm các bài viết khác của chúng tôi.
+                                                </p>
+
+                                                {/* CTA Button */}
+                                                <Link
+                                                    href="/blogs"
+                                                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#4FC8FF] to-[#0EA5E9] hover:from-[#0EA5E9] hover:to-[#0284C7] text-white font-medium rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0l-4 4m4-4l-4-4" />
+                                                    </svg>
+                                                    Xem tất cả bài viết
+                                                </Link>
+                                            </div>
+                                        </motion.div>
+                                    )}
                                 </div>
                             </motion.div>
                         </div>
