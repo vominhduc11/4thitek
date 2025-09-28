@@ -11,10 +11,6 @@ interface Reseller {
     district: string;
     phone: string;
     email: string;
-    coordinates?: {
-        lat: number;
-        lng: number;
-    };
 }
 
 interface ResellerListProps {
@@ -46,7 +42,6 @@ export default function ResellerList({ resellers, onResellerSelect, selectedRese
                         <div
                             key={reseller.id}
                             onClick={() => {
-                                console.log('🖱️ Clicked on dealer:', reseller.name, 'Coordinates:', reseller.coordinates);
                                 onResellerSelect(reseller);
                             }}
                             className={`bg-[#1a2332] rounded-lg p-6 cursor-pointer transition-all duration-300 hover:bg-[#243447] border-2 ${

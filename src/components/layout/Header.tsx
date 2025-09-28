@@ -76,6 +76,7 @@ export default function Header() {
                     onClick={openSearch}
                     className="p-1.5 sm:p-2 rounded transition-all duration-200 hover:bg-white/10"
                     aria-label="Search"
+                    suppressHydrationWarning
                 >
                     <FiSearch size={20} className="sm:w-5 sm:h-5" color="#fff" />
                 </button>

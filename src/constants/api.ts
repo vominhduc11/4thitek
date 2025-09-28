@@ -29,13 +29,14 @@ export const API_ENDPOINTS = {
 
     // User/Dealer endpoints
     USER: {
-        DEALERS: '/user/dealers'
+        DEALERS: '/user/dealer'
     },
 
     // Warranty endpoints
     WARRANTY: {
         CHECK: (serialNumber: string) => `/warranty/check/${serialNumber}`
     },
+
 
     // Health check
     HEALTH: '/health'

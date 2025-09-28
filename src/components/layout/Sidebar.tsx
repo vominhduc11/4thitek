@@ -28,7 +28,11 @@ export default function Sidebar({ onMenuClick }: SidebarProps) {
         >
             {/* Menu Icon */}
             <div className="mb-6 sm:mb-8 mt-1 sm:mt-2">
-                <button className="p-1.5 sm:p-2 rounded hover:bg-[#263040] transition" onClick={onMenuClick}>
+                <button
+                    className="p-1.5 sm:p-2 rounded hover:bg-[#263040] transition"
+                    onClick={onMenuClick}
+                    suppressHydrationWarning
+                >
                     <FiMenu size={24} className="sm:w-8 sm:h-8" color="#27b2fc" />
                 </button>
             </div>

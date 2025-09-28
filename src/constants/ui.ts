@@ -92,14 +92,6 @@ export const GRID = {
     CONTAINER_PADDING: 24
 } as const;
 
-// Popular search terms
-export const POPULAR_SEARCHES = [
-    'Gaming Headset',
-    'Wireless',
-    'Bluetooth',
-    'Professional Audio',
-    'Review'
-] as const;
 
 // Image dimensions
 export const IMAGE_DIMENSIONS = {

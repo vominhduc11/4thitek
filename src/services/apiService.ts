@@ -1,7 +1,6 @@
 import axios, { AxiosResponse, AxiosError } from 'axios';
 import { TIMEOUTS } from '@/constants/timeouts';
 // import { API_ENDPOINTS, API_DEFAULTS, DEFAULT_HEADERS } from '@/constants/api';
-import { ResellerLocation } from '@/types/reseller';
 import { BlogPost } from '@/types/blog';
 import { WarrantyCheckResponse } from '@/types/warranty';
 import {
@@ -157,9 +156,9 @@ class ApiService {
     }
 
     // Specific method for fetching resellers with retry logic
-    async fetchResellers(): Promise<ApiResponse<ResellerLocation[]>> {
+    async fetchResellers(): Promise<ApiResponse<unknown[]>> {
         return this.withRetry(
-            () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/dealers`, {
+            () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/dealer`, {
                 timeout: TIMEOUTS.GEOCODING_REQUEST,
                 headers: {
                     'Accept': 'application/json',
@@ -219,6 +218,24 @@ class ApiService {
         } catch {
             return false;
         }
+    }
+
+    // Dealer API methods
+    async fetchDealers(): Promise<ApiResponse<unknown[]>> {
+        return this.withRetry(
+            () => axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/dealer`, {
+                timeout: TIMEOUTS.GEOCODING_REQUEST,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            }),
+            {
+                maxRetries: 2,
+                baseDelay: 500,
+                maxDelay: 5000
+            }
+        );
     }
 
 
@@ -489,6 +506,7 @@ class ApiService {
             };
         }
     }
+
 
 }
 

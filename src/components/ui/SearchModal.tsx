@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
+import { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiSearch, FiX, FiArrowRight, FiClock, FiTrendingUp } from 'react-icons/fi';
+import { FiSearch, FiX, FiArrowRight, FiClock } from 'react-icons/fi';
 import Link from 'next/link';
 import Image from 'next/image';
 import { apiService } from '@/services/apiService';
@@ -11,7 +11,7 @@ import { apiService } from '@/services/apiService';
 import { Z_INDEX } from '@/constants/zIndex';
 import { modalManager } from '@/utils/modalManager';
 import { useAnimationCoordinator } from '@/utils/animationCoordinator';
-import { POPULAR_SEARCHES, ANIMATION_DURATIONS } from '@/constants/ui';
+import { ANIMATION_DURATIONS } from '@/constants/ui';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 
 interface SearchModalProps {
@@ -48,9 +48,6 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
     const inputRef = useRef<HTMLInputElement>(null);
     const { registerAnimation, completeAnimation, cancelAnimation } = useAnimationCoordinator();
     const { handleError } = useErrorHandler();
-
-    // Popular searches - memoize to prevent re-creation
-    const popularSearches = useMemo(() => POPULAR_SEARCHES, []);
 
     // Load recent searches from localStorage
     useEffect(() => {
@@ -283,7 +280,7 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                             {/* Search Content */}
                             <div className="max-h-[70vh] overflow-y-auto custom-scrollbar">
                                 {!query ? (
-                                    /* Empty State - Recent & Popular Searches */
+                                    /* Empty State - Recent Searches */
                                     <div className="p-6 space-y-6">
                                         {/* Recent Searches */}
                                         {recentSearches.length > 0 && (
@@ -308,24 +305,6 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                                             </div>
                                         )}
 
-                                        {/* Popular Searches */}
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <FiTrendingUp className="w-4 h-4 text-gray-400" />
-                                                <h3 className="text-sm font-medium text-gray-300">Tìm kiếm phổ biến</h3>
-                                            </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                {popularSearches.map((search, index) => (
-                                                    <button
-                                                        key={index}
-                                                        onClick={() => setQuery(search)}
-                                                        className="px-3 py-1.5 bg-[#4FC8FF]/10 hover:bg-[#4FC8FF]/20 border border-[#4FC8FF]/30 rounded-full text-sm text-[#4FC8FF] hover:text-white transition-colors"
-                                                    >
-                                                        {search}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
                                     </div>
                                 ) : filteredResults.length > 0 ? (
                                     /* Search Results */
@@ -404,17 +383,6 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                                             Không có kết quả nào cho &ldquo;{query}&rdquo;. Thử tìm kiếm với từ khóa
                                             khác.
                                         </p>
-                                        <div className="flex flex-wrap gap-2 justify-center">
-                                            {popularSearches.slice(0, 3).map((search, index) => (
-                                                <button
-                                                    key={index}
-                                                    onClick={() => setQuery(search)}
-                                                    className="px-3 py-1.5 bg-[#4FC8FF]/10 hover:bg-[#4FC8FF]/20 border border-[#4FC8FF]/30 rounded-full text-sm text-[#4FC8FF] hover:text-white transition-colors"
-                                                >
-                                                    {search}
-                                                </button>
-                                            ))}
-                                        </div>
                                     </div>
                                 ) : isSearching ? (
                                     /* Loading State */

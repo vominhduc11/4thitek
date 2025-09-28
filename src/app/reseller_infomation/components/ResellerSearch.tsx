@@ -13,10 +13,6 @@ interface Reseller {
     district: string;
     phone: string;
     email: string;
-    coordinates?: {
-        lat: number;
-        lng: number;
-    };
 }
 
 // Function to extract unique locations from reseller data
@@ -131,6 +127,7 @@ export default function ResellerSearch({
                                         type="button"
                                         onClick={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
                                         className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-[#0c131d] border border-gray-600 rounded-lg text-white focus:outline-none focus:border-[#00d4ff] transition-all duration-300"
+                                        suppressHydrationWarning
                                     >
                                         <div className="flex items-center gap-2">
                                             <FiMapPin className="w-4 h-4 text-gray-400" />
@@ -273,6 +270,7 @@ export default function ResellerSearch({
                                     onChange={(e) => handleInputChange('address', e.target.value)}
                                     placeholder={t('reseller.enterAddress')}
                                     className="w-full px-4 py-3 bg-[#0c131d] border border-gray-600 rounded-lg text-white focus:outline-none focus:border-[#00d4ff] transition-colors"
+                                    suppressHydrationWarning
                                 />
                             </div>
 
@@ -281,6 +279,7 @@ export default function ResellerSearch({
                                 <button
                                     onClick={handleSearch}
                                     className="w-full bg-[#00d4ff] text-[#0c131d] py-3 px-6 rounded-lg font-semibold hover:bg-[#00b8e6] transition-colors duration-300 flex items-center justify-center space-x-2"
+                                    suppressHydrationWarning
                                 >
                                     <FiSearch className="w-5 h-5" />
                                     <span>{t('reseller.search')}</span>
