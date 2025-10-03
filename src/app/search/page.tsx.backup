@@ -8,7 +8,6 @@ import { FiSearch, FiFilter, FiX, FiArrowLeft } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiService } from '@/services/apiService';
 import { useLanguage } from '@/context/LanguageContext';
-import { useDebounce } from '@/hooks/useDebounce';
 import Hero from '@/components/ui/Hero';
 
 interface SearchResult {
@@ -49,7 +48,8 @@ const itemVariants = {
         y: 0,
         opacity: 1,
         transition: {
-            duration: 0.5
+            duration: 0.5,
+            ease: "easeOut"
         }
     }
 };
@@ -61,14 +61,16 @@ const cardVariants = {
         opacity: 1,
         scale: 1,
         transition: {
-            duration: 0.4
+            duration: 0.4,
+            ease: "easeOut"
         }
     },
     hover: {
         y: -5,
         scale: 1.02,
         transition: {
-            duration: 0.2
+            duration: 0.2,
+            ease: "easeInOut"
         }
     }
 };
@@ -79,7 +81,8 @@ const searchFormVariants = {
         y: 0,
         opacity: 1,
         transition: {
-            duration: 0.6
+            duration: 0.6,
+            ease: "easeOut"
         }
     }
 };
@@ -90,7 +93,8 @@ const filterVariants = {
         x: 0,
         opacity: 1,
         transition: {
-            duration: 0.5
+            duration: 0.5,
+            ease: "easeOut"
         }
     }
 };
@@ -105,14 +109,9 @@ function SearchContent() {
     const [activeFilter, setActiveFilter] = useState<'all' | 'products' | 'blogs'>('all');
     const [searchInput, setSearchInput] = useState(query);
 
-    // Debounce search input for live search
-    const debouncedSearchInput = useDebounce(searchInput, 500);
-
-    // Perform search when debounced search input changes
+    // Perform search when query changes
     useEffect(() => {
-        const searchQuery = debouncedSearchInput.trim();
-
-        if (!searchQuery) {
+        if (!query.trim()) {
             setResults([]);
             return;
         }
@@ -120,7 +119,7 @@ function SearchContent() {
         const performSearch = async () => {
             setIsLoading(true);
             try {
-                const response = await apiService.search(searchQuery, 20);
+                const response = await apiService.search(query, 20);
 
                 if (!response.success) {
                     console.error('Search failed:', response.error);
@@ -166,7 +165,7 @@ function SearchContent() {
         };
 
         performSearch();
-    }, [debouncedSearchInput]);
+    }, [query]);
 
     // Update search input when query param changes
     useEffect(() => {
@@ -300,7 +299,7 @@ function SearchContent() {
 
                         {/* Search Info */}
                         <AnimatePresence>
-                            {debouncedSearchInput && (
+                            {query && (
                                 <motion.div
                                     className="space-y-4"
                                     initial={{ opacity: 0, y: 20 }}
@@ -315,7 +314,7 @@ function SearchContent() {
                                             animate={{ opacity: 1 }}
                                             transition={{ delay: 0.2 }}
                                         >
-                                            Tìm kiếm cho: <span className="text-white font-medium break-words bg-gradient-to-r from-[#4FC8FF] to-blue-400 bg-clip-text text-transparent">&ldquo;{debouncedSearchInput}&rdquo;</span>
+                                            Tìm kiếm cho: <span className="text-white font-medium break-words bg-gradient-to-r from-[#4FC8FF] to-blue-400 bg-clip-text text-transparent">&ldquo;{query}&rdquo;</span>
                                         </motion.p>
                                         <motion.p
                                             className="text-xs sm:text-sm text-gray-400"
@@ -438,7 +437,7 @@ function SearchContent() {
                                     ))}
                                 </div>
                             </motion.div>
-                        ) : !debouncedSearchInput ? (
+                        ) : !query ? (
                             /* No Query State - Enhanced */
                             <motion.div
                                 className="text-center py-12 sm:py-16 px-4"
@@ -508,7 +507,7 @@ function SearchContent() {
                                 initial="hidden"
                                 animate="visible"
                             >
-                                {filteredResults.map((result) => (
+                                {filteredResults.map((result, index) => (
                                     <motion.div
                                         key={`${result.type}-${result.id}`}
                                         variants={cardVariants}
@@ -634,7 +633,7 @@ function SearchContent() {
                                     animate={{ opacity: 1 }}
                                     transition={{ delay: 0.3 }}
                                 >
-                                    Không có kết quả nào cho <span className="break-words text-[#4FC8FF] font-medium">&ldquo;{debouncedSearchInput}&rdquo;</span>.
+                                    Không có kết quả nào cho <span className="break-words text-[#4FC8FF] font-medium">&ldquo;{query}&rdquo;</span>.
                                     <br className="hidden sm:block" />
                                     Thử tìm kiếm với từ khóa khác hoặc các gợi ý bên dưới.
                                 </motion.p>
@@ -660,11 +659,11 @@ function SearchContent() {
                                         </motion.div>
                                     ))}
                                 </motion.div>
-                            </motion.div>
+                            </div>
                         )}
                     </div>
                 </div>
-            </motion.section>
+            </section>
         </div>
     );
 }
