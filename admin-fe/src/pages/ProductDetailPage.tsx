@@ -14,6 +14,15 @@ import productPlaceholder from '../assets/product-placeholder.svg'
 import { useProducts } from '../context/ProductsContext'
 import type { Product } from '../data/products'
 
+const getImageUrl = (image: string) => {
+  try {
+    const parsed = JSON.parse(image) as { imageUrl?: string }
+    return parsed.imageUrl || image
+  } catch {
+    return image
+  }
+}
+
 type ProductDraft = {
   name: string
   price: string
@@ -31,7 +40,7 @@ const buildDraft = (product: Product): ProductDraft => ({
   stock: String(product.stock),
   description: product.description,
   features: product.features.join(', '),
-  image: product.image,
+  image: getImageUrl(product.image),
 })
 
 const formatDate = () =>
@@ -60,6 +69,7 @@ function ProductDetailPage() {
 
   useEffect(() => {
     if (product && !isEditing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDraft(buildDraft(product))
     }
   }, [product, isEditing])
@@ -149,9 +159,41 @@ function ProductDetailPage() {
             <h3 className="mt-3 text-2xl font-semibold text-slate-900">
               {product.name}
             </h3>
-            <p className="mt-2 text-sm text-slate-500">
-              {product.description}
-            </p>
+            <p className="mt-2 text-sm text-slate-500">{product.description}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+              <span
+                className={
+                  'inline-flex items-center gap-1 rounded-full px-3 py-1 font-semibold ' +
+                  (product.isDeleted || product.archived
+                    ? 'bg-slate-200 text-slate-600'
+                    : product.publishStatus === 'PUBLISHED'
+                      ? 'bg-emerald-500/15 text-emerald-700'
+                      : product.publishStatus === 'DRAFT'
+                        ? 'bg-slate-900/5 text-slate-700'
+                        : 'bg-slate-200 text-slate-600')
+                }
+              >
+                {product.isDeleted || product.archived
+                  ? 'Deleted'
+                  : product.publishStatus === 'PUBLISHED'
+                    ? 'Published'
+                    : product.publishStatus === 'DRAFT'
+                      ? 'Draft'
+                      : 'Archived'}
+              </span>
+              {product.isFeatured && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-3 py-1 font-semibold text-amber-700">
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  Featured
+                </span>
+              )}
+              {product.showOnHomepage && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 px-3 py-1 font-semibold text-blue-700">
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  Homepage
+                </span>
+              )}
+            </div>
             <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
               <span className="rounded-full bg-slate-900/5 px-3 py-1 font-semibold">
                 SKU {product.sku}
@@ -258,7 +300,11 @@ function ProductDetailPage() {
           <div className="flex items-center gap-4">
             <img
               className="h-24 w-24 rounded-3xl border border-slate-200 bg-slate-50 object-cover"
-              src={draft.image.trim() || product.image || productPlaceholder}
+              src={
+                draft.image.trim() ||
+                getImageUrl(product.image) ||
+                productPlaceholder
+              }
               alt={product.name}
             />
             <div>
@@ -266,7 +312,7 @@ function ProductDetailPage() {
                 SKU {product.sku}
               </p>
               <p className="mt-2 text-xl font-semibold text-[var(--accent)]">
-                {product.price}
+                {product.retailPrice ? `$${product.retailPrice}` : product.price}
               </p>
               <p className="mt-1 text-sm text-slate-500">
                 Cap nhat {product.lastUpdated}

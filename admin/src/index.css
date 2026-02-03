@@ -1,0 +1,539 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap&subset=vietnamese');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --font-display: "Space Grotesk";
+    --font-body: "Manrope";
+
+    /* Neutral scale */
+    --neutral-50: 210 20% 98%;
+    --neutral-100: 210 20% 96%;
+    --neutral-200: 214 19% 90%;
+    --neutral-300: 215 17% 82%;
+    --neutral-400: 215 16% 65%;
+    --neutral-500: 215 15% 45%;
+    --neutral-600: 216 15% 35%;
+    --neutral-700: 215 16% 25%;
+    --neutral-800: 215 20% 15%;
+    --neutral-900: 218 24% 12%;
+    --neutral-950: 220 28% 8%;
+
+    /* Semantic palettes */
+    --success-50: 146 65% 96%;
+    --success-100: 146 60% 89%;
+    --success-200: 146 58% 79%;
+    --success-300: 146 55% 70%;
+    --success-400: 146 50% 58%;
+    --success-500: 146 50% 48%;
+    --success-600: 146 50% 42%;
+    --success-700: 146 50% 35%;
+    --success-800: 146 50% 28%;
+    --success-900: 146 50% 22%;
+
+    --warning-50: 43 100% 95%;
+    --warning-100: 43 96% 90%;
+    --warning-200: 43 92% 82%;
+    --warning-300: 43 92% 72%;
+    --warning-400: 40 92% 62%;
+    --warning-500: 33 92% 54%;
+    --warning-600: 30 92% 50%;
+    --warning-700: 28 92% 45%;
+    --warning-800: 26 92% 40%;
+    --warning-900: 24 92% 35%;
+
+    --danger-50: 0 85% 97%;
+    --danger-100: 0 85% 90%;
+    --danger-200: 0 80% 82%;
+    --danger-300: 0 75% 72%;
+    --danger-400: 0 72% 60%;
+    --danger-500: 0 72% 52%;
+    --danger-600: 0 72% 45%;
+    --danger-700: 0 72% 38%;
+    --danger-800: 0 70% 32%;
+    --danger-900: 0 70% 26%;
+
+    --info-50: 214 100% 97%;
+    --info-100: 214 95% 92%;
+    --info-200: 214 90% 84%;
+    --info-300: 214 90% 76%;
+    --info-400: 214 88% 66%;
+    --info-500: 214 100% 56%;
+    --info-600: 214 90% 48%;
+    --info-700: 214 90% 38%;
+    --info-800: 214 90% 30%;
+    --info-900: 214 90% 24%;
+
+    --background: 0 0% 100%;
+    --foreground: var(--neutral-900);
+
+    --card: 0 0% 100%;
+    --card-foreground: var(--neutral-900);
+
+    --popover: 0 0% 100%;
+    --popover-foreground: var(--neutral-900);
+
+    --primary: 214 85% 50%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: var(--neutral-100);
+    --secondary-foreground: var(--neutral-800);
+
+    --muted: var(--neutral-100);
+    --muted-foreground: var(--neutral-500);
+
+    --accent: var(--info-50);
+    --accent-foreground: var(--neutral-800);
+
+    --destructive: 0 78% 55%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: var(--neutral-200);
+    --input: var(--neutral-200);
+    --ring: var(--primary);
+
+    --radius: 0.6rem;
+
+    --sidebar-background: 214 32% 93%;
+    --sidebar-foreground: var(--neutral-900);
+    --sidebar-primary: 214 85% 50%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 214 32% 88%;
+    --sidebar-accent-foreground: var(--neutral-900);
+    --sidebar-border: var(--neutral-200);
+    --sidebar-ring: var(--primary);
+  }
+
+  .dark {
+    --background: var(--neutral-950);
+    --foreground: 210 40% 98%;
+
+    --card: var(--neutral-900);
+    --card-foreground: 210 40% 98%;
+
+    --popover: var(--neutral-900);
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 214 85% 56%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: var(--neutral-800);
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: var(--neutral-800);
+    --muted-foreground: 215 20% 72%;
+
+    --accent: 217 32% 20%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 48%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: var(--neutral-800);
+    --input: 217 32% 24%;
+    --ring: 214 85% 56%;
+    --sidebar-background: var(--neutral-950);
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 214 85% 56%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: var(--neutral-800);
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: var(--neutral-800);
+    --sidebar-ring: 214 85% 56%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body), system-ui, -apple-system, sans-serif;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display), system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Custom animations */
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  0% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+/* Dark mode text color overrides for inline styles */
+.dark span[style*="color: rgb(0, 0, 0)"],
+.dark p[style*="color: rgb(0, 0, 0)"],
+.dark div[style*="color: rgb(0, 0, 0)"],
+.dark span[style*="color:#000"],
+.dark p[style*="color:#000"],
+.dark div[style*="color:#000"],
+.dark span[style*="color: black"],
+.dark p[style*="color: black"],
+.dark div[style*="color: black"] {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Override any black text colors in dark mode */
+.dark [style*="color: rgb(0, 0, 0)"] {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Specific override for product description content */
+.dark .product-description *[style*="color"],
+.dark .description-content *[style*="color"] {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Enhanced input styling for dark mode */
+.dark input[type="text"],
+.dark input[type="number"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark textarea,
+.dark select {
+  background-color: hsl(217 32% 22%);
+  border-color: hsl(217 32% 30%);
+  color: hsl(var(--foreground));
+  transition: all 0.2s ease;
+}
+
+.dark input[type="text"]:focus,
+.dark input[type="number"]:focus,
+.dark input[type="email"]:focus,
+.dark input[type="password"]:focus,
+.dark textarea:focus,
+.dark select:focus {
+  background-color: hsl(217 32% 26%);
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+}
+
+.dark input[type="text"]:hover,
+.dark input[type="number"]:hover,
+.dark input[type="email"]:hover,
+.dark input[type="password"]:hover,
+.dark textarea:hover,
+.dark select:hover {
+  background-color: hsl(217 32% 24%);
+  border-color: hsl(217 32% 35%);
+}
+
+/* Placeholder styling for dark mode */
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.7;
+}
+
+.dark input:focus::placeholder,
+.dark textarea:focus::placeholder {
+  opacity: 0.5;
+}
+
+/* ReactQuill dark mode styling */
+.dark .ql-toolbar {
+  border-color: hsl(217 32% 30%) !important;
+  background-color: hsl(217 32% 20%) !important;
+}
+
+.dark .ql-container {
+  border-color: hsl(217 32% 30%) !important;
+  background-color: hsl(217 32% 22%) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark .ql-editor {
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark .ql-editor.ql-blank::before {
+  color: hsl(var(--muted-foreground)) !important;
+  opacity: 0.7;
+}
+
+.dark .ql-toolbar .ql-stroke {
+  stroke: hsl(var(--muted-foreground)) !important;
+}
+
+.dark .ql-toolbar .ql-fill {
+  fill: hsl(var(--muted-foreground)) !important;
+}
+
+.dark .ql-toolbar button:hover .ql-stroke {
+  stroke: hsl(var(--foreground)) !important;
+}
+
+.dark .ql-toolbar button:hover .ql-fill {
+  fill: hsl(var(--foreground)) !important;
+}
+
+.dark .ql-toolbar button.ql-active .ql-stroke {
+  stroke: hsl(var(--primary)) !important;
+}
+
+.dark .ql-toolbar button.ql-active .ql-fill {
+  fill: hsl(var(--primary)) !important;
+}
+
+.dark .ql-snow .ql-tooltip {
+  background-color: hsl(217 32% 20%) !important;
+  border-color: hsl(217 32% 30%) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark .ql-snow .ql-tooltip input[type=text] {
+  background-color: hsl(217 32% 24%) !important;
+  border-color: hsl(217 32% 30%) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Professional Scrollbar Styling */
+/* Light mode scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(217 32% 55%);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(217 32% 45%);
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: hsl(217 32% 35%);
+  background-clip: content-box;
+}
+
+/* Dark mode scrollbar */
+.dark::-webkit-scrollbar-thumb {
+  background: hsl(217 32% 45%);
+  background-clip: content-box;
+}
+
+.dark::-webkit-scrollbar-thumb:hover {
+  background: hsl(217 32% 55%);
+  background-clip: content-box;
+}
+
+.dark::-webkit-scrollbar-thumb:active {
+  background: hsl(217 32% 65%);
+  background-clip: content-box;
+}
+
+/* Firefox scrollbar styling */
+* {
+  scrollbar-width: auto;
+  scrollbar-color: hsl(217 32% 55%) transparent;
+}
+
+.dark {
+  scrollbar-color: hsl(217 32% 45%) transparent;
+}
+
+/* Scrollable container enhancements */
+.overflow-auto,
+.overflow-y-auto,
+.overflow-x-auto {
+  transition: background-color 0.2s ease;
+}
+
+/* Smooth scroll behavior for all scrollable elements */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Responsive Padding Utility Classes */
+.responsive-padding {
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .responsive-padding {
+    padding: 1.25rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-padding {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-padding {
+    padding: 2rem;
+  }
+}
+
+/* Responsive Padding X (horizontal) */
+.responsive-padding-x {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 768px) {
+  .responsive-padding-x {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-padding-x {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Responsive Padding Y (vertical) */
+.responsive-padding-y {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+  .responsive-padding-y {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-padding-y {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+}
+
+/* Smooth Font Scaling - Using Fluid Typography */
+/* Scales smoothly between breakpoints instead of jumping */
+
+.text-fluid-sm {
+  font-size: clamp(0.875rem, 0.8rem + 0.5vw, 1rem);
+  /* scales from 14px to 16px */
+}
+
+.text-fluid-base {
+  font-size: clamp(1rem, 0.9rem + 0.8vw, 1.25rem);
+  /* scales from 16px to 20px */
+}
+
+.text-fluid-lg {
+  font-size: clamp(1.125rem, 1rem + 1vw, 1.5rem);
+  /* scales from 18px to 24px */
+}
+
+.text-fluid-xl {
+  font-size: clamp(1.25rem, 1.1rem + 1.2vw, 1.875rem);
+  /* scales from 20px to 30px */
+}
+
+.text-fluid-2xl {
+  font-size: clamp(1.5rem, 1.3rem + 1.5vw, 2.25rem);
+  /* scales from 24px to 36px */
+}
+
+.text-fluid-3xl {
+  font-size: clamp(1.875rem, 1.6rem + 2vw, 2.75rem);
+  /* scales from 30px to 44px */
+}
+
+.text-fluid-4xl {
+  font-size: clamp(2.25rem, 1.9rem + 2.5vw, 3.5rem);
+  /* scales from 36px to 56px */
+}
+
+/* Responsive Gap Utility */
+.gap-responsive {
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .gap-responsive {
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .gap-responsive {
+    gap: 2rem;
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Ensure list markers show for rich text descriptions */
+.description-content ul,
+.product-description ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+
+.description-content ol,
+.product-description ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+}
+
+.description-content li,
+.product-description li {
+  margin: 0.25rem 0;
+}

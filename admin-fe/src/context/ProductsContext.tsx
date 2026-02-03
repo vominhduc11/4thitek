@@ -1,5 +1,8 @@
-import { createContext, useContext, useMemo, useState } from 'react'
-import { Product, products as seedProducts } from '../data/products'
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState } from 'react'
+import { products as seedProducts } from '../data/products'
+import type { Product, PublishStatus } from '../data/products'
+import productPlaceholder from '../assets/product-placeholder.svg'
 
 type ProductsContextValue = {
   products: Product[]
@@ -8,17 +11,52 @@ type ProductsContextValue = {
   publishProduct: (sku: string) => void
   updateProduct: (sku: string, updates: Partial<Product>) => void
   deleteProduct: (sku: string) => void
+  addProduct: (payload?: Partial<Product>) => void
+  togglePublishStatus: (sku: string) => void
 }
 
 const ProductsContext = createContext<ProductsContextValue | undefined>(undefined)
 
+const deriveStatus = (product: Product): Product['status'] => {
+  if (product.publishStatus !== 'PUBLISHED' || product.archived || product.isDeleted) {
+    return 'Draft'
+  }
+  if (product.stock < 20) return 'Low Stock'
+  return 'Active'
+}
+
+const normalizeProduct = (product: Product): Product => {
+  const publishStatus: PublishStatus =
+    product.publishStatus ||
+    (product.archived || product.isDeleted
+      ? 'ARCHIVED'
+      : product.status === 'Draft'
+        ? 'DRAFT'
+        : 'PUBLISHED')
+
+  return {
+    ...product,
+    publishStatus,
+    status: deriveStatus({ ...product, publishStatus }),
+    archived: product.archived || publishStatus === 'ARCHIVED' || product.isDeleted,
+    isDeleted: product.isDeleted ?? false,
+  }
+}
+
 export function ProductsProvider({ children }: { children: React.ReactNode }) {
-  const [products, setProducts] = useState<Product[]>(seedProducts)
+  const [products, setProducts] = useState<Product[]>(seedProducts.map(normalizeProduct))
 
   const archiveProduct = (sku: string) => {
     setProducts((prev) =>
       prev.map((product) =>
-        product.sku === sku ? { ...product, archived: true } : product,
+        product.sku === sku
+          ? normalizeProduct({
+              ...product,
+              archived: true,
+              isDeleted: true,
+              publishStatus: 'ARCHIVED',
+            })
+          : product,
       ),
     )
   }
@@ -26,7 +64,14 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
   const restoreProduct = (sku: string) => {
     setProducts((prev) =>
       prev.map((product) =>
-        product.sku === sku ? { ...product, archived: false } : product,
+        product.sku === sku
+          ? normalizeProduct({
+              ...product,
+              archived: false,
+              isDeleted: false,
+              publishStatus: 'PUBLISHED',
+            })
+          : product,
       ),
     )
   }
@@ -43,14 +88,15 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
         if (product.sku !== sku || product.archived) {
           return product
         }
-        if (product.status !== 'Draft') {
+        if (product.publishStatus === 'PUBLISHED') {
           return product
         }
-        return {
+        return normalizeProduct({
           ...product,
-          status: 'Active',
+          publishStatus: 'PUBLISHED',
           lastUpdated: publishedAt,
-        }
+          isDeleted: false,
+        })
       }),
     )
   }
@@ -58,7 +104,7 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
   const updateProduct = (sku: string, updates: Partial<Product>) => {
     setProducts((prev) =>
       prev.map((product) =>
-        product.sku === sku ? { ...product, ...updates } : product,
+        product.sku === sku ? normalizeProduct({ ...product, ...updates }) : product,
       ),
     )
   }
@@ -67,17 +113,68 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
     setProducts((prev) => prev.filter((product) => product.sku !== sku))
   }
 
-  const value = useMemo(
-    () => ({
-      products,
-      archiveProduct,
-      restoreProduct,
-      publishProduct,
-      updateProduct,
-      deleteProduct,
-    }),
-    [products],
-  )
+  const addProduct = (payload: Partial<Product> = {}) => {
+    const now = new Date()
+    const id = payload.id || String(Date.now())
+    const sku = payload.sku || `NEW-${id}`
+    const base: Product = {
+      id,
+      name: payload.name || `New Product ${products.length + 1}`,
+      sku,
+      shortDescription: payload.shortDescription || '',
+      description: payload.description || '',
+      status: 'Draft',
+      publishStatus: payload.publishStatus || 'DRAFT',
+      stock: payload.stock ?? 0,
+      retailPrice: payload.retailPrice ?? 0,
+      price: payload.price || '$0',
+      image:
+        payload.image ||
+        JSON.stringify({
+          imageUrl: productPlaceholder,
+        }),
+      descriptions: payload.descriptions || '[]',
+      videos: payload.videos || '[]',
+      specifications: payload.specifications || '[]',
+      showOnHomepage: payload.showOnHomepage ?? false,
+      isFeatured: payload.isFeatured ?? false,
+      isDeleted: payload.isDeleted ?? false,
+      features: payload.features || [],
+      lastUpdated: payload.lastUpdated || now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      createdAt: payload.createdAt || now.toISOString(),
+      updatedAt: payload.updatedAt || now.toISOString(),
+      archived: payload.archived ?? false,
+    }
+
+    setProducts((prev) => [...prev, normalizeProduct(base)])
+  }
+
+  const togglePublishStatus = (sku: string) => {
+    setProducts((prev) =>
+      prev.map((product) => {
+        if (product.sku !== sku) return product
+        const nextStatus: PublishStatus =
+          product.publishStatus === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'
+        return normalizeProduct({
+          ...product,
+          publishStatus: nextStatus,
+          archived: nextStatus === 'DRAFT' ? product.archived : false,
+          isDeleted: false
+        })
+      })
+    )
+  }
+
+  const value = {
+    products,
+    archiveProduct,
+    restoreProduct,
+    publishProduct,
+    updateProduct,
+    deleteProduct,
+    addProduct,
+    togglePublishStatus,
+  }
 
   return (
     <ProductsContext.Provider value={value}>
