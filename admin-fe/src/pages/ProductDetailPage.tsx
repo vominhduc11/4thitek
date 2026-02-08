@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import productPlaceholder from '../assets/product-placeholder.svg'
 import { useProducts } from '../context/ProductsContext'
+import { useLanguage } from '../context/LanguageContext'
 import type { Product } from '../data/products'
 
 const getImageUrl = (image: string) => {
@@ -50,9 +51,24 @@ const formatDate = () =>
     year: 'numeric',
   })
 
+const currencyFormatter = new Intl.NumberFormat('vi-VN', {
+  style: 'currency',
+  currency: 'VND',
+  maximumFractionDigits: 0,
+})
+
+const formatCurrency = (value: number) => currencyFormatter.format(value)
+
+const parseCurrencyValue = (value: string) => {
+  const cleaned = value.replace(/[^\d.-]/g, '')
+  const parsed = Number(cleaned)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
 function ProductDetailPage() {
   const { sku } = useParams()
   const navigate = useNavigate()
+  const { t } = useLanguage()
   const {
     products,
     archiveProduct,
@@ -67,6 +83,17 @@ function ProductDetailPage() {
     product ? buildDraft(product) : null,
   )
 
+  const productStatusLabelMap: Record<Product['status'], string> = {
+    Active: 'Đang bán',
+    'Low Stock': 'Tồn kho thấp',
+    Draft: 'Bản nháp',
+  }
+
+  const publishStatusLabelMap: Record<Product['publishStatus'], string> = {
+    PUBLISHED: 'Đã xuất bản',
+    DRAFT: 'Bản nháp',
+  }
+
   useEffect(() => {
     if (product && !isEditing) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -78,17 +105,17 @@ function ProductDetailPage() {
     return (
       <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
         <h3 className="text-lg font-semibold text-slate-900">
-          Khong tim thay san pham
+          {t('Không tìm thấy sản phẩm')}
         </h3>
         <p className="mt-2 text-sm text-slate-500">
-          SKU {sku} khong ton tai hoac da bi xoa.
+          {t('SKU {sku} không tồn tại hoặc đã bị xóa.', { sku: sku ?? '' })}
         </p>
         <Link
           className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-slate-900 hover:shadow-[0_12px_24px_rgba(15,23,42,0.12)]"
           to="/products"
         >
           <ArrowLeft className="h-4 w-4" />
-          Quay lai danh sach
+          {t('Quay lại danh sách')}
         </Link>
       </section>
     )
@@ -136,7 +163,7 @@ function ProductDetailPage() {
       return
     }
     const confirmed = window.confirm(
-      'Xoa vinh vien san pham nay? Hanh dong khong the hoan tac.',
+      'Xóa vĩnh viễn sản phẩm này? Hành động không thể hoàn tác.',
     )
     if (confirmed) {
       deleteProduct(product.sku)
@@ -154,13 +181,13 @@ function ProductDetailPage() {
               to="/products"
             >
               <ArrowLeft className="h-4 w-4" />
-              Products
+              {t('Sản phẩm')}
             </Link>
             <h3 className="mt-3 text-2xl font-semibold text-slate-900">
               {product.name}
             </h3>
             <p className="mt-2 text-sm text-slate-500">{product.description}</p>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
               <span
                 className={
                   'inline-flex items-center gap-1 rounded-full px-3 py-1 font-semibold ' +
@@ -174,23 +201,19 @@ function ProductDetailPage() {
                 }
               >
                 {product.isDeleted || product.archived
-                  ? 'Deleted'
-                  : product.publishStatus === 'PUBLISHED'
-                    ? 'Published'
-                    : product.publishStatus === 'DRAFT'
-                      ? 'Draft'
-                      : 'Archived'}
+                  ? t('Đã xóa')
+                  : t(publishStatusLabelMap[product.publishStatus])}
               </span>
               {product.isFeatured && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-3 py-1 font-semibold text-amber-700">
                   <CheckCircle className="h-3.5 w-3.5" />
-                  Featured
+                  {t('Nổi bật')}
                 </span>
               )}
               {product.showOnHomepage && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 px-3 py-1 font-semibold text-blue-700">
                   <CheckCircle className="h-3.5 w-3.5" />
-                  Homepage
+                  {t('Trang chủ')}
                 </span>
               )}
             </div>
@@ -199,7 +222,7 @@ function ProductDetailPage() {
                 SKU {product.sku}
               </span>
               <span className="rounded-full bg-slate-900/5 px-3 py-1 font-semibold">
-                Cap nhat {product.lastUpdated}
+                {t('Cập nhật {date}', { date: product.lastUpdated })}
               </span>
             </div>
           </div>
@@ -212,7 +235,7 @@ function ProductDetailPage() {
                   onClick={handleCancelEdit}
                 >
                   <X className="h-4 w-4" />
-                  Huy
+                  {t('Hủy')}
                 </button>
                 <button
                   className="inline-flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0"
@@ -220,7 +243,7 @@ function ProductDetailPage() {
                   form="product-edit-form"
                 >
                   <Save className="h-4 w-4" />
-                  Luu thay doi
+                  {t('Lưu thay đổi')}
                 </button>
               </>
             ) : (
@@ -231,7 +254,7 @@ function ProductDetailPage() {
                   onClick={handleStartEdit}
                 >
                   <Pencil className="h-4 w-4" />
-                  Chinh sua
+                  {t('Chỉnh sửa')}
                 </button>
                 <button
                   className={
@@ -244,7 +267,9 @@ function ProductDetailPage() {
                   disabled={product.archived || product.status !== 'Draft'}
                 >
                   <CheckCircle className="h-4 w-4" />
-                  {product.status === 'Draft' ? 'Xuat ban' : 'Da xuat ban'}
+                  {product.status === 'Draft'
+                    ? t('Xuất bản')
+                    : t('Đã xuất bản')}
                 </button>
               </>
             )}
@@ -264,12 +289,12 @@ function ProductDetailPage() {
               {product.archived ? (
                 <>
                   <RotateCcw className="h-4 w-4" />
-                  Khoi phuc
+                  {t('Khôi phục')}
                 </>
               ) : (
                 <>
                   <Archive className="h-4 w-4" />
-                  An san pham
+                  {t('Ẩn sản phẩm')}
                 </>
               )}
             </button>
@@ -284,12 +309,12 @@ function ProductDetailPage() {
               disabled={!product.archived}
               title={
                 product.archived
-                  ? 'Xoa vinh vien'
-                  : 'Chi xoa vinh vien duoc khi da an san pham'
+                  ? t('Xóa vĩnh viễn')
+                  : t('Chỉ xóa vĩnh viễn được khi đã ẩn sản phẩm')
               }
             >
               <Trash2 className="h-4 w-4" />
-              Xoa
+              {t('Xóa')}
             </button>
           </div>
         </div>
@@ -312,10 +337,14 @@ function ProductDetailPage() {
                 SKU {product.sku}
               </p>
               <p className="mt-2 text-xl font-semibold text-[var(--accent)]">
-                {product.retailPrice ? `$${product.retailPrice}` : product.price}
+                {formatCurrency(
+                  product.retailPrice && product.retailPrice > 0
+                    ? product.retailPrice
+                    : parseCurrencyValue(product.price),
+                )}
               </p>
               <p className="mt-1 text-sm text-slate-500">
-                Cap nhat {product.lastUpdated}
+                {t('Cập nhật {date}', { date: product.lastUpdated })}
               </p>
             </div>
           </div>
@@ -323,7 +352,7 @@ function ProductDetailPage() {
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
               <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                Status
+                {t('Trạng thái')}
               </p>
               <span
                 className={
@@ -333,7 +362,7 @@ function ProductDetailPage() {
                       ? 'mt-2 inline-flex items-center gap-2 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-700'
                       : product.status === 'Low Stock'
                         ? 'mt-2 inline-flex items-center gap-2 rounded-full bg-amber-500/20 px-3 py-1 text-xs font-semibold text-amber-700'
-                        : 'mt-2 inline-flex items-center gap-2 rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-600'
+                      : 'mt-2 inline-flex items-center gap-2 rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-600'
                 }
               >
                 <span
@@ -344,21 +373,23 @@ function ProductDetailPage() {
                         ? 'h-2 w-2 rounded-full bg-emerald-500'
                         : product.status === 'Low Stock'
                           ? 'h-2 w-2 rounded-full bg-amber-500'
-                          : 'h-2 w-2 rounded-full bg-slate-400'
+                        : 'h-2 w-2 rounded-full bg-slate-400'
                   }
                 />
-                {product.archived ? 'Archived' : product.status}
+                {product.archived
+                  ? t('Đã lưu trữ')
+                  : t(productStatusLabelMap[product.status])}
               </span>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
               <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                Stock
+                {t('Tồn kho')}
               </p>
               <p className="mt-2 text-2xl font-semibold text-slate-900">
                 {product.stock}
               </p>
               <p className="text-xs text-slate-500">
-                Last updated {product.lastUpdated}
+                {t('Cập nhật {date}', { date: product.lastUpdated })}
               </p>
             </div>
           </div>
@@ -374,10 +405,10 @@ function ProductDetailPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    Ten san pham
+                    {t('Tên sản phẩm')}
                   </label>
                   <input
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[var(--accent)] focus:bg-[var(--surface)] focus:outline-none focus:ring-4 focus:ring-[var(--accent-soft)]"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus:outline-none"
                     value={draft.name}
                     onChange={(event) =>
                       setDraft({ ...draft, name: event.target.value })
@@ -386,10 +417,10 @@ function ProductDetailPage() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    Price
+                    {t('Giá')}
                   </label>
                   <input
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[var(--accent)] focus:bg-[var(--surface)] focus:outline-none focus:ring-4 focus:ring-[var(--accent-soft)]"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus:outline-none"
                     value={draft.price}
                     onChange={(event) =>
                       setDraft({ ...draft, price: event.target.value })
@@ -398,10 +429,10 @@ function ProductDetailPage() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    Stock
+                    {t('Tồn kho')}
                   </label>
                   <input
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[var(--accent)] focus:bg-[var(--surface)] focus:outline-none focus:ring-4 focus:ring-[var(--accent-soft)]"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus:outline-none"
                     type="number"
                     min="0"
                     value={draft.stock}
@@ -412,10 +443,10 @@ function ProductDetailPage() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    Status
+                    {t('Trạng thái')}
                   </label>
                   <select
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-[var(--accent)] focus:bg-[var(--surface)] focus:outline-none focus:ring-4 focus:ring-[var(--accent-soft)]"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:bg-[var(--surface)] focus:outline-none"
                     value={draft.status}
                     onChange={(event) =>
                       setDraft({
@@ -424,17 +455,17 @@ function ProductDetailPage() {
                       })
                     }
                   >
-                    <option value="Active">Active</option>
-                    <option value="Low Stock">Low Stock</option>
-                    <option value="Draft">Draft</option>
+                    <option value="Active">{t('Đang bán')}</option>
+                    <option value="Low Stock">{t('Tồn kho thấp')}</option>
+                    <option value="Draft">{t('Bản nháp')}</option>
                   </select>
                 </div>
                 <div className="sm:col-span-2">
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    Image URL
+                    {t('Ảnh URL')}
                   </label>
                   <input
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[var(--accent)] focus:bg-[var(--surface)] focus:outline-none focus:ring-4 focus:ring-[var(--accent-soft)]"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus:outline-none"
                     value={draft.image}
                     onChange={(event) =>
                       setDraft({ ...draft, image: event.target.value })
@@ -445,10 +476,10 @@ function ProductDetailPage() {
 
               <div>
                 <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                  Description
+                  {t('Mô tả')}
                 </label>
                 <textarea
-                  className="mt-2 min-h-[110px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[var(--accent)] focus:bg-[var(--surface)] focus:outline-none focus:ring-4 focus:ring-[var(--accent-soft)]"
+                  className="mt-2 min-h-[110px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus:outline-none"
                   value={draft.description}
                   onChange={(event) =>
                     setDraft({ ...draft, description: event.target.value })
@@ -458,10 +489,10 @@ function ProductDetailPage() {
 
               <div>
                 <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                  Features (comma separated)
+                  {t('Tính năng (ngăn cách bằng dấu phẩy)')}
                 </label>
                 <textarea
-                  className="mt-2 min-h-[90px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[var(--accent)] focus:bg-[var(--surface)] focus:outline-none focus:ring-4 focus:ring-[var(--accent-soft)]"
+                  className="mt-2 min-h-[90px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus:outline-none"
                   value={draft.features}
                   onChange={(event) =>
                     setDraft({ ...draft, features: event.target.value })
@@ -472,29 +503,28 @@ function ProductDetailPage() {
           ) : (
             <>
               <h4 className="text-sm font-semibold text-slate-900">
-                Key features
+                {t('Tính năng chính')}
               </h4>
               <ul className="mt-4 space-y-3 text-sm text-slate-600">
                 {product.features.map((feature) => (
                   <li
                     key={feature}
-                    className="flex items-center justify-between rounded-2xl border border-slate-200 bg-[var(--surface-muted)] px-4 py-3"
+                    className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-[var(--surface-muted)] px-4 py-3"
                   >
+                    <CheckCircle className="h-4 w-4 text-emerald-500" />
                     <span>{feature}</span>
-                    <span className="text-xs font-semibold text-slate-400">
-                      Active
-                    </span>
                   </li>
                 ))}
               </ul>
 
               <div className="mt-6 rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4 text-sm text-slate-600">
                 <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                  Release notes
+                  {t('Ghi chú phát hành')}
                 </p>
                 <p className="mt-2">
-                  Updated packaging and optimized audio curve for the 2026
-                  production batch.
+                  {t(
+                    'Đã cập nhật bao bì và tối ưu đường âm cho lô sản xuất 2026.',
+                  )}
                 </p>
               </div>
             </>

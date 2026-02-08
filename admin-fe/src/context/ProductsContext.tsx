@@ -27,18 +27,19 @@ const deriveStatus = (product: Product): Product['status'] => {
 
 const normalizeProduct = (product: Product): Product => {
   const publishStatus: PublishStatus =
-    product.publishStatus ||
-    (product.archived || product.isDeleted
-      ? 'ARCHIVED'
-      : product.status === 'Draft'
+    product.publishStatus === 'PUBLISHED'
+      ? 'PUBLISHED'
+      : product.publishStatus === 'DRAFT'
         ? 'DRAFT'
-        : 'PUBLISHED')
+        : product.status === 'Draft' || product.archived || product.isDeleted
+          ? 'DRAFT'
+          : 'PUBLISHED'
 
   return {
     ...product,
     publishStatus,
     status: deriveStatus({ ...product, publishStatus }),
-    archived: product.archived || publishStatus === 'ARCHIVED' || product.isDeleted,
+    archived: product.archived || product.isDeleted,
     isDeleted: product.isDeleted ?? false,
   }
 }
@@ -54,7 +55,7 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
               ...product,
               archived: true,
               isDeleted: true,
-              publishStatus: 'ARCHIVED',
+              publishStatus: 'DRAFT',
             })
           : product,
       ),
@@ -124,10 +125,10 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
       shortDescription: payload.shortDescription || '',
       description: payload.description || '',
       status: 'Draft',
-      publishStatus: payload.publishStatus || 'DRAFT',
+      publishStatus: payload.publishStatus === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT',
       stock: payload.stock ?? 0,
       retailPrice: payload.retailPrice ?? 0,
-      price: payload.price || '$0',
+      price: payload.price || '0',
       image:
         payload.image ||
         JSON.stringify({

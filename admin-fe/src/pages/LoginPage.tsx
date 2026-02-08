@@ -1,6 +1,9 @@
 import { Lock, User } from 'lucide-react'
+import LanguageSwitcher from '../components/LanguageSwitcher'
+import { useLanguage } from '../context/LanguageContext'
 
 function LoginPage() {
+  const { t } = useLanguage()
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-[var(--app-bg)] via-[var(--surface)] to-[var(--accent-soft)] px-6 py-10 sm:px-10">
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
@@ -10,18 +13,21 @@ function LoginPage() {
       </div>
 
       <main className="relative w-full max-w-md rounded-3xl border border-slate-200/70 bg-white/95 p-8 shadow-[0_32px_80px_rgba(15,23,42,0.18)] backdrop-blur animate-card-enter motion-reduce:animate-none">
+        <div className="flex justify-end">
+          <LanguageSwitcher />
+        </div>
         <header className="text-center">
           <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-[radial-gradient(circle_at_top,#60a5fa,#3b82f6_60%,#1d4ed8)] text-lg font-semibold tracking-[0.2em] text-white shadow-[0_16px_32px_rgba(37,99,235,0.35)] animate-pop-in motion-reduce:animate-none">
             <span>4T</span>
           </div>
-          <p className="text-[0.65rem] uppercase tracking-[0.3em] text-slate-500">
-            Admin Console
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+            {t('Bảng điều hành')}
           </p>
           <h1 className="mt-2 font-serif text-2xl font-semibold text-slate-900">
-            4ThiTek Admin
+            {t('4ThiTek Quản trị')}
           </h1>
           <p className="mt-2 text-sm text-slate-500">
-            Dang nhap de truy cap he thong quan ly phan phoi tai nghe SCS
+            {t('Đăng nhập để truy cập hệ thống quản lý phân phối tai nghe SCS')}
           </p>
         </header>
 
@@ -34,15 +40,15 @@ function LoginPage() {
               className="text-sm font-semibold text-slate-700"
               htmlFor="username"
             >
-              Ten dang nhap
+              {t('Tên đăng nhập')}
             </label>
             <div className="relative mt-2">
               <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-10 py-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-[var(--accent)] focus:bg-[var(--surface)] focus:outline-none focus:ring-4 focus:ring-[var(--accent-soft)]"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-10 py-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus:bg-[var(--surface)] focus:outline-none"
                 id="username"
                 type="text"
-                placeholder="Nhap ten dang nhap"
+                placeholder={t('Nhập tên đăng nhập')}
                 autoComplete="username"
               />
             </div>
@@ -53,15 +59,15 @@ function LoginPage() {
               className="text-sm font-semibold text-slate-700"
               htmlFor="password"
             >
-              Mat khau
+              {t('Mật khẩu')}
             </label>
             <div className="relative mt-2">
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-10 py-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-[var(--accent)] focus:bg-[var(--surface)] focus:outline-none focus:ring-4 focus:ring-[var(--accent-soft)]"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-10 py-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus:bg-[var(--surface)] focus:outline-none"
                 id="password"
                 type="password"
-                placeholder="Nhap mat khau"
+                placeholder={t('Nhập mật khẩu')}
                 autoComplete="current-password"
               />
             </div>
@@ -70,10 +76,10 @@ function LoginPage() {
           <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
             <label className="flex items-center gap-2">
               <input className="h-4 w-4 accent-[var(--accent)]" type="checkbox" />
-              <span>Ghi nho dang nhap</span>
+              <span>{t('Ghi nhớ đăng nhập')}</span>
             </label>
             <span className="inline-flex items-center rounded-full bg-[var(--accent-cool-soft)] px-3 py-1 text-xs font-semibold text-[var(--accent-cool)]">
-              Bao mat qua email
+              {t('Bảo mật qua email')}
             </span>
           </div>
 
@@ -81,17 +87,17 @@ function LoginPage() {
             className="w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0"
             type="submit"
           >
-            Dang nhap
+            {t('Đăng nhập')}
           </button>
 
           <p className="text-center text-xs text-slate-500">
-            He thong co the yeu cau xac thuc email sau khi dang nhap.
+            {t('Hệ thống có thể yêu cầu xác thực email sau khi đăng nhập.')}
           </p>
         </form>
 
         <footer className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-3 text-xs text-slate-500">
           <span>(c) 2026 4ThiTek</span>
-          <span>Version 1.0</span>
+          <span>{t('Phiên bản 1.0')}</span>
         </footer>
       </main>
     </div>

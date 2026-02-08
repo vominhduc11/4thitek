@@ -1,6 +1,9 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { Link } from 'react-router-dom'
+import ReactPaginate from 'react-paginate'
+import Quill from 'quill'
+import 'quill/dist/quill.snow.css'
 import {
   Archive,
   CheckCircle,
@@ -10,19 +13,31 @@ import {
   Plus,
   RotateCcw,
   Search,
+  SlidersHorizontal,
   Trash2,
   Star,
   Home,
-  Ban,
   X,
 } from 'lucide-react'
+import Modal, { type Styles } from 'react-modal'
 import { useProducts } from '../context/ProductsContext'
+import { useLanguage } from '../context/LanguageContext'
 
-type ProductFilter = 'all' | 'active' | 'lowStock' | 'draft' | 'archived'
-type PublishFilter = 'all' | 'published' | 'draft' | 'archived' | 'deleted'
+type ProductFilter = 'all' | 'active' | 'lowStock' | 'outOfStock' | 'draft' | 'archived'
 type FeaturedFilter = 'all' | 'featured' | 'nonFeatured'
 type HomepageFilter = 'all' | 'homepage' | 'nonHomepage'
-type StockFilter = 'all' | 'low' | 'out'
+
+type GalleryItem = {
+  url: string
+}
+
+type DescriptionItem = {
+  type: 'title' | 'description' | 'image' | 'gallery' | 'video'
+  text?: string
+  url?: string
+  caption?: string
+  gallery?: GalleryItem[]
+}
 
 const getImageUrl = (image: string) => {
   try {
@@ -38,8 +53,136 @@ const formatPriceVND = (value: number | string) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num)
 }
 
+const toDigitsOnly = (value: string) => value.replace(/\D/g, '')
+
+const formatNumberInput = (value: string) => {
+  if (!value) return ''
+  return value.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+}
+
+const readFileAsDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '')
+    reader.onerror = () => reject(new Error('read failed'))
+    reader.readAsDataURL(file)
+  })
+
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024
+const MAX_VIDEO_BYTES = 10 * 1024 * 1024
+const ITEMS_PER_PAGE = 8
+
+const modalStyles: Styles = {
+  overlay: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '1rem',
+    zIndex: 50,
+  },
+  content: {
+    position: 'relative',
+    inset: 'auto',
+    border: 'none',
+    background: 'transparent',
+    padding: 0,
+    overflow: 'visible',
+  },
+}
+
+type QuillEditorProps = {
+  value: string
+  onChange: (value: string) => void
+  modules?: Record<string, unknown>
+  formats?: string[]
+  placeholder?: string
+  readOnly?: boolean
+}
+
+const QuillEditor = ({
+  value,
+  onChange,
+  modules,
+  formats,
+  placeholder,
+  readOnly,
+}: QuillEditorProps) => {
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const quillRef = useRef<Quill | null>(null)
+  const toolbarRef = useRef<HTMLElement | null>(null)
+  const onChangeRef = useRef(onChange)
+  const valueRef = useRef(value)
+
+  useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
+
+  useEffect(() => {
+    valueRef.current = value
+  }, [value])
+
+  useEffect(() => {
+    if (!containerRef.current || quillRef.current) return
+
+    const instance = new Quill(containerRef.current, {
+      theme: 'snow',
+      modules,
+      formats,
+      placeholder,
+      readOnly,
+    })
+
+    quillRef.current = instance
+    const toolbarModule = instance.getModule('toolbar') as { container?: HTMLElement } | null
+    toolbarRef.current = toolbarModule?.container ?? null
+
+    const handleChange = () => {
+      const html = instance.root.innerHTML
+      if (html !== valueRef.current) {
+        onChangeRef.current(html)
+      }
+    }
+
+    instance.on('text-change', handleChange)
+
+    if (valueRef.current) {
+      instance.clipboard.dangerouslyPasteHTML(valueRef.current, 'silent')
+    } else {
+      instance.setText('', 'silent')
+    }
+
+    return () => {
+      instance.off('text-change', handleChange)
+      quillRef.current = null
+      if (toolbarRef.current?.parentNode) {
+        toolbarRef.current.parentNode.removeChild(toolbarRef.current)
+      }
+      toolbarRef.current = null
+      if (containerRef.current) {
+        containerRef.current.innerHTML = ''
+      }
+    }
+  }, [formats, modules, placeholder, readOnly])
+
+  useEffect(() => {
+    const instance = quillRef.current
+    if (!instance) return
+    const currentHtml = instance.root.innerHTML
+    if (value !== currentHtml) {
+      const selection = instance.getSelection()
+      instance.clipboard.dangerouslyPasteHTML(value || '', 'silent')
+      if (selection) {
+        instance.setSelection(selection)
+      }
+    }
+  }, [value])
+
+  return <div ref={containerRef} />
+}
 
 function ProductsPage() {
+  const { t } = useLanguage()
   const {
     products,
     archiveProduct,
@@ -47,76 +190,75 @@ function ProductsPage() {
     publishProduct,
     deleteProduct,
     addProduct,
-    togglePublishStatus,
   } = useProducts()
   const [filter, setFilter] = useState<ProductFilter>('all')
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterPublish, setFilterPublish] = useState<PublishFilter>('all')
   const [filterFeatured, setFilterFeatured] = useState<FeaturedFilter>('all')
   const [filterHomepage, setFilterHomepage] = useState<HomepageFilter>('all')
-  const [stockFilter, setStockFilter] = useState<StockFilter>('all')
   const [showModal, setShowModal] = useState(false)
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
+  const imageInputRef = useRef<HTMLInputElement | null>(null)
+  const retailPriceInputRef = useRef<HTMLInputElement | null>(null)
+  const retailPriceCaretRef = useRef<number | null>(null)
+  const [selectedImageName, setSelectedImageName] = useState('')
+  const [imageError, setImageError] = useState('')
+  const [descriptionImageErrors, setDescriptionImageErrors] = useState<Record<number, string>>({})
+  const [descriptionVideoErrors, setDescriptionVideoErrors] = useState<Record<number, string>>({})
+  const [productVideoErrors, setProductVideoErrors] = useState<Record<number, string>>({})
   const [activeTab, setActiveTab] = useState<'basic' | 'description' | 'specs' | 'videos'>('basic')
+  const [currentPage, setCurrentPage] = useState(0)
   const [newProduct, setNewProduct] = useState({
     name: '',
     sku: '',
     shortDescription: '',
-    longDescription: '',
-    descriptions: [
-      { type: 'title', text: 'Tiêu đề' },
-      { type: 'description', text: 'Mô tả ngắn' },
-    ] as { type: 'title' | 'description'; text: string }[],
-    specifications: [
-      { label: 'Driver', value: '50mm' },
-      { label: 'Battery', value: '40h' },
-    ] as { label: string; value: string }[],
-    videos: [
-      {
-        title: 'Review',
-        descriptions: 'Video review',
-        url: 'https://example.com/video.mp4',
-        thumbnail: '',
-        type: 'review' as 'review' | 'unboxing' | 'demo' | 'tutorial',
-      },
-    ],
+    descriptions: [] as DescriptionItem[],
+    specifications: [] as { label: string; value: string }[],
+    videos: [] as {
+      title: string
+      descriptions: string
+      url: string
+      type: 'unboxing' | 'tutorial'
+    }[],
     retailPrice: '',
     stock: '',
-    publishStatus: 'DRAFT' as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED',
+    publishStatus: 'DRAFT' as 'DRAFT' | 'PUBLISHED',
     isFeatured: false,
     showOnHomepage: false,
     imageUrl: '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const archivedProducts = products.filter((product) => product.archived)
-
-  const activeProducts = products.filter(
-    (product) => !product.archived && product.status === 'Active',
-  )
-  const lowStockProducts = products.filter(
-    (product) => !product.archived && product.status === 'Low Stock',
-  )
-  const draftProducts = products.filter(
-    (product) => !product.archived && product.status === 'Draft',
+  const archivedProducts = useMemo(
+    () => products.filter((product) => product.archived),
+    [products],
   )
 
-  const normalizedSearch = searchTerm.trim().toLowerCase()
-  const visibleProducts = products.filter((product) => {
+  const activeProducts = useMemo(
+    () => products.filter((product) => !product.archived && product.status === 'Active'),
+    [products],
+  )
+
+  const lowStockProducts = useMemo(
+    () => products.filter((product) => !product.archived && product.stock > 0 && product.stock < 20),
+    [products],
+  )
+
+  const outOfStockProducts = useMemo(
+    () => products.filter((product) => !product.archived && product.stock === 0),
+    [products],
+  )
+
+  const draftProducts = useMemo(
+    () => products.filter((product) => !product.archived && product.status === 'Draft'),
+    [products],
+  )
+
+  const normalizedSearch = useMemo(() => searchTerm.trim().toLowerCase(), [searchTerm])
+  const visibleProducts = useMemo(() => products.filter((product) => {
     const matchesSearch =
       !normalizedSearch ||
       product.name.toLowerCase().includes(normalizedSearch) ||
       product.sku.toLowerCase().includes(normalizedSearch)
-
-    const matchesPublish =
-      filterPublish === 'all'
-        ? true
-        : filterPublish === 'published'
-          ? product.publishStatus === 'PUBLISHED' && !product.archived && !product.isDeleted
-          : filterPublish === 'draft'
-            ? product.publishStatus === 'DRAFT' && !product.archived && !product.isDeleted
-            : filterPublish === 'archived'
-              ? product.archived && !product.isDeleted
-              : product.isDeleted
 
     const matchesFeatured =
       filterFeatured === 'all'
@@ -132,19 +274,14 @@ function ProductsPage() {
           ? !!product.showOnHomepage
           : !product.showOnHomepage
 
-    const matchesStock =
-      stockFilter === 'all'
-        ? true
-        : stockFilter === 'low'
-          ? product.stock > 0 && product.stock < 20
-          : product.stock === 0
-
     const matchesFilter = (() => {
       switch (filter) {
         case 'active':
           return !product.archived && product.status === 'Active'
         case 'lowStock':
-          return !product.archived && product.status === 'Low Stock'
+          return !product.archived && product.stock > 0 && product.stock < 20
+        case 'outOfStock':
+          return !product.archived && product.stock === 0
         case 'draft':
           return !product.archived && product.status === 'Draft'
         case 'archived':
@@ -157,95 +294,608 @@ function ProductsPage() {
     return (
       matchesSearch &&
       matchesFilter &&
-      matchesPublish &&
       matchesFeatured &&
-      matchesHomepage &&
-      matchesStock
+      matchesHomepage
     )
-  })
+  }), [
+    products,
+    normalizedSearch,
+    filterFeatured,
+    filterHomepage,
+    filter,
+  ])
+
+  useEffect(() => {
+    setCurrentPage(0)
+  }, [normalizedSearch, filter, filterFeatured, filterHomepage])
+
+  const pageCount = Math.ceil(visibleProducts.length / ITEMS_PER_PAGE)
+  const pagedProducts = useMemo(() => {
+    const start = currentPage * ITEMS_PER_PAGE
+    return visibleProducts.slice(start, start + ITEMS_PER_PAGE)
+  }, [visibleProducts, currentPage])
+
+  useEffect(() => {
+    if (pageCount === 0) {
+      if (currentPage !== 0) setCurrentPage(0)
+      return
+    }
+    if (currentPage > pageCount - 1) {
+      setCurrentPage(pageCount - 1)
+    }
+  }, [pageCount, currentPage])
 
   const panelClass =
     'rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]'
   const primaryButtonClass =
-    'inline-flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0'
+    'btn-stable inline-flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0'
   const filterBaseClass =
-    'inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition'
+    'inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition whitespace-nowrap'
 
-  const handleDelete = (sku: string) => {
-    if (
-      window.confirm('Xoa vinh vien san pham nay? Hanh dong khong the hoan tac.')
-    ) {
-      deleteProduct(sku)
+  const resetFilters = () => {
+    setFilter('all')
+    setSearchTerm('')
+    setFilterFeatured('all')
+    setFilterHomepage('all')
+  }
+
+  const descriptionTypeOptions: Array<{ id: DescriptionItem['type']; label: string }> = [
+    { id: 'title', label: t('Tiêu đề') },
+    { id: 'description', label: t('Mô tả') },
+    { id: 'image', label: t('Hình ảnh') },
+    { id: 'gallery', label: t('Nhiều hình ảnh') },
+    { id: 'video', label: t('Video') },
+  ]
+
+  const descriptionEditorModules = useMemo(
+    () => ({
+      toolbar: [
+        [{ header: [1, 2, 3, false] }],
+        ['bold', 'italic', 'link'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        ['clean'],
+      ],
+    }),
+    [],
+  )
+
+  const descriptionEditorFormats = useMemo(
+    () => ['header', 'bold', 'italic', 'link', 'list'],
+    [],
+  )
+
+  const changeDescriptionType = (index: number, nextType: DescriptionItem['type']) => {
+    setNewProduct((prev) => {
+      const copy = [...prev.descriptions]
+      const current = copy[index] ?? { type: nextType }
+      const nextItem: DescriptionItem = { type: nextType }
+
+      if (nextType === 'title' || nextType === 'description') {
+        nextItem.text = current.text ?? ''
+      }
+      if (nextType === 'image' || nextType === 'video') {
+        nextItem.url = current.url ?? ''
+        nextItem.caption = current.caption ?? ''
+      }
+      if (nextType === 'gallery') {
+        const legacyUrls = (current as { urls?: string[] }).urls
+        const currentGallery =
+          current.gallery && current.gallery.length
+            ? current.gallery
+            : legacyUrls?.map((url) => ({ url })) ?? []
+        nextItem.gallery = currentGallery
+        nextItem.caption = current.caption ?? ''
+      }
+
+      copy[index] = nextItem
+      return { ...prev, descriptions: copy }
+    })
+    setDescriptionImageErrors((prev) => {
+      if (!(index in prev)) return prev
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
+    setDescriptionVideoErrors((prev) => {
+      if (!(index in prev)) return prev
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
+  }
+
+  const handleDescriptionImageFile = async (index: number, file: File | null) => {
+    if (!file) return
+    if (file.size > MAX_IMAGE_BYTES) {
+      setDescriptionImageErrors((prev) => ({
+        ...prev,
+        [index]: t('Ảnh tối đa 10MB'),
+      }))
+      return
+    }
+    try {
+      const url = await readFileAsDataUrl(file)
+      setNewProduct((prev) => {
+        const copy = [...prev.descriptions]
+        const current = copy[index] ?? { type: 'image' as const }
+        copy[index] = { ...current, type: 'image', url }
+        return { ...prev, descriptions: copy }
+      })
+      setDescriptionImageErrors((prev) => {
+        const next = { ...prev }
+        delete next[index]
+        return next
+      })
+    } catch {
+      // ignore
     }
   }
 
-  const filters = [
-    { value: 'all', label: 'All', count: products.length },
-    { value: 'active', label: 'Active', count: activeProducts.length },
-    { value: 'lowStock', label: 'Low Stock', count: lowStockProducts.length },
-    { value: 'draft', label: 'Draft', count: draftProducts.length },
-    { value: 'archived', label: 'Archived / Deleted', count: archivedProducts.length },
-  ] as const
+  const handleDescriptionGalleryFiles = async (index: number, files: FileList | null) => {
+    if (!files || files.length === 0) return
+    const fileList = Array.from(files)
+    const oversized = fileList.find((file) => file.size > MAX_IMAGE_BYTES)
+    if (oversized) {
+      setDescriptionImageErrors((prev) => ({
+        ...prev,
+        [index]: t('Ảnh tối đa 10MB'),
+      }))
+    }
+    const validFiles = fileList.filter((file) => file.size <= MAX_IMAGE_BYTES)
+    if (validFiles.length === 0) return
+    try {
+      const urls = await Promise.all(validFiles.map(readFileAsDataUrl))
+      const newItems = urls.filter(Boolean).map((url) => ({ url }))
+      setNewProduct((prev) => {
+        const copy = [...prev.descriptions]
+        const current = copy[index] ?? { type: 'gallery' as const, gallery: [] as GalleryItem[] }
+        const nextGallery = [...(current.gallery ?? []), ...newItems]
+        copy[index] = { ...current, type: 'gallery', gallery: nextGallery }
+        return { ...prev, descriptions: copy }
+      })
+      setDescriptionImageErrors((prev) => {
+        const next = { ...prev }
+        delete next[index]
+        return next
+      })
+    } catch {
+      // ignore
+    }
+  }
+
+  const handleGalleryItemFile = async (index: number, itemIndex: number, file: File | null) => {
+    if (!file) return
+    if (file.size > MAX_IMAGE_BYTES) {
+      setDescriptionImageErrors((prev) => ({
+        ...prev,
+        [index]: t('Ảnh tối đa 10MB'),
+      }))
+      return
+    }
+    try {
+      const url = await readFileAsDataUrl(file)
+      setNewProduct((prev) => {
+        const copy = [...prev.descriptions]
+        const current = copy[index] ?? { type: 'gallery' as const, gallery: [] as GalleryItem[] }
+        const nextGallery = [...(current.gallery ?? [])]
+        const existing = nextGallery[itemIndex] ?? { url: '' }
+        nextGallery[itemIndex] = { ...existing, url }
+        copy[index] = { ...current, type: 'gallery', gallery: nextGallery }
+        return { ...prev, descriptions: copy }
+      })
+      setDescriptionImageErrors((prev) => {
+        const next = { ...prev }
+        delete next[index]
+        return next
+      })
+    } catch {
+      // ignore
+    }
+  }
+
+  const handleDescriptionVideoFile = async (index: number, file: File | null) => {
+    if (!file) return
+    if (file.size > MAX_VIDEO_BYTES) {
+      setDescriptionVideoErrors((prev) => ({
+        ...prev,
+        [index]: t('Video tối đa 10MB'),
+      }))
+      return
+    }
+    try {
+      const url = await readFileAsDataUrl(file)
+      setNewProduct((prev) => {
+        const copy = [...prev.descriptions]
+        const current = copy[index] ?? { type: 'video' as const }
+        copy[index] = { ...current, type: 'video', url }
+        return { ...prev, descriptions: copy }
+      })
+      setDescriptionVideoErrors((prev) => {
+        const next = { ...prev }
+        delete next[index]
+        return next
+      })
+    } catch {
+      // ignore
+    }
+  }
+
+  const handleProductVideoFile = async (index: number, file: File | null) => {
+    if (!file) return
+    if (file.size > MAX_VIDEO_BYTES) {
+      setProductVideoErrors((prev) => ({
+        ...prev,
+        [index]: t('Video tối đa 10MB'),
+      }))
+      return
+    }
+    try {
+      const url = await readFileAsDataUrl(file)
+      setNewProduct((prev) => {
+        const copy = [...prev.videos]
+        const current =
+          copy[index] ?? { title: '', descriptions: '', url: '', type: 'tutorial' as const }
+        copy[index] = { ...current, url }
+        return { ...prev, videos: copy }
+      })
+      setProductVideoErrors((prev) => {
+        const next = { ...prev }
+        delete next[index]
+        return next
+      })
+    } catch {
+      // ignore
+    }
+  }
+
+  const removeDescriptionItem = (index: number) => {
+    setNewProduct((prev) => ({
+      ...prev,
+      descriptions: prev.descriptions.filter((_, i) => i !== index),
+    }))
+    setDescriptionImageErrors((prev) => {
+      const next: Record<number, string> = {}
+      Object.entries(prev).forEach(([key, value]) => {
+        const idx = Number(key)
+        if (Number.isNaN(idx)) return
+        if (idx < index) {
+          next[idx] = value
+        } else if (idx > index) {
+          next[idx - 1] = value
+        }
+      })
+      return next
+    })
+    setDescriptionVideoErrors((prev) => {
+      const next: Record<number, string> = {}
+      Object.entries(prev).forEach(([key, value]) => {
+        const idx = Number(key)
+        if (Number.isNaN(idx)) return
+        if (idx < index) {
+          next[idx] = value
+        } else if (idx > index) {
+          next[idx - 1] = value
+        }
+      })
+      return next
+    })
+  }
+
+  const closeModal = () => {
+    setActiveTab('basic')
+    retailPriceCaretRef.current = null
+    setDescriptionImageErrors({})
+    setDescriptionVideoErrors({})
+    setProductVideoErrors({})
+    setShowModal(false)
+  }
+
+  useLayoutEffect(() => {
+    if (retailPriceCaretRef.current === null) return
+    const input = retailPriceInputRef.current
+    if (!input) return
+    const caret = retailPriceCaretRef.current
+    retailPriceCaretRef.current = null
+    input.setSelectionRange(caret, caret)
+  }, [newProduct.retailPrice])
+
+  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) {
+      return
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setImageError(t('Ảnh tối đa 10MB'))
+      setSelectedImageName('')
+      setNewProduct((prev) => ({ ...prev, imageUrl: '' }))
+      event.target.value = ''
+      return
+    }
+    setImageError('')
+    setSelectedImageName(file.name)
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : ''
+      setNewProduct((prev) => ({ ...prev, imageUrl: result }))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleClearImage = () => {
+    setImageError('')
+    setSelectedImageName('')
+    setNewProduct((prev) => ({ ...prev, imageUrl: '' }))
+    if (imageInputRef.current) {
+      imageInputRef.current.value = ''
+    }
+  }
+
+  const handleDelete = useCallback((sku: string) => {
+    if (
+      window.confirm(
+        t('Xóa vĩnh viễn sản phẩm này? Hành động không thể hoàn tác.'),
+      )
+    ) {
+      deleteProduct(sku)
+    }
+  }, [deleteProduct, t])
+
+  const filters = useMemo(() => ([
+    { value: 'all', label: 'Tất cả', count: products.length },
+    { value: 'active', label: 'Đang bán', count: activeProducts.length },
+    { value: 'lowStock', label: 'Tồn kho thấp', count: lowStockProducts.length },
+    { value: 'outOfStock', label: 'Hết hàng', count: outOfStockProducts.length },
+    { value: 'draft', label: 'Bản nháp', count: draftProducts.length },
+    {
+      value: 'archived',
+      label: 'Đã lưu trữ / Đã xóa',
+      count: archivedProducts.length,
+    },
+  ] as const), [
+    products.length,
+    activeProducts.length,
+    lowStockProducts.length,
+    outOfStockProducts.length,
+    draftProducts.length,
+    archivedProducts.length,
+  ])
+
+  const listContent = useMemo(() => {
+    if (visibleProducts.length === 0) {
+      return (
+        <div className="rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] px-6 py-10 text-center text-sm text-slate-500">
+          <Package className="mx-auto h-10 w-10 text-slate-400" />
+          <p className="mt-4 text-base font-semibold text-slate-900">
+            {t('Không tìm thấy sản phẩm')}
+          </p>
+          <p className="mt-2 text-xs text-slate-500">
+            {t('Thử đổi bộ lọc hoặc từ khóa tìm kiếm.')}
+          </p>
+        </div>
+      )
+    }
+
+    return pagedProducts.map((product) => (
+      <div
+        key={product.sku}
+        className="grid gap-4 rounded-3xl border border-slate-200/70 bg-white/80 px-4 py-4 text-sm text-slate-700 shadow-sm backdrop-blur transition hover:border-[var(--accent-soft)] hover:shadow-[0_12px_24px_rgba(15,23,42,0.08)] md:grid-cols-[2fr_1fr_0.9fr] md:items-center"
+      >
+        <div className="flex items-center gap-3">
+          <img
+            className="h-12 w-12 rounded-2xl border border-slate-200 bg-white object-cover"
+            src={getImageUrl(product.image)}
+            alt={product.name}
+            loading="lazy"
+          />
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-slate-900">{product.name}</p>
+              <div className="flex items-center gap-1">
+                {product.isFeatured && (
+                  <span
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/15 text-amber-700"
+                    title={t('Nổi bật')}
+                  >
+                    <Star className="h-3 w-3" />
+                  </span>
+                )}
+                {product.showOnHomepage && (
+                  <span
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/15 text-blue-700"
+                    title={t('Trang chủ')}
+                  >
+                    <Home className="h-3 w-3" />
+                  </span>
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-slate-500">
+              <span className="uppercase tracking-[0.2em] text-slate-400">
+                SKU {product.sku}
+              </span>
+              <span className="px-2 text-slate-300">|</span>
+              <span className="font-semibold text-slate-700">
+                {formatPriceVND(product.retailPrice || product.price || 0)}
+              </span>
+              <span className="px-2 text-slate-300">|</span>
+              <span>{t('Tồn')}: {product.stock > 999 ? '999+' : product.stock}</span>
+            </p>
+          </div>
+        </div>
+        <div>
+          <span
+            className={
+              'inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ' +
+              (product.archived || product.isDeleted
+                ? 'bg-slate-200 text-slate-600'
+                : product.publishStatus === 'PUBLISHED'
+                  ? 'bg-emerald-500/15 text-emerald-700'
+                  : product.publishStatus === 'DRAFT'
+                    ? 'bg-slate-900/5 text-slate-700'
+                    : 'bg-slate-200 text-slate-600')
+            }
+          >
+            {product.archived || product.isDeleted
+              ? t('Đã xóa')
+              : product.publishStatus === 'PUBLISHED'
+                ? t('Đã xuất bản')
+                : product.publishStatus === 'DRAFT'
+                  ? t('Bản nháp')
+                  : t('Đã lưu trữ')}
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 md:justify-end">
+          <Link
+            className="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-[var(--accent)] hover:text-slate-900 hover:shadow-[0_12px_24px_rgba(15,23,42,0.12)]"
+            to={`/products/${product.sku}`}
+            aria-label={t('Chi tiết')}
+            title={t('Chi tiết')}
+          >
+            <Eye className="h-4 w-4" />
+          </Link>
+          <button
+            className={
+              product.status === 'Draft' && !product.archived
+                ? 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-[var(--accent-soft)] bg-[var(--accent-soft)] text-[var(--accent-strong)] transition hover:border-[var(--accent)]'
+                : 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 text-slate-400'
+            }
+            type="button"
+            onClick={() => publishProduct(product.sku)}
+            disabled={product.archived || product.status !== 'Draft'}
+            aria-label={
+              product.status === 'Draft'
+                ? t('Xuất bản')
+                : t('Đã xuất bản')
+            }
+            title={
+              product.status === 'Draft'
+                ? t('Xuất bản')
+                : t('Đã xuất bản')
+            }
+          >
+            <CheckCircle className="h-4 w-4" />
+          </button>
+          <button
+            className={
+              product.archived
+                ? 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-emerald-200 text-emerald-700 transition hover:border-emerald-400'
+                : 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-amber-200 text-amber-700 transition hover:border-amber-400'
+            }
+            type="button"
+            onClick={() =>
+              product.archived
+                ? restoreProduct(product.sku)
+                : archiveProduct(product.sku)
+            }
+            aria-label={
+              product.archived
+                ? t('Khôi phục')
+                : t('Ẩn sản phẩm')
+            }
+            title={
+              product.archived
+                ? t('Khôi phục')
+                : t('Ẩn sản phẩm')
+            }
+          >
+            {product.archived ? (
+              <RotateCcw className="h-4 w-4" />
+            ) : (
+              <Archive className="h-4 w-4" />
+            )}
+          </button>
+          <button
+            className={
+              product.archived
+                ? 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-rose-200 text-rose-700 transition hover:border-rose-400'
+                : 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 text-slate-400'
+            }
+            type="button"
+            onClick={() => handleDelete(product.sku)}
+            disabled={!product.archived}
+            aria-label={t('Xóa')}
+            title={
+              product.archived
+                ? t('Xóa vĩnh viễn')
+                : t('Chỉ xóa vĩnh viễn được khi đã ẩn sản phẩm')
+            }
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    ))
+  }, [
+    visibleProducts.length,
+    pagedProducts,
+    archiveProduct,
+    restoreProduct,
+    publishProduct,
+    handleDelete,
+    t,
+  ])
 
   return (
     <section className={`${panelClass} animate-card-enter`}>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">Products</h3>
-          <p className="text-sm text-slate-500">Quan ly san pham va ton kho.</p>
+          <h3 className="text-lg font-semibold text-slate-900">
+            {t('Sản phẩm')}
+          </h3>
+          <p className="text-sm text-slate-500">
+            {t('Quản lý sản phẩm và tồn kho.')}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <label className="relative">
+          <label className="relative flex-1 min-w-[220px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
-              className="h-11 w-52 rounded-2xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-700 shadow-sm transition focus:border-[var(--accent)] focus:outline-none focus:ring-4 focus:ring-[var(--accent-soft)]"
-              placeholder="Tim ten, SKU..."
+              className="h-11 w-full max-w-sm rounded-2xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-700 shadow-sm transition focus:outline-none"
+              placeholder={t('Tìm tên, SKU...')}
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
             />
           </label>
-          <div className="flex flex-wrap gap-2">
-            <select
-              className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700"
-              value={filterPublish}
-              onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterPublish(e.target.value as PublishFilter)}
-            >
-              <option value="all">Publish: All</option>
-              <option value="published">Published</option>
-              <option value="draft">Draft</option>
-              <option value="archived">Archived</option>
-              <option value="deleted">Deleted</option>
-            </select>
-            <select
-              className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700"
-              value={filterFeatured}
-              onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterFeatured(e.target.value as FeaturedFilter)}
-            >
-              <option value="all">Featured: All</option>
-              <option value="featured">Featured</option>
-              <option value="nonFeatured">Not Featured</option>
-            </select>
-            <select
-              className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700"
-              value={filterHomepage}
-              onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterHomepage(e.target.value as HomepageFilter)}
-            >
-              <option value="all">Homepage: All</option>
-              <option value="homepage">Homepage</option>
-              <option value="nonHomepage">Not Homepage</option>
-            </select>
-            <select
-              className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700"
-              value={stockFilter}
-              onChange={(e: ChangeEvent<HTMLSelectElement>) => setStockFilter(e.target.value as StockFilter)}
-            >
-              <option value="all">Stock: All</option>
-              <option value="low">Low (&lt;20)</option>
-              <option value="out">Out of stock</option>
-            </select>
-          </div>
-          <div className="flex flex-wrap items-center gap-1 rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-1">
+          <button
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            type="button"
+            onClick={() => setShowAdvancedFilters((prev) => !prev)}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            {showAdvancedFilters ? t('\u1ea8n b\u1ed9 l\u1ecdc') : t('B\u1ed9 l\u1ecdc n\u00e2ng cao')}
+          </button>
+          <button
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            type="button"
+            onClick={resetFilters}
+          >
+            <RotateCcw className="h-4 w-4" />
+            {t('\u0110\u1eb7t l\u1ea1i')}
+          </button>
+          {showAdvancedFilters && (
+            <div className="flex w-full flex-wrap gap-2">
+              <select
+                className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700"
+                value={filterFeatured}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterFeatured(e.target.value as FeaturedFilter)}
+              >
+                <option value="all">{t('Nổi bật: Tất cả')}</option>
+                <option value="featured">{t('Nổi bật')}</option>
+                <option value="nonFeatured">{t('Không nổi bật')}</option>
+              </select>
+              <select
+                className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700"
+                value={filterHomepage}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterHomepage(e.target.value as HomepageFilter)}
+              >
+                <option value="all">{t('Trang chủ: Tất cả')}</option>
+                <option value="homepage">{t('Trang chủ')}</option>
+                <option value="nonHomepage">{t('Không ở trang chủ')}</option>
+              </select>
+            </div>
+          )}
+          <div className="flex w-full flex-wrap items-center gap-1 rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-1.5">
             {filters.map((option) => {
               const isActive = filter === option.value
               return (
@@ -259,12 +909,12 @@ function ProductsPage() {
                   type="button"
                   onClick={() => setFilter(option.value)}
                 >
-                  <span>{option.label}</span>
+                  <span>{t(option.label)}</span>
                   <span
                     className={
                       isActive
-                        ? 'rounded-full bg-white/20 px-2 py-0.5 text-[0.65rem]'
-                        : 'rounded-full bg-white px-2 py-0.5 text-[0.65rem] text-slate-500'
+                        ? 'rounded-full bg-white/20 px-2 py-0.5 text-xs'
+                        : 'rounded-full bg-white px-2 py-0.5 text-xs text-slate-500'
                     }
                   >
                     {option.count}
@@ -274,18 +924,26 @@ function ProductsPage() {
             })}
           </div>
           <button
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            className="btn-stable ml-auto inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
             type="button"
             onClick={() => {
-              const header = ['Name', 'SKU', 'Price', 'Stock', 'Publish', 'Featured', 'Homepage']
+              const header = [
+                t('Tên sản phẩm'),
+                'SKU',
+                t('Giá'),
+                t('Tồn kho'),
+                t('Xuất bản'),
+                t('Nổi bật'),
+                t('Trang chủ'),
+              ]
               const rows = visibleProducts.map((p) => [
                 p.name,
                 p.sku,
                 p.retailPrice ?? p.price ?? 0,
                 p.stock,
                 p.publishStatus,
-                p.isFeatured ? 'yes' : 'no',
-                p.showOnHomepage ? 'yes' : 'no'
+                p.isFeatured ? t('Có') : t('Không'),
+                p.showOnHomepage ? t('Có') : t('Không')
               ])
               const csv = [header, ...rows]
                 .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
@@ -300,35 +958,21 @@ function ProductsPage() {
             }}
           >
             <FileDown className="h-4 w-4" />
-            Export CSV
+            {t('Xuất CSV')}
           </button>
           <button
             className={primaryButtonClass}
             type="button"
             onClick={() => {
               setActiveTab('basic')
+              retailPriceCaretRef.current = null
               setNewProduct({
                 name: '',
                 sku: '',
                 shortDescription: '',
-                longDescription: '',
-                descriptions: [
-                  { type: 'title', text: 'Tiêu đề' },
-                  { type: 'description', text: 'Mô tả ngắn' },
-                ],
-                specifications: [
-                  { label: 'Driver', value: '50mm' },
-                  { label: 'Battery', value: '40h' },
-                ],
-                videos: [
-                  {
-                    title: 'Review',
-                    descriptions: 'Video review',
-                    url: 'https://example.com/video.mp4',
-                    thumbnail: '',
-                    type: 'review',
-                  },
-                ],
+                descriptions: [],
+                specifications: [],
+                videos: [],
                 retailPrice: '',
                 stock: '',
                 publishStatus: 'DRAFT',
@@ -336,226 +980,99 @@ function ProductsPage() {
                 showOnHomepage: false,
                 imageUrl: '',
               })
+              setSelectedImageName('')
+              setImageError('')
+              setDescriptionImageErrors({})
+              setDescriptionVideoErrors({})
+              setProductVideoErrors({})
               setErrors({})
               setShowModal(true)
             }}
           >
             <Plus className="h-4 w-4" />
-            Add Product
+            {t('Thêm sản phẩm')}
           </button>
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-            Total SKUs
-          </p>
-          <h4 className="mt-2 text-2xl font-semibold text-slate-900">
+      <div className="mt-6 hidden flex-wrap items-center gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-xs md:flex">
+        <div className="flex items-center gap-2">
+          <span className="uppercase tracking-[0.2em] text-slate-400">
+            {t('Tổng SKU')}
+          </span>
+          <span className="text-sm font-semibold text-slate-900">
             {products.filter((product) => !product.archived).length}
-          </h4>
-          <span className="text-xs text-slate-500">
-            {draftProducts.length} drafts
+          </span>
+          <span className="text-slate-500">
+            {t('{count} bản nháp', { count: draftProducts.length })}
           </span>
         </div>
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-            Low Stock
-          </p>
-          <h4 className="mt-2 text-2xl font-semibold text-slate-900">
+        <span className="h-4 w-px bg-[var(--border)]" aria-hidden="true" />
+        <div className="flex items-center gap-2">
+          <span className="uppercase tracking-[0.2em] text-slate-400">
+            {t('Tồn kho thấp')}
+          </span>
+          <span className="text-sm font-semibold text-slate-900">
             {lowStockProducts.length}
-          </h4>
-          <span className="text-xs text-slate-500">Restock alert</span>
+          </span>
+          <span className="text-slate-500">{t('Cần bổ sung')}</span>
         </div>
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-            Active Lines
-          </p>
-          <h4 className="mt-2 text-2xl font-semibold text-slate-900">
+        <span className="h-4 w-px bg-[var(--border)]" aria-hidden="true" />
+        <div className="flex items-center gap-2">
+          <span className="uppercase tracking-[0.2em] text-slate-400">
+            {t('Đang bán')}
+          </span>
+          <span className="text-sm font-semibold text-slate-900">
             {activeProducts.length}
-          </h4>
-          <span className="text-xs text-slate-500">On sale now</span>
+          </span>
+          <span className="text-slate-500">{t('Đang kinh doanh')}</span>
         </div>
       </div>
 
       <div className="mt-6 grid gap-3">
-        <div className="hidden grid-cols-[2fr_1fr_1fr_1fr_0.7fr_0.9fr] gap-3 text-[0.7rem] uppercase tracking-[0.2em] text-slate-400 md:grid">
-          <span>Product</span>
-          <span>SKU</span>
-          <span>Publish</span>
-          <span>Price</span>
-          <span>Stock</span>
-          <span>Action</span>
+        <div className="hidden items-center gap-3 rounded-2xl border border-slate-200/70 bg-[var(--surface-muted)] px-4 py-3 text-xs uppercase tracking-[0.2em] text-slate-400 md:grid md:grid-cols-[2fr_1fr_0.9fr]">
+          <span>{t('S\u1ea3n ph\u1ea9m')}</span>
+          <span>{t('Tr\u1ea1ng th\u00e1i')}</span>
+          <span>{t('Thao t\u00e1c')}</span>
         </div>
-        {visibleProducts.length === 0 ? (
-          <div className="rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] px-6 py-10 text-center text-sm text-slate-500">
-            <Package className="mx-auto h-10 w-10 text-slate-400" />
-            <p className="mt-4 text-base font-semibold text-slate-900">
-              Khong tim thay san pham
-            </p>
-            <p className="mt-2 text-xs text-slate-500">
-              Thu doi bo loc hoac tu khoa tim kiem.
-            </p>
-          </div>
-        ) : (
-          visibleProducts.map((product) => (
-            <div
-              key={product.sku}
-              className="grid gap-3 rounded-3xl border border-slate-200/70 bg-white/80 px-4 py-4 text-sm text-slate-700 shadow-sm backdrop-blur md:grid-cols-[2fr_1fr_1fr_1fr_0.7fr_0.9fr] md:items-center"
-            >
-              <div className="flex items-center gap-3">
-                <img
-                  className="h-12 w-12 rounded-2xl border border-slate-200 bg-white object-cover"
-                  src={getImageUrl(product.image)}
-                  alt={product.name}
-                  loading="lazy"
-                />
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-slate-900 flex flex-wrap items-center gap-1">
-                    {product.name}
-                    {product.isFeatured && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                        <Star className="h-3 w-3" /> Featured
-                      </span>
-                    )}
-                    {product.showOnHomepage && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                        <Home className="h-3 w-3" /> Homepage
-                      </span>
-                    )}
-                    {product.isDeleted && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
-                        <Ban className="h-3 w-3" /> Deleted
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Cap nhat {product.lastUpdated}
-                  </p>
-                </div>
-              </div>
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                {product.sku}
-              </span>
-              <span
-                className={
-                  'inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ' +
-                  (product.archived || product.isDeleted
-                    ? 'bg-slate-200 text-slate-600'
-                    : product.publishStatus === 'PUBLISHED'
-                      ? 'bg-emerald-500/15 text-emerald-700'
-                      : product.publishStatus === 'DRAFT'
-                        ? 'bg-slate-900/5 text-slate-700'
-                        : 'bg-slate-200 text-slate-600')
-                }
-              >
-                {product.archived || product.isDeleted
-                  ? 'Deleted'
-                  : product.publishStatus === 'PUBLISHED'
-                    ? 'Published'
-                    : product.publishStatus === 'DRAFT'
-                      ? 'Draft'
-                      : 'Archived'}
-              </span>
-              <span className="text-sm font-semibold text-slate-900">
-                {formatPriceVND(product.retailPrice || product.price || 0)}
-              </span>
-              <span className="text-sm font-semibold text-slate-900">
-                {product.stock > 999 ? '999+' : product.stock}
-              </span>
-              <div className="flex flex-wrap items-center gap-3">
-                <label className="flex items-center gap-2 text-[11px] text-slate-600">
-                  <input
-                    type="checkbox"
-                    checked={
-                      product.publishStatus === 'PUBLISHED' &&
-                      !product.archived &&
-                      !product.isDeleted
-                    }
-                    onChange={() => togglePublishStatus(product.sku)}
-                  />
-                  {product.publishStatus === 'PUBLISHED' ? 'Published' : 'Draft'}
-                </label>
-                <Link
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-slate-900 hover:shadow-[0_12px_24px_rgba(15,23,42,0.12)]"
-                  to={`/products/${product.sku}`}
-                >
-                  <Eye className="h-4 w-4" />
-                  Chi tiet
-                </Link>
-                <button
-                  className={
-                    product.status === 'Draft' && !product.archived
-                      ? 'inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--accent-soft)] bg-[var(--accent-soft)] px-3 py-2 text-xs font-semibold text-[var(--accent-strong)] transition hover:border-[var(--accent)]'
-                      : 'inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-400'
-                  }
-                  type="button"
-                  onClick={() => publishProduct(product.sku)}
-                  disabled={product.archived || product.status !== 'Draft'}
-                >
-                  <CheckCircle className="h-4 w-4" />
-                  {product.status === 'Draft' ? 'Xuat ban' : 'Da xuat ban'}
-                </button>
-                <button
-                  className={
-                    product.archived
-                      ? 'inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:border-emerald-400'
-                      : 'inline-flex items-center justify-center gap-2 rounded-2xl border border-amber-200 px-3 py-2 text-xs font-semibold text-amber-700 transition hover:border-amber-400'
-                  }
-                  type="button"
-                  onClick={() =>
-                    product.archived
-                      ? restoreProduct(product.sku)
-                      : archiveProduct(product.sku)
-                  }
-                >
-                  {product.archived ? (
-                    <>
-                      <RotateCcw className="h-4 w-4" />
-                      Khoi phuc
-                    </>
-                  ) : (
-                    <>
-                      <Archive className="h-4 w-4" />
-                      An san pham
-                    </>
-                  )}
-                </button>
-                <button
-                  className={
-                    product.archived
-                      ? 'inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:border-rose-400'
-                      : 'inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-400'
-                  }
-                  type="button"
-                  onClick={() => handleDelete(product.sku)}
-                  disabled={!product.archived}
-                  title={
-                    product.archived
-                      ? 'Xoa vinh vien'
-                      : 'Chi xoa vinh vien duoc khi da an san pham'
-                  }
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Xoa
-                </button>
-              </div>
-            </div>
-          ))
-        )}
+        {listContent}
       </div>
+      {pageCount > 1 && (
+        <div className="mt-6 flex justify-center">
+          <ReactPaginate
+            breakLabel="..."
+            nextLabel={t('Ti?p')}
+            onPageChange={(selectedItem) => setCurrentPage(selectedItem.selected)}
+            pageRangeDisplayed={2}
+            marginPagesDisplayed={1}
+            pageCount={pageCount}
+            previousLabel={t('Tr??c')}
+            forcePage={currentPage}
+            containerClassName="flex items-center gap-1 text-sm"
+            pageLinkClassName="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            previousLinkClassName="flex h-9 items-center justify-center rounded-xl border border-slate-200 px-3 text-slate-600 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            nextLinkClassName="flex h-9 items-center justify-center rounded-xl border border-slate-200 px-3 text-slate-600 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            breakLinkClassName="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400"
+            activeLinkClassName="border-[var(--accent)] bg-[var(--accent)] text-white"
+            disabledLinkClassName="cursor-not-allowed border-slate-200 text-slate-300"
+          />
+        </div>
+      )}
 
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-3xl rounded-3xl bg-white p-6 shadow-2xl">
+      <Modal
+        isOpen={showModal}
+        onRequestClose={closeModal}
+        style={modalStyles}
+        contentLabel={t('Tạo sản phẩm')}
+      >
+        <div className="app-scroll modal-form w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
             <div className="flex items-center justify-between">
-              <h4 className="text-lg font-semibold text-slate-900">Create product</h4>
+              <h4 className="text-lg font-semibold text-slate-900">
+                {t('Tạo sản phẩm')}
+              </h4>
               <button
                 className="rounded-full p-2 hover:bg-slate-100"
-                onClick={() => {
-                  setActiveTab('basic')
-                  setShowModal(false)
-                }}
+                onClick={closeModal}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -566,7 +1083,7 @@ function ProductsPage() {
                 { id: 'basic', label: 'Thông tin' },
                 { id: 'description', label: 'Mô tả' },
                 { id: 'specs', label: 'Thông số' },
-                { id: 'videos', label: 'Videos' },
+                { id: 'videos', label: 'Video' },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -577,137 +1094,240 @@ function ProductsPage() {
                   }
                   onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 >
-                  {tab.label}
+                  {t(tab.label)}
                 </button>
               ))}
             </div>
 
             {activeTab === 'basic' && (
-              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                <label className="space-y-1 text-sm text-slate-700">
-                  <span>Name *</span>
-                  <input
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                    value={newProduct.name}
-                    onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                  />
-                  {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
-                </label>
-                <label className="space-y-1 text-sm text-slate-700">
-                  <span>SKU *</span>
-                  <input
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                    value={newProduct.sku}
-                    onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
-                  />
-                  {errors.sku && <p className="text-xs text-red-500">{errors.sku}</p>}
-                </label>
-                <label className="space-y-1 text-sm text-slate-700 md:col-span-2">
-                  <span>Short description</span>
-                  <textarea
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                    rows={2}
-                    value={newProduct.shortDescription}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, shortDescription: e.target.value })
-                    }
-                  />
-                </label>
-                <label className="space-y-1 text-sm text-slate-700 md:col-span-2">
-                  <span>Long description</span>
-                  <textarea
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                    rows={3}
-                    value={newProduct.longDescription}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, longDescription: e.target.value })
-                    }
-                  />
-                </label>
-                <label className="space-y-1 text-sm text-slate-700">
-                  <span>Retail price *</span>
-                  <input
-                    type="number"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                    value={newProduct.retailPrice}
-                    onChange={(e) => setNewProduct({ ...newProduct, retailPrice: e.target.value })}
-                  />
-                  {errors.retailPrice && <p className="text-xs text-red-500">{errors.retailPrice}</p>}
-                </label>
-                <label className="space-y-1 text-sm text-slate-700">
-                  <span>Stock *</span>
-                  <input
-                    type="number"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                    value={newProduct.stock}
-                    onChange={(e) => setNewProduct({ ...newProduct, stock: e.target.value })}
-                  />
-                  {errors.stock && <p className="text-xs text-red-500">{errors.stock}</p>}
-                </label>
-                <label className="space-y-1 text-sm text-slate-700">
-                  <span>Publish status</span>
-                  <select
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                    value={newProduct.publishStatus}
-                    onChange={(e) =>
-                      setNewProduct({
-                        ...newProduct,
-                        publishStatus: e.target.value as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED',
-                      })
-                    }
-                  >
-                    <option value="DRAFT">Draft</option>
-                    <option value="PUBLISHED">Published</option>
-                    <option value="ARCHIVED">Archived</option>
-                  </select>
-                </label>
-                <label className="space-y-1 text-sm text-slate-700">
-                  <span>Image URL</span>
-                  <input
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                    value={newProduct.imageUrl}
-                    onChange={(e) => setNewProduct({ ...newProduct, imageUrl: e.target.value })}
-                  />
-                  {newProduct.imageUrl && (
-                    <div className="mt-2 rounded-xl border bg-slate-50 p-2">
-                      <img
-                        src={newProduct.imageUrl}
-                        alt="preview"
-                        className="h-32 w-full rounded-lg object-cover"
-                        onError={(ev) => ((ev.target as HTMLImageElement).style.display = 'none')}
-                      />
+              <div className="mt-4 grid gap-4 lg:grid-cols-[1.3fr_0.9fr]">
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('Thông tin cơ bản')}</p>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <label className="text-sm text-slate-700">
+                        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                          {t('Tên sản phẩm')} <span className="text-rose-500">*</span>
+                        </span>
+                        <input
+                          className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          placeholder={t('T?n s?n ph?m')}
+                          value={newProduct.name}
+                          onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                        />
+                        {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
+                      </label>
+                      <label className="text-sm text-slate-700">
+                        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">SKU *</span>
+                        <input
+                          className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          placeholder={t('SKU')}
+                          value={newProduct.sku}
+                          onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
+                        />
+                        {errors.sku && <p className="mt-1 text-xs text-red-500">{errors.sku}</p>}
+                      </label>
+                      <label className="text-sm text-slate-700 md:col-span-2">
+                        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                          {t('Mô tả ngắn')}
+                        </span>
+                        <textarea
+                          className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          rows={3}
+                          value={newProduct.shortDescription}
+                          onChange={(e) =>
+                            setNewProduct({ ...newProduct, shortDescription: e.target.value })
+                          }
+                        />
+                      </label>
                     </div>
-                  )}
-                </label>
-                <div className="flex items-center gap-3 text-sm text-slate-700">
-                  <label className="inline-flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={newProduct.isFeatured}
-                      onChange={(e) =>
-                        setNewProduct({ ...newProduct, isFeatured: e.target.checked })
-                      }
-                    />
-                    Featured
-                  </label>
-                  <label className="inline-flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={newProduct.showOnHomepage}
-                      onChange={(e) =>
-                        setNewProduct({ ...newProduct, showOnHomepage: e.target.checked })
-                      }
-                    />
-                    Homepage
-                  </label>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('Hiển thị')}</p>
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={newProduct.isFeatured}
+                          onChange={(e) =>
+                            setNewProduct({ ...newProduct, isFeatured: e.target.checked })
+                          }
+                        />
+                        {t('Nổi bật')}
+                      </label>
+                      <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={newProduct.showOnHomepage}
+                          onChange={(e) =>
+                            setNewProduct({ ...newProduct, showOnHomepage: e.target.checked })
+                          }
+                        />
+                        {t('Trang chủ')}
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('Giá & trạng thái')}</p>
+                    <div className="mt-4 grid gap-3">
+                      <label className="text-sm text-slate-700">
+                        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                          {t('Giá bán lẻ')} <span className="text-rose-500">*</span>
+                        </span>
+                        <div className="relative mt-2">
+                          <input
+                            ref={retailPriceInputRef}
+                            type="text"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            placeholder="0"
+                            className="w-full rounded-xl border border-slate-200 px-3 py-2 pr-12 text-sm"
+                            value={formatNumberInput(newProduct.retailPrice)}
+                            onChange={(e) => {
+                              const rawValue = e.target.value
+                              const selectionStart = e.target.selectionStart ?? rawValue.length
+                              const digitsOnly = toDigitsOnly(rawValue)
+                              const digitsBefore = toDigitsOnly(rawValue.slice(0, selectionStart)).length
+                              const formattedNext = formatNumberInput(digitsOnly)
+                              let caretPosition = formattedNext.length
+
+                              if (digitsBefore === 0) {
+                                caretPosition = 0
+                              } else {
+                                let digitCount = 0
+                                for (let i = 0; i < formattedNext.length; i += 1) {
+                                  if (/\d/.test(formattedNext[i])) {
+                                    digitCount += 1
+                                    if (digitCount === digitsBefore) {
+                                      caretPosition = i + 1
+                                      break
+                                    }
+                                  }
+                                }
+                              }
+
+                              retailPriceCaretRef.current = caretPosition
+                              setNewProduct({ ...newProduct, retailPrice: digitsOnly })
+                            }}
+                          />
+                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500">
+                            VND
+                          </span>
+                        </div>
+                        {errors.retailPrice && (
+                          <p className="mt-1 text-xs text-red-500">{errors.retailPrice}</p>
+                        )}
+                      </label>
+                      <label className="text-sm text-slate-700">
+                        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                          {t('Tồn kho')}
+                        </span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="off"
+                          placeholder="0"
+                          className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          value={newProduct.stock}
+                          onChange={(e) =>
+                            setNewProduct({ ...newProduct, stock: toDigitsOnly(e.target.value) })
+                          }
+                        />
+                      </label>
+                      <label className="text-sm text-slate-700">
+                        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                          {t('Trạng thái xuất bản')}
+                        </span>
+                        <select
+                          className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          value={newProduct.publishStatus}
+                          onChange={(e) =>
+                            setNewProduct({
+                              ...newProduct,
+                              publishStatus: e.target.value as 'DRAFT' | 'PUBLISHED',
+                            })
+                          }
+                        >
+                          <option value="DRAFT">{t('Bản nháp')}</option>
+                          <option value="PUBLISHED">{t('Đã xuất bản')}</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-[var(--surface-muted)] p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{t('Ảnh sản phẩm')}</p>
+                        <p className="text-xs text-slate-500">{t('PNG/JPG, tối đa 10MB')}</p>
+                      </div>
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="sr-only"
+                          ref={imageInputRef}
+                          onChange={handleImageChange}
+                        />
+                        {t('Chọn ảnh')}
+                      </label>
+                    </div>
+                    {(selectedImageName || newProduct.imageUrl) && (
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                        {selectedImageName && (
+                          <span>
+                            {t('\u0110\u00e3 ch\u1ecdn')}{': '}
+                            <span className="font-semibold text-slate-800">{selectedImageName}</span>
+                          </span>
+                        )}
+                        {!newProduct.imageUrl && (
+                          <button
+                            type="button"
+                            onClick={handleClearImage}
+                            className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-2 py-1 text-[11px] font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
+                          >
+                            <X className="h-3 w-3" />
+                            {t('\u0058\u00f3a \u1ea3nh')}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {imageError && (
+                      <p className="mt-2 text-xs text-rose-500">{imageError}</p>
+                    )}
+                    {newProduct.imageUrl && (
+                      <div className="group relative mt-3 overflow-hidden rounded-2xl border bg-white">
+                        <button
+                          type="button"
+                          onClick={handleClearImage}
+                          className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[11px] font-semibold text-rose-600 shadow-sm opacity-0 transition hover:border-rose-300 hover:text-rose-700 focus-visible:opacity-100 group-hover:opacity-100"
+                        >
+                          <X className="h-3 w-3" />
+                          {t('\u0058\u00f3a \u1ea3nh')}
+                        </button>
+                        <img
+                          src={newProduct.imageUrl}
+                          alt={t('\u0058em tr\u01b0\u1edbc')}
+                          className="h-40 w-full object-cover"
+                          onError={(ev) => ((ev.target as HTMLImageElement).style.display = 'none')}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
 
             {activeTab === 'description' && (
-              <div className="mt-4 space-y-2 rounded-xl border border-slate-200 p-3">
-                <div className="flex items-center justify-between text-sm text-slate-700">
-                  <span>Mô tả (Descriptions)</span>
+              <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-[var(--surface-muted)] p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2 text-sm text-slate-700">
+                  <div>
+                    <p className="font-semibold text-slate-900">{t('Mô tả')}</p>
+                    <p className="text-xs text-slate-500">
+                      {t('Thêm các đoạn mô tả ngắn cho sản phẩm.')}
+                    </p>
+                  </div>
                   <button
                     type="button"
                     className="text-xs text-[var(--accent)] underline"
@@ -715,70 +1335,356 @@ function ProductsPage() {
                       setNewProduct({
                         ...newProduct,
                         descriptions: [
-                          { type: 'title', text: 'Tiêu đề' },
-                          { type: 'description', text: 'Mô tả ngắn' },
+                          { type: 'title', text: t('Tiêu đề') },
+                          { type: 'description', text: t('Mô tả ngắn') },
+                          { type: 'image', url: '', caption: '' },
+                          { type: 'gallery', gallery: [] },
+                          { type: 'video', url: '', caption: '' },
                         ],
                       })
                     }
                   >
-                    Dùng mẫu
+                    {t('Dùng mẫu')}
                   </button>
                 </div>
-                {newProduct.descriptions.map((d, idx) => (
-                  <div key={idx} className="grid grid-cols-[120px_1fr_auto] items-center gap-2">
-                    <select
-                      className="rounded-lg border border-slate-200 px-2 py-2 text-sm"
-                      value={d.type}
-                      onChange={(e) => {
-                        const copy = [...newProduct.descriptions]
-                        copy[idx] = { ...copy[idx], type: e.target.value as 'title' | 'description' }
-                        setNewProduct({ ...newProduct, descriptions: copy })
-                      }}
-                    >
-                      <option value="title">Title</option>
-                      <option value="description">Description</option>
-                    </select>
-                    <input
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                      value={d.text}
-                      onChange={(e) => {
-                        const copy = [...newProduct.descriptions]
-                        copy[idx] = { ...copy[idx], text: e.target.value }
-                        setNewProduct({ ...newProduct, descriptions: copy })
-                      }}
-                      placeholder={d.type === 'title' ? 'Tiêu đề' : 'Mô tả'}
-                    />
+                {newProduct.descriptions.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
+                    <p className="font-semibold text-slate-700">{t('Chưa có mô tả nào.')}</p>
                     <button
                       type="button"
-                      className="text-xs text-red-500"
-                      onClick={() => {
-                        const copy = newProduct.descriptions.filter((_, i) => i !== idx)
-                        setNewProduct({ ...newProduct, descriptions: copy.length ? copy : [{ type: 'title', text: '' }] })
-                      }}
+                      className="mt-2 text-xs font-semibold text-[var(--accent)]"
+                      onClick={() =>
+                        setNewProduct({
+                          ...newProduct,
+                          descriptions: [{ type: 'description', text: '' }],
+                        })
+                      }
                     >
-                      Xóa
+                      {t('Thêm mô tả đầu tiên')}
                     </button>
                   </div>
-                ))}
-                <button
-                  type="button"
-                  className="text-xs text-[var(--accent)]"
-                  onClick={() =>
-                    setNewProduct({
-                      ...newProduct,
-                      descriptions: [...newProduct.descriptions, { type: 'description', text: '' }],
-                    })
-                  }
-                >
-                  + Thêm dòng mô tả
-                </button>
+                ) : (
+                  newProduct.descriptions.map((d, idx) => (
+                    <div key={idx} className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-1 rounded-full border border-slate-200 bg-slate-50 p-1 text-[11px]">
+                          {descriptionTypeOptions.map((option) => {
+                            const isActive = d.type === option.id
+                            return (
+                              <button
+                                key={option.id}
+                                type="button"
+                                className={
+                                  isActive
+                                    ? 'rounded-full bg-[var(--accent)] px-2 py-1 font-semibold text-white shadow-sm'
+                                    : 'rounded-full px-2 py-1 font-semibold text-slate-600 hover:text-slate-900'
+                                }
+                                onClick={() => changeDescriptionType(idx, option.id)}
+                              >
+                                {option.label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <button
+                          type="button"
+                          className="text-xs text-red-500"
+                          onClick={() => removeDescriptionItem(idx)}
+                        >
+                          {t('Xóa')}
+                        </button>
+                      </div>
+                      {d.type === 'title' && (
+                        <input
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                          value={d.text ?? ''}
+                          onChange={(e) => {
+                            const copy = [...newProduct.descriptions]
+                            copy[idx] = { ...copy[idx], text: e.target.value }
+                            setNewProduct({ ...newProduct, descriptions: copy })
+                          }}
+                          placeholder={t('Tiêu đề')}
+                        />
+                      )}
+                      {d.type === 'description' && (
+                        <div className="richtext-editor">
+                          <QuillEditor
+                            value={d.text ?? ''}
+                            modules={descriptionEditorModules}
+                            formats={descriptionEditorFormats}
+                            placeholder={t('Mô tả')}
+                            onChange={(value) => {
+                              const copy = [...newProduct.descriptions]
+                              copy[idx] = { ...copy[idx], text: value }
+                              setNewProduct({ ...newProduct, descriptions: copy })
+                            }}
+                          />
+                        </div>
+                      )}
+                      {d.type === 'image' && (
+                        <div className="grid gap-2 md:grid-cols-[1.4fr_1fr]">
+                          <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="sr-only"
+                              onChange={(e) =>
+                                handleDescriptionImageFile(idx, e.target.files?.[0] ?? null)
+                              }
+                            />
+                            {t('Chọn ảnh')}
+                          </label>
+                          <input
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                            placeholder={t('Chú thích')}
+                            value={d.caption ?? ''}
+                            onChange={(e) => {
+                              const copy = [...newProduct.descriptions]
+                              copy[idx] = { ...copy[idx], caption: e.target.value }
+                              setNewProduct({ ...newProduct, descriptions: copy })
+                            }}
+                          />
+                          {descriptionImageErrors[idx] && (
+                            <p className="text-xs text-rose-500">{descriptionImageErrors[idx]}</p>
+                          )}
+                          {d.url && (
+                            <div className="group relative overflow-hidden rounded-lg border border-slate-200 md:col-span-2">
+                              <img
+                                src={d.url}
+                                alt={t('Xem trước')}
+                                className="h-40 w-full object-cover"
+                              />
+                              <button
+                                type="button"
+                                className="absolute right-2 top-2 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[10px] font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100"
+                                onClick={() => {
+                                  const copy = [...newProduct.descriptions]
+                                  copy[idx] = { ...copy[idx], url: '' }
+                                  setNewProduct({ ...newProduct, descriptions: copy })
+                                  setDescriptionImageErrors((prev) => {
+                                    const next = { ...prev }
+                                    delete next[idx]
+                                    return next
+                                  })
+                                }}
+                              >
+                                {t('Xóa ảnh')}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {d.type === 'gallery' && (
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                className="sr-only"
+                                onChange={(e) => handleDescriptionGalleryFiles(idx, e.target.files)}
+                              />
+                              {t('Chọn nhiều ảnh')}
+                            </label>
+                            <button
+                              type="button"
+                              className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                              onClick={() => {
+                                const copy = [...newProduct.descriptions]
+                                const current = { ...copy[idx] }
+                                const nextGallery = [...(current.gallery ?? []), { url: '' }]
+                                current.gallery = nextGallery
+                                copy[idx] = current
+                                setNewProduct({ ...newProduct, descriptions: copy })
+                              }}
+                            >
+                              {t('Thêm hình ảnh')}
+                            </button>
+                          </div>
+                          {descriptionImageErrors[idx] && (
+                            <p className="text-xs text-rose-500">{descriptionImageErrors[idx]}</p>
+                          )}
+                          <label className="text-sm text-slate-700">
+                            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                              {t('Chú thích bộ ảnh')}
+                            </span>
+                            <input
+                              className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                              placeholder={t('Chú thích bộ ảnh')}
+                              value={d.caption ?? ''}
+                              onChange={(e) => {
+                                const copy = [...newProduct.descriptions]
+                                copy[idx] = { ...copy[idx], caption: e.target.value }
+                                setNewProduct({ ...newProduct, descriptions: copy })
+                              }}
+                            />
+                          </label>
+                          {(d.gallery ?? []).length === 0 && (
+                            <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
+                              <p className="font-semibold text-slate-700">{t('Chưa có hình ảnh nào.')}</p>
+                              <button
+                                type="button"
+                                className="mt-2 text-xs font-semibold text-[var(--accent)]"
+                                onClick={() => {
+                                  const copy = [...newProduct.descriptions]
+                                  const current = { ...copy[idx] }
+                                  const nextGallery = [...(current.gallery ?? []), { url: '' }]
+                                  current.gallery = nextGallery
+                                  copy[idx] = current
+                                  setNewProduct({ ...newProduct, descriptions: copy })
+                                }}
+                              >
+                                {t('Thêm hình ảnh đầu tiên')}
+                              </button>
+                            </div>
+                          )}
+                          {(d.gallery ?? []).map((item, itemIdx) => (
+                            <div key={itemIdx} className="rounded-lg border border-slate-200 bg-white p-3">
+                              <div className="grid gap-3 md:grid-cols-[180px_1fr] md:items-start">
+                                <div className="space-y-2">
+                                  <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      className="sr-only"
+                                      onChange={(e) =>
+                                        handleGalleryItemFile(idx, itemIdx, e.target.files?.[0] ?? null)
+                                      }
+                                    />
+                                    {item.url ? t('Chọn ảnh') : t('Chọn ảnh')}
+                                  </label>
+                                  {item.url && (
+                                    <div className="group relative overflow-hidden rounded-lg border border-slate-200">
+                                      <img
+                                        src={item.url}
+                                        alt={t('Xem trước')}
+                                        className="h-24 w-full object-cover"
+                                      />
+                                      <button
+                                        type="button"
+                                        className="absolute right-2 top-2 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[10px] font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100"
+                                        onClick={() => {
+                                          const copy = [...newProduct.descriptions]
+                                          const current = { ...copy[idx] }
+                                          const nextGallery = [...(current.gallery ?? [])]
+                                          nextGallery[itemIdx] = { ...nextGallery[itemIdx], url: '' }
+                                          current.gallery = nextGallery
+                                          copy[idx] = current
+                                          setNewProduct({ ...newProduct, descriptions: copy })
+                                        }}
+                                      >
+                                        {t('Xóa ảnh')}
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-start justify-end">
+                                  <button
+                                    type="button"
+                                    className="text-xs text-red-500"
+                                    onClick={() => {
+                                      const copy = [...newProduct.descriptions]
+                                      const current = { ...copy[idx] }
+                                      const nextGallery = (current.gallery ?? []).filter((_, i) => i !== itemIdx)
+                                      current.gallery = nextGallery
+                                      copy[idx] = current
+                                      setNewProduct({ ...newProduct, descriptions: copy })
+                                    }}
+                                  >
+                                    {t('Xóa ảnh')}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {d.type === 'video' && (
+                        <div className="grid gap-2 md:grid-cols-[1.4fr_1fr]">
+                          <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
+                            <input
+                              type="file"
+                              accept="video/*"
+                              className="sr-only"
+                              onChange={(e) =>
+                                handleDescriptionVideoFile(idx, e.target.files?.[0] ?? null)
+                              }
+                            />
+                            {t('Chọn video')}
+                          </label>
+                          <input
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                            placeholder={t('Chú thích')}
+                            value={d.caption ?? ''}
+                            onChange={(e) => {
+                              const copy = [...newProduct.descriptions]
+                              copy[idx] = { ...copy[idx], caption: e.target.value }
+                              setNewProduct({ ...newProduct, descriptions: copy })
+                            }}
+                          />
+                          {descriptionVideoErrors[idx] && (
+                            <p className="text-xs text-rose-500">{descriptionVideoErrors[idx]}</p>
+                          )}
+                          {d.url && (
+                            <div className="group relative overflow-hidden rounded-lg border border-slate-200 md:col-span-2">
+                              <video
+                                src={d.url}
+                                controls
+                                className="h-44 w-full object-cover"
+                              />
+                              <button
+                                type="button"
+                                className="absolute right-2 top-2 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[10px] font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100"
+                                onClick={() => {
+                                  const copy = [...newProduct.descriptions]
+                                  copy[idx] = { ...copy[idx], url: '' }
+                                  setNewProduct({ ...newProduct, descriptions: copy })
+                                  setDescriptionVideoErrors((prev) => {
+                                    const next = { ...prev }
+                                    delete next[idx]
+                                    return next
+                                  })
+                                }}
+                              >
+                                {t('Xóa video')}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+                {newProduct.descriptions.length > 0 && (
+                  <button
+                    type="button"
+                    className="text-xs text-[var(--accent)]"
+                    onClick={() =>
+                      setNewProduct({
+                        ...newProduct,
+                        descriptions: [
+                          ...newProduct.descriptions,
+                          { type: 'description', text: '' },
+                        ],
+                      })
+                    }
+                  >
+                    {t('Thêm mục mô tả')}
+                  </button>
+                )}
               </div>
             )}
 
             {activeTab === 'specs' && (
-              <div className="mt-4 space-y-2 rounded-xl border border-slate-200 p-3">
-                <div className="flex items-center justify-between text-sm text-slate-700">
-                  <span>Thông số (Specifications)</span>
+              <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-[var(--surface-muted)] p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2 text-sm text-slate-700">
+                  <div>
+                    <p className="font-semibold text-slate-900">{t('Thông số')}</p>
+                    <p className="text-xs text-slate-500">
+                      {t('Thêm các thông số kỹ thuật quan trọng.')}
+                    </p>
+                  </div>
                   <button
                     type="button"
                     className="text-xs text-[var(--accent)] underline"
@@ -792,62 +1698,87 @@ function ProductsPage() {
                       })
                     }
                   >
-                    Dùng mẫu
+                    {t('Dùng mẫu')}
                   </button>
                 </div>
-                {newProduct.specifications.map((s, idx) => (
-                  <div key={idx} className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
-                    <input
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                      placeholder="Label"
-                      value={s.label}
-                      onChange={(e) => {
-                        const copy = [...newProduct.specifications]
-                        copy[idx] = { ...copy[idx], label: e.target.value }
-                        setNewProduct({ ...newProduct, specifications: copy })
-                      }}
-                    />
-                    <input
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                      placeholder="Value"
-                      value={s.value}
-                      onChange={(e) => {
-                        const copy = [...newProduct.specifications]
-                        copy[idx] = { ...copy[idx], value: e.target.value }
-                        setNewProduct({ ...newProduct, specifications: copy })
-                      }}
-                    />
+                {newProduct.specifications.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
+                    <p className="font-semibold text-slate-700">{t('Chưa có thông số nào.')}</p>
                     <button
                       type="button"
-                      className="text-xs text-red-500"
-                      onClick={() => {
-                        const copy = newProduct.specifications.filter((_, i) => i !== idx)
-                        setNewProduct({ ...newProduct, specifications: copy.length ? copy : [{ label: '', value: '' }] })
-                      }}
+                      className="mt-2 text-xs font-semibold text-[var(--accent)]"
+                      onClick={() =>
+                        setNewProduct({
+                          ...newProduct,
+                          specifications: [{ label: '', value: '' }],
+                        })
+                      }
                     >
-                      Xóa
+                      {t('Thêm thông số đầu tiên')}
                     </button>
                   </div>
-                ))}
-                <button
-                  type="button"
-                  className="text-xs text-[var(--accent)]"
-                  onClick={() =>
-                    setNewProduct({
-                      ...newProduct,
-                      specifications: [...newProduct.specifications, { label: '', value: '' }],
-                    })
-                  }
-                >
-                  + Thêm thông số
-                </button>
+                ) : (
+                  newProduct.specifications.map((s, idx) => (
+                    <div key={idx} className="grid gap-2 md:grid-cols-[1fr_1fr_auto] md:items-center">
+                      <input
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                        placeholder={t('Nhãn')}
+                        value={s.label}
+                        onChange={(e) => {
+                          const copy = [...newProduct.specifications]
+                          copy[idx] = { ...copy[idx], label: e.target.value }
+                          setNewProduct({ ...newProduct, specifications: copy })
+                        }}
+                      />
+                      <input
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                        placeholder={t('Giá trị')}
+                        value={s.value}
+                        onChange={(e) => {
+                          const copy = [...newProduct.specifications]
+                          copy[idx] = { ...copy[idx], value: e.target.value }
+                          setNewProduct({ ...newProduct, specifications: copy })
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="justify-self-end text-xs text-red-500 md:justify-self-auto"
+                        onClick={() => {
+                          const copy = newProduct.specifications.filter((_, i) => i !== idx)
+                          setNewProduct({ ...newProduct, specifications: copy })
+                        }}
+                      >
+                        {t('Xóa')}
+                      </button>
+                    </div>
+                  ))
+                )}
+                {newProduct.specifications.length > 0 && (
+                  <button
+                    type="button"
+                    className="text-xs text-[var(--accent)]"
+                    onClick={() =>
+                      setNewProduct({
+                        ...newProduct,
+                        specifications: [...newProduct.specifications, { label: '', value: '' }],
+                      })
+                    }
+                  >
+                    {t('+ Thêm thông số')}
+                  </button>
+                )}
               </div>
             )}
 
             {activeTab === 'videos' && (
-              <div className="mt-4 space-y-2 rounded-xl border border-slate-200 p-3">
-                <div className="flex items-center justify-between text-sm text-slate-700">
-                  <span>Videos</span>
+              <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-[var(--surface-muted)] p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2 text-sm text-slate-700">
+                  <div>
+                    <p className="font-semibold text-slate-900">{t('Video')}</p>
+                    <p className="text-xs text-slate-500">
+                      {t('Thêm video giới thiệu hoặc hướng dẫn sản phẩm.')}
+                    </p>
+                  </div>
                   <button
                     type="button"
                     className="text-xs text-[var(--accent)] underline"
@@ -856,25 +1787,79 @@ function ProductsPage() {
                         ...newProduct,
                         videos: [
                           {
-                            title: 'Review',
-                            descriptions: 'Video review',
-                            url: 'https://example.com/video.mp4',
-                            thumbnail: '',
-                            type: 'review',
+                            title: 'Hướng dẫn',
+                            descriptions: 'Video hướng dẫn',
+                            url: '',
+                            type: 'tutorial',
                           },
                         ],
                       })
                     }
                   >
-                    Dùng mẫu
+                    {t('Dùng mẫu')}
                   </button>
                 </div>
-                {newProduct.videos.map((v, idx) => (
-                  <div key={idx} className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 p-2">
-                    <div className="grid grid-cols-2 gap-2">
+                {newProduct.videos.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
+                    <p className="font-semibold text-slate-700">{t('Chưa có video nào.')}</p>
+                    <button
+                      type="button"
+                      className="mt-2 text-xs font-semibold text-[var(--accent)]"
+                      onClick={() =>
+                        setNewProduct({
+                          ...newProduct,
+                          videos: [
+                            { title: '', descriptions: '', url: '', type: 'tutorial' as const },
+                          ],
+                        })
+                      }
+                    >
+                      {t('Thêm video đầu tiên')}
+                    </button>
+                  </div>
+                ) : (
+                  newProduct.videos.map((v, idx) => (
+                    <div key={idx} className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-white p-3">
+                      <div className="grid gap-2">
+                        <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
+                          <input
+                            type="file"
+                            accept="video/*"
+                            className="sr-only"
+                            onChange={(e) =>
+                              handleProductVideoFile(idx, e.target.files?.[0] ?? null)
+                            }
+                          />
+                          {t('Chọn video')}
+                        </label>
+                      </div>
+                      {productVideoErrors[idx] && (
+                        <p className="text-xs text-rose-500">{productVideoErrors[idx]}</p>
+                      )}
+                      {v.url && (
+                        <div className="group relative overflow-hidden rounded-lg border border-slate-200">
+                          <video src={v.url} controls className="h-44 w-full object-cover" />
+                          <button
+                            type="button"
+                            className="absolute right-2 top-2 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[10px] font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100"
+                            onClick={() => {
+                              const copy = [...newProduct.videos]
+                              copy[idx] = { ...copy[idx], url: '' }
+                              setNewProduct({ ...newProduct, videos: copy })
+                              setProductVideoErrors((prev) => {
+                                const next = { ...prev }
+                                delete next[idx]
+                                return next
+                              })
+                            }}
+                          >
+                            {t('Xóa video')}
+                          </button>
+                        </div>
+                      )}
                       <input
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder="Title"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                        placeholder={t('Tiêu đề')}
                         value={v.title}
                         onChange={(e) => {
                           const copy = [...newProduct.videos]
@@ -882,115 +1867,85 @@ function ProductsPage() {
                           setNewProduct({ ...newProduct, videos: copy })
                         }}
                       />
-                      <select
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        value={v.type}
+                      <textarea
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                        placeholder={t('Mô tả')}
+                        rows={2}
+                        value={v.descriptions}
                         onChange={(e) => {
                           const copy = [...newProduct.videos]
-                          copy[idx] = { ...copy[idx], type: e.target.value as typeof v.type }
+                          copy[idx] = { ...copy[idx], descriptions: e.target.value }
                           setNewProduct({ ...newProduct, videos: copy })
                         }}
+                      />
+                      <button
+                        type="button"
+                        className="self-end text-xs text-red-500"
+                        onClick={() => {
+                          const copy = newProduct.videos.filter((_, i) => i !== idx)
+                          setNewProduct({ ...newProduct, videos: copy })
+                          setProductVideoErrors((prev) => {
+                            const next: Record<number, string> = {}
+                            Object.entries(prev).forEach(([key, value]) => {
+                              const index = Number(key)
+                              if (Number.isNaN(index)) return
+                              if (index < idx) {
+                                next[index] = value
+                              } else if (index > idx) {
+                                next[index - 1] = value
+                              }
+                            })
+                            return next
+                          })
+                        }}
                       >
-                        <option value="review">Review</option>
-                        <option value="unboxing">Unboxing</option>
-                        <option value="demo">Demo</option>
-                        <option value="tutorial">Tutorial</option>
-                      </select>
+                        {t('Xóa video')}
+                      </button>
                     </div>
-                    <input
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                      placeholder="Video URL"
-                      value={v.url}
-                      onChange={(e) => {
-                        const copy = [...newProduct.videos]
-                        copy[idx] = { ...copy[idx], url: e.target.value }
-                        setNewProduct({ ...newProduct, videos: copy })
-                      }}
-                    />
-                    <input
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                      placeholder="Thumbnail URL"
-                      value={v.thumbnail}
-                      onChange={(e) => {
-                        const copy = [...newProduct.videos]
-                        copy[idx] = { ...copy[idx], thumbnail: e.target.value }
-                        setNewProduct({ ...newProduct, videos: copy })
-                      }}
-                    />
-                    <textarea
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                      placeholder="Description"
-                      rows={2}
-                      value={v.descriptions}
-                      onChange={(e) => {
-                        const copy = [...newProduct.videos]
-                        copy[idx] = { ...copy[idx], descriptions: e.target.value }
-                        setNewProduct({ ...newProduct, videos: copy })
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="text-xs text-red-500 self-end"
-                      onClick={() => {
-                        const copy = newProduct.videos.filter((_, i) => i !== idx)
-                        setNewProduct({
-                          ...newProduct,
-                          videos: copy.length
-                            ? copy
-                            : [
-                                { title: '', descriptions: '', url: '', thumbnail: '', type: 'review' as const },
-                              ],
-                        })
-                      }}
-                    >
-                      Xóa video
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  className="text-xs text-[var(--accent)]"
-                  onClick={() =>
-                    setNewProduct({
-                      ...newProduct,
-                      videos: [
-                        ...newProduct.videos,
-                        { title: '', descriptions: '', url: '', thumbnail: '', type: 'review' as const },
-                      ],
-                    })
-                  }
-                >
-                  + Thêm video
-                </button>
+                  ))
+                )}
+                {newProduct.videos.length > 0 && (
+                  <button
+                    type="button"
+                    className="text-xs text-[var(--accent)]"
+                    onClick={() =>
+                      setNewProduct({
+                        ...newProduct,
+                        videos: [
+                          ...newProduct.videos,
+                          { title: '', descriptions: '', url: '', type: 'tutorial' as const },
+                        ],
+                      })
+                    }
+                  >
+                    {t('+ Thêm video')}
+                  </button>
+                )}
               </div>
             )}
             <div className="mt-6 flex justify-end gap-3">
               <button
                 className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
-                onClick={() => {
-                  setActiveTab('basic')
-                  setShowModal(false)
-                }}
+                onClick={closeModal}
               >
-                Cancel
+                {t('Hủy')}
               </button>
               <button
                 className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm"
                 onClick={() => {
                   const nextErrors: Record<string, string> = {}
-                  if (!newProduct.name.trim()) nextErrors.name = 'Name is required'
-                  if (!newProduct.sku.trim()) nextErrors.sku = 'SKU is required'
+                  if (!newProduct.name.trim())
+                    nextErrors.name = t('Vui lòng nhập tên sản phẩm')
+                  if (!newProduct.sku.trim())
+                    nextErrors.sku = t('Vui lòng nhập SKU')
                   if (products.some((p) => p.sku === newProduct.sku.trim())) {
-                    nextErrors.sku = 'SKU already exists'
+                    nextErrors.sku = t('SKU đã tồn tại')
                   }
                   const priceNum = Number(newProduct.retailPrice)
                   if (Number.isNaN(priceNum) || priceNum < 0) {
-                    nextErrors.retailPrice = 'Price must be a non-negative number'
+                    nextErrors.retailPrice = t('Giá phải là số không âm')
                   }
-                  const stockNum = Number(newProduct.stock)
-                  if (Number.isNaN(stockNum) || stockNum < 0) {
-                    nextErrors.stock = 'Stock must be a non-negative number'
-                  }
+                  const stockNum = Number(newProduct.stock || 0)
                   setErrors(nextErrors)
                   if (Object.keys(nextErrors).length) return
 
@@ -1002,7 +1957,7 @@ function ProductsPage() {
                     name: newProduct.name.trim(),
                     sku: newProduct.sku.trim(),
                     shortDescription: newProduct.shortDescription.trim(),
-                    description: newProduct.longDescription.trim() || newProduct.shortDescription.trim(),
+                    description: newProduct.shortDescription.trim(),
                     retailPrice: priceNum || 0,
                     price: String(priceNum || 0),
                     stock: stockNum || 0,
@@ -1016,15 +1971,14 @@ function ProductsPage() {
                     specifications: specJson,
                     videos: videoJson,
                   })
-                  setShowModal(false)
+                  closeModal()
                 }}
               >
-                Create
+                {t('Tạo')}
               </button>
             </div>
-          </div>
         </div>
-      )}
+      </Modal>
     </section>
   )
 }

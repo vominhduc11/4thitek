@@ -1,23 +1,27 @@
 import { Bell, Save, Shield } from 'lucide-react'
+import { useLanguage } from '../context/LanguageContext'
 
 function SettingsPage() {
+  const { t } = useLanguage()
   const panelClass =
     'rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]'
   const ghostButtonClass =
-    'inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--accent)] hover:text-slate-900 hover:shadow-[0_12px_26px_rgba(15,23,42,0.12)]'
+    'btn-stable inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--accent)] hover:text-slate-900 hover:shadow-[0_12px_26px_rgba(15,23,42,0.12)]'
 
   return (
     <section className={`${panelClass} animate-card-enter`}>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">Settings</h3>
+          <h3 className="text-lg font-semibold text-slate-900">
+            {t('Cài đặt')}
+          </h3>
           <p className="text-sm text-slate-500">
-            Configure security, notifications, and default policies.
+            {t('Cấu hình bảo mật, thông báo và chính sách mặc định.')}
           </p>
         </div>
         <button className={ghostButtonClass} type="button">
           <Save className="h-4 w-4" />
-          Save Changes
+          {t('Lưu thay đổi')}
         </button>
       </div>
 
@@ -25,33 +29,33 @@ function SettingsPage() {
         <div className="rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] p-5">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
             <Shield className="h-4 w-4 text-[var(--accent-strong)]" />
-            Security
+            {t('Bảo mật')}
           </div>
           <div className="mt-4 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
               <div>
                 <p className="text-sm font-semibold text-slate-900">
-                  Email confirmation
+                  {t('Xác nhận email')}
                 </p>
                 <p className="text-xs text-slate-500">
-                  Require admins to confirm sign-ins via email.
+                  {t('Yêu cầu admin xác nhận đăng nhập qua email.')}
                 </p>
               </div>
               <button className={ghostButtonClass} type="button">
-                Configure
+                {t('Cấu hình')}
               </button>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
               <div>
                 <p className="text-sm font-semibold text-slate-900">
-                  Session timeout
+                  {t('Hết phiên đăng nhập')}
                 </p>
                 <p className="text-xs text-slate-500">
-                  Auto logout after 30 minutes.
+                  {t('Tự động đăng xuất sau 30 phút.')}
                 </p>
               </div>
               <button className={ghostButtonClass} type="button">
-                Adjust
+                {t('Điều chỉnh')}
               </button>
             </div>
           </div>
@@ -60,33 +64,33 @@ function SettingsPage() {
         <div className="rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] p-5">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
             <Bell className="h-4 w-4 text-[var(--accent-cool)]" />
-            Notifications
+            {t('Thông báo')}
           </div>
           <div className="mt-4 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
               <div>
                 <p className="text-sm font-semibold text-slate-900">
-                  Order alerts
+                  {t('Cảnh báo đơn hàng')}
                 </p>
                 <p className="text-xs text-slate-500">
-                  Notify when high value orders arrive.
+                  {t('Thông báo khi có đơn hàng giá trị cao.')}
                 </p>
               </div>
               <button className={ghostButtonClass} type="button">
-                Edit
+                {t('Chỉnh sửa')}
               </button>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
               <div>
                 <p className="text-sm font-semibold text-slate-900">
-                  Inventory warnings
+                  {t('Cảnh báo tồn kho')}
                 </p>
                 <p className="text-xs text-slate-500">
-                  Send alerts when stock falls below threshold.
+                  {t('Gửi thông báo khi tồn kho thấp.')}
                 </p>
               </div>
               <button className={ghostButtonClass} type="button">
-                Edit
+                {t('Chỉnh sửa')}
               </button>
             </div>
           </div>

@@ -1,68 +1,148 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
+@layer base {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    --paper: 246 242 234;
+    --surface: 255 255 255;
+    --surface-ghost: 255 255 255;
+    --ink: 15 23 42;
+    --ink-soft: 100 116 139;
+    --ink-muted: 148 163 184;
+    --line: 226 232 240;
+    --brand: 37 99 235;
+    --brand-dark: 29 78 216;
   }
-  a:hover {
-    color: #747bff;
+
+  .dark {
+    color-scheme: dark;
+    --paper: 11 17 32;
+    --surface: 15 23 42;
+    --surface-ghost: 15 23 42;
+    --ink: 226 232 240;
+    --ink-soft: 148 163 184;
+    --ink-muted: 148 163 184;
+    --line: 31 41 55;
+    --brand: 37 99 235;
+    --brand-dark: 29 78 216;
   }
-  button {
-    background-color: #f9f9f9;
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Be Vietnam Pro', sans-serif;
+    background-color: rgb(var(--paper));
+    color: rgb(var(--ink));
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+  }
+
+  img,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-brand text-white font-semibold transition hover:-translate-y-0.5 hover:bg-brand-dark focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/20 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply border border-line text-ink font-semibold transition hover:border-brand hover:text-brand focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/10 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .app-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--ink-muted)) transparent;
+    scrollbar-gutter: stable;
+  }
+
+  .app-scrollbar::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .app-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .app-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      rgba(37, 99, 235, 0.65),
+      rgba(29, 78, 216, 0.85)
+    );
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  .app-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      rgba(37, 99, 235, 0.85),
+      rgba(29, 78, 216, 0.95)
+    );
+    background-clip: content-box;
+  }
+}
+
+@layer utilities {
+  .dark .bg-white {
+    background-color: rgb(var(--surface));
+  }
+
+  .dark .bg-white\/95 {
+    background-color: rgb(var(--surface) / 0.95);
+  }
+
+  .dark .bg-white\/90 {
+    background-color: rgb(var(--surface) / 0.9);
+  }
+
+  .dark .bg-white\/85 {
+    background-color: rgb(var(--surface) / 0.85);
+  }
+
+  .dark .bg-white\/80 {
+    background-color: rgb(var(--surface) / 0.8);
+  }
+
+  .dark .bg-white\/70 {
+    background-color: rgb(var(--surface) / 0.7);
+  }
+
+  .dark .bg-white\/60 {
+    background-color: rgb(var(--surface) / 0.6);
+  }
+
+  .dark .bg-white\/50 {
+    background-color: rgb(var(--surface) / 0.5);
   }
 }
