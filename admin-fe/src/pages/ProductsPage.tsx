@@ -22,8 +22,9 @@ import {
 import Modal, { type Styles } from 'react-modal'
 import { useProducts } from '../context/ProductsContext'
 import { useLanguage } from '../context/LanguageContext'
+import type { Product } from '../data/products'
 
-type ProductFilter = 'all' | 'active' | 'lowStock' | 'outOfStock' | 'draft' | 'archived'
+type ProductFilter = 'all' | 'active' | 'lowStock' | 'outOfStock' | 'draft' | 'deleted'
 type FeaturedFilter = 'all' | 'featured' | 'nonFeatured'
 type HomepageFilter = 'all' | 'homepage' | 'nonHomepage'
 
@@ -187,7 +188,7 @@ function ProductsPage() {
     products,
     archiveProduct,
     restoreProduct,
-    publishProduct,
+    togglePublishStatus,
     deleteProduct,
     addProduct,
   } = useProducts()
@@ -198,6 +199,14 @@ function ProductsPage() {
   const [showModal, setShowModal] = useState(false)
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
   const imageInputRef = useRef<HTMLInputElement | null>(null)
+  const tabRefs = useRef<
+    Record<'basic' | 'description' | 'specs' | 'videos', HTMLButtonElement | null>
+  >({
+    basic: null,
+    description: null,
+    specs: null,
+    videos: null,
+  })
   const retailPriceInputRef = useRef<HTMLInputElement | null>(null)
   const retailPriceCaretRef = useRef<number | null>(null)
   const [selectedImageName, setSelectedImageName] = useState('')
@@ -207,6 +216,7 @@ function ProductsPage() {
   const [productVideoErrors, setProductVideoErrors] = useState<Record<number, string>>({})
   const [activeTab, setActiveTab] = useState<'basic' | 'description' | 'specs' | 'videos'>('basic')
   const [currentPage, setCurrentPage] = useState(0)
+  const [actionMessage, setActionMessage] = useState('')
   const [newProduct, setNewProduct] = useState({
     name: '',
     sku: '',
@@ -227,87 +237,105 @@ function ProductsPage() {
     imageUrl: '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
-
-  const archivedProducts = useMemo(
-    () => products.filter((product) => product.archived),
-    [products],
-  )
+  const tabOrder = ['basic', 'description', 'specs', 'videos'] as const
 
   const activeProducts = useMemo(
-    () => products.filter((product) => !product.archived && product.status === 'Active'),
+    () => products.filter((product) => !product.isDeleted && product.status === 'Active'),
     [products],
   )
 
   const lowStockProducts = useMemo(
-    () => products.filter((product) => !product.archived && product.stock > 0 && product.stock < 20),
-    [products],
-  )
-
-  const outOfStockProducts = useMemo(
-    () => products.filter((product) => !product.archived && product.stock === 0),
+    () => products.filter((product) => !product.isDeleted && product.stock > 0 && product.stock < 20),
     [products],
   )
 
   const draftProducts = useMemo(
-    () => products.filter((product) => !product.archived && product.status === 'Draft'),
+    () => products.filter((product) => !product.isDeleted && product.status === 'Draft'),
     [products],
   )
 
   const normalizedSearch = useMemo(() => searchTerm.trim().toLowerCase(), [searchTerm])
-  const visibleProducts = useMemo(() => products.filter((product) => {
-    const matchesSearch =
-      !normalizedSearch ||
-      product.name.toLowerCase().includes(normalizedSearch) ||
-      product.sku.toLowerCase().includes(normalizedSearch)
+  const baseFilteredProducts = useMemo(
+    () =>
+      products.filter((product) => {
+        const matchesSearch =
+          !normalizedSearch ||
+          product.name.toLowerCase().includes(normalizedSearch) ||
+          product.sku.toLowerCase().includes(normalizedSearch)
 
-    const matchesFeatured =
-      filterFeatured === 'all'
-        ? true
-        : filterFeatured === 'featured'
-          ? !!product.isFeatured
-          : !product.isFeatured
+        const matchesFeatured =
+          filterFeatured === 'all'
+            ? true
+            : filterFeatured === 'featured'
+              ? !!product.isFeatured
+              : !product.isFeatured
 
-    const matchesHomepage =
-      filterHomepage === 'all'
-        ? true
-        : filterHomepage === 'homepage'
-          ? !!product.showOnHomepage
-          : !product.showOnHomepage
+        const matchesHomepage =
+          filterHomepage === 'all'
+            ? true
+            : filterHomepage === 'homepage'
+              ? !!product.showOnHomepage
+              : !product.showOnHomepage
 
-    const matchesFilter = (() => {
-      switch (filter) {
-        case 'active':
-          return !product.archived && product.status === 'Active'
-        case 'lowStock':
-          return !product.archived && product.stock > 0 && product.stock < 20
-        case 'outOfStock':
-          return !product.archived && product.stock === 0
-        case 'draft':
-          return !product.archived && product.status === 'Draft'
-        case 'archived':
-          return product.archived
-        default:
-          return true
-      }
-    })()
+        return matchesSearch && matchesFeatured && matchesHomepage
+      }),
+    [products, normalizedSearch, filterFeatured, filterHomepage],
+  )
 
-    return (
-      matchesSearch &&
-      matchesFilter &&
-      matchesFeatured &&
-      matchesHomepage
-    )
-  }), [
-    products,
-    normalizedSearch,
-    filterFeatured,
-    filterHomepage,
-    filter,
-  ])
+  const filterCounts = useMemo(
+    () =>
+      baseFilteredProducts.reduce(
+        (acc, product) => {
+          if (product.isDeleted) {
+            acc.deleted += 1
+            return acc
+          }
+
+          acc.all += 1
+          if (product.status === 'Active') acc.active += 1
+          if (product.status === 'Draft') acc.draft += 1
+          if (product.stock === 0) acc.outOfStock += 1
+          if (product.stock > 0 && product.stock < 20) acc.lowStock += 1
+          return acc
+        },
+        {
+          all: 0,
+          active: 0,
+          lowStock: 0,
+          outOfStock: 0,
+          draft: 0,
+          deleted: 0,
+        },
+      ),
+    [baseFilteredProducts],
+  )
+
+  const visibleProducts = useMemo(() => baseFilteredProducts.filter((product) => {
+    switch (filter) {
+      case 'active':
+        return !product.isDeleted && product.status === 'Active'
+      case 'lowStock':
+        return !product.isDeleted && product.stock > 0 && product.stock < 20
+      case 'outOfStock':
+        return !product.isDeleted && product.stock === 0
+      case 'draft':
+        return !product.isDeleted && product.status === 'Draft'
+      case 'deleted':
+        return product.isDeleted
+      default:
+        return !product.isDeleted
+    }
+  }), [baseFilteredProducts, filter])
 
   useEffect(() => {
     setCurrentPage(0)
   }, [normalizedSearch, filter, filterFeatured, filterHomepage])
+
+  useEffect(() => {
+    if (!actionMessage) return
+    const timer = window.setTimeout(() => setActionMessage(''), 3000)
+    return () => window.clearTimeout(timer)
+  }, [actionMessage])
 
   const pageCount = Math.ceil(visibleProducts.length / ITEMS_PER_PAGE)
   const pagedProducts = useMemo(() => {
@@ -640,25 +668,28 @@ function ProductsPage() {
     }
   }, [deleteProduct, t])
 
+  const handleArchiveToggle = useCallback((product: Product) => {
+    if (product.isDeleted) {
+      restoreProduct(product.sku)
+      setActionMessage(t('Đã khôi phục sản phẩm về bản nháp.'))
+      return
+    }
+    archiveProduct(product.sku)
+    setActionMessage('')
+  }, [archiveProduct, restoreProduct, t])
+
   const filters = useMemo(() => ([
-    { value: 'all', label: 'Tất cả', count: products.length },
-    { value: 'active', label: 'Đang bán', count: activeProducts.length },
-    { value: 'lowStock', label: 'Tồn kho thấp', count: lowStockProducts.length },
-    { value: 'outOfStock', label: 'Hết hàng', count: outOfStockProducts.length },
-    { value: 'draft', label: 'Bản nháp', count: draftProducts.length },
+    { value: 'all', label: 'Tất cả', count: filterCounts.all },
+    { value: 'active', label: 'Đang bán', count: filterCounts.active },
+    { value: 'lowStock', label: 'Tồn kho thấp', count: filterCounts.lowStock },
+    { value: 'outOfStock', label: 'Hết hàng', count: filterCounts.outOfStock },
+    { value: 'draft', label: 'Bản nháp', count: filterCounts.draft },
     {
-      value: 'archived',
-      label: 'Đã lưu trữ / Đã xóa',
-      count: archivedProducts.length,
+      value: 'deleted',
+      label: 'Đã xóa',
+      count: filterCounts.deleted,
     },
-  ] as const), [
-    products.length,
-    activeProducts.length,
-    lowStockProducts.length,
-    outOfStockProducts.length,
-    draftProducts.length,
-    archivedProducts.length,
-  ])
+  ] as const), [filterCounts])
 
   const listContent = useMemo(() => {
     if (visibleProducts.length === 0) {
@@ -715,7 +746,7 @@ function ProductsPage() {
               </span>
               <span className="px-2 text-slate-300">|</span>
               <span className="font-semibold text-slate-700">
-                {formatPriceVND(product.retailPrice || product.price || 0)}
+                {formatPriceVND(product.retailPrice || 0)}
               </span>
               <span className="px-2 text-slate-300">|</span>
               <span>{t('Tồn')}: {product.stock > 999 ? '999+' : product.stock}</span>
@@ -726,7 +757,7 @@ function ProductsPage() {
           <span
             className={
               'inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ' +
-              (product.archived || product.isDeleted
+              (product.isDeleted
                 ? 'bg-slate-200 text-slate-600'
                 : product.publishStatus === 'PUBLISHED'
                   ? 'bg-emerald-500/15 text-emerald-700'
@@ -735,13 +766,13 @@ function ProductsPage() {
                     : 'bg-slate-200 text-slate-600')
             }
           >
-            {product.archived || product.isDeleted
+            {product.isDeleted
               ? t('Đã xóa')
               : product.publishStatus === 'PUBLISHED'
                 ? t('Đã xuất bản')
                 : product.publishStatus === 'DRAFT'
                   ? t('Bản nháp')
-                  : t('Đã lưu trữ')}
+                  : t('Đã xóa')}
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2 md:justify-end">
@@ -755,50 +786,46 @@ function ProductsPage() {
           </Link>
           <button
             className={
-              product.status === 'Draft' && !product.archived
+              product.publishStatus === 'DRAFT' && !product.isDeleted
                 ? 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-[var(--accent-soft)] bg-[var(--accent-soft)] text-[var(--accent-strong)] transition hover:border-[var(--accent)]'
-                : 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 text-slate-400'
+                : 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:border-[var(--accent)] hover:text-[var(--accent)]'
             }
             type="button"
-            onClick={() => publishProduct(product.sku)}
-            disabled={product.archived || product.status !== 'Draft'}
+            onClick={() => togglePublishStatus(product.sku)}
+            disabled={product.isDeleted}
             aria-label={
-              product.status === 'Draft'
+              product.publishStatus === 'DRAFT'
                 ? t('Xuất bản')
-                : t('Đã xuất bản')
+                : t('Hủy xuất bản')
             }
             title={
-              product.status === 'Draft'
+              product.publishStatus === 'DRAFT'
                 ? t('Xuất bản')
-                : t('Đã xuất bản')
+                : t('Hủy xuất bản')
             }
           >
             <CheckCircle className="h-4 w-4" />
           </button>
           <button
             className={
-              product.archived
+              product.isDeleted
                 ? 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-emerald-200 text-emerald-700 transition hover:border-emerald-400'
                 : 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-amber-200 text-amber-700 transition hover:border-amber-400'
             }
             type="button"
-            onClick={() =>
-              product.archived
-                ? restoreProduct(product.sku)
-                : archiveProduct(product.sku)
-            }
+            onClick={() => handleArchiveToggle(product)}
             aria-label={
-              product.archived
+              product.isDeleted
                 ? t('Khôi phục')
                 : t('Ẩn sản phẩm')
             }
             title={
-              product.archived
+              product.isDeleted
                 ? t('Khôi phục')
                 : t('Ẩn sản phẩm')
             }
           >
-            {product.archived ? (
+            {product.isDeleted ? (
               <RotateCcw className="h-4 w-4" />
             ) : (
               <Archive className="h-4 w-4" />
@@ -806,16 +833,16 @@ function ProductsPage() {
           </button>
           <button
             className={
-              product.archived
+              product.isDeleted
                 ? 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-rose-200 text-rose-700 transition hover:border-rose-400'
                 : 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 text-slate-400'
             }
             type="button"
             onClick={() => handleDelete(product.sku)}
-            disabled={!product.archived}
+            disabled={!product.isDeleted}
             aria-label={t('Xóa')}
             title={
-              product.archived
+              product.isDeleted
                 ? t('Xóa vĩnh viễn')
                 : t('Chỉ xóa vĩnh viễn được khi đã ẩn sản phẩm')
             }
@@ -830,7 +857,7 @@ function ProductsPage() {
     pagedProducts,
     archiveProduct,
     restoreProduct,
-    publishProduct,
+    togglePublishStatus,
     handleDelete,
     t,
   ])
@@ -852,6 +879,7 @@ function ProductsPage() {
             <input
               className="h-11 w-full max-w-sm rounded-2xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-700 shadow-sm transition focus:outline-none"
               placeholder={t('Tìm tên, SKU...')}
+              aria-label={t('Tìm tên, SKU...')}
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
@@ -939,7 +967,7 @@ function ProductsPage() {
               const rows = visibleProducts.map((p) => [
                 p.name,
                 p.sku,
-                p.retailPrice ?? p.price ?? 0,
+                p.retailPrice ?? 0,
                 p.stock,
                 p.publishStatus,
                 p.isFeatured ? t('Có') : t('Không'),
@@ -948,7 +976,8 @@ function ProductsPage() {
               const csv = [header, ...rows]
                 .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
                 .join('\n')
-              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+              const csvContent = `\ufeff${csv}`
+              const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
               const url = URL.createObjectURL(blob)
               const link = document.createElement('a')
               link.href = url
@@ -994,6 +1023,11 @@ function ProductsPage() {
           </button>
         </div>
       </div>
+      {actionMessage && (
+        <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+          {actionMessage}
+        </div>
+      )}
 
       <div className="mt-6 hidden flex-wrap items-center gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-xs md:flex">
         <div className="flex items-center gap-2">
@@ -1001,7 +1035,7 @@ function ProductsPage() {
             {t('Tổng SKU')}
           </span>
           <span className="text-sm font-semibold text-slate-900">
-            {products.filter((product) => !product.archived).length}
+            {products.filter((product) => !product.isDeleted).length}
           </span>
           <span className="text-slate-500">
             {t('{count} bản nháp', { count: draftProducts.length })}
@@ -1041,12 +1075,12 @@ function ProductsPage() {
         <div className="mt-6 flex justify-center">
           <ReactPaginate
             breakLabel="..."
-            nextLabel={t('Ti?p')}
+            nextLabel={t('Tiếp')}
             onPageChange={(selectedItem) => setCurrentPage(selectedItem.selected)}
             pageRangeDisplayed={2}
             marginPagesDisplayed={1}
             pageCount={pageCount}
-            previousLabel={t('Tr??c')}
+            previousLabel={t('Trước')}
             forcePage={currentPage}
             containerClassName="flex items-center gap-1 text-sm"
             pageLinkClassName="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
@@ -1062,6 +1096,9 @@ function ProductsPage() {
       <Modal
         isOpen={showModal}
         onRequestClose={closeModal}
+        onAfterOpen={() => {
+          tabRefs.current.basic?.focus()
+        }}
         style={modalStyles}
         contentLabel={t('Tạo sản phẩm')}
       >
@@ -1078,7 +1115,7 @@ function ProductsPage() {
               </button>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label={t('Các tab sản phẩm')}>
               {[
                 { id: 'basic', label: 'Thông tin' },
                 { id: 'description', label: 'Mô tả' },
@@ -1087,11 +1124,47 @@ function ProductsPage() {
               ].map((tab) => (
                 <button
                   key={tab.id}
+                  ref={(node) => {
+                    tabRefs.current[tab.id as typeof activeTab] = node
+                  }}
+                  id={`product-tab-${tab.id}`}
                   className={
                     activeTab === tab.id
                       ? 'rounded-full bg-[var(--accent)] px-3 py-1 text-xs font-semibold text-white shadow'
                       : 'rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700'
                   }
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  aria-controls={`product-tabpanel-${tab.id}`}
+                  tabIndex={activeTab === tab.id ? 0 : -1}
+                  onKeyDown={(event) => {
+                    const currentIndex = tabOrder.indexOf(activeTab)
+                    let nextIndex = currentIndex
+
+                    switch (event.key) {
+                      case 'ArrowRight':
+                      case 'ArrowDown':
+                        nextIndex = (currentIndex + 1) % tabOrder.length
+                        break
+                      case 'ArrowLeft':
+                      case 'ArrowUp':
+                        nextIndex = (currentIndex - 1 + tabOrder.length) % tabOrder.length
+                        break
+                      case 'Home':
+                        nextIndex = 0
+                        break
+                      case 'End':
+                        nextIndex = tabOrder.length - 1
+                        break
+                      default:
+                        return
+                    }
+
+                    event.preventDefault()
+                    const nextTab = tabOrder[nextIndex]
+                    setActiveTab(nextTab)
+                    tabRefs.current[nextTab]?.focus()
+                  }}
                   onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 >
                   {t(tab.label)}
@@ -1100,7 +1173,12 @@ function ProductsPage() {
             </div>
 
             {activeTab === 'basic' && (
-              <div className="mt-4 grid gap-4 lg:grid-cols-[1.3fr_0.9fr]">
+              <div
+                id="product-tabpanel-basic"
+                role="tabpanel"
+                aria-labelledby="product-tab-basic"
+                className="mt-4 grid gap-4 lg:grid-cols-[1.3fr_0.9fr]"
+              >
                 <div className="space-y-4">
                   <div className="rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
                     <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('Thông tin cơ bản')}</p>
@@ -1111,7 +1189,7 @@ function ProductsPage() {
                         </span>
                         <input
                           className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                          placeholder={t('T?n s?n ph?m')}
+                          placeholder={t('Nhập tên sản phẩm')}
                           value={newProduct.name}
                           onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                         />
@@ -1121,7 +1199,7 @@ function ProductsPage() {
                         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">SKU *</span>
                         <input
                           className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                          placeholder={t('SKU')}
+                          placeholder={t('Nhập SKU')}
                           value={newProduct.sku}
                           onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
                         />
@@ -1133,6 +1211,7 @@ function ProductsPage() {
                         </span>
                         <textarea
                           className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          placeholder={t('Nhập mô tả ngắn')}
                           rows={3}
                           value={newProduct.shortDescription}
                           onChange={(e) =>
@@ -1182,7 +1261,7 @@ function ProductsPage() {
                             type="text"
                             inputMode="numeric"
                             autoComplete="off"
-                            placeholder="0"
+                            placeholder={t('Nhập giá bán lẻ')}
                             className="w-full rounded-xl border border-slate-200 px-3 py-2 pr-12 text-sm"
                             value={formatNumberInput(newProduct.retailPrice)}
                             onChange={(e) => {
@@ -1228,7 +1307,7 @@ function ProductsPage() {
                           type="text"
                           inputMode="numeric"
                           autoComplete="off"
-                          placeholder="0"
+                          placeholder={t('Nhập tồn kho')}
                           className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
                           value={newProduct.stock}
                           onChange={(e) =>
@@ -1320,7 +1399,12 @@ function ProductsPage() {
             )}
 
             {activeTab === 'description' && (
-              <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-[var(--surface-muted)] p-4">
+              <div
+                id="product-tabpanel-description"
+                role="tabpanel"
+                aria-labelledby="product-tab-description"
+                className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-[var(--surface-muted)] p-4"
+              >
                 <div className="flex flex-wrap items-start justify-between gap-2 text-sm text-slate-700">
                   <div>
                     <p className="font-semibold text-slate-900">{t('Mô tả')}</p>
@@ -1335,8 +1419,8 @@ function ProductsPage() {
                       setNewProduct({
                         ...newProduct,
                         descriptions: [
-                          { type: 'title', text: t('Tiêu đề') },
-                          { type: 'description', text: t('Mô tả ngắn') },
+                          { type: 'title', text: '' },
+                          { type: 'description', text: '' },
                           { type: 'image', url: '', caption: '' },
                           { type: 'gallery', gallery: [] },
                           { type: 'video', url: '', caption: '' },
@@ -1403,7 +1487,7 @@ function ProductsPage() {
                             copy[idx] = { ...copy[idx], text: e.target.value }
                             setNewProduct({ ...newProduct, descriptions: copy })
                           }}
-                          placeholder={t('Tiêu đề')}
+                          placeholder={t('Nhập tiêu đề')}
                         />
                       )}
                       {d.type === 'description' && (
@@ -1412,7 +1496,7 @@ function ProductsPage() {
                             value={d.text ?? ''}
                             modules={descriptionEditorModules}
                             formats={descriptionEditorFormats}
-                            placeholder={t('Mô tả')}
+                            placeholder={t('Nhập mô tả')}
                             onChange={(value) => {
                               const copy = [...newProduct.descriptions]
                               copy[idx] = { ...copy[idx], text: value }
@@ -1436,7 +1520,7 @@ function ProductsPage() {
                           </label>
                           <input
                             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                            placeholder={t('Chú thích')}
+                            placeholder={t('Nhập chú thích')}
                             value={d.caption ?? ''}
                             onChange={(e) => {
                               const copy = [...newProduct.descriptions]
@@ -1511,7 +1595,7 @@ function ProductsPage() {
                             </span>
                             <input
                               className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                              placeholder={t('Chú thích bộ ảnh')}
+                              placeholder={t('Nhập chú thích bộ ảnh')}
                               value={d.caption ?? ''}
                               onChange={(e) => {
                                 const copy = [...newProduct.descriptions]
@@ -1615,7 +1699,7 @@ function ProductsPage() {
                           </label>
                           <input
                             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                            placeholder={t('Chú thích')}
+                            placeholder={t('Nhập chú thích')}
                             value={d.caption ?? ''}
                             onChange={(e) => {
                               const copy = [...newProduct.descriptions]
@@ -1677,7 +1761,12 @@ function ProductsPage() {
             )}
 
             {activeTab === 'specs' && (
-              <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-[var(--surface-muted)] p-4">
+              <div
+                id="product-tabpanel-specs"
+                role="tabpanel"
+                aria-labelledby="product-tab-specs"
+                className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-[var(--surface-muted)] p-4"
+              >
                 <div className="flex flex-wrap items-start justify-between gap-2 text-sm text-slate-700">
                   <div>
                     <p className="font-semibold text-slate-900">{t('Thông số')}</p>
@@ -1692,8 +1781,8 @@ function ProductsPage() {
                       setNewProduct({
                         ...newProduct,
                         specifications: [
-                          { label: 'Driver', value: '50mm' },
-                          { label: 'Battery', value: '40h' },
+                          { label: '', value: '' },
+                          { label: '', value: '' },
                         ],
                       })
                     }
@@ -1722,7 +1811,7 @@ function ProductsPage() {
                     <div key={idx} className="grid gap-2 md:grid-cols-[1fr_1fr_auto] md:items-center">
                       <input
                         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t('Nhãn')}
+                        placeholder={t('Nhập nhãn')}
                         value={s.label}
                         onChange={(e) => {
                           const copy = [...newProduct.specifications]
@@ -1732,7 +1821,7 @@ function ProductsPage() {
                       />
                       <input
                         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t('Giá trị')}
+                        placeholder={t('Nhập giá trị')}
                         value={s.value}
                         onChange={(e) => {
                           const copy = [...newProduct.specifications]
@@ -1771,7 +1860,12 @@ function ProductsPage() {
             )}
 
             {activeTab === 'videos' && (
-              <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-[var(--surface-muted)] p-4">
+              <div
+                id="product-tabpanel-videos"
+                role="tabpanel"
+                aria-labelledby="product-tab-videos"
+                className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-[var(--surface-muted)] p-4"
+              >
                 <div className="flex flex-wrap items-start justify-between gap-2 text-sm text-slate-700">
                   <div>
                     <p className="font-semibold text-slate-900">{t('Video')}</p>
@@ -1787,8 +1881,8 @@ function ProductsPage() {
                         ...newProduct,
                         videos: [
                           {
-                            title: 'Hướng dẫn',
-                            descriptions: 'Video hướng dẫn',
+                            title: '',
+                            descriptions: '',
                             url: '',
                             type: 'tutorial',
                           },
@@ -1859,7 +1953,7 @@ function ProductsPage() {
                       )}
                       <input
                         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t('Tiêu đề')}
+                        placeholder={t('Nhập tiêu đề')}
                         value={v.title}
                         onChange={(e) => {
                           const copy = [...newProduct.videos]
@@ -1869,7 +1963,7 @@ function ProductsPage() {
                       />
                       <textarea
                         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t('Mô tả')}
+                        placeholder={t('Nhập mô tả')}
                         rows={2}
                         value={v.descriptions}
                         onChange={(e) => {
@@ -1923,59 +2017,53 @@ function ProductsPage() {
                 )}
               </div>
             )}
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
-                onClick={closeModal}
-              >
-                {t('Hủy')}
-              </button>
-              <button
-                className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm"
-                onClick={() => {
-                  const nextErrors: Record<string, string> = {}
-                  if (!newProduct.name.trim())
-                    nextErrors.name = t('Vui lòng nhập tên sản phẩm')
-                  if (!newProduct.sku.trim())
-                    nextErrors.sku = t('Vui lòng nhập SKU')
-                  if (products.some((p) => p.sku === newProduct.sku.trim())) {
-                    nextErrors.sku = t('SKU đã tồn tại')
-                  }
-                  const priceNum = Number(newProduct.retailPrice)
-                  if (Number.isNaN(priceNum) || priceNum < 0) {
-                    nextErrors.retailPrice = t('Giá phải là số không âm')
-                  }
-                  const stockNum = Number(newProduct.stock || 0)
-                  setErrors(nextErrors)
-                  if (Object.keys(nextErrors).length) return
+            <div className="sticky bottom-0 mt-6 -mx-6 border-t border-slate-200/70 bg-white/95 px-6 py-4 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur">
+              <div className="flex justify-end">
+                <button
+                  className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm"
+                  onClick={() => {
+                    const nextErrors: Record<string, string> = {}
+                    if (!newProduct.name.trim())
+                      nextErrors.name = t('Vui lòng nhập tên sản phẩm')
+                    if (!newProduct.sku.trim())
+                      nextErrors.sku = t('Vui lòng nhập SKU')
+                    if (products.some((p) => p.sku === newProduct.sku.trim())) {
+                      nextErrors.sku = t('SKU đã tồn tại')
+                    }
+                    const priceNum = Number(newProduct.retailPrice)
+                    if (Number.isNaN(priceNum) || priceNum < 0) {
+                      nextErrors.retailPrice = t('Giá phải là số không âm')
+                    }
+                    const stockNum = Number(newProduct.stock || 0)
+                    setErrors(nextErrors)
+                    if (Object.keys(nextErrors).length) return
 
-                  const descJson = JSON.stringify(newProduct.descriptions || [])
-                  const specJson = JSON.stringify(newProduct.specifications || [])
-                  const videoJson = JSON.stringify(newProduct.videos || [])
+                    const descJson = JSON.stringify(newProduct.descriptions || [])
+                    const specJson = JSON.stringify(newProduct.specifications || [])
+                    const videoJson = JSON.stringify(newProduct.videos || [])
 
-                  addProduct({
-                    name: newProduct.name.trim(),
-                    sku: newProduct.sku.trim(),
-                    shortDescription: newProduct.shortDescription.trim(),
-                    description: newProduct.shortDescription.trim(),
-                    retailPrice: priceNum || 0,
-                    price: String(priceNum || 0),
-                    stock: stockNum || 0,
-                    publishStatus: newProduct.publishStatus,
-                    isFeatured: newProduct.isFeatured,
-                    showOnHomepage: newProduct.showOnHomepage,
-                    image: newProduct.imageUrl
-                      ? JSON.stringify({ imageUrl: newProduct.imageUrl })
-                      : undefined,
-                    descriptions: descJson,
-                    specifications: specJson,
-                    videos: videoJson,
-                  })
-                  closeModal()
-                }}
-              >
-                {t('Tạo')}
-              </button>
+                    addProduct({
+                      name: newProduct.name.trim(),
+                      sku: newProduct.sku.trim(),
+                      shortDescription: newProduct.shortDescription.trim(),
+                      retailPrice: priceNum || 0,
+                      stock: stockNum || 0,
+                      publishStatus: newProduct.publishStatus,
+                      isFeatured: newProduct.isFeatured,
+                      showOnHomepage: newProduct.showOnHomepage,
+                      image: newProduct.imageUrl
+                        ? JSON.stringify({ imageUrl: newProduct.imageUrl })
+                        : undefined,
+                      descriptions: descJson,
+                      specifications: specJson,
+                      videos: videoJson,
+                    })
+                    closeModal()
+                  }}
+                >
+                  {t('Tạo')}
+                </button>
+              </div>
             </div>
         </div>
       </Modal>

@@ -18,7 +18,7 @@ type ProductsContextValue = {
 const ProductsContext = createContext<ProductsContextValue | undefined>(undefined)
 
 const deriveStatus = (product: Product): Product['status'] => {
-  if (product.publishStatus !== 'PUBLISHED' || product.archived || product.isDeleted) {
+  if (product.publishStatus !== 'PUBLISHED' || product.isDeleted) {
     return 'Draft'
   }
   if (product.stock < 20) return 'Low Stock'
@@ -31,7 +31,7 @@ const normalizeProduct = (product: Product): Product => {
       ? 'PUBLISHED'
       : product.publishStatus === 'DRAFT'
         ? 'DRAFT'
-        : product.status === 'Draft' || product.archived || product.isDeleted
+        : product.status === 'Draft' || product.isDeleted
           ? 'DRAFT'
           : 'PUBLISHED'
 
@@ -39,7 +39,6 @@ const normalizeProduct = (product: Product): Product => {
     ...product,
     publishStatus,
     status: deriveStatus({ ...product, publishStatus }),
-    archived: product.archived || product.isDeleted,
     isDeleted: product.isDeleted ?? false,
   }
 }
@@ -53,7 +52,6 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
         product.sku === sku
           ? normalizeProduct({
               ...product,
-              archived: true,
               isDeleted: true,
               publishStatus: 'DRAFT',
             })
@@ -68,9 +66,8 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
         product.sku === sku
           ? normalizeProduct({
               ...product,
-              archived: false,
               isDeleted: false,
-              publishStatus: 'PUBLISHED',
+              publishStatus: 'DRAFT',
             })
           : product,
       ),
@@ -78,15 +75,11 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
   }
 
   const publishProduct = (sku: string) => {
-    const publishedAt = new Date().toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    })
+    const updatedAt = new Date().toISOString()
 
     setProducts((prev) =>
       prev.map((product) => {
-        if (product.sku !== sku || product.archived) {
+        if (product.sku !== sku || product.isDeleted) {
           return product
         }
         if (product.publishStatus === 'PUBLISHED') {
@@ -95,7 +88,7 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
         return normalizeProduct({
           ...product,
           publishStatus: 'PUBLISHED',
-          lastUpdated: publishedAt,
+          updatedAt,
           isDeleted: false,
         })
       }),
@@ -103,9 +96,12 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updateProduct = (sku: string, updates: Partial<Product>) => {
+    const nextUpdatedAt = updates.updatedAt || new Date().toISOString()
     setProducts((prev) =>
       prev.map((product) =>
-        product.sku === sku ? normalizeProduct({ ...product, ...updates }) : product,
+        product.sku === sku
+          ? normalizeProduct({ ...product, ...updates, updatedAt: nextUpdatedAt })
+          : product,
       ),
     )
   }
@@ -123,12 +119,10 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
       name: payload.name || `New Product ${products.length + 1}`,
       sku,
       shortDescription: payload.shortDescription || '',
-      description: payload.description || '',
       status: 'Draft',
       publishStatus: payload.publishStatus === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT',
       stock: payload.stock ?? 0,
       retailPrice: payload.retailPrice ?? 0,
-      price: payload.price || '0',
       image:
         payload.image ||
         JSON.stringify({
@@ -140,11 +134,8 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
       showOnHomepage: payload.showOnHomepage ?? false,
       isFeatured: payload.isFeatured ?? false,
       isDeleted: payload.isDeleted ?? false,
-      features: payload.features || [],
-      lastUpdated: payload.lastUpdated || now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       createdAt: payload.createdAt || now.toISOString(),
       updatedAt: payload.updatedAt || now.toISOString(),
-      archived: payload.archived ?? false,
     }
 
     setProducts((prev) => [...prev, normalizeProduct(base)])
@@ -159,7 +150,6 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
         return normalizeProduct({
           ...product,
           publishStatus: nextStatus,
-          archived: nextStatus === 'DRAFT' ? product.archived : false,
           isDeleted: false
         })
       })
