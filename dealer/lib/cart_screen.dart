@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter_spinbox/flutter_spinbox.dart';
 
 import 'cart_controller.dart';
 import 'checkout_screen.dart';
@@ -50,6 +51,8 @@ class CartScreen extends StatelessWidget {
                   final item = items[index];
                   final canIncrease =
                       cart.suggestedAddQuantity(item.product) > 0;
+                  final minQty = item.product.effectiveMinOrderQty;
+                  final maxQty = item.product.stock;
                   return FadeSlideIn(
                     key: ValueKey(item.product.id),
                     delay: Duration(milliseconds: 30 * index),
@@ -115,12 +118,25 @@ class CartScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            _QuantityControl(
-                              quantity: item.quantity,
-                              onDecrease: () => cart.decrease(item.product.id),
-                              onIncrease: canIncrease
-                                  ? () => cart.increase(item.product.id)
-                                  : null,
+                            SizedBox(
+                              width: 132,
+                              child: SpinBox(
+                                min: minQty.toDouble(),
+                                max: maxQty.toDouble(),
+                                value: item.quantity.toDouble(),
+                                step: 1,
+                                decimals: 0,
+                                decoration: const InputDecoration(
+                                  isDense: true,
+                                  contentPadding:
+                                      EdgeInsets.symmetric(vertical: 8),
+                                  border: InputBorder.none,
+                                ),
+                                onChanged: (val) => cart.setQuantity(
+                                  item.product,
+                                  val.round(),
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -267,44 +283,6 @@ class CartScreen extends StatelessWidget {
                 ),
               ),
             ),
-    );
-  }
-}
-
-class _QuantityControl extends StatelessWidget {
-  const _QuantityControl({
-    required this.quantity,
-    required this.onDecrease,
-    required this.onIncrease,
-  });
-
-  final int quantity;
-  final VoidCallback onDecrease;
-  final VoidCallback? onIncrease;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5EAF5)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            onPressed: onDecrease,
-            icon: const Icon(Icons.remove),
-          ),
-          Text('$quantity', style: Theme.of(context).textTheme.titleSmall),
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            onPressed: onIncrease,
-            icon: const Icon(Icons.add),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -153,7 +153,7 @@ List<Order> _defaultSeedOrders() {
     paymentMethod: OrderPaymentMethod.bankTransfer,
     paymentStatus: OrderPaymentStatus.unpaid,
     receiverName: 'Dai ly SCS Ha Noi',
-    receiverAddress: 'So 12, Tran Duy Hung, Cau Giay, Ha Noi',
+    receiverAddress: 'Số 12, Trần Duy Hưng, Cầu Giấy, Hà Nội',
     receiverPhone: '0909 123 456',
     shippingFee: 0,
     items: [
@@ -171,7 +171,7 @@ List<Order> _defaultSeedOrders() {
     paymentMethod: OrderPaymentMethod.cod,
     paymentStatus: OrderPaymentStatus.paid,
     receiverName: 'Dai ly SCS Ha Noi',
-    receiverAddress: 'So 12, Tran Duy Hung, Cau Giay, Ha Noi',
+    receiverAddress: 'Số 12, Trần Duy Hưng, Cầu Giấy, Hà Nội',
     receiverPhone: '0909 123 456',
     shippingFee: 0,
     items: [
@@ -189,7 +189,7 @@ List<Order> _defaultSeedOrders() {
     paymentMethod: OrderPaymentMethod.debt,
     paymentStatus: OrderPaymentStatus.debtRecorded,
     receiverName: 'Dai ly SCS Ha Noi',
-    receiverAddress: 'So 12, Tran Duy Hung, Cau Giay, Ha Noi',
+    receiverAddress: 'Số 12, Trần Duy Hưng, Cầu Giấy, Hà Nội',
     receiverPhone: '0909 123 456',
     shippingFee: 0,
     items: [
@@ -206,7 +206,7 @@ List<Order> _defaultSeedOrders() {
     paymentMethod: OrderPaymentMethod.debt,
     paymentStatus: OrderPaymentStatus.debtRecorded,
     receiverName: 'Dai ly SCS Ha Noi',
-    receiverAddress: 'So 12, Tran Duy Hung, Cau Giay, Ha Noi',
+    receiverAddress: 'Số 12, Trần Duy Hưng, Cầu Giấy, Hà Nội',
     receiverPhone: '0909 123 456',
     shippingFee: 0,
     items: [

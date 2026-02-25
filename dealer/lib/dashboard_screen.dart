@@ -6,9 +6,11 @@ import 'package:flutter/material.dart';
 import 'mock_data.dart';
 import 'models.dart';
 import 'order_controller.dart';
+import 'notifications_screen.dart';
 import 'utils.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/skeleton_box.dart';
+import 'debt_tracking_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -39,7 +41,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final orderController = OrderScope.of(context);
     final orders = orderController.orders;
     final monthlyRevenue = _buildMonthlyRevenue(orders);
-    final topProducts = _buildTopProducts(orders);
+    final activationSeries = _buildActivationSeries(days: 30);
+    final warrantyStatuses = _buildWarrantyStatuses(activationSeries);
     final notices = List<DistributorNotice>.from(mockDistributorNotices)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
@@ -52,73 +55,154 @@ class _DashboardScreenState extends State<DashboardScreen> {
         )
         .length;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Tong quan')),
-      body: _isLoading
-          ? const _DashboardLoadingView()
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              children: [
-                FadeSlideIn(
-                  child: _OverviewCard(
-                    totalDebt: orderController.totalOutstandingDebt,
-                    currentMonthRevenue: currentMonthRevenue,
-                    currentMonthOrders: currentMonthOrders,
-                  ),
+    final horizontalPadding =
+        MediaQuery.of(context).size.width < 600 ? 16.0 : 20.0;
+
+    final content = _isLoading
+        ? const _DashboardLoadingView()
+        : ListView(
+            padding:
+                EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 24),
+            children: [
+              FadeSlideIn(
+                child: _OverviewCard(
+                  totalDebt: orderController.totalOutstandingDebt,
+                  currentMonthRevenue: currentMonthRevenue,
+                  currentMonthOrders: currentMonthOrders,
                 ),
-                const SizedBox(height: 14),
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 60),
-                  child: _RevenueChartCard(data: monthlyRevenue),
-                ),
-                const SizedBox(height: 14),
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 90),
-                  child: const _SectionTitle(title: 'Don hang gan day'),
-                ),
-                const SizedBox(height: 8),
-                if (orders.isEmpty)
-                  const _EmptyCard(message: 'Chua co don hang nao.')
-                else
-                  ...orders.take(5).map((order) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _RecentOrderCard(order: order),
-                    );
-                  }),
-                const SizedBox(height: 6),
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 120),
-                  child: const _SectionTitle(title: 'San pham ban chay'),
-                ),
-                const SizedBox(height: 8),
-                if (topProducts.isEmpty)
-                  const _EmptyCard(message: 'Chua co du lieu san pham ban chay.')
-                else
-                  ...topProducts.take(5).toList().asMap().entries.map((entry) {
-                    final rank = entry.key + 1;
-                    final product = entry.value;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _TopProductCard(rank: rank, stat: product),
-                    );
-                  }),
-                const SizedBox(height: 6),
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 150),
-                  child: const _SectionTitle(
-                    title: 'Thong bao tu nha phan phoi',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ...notices.map(
-                  (notice) => Padding(
+              ),
+              const SizedBox(height: 14),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final cols = constraints.maxWidth >= 1200
+                      ? 3
+                      : constraints.maxWidth >= 900
+                          ? 2
+                          : 1;
+                  final childWidth =
+                      (constraints.maxWidth - (cols - 1) * 12) / cols;
+                  return Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      SizedBox(
+                        width: childWidth,
+                        child: FadeSlideIn(
+                          delay: const Duration(milliseconds: 110),
+                          child: _OrderStatusDistributionCard(orders: orders),
+                        ),
+                      ),
+                      SizedBox(
+                        width: childWidth,
+                        child: FadeSlideIn(
+                          delay: const Duration(milliseconds: 115),
+                          child: _AgingDebtCard(
+                            buckets: _buildDebtBuckets(
+                              orderController.totalOutstandingDebt,
+                            ),
+                            onViewAll: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const DebtTrackingScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: childWidth,
+                        child: FadeSlideIn(
+                          delay: const Duration(milliseconds: 120),
+                          child: _LowStockPanel(
+                            products: _buildLowStockProducts(),
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: childWidth,
+                        child: FadeSlideIn(
+                          delay: const Duration(milliseconds: 125),
+                          child: _ActivationTrendCard(data: activationSeries),
+                        ),
+                      ),
+                      SizedBox(
+                        width: childWidth,
+                        child: FadeSlideIn(
+                          delay: const Duration(milliseconds: 130),
+                          child:
+                              _WarrantyStatusDonutCard(stats: warrantyStatuses),
+                        ),
+                      ),
+                      SizedBox(
+                        width: childWidth,
+                        child: FadeSlideIn(
+                          delay: const Duration(milliseconds: 135),
+                          child: _RevenueChartCard(data: monthlyRevenue),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 140),
+                child: const _SectionTitle(title: 'Đơn hàng gần đây'),
+              ),
+              const SizedBox(height: 8),
+              if (orders.isEmpty)
+                const _EmptyCard(message: 'Chưa có đơn nào.')
+              else
+                ...orders.take(5).map((order) {
+                  return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
-                    child: _NoticeCard(notice: notice),
-                  ),
+                    child: _RecentOrderCard(order: order),
+                  );
+                }),
+            ],
+          );
+
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Tổng quan'),
+        actions: [
+          IconButton(
+            tooltip: 'Thông báo',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const NotificationsScreen(),
                 ),
-              ],
+              );
+            },
+            icon: const Icon(Icons.notifications_outlined),
+          ),
+          if (!isMobile) ...[
+            TextButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.add_shopping_cart_outlined),
+              label: const Text('Tạo đơn nhập'),
             ),
+            TextButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.qr_code_scanner),
+              label: const Text('Kích hoạt BH'),
+            ),
+            const SizedBox(width: 6),
+          ],
+        ],
+      ),
+      floatingActionButton: isMobile
+          ? FloatingActionButton.extended(
+              onPressed: () {},
+              icon: const Icon(Icons.add_shopping_cart_outlined),
+              label: const Text('Đơn nhập'),
+            )
+          : null,
+      body: content,
     );
   }
 }
@@ -150,7 +234,7 @@ class _OverviewCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Du lieu tong quan (mock API)',
+            'Tổng quan vận hành',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
@@ -158,7 +242,7 @@ class _OverviewCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Phien ban demo dung local state + mock services.',
+            'Theo dõi nhanh đơn nhập, công nợ và bảo hành.',
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(color: Colors.white),
@@ -170,7 +254,7 @@ class _OverviewCard extends StatelessWidget {
             children: [
               _OverviewPill(
                 icon: Icons.payments_outlined,
-                label: 'Doanh thu thang',
+                label: 'Gia tri nhap hang thang',
                 value: formatVnd(currentMonthRevenue),
               ),
               _OverviewPill(
@@ -250,6 +334,7 @@ class _RevenueChartCard extends StatelessWidget {
     final maxValue = data.fold<int>(0, (max, item) => math.max(max, item.value));
     final topY = math.max(1000000, ((maxValue * 1.2) / 1000000).ceil() * 1000000)
         .toDouble();
+    final currentMonth = DateTime.now().month;
 
     return Card(
       elevation: 0,
@@ -263,14 +348,14 @@ class _RevenueChartCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Doanh thu theo thang',
+            'Giá trị nhập hàng theo tháng',
               style: Theme.of(
                 context,
               ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 4),
             Text(
-              'Tong hop doanh thu don hang theo tung thang trong nam.',
+              'Tổng hợp giá trị đơn nhập theo từng tháng trong năm.',
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(color: Colors.black54),
@@ -280,6 +365,7 @@ class _RevenueChartCard extends StatelessWidget {
               height: 230,
               child: BarChart(
                 BarChartData(
+                  alignment: BarChartAlignment.spaceAround,
                   minY: 0,
                   maxY: topY,
                   gridData: FlGridData(
@@ -319,14 +405,26 @@ class _RevenueChartCard extends StatelessWidget {
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
+                        reservedSize: 30,
                         getTitlesWidget: (value, meta) {
+                          final labelStyle = Theme.of(context)
+                              .textTheme
+                              .labelSmall
+                              ?.copyWith(fontSize: 11);
                           final idx = value.toInt();
                           if (idx < 0 || idx >= data.length) {
                             return const SizedBox.shrink();
                           }
                           return SideTitleWidget(
                             axisSide: meta.axisSide,
-                            child: Text(data[idx].label),
+                            space: 6,
+                            child: Transform.rotate(
+                              angle: -0.35,
+                              child: Text(
+                                data[idx].label,
+                                style: labelStyle,
+                              ),
+                            ),
                           );
                         },
                       ),
@@ -337,14 +435,16 @@ class _RevenueChartCard extends StatelessWidget {
                       BarChartGroupData(
                         x: i,
                         barRods: [
-                          BarChartRodData(
-                            toY: data[i].value.toDouble(),
-                            width: 14,
+                            BarChartRodData(
+                              toY: data[i].value.toDouble(),
+                              width: 12,
                             borderRadius: BorderRadius.circular(4),
-                            gradient: const LinearGradient(
+                            gradient: LinearGradient(
                               begin: Alignment.bottomCenter,
                               end: Alignment.topCenter,
-                              colors: [Color(0xFF2563EB), Color(0xFF60A5FA)],
+                              colors: i == currentMonth - 1
+                                  ? const [Color(0xFF10B981), Color(0xFF34D399)]
+                                  : const [Color(0xFF2563EB), Color(0xFF60A5FA)],
                             ),
                           ),
                         ],
@@ -403,40 +503,445 @@ class _RecentOrderCard extends StatelessWidget {
   }
 }
 
-class _TopProductCard extends StatelessWidget {
-  const _TopProductCard({required this.rank, required this.stat});
+class _LowStockCard extends StatelessWidget {
+  const _LowStockCard({required this.product});
 
-  final int rank;
-  final _TopProductStat stat;
+  final Product product;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isCritical = product.stock <= 3;
+    final color = isCritical ? const Color(0xFFD94939) : const Color(0xFFB26A00);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE5EAF5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: const Color(0xFFF5F8FF),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              product.category.label.substring(0, 1),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1D4ED8),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'SKU: ${product.sku}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                'Ton: ${product.stock}',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Min: ${product.effectiveMinOrderQty}',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LowStockPanel extends StatelessWidget {
+  const _LowStockPanel({required this.products});
+
+  final List<Product> products;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: const BorderSide(color: Color(0xFFE5EAF5)),
       ),
-      child: ListTile(
-        leading: CircleAvatar(
-          radius: 16,
-          backgroundColor: const Color(0xFFEFF4FF),
-          child: Text(
-            '$rank',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: const Color(0xFF1D4ED8),
-              fontWeight: FontWeight.w700,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Cảnh báo tồn kho thấp',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (products.isEmpty)
+              const _EmptyCard(message: 'Tất cả SKU đang đủ tồn.')
+            else
+              ...products.map(
+                (product) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _LowStockCard(product: product),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OrderStatusDistributionCard extends StatelessWidget {
+  const _OrderStatusDistributionCard({required this.orders});
+
+  final List<Order> orders;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final totals = _computeStatusTotals(orders);
+    final totalCount = totals.values.fold<int>(0, (sum, v) => sum + v);
+    final showEmpty = totalCount == 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5EAF5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  'Phân bổ trạng thái đơn',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                fit: FlexFit.loose,
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  alignment: WrapAlignment.end,
+                  children: [
+                    if (!showEmpty)
+                      Text(
+                        'Tổng: $totalCount đơn',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.black54,
+                        ),
+                        softWrap: false,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (showEmpty)
+            const _EmptyCard(message: 'Chưa có đơn hàng nào.')
+          else
+            Column(
+              children: _statusOrder.map((status) {
+                final count = totals[status] ?? 0;
+                final percent =
+                    totalCount == 0 ? 0 : (count / totalCount * 100).round();
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _StatusBar(
+                    label: status.label,
+                    count: count,
+                    percent: percent,
+                    color: _statusColor(status),
+                  ),
+                );
+              }).toList(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Map<OrderStatus, int> _computeStatusTotals(List<Order> orders) {
+    final map = <OrderStatus, int>{
+      for (final s in _statusOrder) s: 0,
+    };
+    for (final order in orders) {
+      map[order.status] = (map[order.status] ?? 0) + 1;
+    }
+    return map;
+  }
+}
+
+class _StatusBar extends StatelessWidget {
+  const _StatusBar({
+    required this.label,
+    required this.count,
+    required this.percent,
+    required this.color,
+  });
+
+  final String label;
+  final int count;
+  final int percent;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Expanded(
+          flex: percent == 0 ? 1 : percent,
+          child: Container(
+            height: 12,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                height: 12,
+                width: percent <= 0 ? 6 : null,
+                constraints: BoxConstraints(
+                  minWidth: percent <= 0 ? 6 : 20,
+                  maxWidth: double.infinity,
+                ),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
             ),
           ),
         ),
-        title: Text(stat.productName),
-        subtitle: Text('${stat.quantity} san pham da ban'),
-        trailing: Text(
-          formatVnd(stat.revenue),
-          style: Theme.of(
-            context,
-          ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label, style: theme.textTheme.bodySmall),
+            Text(
+              '$count (${percent}%)',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ),
+      ],
+    );
+  }
+}
+
+class _AgingDebtCard extends StatelessWidget {
+  const _AgingDebtCard({
+    required this.buckets,
+    required this.onViewAll,
+  });
+
+  final List<_DebtBucket> buckets;
+  final VoidCallback onViewAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final total = buckets.fold<int>(0, (sum, b) => sum + b.amount);
+    final showEmpty = total == 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5EAF5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  'Công nợ theo tuổi nợ',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                fit: FlexFit.loose,
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  alignment: WrapAlignment.end,
+                  children: [
+                    if (!showEmpty)
+                      Text(
+                        'Tổng: ${formatVnd(total)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.black54,
+                        ),
+                        softWrap: false,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    TextButton(
+                      onPressed: onViewAll,
+                      child: const Text('Xem danh sách'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (showEmpty)
+            const _EmptyCard(message: 'Chưa có công nợ.')
+          else
+            Column(
+              children: buckets.map((bucket) {
+                final percent =
+                    total == 0 ? 0 : (bucket.amount / total * 100).round();
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              bucket.label,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: bucket.color.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: FractionallySizedBox(
+                                alignment: Alignment.centerLeft,
+                                widthFactor:
+                                    total == 0 ? 0 : bucket.amount / total,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: bucket.color,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(minWidth: 72),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              formatVnd(bucket.amount),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              '$percent%',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+        ],
       ),
     );
   }
@@ -552,20 +1057,6 @@ class _MonthRevenue {
   String get label => 'T$month';
 }
 
-class _TopProductStat {
-  const _TopProductStat({
-    required this.productId,
-    required this.productName,
-    required this.quantity,
-    required this.revenue,
-  });
-
-  final String productId;
-  final String productName;
-  final int quantity;
-  final int revenue;
-}
-
 List<_MonthRevenue> _buildMonthlyRevenue(List<Order> orders) {
   final now = DateTime.now();
   final values = List<int>.filled(12, 0);
@@ -581,40 +1072,102 @@ List<_MonthRevenue> _buildMonthlyRevenue(List<Order> orders) {
   ];
 }
 
-List<_TopProductStat> _buildTopProducts(List<Order> orders) {
-  final quantityByProduct = <String, int>{};
-  final revenueByProduct = <String, int>{};
-  final nameByProduct = <String, String>{};
+List<_CustomerStat> _buildTopCustomers(List<Order> orders) {
+  final Map<String, _CustomerStat> map = {};
 
   for (final order in orders) {
-    for (final item in order.items) {
-      quantityByProduct[item.product.id] =
-          (quantityByProduct[item.product.id] ?? 0) + item.quantity;
-      revenueByProduct[item.product.id] =
-          (revenueByProduct[item.product.id] ?? 0) + item.total;
-      nameByProduct[item.product.id] = item.product.name;
-    }
+    final key = '${order.receiverName}-${order.receiverPhone}';
+    final current = map[key];
+    final updated = _CustomerStat(
+      name: order.receiverName,
+      phone: order.receiverPhone,
+      total: (current?.total ?? 0) + order.total,
+      orderCount: (current?.orderCount ?? 0) + 1,
+      lastOrder: [
+        if (current != null) current.lastOrder,
+        order.createdAt,
+      ].reduce((a, b) => a.isAfter(b) ? a : b),
+    );
+    map[key] = updated;
   }
 
-  final list = quantityByProduct.entries
-      .map(
-        (entry) => _TopProductStat(
-          productId: entry.key,
-          productName: nameByProduct[entry.key] ?? entry.key,
-          quantity: entry.value,
-          revenue: revenueByProduct[entry.key] ?? 0,
-        ),
-      )
-      .toList();
-
-  list.sort((a, b) {
-    final quantityCompare = b.quantity.compareTo(a.quantity);
-    if (quantityCompare != 0) {
-      return quantityCompare;
-    }
-    return b.revenue.compareTo(a.revenue);
-  });
+  final list = map.values.toList()
+    ..sort((a, b) {
+      final totalCompare = b.total.compareTo(a.total);
+      if (totalCompare != 0) return totalCompare;
+      return b.lastOrder.compareTo(a.lastOrder);
+    });
   return list;
+}
+
+List<Product> _buildLowStockProducts() {
+  const int threshold = 10;
+  final products = mockProducts
+      .where((p) => p.isOrderable && p.stock <= threshold)
+      .toList()
+    ..sort((a, b) => a.stock.compareTo(b.stock));
+  return products.take(5).toList();
+}
+
+List<_DebtBucket> _buildDebtBuckets(int totalOutstandingDebt) {
+  const buckets = [
+    _DebtBucket(label: '0-30 ngày', minDay: 0, maxDay: 30, color: Color(0xFF1D4ED8)),
+    _DebtBucket(label: '31-60 ngày', minDay: 31, maxDay: 60, color: Color(0xFF7C3AED)),
+    _DebtBucket(label: '61-90 ngày', minDay: 61, maxDay: 90, color: Color(0xFFEA580C)),
+    _DebtBucket(label: '>90 ngày', minDay: 91, maxDay: 9999, color: Color(0xFFD92D20)),
+  ];
+
+  if (totalOutstandingDebt <= 0) {
+    return buckets.map((b) => b.copyWith(amount: 0)).toList();
+  }
+  // Mock distribution: split theo tỷ lệ mẫu.
+  final splits = [0.35, 0.25, 0.20, 0.20];
+  return [
+    for (var i = 0; i < buckets.length; i++)
+      buckets[i].copyWith(amount: (totalOutstandingDebt * splits[i]).round()),
+  ];
+}
+
+List<_DailyActivation> _buildActivationSeries({required int days}) {
+  final now = DateTime.now();
+  final List<_DailyActivation> list = [];
+  for (var i = days - 1; i >= 0; i--) {
+    final date = DateTime(now.year, now.month, now.day).subtract(Duration(days: i));
+    // deterministic mock: based on date to stay stable
+    final count = (date.day * date.month) % 7 + (date.weekday == DateTime.saturday ? 2 : 0);
+    list.add(_DailyActivation(date: date, count: count));
+  }
+  return list;
+}
+
+List<_WarrantyStatusStat> _buildWarrantyStatuses(List<_DailyActivation> activations) {
+  final total = activations.fold<int>(0, (s, d) => s + d.count);
+  if (total == 0) {
+    return const [
+      _WarrantyStatusStat(label: 'Kich hoat', count: 0, color: Color(0xFF2563EB)),
+      _WarrantyStatusStat(label: 'Cho xu ly', count: 0, color: Color(0xFF7C3AED)),
+      _WarrantyStatusStat(label: 'Dang xu ly', count: 0, color: Color(0xFFEA580C)),
+      _WarrantyStatusStat(label: 'Hoan tat', count: 0, color: Color(0xFF16A34A)),
+      _WarrantyStatusStat(label: 'Tu choi', count: 0, color: Color(0xFFD92D20)),
+    ];
+  }
+  // mock distribution based on total
+  final dist = {
+    'Kich hoat': (total * 0.55).round(),
+    'Cho xu ly': (total * 0.12).round(),
+    'Dang xu ly': (total * 0.18).round(),
+    'Hoan tat': (total * 0.12).round(),
+    'Tu choi': total, // will adjust below
+  };
+  dist['Tu choi'] = math.max(0, total - dist.values.take(4).fold<int>(0, (s, v) => s + v));
+
+  return [
+    _WarrantyStatusStat(label: 'Kich hoat', count: dist['Kich hoat']!, color: const Color(0xFF2563EB)),
+    _WarrantyStatusStat(label: 'Cho xu ly', count: dist['Cho xu ly']!, color: const Color(0xFF7C3AED)),
+    _WarrantyStatusStat(label: 'Dang xu ly', count: dist['Dang xu ly']!, color: const Color(0xFFEA580C)),
+    _WarrantyStatusStat(label: 'Hoan tat', count: dist['Hoan tat']!, color: const Color(0xFF16A34A)),
+    _WarrantyStatusStat(label: 'Tu choi', count: dist['Tu choi']!, color: const Color(0xFFD92D20)),
+  ];
 }
 
 Color _statusColor(OrderStatus status) {
@@ -627,5 +1180,440 @@ Color _statusColor(OrderStatus status) {
       return const Color(0xFF0369A1);
     case OrderStatus.completed:
       return const Color(0xFF15803D);
+  }
+}
+
+class _ActivationTrendCard extends StatelessWidget {
+  const _ActivationTrendCard({required this.data});
+
+  final List<_DailyActivation> data;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (data.isEmpty) {
+      return const _EmptyCard(message: 'Chưa có kích hoạt nào trong 30 ngày.');
+    }
+
+    final maxY =
+        data.fold<int>(0, (max, item) => math.max(max, item.count)).toDouble();
+    final topY = math.max(5, (maxY * 1.3).ceil()).toDouble();
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFFE5EAF5)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Kích hoạt BH 30 ngày gần nhất',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Theo ngày, 30 ngày gần nhất',
+              style: theme.textTheme.bodySmall?.copyWith(color: Colors.black54),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 220,
+              child: LineChart(
+                LineChartData(
+                  minY: 0,
+                  maxY: topY,
+                  titlesData: FlTitlesData(
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 34,
+                        interval: math.max(1, topY / 4),
+                        getTitlesWidget: (value, meta) {
+                          if (value % 1 != 0) return const SizedBox.shrink();
+                          return SideTitleWidget(
+                            axisSide: meta.axisSide,
+                            child: Text(value.toInt().toString()),
+                          );
+                        },
+                      ),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: 7,
+                        getTitlesWidget: (value, meta) {
+                          final idx = value.toInt();
+                          if (idx < 0 || idx >= data.length) {
+                            return const SizedBox.shrink();
+                          }
+                          final d = data[idx].date;
+                          return SideTitleWidget(
+                            axisSide: meta.axisSide,
+                            child: Text('${d.day}/${d.month}'),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    horizontalInterval: math.max(1, topY / 4),
+                    getDrawingHorizontalLine: (value) => FlLine(
+                      color: const Color(0xFFE8ECF7),
+                      strokeWidth: 1,
+                    ),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: [
+                        for (var i = 0; i < data.length; i++)
+                          FlSpot(i.toDouble(), data[i].count.toDouble()),
+                      ],
+                      isCurved: true,
+                      color: const Color(0xFF2563EB),
+                      barWidth: 3,
+                      dotData: FlDotData(show: false),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        color: const Color(0xFF2563EB).withOpacity(0.15),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 16,
+              children: [
+                _MiniKpi(label: 'Tổng 30d', value: '${data.fold<int>(0, (s, d) => s + d.count)}'),
+                _MiniKpi(
+                  label: 'TB/ngày',
+                  value: (data.fold<int>(0, (s, d) => s + d.count) / data.length)
+                      .toStringAsFixed(1),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WarrantyStatusDonutCard extends StatelessWidget {
+  const _WarrantyStatusDonutCard({required this.stats});
+
+  final List<_WarrantyStatusStat> stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final total = stats.fold<int>(0, (s, e) => s + e.count);
+    final showEmpty = total == 0;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFFE5EAF5)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Trạng thái bảo hành (30 ngày)',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Tổng: $total serial/claim',
+              style: theme.textTheme.bodySmall?.copyWith(color: Colors.black54),
+            ),
+            const SizedBox(height: 12),
+            if (showEmpty)
+              const _EmptyCard(message: 'Chưa có dữ liệu bảo hành.')
+            else
+              Row(
+                children: [
+                  SizedBox(
+                    width: 140,
+                    height: 140,
+                    child: PieChart(
+                      PieChartData(
+                        sectionsSpace: 2,
+                        centerSpaceRadius: 36,
+                        sections: stats
+                            .map(
+                              (s) => PieChartSectionData(
+                                color: s.color,
+                                value: s.count.toDouble(),
+                                title:
+                                    '${(s.count / total * 100).round()}%',
+                                titleStyle:
+                                    theme.textTheme.labelMedium?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: stats.map((s) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: s.color,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(s.label)),
+                              Text(
+                                '${s.count} (${(s.count / total * 100).round()}%)',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TopCustomerCard extends StatelessWidget {
+  const _TopCustomerCard({required this.stat});
+
+  final _CustomerStat stat;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE5EAF5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFEEF2FF),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              stat.initials,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF4338CA),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  stat.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  stat.phone,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.black54,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${stat.orderCount} đơn • ${formatVnd(stat.total)}',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                formatVnd(stat.total),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                'TB/đơn: ${formatVnd(stat.avgOrder)}',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+const _statusOrder = <OrderStatus>[
+  OrderStatus.pendingApproval,
+  OrderStatus.approved,
+  OrderStatus.shipping,
+  OrderStatus.completed,
+];
+
+class _CustomerStat {
+  const _CustomerStat({
+    required this.name,
+    required this.phone,
+    required this.total,
+    required this.orderCount,
+    required this.lastOrder,
+  });
+
+  final String name;
+  final String phone;
+  final int total;
+  final int orderCount;
+  final DateTime lastOrder;
+
+  int get avgOrder => orderCount == 0 ? 0 : (total / orderCount).round();
+  String get initials {
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0].isNotEmpty ? parts[0][0] : '') +
+          (parts.last.isNotEmpty ? parts.last[0] : '');
+    }
+    return name.isNotEmpty ? name[0] : '?';
+  }
+}
+
+class _DebtBucket {
+  const _DebtBucket({
+    required this.label,
+    required this.minDay,
+    required this.maxDay,
+    required this.color,
+    this.amount = 0,
+  });
+
+  final String label;
+  final int minDay;
+  final int maxDay;
+  final Color color;
+  final int amount;
+
+  _DebtBucket copyWith({int? amount}) {
+    return _DebtBucket(
+      label: label,
+      minDay: minDay,
+      maxDay: maxDay,
+      color: color,
+      amount: amount ?? this.amount,
+    );
+  }
+}
+
+class _DailyActivation {
+  const _DailyActivation({required this.date, required this.count});
+
+  final DateTime date;
+  final int count;
+}
+
+class _WarrantyStatusStat {
+  const _WarrantyStatusStat({
+    required this.label,
+    required this.count,
+    required this.color,
+  });
+
+  final String label;
+  final int count;
+  final Color color;
+}
+
+class _MiniKpi extends StatelessWidget {
+  const _MiniKpi({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(color: Colors.black54),
+        ),
+      ],
+    );
   }
 }

@@ -1,10 +1,12 @@
 ﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_spinbox/flutter_spinbox.dart';
 import 'package:chewie/chewie.dart';
 import 'package:video_player/video_player.dart';
 
 import 'cart_controller.dart';
+import 'checkout_screen.dart';
 import 'cart_screen.dart';
 import 'models.dart';
 import 'utils.dart';
@@ -29,6 +31,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   bool _isLoadingDetail = true;
   bool _isAddingToCart = false;
+  bool _isBuyingNow = false;
 
   @override
   void initState() {
@@ -109,12 +112,57 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
+  Future<void> _handleBuyNow(CartController cart) async {
+    if (_isBuyingNow) {
+      return;
+    }
+    final remainingStock = cart.remainingStockFor(widget.product);
+    if (!widget.product.isOrderable || remainingStock <= 0) {
+      _showMaxStockMessage();
+      return;
+    }
+    final addQuantity = await _showAddQuantityDialog(
+      productName: widget.product.name,
+      maxQuantity: remainingStock,
+    );
+    if (!mounted || addQuantity == null) {
+      return;
+    }
+    if (!cart.canAdd(widget.product, quantity: addQuantity)) {
+      _showMaxStockMessage();
+      return;
+    }
+
+    setState(() => _isBuyingNow = true);
+    try {
+      final didAdd = await cart.addWithApiSimulation(
+        widget.product,
+        quantity: addQuantity,
+      );
+      if (!mounted) {
+        return;
+      }
+      if (!didAdd) {
+        _showMaxStockMessage();
+        return;
+      }
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => const CheckoutScreen()),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isBuyingNow = false);
+      }
+    }
+  }
+
   Future<int?> _showAddQuantityDialog({
     required String productName,
     required int maxQuantity,
   }) async {
-    var selectedQuantity = 1;
-    return showDialog<int>(
+    final minQuantity = widget.product.effectiveMinOrderQty;
+    var selectedQuantity = minQuantity <= maxQuantity ? minQuantity : maxQuantity;
+    final result = await showDialog<int>(
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
@@ -127,43 +175,33 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 children: [
                   Text(productName, maxLines: 2, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 8),
-                  Text('Tối đa: $maxQuantity'),
+                  Text('Tối thiểu: $minQuantity  •  Tối đa: $maxQuantity'),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: selectedQuantity > 1
-                            ? () {
-                                setDialogState(() {
-                                  selectedQuantity -= 1;
-                                });
-                              }
-                            : null,
-                        icon: const Icon(Icons.remove_circle_outline),
-                      ),
-                      Expanded(
-                        child: Text(
-                          '$selectedQuantity',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: selectedQuantity < maxQuantity
-                            ? () {
-                                setDialogState(() {
-                                  selectedQuantity += 1;
-                                });
-                              }
-                            : null,
-                        icon: const Icon(Icons.add_circle_outline),
-                      ),
-                    ],
+                  SpinBox(
+                    min: minQuantity.toDouble(),
+                    max: maxQuantity.toDouble(),
+                    value: selectedQuantity.toDouble(),
+                    decimals: 0,
+                    step: 1,
+                    autofocus: true,
+                    textInputAction: TextInputAction.done,
+                    onChanged: (value) {
+                      setDialogState(() {
+                        selectedQuantity =
+                            value.round().clamp(minQuantity, maxQuantity);
+                      });
+                    },
                   ),
                   if (selectedQuantity == maxQuantity)
                     Text(
                       'Đã đạt tối đa theo tồn kho.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.black54,
+                      ),
+                    ),
+                  if (selectedQuantity == minQuantity && minQuantity > 1)
+                    Text(
+                      'Số lượng tối thiểu: $minQuantity',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Colors.black54,
                       ),
@@ -186,6 +224,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         );
       },
     );
+    return result;
   }
 
   void _showMaxStockMessage() {
@@ -267,8 +306,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               nextAddQuantity: suggestedAddQuantity,
               isTablet: isTablet,
               isAddingToCart: _isAddingToCart,
+              isBuyingNow: _isBuyingNow,
               onAddToCart: suggestedAddQuantity > 0 && !_isAddingToCart
                   ? () => _handleAddToCart(cart)
+                  : null,
+              onBuyNow: suggestedAddQuantity > 0 && !_isBuyingNow
+                  ? () => _handleBuyNow(cart)
                   : null,
             ),
       body: _isLoadingDetail
@@ -1424,7 +1467,9 @@ class _BottomActionBar extends StatelessWidget {
     required this.nextAddQuantity,
     required this.isTablet,
     required this.isAddingToCart,
+    required this.isBuyingNow,
     required this.onAddToCart,
+    required this.onBuyNow,
   });
 
   final int price;
@@ -1435,29 +1480,26 @@ class _BottomActionBar extends StatelessWidget {
   final int nextAddQuantity;
   final bool isTablet;
   final bool isAddingToCart;
+  final bool isBuyingNow;
   final VoidCallback? onAddToCart;
+  final VoidCallback? onBuyNow;
 
   @override
   Widget build(BuildContext context) {
     final label = !isOrderable
         ? 'Ngưng phân phối'
         : remainingStock <= 0
-        ? 'Hết hàng'
-        : remainingStock <= 10
-        ? 'Còn ít hàng'
-        : 'Còn hàng';
+            ? 'Hết hàng'
+            : remainingStock <= 10
+                ? 'Còn ít hàng'
+                : 'Còn hàng';
     final labelColor = !isOrderable
         ? Colors.black54
         : remainingStock <= 0
-        ? const Color(0xFFD94939)
-        : remainingStock <= 10
-        ? const Color(0xFFB26A00)
-        : const Color(0xFF127A34);
-    final buttonLabel = !isOrderable
-        ? 'Ngưng bán'
-        : remainingStock <= 0
-        ? 'Hết hàng'
-        : 'Thêm vào giỏ';
+            ? const Color(0xFFD94939)
+            : remainingStock <= 10
+                ? const Color(0xFFB26A00)
+                : const Color(0xFF127A34);
 
     return SafeArea(
       top: false,
@@ -1524,17 +1566,36 @@ class _BottomActionBar extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               flex: 2,
-              child: ElevatedButton(
-                onPressed: onAddToCart,
-                child: isAddingToCart
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2.5),
-                      )
-                    : Text(buttonLabel),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: onAddToCart,
+                      child: isAddingToCart
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2.5),
+                            )
+                          : const Text('Thêm vào giỏ'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: onBuyNow,
+                      child: isBuyingNow
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2.5),
+                            )
+                          : const Text('Mua ngay'),
+                    ),
+                  ),
+                ],
               ),
-            ),
+            )
           ],
         ),
       ),

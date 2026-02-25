@@ -2,6 +2,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_spinbox/flutter_spinbox.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
 import 'cart_controller.dart';
@@ -11,6 +12,7 @@ import 'models.dart';
 import 'product_detail_screen.dart';
 import 'utils.dart';
 import 'widgets/cart_icon_button.dart';
+import 'notifications_screen.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/product_image.dart';
 import 'widgets/skeleton_box.dart';
@@ -82,6 +84,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
       appBar: AppBar(
         title: const Text('Sản phẩm'),
         actions: [
+          IconButton(
+            tooltip: 'Thông báo',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const NotificationsScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.notifications_outlined),
+          ),
           CartIconButton(
             count: cart.totalItems,
             onPressed: () {
@@ -1145,10 +1158,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       );
       return;
     }
-    final addQuantity = await _showAddQuantityDialog(
-      productName: product.name,
-      maxQuantity: remainingStock,
-    );
+    final addQuantity = await _promptQuantity(product, remainingStock);
     if (!mounted) {
       return;
     }
@@ -1198,6 +1208,59 @@ class _ProductListScreenState extends State<ProductListScreen> {
         setState(() => _addingProductIds.remove(product.id));
       }
     }
+  }
+
+  Future<int?> _promptQuantity(Product product, int maxQuantity) {
+    final minQty = product.effectiveMinOrderQty;
+    var selected = minQty <= maxQuantity ? minQty : maxQuantity;
+    return showDialog<int>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Chọn số lượng'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                product.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 12),
+              SpinBox(
+                min: minQty.toDouble(),
+                max: maxQuantity.toDouble(),
+                value: selected.toDouble(),
+                step: 1,
+                decimals: 0,
+                autofocus: true,
+                onChanged: (val) =>
+                    selected = val.round().clamp(minQty, maxQuantity),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Tối thiểu: $minQty • Tối đa: $maxQuantity',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: Colors.black54),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(selected),
+              child: const Text('Thêm'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<int?> _showAddQuantityDialog({

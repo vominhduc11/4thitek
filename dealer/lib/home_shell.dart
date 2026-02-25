@@ -2,7 +2,6 @@
 
 import 'account_screen.dart';
 import 'dashboard_screen.dart';
-import 'debt_tracking_screen.dart';
 import 'orders_screen.dart';
 import 'product_list_screen.dart';
 import 'warranty_hub_screen.dart';
@@ -34,11 +33,6 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
       label: 'Tong quan',
       icon: Icons.dashboard_outlined,
       widget: DashboardScreen(),
-    ),
-    _TabItem(
-      label: 'Cong no',
-      icon: Icons.account_balance_wallet_outlined,
-      widget: DebtTrackingScreen(),
     ),
     _TabItem(
       label: 'Bao hanh',

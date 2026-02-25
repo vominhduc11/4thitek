@@ -57,7 +57,8 @@ class CartController extends ChangeNotifier {
     if (remaining <= 0) {
       return 0;
     }
-    return 1;
+    final step = product.effectiveOrderStep;
+    return remaining < step ? remaining : step;
   }
 
   bool canAdd(Product product, {int? quantity}) {
@@ -124,6 +125,27 @@ class CartController extends ChangeNotifier {
   void remove(String productId) {
     _items.remove(productId);
     notifyListeners();
+  }
+
+  bool setQuantity(Product product, int quantity) {
+    if (!product.isOrderable) {
+      return false;
+    }
+    if (quantity <= 0) {
+      _items.remove(product.id);
+      notifyListeners();
+      return true;
+    }
+
+    final maxQty = product.stock;
+    final minQty = product.effectiveMinOrderQty;
+    var next = quantity;
+    if (next > maxQty) next = maxQty;
+    if (next < minQty) next = minQty;
+
+    _items[product.id] = CartItem(product: product, quantity: next);
+    notifyListeners();
+    return true;
   }
 
   void clear() {

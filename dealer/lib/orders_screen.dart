@@ -4,6 +4,7 @@ import 'cart_controller.dart';
 import 'models.dart';
 import 'order_controller.dart';
 import 'order_detail_screen.dart';
+import 'notifications_screen.dart';
 import 'utils.dart';
 import 'warranty_activation_screen.dart';
 import 'widgets/fade_slide_in.dart';
@@ -18,7 +19,20 @@ class OrdersScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Don hang'),
+        title: const Text('Đơn hàng'),
+        actions: [
+          IconButton(
+            tooltip: 'Thông báo',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const NotificationsScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.notifications_outlined),
+          ),
+        ],
       ),
       body: orders.isEmpty
           ? const FadeSlideIn(child: _EmptyOrders())

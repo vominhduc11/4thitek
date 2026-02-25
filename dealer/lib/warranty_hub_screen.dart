@@ -2,6 +2,7 @@
 
 import 'models.dart';
 import 'order_controller.dart';
+import 'notifications_screen.dart';
 import 'utils.dart';
 import 'warranty_activation_screen.dart';
 import 'warranty_controller.dart';
@@ -24,7 +25,20 @@ class WarrantyHubScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bao hanh'),
+        title: const Text('Bảo hành'),
+        actions: [
+          IconButton(
+            tooltip: 'Thông báo',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const NotificationsScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.notifications_outlined),
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),

@@ -351,20 +351,20 @@ const List<Product> mockProducts = [
 final List<DistributorNotice> mockDistributorNotices = [
   DistributorNotice(
     id: 'notice-01',
-    title: 'Cap nhat chinh sach giao hang',
-    message: 'Don noi thanh giao trong 24h. Don tinh xa giao tu 2-4 ngay.',
+    title: 'Cập nhật chính sách giao hàng',
+    message: 'Đơn nội thành giao trong 24h. Đơn tỉnh xa giao từ 2-4 ngày.',
     createdAt: DateTime(2026, 2, 14),
   ),
   DistributorNotice(
     id: 'notice-02',
-    title: 'Chuong trinh ho tro quy I',
-    message: 'Don tu 50 trieu duoc ho tro POSM va tai lieu ban hang.',
+    title: 'Chương trình hỗ trợ quý I',
+    message: 'Đơn từ 50 triệu được hỗ trợ POSM và tài liệu bán hàng.',
     createdAt: DateTime(2026, 2, 11),
   ),
   DistributorNotice(
     id: 'notice-03',
-    title: 'Lich bao tri he thong',
-    message: 'He thong mock API bao tri 23:00-23:30 ngay Chu Nhat.',
+    title: 'Lịch bảo trì hệ thống',
+    message: 'Hệ thống mock API bảo trì 23:00-23:30 Chủ Nhật.',
     createdAt: DateTime(2026, 2, 9),
   ),
 ];

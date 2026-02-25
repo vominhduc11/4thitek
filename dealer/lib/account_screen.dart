@@ -5,6 +5,7 @@ import 'account_settings_screen.dart';
 import 'auth_storage.dart';
 import 'dealer_profile_storage.dart';
 import 'login_screen.dart';
+import 'notifications_screen.dart';
 import 'support_screen.dart';
 import 'widgets/fade_slide_in.dart';
 
@@ -67,7 +68,20 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tai khoan'),
+        title: const Text('Tài khoản'),
+        actions: [
+          IconButton(
+            tooltip: 'Thông báo',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const NotificationsScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.notifications_outlined),
+          ),
+        ],
       ),
       body: Stack(
         children: [
