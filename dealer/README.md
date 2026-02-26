@@ -1,4 +1,4 @@
-# dealer
+# 4thitek Dealer Hub
 
 A new Flutter project.
 

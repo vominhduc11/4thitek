@@ -1,5 +1,5 @@
-import 'package:dealer/login_screen.dart';
-import 'package:dealer/main.dart';
+import 'package:dealer_hub/login_screen.dart';
+import 'package:dealer_hub/main.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

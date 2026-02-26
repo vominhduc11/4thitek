@@ -59,7 +59,7 @@ class _DealerAppState extends State<DealerApp> {
           controller: _warrantyController,
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
-            title: 'Dealer',
+            title: '4thitek Dealer Hub',
             theme: ThemeData(
               useMaterial3: true,
               colorScheme: colorScheme,

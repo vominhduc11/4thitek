@@ -2796,7 +2796,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Tổng: $total serial/claim',
+              'Tổng: $total đơn bảo hành',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: _dashboardMutedText,
               ),
@@ -2859,16 +2859,32 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
                 });
               },
             ),
-            if (isGroupedLegend) ...[
-              const SizedBox(height: 6),
-              Text(
-                'Hiển thị nhóm tỉ trọng cao nhất + Khác để dễ quét nhanh.',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: const Color(0xFF64748B),
-                  fontWeight: FontWeight.w600,
+            SizedBox(
+              height: 34,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: IgnorePointer(
+                  ignoring: !isGroupedLegend,
+                  child: Semantics(
+                    hidden: !isGroupedLegend,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOut,
+                      opacity: isGroupedLegend ? 1 : 0,
+                      child: Text(
+                        'Hiển thị nhóm tỉ trọng cao nhất + Khác để dễ quét nhanh.',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: const Color(0xFF64748B),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ],
+            ),
             const SizedBox(height: 12),
             if (showEmpty)
               _buildEmptyDonutState(theme)
@@ -3056,25 +3072,14 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
             ],
           ),
           if (touchedStat != null && _tooltipAnchor != null)
-            Positioned(
-              left:
-                  _tooltipAnchor!.dx +
-                  (_tooltipAnchor!.dx >= donutSize / 2 ? 10 : -10),
-              top:
-                  _tooltipAnchor!.dy +
-                  (_tooltipAnchor!.dy >= donutSize / 2 ? 8 : -8),
+            CustomSingleChildLayout(
+              delegate: _DonutTooltipPositionDelegate(anchor: _tooltipAnchor!),
               child: IgnorePointer(
-                child: FractionalTranslation(
-                  translation: Offset(
-                    _tooltipAnchor!.dx >= donutSize / 2 ? 0 : -1,
-                    _tooltipAnchor!.dy >= donutSize / 2 ? 0 : -1,
-                  ),
-                  child: _DonutSliceTooltip(
-                    color: touchedStat.color,
-                    label: touchedStat.label,
-                    count: touchedStat.count,
-                    percent: (touchedStat.count / total * 100).round(),
-                  ),
+                child: _DonutSliceTooltip(
+                  color: touchedStat.color,
+                  label: touchedStat.label,
+                  count: touchedStat.count,
+                  percent: (touchedStat.count / total * 100).round(),
                 ),
               ),
             ),
@@ -3368,6 +3373,41 @@ class _DonutSliceTooltip extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _DonutTooltipPositionDelegate extends SingleChildLayoutDelegate {
+  const _DonutTooltipPositionDelegate({required this.anchor});
+
+  final Offset anchor;
+
+  static const double _margin = 6;
+  static const double _horizontalGap = 10;
+  static const double _verticalGap = 8;
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) {
+    final placeRight = anchor.dx >= size.width / 2;
+    final placeBelow = anchor.dy >= size.height / 2;
+
+    final targetLeft = placeRight
+        ? anchor.dx + _horizontalGap
+        : anchor.dx - _horizontalGap - childSize.width;
+    final targetTop = placeBelow
+        ? anchor.dy + _verticalGap
+        : anchor.dy - _verticalGap - childSize.height;
+
+    final maxLeft = math.max(_margin, size.width - childSize.width - _margin);
+    final maxTop = math.max(_margin, size.height - childSize.height - _margin);
+
+    final clampedLeft = targetLeft.clamp(_margin, maxLeft).toDouble();
+    final clampedTop = targetTop.clamp(_margin, maxTop).toDouble();
+    return Offset(clampedLeft, clampedTop);
+  }
+
+  @override
+  bool shouldRelayout(covariant _DonutTooltipPositionDelegate oldDelegate) {
+    return anchor != oldDelegate.anchor;
   }
 }
 
