@@ -1,5 +1,6 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
+import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -65,23 +66,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
           const Positioned(
             right: -80,
             top: -40,
-            child: _GlowOrb(
-              size: 220,
-              color: Color(0x66FFFFFF),
-            ),
+            child: _GlowOrb(size: 220, color: Color(0x66FFFFFF)),
           ),
           const Positioned(
             left: -60,
             bottom: -30,
-            child: _GlowOrb(
-              size: 200,
-              color: Color(0x33FFFFFF),
-            ),
+            child: _GlowOrb(size: 200, color: Color(0x33FFFFFF)),
           ),
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
                   vertical: 32,
@@ -146,7 +142,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           textInputAction: TextInputAction.next,
           decoration: const InputDecoration(
             labelText: 'T\u00ean \u0111\u1ea1i l\u00fd',
-            prefixIcon: Icon(Icons.storefront_outlined),
+            prefixIcon: Padding(
+              padding: EdgeInsets.all(12),
+              child: BrandLogoIcon(size: 20),
+            ),
           ),
         ),
         const SizedBox(height: 14),
@@ -173,7 +172,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           enabled: !_isSubmitting,
           textInputAction: TextInputAction.next,
           decoration: const InputDecoration(
-            labelText: 'H\u1ecd v\u00e0 t\u00ean ng\u01b0\u1eddi li\u00ean h\u1ec7',
+            labelText:
+                'H\u1ecd v\u00e0 t\u00ean ng\u01b0\u1eddi li\u00ean h\u1ec7',
             prefixIcon: Icon(Icons.person_outline),
           ),
         ),
@@ -332,7 +332,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 : () {
                     Navigator.of(context).pop();
                   },
-            child: const Text('\u0110\u00e3 c\u00f3 t\u00e0i kho\u1ea3n? \u0110\u0103ng nh\u1eadp'),
+            child: const Text(
+              '\u0110\u00e3 c\u00f3 t\u00e0i kho\u1ea3n? \u0110\u0103ng nh\u1eadp',
+            ),
           ),
         ),
       ],
@@ -446,11 +448,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         city.isEmpty ||
         password.isEmpty ||
         confirm.isEmpty) {
-      _showSnackBar('Vui l\u00f2ng nh\u1eadp \u0111\u1ea7y \u0111\u1ee7 th\u00f4ng tin b\u1eaft bu\u1ed9c.');
+      _showSnackBar(
+        'Vui l\u00f2ng nh\u1eadp \u0111\u1ea7y \u0111\u1ee7 th\u00f4ng tin b\u1eaft bu\u1ed9c.',
+      );
       return;
     }
     if (!_agreedToTerms) {
-      _showSnackBar('Vui l\u00f2ng \u0111\u1ed3ng \u00fd v\u1edbi \u0111i\u1ec1u kho\u1ea3n \u0111\u0103ng k\u00fd.');
+      _showSnackBar(
+        'Vui l\u00f2ng \u0111\u1ed3ng \u00fd v\u1edbi \u0111i\u1ec1u kho\u1ea3n \u0111\u0103ng k\u00fd.',
+      );
       return;
     }
     if (!_isValidEmail(email)) {
@@ -458,15 +464,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
     if (!_isValidPhone(phone)) {
-      _showSnackBar('S\u1ed1 \u0111i\u1ec7n tho\u1ea1i kh\u00f4ng h\u1ee3p l\u1ec7.');
+      _showSnackBar(
+        'S\u1ed1 \u0111i\u1ec7n tho\u1ea1i kh\u00f4ng h\u1ee3p l\u1ec7.',
+      );
       return;
     }
     if (password.length < 6) {
-      _showSnackBar('M\u1eadt kh\u1ea9u c\u1ea7n t\u1ed1i thi\u1ec3u 6 k\u00fd t\u1ef1.');
+      _showSnackBar(
+        'M\u1eadt kh\u1ea9u c\u1ea7n t\u1ed1i thi\u1ec3u 6 k\u00fd t\u1ef1.',
+      );
       return;
     }
     if (password != confirm) {
-      _showSnackBar('M\u1eadt kh\u1ea9u x\u00e1c nh\u1eadn kh\u00f4ng kh\u1edbp.');
+      _showSnackBar(
+        'M\u1eadt kh\u1ea9u x\u00e1c nh\u1eadn kh\u00f4ng kh\u1edbp.',
+      );
       return;
     }
 
@@ -501,10 +513,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 }
@@ -517,7 +526,7 @@ class _RegisterHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
           padding: const EdgeInsets.all(14),
@@ -526,10 +535,13 @@ class _RegisterHeader extends StatelessWidget {
             color: Colors.white.withValues(alpha: 0.18),
             border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
           ),
-          child: const Icon(
-            Icons.how_to_reg_outlined,
-            color: Colors.white,
-            size: 28,
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              BrandLogoIcon(size: 40),
+              SizedBox(width: 12),
+              BrandLogoWordmark(height: 30),
+            ],
           ),
         ),
         const SizedBox(height: 18),
@@ -539,6 +551,7 @@ class _RegisterHeader extends StatelessWidget {
             color: Colors.white,
             fontWeight: FontWeight.w700,
           ),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 10),
         Text(
@@ -554,6 +567,7 @@ class _RegisterHeader extends StatelessWidget {
             ],
             height: 1.5,
           ),
+          textAlign: TextAlign.center,
         ),
       ],
     );

@@ -13,6 +13,7 @@ import 'product_detail_screen.dart';
 import 'utils.dart';
 import 'widgets/cart_icon_button.dart';
 import 'notifications_screen.dart';
+import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/product_image.dart';
 import 'widgets/skeleton_box.dart';
@@ -82,7 +83,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sản phẩm'),
+        title: const BrandAppBarTitle('Sản phẩm'),
         actions: [
           IconButton(
             tooltip: 'Thông báo',

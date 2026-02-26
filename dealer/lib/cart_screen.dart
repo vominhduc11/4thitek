@@ -4,6 +4,7 @@ import 'package:flutter_spinbox/flutter_spinbox.dart';
 import 'cart_controller.dart';
 import 'checkout_screen.dart';
 import 'utils.dart';
+import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/product_image.dart';
 
@@ -23,7 +24,7 @@ class CartScreen extends StatelessWidget {
     final total = cart.total;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Giá» hĂ ng')),
+      appBar: AppBar(title: const BrandAppBarTitle('Gio hang')),
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 220),
         switchInCurve: Curves.easeOut,
@@ -103,8 +104,8 @@ class CartScreen extends StatelessWidget {
                                     const SizedBox(height: 4),
                                     Text(
                                       item.product.isOrderable
-                                          ? 'ÄĂ£ Ä‘áº¡t tá»“n kho tá»‘i Ä‘a'
-                                          : 'Sáº£n pháº©m táº¡m ngÆ°ng phĂ¢n phá»‘i',
+                                          ? 'Đã đạt tồn kho tối đa'
+                                          : 'Sản phẩm tạm ngưng phân phối',
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodySmall
@@ -168,7 +169,7 @@ class CartScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Táº¡m tĂ­nh',
+                          'Tạm tính',
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                         Text(
@@ -276,7 +277,7 @@ class CartScreen extends StatelessWidget {
                             ),
                           );
                         },
-                        child: const Text('Thanh toĂ¡n'),
+                        child: const Text('Thanh toán'),
                       ),
                     ),
                   ],
@@ -303,7 +304,7 @@ class _EmptyCart extends StatelessWidget {
             const Icon(Icons.shopping_cart_outlined, size: 64),
             const SizedBox(height: 16),
             Text(
-              'Giá» hĂ ng Ä‘ang trá»‘ng',
+              'Giỏ hàng đang trống',
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
@@ -311,7 +312,7 @@ class _EmptyCart extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'HĂ£y thĂªm sáº£n pháº©m Ä‘á»ƒ báº¯t Ä‘áº§u Ä‘áº·t hĂ ng.',
+              'Hãy thêm sản phẩm để bắt đầu đặt hàng.',
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
@@ -320,7 +321,7 @@ class _EmptyCart extends StatelessWidget {
             const SizedBox(height: 18),
             ElevatedButton(
               onPressed: onShop,
-              child: const Text('Tiáº¿p tá»¥c mua hĂ ng'),
+              child: const Text('Tiếp tục mua hàng'),
             ),
           ],
         ),

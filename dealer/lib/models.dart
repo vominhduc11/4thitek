@@ -164,13 +164,13 @@ extension OrderStatusLabel on OrderStatus {
   String get label {
     switch (this) {
       case OrderStatus.pendingApproval:
-        return 'Cho duyet';
+        return 'Chờ duyệt';
       case OrderStatus.approved:
-        return 'Da duyet';
+        return 'Đã duyệt';
       case OrderStatus.shipping:
-        return 'Dang giao';
+        return 'Đang giao';
       case OrderStatus.completed:
-        return 'Hoan thanh';
+        return 'Hoàn thành';
     }
   }
 }

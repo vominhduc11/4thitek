@@ -8,6 +8,7 @@ import 'home_shell.dart';
 import 'login_screen.dart';
 import 'order_controller.dart';
 import 'warranty_controller.dart';
+import 'widgets/brand_identity.dart';
 
 void main() {
   runApp(const DealerApp());
@@ -145,7 +146,22 @@ class _LaunchScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            BrandLogoIcon(size: 88),
+            SizedBox(height: 14),
+            BrandLogoWordmark(height: 34),
+            SizedBox(height: 22),
+            SizedBox(
+              width: 30,
+              height: 30,
+              child: CircularProgressIndicator(strokeWidth: 2.8),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

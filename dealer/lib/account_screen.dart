@@ -7,6 +7,7 @@ import 'dealer_profile_storage.dart';
 import 'login_screen.dart';
 import 'notifications_screen.dart';
 import 'support_screen.dart';
+import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 class AccountScreen extends StatefulWidget {
@@ -68,7 +69,7 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tài khoản'),
+        title: const BrandAppBarTitle('Tài khoản'),
         actions: [
           IconButton(
             tooltip: 'Thông báo',

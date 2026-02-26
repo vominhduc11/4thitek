@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 
 import 'dealer_profile_storage.dart';
+import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
@@ -59,7 +60,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cai dat tai khoan'),
+        title: const BrandAppBarTitle('Cai dat tai khoan'),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -76,7 +77,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                           textInputAction: TextInputAction.next,
                           decoration: const InputDecoration(
                             labelText: 'Ten doanh nghiep / dai ly',
-                            prefixIcon: Icon(Icons.storefront_outlined),
+                            prefixIcon: Padding(
+                              padding: EdgeInsets.all(12),
+                              child: BrandLogoIcon(size: 20),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 14),

@@ -1,12 +1,14 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import 'cart_controller.dart';
 import 'models.dart';
 import 'order_controller.dart';
 import 'order_detail_screen.dart';
 import 'notifications_screen.dart';
+import 'product_list_screen.dart';
 import 'utils.dart';
 import 'warranty_activation_screen.dart';
+import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 class OrdersScreen extends StatelessWidget {
@@ -16,18 +18,17 @@ class OrdersScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final orders = OrderScope.of(context).orders;
     final cart = CartScope.of(context);
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Đơn hàng'),
+        title: const BrandAppBarTitle('Đơn hàng'),
         actions: [
           IconButton(
             tooltip: 'Thông báo',
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const NotificationsScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
               );
             },
             icon: const Icon(Icons.notifications_outlined),
@@ -37,12 +38,13 @@ class OrdersScreen extends StatelessWidget {
       body: orders.isEmpty
           ? const FadeSlideIn(child: _EmptyOrders())
           : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              padding: EdgeInsets.fromLTRB(20, 16, 20, isMobile ? 104 : 24),
               itemCount: orders.length,
               separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final order = orders[index];
-                final canActivateWarranty = order.status == OrderStatus.completed;
+                final canActivateWarranty =
+                    order.status == OrderStatus.completed;
                 return FadeSlideIn(
                   key: ValueKey(order.id),
                   delay: Duration(milliseconds: 40 * index),
@@ -90,9 +92,7 @@ class OrdersScreen extends StatelessWidget {
                           const SizedBox(height: 10),
                           Text(
                             '${order.totalItems} san pham · ${formatVnd(order.total)}',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
+                            style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(color: Colors.black54),
                           ),
                           const SizedBox(height: 6),
@@ -139,8 +139,8 @@ class OrdersScreen extends StatelessWidget {
                                           MaterialPageRoute(
                                             builder: (context) =>
                                                 WarrantyActivationScreen(
-                                              orderId: order.id,
-                                            ),
+                                                  orderId: order.id,
+                                                ),
                                           ),
                                         );
                                       }
@@ -156,6 +156,17 @@ class OrdersScreen extends StatelessWidget {
                 );
               },
             ),
+      floatingActionButton: isMobile
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ProductListScreen()),
+                );
+              },
+              icon: const Icon(Icons.add_shopping_cart_outlined),
+              label: const Text('Đơn nhập'),
+            )
+          : null,
     );
   }
 
@@ -211,9 +222,9 @@ class _EmptyOrders extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'Chua co don hang',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),

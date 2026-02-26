@@ -1,5 +1,6 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
+import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -44,23 +45,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           const Positioned(
             right: -80,
             top: -40,
-            child: _GlowOrb(
-              size: 220,
-              color: Color(0x66FFFFFF),
-            ),
+            child: _GlowOrb(size: 220, color: Color(0x66FFFFFF)),
           ),
           const Positioned(
             left: -60,
             bottom: -30,
-            child: _GlowOrb(
-              size: 200,
-              color: Color(0x33FFFFFF),
-            ),
+            child: _GlowOrb(size: 200, color: Color(0x33FFFFFF)),
           ),
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
                   vertical: 32,
@@ -153,7 +149,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2.5),
                   )
-                : const Text('G\u1eedi li\u00ean k\u1ebft \u0111\u1eb7t l\u1ea1i'),
+                : const Text(
+                    'G\u1eedi li\u00ean k\u1ebft \u0111\u1eb7t l\u1ea1i',
+                  ),
           ),
         ),
         const SizedBox(height: 12),
@@ -287,10 +285,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 }
@@ -303,7 +298,7 @@ class _ForgotHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
           padding: const EdgeInsets.all(14),
@@ -312,10 +307,13 @@ class _ForgotHeader extends StatelessWidget {
             color: Colors.white.withValues(alpha: 0.18),
             border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
           ),
-          child: const Icon(
-            Icons.lock_reset_outlined,
-            color: Colors.white,
-            size: 28,
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              BrandLogoIcon(size: 40),
+              SizedBox(width: 12),
+              BrandLogoWordmark(height: 30),
+            ],
           ),
         ),
         const SizedBox(height: 18),
@@ -325,6 +323,7 @@ class _ForgotHeader extends StatelessWidget {
             color: Colors.white,
             fontWeight: FontWeight.w700,
           ),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 10),
         Text(
@@ -340,6 +339,7 @@ class _ForgotHeader extends StatelessWidget {
             ],
             height: 1.5,
           ),
+          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -370,7 +370,9 @@ class _ForgotLoadingOverlay extends StatelessWidget {
                   child: CircularProgressIndicator(strokeWidth: 2.8),
                 ),
                 SizedBox(height: 12),
-                Text('\u0110ang g\u1eedi li\u00ean k\u1ebft \u0111\u1eb7t l\u1ea1i...'),
+                Text(
+                  '\u0110ang g\u1eedi li\u00ean k\u1ebft \u0111\u1eb7t l\u1ea1i...',
+                ),
               ],
             ),
           ),

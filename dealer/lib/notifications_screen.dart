@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import 'mock_data.dart';
 import 'utils.dart';
+import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 class NotificationsScreen extends StatelessWidget {
@@ -13,7 +14,7 @@ class NotificationsScreen extends StatelessWidget {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return Scaffold(
       appBar: AppBar(
-        title: Text('Thông báo (${notices.length})'),
+        title: BrandAppBarTitle('Thong bao (${notices.length})'),
       ),
       body: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -70,3 +71,4 @@ class NotificationsScreen extends StatelessWidget {
     );
   }
 }
+

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 enum SupportCategory { order, warranty, product, payment, other }
@@ -40,7 +41,7 @@ class _SupportScreenState extends State<SupportScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Hỗ trợ'),
+        title: const BrandAppBarTitle('Ho tro'),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),

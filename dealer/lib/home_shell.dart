@@ -1,10 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import 'account_screen.dart';
 import 'dashboard_screen.dart';
 import 'orders_screen.dart';
 import 'product_list_screen.dart';
 import 'warranty_hub_screen.dart';
+import 'widgets/brand_identity.dart';
 
 class DealerHomeShell extends StatefulWidget {
   const DealerHomeShell({super.key});
@@ -20,28 +21,33 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
 
   static const List<_TabItem> _tabs = [
     _TabItem(
-      label: 'San pham',
+      label: 'Sản phẩm',
       icon: Icons.storefront_outlined,
+      activeIcon: Icons.storefront,
       widget: ProductListScreen(),
     ),
     _TabItem(
-      label: 'Don hang',
+      label: 'Đơn hàng',
       icon: Icons.receipt_long_outlined,
+      activeIcon: Icons.receipt_long,
       widget: OrdersScreen(),
     ),
     _TabItem(
-      label: 'Tong quan',
+      label: 'Tổng quan',
       icon: Icons.dashboard_outlined,
+      activeIcon: Icons.dashboard,
       widget: DashboardScreen(),
     ),
     _TabItem(
-      label: 'Bao hanh',
+      label: 'Bảo hành',
       icon: Icons.verified_outlined,
+      activeIcon: Icons.verified,
       widget: WarrantyHubScreen(),
     ),
     _TabItem(
-      label: 'Tai khoan',
+      label: 'Tài khoản',
       icon: Icons.person_outline,
+      activeIcon: Icons.person,
       widget: AccountScreen(),
     ),
   ];
@@ -68,6 +74,12 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
                   child: NavigationRail(
                     selectedIndex: safeIndex,
                     useIndicator: true,
+                    leading: Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 6, 8, 18),
+                      child: useExtendedRail
+                          ? const BrandLogoWordmark(height: 26)
+                          : const BrandLogoIcon(size: 30),
+                    ),
                     labelType: useExtendedRail
                         ? NavigationRailLabelType.none
                         : NavigationRailLabelType.all,
@@ -82,7 +94,7 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
                           (tab) => NavigationRailDestination(
                             icon: Icon(tab.icon),
                             selectedIcon: Icon(
-                              tab.icon,
+                              tab.activeIcon,
                               color: Theme.of(context).colorScheme.primary,
                             ),
                             label: Text(tab.label),
@@ -104,9 +116,20 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
             currentIndex: safeIndex,
             type: BottomNavigationBarType.fixed,
             showSelectedLabels: true,
-            showUnselectedLabels: true,
-            selectedIconTheme: const IconThemeData(size: 28),
+            showUnselectedLabels: false,
+            selectedItemColor: const Color(0xFF1D4ED8),
+            unselectedItemColor: const Color(0xFF64748B),
+            selectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 11,
+            ),
+            selectedIconTheme: const IconThemeData(size: 26),
             unselectedIconTheme: const IconThemeData(size: 22),
+            backgroundColor: Colors.white,
             onTap: (index) {
               setState(() => _currentIndex = index);
             },
@@ -114,6 +137,7 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
                 .map(
                   (tab) => BottomNavigationBarItem(
                     icon: Icon(tab.icon),
+                    activeIcon: Icon(tab.activeIcon),
                     label: tab.label,
                   ),
                 )
@@ -129,10 +153,12 @@ class _TabItem {
   const _TabItem({
     required this.label,
     required this.icon,
+    required this.activeIcon,
     required this.widget,
   });
 
   final String label;
   final IconData icon;
+  final IconData activeIcon;
   final Widget widget;
 }

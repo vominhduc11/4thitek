@@ -4,6 +4,7 @@ import 'models.dart';
 import 'order_controller.dart';
 import 'utils.dart';
 import 'warranty_activation_screen.dart';
+import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 class OrderDetailScreen extends StatelessWidget {
@@ -17,7 +18,7 @@ class OrderDetailScreen extends StatelessWidget {
 
     if (order == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Chi tiet don hang')),
+        appBar: AppBar(title: const BrandAppBarTitle('Chi tiet don hang')),
         body: const Center(
           child: Text('Khong tim thay don hang.'),
         ),
@@ -28,7 +29,7 @@ class OrderDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chi tiet don hang'),
+        title: const BrandAppBarTitle('Chi tiet don hang'),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),

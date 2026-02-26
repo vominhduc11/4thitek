@@ -5,6 +5,7 @@ import 'models.dart';
 import 'order_controller.dart';
 import 'utils.dart';
 import 'warranty_controller.dart';
+import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 class WarrantyActivationScreen extends StatefulWidget {
@@ -62,7 +63,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     if (order == null) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Kich hoat bao hanh'),
+          title: const BrandAppBarTitle('Kich hoat bao hanh'),
         ),
         body: const Center(
           child: Text('Khong tim thay don hang de kich hoat bao hanh.'),
@@ -73,7 +74,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     if (order.status != OrderStatus.completed) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Kich hoat bao hanh'),
+          title: const BrandAppBarTitle('Kich hoat bao hanh'),
         ),
         body: Center(
           child: Padding(
@@ -120,7 +121,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kich hoat bao hanh'),
+        title: const BrandAppBarTitle('Kich hoat bao hanh'),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),

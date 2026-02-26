@@ -6,6 +6,7 @@ import 'notifications_screen.dart';
 import 'utils.dart';
 import 'warranty_activation_screen.dart';
 import 'warranty_controller.dart';
+import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 class WarrantyHubScreen extends StatelessWidget {
@@ -25,7 +26,7 @@ class WarrantyHubScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bảo hành'),
+        title: const BrandAppBarTitle('Bảo hành'),
         actions: [
           IconButton(
             tooltip: 'Thông báo',

@@ -2,6 +2,7 @@
 
 import 'order_detail_screen.dart';
 import 'utils.dart';
+import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 class OrderSuccessScreen extends StatelessWidget {
@@ -21,7 +22,7 @@ class OrderSuccessScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Dat hang thanh cong'),
+        title: const BrandAppBarTitle('Dat hang thanh cong'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),

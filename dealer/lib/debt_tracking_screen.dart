@@ -3,6 +3,7 @@
 import 'models.dart';
 import 'order_controller.dart';
 import 'utils.dart';
+import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 class DebtTrackingScreen extends StatelessWidget {
@@ -15,7 +16,7 @@ class DebtTrackingScreen extends StatelessWidget {
     final paymentHistory = orderController.paymentHistory;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Cong no')),
+      appBar: AppBar(title: const BrandAppBarTitle('Cong no')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         children: [

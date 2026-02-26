@@ -7,6 +7,7 @@ import 'models.dart';
 import 'order_controller.dart';
 import 'order_success_screen.dart';
 import 'utils.dart';
+import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -44,7 +45,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Thanh toan'),
+        title: const BrandAppBarTitle('Thanh toan'),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),

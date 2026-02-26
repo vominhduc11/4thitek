@@ -11,6 +11,7 @@ import 'cart_screen.dart';
 import 'models.dart';
 import 'utils.dart';
 import 'widgets/cart_icon_button.dart';
+import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/lazy_network_image.dart';
 import 'widgets/product_image.dart';
@@ -278,11 +279,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.product.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+        title: BrandAppBarTitle(widget.product.name),
         actions: [
           CartIconButton(
             count: cart.totalItems,
