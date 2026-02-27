@@ -16,6 +16,10 @@ import 'widgets/product_image.dart';
 enum InventorySerialFilter { all, available, sold }
 
 void _noopSerialTransfer() {}
+const double _detailSectionSpacing = 16;
+const double _detailSectionSpacingLarge = 18;
+const double _detailItemSpacing = 10;
+const double _detailMinTapTarget = 44;
 
 class InventoryProductDetailScreen extends StatefulWidget {
   const InventoryProductDetailScreen({
@@ -118,16 +122,33 @@ class _InventoryProductDetailScreenState
                             Text(
                               widget.product.name,
                               style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w700),
+                                  ?.copyWith(
+                                    color: const Color(0xFF0F172A),
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1.2,
+                                  ),
                             ),
                             if (productSku.isNotEmpty) ...[
                               const SizedBox(height: 4),
-                              Text('SKU: $productSku'),
+                              Text(
+                                'SKU: $productSku',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: const Color(0xFF94A3B8),
+                                      fontSize: 11.5,
+                                      height: 1.3,
+                                    ),
+                              ),
                             ],
                             const SizedBox(height: 4),
                             Text(
                               'Nhập gần nhất: ${formatDateTime(widget.latestImportedAt)}',
-                              style: Theme.of(context).textTheme.bodySmall,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: const Color(0xFF64748B),
+                                    fontSize: 12,
+                                  ),
                             ),
                           ],
                         ),
@@ -140,9 +161,14 @@ class _InventoryProductDetailScreenState
                       widget.product.description.trim(),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFF64748B),
+                        fontSize: 12.5,
+                        height: 1.35,
+                      ),
                     ),
                   ],
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -151,16 +177,19 @@ class _InventoryProductDetailScreenState
                         label: 'Tồn kho',
                         value: '${widget.availableQuantity}',
                         color: const Color(0xFF047857),
+                        icon: Icons.inventory_2_outlined,
                       ),
                       _InventoryMetric(
                         label: 'Đã nhập',
                         value: '${widget.importedQuantity}',
                         color: const Color(0xFF1D4ED8),
+                        icon: Icons.south_west_rounded,
                       ),
                       _InventoryMetric(
                         label: 'Đã bán',
                         value: '${widget.soldQuantity}',
                         color: const Color(0xFFB45309),
+                        icon: Icons.north_east_rounded,
                       ),
                     ],
                   ),
@@ -168,7 +197,7 @@ class _InventoryProductDetailScreenState
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: _detailSectionSpacingLarge),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -195,6 +224,8 @@ class _InventoryProductDetailScreenState
                   },
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(120, 46),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   icon: const Icon(Icons.local_shipping_outlined),
                   label: const Text('Xuất hàng'),
@@ -211,13 +242,18 @@ class _InventoryProductDetailScreenState
                 },
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(120, 46),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  foregroundColor: const Color(0xFF475569),
+                  side: const BorderSide(color: Color(0xFFD1DAE8)),
+                  backgroundColor: const Color(0xFFF8FAFC),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 icon: const Icon(Icons.qr_code_scanner_outlined),
                 label: const Text('Quét QR'),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: _detailSectionSpacing),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -242,7 +278,7 @@ class _InventoryProductDetailScreenState
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: _detailSectionSpacing),
           if (serials.isEmpty)
             const Card(
               elevation: 0,
@@ -265,7 +301,7 @@ class _InventoryProductDetailScreenState
                 defectiveSet: defectiveSet,
               );
               return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(bottom: _detailItemSpacing),
                 child: _SerialTile(
                   record: record,
                   status: status,
@@ -413,33 +449,55 @@ class _InventoryMetric extends StatelessWidget {
     required this.label,
     required this.value,
     required this.color,
+    required this.icon,
   });
 
   final String label;
   final String value;
   final Color color;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.09),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withValues(alpha: 0.28)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w700,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 76),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 14, color: color),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF64748B),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: color,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                height: 1.1,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -458,13 +516,16 @@ class _SerialFilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      showCheckmark: false,
-      onSelected: (_) => onTap(),
-      selectedColor: const Color(0xFFDCE9FF),
-      side: const BorderSide(color: Color(0xFFE0E6F2)),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: _detailMinTapTarget),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        showCheckmark: false,
+        onSelected: (_) => onTap(),
+        selectedColor: const Color(0xFFDCE9FF),
+        side: const BorderSide(color: Color(0xFFE0E6F2)),
+      ),
     );
   }
 }
@@ -491,7 +552,7 @@ class _SerialTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = switch (status) {
-      'available' => const Color(0xFF047857),
+      'available' => const Color(0xFF15803D),
       'sold' => const Color(0xFFB45309),
       _ => const Color(0xFFB91C1C),
     };
@@ -508,7 +569,7 @@ class _SerialTile extends StatelessWidget {
         side: const BorderSide(color: Color(0xFFE5EAF5)),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+        padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -519,23 +580,27 @@ class _SerialTile extends StatelessWidget {
                   Text(
                     record.serial,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF0F172A),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '$statusLabel • ${record.warehouseName}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w700,
+                      color: color.withValues(alpha: 0.84),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     'Nhập: ${formatDateTime(record.importedAt)}',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: const Color(0xFF64748B),
+                      fontSize: 12,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   TextButton(
@@ -543,14 +608,29 @@ class _SerialTile extends StatelessWidget {
                     style: TextButton.styleFrom(
                       minimumSize: const Size(100, 44),
                       alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 0),
+                      foregroundColor: const Color(0xFF1D4ED8),
                     ),
-                    child: Text('Đơn ${record.orderId}'),
+                    child: Text(
+                      'Đơn ${record.orderId}',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF1D4ED8),
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.underline,
+                        decorationThickness: 1.2,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
             PopupMenuButton<String>(
+              tooltip: 'Tùy chọn serial',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(
+                minWidth: _detailMinTapTarget,
+                minHeight: _detailMinTapTarget,
+              ),
               onSelected: (value) {
                 switch (value) {
                   case 'copy':
@@ -571,7 +651,19 @@ class _SerialTile extends StatelessWidget {
                   ),
                 ),
               ],
-              icon: Icon(Icons.more_vert, color: color),
+              child: Container(
+                width: _detailMinTapTarget,
+                height: _detailMinTapTarget,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.more_vert,
+                  color: color.withValues(alpha: 0.88),
+                  size: 20,
+                ),
+              ),
             ),
           ],
         ),

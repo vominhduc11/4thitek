@@ -895,6 +895,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -994,6 +995,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
                               selectedColor: Theme.of(
                                 context,
                               ).colorScheme.primary.withValues(alpha: 0.15),
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.padded,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
                               labelStyle: TextStyle(
                                 color: isSelected
                                     ? Theme.of(context).colorScheme.primary
@@ -1015,6 +1022,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                 tempWarranty.clear();
                               });
                             },
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(92, 44),
+                            ),
                             child: const Text('Đặt lại'),
                           ),
                           const Spacer(),
@@ -1029,6 +1039,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                               _refreshProducts();
                               Navigator.of(context).pop();
                             },
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(92, 44),
+                            ),
                             child: const Text('Áp dụng'),
                           ),
                         ],

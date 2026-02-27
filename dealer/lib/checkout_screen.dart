@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'cart_controller.dart';
@@ -44,9 +44,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final total = cart.total;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const BrandAppBarTitle('Thanh toan'),
-      ),
+      appBar: AppBar(title: const BrandAppBarTitle('Thanh toan')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         children: [
@@ -140,10 +138,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    _SummaryRow(
-                      label: 'Ngan hang',
-                      value: distributorBankName,
-                    ),
+                    _SummaryRow(label: 'Ngan hang', value: distributorBankName),
                     const SizedBox(height: 8),
                     _SummaryRow(
                       label: 'Noi dung goi y',
@@ -273,7 +268,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return issues;
   }
 
-Future<bool?> _showBankTransferSheet(
+  Future<bool?> _showBankTransferSheet(
     BuildContext context, {
     required int amount,
     required String content,
@@ -285,6 +280,10 @@ Future<bool?> _showBankTransferSheet(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (sheetContext) {
         return _BankTransferSheet(
           amount: amount,
@@ -308,18 +307,15 @@ Future<bool?> _showBankTransferSheet(
       createdAt: DateTime.now(),
       status: OrderStatus.pendingApproval,
       paymentMethod: _method,
-      paymentStatus:
-          markPaid ? OrderPaymentStatus.paid : _previewPaymentStatus,
+      paymentStatus: markPaid ? OrderPaymentStatus.paid : _previewPaymentStatus,
       receiverName: 'Dai ly SCS Ha Noi',
       receiverAddress: 'So 12, Duong Tran Duy Hung, Cau Giay, Ha Noi',
       receiverPhone: '0909 123 456',
       shippingFee: 0,
       items: cart.items
           .map(
-            (item) => OrderLineItem(
-              product: item.product,
-              quantity: item.quantity,
-            ),
+            (item) =>
+                OrderLineItem(product: item.product, quantity: item.quantity),
           )
           .toList(growable: false),
       paidAmount: 0,
@@ -473,7 +469,9 @@ class _SummaryRow extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Expanded(child: Text(label, style: isEmphasis ? emphasisStyle : style)),
+            Expanded(
+              child: Text(label, style: isEmphasis ? emphasisStyle : style),
+            ),
             const SizedBox(width: 12),
             Flexible(
               child: Row(
@@ -491,8 +489,11 @@ class _SummaryRow extends StatelessWidget {
                     const SizedBox(width: 6),
                     IconButton(
                       visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(10),
+                      constraints: const BoxConstraints(
+                        minWidth: 44,
+                        minHeight: 44,
+                      ),
                       icon: const Icon(Icons.copy, size: 18),
                       onPressed: onCopy,
                       tooltip: 'Sao chep',
@@ -507,9 +508,9 @@ class _SummaryRow extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             hint!,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Colors.black54,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: Colors.black54),
           ),
         ],
       ],
@@ -568,161 +569,176 @@ class _BankTransferSheetState extends State<_BankTransferSheet> {
     final amountText = formatVnd(widget.amount);
     final qrUrl =
         'https://img.vietqr.io/image/970422-1234567890-compact.png?amount=${widget.amount}&addInfo=${Uri.encodeComponent(widget.content)}';
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.88;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-        top: 12,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Column(
-              children: [
-                const Text(
-                  'Quet QR de thanh toan',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Don se tu xac nhan sau khi chuyen khoan thanh cong',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE5EAF5)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          qrUrl,
-                          width: 240,
-                          height: 240,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              const Icon(Icons.qr_code_2, size: 120),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text('So tien: $amountText',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 4),
-                      Text('Noi dung: ${widget.content}',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: Colors.black54)),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF7F9FC),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFE5EAF5)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _BankInfoRow(
-                              label: 'Chu TK',
-                              value: widget.owner,
-                              onCopy: () => widget.onCopied('Chu TK', widget.owner),
-                            ),
-                            const SizedBox(height: 6),
-                            _BankInfoRow(
-                              label: 'So TK',
-                              value: widget.account,
-                              onCopy: () =>
-                                  widget.onCopied('So TK', widget.account),
-                            ),
-                            const SizedBox(height: 6),
-                            _BankInfoRow(
-                              label: 'Ngan hang',
-                              value: widget.bankName,
-                              onCopy: () =>
-                                  widget.onCopied('Ngan hang', widget.bankName),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            top: 12,
           ),
-          const SizedBox(height: 16),
-          Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => widget.onCopied(
-                    'So tien',
-                    widget.amount.toString(),
-                  ),
-                  icon: const Icon(Icons.copy, size: 18),
-                  label: const Text('Sao chep so tien'),
+              Center(
+                child: Column(
+                  children: [
+                    const Text(
+                      'Quet QR de thanh toan',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Don se tu xac nhan sau khi chuyen khoan thanh cong',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE5EAF5)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              qrUrl,
+                              width: 240,
+                              height: 240,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.qr_code_2, size: 120),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'So tien: $amountText',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Noi dung: ${widget.content}',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: Colors.black54),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF7F9FC),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xFFE5EAF5),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _BankInfoRow(
+                                  label: 'Chu TK',
+                                  value: widget.owner,
+                                  onCopy: () =>
+                                      widget.onCopied('Chu TK', widget.owner),
+                                ),
+                                const SizedBox(height: 6),
+                                _BankInfoRow(
+                                  label: 'So TK',
+                                  value: widget.account,
+                                  onCopy: () =>
+                                      widget.onCopied('So TK', widget.account),
+                                ),
+                                const SizedBox(height: 6),
+                                _BankInfoRow(
+                                  label: 'Ngan hang',
+                                  value: widget.bankName,
+                                  onCopy: () => widget.onCopied(
+                                    'Ngan hang',
+                                    widget.bankName,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => widget.onCopied(
-                    'Noi dung',
-                    widget.content,
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () =>
+                          widget.onCopied('So tien', widget.amount.toString()),
+                      icon: const Icon(Icons.copy, size: 18),
+                      label: const Text('Sao chep so tien'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 44),
+                      ),
+                    ),
                   ),
-                  icon: const Icon(Icons.copy, size: 18),
-                  label: const Text('Sao chep ND'),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () =>
+                          widget.onCopied('Noi dung', widget.content),
+                      icon: const Icon(Icons.copy, size: 18),
+                      label: const Text('Sao chep ND'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 44),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (_isDone) return;
+                    _isDone = true;
+                    Navigator.of(context).pop(true);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(44),
+                  ),
+                  child: const Text('Da quet / Da chuyen'),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                if (_isDone) return;
-                _isDone = true;
-                Navigator.of(context).pop(true);
-              },
-              child: const Text('Da quet / Da chuyen'),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
 class _BankInfoRow extends StatelessWidget {
-  const _BankInfoRow({
-    required this.label,
-    required this.value,
-    this.onCopy,
-  });
+  const _BankInfoRow({required this.label, required this.value, this.onCopy});
 
   final String label;
   final String value;
@@ -735,17 +751,13 @@ class _BankInfoRow extends StatelessWidget {
       children: [
         Text('$label: ', style: style?.copyWith(fontWeight: FontWeight.w600)),
         Expanded(
-          child: Text(
-            value,
-            style: style,
-            overflow: TextOverflow.ellipsis,
-          ),
+          child: Text(value, style: style, overflow: TextOverflow.ellipsis),
         ),
         if (onCopy != null)
           IconButton(
             visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
+            padding: const EdgeInsets.all(10),
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             icon: const Icon(Icons.copy, size: 16),
             onPressed: onCopy,
           ),

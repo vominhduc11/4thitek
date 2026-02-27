@@ -436,6 +436,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
@@ -520,6 +524,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             },
                             icon: const Icon(Icons.chevron_left),
                             label: const Text('Kỳ trước'),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 44),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -542,6 +549,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 : null,
                             icon: const Icon(Icons.chevron_right),
                             label: const Text('Kỳ sau'),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 44),
+                            ),
                           ),
                         ),
                       ],
@@ -575,6 +585,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         },
                         icon: const Icon(Icons.event_outlined),
                         label: const Text('Chọn từ lịch'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(44),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -608,6 +621,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               );
                             });
                           },
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(96, 44),
+                          ),
                           child: const Text('Áp dụng'),
                         ),
                       ],
@@ -1963,6 +1979,10 @@ class _OrderStatusDistributionCard extends StatelessWidget {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         final theme = Theme.of(context);
         return SafeArea(
@@ -2029,8 +2049,10 @@ class _OrderStatusDistributionCard extends StatelessWidget {
                       itemBuilder: (context, index) {
                         final order = orders[index];
                         return ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 2,
+                          ),
+                          minVerticalPadding: 8,
                           title: Text(order.id),
                           subtitle: Text(formatDateTime(order.createdAt)),
                           trailing: Text(
@@ -2258,6 +2280,10 @@ class _AgingDebtCard extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         final theme = Theme.of(context);
         return SafeArea(
