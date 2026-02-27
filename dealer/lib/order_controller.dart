@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import 'mock_data.dart';
 import 'models.dart';
@@ -7,10 +7,10 @@ class OrderController extends ChangeNotifier {
   OrderController({
     List<Order>? seedOrders,
     List<DebtPaymentRecord>? seedPayments,
-  })  : _orders = List<Order>.from(seedOrders ?? _defaultSeedOrders()),
-        _paymentHistory = List<DebtPaymentRecord>.from(
-          seedPayments ?? _defaultSeedDebtPayments(),
-        );
+  }) : _orders = List<Order>.from(seedOrders ?? _defaultSeedOrders()),
+       _paymentHistory = List<DebtPaymentRecord>.from(
+         seedPayments ?? _defaultSeedDebtPayments(),
+       );
 
   final List<Order> _orders;
   final List<DebtPaymentRecord> _paymentHistory;
@@ -145,6 +145,15 @@ List<Order> _defaultSeedOrders() {
   final rgbKeyLite = _productById('11');
   final webcamFlow4k = _productById('18');
   final mouseX1Wireless = _productById('13');
+  final phantomX60 = _productById('19');
+  final cyclone71 = _productById('20');
+  final echoLite2 = _productById('21');
+  final vanguardMax = _productById('22');
+  final pulseAnc = _productById('23');
+  final titanWirelessX = _productById('24');
+  final aero50 = _productById('25');
+  final quantumStudio = _productById('26');
+  final orbitChatPro = _productById('27');
 
   final order1 = Order(
     id: 'SCS-240315',
@@ -216,7 +225,32 @@ List<Order> _defaultSeedOrders() {
     paidAmount: 0,
   );
 
-  return [order1, order2, order3, order4];
+  final order5Base = Order(
+    id: 'SCS-240221',
+    createdAt: DateTime(2026, 2, 21, 14, 20),
+    status: OrderStatus.completed,
+    paymentMethod: OrderPaymentMethod.cod,
+    paymentStatus: OrderPaymentStatus.paid,
+    receiverName: 'Dai ly SCS Ha Noi',
+    receiverAddress: 'Số 12, Trần Duy Hưng, Cầu Giấy, Hà Nội',
+    receiverPhone: '0909 123 456',
+    shippingFee: 0,
+    items: [
+      OrderLineItem(product: phantomX60, quantity: 2),
+      OrderLineItem(product: cyclone71, quantity: 3),
+      OrderLineItem(product: echoLite2, quantity: 4),
+      OrderLineItem(product: vanguardMax, quantity: 2),
+      OrderLineItem(product: pulseAnc, quantity: 3),
+      OrderLineItem(product: titanWirelessX, quantity: 2),
+      OrderLineItem(product: aero50, quantity: 5),
+      OrderLineItem(product: quantumStudio, quantity: 2),
+      OrderLineItem(product: orbitChatPro, quantity: 4),
+    ],
+    paidAmount: 0,
+  );
+  final order5 = order5Base.copyWith(paidAmount: order5Base.total);
+
+  return [order1, order2, order3, order4, order5];
 }
 
 List<DebtPaymentRecord> _defaultSeedDebtPayments() {

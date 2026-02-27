@@ -11,13 +11,31 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  static const _primaryBlue = Color(0xFF0A67FF);
+  static const _errorPink = Color(0xFFE11D48);
+  static const _disabledBg = Color(0xFFE5E7EB);
+  static const _disabledFg = Color(0xFF9CA3AF);
+
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  final _emailFocusNode = FocusNode();
+  final _isFormValidNotifier = ValueNotifier<bool>(false);
+
   bool _isSubmitting = false;
   bool _isSubmitted = false;
 
   @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_onFormInputChanged);
+  }
+
+  @override
   void dispose() {
+    _emailController.removeListener(_onFormInputChanged);
     _emailController.dispose();
+    _emailFocusNode.dispose();
+    _isFormValidNotifier.dispose();
     super.dispose();
   }
 
@@ -26,6 +44,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           Container(
@@ -53,38 +72,34 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             child: _GlowOrb(size: 200, color: Color(0x33FFFFFF)),
           ),
           SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 32,
-                ),
+            child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
+              child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 420),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       FadeSlideIn(child: _ForgotHeader(theme: theme)),
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 24),
                       FadeSlideIn(
                         delay: const Duration(milliseconds: 80),
                         child: Container(
-                          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
+                            borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.08),
-                                blurRadius: 28,
-                                offset: const Offset(0, 16),
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 24,
+                                offset: const Offset(0, 12),
                               ),
                             ],
                           ),
                           child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 250),
+                            duration: const Duration(milliseconds: 220),
                             child: _isSubmitted
                                 ? _buildSuccessContent(theme)
                                 : _buildFormContent(theme),
@@ -97,75 +112,155 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
             ),
           ),
-          if (_isSubmitting) const _ForgotLoadingOverlay(),
         ],
       ),
     );
   }
 
   Widget _buildFormContent(ThemeData theme) {
-    return Column(
-      key: const ValueKey('forgot-form'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '\u0110\u1eb7t l\u1ea1i m\u1eadt kh\u1ea9u',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
+    final inputTextStyle = theme.textTheme.bodyLarge?.copyWith(
+      fontSize: 16,
+      fontWeight: FontWeight.w500,
+    );
+
+    return Form(
+      key: _formKey,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      child: Column(
+        key: const ValueKey('forgot-form'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Đặt lại mật khẩu',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Nh\u1eadp email \u0111\u0103ng k\u00fd \u0111\u1ec3 nh\u1eadn li\u00ean k\u1ebft \u0111\u1eb7t l\u1ea1i m\u1eadt kh\u1ea9u.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: Colors.black54,
-            height: 1.5,
+          const SizedBox(height: 8),
+          Text(
+            'Nhập email đăng ký để nhận liên kết đặt lại mật khẩu.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.black54,
+              height: 1.5,
+            ),
           ),
-        ),
-        const SizedBox(height: 20),
-        TextField(
-          controller: _emailController,
-          enabled: !_isSubmitting,
-          keyboardType: TextInputType.emailAddress,
-          textInputAction: TextInputAction.done,
-          onSubmitted: (_) async {
-            if (!_isSubmitting) {
-              await _handleSubmit();
-            }
-          },
-          decoration: const InputDecoration(
-            labelText: 'Email',
-            prefixIcon: Icon(Icons.mail_outline),
+          const SizedBox(height: 24),
+          AnimatedBuilder(
+            animation: _emailFocusNode,
+            builder: (context, _) {
+              return AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 130),
+                curve: Curves.easeOut,
+                style: (theme.textTheme.labelLarge ?? const TextStyle())
+                    .copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: _emailFocusNode.hasFocus
+                          ? _primaryBlue
+                          : const Color(0xFF0F172A),
+                    ),
+                child: const Text('Email'),
+              );
+            },
           ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _isSubmitting ? null : _handleSubmit,
-            child: _isSubmitting
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2.5),
-                  )
-                : const Text(
-                    'G\u1eedi li\u00ean k\u1ebft \u0111\u1eb7t l\u1ea1i',
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _emailController,
+            focusNode: _emailFocusNode,
+            enabled: !_isSubmitting,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.done,
+            textCapitalization: TextCapitalization.none,
+            autofillHints: const [AutofillHints.email, AutofillHints.username],
+            autocorrect: false,
+            enableSuggestions: false,
+            style: inputTextStyle,
+            onFieldSubmitted: (_) async {
+              if (!_isSubmitting) {
+                await _handleSubmit();
+              }
+            },
+            decoration: _buildInputDecoration(icon: Icons.mail_outline),
+            validator: (value) {
+              final email = (value ?? '').trim();
+              if (email.isEmpty) {
+                return 'Email không được để trống';
+              }
+              if (!_isValidEmail(email)) {
+                return 'Email không hợp lệ';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _isFormValidNotifier,
+              builder: (context, isFormValid, _) {
+                final canSubmit = isFormValid && !_isSubmitting;
+                return _AnimatedSubmitButton(
+                  canSubmit: canSubmit,
+                  isLoading: _isSubmitting,
+                  label: 'Gửi liên kết đặt lại',
+                  loadingLabel: 'Đang gửi liên kết...',
+                  onPressed: _handleSubmit,
+                  style: ButtonStyle(
+                    minimumSize: const WidgetStatePropertyAll(Size(0, 48)),
+                    backgroundColor: WidgetStateProperty.resolveWith<Color>((
+                      states,
+                    ) {
+                      if (_isSubmitting) {
+                        return _primaryBlue;
+                      }
+                      if (states.contains(WidgetState.disabled)) {
+                        return _disabledBg;
+                      }
+                      return _primaryBlue;
+                    }),
+                    foregroundColor: WidgetStateProperty.resolveWith<Color>((
+                      states,
+                    ) {
+                      if (_isSubmitting) {
+                        return Colors.white;
+                      }
+                      if (states.contains(WidgetState.disabled)) {
+                        return _disabledFg;
+                      }
+                      return Colors.white;
+                    }),
+                    elevation: const WidgetStatePropertyAll(0),
+                    shape: WidgetStatePropertyAll(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    textStyle: const WidgetStatePropertyAll(
+                      TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
                   ),
+                );
+              },
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        Center(
-          child: TextButton(
-            onPressed: _isSubmitting
-                ? null
-                : () {
-                    Navigator.of(context).pop();
-                  },
-            child: const Text('Quay l\u1ea1i \u0111\u0103ng nh\u1eadp'),
+          const SizedBox(height: 12),
+          Center(
+            child: TextButton(
+              onPressed: _isSubmitting
+                  ? null
+                  : () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                minimumSize: const Size(44, 44),
+                foregroundColor: _primaryBlue,
+                textStyle: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+              child: const Text('Quay lại đăng nhập'),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -191,14 +286,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 16),
         Text(
-          'Ki\u1ec3m tra email',
+          'Kiểm tra email',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: 8),
         Text(
-          'N\u1ebfu email t\u1ed3n t\u1ea1i trong h\u1ec7 th\u1ed1ng, ch\u00fang t\u00f4i \u0111\u00e3 g\u1eedi li\u00ean k\u1ebft \u0111\u1eb7t l\u1ea1i.',
+          'Nếu email tồn tại trong hệ thống, chúng tôi đã gửi liên kết đặt lại.',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: Colors.black54,
             height: 1.5,
@@ -206,7 +301,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Vui l\u00f2ng ki\u1ec3m tra c\u1ea3 th\u01b0 r\u00e1c (Spam).',
+          'Vui lòng kiểm tra cả thư rác (Spam).',
           style: theme.textTheme.bodySmall?.copyWith(color: Colors.black54),
         ),
         const SizedBox(height: 20),
@@ -220,10 +315,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2.5),
                   )
-                : const Text('G\u1eedi l\u1ea1i li\u00ean k\u1ebft'),
+                : const Text('Gửi lại liên kết'),
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
           child: OutlinedButton(
@@ -231,22 +326,49 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ? null
                 : () {
                     setState(() => _isSubmitted = false);
+                    _onFormInputChanged();
                   },
-            child: const Text('D\u00f9ng email kh\u00e1c'),
+            child: const Text('Dùng email khác'),
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Center(
           child: TextButton(
-            onPressed: _isSubmitting
-                ? null
-                : () {
-                    Navigator.of(context).pop();
-                  },
-            child: const Text('Quay l\u1ea1i \u0111\u0103ng nh\u1eadp'),
+            onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+            child: const Text('Quay lại đăng nhập'),
           ),
         ),
       ],
+    );
+  }
+
+  InputDecoration _buildInputDecoration({required IconData icon}) {
+    final baseBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+    );
+    return InputDecoration(
+      prefixIcon: Icon(icon),
+      isDense: true,
+      constraints: const BoxConstraints(minHeight: 44),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      errorStyle: const TextStyle(
+        color: _errorPink,
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+        height: 1.2,
+      ),
+      border: baseBorder,
+      enabledBorder: baseBorder,
+      focusedBorder: baseBorder.copyWith(
+        borderSide: const BorderSide(color: _primaryBlue, width: 1.6),
+      ),
+      errorBorder: baseBorder.copyWith(
+        borderSide: const BorderSide(color: _errorPink, width: 1.3),
+      ),
+      focusedErrorBorder: baseBorder.copyWith(
+        borderSide: const BorderSide(color: _errorPink, width: 1.6),
+      ),
     );
   }
 
@@ -255,13 +377,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
 
-    final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      _showSnackBar('Vui l\u00f2ng nh\u1eadp email.');
-      return;
+    if (!_isSubmitted) {
+      FocusScope.of(context).unfocus();
     }
-    if (!_isValidEmail(email)) {
-      _showSnackBar('Email kh\u00f4ng h\u1ee3p l\u1ec7.');
+    final isValid = _isSubmitted
+        ? _isFormInputValid()
+        : (_formKey.currentState?.validate() ?? false);
+    if (!isValid) {
       return;
     }
 
@@ -276,17 +398,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (mounted) {
         setState(() => _isSubmitting = false);
       }
+      _isFormValidNotifier.value = _isFormInputValid();
     }
+  }
+
+  void _onFormInputChanged() {
+    _isFormValidNotifier.value = _isFormInputValid();
+  }
+
+  bool _isFormInputValid() {
+    final email = _emailController.text.trim();
+    return email.isNotEmpty && _isValidEmail(email);
   }
 
   bool _isValidEmail(String email) {
     return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
-  }
-
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-    );
   }
 }
 
@@ -300,34 +426,10 @@ class _ForgotHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: Colors.white.withValues(alpha: 0.18),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              BrandLogoIcon(size: 40),
-              SizedBox(width: 12),
-              BrandLogoWordmark(height: 30),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
+        const BrandLogoWordmark(height: 40),
+        const SizedBox(height: 16),
         Text(
-          'Qu\u00ean m\u1eadt kh\u1ea9u',
-          style: theme.textTheme.headlineMedium?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Ch\u00fang t\u00f4i s\u1ebd g\u1eedi h\u01b0\u1edbng d\u1eabn \u0111\u1eb7t l\u1ea1i m\u1eadt kh\u1ea9u qua email.',
+          'Chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu qua email.',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: Colors.white,
             shadows: const [
@@ -337,7 +439,7 @@ class _ForgotHeader extends StatelessWidget {
                 offset: Offset(0, 1),
               ),
             ],
-            height: 1.5,
+            height: 1.45,
           ),
           textAlign: TextAlign.center,
         ),
@@ -346,36 +448,78 @@ class _ForgotHeader extends StatelessWidget {
   }
 }
 
-class _ForgotLoadingOverlay extends StatelessWidget {
-  const _ForgotLoadingOverlay();
+class _AnimatedSubmitButton extends StatefulWidget {
+  const _AnimatedSubmitButton({
+    required this.canSubmit,
+    required this.isLoading,
+    required this.label,
+    required this.loadingLabel,
+    required this.onPressed,
+    required this.style,
+  });
+
+  final bool canSubmit;
+  final bool isLoading;
+  final String label;
+  final String loadingLabel;
+  final Future<void> Function() onPressed;
+  final ButtonStyle style;
+
+  @override
+  State<_AnimatedSubmitButton> createState() => _AnimatedSubmitButtonState();
+}
+
+class _AnimatedSubmitButtonState extends State<_AnimatedSubmitButton> {
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
-    return Positioned.fill(
-      child: ColoredBox(
-        color: const Color(0x66000000),
-        child: Center(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: CircularProgressIndicator(strokeWidth: 2.8),
-                ),
-                SizedBox(height: 12),
-                Text(
-                  '\u0110ang g\u1eedi li\u00ean k\u1ebft \u0111\u1eb7t l\u1ea1i...',
-                ),
-              ],
-            ),
-          ),
+    return Listener(
+      onPointerDown: widget.canSubmit
+          ? (_) {
+              if (!_isPressed) {
+                setState(() => _isPressed = true);
+              }
+            }
+          : null,
+      onPointerUp: (_) {
+        if (_isPressed) {
+          setState(() => _isPressed = false);
+        }
+      },
+      onPointerCancel: (_) {
+        if (_isPressed) {
+          setState(() => _isPressed = false);
+        }
+      },
+      child: AnimatedScale(
+        scale: _isPressed ? 0.98 : 1,
+        duration: const Duration(milliseconds: 90),
+        curve: Curves.easeOut,
+        child: ElevatedButton(
+          onPressed: widget.canSubmit
+              ? () async {
+                  await widget.onPressed();
+                }
+              : null,
+          style: widget.style,
+          child: widget.isLoading
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.2,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(widget.loadingLabel),
+                  ],
+                )
+              : Text(widget.label),
         ),
       ),
     );

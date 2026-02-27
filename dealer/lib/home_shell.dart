@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'account_screen.dart';
 import 'dashboard_screen.dart';
+import 'inventory_screen.dart';
 import 'orders_screen.dart';
 import 'product_list_screen.dart';
-import 'warranty_hub_screen.dart';
 import 'widgets/brand_identity.dart';
 
 class DealerHomeShell extends StatefulWidget {
@@ -21,31 +21,31 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
 
   static const List<_TabItem> _tabs = [
     _TabItem(
-      label: 'Sản phẩm',
+      label: 'San pham',
       icon: Icons.storefront_outlined,
       activeIcon: Icons.storefront,
       widget: ProductListScreen(),
     ),
     _TabItem(
-      label: 'Đơn hàng',
+      label: 'Don hang',
       icon: Icons.receipt_long_outlined,
       activeIcon: Icons.receipt_long,
       widget: OrdersScreen(),
     ),
     _TabItem(
-      label: 'Tổng quan',
+      label: 'Tong quan',
       icon: Icons.dashboard_outlined,
       activeIcon: Icons.dashboard,
       widget: DashboardScreen(),
     ),
     _TabItem(
-      label: 'Bảo hành',
-      icon: Icons.verified_outlined,
-      activeIcon: Icons.verified,
-      widget: WarrantyHubScreen(),
+      label: 'Kho',
+      icon: Icons.inventory_2_outlined,
+      activeIcon: Icons.inventory_2,
+      widget: InventoryScreen(),
     ),
     _TabItem(
-      label: 'Tài khoản',
+      label: 'Tai khoan',
       icon: Icons.person_outline,
       activeIcon: Icons.person,
       widget: AccountScreen(),

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'models.dart';
@@ -9,9 +9,16 @@ import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 class WarrantyActivationScreen extends StatefulWidget {
-  const WarrantyActivationScreen({super.key, required this.orderId});
+  const WarrantyActivationScreen({
+    super.key,
+    required this.orderId,
+    this.prefilledSerial,
+    this.prefilledProductId,
+  });
 
   final String orderId;
+  final String? prefilledSerial;
+  final String? prefilledProductId;
 
   @override
   State<WarrantyActivationScreen> createState() =>
@@ -25,6 +32,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   final Map<String, List<TextEditingController>> _serialControllers = {};
   bool _isInitialized = false;
   bool _isSubmitting = false;
+  bool _didApplyPrefill = false;
 
   @override
   void didChangeDependencies() {
@@ -41,6 +49,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
 
     final warrantyController = WarrantyScope.of(context);
     _syncSerialInputs(order, warrantyController);
+    _applyPrefilledSerial(order, warrantyController);
     _isInitialized = true;
   }
 
@@ -62,20 +71,16 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     final order = OrderScope.of(context).findById(widget.orderId);
     if (order == null) {
       return Scaffold(
-        appBar: AppBar(
-          title: const BrandAppBarTitle('Kich hoat bao hanh'),
-        ),
+        appBar: AppBar(title: const BrandAppBarTitle('Xu ly serial')),
         body: const Center(
-          child: Text('Khong tim thay don hang de kich hoat bao hanh.'),
+          child: Text('Khong tim thay don hang de xu ly serial.'),
         ),
       );
     }
 
     if (order.status != OrderStatus.completed) {
       return Scaffold(
-        appBar: AppBar(
-          title: const BrandAppBarTitle('Kich hoat bao hanh'),
-        ),
+        appBar: AppBar(title: const BrandAppBarTitle('Xu ly serial')),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -93,7 +98,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                     const Icon(Icons.lock_outline, size: 38),
                     const SizedBox(height: 10),
                     Text(
-                      'Chi don da giao moi duoc kich hoat bao hanh.',
+                      'Chi don da giao moi duoc xu ly serial.',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -120,15 +125,13 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     final isFullyActivated = activatedCount >= totalCount;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const BrandAppBarTitle('Kich hoat bao hanh'),
-      ),
+      appBar: AppBar(title: const BrandAppBarTitle('Xu ly serial')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         children: [
           FadeSlideIn(
             child: _SectionCard(
-              title: 'Thong tin kich hoat',
+              title: 'Thong tin xu ly serial',
               child: Column(
                 children: [
                   _InfoRow(label: 'Ma don hang', value: order.id),
@@ -142,6 +145,13 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                     label: 'Tien do',
                     value: '$activatedCount/$totalCount serial',
                     isEmphasis: true,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Chi serial da nhap kho va thuoc san pham trong don moi duoc kich hoat.',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.black54),
                   ),
                   const SizedBox(height: 14),
                   TextField(
@@ -184,7 +194,13 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
               item.product.id,
             );
             final remaining = item.quantity - activated.length;
-            final serialInputs = _serialControllers[item.product.id] ?? const [];
+            final serialInputs =
+                _serialControllers[item.product.id] ?? const [];
+            final availableSerials = warrantyController
+                .availableImportedSerialsForOrderItem(
+                  order.id,
+                  item.product.id,
+                );
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -196,14 +212,16 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _InfoRow(
-                        label: 'So luong',
-                        value: '${item.quantity}',
-                      ),
+                      _InfoRow(label: 'So luong', value: '${item.quantity}'),
                       const SizedBox(height: 8),
                       _InfoRow(
                         label: 'Da kich hoat',
                         value: '${activated.length}/${item.quantity}',
+                      ),
+                      const SizedBox(height: 8),
+                      _InfoRow(
+                        label: 'Serial hop le trong kho',
+                        value: '${availableSerials.length}',
                       ),
                       if (activated.isNotEmpty) ...[
                         const SizedBox(height: 12),
@@ -229,9 +247,8 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                         const SizedBox(height: 12),
                         Text(
                           'Nhap $remaining serial con thieu',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 10),
                         ...serialInputs.asMap().entries.map((serialEntry) {
@@ -249,7 +266,8 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                                 ),
                               ],
                               decoration: InputDecoration(
-                                labelText: 'Serial ${serialIndex + 1}/$remaining',
+                                labelText:
+                                    'Serial ${serialIndex + 1}/$remaining',
                                 prefixIcon: const Icon(
                                   Icons.confirmation_number_outlined,
                                 ),
@@ -275,7 +293,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                 child: Text(
                   isFullyActivated
                       ? 'Don da kich hoat du serial'
-                      : 'Xac nhan kich hoat bao hanh',
+                      : 'Xac nhan kich hoat serial',
                 ),
               ),
             ),
@@ -299,11 +317,80 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
         item.product.id,
       );
       final remaining = item.quantity - activated.length;
-      _serialControllers[item.product.id] = List<TextEditingController>.generate(
-        remaining > 0 ? remaining : 0,
-        (_) => TextEditingController(),
-      );
+      _serialControllers[item.product.id] =
+          List<TextEditingController>.generate(
+            remaining > 0 ? remaining : 0,
+            (_) => TextEditingController(),
+          );
     }
+  }
+
+  void _applyPrefilledSerial(
+    Order order,
+    WarrantyController warrantyController,
+  ) {
+    if (_didApplyPrefill) {
+      return;
+    }
+    _didApplyPrefill = true;
+
+    final rawPrefilled = widget.prefilledSerial?.trim();
+    if (rawPrefilled == null || rawPrefilled.isEmpty) {
+      return;
+    }
+
+    final normalized = warrantyController.normalizeSerial(rawPrefilled);
+    final imported = warrantyController.findImportedSerial(normalized);
+    if (imported == null) {
+      _showSnackBarDeferred('Không tìm thấy serial $normalized trong kho.');
+      return;
+    }
+    if (imported.orderId != order.id) {
+      _showSnackBarDeferred(
+        'Serial $normalized thuộc đơn ${imported.orderId}, không thuộc đơn ${order.id}.',
+      );
+      return;
+    }
+    if (widget.prefilledProductId != null &&
+        widget.prefilledProductId != imported.productId) {
+      _showSnackBarDeferred(
+        'Serial $normalized không khớp sản phẩm cần xử lý.',
+      );
+      return;
+    }
+
+    final inputList = _serialControllers[imported.productId];
+    if (inputList == null || inputList.isEmpty) {
+      _showSnackBarDeferred(
+        'Không còn ô serial trống cho ${imported.productName}.',
+      );
+      return;
+    }
+
+    final alreadyFilled = inputList.any(
+      (controller) =>
+          warrantyController.normalizeSerial(controller.text) == normalized,
+    );
+    if (alreadyFilled) {
+      return;
+    }
+
+    TextEditingController? emptySlot;
+    for (final controller in inputList) {
+      if (controller.text.trim().isEmpty) {
+        emptySlot = controller;
+        break;
+      }
+    }
+    if (emptySlot == null) {
+      _showSnackBarDeferred(
+        'Đã đủ serial cho ${imported.productName}, không thể tự điền thêm.',
+      );
+      return;
+    }
+
+    emptySlot.text = normalized;
+    _showSnackBarDeferred('Đã điền serial quét: $normalized');
   }
 
   Future<void> _handleSubmit(Order order) async {
@@ -312,7 +399,9 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     final customerPhone = _phoneController.text.trim();
     final customerAddress = _addressController.text.trim();
 
-    if (customerName.isEmpty || customerPhone.isEmpty || customerAddress.isEmpty) {
+    if (customerName.isEmpty ||
+        customerPhone.isEmpty ||
+        customerAddress.isEmpty) {
       _showSnackBar('Vui long nhap day du thong tin khach hang.');
       return;
     }
@@ -335,8 +424,15 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
           _showSnackBar('Serial $normalized dang bi trung trong lan nhap nay.');
           return;
         }
-        if (warrantyController.serialExists(normalized)) {
-          _showSnackBar('Serial $normalized da duoc kich hoat truoc do.');
+        final serialValidationError = warrantyController
+            .validateSerialForActivation(
+              serial: normalized,
+              productId: item.product.id,
+              productName: item.product.name,
+              orderId: order.id,
+            );
+        if (serialValidationError != null) {
+          _showSnackBar(serialValidationError);
           return;
         }
         localSerialSet.add(normalized);
@@ -378,17 +474,23 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showSnackBarDeferred(String message) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _showSnackBar(message);
+    });
   }
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({
-    required this.title,
-    required this.child,
-  });
+  const _SectionCard({required this.title, required this.child});
 
   final String title;
   final Widget child;
@@ -441,17 +543,9 @@ class _InfoRow extends StatelessWidget {
 
     return Row(
       children: [
-        Expanded(
-          child: Text(
-            label,
-            style: isEmphasis ? emphasisStyle : style,
-          ),
-        ),
+        Expanded(child: Text(label, style: isEmphasis ? emphasisStyle : style)),
         const SizedBox(width: 12),
-        Text(
-          value,
-          style: isEmphasis ? emphasisStyle : style,
-        ),
+        Text(value, style: isEmphasis ? emphasisStyle : style),
       ],
     );
   }

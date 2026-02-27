@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'auth_storage.dart';
 import 'cart_controller.dart';
@@ -25,6 +24,7 @@ class _DealerAppState extends State<DealerApp> {
   late final CartController _cartController;
   late final OrderController _orderController;
   late final WarrantyController _warrantyController;
+  late final AuthStorage _authStorage;
   late final Future<bool> _shouldAutoLoginFuture;
 
   @override
@@ -33,14 +33,12 @@ class _DealerAppState extends State<DealerApp> {
     _cartController = CartController();
     _orderController = OrderController();
     _warrantyController = WarrantyController();
+    _authStorage = AuthStorage();
     _shouldAutoLoginFuture = _shouldAutoLogin();
   }
 
   Future<bool> _shouldAutoLogin() async {
-    final prefs = await SharedPreferences.getInstance();
-    final rememberMe = prefs.getBool(rememberMeKey) ?? false;
-    final loggedIn = prefs.getBool(loggedInKey) ?? false;
-    return rememberMe && loggedIn;
+    return _authStorage.shouldAutoLogin();
   }
 
   @override
@@ -78,8 +76,21 @@ class _DealerAppState extends State<DealerApp> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide:
-                      const BorderSide(color: Color(0xFF2563EB), width: 1.5),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF2563EB),
+                    width: 1.5,
+                  ),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: Color(0xFFDC2626)),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFDC2626),
+                    width: 1.5,
+                  ),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,

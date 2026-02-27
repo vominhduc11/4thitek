@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -38,7 +38,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
   String _searchText = '';
   StockFilter _stockFilter = StockFilter.all;
   SortOption _sortOption = SortOption.none;
-  ProductCategory? _categoryFilter;
+  final List<Product> _catalogProducts = mockProducts
+      .where((product) => product.category == ProductCategory.headset)
+      .toList(growable: false);
   late final double _minPrice;
   late final double _maxPrice;
   late RangeValues _priceRange;
@@ -49,7 +51,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   @override
   void initState() {
     super.initState();
-    final prices = mockProducts.map((product) => product.price).toList();
+    final prices = _catalogProducts.map((product) => product.price).toList();
     if (prices.isEmpty) {
       _minPrice = 0;
       _maxPrice = 0;
@@ -89,9 +91,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
             tooltip: 'Thông báo',
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const NotificationsScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
               );
             },
             icon: const Icon(Icons.notifications_outlined),
@@ -255,7 +255,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
     setState(() {
       _stockFilter = StockFilter.all;
       _sortOption = SortOption.none;
-      _categoryFilter = null;
       _searchText = '';
       _searchController.text = '';
       _priceRange = RangeValues(_minPrice, _maxPrice);
@@ -277,7 +276,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   List<Product> _applyFilters() {
     final query = _searchText.toLowerCase();
-    final filtered = mockProducts
+    final filtered = _catalogProducts
         .where((product) {
           if (query.isNotEmpty) {
             final name = product.name.toLowerCase();
@@ -285,10 +284,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
             if (!name.contains(query) && !sku.contains(query)) {
               return false;
             }
-          }
-
-          if (_categoryFilter != null && product.category != _categoryFilter) {
-            return false;
           }
 
           switch (_stockFilter) {
@@ -336,7 +331,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     return ValueListenableBuilder<PagingState<int, Product>>(
       valueListenable: _pagingController,
       builder: (context, state, _) {
-        final total = mockProducts.length;
+        final total = _catalogProducts.length;
         final filteredTotal = _applyFilters().length;
         final loaded = math.min(state.itemList?.length ?? 0, filteredTotal);
         final theme = Theme.of(context);
@@ -544,8 +539,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
           const SizedBox(width: 8),
           _buildStockChip(context, StockFilter.outOfStock, 'Hết hàng'),
           const SizedBox(width: 8),
-          _buildCategoryMenu(context),
-          const SizedBox(width: 8),
           _buildSortMenu(context),
           const SizedBox(width: 8),
           _buildAdvancedFilterButton(context),
@@ -617,45 +610,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
         child: OutlinedButton.icon(
           onPressed: () {},
           icon: const Icon(Icons.swap_vert),
-          label: Text(label),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.black87,
-            minimumSize: const Size(0, 40),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryMenu(BuildContext context) {
-    final label = _categoryFilter == null
-        ? 'Danh muc'
-        : _categoryFilter!.label;
-
-    return PopupMenuButton<ProductCategory?>(
-      onSelected: (value) {
-        if (value == _categoryFilter) {
-          return;
-        }
-        setState(() => _categoryFilter = value);
-        _refreshProducts();
-      },
-      itemBuilder: (context) => [
-        const PopupMenuItem<ProductCategory?>(
-          value: null,
-          child: Text('Tat ca danh muc'),
-        ),
-        ...ProductCategory.values.map(
-          (category) => PopupMenuItem<ProductCategory?>(
-            value: category,
-            child: Text(category.label),
-          ),
-        ),
-      ],
-      child: IgnorePointer(
-        child: OutlinedButton.icon(
-          onPressed: () {},
-          icon: const Icon(Icons.category_outlined),
           label: Text(label),
           style: OutlinedButton.styleFrom(
             foregroundColor: Colors.black87,
@@ -928,7 +882,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final initialRange = _priceRange;
     final initialWarranty = Set<int>.from(_warrantyFilters);
     final warrantyOptions =
-        mockProducts.map((product) => product.warrantyMonths).toSet().toList()
+        _catalogProducts
+            .map((product) => product.warrantyMonths)
+            .toSet()
+            .toList()
           ..sort();
     final priceRangeEnabled = _minPrice < _maxPrice;
     final divisions = priceRangeEnabled ? 10 : null;
@@ -1105,9 +1062,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
     if (_sortOption != SortOption.none) {
       count++;
     }
-    if (_categoryFilter != null) {
-      count++;
-    }
     if (_hasPriceFilter) {
       count++;
     }
@@ -1121,14 +1075,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
       _searchText.isNotEmpty ||
       _stockFilter != StockFilter.all ||
       _sortOption != SortOption.none ||
-      _categoryFilter != null ||
       _hasAdvancedFilters;
 
   String _buildAdvancedSummary() {
     final parts = <String>[];
-    if (_categoryFilter != null) {
-      parts.add('Danh muc: ${_categoryFilter!.label}');
-    }
     if (_hasPriceFilter) {
       parts.add(
         'Giá: ${formatVnd(_priceRange.start.round())} - ${formatVnd(_priceRange.end.round())}',
@@ -1222,11 +1172,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                product.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+              Text(product.name, maxLines: 2, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 12),
               SpinBox(
                 min: minQty.toDouble(),
@@ -1241,10 +1187,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
               const SizedBox(height: 8),
               Text(
                 'Tối thiểu: $minQty • Tối đa: $maxQuantity',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: Colors.black54),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.black54),
               ),
             ],
           ),
@@ -1254,8 +1199,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
               child: const Text('Hủy'),
             ),
             ElevatedButton(
-              onPressed: () =>
-                  Navigator.of(dialogContext).pop(selected),
+              onPressed: () => Navigator.of(dialogContext).pop(selected),
               child: const Text('Thêm'),
             ),
           ],
@@ -1280,7 +1224,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(productName, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(
+                    productName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 8),
                   Text('Tối đa: $maxQuantity'),
                   const SizedBox(height: 12),
@@ -1319,9 +1267,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   if (selectedQuantity == maxQuantity)
                     Text(
                       'Đã đạt tối đa theo tồn kho.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.black54,
-                      ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
                     ),
                 ],
               ),
@@ -1552,6 +1500,3 @@ class _ProductCardSkeleton extends StatelessWidget {
 enum StockFilter { all, inStock, lowStock, outOfStock }
 
 enum SortOption { none, priceAsc, priceDesc, nameAsc }
-
-
-

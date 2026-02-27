@@ -1,5 +1,4 @@
-﻿import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/material.dart';
 
 import 'account_settings_screen.dart';
 import 'auth_storage.dart';
@@ -20,6 +19,7 @@ class AccountScreen extends StatefulWidget {
 class _AccountScreenState extends State<AccountScreen> {
   bool _isLoggingOut = false;
   late Future<DealerProfile> _profileFuture;
+  final _authStorage = AuthStorage();
 
   @override
   void initState() {
@@ -43,19 +43,14 @@ class _AccountScreenState extends State<AccountScreen> {
     try {
       await Future.delayed(const Duration(seconds: 1));
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(loggedInKey, false);
-      await prefs.setBool(rememberMeKey, false);
-      await prefs.remove(rememberEmailKey);
+      await _authStorage.clearSession();
       if (!mounted) {
         return;
       }
 
       shouldResetLoading = false;
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (context) => const LoginScreen(),
-        ),
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
         (route) => false,
       );
     } finally {
@@ -75,9 +70,7 @@ class _AccountScreenState extends State<AccountScreen> {
             tooltip: 'Thông báo',
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const NotificationsScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
               );
             },
             icon: const Icon(Icons.notifications_outlined),
@@ -111,52 +104,44 @@ class _AccountScreenState extends State<AccountScreen> {
                           children: [
                             Text(
                               profile.businessName,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
+                              style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               'Ma dai ly: ${profile.dealerCode}',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: Colors.black54),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               'Nguoi lien he: ${profile.contactName}',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: Colors.black54),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               'Email: ${profile.email}',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: Colors.black54),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               'SDT: ${profile.phone}',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: Colors.black54),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               'Dia chi giao hang: ${profile.shippingAddress}',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: Colors.black54),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               'Chinh sach: ${profile.salesPolicy}',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: Colors.black54),
                             ),
                           ],
                         ),
@@ -219,7 +204,9 @@ class _AccountScreenState extends State<AccountScreen> {
                           ? const SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2.5),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                              ),
                             )
                           : const Text('Dang xuat'),
                     ),

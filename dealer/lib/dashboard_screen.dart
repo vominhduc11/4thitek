@@ -8,6 +8,7 @@ import 'mock_data.dart';
 import 'models.dart';
 import 'order_controller.dart';
 import 'notifications_screen.dart';
+import 'orders_screen.dart';
 import 'product_list_screen.dart';
 import 'utils.dart';
 import 'widgets/brand_identity.dart';
@@ -21,13 +22,13 @@ const _mobileBreakpoint = 600.0;
 const _tabletBreakpoint = 900.0;
 const _desktopBreakpoint = 1200.0;
 const _overviewCompactBreakpoint = 480.0;
-const _donutStackBreakpoint = 420.0;
+const _donutStackBreakpoint = 600.0;
 const _compactDebtRowBreakpoint = 420.0;
 const _maxDashboardContentWidth = 1280.0;
 
 enum _DashboardTimeFilter { month, quarter }
 
-enum _DashboardQuickAction { createOrder, activateWarranty }
+enum _DashboardLoadState { loading, ready, error }
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -37,8 +38,10 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  bool _isLoading = true;
+  _DashboardLoadState _loadState = _DashboardLoadState.loading;
+  String? _loadErrorMessage;
   _DashboardTimeFilter _timeFilter = _DashboardTimeFilter.month;
+  DateTime _selectedPeriod = DateTime.now();
 
   @override
   void initState() {
@@ -47,179 +50,267 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadMockDashboard() async {
-    await Future.delayed(const Duration(milliseconds: 450));
-    if (!mounted) {
-      return;
+    setState(() {
+      _loadState = _DashboardLoadState.loading;
+      _loadErrorMessage = null;
+    });
+    try {
+      await Future.delayed(const Duration(milliseconds: 450));
+      if (!mounted) {
+        return;
+      }
+      setState(() => _loadState = _DashboardLoadState.ready);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _loadState = _DashboardLoadState.error;
+        _loadErrorMessage =
+            'Đã xảy ra lỗi khi tải dữ liệu tổng quan. Vui lòng thử lại.';
+      });
     }
-    setState(() => _isLoading = false);
+  }
+
+  void _openCreateOrderFlow() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ProductListScreen()));
+  }
+
+  void _openDebtTracking() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const DebtTrackingScreen()));
+  }
+
+  void _openOrdersScreen() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const OrdersScreen()));
   }
 
   @override
   Widget build(BuildContext context) {
     final orderController = OrderScope.of(context);
-    final orders = orderController.orders;
-    final monthlyRevenue = _buildMonthlyRevenue(orders);
-    final activationSeries = _buildActivationSeries(days: 30);
-    final warrantyActivationSeries = _buildActivationSeries(days: 90);
-
     final now = DateTime.now();
-    final periodContextLabel = _periodContextLabel(now);
-    final currentMonthRevenue = monthlyRevenue[now.month - 1].value;
-    final currentMonthOrders = orders
-        .where(
-          (order) =>
-              order.createdAt.year == now.year &&
-              order.createdAt.month == now.month,
-        )
+    final periodAnchor = _normalizePeriodAnchor(_selectedPeriod);
+    final periodStart = _periodStart(periodAnchor);
+    final periodEndExclusive = _periodEndExclusive(periodAnchor, now);
+    final periodEndDate = periodEndExclusive.subtract(
+      const Duration(microseconds: 1),
+    );
+    final periodOrders = _filterOrdersByPeriod(
+      orderController.orders,
+      periodStart,
+      periodEndExclusive,
+    );
+    final monthlyRevenue = _buildMonthlyRevenue(
+      periodOrders,
+      year: periodAnchor.year,
+    );
+    final activationWindowDays = _timeFilter == _DashboardTimeFilter.month
+        ? 30
+        : 90;
+    final activationSeries = _buildActivationSeries(
+      days: activationWindowDays,
+      endDate: periodEndDate,
+    );
+    final warrantyActivationSeries = _buildActivationSeries(
+      days: activationWindowDays,
+      endDate: periodEndDate,
+    );
+    final warrantyRanges = _timeFilter == _DashboardTimeFilter.month
+        ? const <int>[7, 30]
+        : const <int>[7, 30, 90];
+    final periodContextLabel = _periodContextLabel(periodAnchor);
+    final periodRevenue = periodOrders.fold<int>(
+      0,
+      (sum, order) => sum + order.total,
+    );
+    final periodOrderCount = periodOrders.length;
+    final periodCompletedOrderCount = periodOrders
+        .where((order) => order.status == OrderStatus.completed)
         .length;
+    final periodOutstandingDebt = periodOrders.fold<int>(
+      0,
+      (sum, order) => sum + order.outstandingAmount,
+    );
+    final periodUnitLabel = _timeFilter == _DashboardTimeFilter.month
+        ? 'tháng'
+        : 'quý';
 
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isMobile = screenWidth < _mobileBreakpoint;
     final horizontalPadding = isMobile ? 16.0 : 20.0;
     final listBottomPadding = 24.0;
 
-    final content = _isLoading
-        ? const _DashboardLoadingView()
-        : ListView(
-            padding: EdgeInsets.fromLTRB(
-              horizontalPadding,
-              16,
-              horizontalPadding,
-              listBottomPadding,
+    final Widget content;
+    if (_loadState == _DashboardLoadState.loading) {
+      content = const _DashboardLoadingView();
+    } else if (_loadState == _DashboardLoadState.error) {
+      content = _DashboardErrorView(
+        message:
+            _loadErrorMessage ??
+            'Không thể tải dữ liệu dashboard. Vui lòng thử lại.',
+        onRetry: _loadMockDashboard,
+      );
+    } else {
+      content = ListView(
+        padding: EdgeInsets.fromLTRB(
+          horizontalPadding,
+          16,
+          horizontalPadding,
+          listBottomPadding,
+        ),
+        children: [
+          FadeSlideIn(
+            child: _OverviewCard(
+              totalDebt: periodOutstandingDebt,
+              periodRevenue: periodRevenue,
+              periodOrders: periodOrderCount,
+              periodCompletedOrders: periodCompletedOrderCount,
+              periodUnitLabel: periodUnitLabel,
+              contextLabel: periodContextLabel,
             ),
-            children: [
-              FadeSlideIn(
-                child: _OverviewCard(
-                  totalDebt: orderController.totalOutstandingDebt,
-                  currentMonthRevenue: currentMonthRevenue,
-                  currentMonthOrders: currentMonthOrders,
-                  contextLabel: periodContextLabel,
-                ),
-              ),
-              const SizedBox(height: 14),
-              FadeSlideIn(
-                delay: const Duration(milliseconds: 95),
-                child: const _SectionTitle(title: 'Hiệu suất theo dõi'),
-              ),
-              const SizedBox(height: 8),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final cols = constraints.maxWidth >= _desktopBreakpoint
-                      ? 3
-                      : constraints.maxWidth >= _tabletBreakpoint
-                      ? 2
-                      : 1;
-                  final childWidth =
-                      (constraints.maxWidth - (cols - 1) * 12) / cols;
-                  return Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      SizedBox(
-                        width: childWidth,
-                        child: FadeSlideIn(
-                          delay: const Duration(milliseconds: 110),
-                          child: _OrderStatusDistributionCard(orders: orders),
-                        ),
+          ),
+          const SizedBox(height: 14),
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 95),
+            child: const _SectionTitle(title: 'Hiệu suất theo dõi'),
+          ),
+          const SizedBox(height: 8),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final cols = constraints.maxWidth >= _desktopBreakpoint
+                  ? 3
+                  : constraints.maxWidth >= _tabletBreakpoint
+                  ? 2
+                  : 1;
+              final childWidth =
+                  (constraints.maxWidth - (cols - 1) * 12) / cols;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  SizedBox(
+                    width: childWidth,
+                    child: FadeSlideIn(
+                      delay: const Duration(milliseconds: 110),
+                      child: _OrderStatusDistributionCard(
+                        orders: periodOrders,
+                        onCreateOrder: _openCreateOrderFlow,
                       ),
-                      SizedBox(
-                        width: childWidth,
-                        child: FadeSlideIn(
-                          delay: const Duration(milliseconds: 115),
-                          child: _AgingDebtCard(
-                            buckets: _buildDebtBuckets(
-                              orderController.totalOutstandingDebt,
-                            ),
-                            onViewAll: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const DebtTrackingScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: childWidth,
+                    child: FadeSlideIn(
+                      delay: const Duration(milliseconds: 115),
+                      child: _AgingDebtCard(
+                        buckets: _buildDebtBuckets(periodOutstandingDebt),
+                        onViewAll: _openDebtTracking,
                       ),
-                      SizedBox(
-                        width: childWidth,
-                        child: FadeSlideIn(
-                          delay: const Duration(milliseconds: 120),
-                          child: _LowStockPanel(
-                            products: _buildLowStockProducts(),
-                          ),
-                        ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: childWidth,
+                    child: FadeSlideIn(
+                      delay: const Duration(milliseconds: 120),
+                      child: _LowStockPanel(products: _buildLowStockProducts()),
+                    ),
+                  ),
+                  SizedBox(
+                    width: childWidth,
+                    child: FadeSlideIn(
+                      delay: const Duration(milliseconds: 125),
+                      child: _ActivationTrendCard(
+                        data: activationSeries,
+                        windowDays: activationWindowDays,
                       ),
-                      SizedBox(
-                        width: childWidth,
-                        child: FadeSlideIn(
-                          delay: const Duration(milliseconds: 125),
-                          child: _ActivationTrendCard(data: activationSeries),
-                        ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: childWidth,
+                    child: FadeSlideIn(
+                      delay: const Duration(milliseconds: 130),
+                      child: _WarrantyStatusDonutCard(
+                        activations: warrantyActivationSeries,
+                        ranges: warrantyRanges,
+                        initialRange: warrantyRanges.last,
                       ),
-                      SizedBox(
-                        width: childWidth,
-                        child: FadeSlideIn(
-                          delay: const Duration(milliseconds: 130),
-                          child: _WarrantyStatusDonutCard(
-                            activations: warrantyActivationSeries,
-                          ),
-                        ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: childWidth,
+                    child: FadeSlideIn(
+                      delay: const Duration(milliseconds: 135),
+                      child: _RevenueChartCard(
+                        data: monthlyRevenue,
+                        focusMonth: periodAnchor.month,
+                        displayYear: periodAnchor.year,
+                        onCreateOrder: _openCreateOrderFlow,
                       ),
-                      SizedBox(
-                        width: childWidth,
-                        child: FadeSlideIn(
-                          delay: const Duration(milliseconds: 135),
-                          child: _RevenueChartCard(data: monthlyRevenue),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              FadeSlideIn(
-                delay: const Duration(milliseconds: 140),
-                child: const _SectionTitle(title: 'Đơn hàng gần đây'),
-              ),
-              const SizedBox(height: 8),
-              if (orders.isEmpty)
-                const _EmptyCard(message: 'Chưa có đơn nào.')
-              else
-                ...orders.take(5).map((order) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _RecentOrderCard(order: order),
-                  );
-                }),
-            ],
-          );
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 140),
+            child: Row(
+              children: [
+                const Expanded(child: _SectionTitle(title: 'Đơn hàng gần đây')),
+                if (periodOrders.isNotEmpty)
+                  TextButton.icon(
+                    onPressed: _openOrdersScreen,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(44, 44),
+                      visualDensity: VisualDensity.compact,
+                      foregroundColor: const Color(0xFF1D4ED8),
+                    ),
+                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                    label: const Text('Xem tất cả'),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (periodOrders.isEmpty)
+            _EmptyCard(
+              title: 'Đơn hàng gần đây',
+              message: 'Bạn chưa có đơn hàng nào trong kỳ đã chọn.',
+              description: 'Hãy tạo đơn hàng mới để bắt đầu theo dõi.',
+              icon: Icons.receipt_long_outlined,
+              ctaLabel: 'Tạo đơn hàng',
+              ctaSemanticLabel: 'Tạo đơn hàng mới',
+              ctaIcon: Icons.add_shopping_cart_outlined,
+              onCtaPressed: _openCreateOrderFlow,
+            )
+          else
+            ...periodOrders.take(5).map((order) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _RecentOrderCard(order: order),
+              );
+            }),
+        ],
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: BrandAppBarTitle('Tổng quan - $periodContextLabel'),
+        title: const BrandAppBarTitle('Tổng quan'),
         actions: [
-          PopupMenuButton<_DashboardTimeFilter>(
-            tooltip: 'Lọc thời gian',
-            icon: const Icon(Icons.calendar_month_outlined),
-            initialValue: _timeFilter,
-            onSelected: (value) {
-              if (_timeFilter == value) {
-                return;
-              }
-              setState(() => _timeFilter = value);
-            },
-            itemBuilder: (context) => [
-              CheckedPopupMenuItem<_DashboardTimeFilter>(
-                value: _DashboardTimeFilter.month,
-                checked: _timeFilter == _DashboardTimeFilter.month,
-                child: const Text('Theo tháng'),
-              ),
-              CheckedPopupMenuItem<_DashboardTimeFilter>(
-                value: _DashboardTimeFilter.quarter,
-                checked: _timeFilter == _DashboardTimeFilter.quarter,
-                child: const Text('Theo quý'),
-              ),
-            ],
+          Tooltip(
+            message: 'Lọc thời gian',
+            child: TextButton.icon(
+              onPressed: _openTimeFilterSheet,
+              icon: const Icon(Icons.calendar_month_outlined, size: 18),
+              label: Text(_periodCompactLabel(periodAnchor)),
+            ),
           ),
           IconButton(
             tooltip: 'Thông báo',
@@ -230,37 +321,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
             icon: const Icon(Icons.notifications_outlined),
           ),
-          if (isMobile)
-            PopupMenuButton<_DashboardQuickAction>(
-              tooltip: 'Thao tac nhanh',
-              icon: const Icon(Icons.more_horiz_rounded),
-              onSelected: _handleQuickAction,
-              itemBuilder: (context) => const [
-                PopupMenuItem<_DashboardQuickAction>(
-                  value: _DashboardQuickAction.createOrder,
-                  child: Text('T\u1ea1o \u0111\u01a1n nh\u1eadp'),
-                ),
-                PopupMenuItem<_DashboardQuickAction>(
-                  value: _DashboardQuickAction.activateWarranty,
-                  child: Text('K\u00edch ho\u1ea1t BH'),
-                ),
-              ],
-            ),
-          if (!isMobile) ...[
-            TextButton.icon(
-              onPressed: () =>
-                  _handleQuickAction(_DashboardQuickAction.createOrder),
-              icon: const Icon(Icons.add_shopping_cart_outlined),
-              label: const Text('Tạo đơn nhập'),
-            ),
-            TextButton.icon(
-              onPressed: () =>
-                  _handleQuickAction(_DashboardQuickAction.activateWarranty),
-              icon: const Icon(Icons.qr_code_scanner),
-              label: const Text('Kích hoạt BH'),
-            ),
-            const SizedBox(width: 6),
-          ],
         ],
       ),
       body: Center(
@@ -274,42 +334,321 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _handleQuickAction(_DashboardQuickAction action) {
-    final message = switch (action) {
-      _DashboardQuickAction.createOrder =>
-        'T\u00ednh n\u0103ng t\u1ea1o \u0111\u01a1n \u0111ang \u0111\u01b0\u1ee3c c\u1eadp nh\u1eadt.',
-      _DashboardQuickAction.activateWarranty =>
-        'T\u00ednh n\u0103ng k\u00edch ho\u1ea1t b\u1ea3o h\u00e0nh \u0111ang \u0111\u01b0\u1ee3c c\u1eadp nh\u1eadt.',
-    };
-
-    final messenger = ScaffoldMessenger.of(context);
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-      );
+  String _periodContextLabel(DateTime date) {
+    return _periodContextLabelFor(date, _timeFilter);
   }
 
-  String _periodContextLabel(DateTime date) {
-    if (_timeFilter == _DashboardTimeFilter.month) {
+  String _periodContextLabelFor(DateTime date, _DashboardTimeFilter filter) {
+    if (filter == _DashboardTimeFilter.month) {
       return 'Tháng ${date.month}/${date.year}';
     }
     final quarter = ((date.month - 1) ~/ 3) + 1;
     return 'Quý $quarter/${date.year}';
+  }
+
+  String _periodCompactLabel(DateTime date) {
+    if (_timeFilter == _DashboardTimeFilter.month) {
+      return 'T${date.month}/${date.year}';
+    }
+    final quarter = ((date.month - 1) ~/ 3) + 1;
+    return 'Q$quarter/${date.year}';
+  }
+
+  DateTime _periodStart(DateTime date) {
+    return _periodStartForFilter(date, _timeFilter);
+  }
+
+  DateTime _periodStartForFilter(DateTime date, _DashboardTimeFilter filter) {
+    if (filter == _DashboardTimeFilter.month) {
+      return DateTime(date.year, date.month, 1);
+    }
+    final quarterStartMonth = ((date.month - 1) ~/ 3) * 3 + 1;
+    return DateTime(date.year, quarterStartMonth, 1);
+  }
+
+  DateTime _nextPeriodStart(DateTime date) {
+    return _nextPeriodStartForFilter(date, _timeFilter);
+  }
+
+  DateTime _nextPeriodStartForFilter(
+    DateTime date,
+    _DashboardTimeFilter filter,
+  ) {
+    final periodStart = _periodStartForFilter(date, filter);
+    if (filter == _DashboardTimeFilter.month) {
+      return DateTime(periodStart.year, periodStart.month + 1, 1);
+    }
+    return DateTime(periodStart.year, periodStart.month + 3, 1);
+  }
+
+  DateTime _previousPeriodStartForFilter(
+    DateTime date,
+    _DashboardTimeFilter filter,
+  ) {
+    final periodStart = _periodStartForFilter(date, filter);
+    if (filter == _DashboardTimeFilter.month) {
+      return DateTime(periodStart.year, periodStart.month - 1, 1);
+    }
+    return DateTime(periodStart.year, periodStart.month - 3, 1);
+  }
+
+  DateTime _periodEndExclusive(DateTime date, DateTime now) {
+    final nextPeriodStart = _nextPeriodStart(date);
+    final nowExclusive = now.add(const Duration(microseconds: 1));
+    return nowExclusive.isBefore(nextPeriodStart)
+        ? nowExclusive
+        : nextPeriodStart;
+  }
+
+  DateTime _normalizePeriodAnchor(DateTime value) {
+    return _normalizePeriodAnchorForFilter(value, _timeFilter);
+  }
+
+  DateTime _normalizePeriodAnchorForFilter(
+    DateTime value,
+    _DashboardTimeFilter filter, {
+    DateTime? now,
+  }) {
+    final current = now ?? DateTime.now();
+    final safeValue = value.isAfter(current) ? current : value;
+    return _periodStartForFilter(safeValue, filter);
+  }
+
+  bool _canMoveToNextPeriod(
+    DateTime periodAnchor,
+    _DashboardTimeFilter filter,
+    DateTime now,
+  ) {
+    final nextStart = _nextPeriodStartForFilter(periodAnchor, filter);
+    final currentStart = _periodStartForFilter(now, filter);
+    return !nextStart.isAfter(currentStart);
+  }
+
+  Future<void> _openTimeFilterSheet() async {
+    final now = DateTime.now();
+    var draftFilter = _timeFilter;
+    var draftPeriod = _normalizePeriodAnchorForFilter(
+      _selectedPeriod,
+      draftFilter,
+      now: now,
+    );
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final isCurrentPeriod =
+                _periodStartForFilter(draftPeriod, draftFilter) ==
+                _periodStartForFilter(now, draftFilter);
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Lọc thời gian',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SegmentedButton<_DashboardTimeFilter>(
+                      showSelectedIcon: false,
+                      multiSelectionEnabled: false,
+                      segments: const [
+                        ButtonSegment<_DashboardTimeFilter>(
+                          value: _DashboardTimeFilter.month,
+                          label: Text('Theo tháng'),
+                        ),
+                        ButtonSegment<_DashboardTimeFilter>(
+                          value: _DashboardTimeFilter.quarter,
+                          label: Text('Theo quý'),
+                        ),
+                      ],
+                      selected: {draftFilter},
+                      onSelectionChanged: (selected) {
+                        if (selected.isEmpty) {
+                          return;
+                        }
+                        final nextFilter = selected.first;
+                        setSheetState(() {
+                          draftFilter = nextFilter;
+                          draftPeriod = _normalizePeriodAnchorForFilter(
+                            draftPeriod,
+                            draftFilter,
+                            now: now,
+                          );
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Text(
+                        _periodContextLabelFor(draftPeriod, draftFilter),
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              setSheetState(() {
+                                draftPeriod = _previousPeriodStartForFilter(
+                                  draftPeriod,
+                                  draftFilter,
+                                );
+                              });
+                            },
+                            icon: const Icon(Icons.chevron_left),
+                            label: const Text('Kỳ trước'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed:
+                                _canMoveToNextPeriod(
+                                  draftPeriod,
+                                  draftFilter,
+                                  now,
+                                )
+                                ? () {
+                                    setSheetState(() {
+                                      draftPeriod = _nextPeriodStartForFilter(
+                                        draftPeriod,
+                                        draftFilter,
+                                      );
+                                    });
+                                  }
+                                : null,
+                            icon: const Icon(Icons.chevron_right),
+                            label: const Text('Kỳ sau'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: draftPeriod.isAfter(now)
+                                ? now
+                                : draftPeriod,
+                            firstDate: DateTime(now.year - 5, 1, 1),
+                            lastDate: now,
+                            helpText: draftFilter == _DashboardTimeFilter.month
+                                ? 'Chọn tháng'
+                                : 'Chọn quý',
+                          );
+                          if (picked == null) {
+                            return;
+                          }
+                          setSheetState(() {
+                            draftPeriod = _normalizePeriodAnchorForFilter(
+                              picked,
+                              draftFilter,
+                              now: now,
+                            );
+                          });
+                        },
+                        icon: const Icon(Icons.event_outlined),
+                        label: const Text('Chọn từ lịch'),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        TextButton(
+                          onPressed: isCurrentPeriod
+                              ? null
+                              : () {
+                                  setSheetState(() {
+                                    draftPeriod =
+                                        _normalizePeriodAnchorForFilter(
+                                          now,
+                                          draftFilter,
+                                          now: now,
+                                        );
+                                  });
+                                },
+                          child: const Text('Về hiện tại'),
+                        ),
+                        const Spacer(),
+                        FilledButton(
+                          onPressed: () {
+                            Navigator.of(sheetContext).pop();
+                            setState(() {
+                              _timeFilter = draftFilter;
+                              _selectedPeriod = _normalizePeriodAnchorForFilter(
+                                draftPeriod,
+                                draftFilter,
+                                now: now,
+                              );
+                            });
+                          },
+                          child: const Text('Áp dụng'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  List<Order> _filterOrdersByPeriod(
+    List<Order> orders,
+    DateTime start,
+    DateTime endExclusive,
+  ) {
+    return orders.where((order) {
+      final createdAt = order.createdAt;
+      return !createdAt.isBefore(start) && createdAt.isBefore(endExclusive);
+    }).toList();
   }
 }
 
 class _OverviewCard extends StatelessWidget {
   const _OverviewCard({
     required this.totalDebt,
-    required this.currentMonthRevenue,
-    required this.currentMonthOrders,
+    required this.periodRevenue,
+    required this.periodOrders,
+    required this.periodCompletedOrders,
+    required this.periodUnitLabel,
     required this.contextLabel,
   });
 
   final int totalDebt;
-  final int currentMonthRevenue;
-  final int currentMonthOrders;
+  final int periodRevenue;
+  final int periodOrders;
+  final int periodCompletedOrders;
+  final String periodUnitLabel;
   final String contextLabel;
 
   @override
@@ -317,6 +656,13 @@ class _OverviewCard extends StatelessWidget {
     const revenueAccent = Color(0xFF38BDF8);
     const debtAccent = Color(0xFFF59E0B);
     const orderAccent = Color(0xFF22C55E);
+    const completionRateAccent = Color(0xFF14B8A6);
+    final completionRate = periodOrders == 0
+        ? 0
+        : ((periodCompletedOrders / periodOrders) * 100).round();
+    final completionLabel = periodOrders == 0
+        ? 'Tỷ lệ hoàn thành'
+        : 'Tỷ lệ hoàn thành ($periodCompletedOrders/$periodOrders)';
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -350,8 +696,8 @@ class _OverviewCard extends StatelessWidget {
           _OverviewMetricTile(
             icon: Icons.payments_rounded,
             accentColor: revenueAccent,
-            label: 'Gi\u00e1 tr\u1ecb nh\u1eadp h\u00e0ng th\u00e1ng',
-            value: _formatCompactVnd(currentMonthRevenue),
+            label: 'Giá trị nhập hàng trong $periodUnitLabel',
+            value: _formatCompactVnd(periodRevenue),
             isPrimary: true,
           ),
           const SizedBox(height: 10),
@@ -368,14 +714,27 @@ class _OverviewCard extends StatelessWidget {
               final orderCard = _OverviewMetricTile(
                 icon: Icons.receipt_long_rounded,
                 accentColor: orderAccent,
-                label: '\u0110\u01a1n trong th\u00e1ng',
-                value: '$currentMonthOrders',
+                label: 'Đơn trong $periodUnitLabel',
+                value: '$periodOrders',
+                isPrimary: false,
+              );
+              final completionRateCard = _OverviewMetricTile(
+                icon: Icons.task_alt_rounded,
+                accentColor: completionRateAccent,
+                label: completionLabel,
+                value: '$completionRate%',
                 isPrimary: false,
               );
 
               if (compact) {
                 return Column(
-                  children: [debtCard, const SizedBox(height: 10), orderCard],
+                  children: [
+                    debtCard,
+                    const SizedBox(height: 10),
+                    orderCard,
+                    const SizedBox(height: 10),
+                    completionRateCard,
+                  ],
                 );
               }
 
@@ -384,6 +743,8 @@ class _OverviewCard extends StatelessWidget {
                   Expanded(child: debtCard),
                   const SizedBox(width: 10),
                   Expanded(child: orderCard),
+                  const SizedBox(width: 10),
+                  Expanded(child: completionRateCard),
                 ],
               );
             },
@@ -494,9 +855,17 @@ String _formatCompactValue(double value) {
 }
 
 class _RevenueChartCard extends StatefulWidget {
-  const _RevenueChartCard({required this.data});
+  const _RevenueChartCard({
+    required this.data,
+    required this.focusMonth,
+    required this.displayYear,
+    required this.onCreateOrder,
+  });
 
   final List<_MonthRevenue> data;
+  final int focusMonth;
+  final int displayYear;
+  final VoidCallback onCreateOrder;
 
   @override
   State<_RevenueChartCard> createState() => _RevenueChartCardState();
@@ -508,9 +877,8 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final now = DateTime.now();
-    final currentMonth = now.month;
-    final currentYear = now.year;
+    final focusMonth = widget.focusMonth.clamp(1, 12);
+    final displayYear = widget.displayYear;
 
     final monthsWithData = widget.data.where((item) => item.value > 0).toList();
     final hasAnyData = monthsWithData.isNotEmpty;
@@ -519,7 +887,7 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
     final zeroValueMonthCount = chartData
         .where((item) => item.value <= 0)
         .length;
-    final showMissingMonthNote = zeroValueMonthCount > 0;
+    final showMissingMonthNote = hasAnyData && zeroValueMonthCount > 0;
     final enableHoverTooltip = kIsWeb;
 
     final maxValue = chartData.fold<int>(
@@ -533,32 +901,30 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
               .toDouble();
     final yInterval = topY / 4;
 
-    final subtitle = !hasAnyData
-        ? 'Ch\u01b0a c\u00f3 d\u1eef li\u1ec7u \u0111\u01a1n nh\u1eadp trong n\u0103m $currentYear.'
-        : hasSparseData
-        ? '\u0110\u00e3 c\u00f3 d\u1eef li\u1ec7u ${monthsWithData.length}/12 th\u00e1ng c\u1ee7a n\u0103m $currentYear.'
-        : 'T\u1ed5ng h\u1ee3p gi\u00e1 tr\u1ecb \u0111\u01a1n nh\u1eadp theo t\u1eebng th\u00e1ng trong n\u0103m $currentYear.';
+    final subtitle = hasSparseData
+        ? '\u0110\u00e3 c\u00f3 d\u1eef li\u1ec7u ${monthsWithData.length}/12 th\u00e1ng c\u1ee7a n\u0103m $displayYear.'
+        : 'T\u1ed5ng h\u1ee3p gi\u00e1 tr\u1ecb \u0111\u01a1n nh\u1eadp theo t\u1eebng th\u00e1ng trong n\u0103m $displayYear.';
 
     final showValueLabels = hasAnyData && monthsWithData.length <= 2;
     final yearlyTotal = widget.data.fold<int>(
       0,
       (sum, item) => sum + item.value,
     );
-    final currentMonthValue = widget.data[currentMonth - 1].value;
-    final previousMonthValue = currentMonth > 1
-        ? widget.data[currentMonth - 2].value
+    final focusMonthValue = widget.data[focusMonth - 1].value;
+    final previousMonthValue = focusMonth > 1
+        ? widget.data[focusMonth - 2].value
         : 0;
     final monthChangePercent = previousMonthValue <= 0
         ? 0.0
-        : (currentMonthValue - previousMonthValue) / previousMonthValue * 100;
+        : (focusMonthValue - previousMonthValue) / previousMonthValue * 100;
     final monthChangeText = previousMonthValue <= 0
-        ? (currentMonthValue > 0
+        ? (focusMonthValue > 0
               ? 'M\u1edbi ph\u00e1t sinh'
               : 'Kh\u00f4ng \u0111\u1ed5i')
         : '${monthChangePercent >= 0 ? '+' : ''}${monthChangePercent.toStringAsFixed(1)}%';
     final monthChangeColor = previousMonthValue <= 0
         ? const Color(0xFF475569)
-        : currentMonthValue >= previousMonthValue
+        : focusMonthValue >= previousMonthValue
         ? const Color(0xFF15803D)
         : const Color(0xFFB91C1C);
 
@@ -574,18 +940,20 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Gi\u00e1 tr\u1ecb nh\u1eadp h\u00e0ng theo th\u00e1ng ($currentYear)',
+              'Gi\u00e1 tr\u1ecb nh\u1eadp h\u00e0ng theo th\u00e1ng ($displayYear)',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: _dashboardMutedText,
+            if (hasAnyData) ...[
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: _dashboardMutedText,
+                ),
               ),
-            ),
+            ],
             if (hasAnyData) ...[
               const SizedBox(height: 8),
               Wrap(
@@ -598,8 +966,8 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                     valueColor: const Color(0xFF1E3A8A),
                   ),
                   _InsightChip(
-                    label: 'Th\u00e1ng n\u00e0y',
-                    value: _formatCompactVnd(currentMonthValue),
+                    label: 'Th\u00e1ng ch\u1ecdn',
+                    value: _formatCompactVnd(focusMonthValue),
                     valueColor: const Color(0xFF1E3A8A),
                   ),
                   _InsightChip(
@@ -657,25 +1025,55 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.bar_chart_rounded,
-                      color: Color(0xFF94A3B8),
-                      size: 30,
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.bar_chart_rounded,
+                        color: Color(0xFF1D4ED8),
+                        size: 20,
+                      ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     Text(
-                      'Chưa có dữ liệu thống kê',
+                      'Bạn chưa có đơn nhập nào trong năm $displayYear.',
                       style: theme.textTheme.titleSmall?.copyWith(
-                        color: const Color(0xFF334155),
+                        color: const Color(0xFF1E293B),
                         fontWeight: FontWeight.w700,
                       ),
+                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Dữ liệu sẽ hiển thị khi có đơn nhập phát sinh.',
+                      'Hãy tạo đơn hàng mới để bắt đầu theo dõi giá trị nhập theo tháng.',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF64748B),
+                        color: const Color(0xFF475569),
                         fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: 220,
+                      child: Semantics(
+                        button: true,
+                        label:
+                            'Tạo đơn hàng mới để theo dõi giá trị nhập hàng theo tháng',
+                        child: FilledButton.icon(
+                          onPressed: widget.onCreateOrder,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(220, 44),
+                          ),
+                          icon: const Icon(
+                            Icons.add_shopping_cart_outlined,
+                            size: 18,
+                          ),
+                          label: const Text('Tạo đơn hàng'),
+                        ),
                       ),
                     ),
                   ],
@@ -731,7 +1129,7 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                           }
                           final item = chartData[groupIndex];
                           return BarTooltipItem(
-                            '${item.label}/$currentYear\n${formatVnd(item.value)}',
+                            '${item.label}/$displayYear\n${formatVnd(item.value)}',
                             const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
@@ -819,7 +1217,7 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                               return const SizedBox.shrink();
                             }
                             final item = chartData[idx];
-                            final isCurrent = item.month == currentMonth;
+                            final isCurrent = item.month == focusMonth;
                             final hasValue = item.value > 0;
                             return SideTitleWidget(
                               axisSide: meta.axisSide,
@@ -864,9 +1262,9 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                               borderRadius: BorderRadius.circular(5),
                               gradient: _revenueBarGradient(
                                 chartData[i],
-                                currentMonth,
+                                focusMonth,
                               ),
-                              borderSide: chartData[i].month == currentMonth
+                              borderSide: chartData[i].month == focusMonth
                                   ? const BorderSide(
                                       color: Color(0xFF1E3A8A),
                                       width: 1,
@@ -1277,12 +1675,30 @@ class _LowStockPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hasAlerts = products.isNotEmpty;
+    final panelColor = hasAlerts
+        ? const Color(0xFFFFF1F2)
+        : const Color(0xFFF0FDF4);
+    final panelBorderColor = hasAlerts
+        ? const Color(0xFFEF4444)
+        : const Color(0xFF86EFAC);
+    final headerIconBg = hasAlerts
+        ? const Color(0xFFFEF2F2)
+        : const Color(0xFFDCFCE7);
+    final headerIconColor = hasAlerts
+        ? const Color(0xFFDC2626)
+        : const Color(0xFF15803D);
+    final headerTitle = hasAlerts ? 'Cảnh báo tồn kho thấp' : 'Tồn kho ổn định';
+    final headerSubtitle = hasAlerts
+        ? 'Mức ưu tiên cao, cần bổ sung hàng ngay.'
+        : 'Chưa có SKU nào dưới ngưỡng cảnh báo.';
+
     return Card(
       elevation: 0,
-      color: const Color(0xFFFFF1F2),
+      color: panelColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFEF4444), width: 1.3),
+        side: BorderSide(color: panelBorderColor, width: 1.3),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -1296,17 +1712,16 @@ class _LowStockPanel extends StatelessWidget {
                   height: 38,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFFFEF2F2),
-                    border: Border.all(
-                      color: const Color(0xFFEF4444),
-                      width: 1.4,
-                    ),
+                    color: headerIconBg,
+                    border: Border.all(color: panelBorderColor, width: 1.4),
                   ),
                   alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.warning_amber_rounded,
+                  child: Icon(
+                    hasAlerts
+                        ? Icons.warning_amber_rounded
+                        : Icons.verified_outlined,
                     size: 22,
-                    color: Color(0xFFDC2626),
+                    color: headerIconColor,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -1315,24 +1730,28 @@ class _LowStockPanel extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Cảnh báo tồn kho thấp',
+                        headerTitle,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF7F1D1D),
+                          color: hasAlerts
+                              ? const Color(0xFF7F1D1D)
+                              : const Color(0xFF14532D),
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Mức ưu tiên cao, cần bổ sung hàng ngay.',
+                        headerSubtitle,
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: const Color(0xFF7C2D12),
+                          color: hasAlerts
+                              ? const Color(0xFF7C2D12)
+                              : const Color(0xFF166534),
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
                   ),
                 ),
-                if (products.isNotEmpty)
+                if (hasAlerts)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
@@ -1355,7 +1774,23 @@ class _LowStockPanel extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             if (products.isEmpty)
-              const _EmptyCard(message: 'Tất cả SKU đang đủ tồn.')
+              _EmptyCard(
+                title: 'Không có cảnh báo cần xử lý',
+                message: 'Hiện chưa có sản phẩm nào dưới ngưỡng cảnh báo.',
+                description:
+                    'Bạn có thể xem tồn kho chi tiết để kiểm tra định kỳ.',
+                icon: Icons.inventory_2_outlined,
+                ctaLabel: 'Xem tồn kho',
+                ctaSemanticLabel: 'Mở danh sách tồn kho',
+                ctaIcon: Icons.inventory_2_outlined,
+                onCtaPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ProductListScreen(),
+                    ),
+                  );
+                },
+              )
             else
               ...products.asMap().entries.map((entry) {
                 final index = entry.key;
@@ -1367,7 +1802,7 @@ class _LowStockPanel extends StatelessWidget {
                   child: _LowStockCard(product: product),
                 );
               }),
-            if (products.isNotEmpty) ...[
+            if (hasAlerts) ...[
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
@@ -1382,7 +1817,7 @@ class _LowStockPanel extends StatelessWidget {
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFFDC2626),
                     foregroundColor: Colors.white,
-                    minimumSize: const Size(0, 42),
+                    minimumSize: const Size(0, 44),
                   ),
                   icon: const Icon(Icons.local_shipping_outlined, size: 18),
                   label: const Text('Nhập thêm ngay'),
@@ -1397,9 +1832,13 @@ class _LowStockPanel extends StatelessWidget {
 }
 
 class _OrderStatusDistributionCard extends StatelessWidget {
-  const _OrderStatusDistributionCard({required this.orders});
+  const _OrderStatusDistributionCard({
+    required this.orders,
+    required this.onCreateOrder,
+  });
 
   final List<Order> orders;
+  final VoidCallback onCreateOrder;
 
   @override
   Widget build(BuildContext context) {
@@ -1437,25 +1876,6 @@ class _OrderStatusDistributionCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: 8),
-              if (!showEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    'Tổng: $totalCount đơn',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: const Color(0xFF334155),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
             ],
           ),
           const SizedBox(height: 8),
@@ -1468,7 +1888,7 @@ class _OrderStatusDistributionCard extends StatelessWidget {
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Text(
-                'Thanh trạng thái được chuẩn hóa cùng thang đo để so sánh nhanh.',
+                'Chạm vào từng trạng thái để xem danh sách đơn tương ứng.',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: const Color(0xFF475569),
                   fontWeight: FontWeight.w600,
@@ -1477,7 +1897,16 @@ class _OrderStatusDistributionCard extends StatelessWidget {
             ),
           const SizedBox(height: 12),
           if (showEmpty)
-            const _EmptyCard(message: 'Chưa có đơn hàng nào.')
+            _EmptyCard(
+              title: 'Phân bố trạng thái đơn',
+              message: 'Bạn chưa có đơn hàng nào.',
+              description: 'Hãy tạo đơn hàng mới để bắt đầu theo dõi.',
+              icon: Icons.inbox_outlined,
+              ctaLabel: 'Tạo đơn hàng',
+              ctaSemanticLabel: 'Tạo đơn hàng mới để theo dõi trạng thái',
+              ctaIcon: Icons.add_shopping_cart_outlined,
+              onCtaPressed: onCreateOrder,
+            )
           else
             Column(
               children: _statusOrder.map((status) {
@@ -1583,7 +2012,11 @@ class _OrderStatusDistributionCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 if (orders.isEmpty)
                   const _EmptyCard(
+                    title: 'Chưa có đơn phù hợp',
                     message: 'Không có đơn nào ở trạng thái này.',
+                    description:
+                        'Hãy chọn trạng thái khác hoặc chuyển kỳ theo dõi.',
+                    icon: Icons.filter_alt_off_outlined,
                   )
                 else
                   ConstrainedBox(
@@ -1754,15 +2187,17 @@ class _AgingDebtCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              TextButton.icon(
-                onPressed: onViewAll,
-                style: TextButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  foregroundColor: const Color(0xFF1D4ED8),
+              if (!showEmpty)
+                TextButton.icon(
+                  onPressed: onViewAll,
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    minimumSize: const Size(44, 44),
+                    foregroundColor: const Color(0xFF1D4ED8),
+                  ),
+                  icon: const Icon(Icons.list_alt_outlined, size: 18),
+                  label: const Text('Xem danh sách'),
                 ),
-                icon: const Icon(Icons.list_alt_outlined, size: 18),
-                label: const Text('Xem danh sách'),
-              ),
             ],
           ),
           if (!showEmpty) ...[
@@ -1777,7 +2212,16 @@ class _AgingDebtCard extends StatelessWidget {
           ],
           const SizedBox(height: 12),
           if (showEmpty)
-            const _EmptyCard(message: 'Chưa có công nợ.')
+            _EmptyCard(
+              title: 'Công nợ theo tuổi nợ',
+              message: 'Hiện chưa có công nợ phát sinh.',
+              description: 'Công nợ sẽ hiển thị sau khi có giao dịch.',
+              icon: Icons.account_balance_wallet_outlined,
+              ctaLabel: 'Xem danh sách công nợ',
+              ctaSemanticLabel: 'Mở danh sách công nợ',
+              ctaIcon: Icons.list_alt_outlined,
+              onCtaPressed: onViewAll,
+            )
           else
             Column(
               children: buckets.map((bucket) {
@@ -2141,19 +2585,152 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _EmptyCard extends StatelessWidget {
-  const _EmptyCard({required this.message});
+  const _EmptyCard({
+    required this.title,
+    required this.message,
+    this.description,
+    this.icon = Icons.inbox_outlined,
+    this.ctaLabel,
+    this.ctaSemanticLabel,
+    this.onCtaPressed,
+    this.ctaIcon,
+  });
 
+  final String title;
   final String message;
+  final String? description;
+  final IconData icon;
+  final String? ctaLabel;
+  final String? ctaSemanticLabel;
+  final VoidCallback? onCtaPressed;
+  final IconData? ctaIcon;
+
+  bool get _hasCta => ctaLabel != null && onCtaPressed != null;
+
+  Widget _buildCtaButton() {
+    final label = ctaLabel!;
+    final style = FilledButton.styleFrom(
+      minimumSize: const Size(double.infinity, 44),
+    );
+    if (ctaIcon != null) {
+      return FilledButton.icon(
+        onPressed: onCtaPressed,
+        style: style,
+        icon: Icon(ctaIcon, size: 18),
+        label: Text(label),
+      );
+    }
+    return FilledButton(
+      onPressed: onCtaPressed,
+      style: style,
+      child: Text(label),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE5EAF5)),
+    final theme = Theme.of(context);
+    final semanticParts = <String>[title, message];
+    final desc = description;
+    if (desc != null && desc.isNotEmpty) {
+      semanticParts.add(desc);
+    }
+    final resolvedSemanticLabel = semanticParts.join(' ');
+
+    return Semantics(
+      container: true,
+      label: resolvedSemanticLabel,
+      child: Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFFE5EAF5)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: ExcludeSemantics(
+                    child: Icon(icon, size: 20, color: const Color(0xFF1D4ED8)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                message,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+              if (desc != null && desc.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  desc,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF475569),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+              if (_hasCta) ...[
+                const SizedBox(height: 12),
+                Semantics(
+                  button: true,
+                  label: ctaSemanticLabel ?? ctaLabel!,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: _buildCtaButton(),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
-      child: Padding(padding: const EdgeInsets.all(16), child: Text(message)),
+    );
+  }
+}
+
+class _DashboardErrorView extends StatelessWidget {
+  const _DashboardErrorView({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      children: [
+        _EmptyCard(
+          title: 'Không thể tải dữ liệu dashboard',
+          message: message,
+          description: 'Vui lòng thử lại hoặc kiểm tra kết nối mạng.',
+          icon: Icons.cloud_off_outlined,
+          ctaLabel: 'Thử lại',
+          ctaSemanticLabel: 'Thử tải lại dữ liệu dashboard',
+          ctaIcon: Icons.refresh,
+          onCtaPressed: onRetry,
+        ),
+      ],
     );
   }
 }
@@ -2191,11 +2768,13 @@ class _MonthRevenue {
   String get label => 'T$month';
 }
 
-List<_MonthRevenue> _buildMonthlyRevenue(List<Order> orders) {
-  final now = DateTime.now();
+List<_MonthRevenue> _buildMonthlyRevenue(
+  List<Order> orders, {
+  required int year,
+}) {
   final values = List<int>.filled(12, 0);
   for (final order in orders) {
-    if (order.createdAt.year != now.year) {
+    if (order.createdAt.year != year) {
       continue;
     }
     values[order.createdAt.month - 1] += order.total;
@@ -2282,15 +2861,14 @@ List<_DebtBucket> _buildDebtBuckets(int totalOutstandingDebt) {
   ];
 }
 
-List<_DailyActivation> _buildActivationSeries({required int days}) {
-  final now = DateTime.now();
+List<_DailyActivation> _buildActivationSeries({
+  required int days,
+  required DateTime endDate,
+}) {
+  final end = DateTime(endDate.year, endDate.month, endDate.day);
   final List<_DailyActivation> list = [];
   for (var i = days - 1; i >= 0; i--) {
-    final date = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: i));
+    final date = end.subtract(Duration(days: i));
     // deterministic mock: based on date to stay stable
     final count =
         (date.day * date.month) % 7 +
@@ -2385,9 +2963,10 @@ Color _statusColor(OrderStatus status) {
 }
 
 class _ActivationTrendCard extends StatefulWidget {
-  const _ActivationTrendCard({required this.data});
+  const _ActivationTrendCard({required this.data, required this.windowDays});
 
   final List<_DailyActivation> data;
+  final int windowDays;
 
   @override
   State<_ActivationTrendCard> createState() => _ActivationTrendCardState();
@@ -2398,13 +2977,25 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
 
   @override
   Widget build(BuildContext context) {
-    final data = widget.data;
+    final rawData = widget.data;
     final theme = Theme.of(context);
     const secondaryTextColor = Color(0xFF475569);
+    final windowDays = widget.windowDays;
+    final isCompactMobile =
+        MediaQuery.sizeOf(context).width < _mobileBreakpoint;
+    final useWeeklyBuckets = isCompactMobile && windowDays >= 90;
 
-    if (data.isEmpty) {
-      return const _EmptyCard(message: 'Chưa có kích hoạt nào trong 30 ngày.');
+    if (rawData.isEmpty) {
+      return _EmptyCard(
+        title: 'Chưa có dữ liệu kích hoạt',
+        message:
+            'Chưa ghi nhận lượt kích hoạt nào trong $windowDays ngày gần đây.',
+        description: 'Hay hoan tat don va xu ly serial de bat dau theo doi.',
+        icon: Icons.show_chart_outlined,
+      );
     }
+
+    final data = _buildChartData(rawData, weeklyBucket: useWeeklyBuckets);
 
     var peakIndex = 0;
     for (var i = 1; i < data.length; i++) {
@@ -2413,9 +3004,13 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
       }
     }
     final peakPoint = data[peakIndex];
+    final peakLabel = _formatPointLabel(peakPoint);
 
-    final totalActivations = data.fold<int>(0, (sum, item) => sum + item.count);
-    final averagePerDay = totalActivations / data.length;
+    final totalActivations = rawData.fold<int>(
+      0,
+      (sum, item) => sum + item.count,
+    );
+    final averagePerDay = totalActivations / rawData.length;
     final maxY = data
         .fold<int>(0, (max, item) => math.max(max, item.count))
         .toDouble();
@@ -2425,6 +3020,14 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
     final chartMinX = -1.0;
     final chartMaxX = data.length.toDouble();
     final enableHoverTooltip = kIsWeb;
+    final hasValidSelectedSpot =
+        _selectedSpotIndex != null &&
+        _selectedSpotIndex! >= 0 &&
+        _selectedSpotIndex! < data.length;
+    final xLabelStep = math.max(
+      1,
+      (data.length / (isCompactMobile ? 4 : 7)).ceil(),
+    );
 
     bool shouldShowMarker(int index) {
       return index == 0 || index == data.length - 1 || index == peakIndex;
@@ -2442,14 +3045,16 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Kích hoạt bảo hành ở 30 ngày gần nhất',
+              'Xu ly serial $windowDays ngay gan nhat',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              'Số lượt kích hoạt theo từng ngày',
+              useWeeklyBuckets
+                  ? 'Số lượt kích hoạt theo tuần'
+                  : 'Số lượt kích hoạt theo từng ngày',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: secondaryTextColor,
                 fontWeight: FontWeight.w500,
@@ -2463,6 +3068,27 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
                 fontWeight: FontWeight.w600,
               ),
             ),
+            if (useWeeklyBuckets) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                ),
+                child: Text(
+                  'Đang gộp dữ liệu theo tuần để dễ đọc trên mobile.',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: const Color(0xFF1E3A8A),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 8),
             SizedBox(
               height: 220,
@@ -2563,9 +3189,8 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
                           if (idx < 0 || idx >= data.length) {
                             return null;
                           }
-                          final d = data[idx].date;
                           return LineTooltipItem(
-                            '${d.day}/${d.month} • ${spot.y.toInt()} lượt',
+                            '${_formatPointLabel(data[idx])} • ${spot.y.toInt()} lượt',
                             const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
@@ -2621,12 +3246,12 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
                           final shouldShowLabel =
                               idx == 0 ||
                               idx == data.length - 1 ||
-                              idx % 6 == 0;
+                              idx % xLabelStep == 0;
                           if (!shouldShowLabel) {
                             return const SizedBox.shrink();
                           }
 
-                          final d = data[idx].date;
+                          final d = data[idx].endDate;
                           return SideTitleWidget(
                             axisSide: meta.axisSide,
                             space: 8,
@@ -2656,7 +3281,7 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
                   lineBarsData: [
                     LineChartBarData(
                       showingIndicators:
-                          !enableHoverTooltip && _selectedSpotIndex != null
+                          !enableHoverTooltip && hasValidSelectedSpot
                           ? [_selectedSpotIndex!]
                           : const [],
                       spots: [
@@ -2706,13 +3331,17 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
               spacing: 16,
               runSpacing: 8,
               children: [
-                _MiniKpi(label: 'Tổng 30 ngày', value: '$totalActivations'),
+                _MiniKpi(
+                  label: 'Tổng $windowDays ngày',
+                  value: '$totalActivations',
+                ),
                 _MiniKpi(
                   label: 'Trung bình/ngày',
                   value: averagePerDay.toStringAsFixed(1),
                 ),
                 _MiniKpi(
-                  label: 'Đỉnh (${peakPoint.date.day}/${peakPoint.date.month})',
+                  label:
+                      '${useWeeklyBuckets ? 'Đỉnh tuần' : 'Đỉnh'} ($peakLabel)',
                   value: '${peakPoint.count}',
                 ),
               ],
@@ -2722,12 +3351,61 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
       ),
     );
   }
+
+  List<_ActivationChartPoint> _buildChartData(
+    List<_DailyActivation> source, {
+    required bool weeklyBucket,
+  }) {
+    if (!weeklyBucket) {
+      return [
+        for (final item in source)
+          _ActivationChartPoint(
+            startDate: item.date,
+            endDate: item.date,
+            count: item.count,
+          ),
+      ];
+    }
+
+    final buckets = <_ActivationChartPoint>[];
+    for (var i = 0; i < source.length; i += 7) {
+      final end = math.min(i + 7, source.length);
+      final chunk = source.sublist(i, end);
+      final total = chunk.fold<int>(0, (sum, item) => sum + item.count);
+      buckets.add(
+        _ActivationChartPoint(
+          startDate: chunk.first.date,
+          endDate: chunk.last.date,
+          count: total,
+        ),
+      );
+    }
+    return buckets;
+  }
+
+  String _formatPointLabel(_ActivationChartPoint point) {
+    if (_isSameDay(point.startDate, point.endDate)) {
+      return '${point.endDate.day}/${point.endDate.month}';
+    }
+    return '${point.startDate.day}/${point.startDate.month}'
+        '-${point.endDate.day}/${point.endDate.month}';
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
 }
 
 class _WarrantyStatusDonutCard extends StatefulWidget {
-  const _WarrantyStatusDonutCard({required this.activations});
+  const _WarrantyStatusDonutCard({
+    required this.activations,
+    required this.ranges,
+    required this.initialRange,
+  });
 
   final List<_DailyActivation> activations;
+  final List<int> ranges;
+  final int initialRange;
 
   @override
   State<_WarrantyStatusDonutCard> createState() =>
@@ -2735,12 +3413,38 @@ class _WarrantyStatusDonutCard extends StatefulWidget {
 }
 
 class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
-  static const _ranges = <int>[7, 30, 90];
   static const _maxSegments = 5;
 
-  int _selectedRange = 30;
+  late int _selectedRange;
   int? _selectedIndex;
   Offset? _tooltipAnchor;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedRange = _resolveInitialRange();
+  }
+
+  @override
+  void didUpdateWidget(covariant _WarrantyStatusDonutCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!listEquals(oldWidget.ranges, widget.ranges) ||
+        oldWidget.initialRange != widget.initialRange) {
+      _selectedRange = _resolveInitialRange();
+      _selectedIndex = null;
+      _tooltipAnchor = null;
+    }
+  }
+
+  int _resolveInitialRange() {
+    if (widget.ranges.isEmpty) {
+      return 30;
+    }
+    if (widget.ranges.contains(widget.initialRange)) {
+      return widget.initialRange;
+    }
+    return widget.ranges.last;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2768,7 +3472,6 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
       sortedStats,
       maxSegments: _maxSegments,
     );
-    final isGroupedLegend = displayStats.length != sortedStats.length;
 
     final touchedStat =
         _selectedIndex != null &&
@@ -2789,101 +3492,101 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Trạng thái bảo hành',
+              'Trang thai serial',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              'Tổng: $total đơn bảo hành',
+              'Tong: $total don xu ly serial',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: _dashboardMutedText,
               ),
             ),
             const SizedBox(height: 10),
-            SegmentedButton<int>(
-              showSelectedIcon: false,
-              multiSelectionEnabled: false,
-              style: ButtonStyle(
-                visualDensity: VisualDensity.compact,
-                padding: WidgetStateProperty.all(
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                ),
-                side: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return const BorderSide(
-                      color: Colors.transparent,
-                      width: 0,
-                    );
-                  }
-                  return const BorderSide(color: Color(0xFFCBD5E1), width: 1);
-                }),
-                backgroundColor: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return const Color(0xFF1D4ED8);
-                  }
-                  return Colors.white;
-                }),
-                foregroundColor: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return Colors.white;
-                  }
-                  return const Color(0xFF475569);
-                }),
-                textStyle: WidgetStateProperty.resolveWith((states) {
-                  return theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: states.contains(WidgetState.selected)
-                        ? FontWeight.w800
-                        : FontWeight.w600,
-                  );
-                }),
-              ),
-              segments: [
-                for (final range in _ranges)
-                  ButtonSegment<int>(value: range, label: Text('$range ngày')),
-              ],
-              selected: {_selectedRange},
-              onSelectionChanged: (selected) {
-                if (selected.isEmpty) {
-                  return;
-                }
-                final value = selected.first;
-                if (value == _selectedRange) {
-                  return;
-                }
-                setState(() {
-                  _selectedRange = value;
-                  _selectedIndex = null;
-                  _tooltipAnchor = null;
-                });
-              },
-            ),
-            SizedBox(
-              height: 34,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: IgnorePointer(
-                  ignoring: !isGroupedLegend,
-                  child: Semantics(
-                    hidden: !isGroupedLegend,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 180),
-                      curve: Curves.easeOut,
-                      opacity: isGroupedLegend ? 1 : 0,
-                      child: Text(
-                        'Hiển thị nhóm tỉ trọng cao nhất + Khác để dễ quét nhanh.',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: const Color(0xFF64748B),
-                          fontWeight: FontWeight.w600,
-                        ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isCompactSegment = constraints.maxWidth < 360;
+                final segmentButton = SegmentedButton<int>(
+                  showSelectedIcon: false,
+                  multiSelectionEnabled: false,
+                  style: ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                    padding: WidgetStateProperty.all(
+                      EdgeInsets.symmetric(
+                        horizontal: isCompactSegment ? 8 : 10,
+                        vertical: 8,
                       ),
                     ),
+                    side: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return const BorderSide(
+                          color: Colors.transparent,
+                          width: 0,
+                        );
+                      }
+                      return const BorderSide(
+                        color: Color(0xFFCBD5E1),
+                        width: 1,
+                      );
+                    }),
+                    backgroundColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return const Color(0xFF1D4ED8);
+                      }
+                      return Colors.white;
+                    }),
+                    foregroundColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return Colors.white;
+                      }
+                      return const Color(0xFF475569);
+                    }),
+                    textStyle: WidgetStateProperty.resolveWith((states) {
+                      return theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: states.contains(WidgetState.selected)
+                            ? FontWeight.w800
+                            : FontWeight.w600,
+                      );
+                    }),
                   ),
-                ),
-              ),
+                  segments: [
+                    for (final range in widget.ranges)
+                      ButtonSegment<int>(
+                        value: range,
+                        label: Text('$range ngày'),
+                      ),
+                  ],
+                  selected: {_selectedRange},
+                  onSelectionChanged: (selected) {
+                    if (selected.isEmpty) {
+                      return;
+                    }
+                    final value = selected.first;
+                    if (value == _selectedRange) {
+                      return;
+                    }
+                    setState(() {
+                      _selectedRange = value;
+                      _selectedIndex = null;
+                      _tooltipAnchor = null;
+                    });
+                  },
+                );
+
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  clipBehavior: Clip.hardEdge,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: segmentButton,
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 12),
             if (showEmpty)
@@ -2891,18 +3594,22 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
             else
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final useVerticalLayout =
-                      constraints.maxWidth < _donutStackBreakpoint;
-                  final donutSize = useVerticalLayout ? 164.0 : 148.0;
+                  final isWideLayout =
+                      constraints.maxWidth >= _donutStackBreakpoint;
+                  final rawChartWidth = isWideLayout
+                      ? constraints.maxWidth * 0.45
+                      : constraints.maxWidth;
+                  final chartSize = math.min(rawChartWidth, 300.0);
                   final chart = _buildDonutChart(
                     theme: theme,
                     stats: displayStats,
                     total: total,
-                    donutSize: donutSize,
+                    donutSize: chartSize,
+                    maxTooltipWidth: chartSize * 0.9,
                     touchedStat: touchedStat,
                     enableHoverTooltip: enableHoverTooltip,
                   );
-                  final legend = Column(
+                  final legendList = Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       for (var i = 0; i < displayStats.length; i++)
@@ -2925,14 +3632,43 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
                         ),
                     ],
                   );
+                  final legendScrollable = ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 300),
+                    child: Scrollbar(
+                      thumbVisibility: isWideLayout && displayStats.length > 3,
+                      child: SingleChildScrollView(child: legendList),
+                    ),
+                  );
+                  final legendWrap = Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (var i = 0; i < displayStats.length; i++)
+                        _buildLegendChip(
+                          theme: theme,
+                          stat: displayStats[i],
+                          total: total,
+                          isSelected: _selectedIndex == i,
+                          isCompact: true,
+                          onTap: () {
+                            setState(() {
+                              _selectedIndex = _selectedIndex == i ? null : i;
+                              _tooltipAnchor = null;
+                            });
+                          },
+                        ),
+                    ],
+                  );
 
-                  if (useVerticalLayout) {
+                  if (!isWideLayout) {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Center(child: chart),
-                        const SizedBox(height: 12),
-                        legend,
+                        Center(
+                          child: SizedBox(width: chartSize, child: chart),
+                        ),
+                        const SizedBox(height: 16),
+                        legendWrap,
                       ],
                     );
                   }
@@ -2940,9 +3676,9 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      chart,
-                      const SizedBox(width: 16),
-                      Expanded(child: legend),
+                      SizedBox(width: chartSize, child: chart),
+                      const SizedBox(width: 20),
+                      Expanded(child: legendScrollable),
                     ],
                   );
                 },
@@ -2958,6 +3694,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
     required List<_WarrantyStatusStat> stats,
     required int total,
     required double donutSize,
+    required double maxTooltipWidth,
     required _WarrantyStatusStat? touchedStat,
     required bool enableHoverTooltip,
   }) {
@@ -2965,7 +3702,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
       width: donutSize,
       height: donutSize,
       child: Stack(
-        clipBehavior: Clip.none,
+        clipBehavior: Clip.hardEdge,
         alignment: Alignment.center,
         children: [
           PieChart(
@@ -3080,6 +3817,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
                   label: touchedStat.label,
                   count: touchedStat.count,
                   percent: (touchedStat.count / total * 100).round(),
+                  maxWidth: maxTooltipWidth,
                 ),
               ),
             ),
@@ -3148,6 +3886,59 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
     );
   }
 
+  Widget _buildLegendChip({
+    required ThemeData theme,
+    required _WarrantyStatusStat stat,
+    required int total,
+    required bool isSelected,
+    required bool isCompact,
+    required VoidCallback onTap,
+  }) {
+    final percent = total == 0 ? 0 : (stat.count / total * 100).round();
+    return Semantics(
+      button: true,
+      label: '${stat.label}: ${stat.count} đơn, $percent%',
+      child: Material(
+        color: isSelected ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(999),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: isSelected ? 10 : 8,
+                  height: isSelected ? 10 : 8,
+                  decoration: BoxDecoration(
+                    color: stat.color,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${stat.label} ($percent%)',
+                  style:
+                      (isCompact
+                              ? theme.textTheme.labelSmall
+                              : theme.textTheme.labelMedium)
+                          ?.copyWith(
+                            color: const Color(0xFF0F172A),
+                            fontWeight: isSelected
+                                ? FontWeight.w800
+                                : FontWeight.w700,
+                          ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildEmptyDonutState(ThemeData theme) {
     return Column(
       children: [
@@ -3198,7 +3989,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
         ),
         const SizedBox(height: 10),
         Text(
-          'Không có dữ liệu trong khoảng thời gian này',
+          'Chưa có dữ liệu trong khoảng thời gian này. Hãy chọn mốc khác hoặc bổ sung kích hoạt mới.',
           style: theme.textTheme.bodySmall?.copyWith(
             color: const Color(0xFF475569),
             fontWeight: FontWeight.w600,
@@ -3216,11 +4007,11 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
     if (source.isEmpty) {
       return source;
     }
-    final now = DateTime.now();
+    final end = source.last.date;
     final start = DateTime(
-      now.year,
-      now.month,
-      now.day,
+      end.year,
+      end.month,
+      end.day,
     ).subtract(Duration(days: days - 1));
     return source.where((item) => !item.date.isBefore(start)).toList();
   }
@@ -3304,18 +4095,20 @@ class _DonutSliceTooltip extends StatelessWidget {
     required this.label,
     required this.count,
     required this.percent,
+    required this.maxWidth,
   });
 
   final Color color;
   final String label;
   final int count;
   final int percent;
+  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      constraints: const BoxConstraints(minWidth: 110, maxWidth: 180),
+      constraints: BoxConstraints(maxWidth: maxWidth),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: const Color(0xFF0F172A),
@@ -3568,6 +4361,18 @@ class _DailyActivation {
   const _DailyActivation({required this.date, required this.count});
 
   final DateTime date;
+  final int count;
+}
+
+class _ActivationChartPoint {
+  const _ActivationChartPoint({
+    required this.startDate,
+    required this.endDate,
+    required this.count,
+  });
+
+  final DateTime startDate;
+  final DateTime endDate;
   final int count;
 }
 

@@ -40,9 +40,7 @@ class _SupportScreenState extends State<SupportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const BrandAppBarTitle('Ho tro'),
-      ),
+      appBar: AppBar(title: const BrandAppBarTitle('Ho tro')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         children: [
@@ -98,10 +96,9 @@ class _SupportScreenState extends State<SupportScreen> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Thời gian hỗ trợ: 8:00–18:00 (T2–T7)',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Colors.black54),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
                     ),
                   ),
                 ],
@@ -233,10 +230,9 @@ class _SupportScreenState extends State<SupportScreen> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Thời gian phản hồi dự kiến: ${_slaText(_priority)}',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Colors.black54),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
                     ),
                   ),
                   const SizedBox(height: 18),
@@ -294,7 +290,7 @@ class _SupportScreenState extends State<SupportScreen> {
       case SupportCategory.order:
         return 'Đơn hàng';
       case SupportCategory.warranty:
-        return 'Bảo hành';
+        return 'Kho serial';
       case SupportCategory.product:
         return 'Sản phẩm';
       case SupportCategory.payment:
@@ -338,16 +334,15 @@ class _SupportScreenState extends State<SupportScreen> {
     final color = isFocused
         ? Theme.of(context).colorScheme.primary
         : Colors.black54;
-    final style =
-        Theme.of(context).textTheme.bodySmall?.copyWith(color: color);
+    final style = Theme.of(context).textTheme.bodySmall?.copyWith(color: color);
 
     return Text('$currentLength/$maxLength', style: style);
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -402,10 +397,9 @@ class _SectionCard extends StatelessWidget {
           children: [
             Text(
               title,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 12),
             child,
@@ -451,10 +445,9 @@ class _StatusCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Yêu cầu đã gửi',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 IconButton(
@@ -500,8 +493,9 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labelStyle =
-        Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54);
+    final labelStyle = Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: Colors.black54);
     final valueStyle = Theme.of(context).textTheme.bodyMedium;
 
     return Row(
@@ -534,8 +528,8 @@ const List<_FaqItem> _faqItems = [
     icon: Icons.receipt_long_outlined,
   ),
   _FaqItem(
-    title: 'Kích hoạt bảo hành',
-    body: 'Chuẩn bị serial/IMEI và số điện thoại để xử lý nhanh hơn.',
+    title: 'Xu ly serial',
+    body: 'Chuan bi serial/IMEI va so dien thoai de xu ly nhanh hon.',
     icon: Icons.verified_outlined,
   ),
 ];

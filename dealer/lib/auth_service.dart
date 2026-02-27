@@ -1,4 +1,10 @@
-enum LoginFailureType { invalidCredentials, network, unknown }
+enum LoginFailureType {
+  invalidCredentials,
+  invalidEmail,
+  invalidPassword,
+  network,
+  unknown,
+}
 
 class LoginFailure {
   const LoginFailure({required this.type, required this.message});
@@ -8,14 +14,20 @@ class LoginFailure {
 }
 
 class LoginResult {
-  const LoginResult._({required this.isSuccess, this.email, this.failure});
+  const LoginResult._({
+    required this.isSuccess,
+    this.email,
+    this.token,
+    this.failure,
+  });
 
   final bool isSuccess;
   final String? email;
+  final String? token;
   final LoginFailure? failure;
 
-  factory LoginResult.success({required String email}) {
-    return LoginResult._(isSuccess: true, email: email);
+  factory LoginResult.success({required String email, required String token}) {
+    return LoginResult._(isSuccess: true, email: email, token: token);
   }
 
   factory LoginResult.failure({
@@ -53,16 +65,29 @@ class MockAuthService implements AuthService {
 
     final normalizedEmail = email.trim().toLowerCase();
     final expectedPassword = _mockAccounts[normalizedEmail];
-    final isValidAccount =
-        expectedPassword != null && expectedPassword == password;
-
-    if (!isValidAccount) {
+    if (expectedPassword == null) {
+      final isKnownPassword = _mockAccounts.values.contains(password);
+      if (!isKnownPassword) {
+        return LoginResult.failure(
+          type: LoginFailureType.invalidCredentials,
+          message:
+              'Email v\u00e0 m\u1eadt kh\u1ea9u kh\u00f4ng \u0111\u00fang.',
+        );
+      }
       return LoginResult.failure(
-        type: LoginFailureType.invalidCredentials,
-        message: 'Email hoặc mật khẩu không đúng.',
+        type: LoginFailureType.invalidEmail,
+        message: 'Email kh\u00f4ng \u0111\u00fang.',
+      );
+    }
+    if (expectedPassword != password) {
+      return LoginResult.failure(
+        type: LoginFailureType.invalidPassword,
+        message: 'M\u1eadt kh\u1ea9u kh\u00f4ng \u0111\u00fang.',
       );
     }
 
-    return LoginResult.success(email: normalizedEmail);
+    final mockToken =
+        'mock_${normalizedEmail.hashCode.abs()}_${DateTime.now().millisecondsSinceEpoch}';
+    return LoginResult.success(email: normalizedEmail, token: mockToken);
   }
 }

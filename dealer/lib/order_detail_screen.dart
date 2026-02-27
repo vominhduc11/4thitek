@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import 'models.dart';
 import 'order_controller.dart';
@@ -19,18 +19,14 @@ class OrderDetailScreen extends StatelessWidget {
     if (order == null) {
       return Scaffold(
         appBar: AppBar(title: const BrandAppBarTitle('Chi tiet don hang')),
-        body: const Center(
-          child: Text('Khong tim thay don hang.'),
-        ),
+        body: const Center(child: Text('Khong tim thay don hang.')),
       );
     }
 
-    final canActivateWarranty = order.status == OrderStatus.completed;
+    final canProcessSerial = order.status == OrderStatus.completed;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const BrandAppBarTitle('Chi tiet don hang'),
-      ),
+      appBar: AppBar(title: const BrandAppBarTitle('Chi tiet don hang')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         children: [
@@ -162,7 +158,7 @@ class OrderDetailScreen extends StatelessWidget {
           FadeSlideIn(
             delay: const Duration(milliseconds: 240),
             child: ElevatedButton(
-              onPressed: canActivateWarranty
+              onPressed: canProcessSerial
                   ? () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -173,9 +169,9 @@ class OrderDetailScreen extends StatelessWidget {
                     }
                   : null,
               child: Text(
-                canActivateWarranty
-                    ? 'Kich hoat bao hanh'
-                    : 'Chi kich hoat khi don da giao',
+                canProcessSerial
+                    ? 'Xu ly serial'
+                    : 'Chi xu ly serial khi don da giao',
               ),
             ),
           ),
@@ -240,12 +236,7 @@ class _InfoRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Text(
-            label,
-            style: isEmphasis ? emphasisStyle : style,
-          ),
-        ),
+        Expanded(child: Text(label, style: isEmphasis ? emphasisStyle : style)),
         const SizedBox(width: 16),
         Flexible(
           child: Text(

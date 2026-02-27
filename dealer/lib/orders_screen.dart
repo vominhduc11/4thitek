@@ -43,8 +43,7 @@ class OrdersScreen extends StatelessWidget {
               separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final order = orders[index];
-                final canActivateWarranty =
-                    order.status == OrderStatus.completed;
+                final canProcessSerial = order.status == OrderStatus.completed;
                 return FadeSlideIn(
                   key: ValueKey(order.id),
                   delay: Duration(milliseconds: 40 * index),
@@ -133,7 +132,7 @@ class OrdersScreen extends StatelessWidget {
                                 child: const Text('Dat lai don cu'),
                               ),
                               ElevatedButton(
-                                onPressed: canActivateWarranty
+                                onPressed: canProcessSerial
                                     ? () {
                                         Navigator.of(context).push(
                                           MaterialPageRoute(
@@ -145,7 +144,7 @@ class OrdersScreen extends StatelessWidget {
                                         );
                                       }
                                     : null,
-                                child: const Text('Kich hoat BH'),
+                                child: const Text('Xu ly serial'),
                               ),
                             ],
                           ),
