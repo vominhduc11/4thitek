@@ -43,6 +43,7 @@ dependencies:
   fl_chart: ^0.68.0
   flutter_spinbox: ^0.13.1
   mobile_scanner: ^5.2.3
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:
