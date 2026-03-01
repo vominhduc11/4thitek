@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'app_settings_controller.dart';
 import 'account_screen.dart';
 import 'dashboard_screen.dart';
 import 'inventory_screen.dart';
@@ -19,47 +20,55 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
 
   int _currentIndex = 2;
 
-  static const List<_TabItem> _tabs = [
-    _TabItem(
-      label: 'San pham',
-      icon: Icons.storefront_outlined,
-      activeIcon: Icons.storefront,
-      widget: ProductListScreen(),
-    ),
-    _TabItem(
-      label: 'Don hang',
-      icon: Icons.receipt_long_outlined,
-      activeIcon: Icons.receipt_long,
-      widget: OrdersScreen(),
-    ),
-    _TabItem(
-      label: 'Tong quan',
-      icon: Icons.dashboard_outlined,
-      activeIcon: Icons.dashboard,
-      widget: DashboardScreen(),
-    ),
-    _TabItem(
-      label: 'Kho',
-      icon: Icons.inventory_2_outlined,
-      activeIcon: Icons.inventory_2,
-      widget: InventoryScreen(),
-    ),
-    _TabItem(
-      label: 'Tai khoan',
-      icon: Icons.person_outline,
-      activeIcon: Icons.person,
-      widget: AccountScreen(),
-    ),
-  ];
+  List<_TabItem> _buildTabs(bool isEnglish) {
+    return [
+      _TabItem(
+        label: isEnglish ? 'Products' : 'San pham',
+        icon: Icons.storefront_outlined,
+        activeIcon: Icons.storefront,
+        widget: const ProductListScreen(),
+      ),
+      _TabItem(
+        label: isEnglish ? 'Orders' : 'Don hang',
+        icon: Icons.receipt_long_outlined,
+        activeIcon: Icons.receipt_long,
+        widget: const OrdersScreen(),
+      ),
+      _TabItem(
+        label: isEnglish ? 'Overview' : 'Tong quan',
+        icon: Icons.dashboard_outlined,
+        activeIcon: Icons.dashboard,
+        widget: const DashboardScreen(),
+      ),
+      _TabItem(
+        label: isEnglish ? 'Inventory' : 'Kho',
+        icon: Icons.inventory_2_outlined,
+        activeIcon: Icons.inventory_2,
+        widget: const InventoryScreen(),
+      ),
+      _TabItem(
+        label: isEnglish ? 'Account' : 'Tai khoan',
+        icon: Icons.person_outline,
+        activeIcon: Icons.person,
+        widget: const AccountScreen(),
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
-    final safeIndex = _currentIndex >= _tabs.length
-        ? _tabs.length - 1
+    final appSettings = AppSettingsScope.of(context);
+    final isEnglish = appSettings.locale.languageCode == 'en';
+    final tabs = _buildTabs(isEnglish);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final safeIndex = _currentIndex >= tabs.length
+        ? tabs.length - 1
         : _currentIndex;
     final shellBody = IndexedStack(
       index: safeIndex,
-      children: _tabs.map((tab) => tab.widget).toList(),
+      children: tabs.map((tab) => tab.widget).toList(),
     );
 
     return LayoutBuilder(
@@ -89,7 +98,7 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
                     onDestinationSelected: (index) {
                       setState(() => _currentIndex = index);
                     },
-                    destinations: _tabs
+                    destinations: tabs
                         .map(
                           (tab) => NavigationRailDestination(
                             icon: Icon(tab.icon),
@@ -117,8 +126,12 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
             type: BottomNavigationBarType.fixed,
             showSelectedLabels: true,
             showUnselectedLabels: false,
-            selectedItemColor: const Color(0xFF1D4ED8),
-            unselectedItemColor: const Color(0xFF64748B),
+            selectedItemColor: isDark
+                ? colorScheme.primary
+                : const Color(0xFF1D4ED8),
+            unselectedItemColor: isDark
+                ? colorScheme.onSurfaceVariant
+                : const Color(0xFF64748B),
             selectedLabelStyle: const TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 12,
@@ -129,11 +142,11 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
             ),
             selectedIconTheme: const IconThemeData(size: 26),
             unselectedIconTheme: const IconThemeData(size: 22),
-            backgroundColor: Colors.white,
+            backgroundColor: isDark ? colorScheme.surface : Colors.white,
             onTap: (index) {
               setState(() => _currentIndex = index);
             },
-            items: _tabs
+            items: tabs
                 .map(
                   (tab) => BottomNavigationBarItem(
                     icon: Icon(tab.icon),

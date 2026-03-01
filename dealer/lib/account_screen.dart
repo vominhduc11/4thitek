@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'account_settings_screen.dart';
+import 'app_preferences_screen.dart';
 import 'auth_storage.dart';
 import 'dealer_profile_storage.dart';
 import 'login_screen.dart';
@@ -58,6 +59,15 @@ class _AccountScreenState extends State<AccountScreen> {
         setState(() => _isLoggingOut = false);
       }
     }
+  }
+
+  Future<void> _openAppPreferences() async {
+    if (_isLoggingOut) {
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const AppPreferencesScreen()),
+    );
   }
 
   @override
@@ -190,6 +200,13 @@ class _AccountScreenState extends State<AccountScreen> {
                                       ),
                                     );
                                   },
+                          ),
+                          const Divider(height: 0),
+                          ListTile(
+                            leading: const Icon(Icons.palette_outlined),
+                            title: const Text('Giao dien va ngon ngu'),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: _isLoggingOut ? null : _openAppPreferences,
                           ),
                         ],
                       ),
