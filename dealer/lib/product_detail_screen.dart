@@ -5,9 +5,11 @@ import 'package:flutter_spinbox/flutter_spinbox.dart';
 import 'package:chewie/chewie.dart';
 import 'package:video_player/video_player.dart';
 
+import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'checkout_screen.dart';
 import 'cart_screen.dart';
+import 'global_search.dart';
 import 'models.dart';
 import 'utils.dart';
 import 'widgets/cart_icon_button.dart';
@@ -27,10 +29,9 @@ class ProductDetailScreen extends StatefulWidget {
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
-  static const double _tabletBreakpoint = 760;
   static const double _midRangeBreakpoint = 560;
   static const double _smallMobileBreakpoint = 360;
-  static const Duration _detailApiLatency = Duration(milliseconds: 900);
+  static const Duration _detailApiLatency = Duration(milliseconds: 400);
 
   bool _isLoadingDetail = true;
   bool _isAddingToCart = false;
@@ -100,7 +101,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
             action: didAdd
                 ? SnackBarAction(
-                    label: 'Xem giỏ',
+                    label: 'Quay lại giỏ hàng',
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -330,7 +331,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final height = screenSize.height;
     final shortestSide = screenSize.shortestSide;
     final isLandscape = mediaQuery.orientation == Orientation.landscape;
-    final isTablet = width >= _tabletBreakpoint && shortestSide >= 600;
+    final isTablet = shortestSide >= AppBreakpoints.phone;
     final isSmallMobile = width <= _smallMobileBreakpoint;
     final isMidRange = !isTablet && width >= _midRangeBreakpoint;
     final isLandscapePhone = isLandscape && !isTablet;
@@ -390,6 +391,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       appBar: AppBar(
         title: BrandAppBarTitle(widget.product.name),
         actions: [
+          const GlobalSearchIconButton(),
           CartIconButton(
             count: cart.totalItems,
             onPressed: () {

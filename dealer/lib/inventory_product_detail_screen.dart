@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'breakpoints.dart';
 import 'models.dart';
 import 'order_controller.dart';
 import 'order_detail_screen.dart';
@@ -13,7 +14,7 @@ import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/product_image.dart';
 
-enum InventorySerialFilter { all, available, sold }
+enum InventorySerialFilter { all, available, sold, defective }
 
 const double _detailSectionSpacing = 16;
 const double _detailSectionSpacingLarge = 18;
@@ -47,7 +48,11 @@ class InventoryProductDetailScreen extends StatefulWidget {
 
 class _InventoryProductDetailScreenState
     extends State<InventoryProductDetailScreen> {
+  static const int _initialVisibleSerialCount = 40;
+  static const int _visibleSerialStep = 40;
+
   InventorySerialFilter _filter = InventorySerialFilter.all;
+  int _visibleSerialCount = _initialVisibleSerialCount;
 
   @override
   Widget build(BuildContext context) {
@@ -82,254 +87,305 @@ class _InventoryProductDetailScreenState
           if (_filter == InventorySerialFilter.sold && status != 'sold') {
             return false;
           }
+          if (_filter == InventorySerialFilter.defective &&
+              status != 'defective') {
+            return false;
+          }
           return true;
         })
         .toList(growable: false);
+    final visibleSerials = filtered
+        .take(_visibleSerialCount)
+        .toList(growable: false);
+    final hasMoreSerials = visibleSerials.length < filtered.length;
+    final isTablet =
+        MediaQuery.sizeOf(context).shortestSide >= AppBreakpoints.phone;
+    final maxWidth = isTablet ? 1040.0 : double.infinity;
 
     return Scaffold(
       appBar: AppBar(title: const BrandAppBarTitle('Chi tiết kho')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-        children: [
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-              side: BorderSide(
-                color: Theme.of(
-                  context,
-                ).colorScheme.outlineVariant.withValues(alpha: 0.6),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            children: [
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ProductImage(
-                        product: widget.product,
-                        width: 72,
-                        height: 72,
-                        borderRadius: BorderRadius.circular(14),
-                        fit: BoxFit.cover,
-                        iconSize: 20,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ProductImage(
+                            product: widget.product,
+                            width: 72,
+                            height: 72,
+                            borderRadius: BorderRadius.circular(14),
+                            fit: BoxFit.cover,
+                            iconSize: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.product.name,
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        color: const Color(0xFF0F172A),
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                        height: 1.2,
+                                      ),
+                                ),
+                                if (productSku.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'SKU: $productSku',
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: const Color(0xFF94A3B8),
+                                          fontSize: 11.5,
+                                          height: 1.3,
+                                        ),
+                                  ),
+                                ],
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Nhập gần nhất: ${formatDateTime(widget.latestImportedAt)}',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: const Color(0xFF64748B),
+                                        fontSize: 12,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.product.name,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    color: const Color(0xFF0F172A),
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    height: 1.2,
-                                  ),
-                            ),
-                            if (productSku.isNotEmpty) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                'SKU: $productSku',
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: const Color(0xFF94A3B8),
-                                      fontSize: 11.5,
-                                      height: 1.3,
-                                    ),
+                      if (widget.product.description.trim().isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.product.description.trim(),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: const Color(0xFF64748B),
+                                fontSize: 12.5,
+                                height: 1.35,
                               ),
-                            ],
-                            const SizedBox(height: 4),
-                            Text(
-                              'Nhập gần nhất: ${formatDateTime(widget.latestImportedAt)}',
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: const Color(0xFF64748B),
-                                    fontSize: 12,
-                                  ),
-                            ),
-                          ],
                         ),
+                      ],
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _InventoryMetric(
+                            label: 'Tồn kho',
+                            value: '${widget.availableQuantity}',
+                            color: const Color(0xFF047857),
+                            icon: Icons.inventory_2_outlined,
+                          ),
+                          _InventoryMetric(
+                            label: 'Đã nhập',
+                            value: '${widget.importedQuantity}',
+                            color: const Color(0xFF1D4ED8),
+                            icon: Icons.south_west_rounded,
+                          ),
+                          _InventoryMetric(
+                            label: 'Đã bán',
+                            value: '${widget.soldQuantity}',
+                            color: const Color(0xFFB45309),
+                            icon: Icons.north_east_rounded,
+                          ),
+                          _InventoryMetric(
+                            label: 'Lỗi',
+                            value: '${widget.defectiveQuantity}',
+                            color: const Color(0xFFB91C1C),
+                            icon: Icons.error_outline_rounded,
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  if (widget.product.description.trim().isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.product.description.trim(),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF64748B),
-                        fontSize: 12.5,
-                        height: 1.35,
+                ),
+              ),
+              const SizedBox(height: _detailSectionSpacingLarge),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  Semantics(
+                    button: true,
+                    label: 'Xuất hàng',
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        final orderId = _pickOrderForExport(
+                          orderController,
+                          warrantyController,
+                        );
+                        if (orderId == null) {
+                          _showSnackBar(
+                            'Không tìm thấy đơn phù hợp để xuất hàng.',
+                          );
+                          return;
+                        }
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                WarrantyActivationScreen(orderId: orderId),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(120, 46),
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w700),
                       ),
+                      icon: const Icon(Icons.local_shipping_outlined),
+                      label: const Text('Xuất hàng'),
                     ),
-                  ],
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _InventoryMetric(
-                        label: 'Tồn kho',
-                        value: '${widget.availableQuantity}',
-                        color: const Color(0xFF047857),
-                        icon: Icons.inventory_2_outlined,
-                      ),
-                      _InventoryMetric(
-                        label: 'Đã nhập',
-                        value: '${widget.importedQuantity}',
-                        color: const Color(0xFF1D4ED8),
-                        icon: Icons.south_west_rounded,
-                      ),
-                      _InventoryMetric(
-                        label: 'Đã bán',
-                        value: '${widget.soldQuantity}',
-                        color: const Color(0xFFB45309),
-                        icon: Icons.north_east_rounded,
-                      ),
-                    ],
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      unawaited(
+                        _handleScanSerialForProduct(
+                          orderController,
+                          warrantyController,
+                        ),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(120, 46),
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      foregroundColor: const Color(0xFF475569),
+                      side: const BorderSide(color: Color(0xFFD1DAE8)),
+                      backgroundColor: const Color(0xFFF8FAFC),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    icon: const Icon(Icons.qr_code_scanner_outlined),
+                    label: const Text('Quét QR'),
                   ),
                 ],
               ),
-            ),
-          ),
-          const SizedBox(height: _detailSectionSpacingLarge),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              Semantics(
-                button: true,
-                label: 'Xuất hàng',
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    final orderId = _pickOrderForExport(
-                      orderController,
-                      warrantyController,
-                    );
-                    if (orderId == null) {
-                      _showSnackBar('Không tìm thấy đơn phù hợp để xuất hàng.');
-                      return;
-                    }
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            WarrantyActivationScreen(orderId: orderId),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(120, 46),
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
+              const SizedBox(height: _detailSectionSpacing),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _SerialFilterChip(
+                    label: 'Tất cả',
+                    selected: _filter == InventorySerialFilter.all,
+                    onTap: () => _setFilter(InventorySerialFilter.all),
                   ),
-                  icon: const Icon(Icons.local_shipping_outlined),
-                  label: const Text('Xuất hàng'),
-                ),
+                  _SerialFilterChip(
+                    label: 'Sẵn sàng',
+                    selected: _filter == InventorySerialFilter.available,
+                    onTap: () => _setFilter(InventorySerialFilter.available),
+                  ),
+                  _SerialFilterChip(
+                    label: 'Đã bán',
+                    selected: _filter == InventorySerialFilter.sold,
+                    onTap: () => _setFilter(InventorySerialFilter.sold),
+                  ),
+                  _SerialFilterChip(
+                    label: 'Lỗi',
+                    selected: _filter == InventorySerialFilter.defective,
+                    onTap: () => _setFilter(InventorySerialFilter.defective),
+                  ),
+                ],
               ),
-              OutlinedButton.icon(
-                onPressed: () {
-                  unawaited(
-                    _handleScanSerialForProduct(
-                      orderController,
-                      warrantyController,
+              const SizedBox(height: _detailSectionSpacing),
+              if (serials.isEmpty)
+                const Card(
+                  elevation: 0,
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('Sản phẩm này chưa có danh sách serial.'),
+                  ),
+                )
+              else if (filtered.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: Text('Không có serial phù hợp bộ lọc.')),
+                )
+              else
+                ...visibleSerials.map((record) {
+                  final status = _serialStatus(
+                    record.serial,
+                    warrantyController,
+                    activatedSet: activatedSet,
+                    defectiveSet: defectiveSet,
+                  );
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: _detailItemSpacing),
+                    child: _SerialTile(
+                      record: record,
+                      status: status,
+                      onOpenOrder: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                OrderDetailScreen(orderId: record.orderId),
+                          ),
+                        );
+                      },
+                      onCopy: () => _copySerial(record.serial),
+                      onToggleDefective: () {
+                        final next = status != 'defective';
+                        warrantyController.markSerialDefective(
+                          serial: record.serial,
+                          defective: next,
+                        );
+                      },
                     ),
                   );
-                },
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(120, 46),
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  foregroundColor: const Color(0xFF475569),
-                  side: const BorderSide(color: Color(0xFFD1DAE8)),
-                  backgroundColor: const Color(0xFFF8FAFC),
-                  textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                }),
+              if (hasMoreSerials) ...[
+                const SizedBox(height: 8),
+                Center(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _visibleSerialCount += _visibleSerialStep;
+                      });
+                    },
+                    icon: const Icon(Icons.expand_more_rounded),
+                    label: Text(
+                      'Xem thêm ${filtered.length - visibleSerials.length} serial',
+                    ),
+                  ),
                 ),
-                icon: const Icon(Icons.qr_code_scanner_outlined),
-                label: const Text('Quét QR'),
-              ),
+              ],
             ],
           ),
-          const SizedBox(height: _detailSectionSpacing),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _SerialFilterChip(
-                label: 'Tất cả',
-                selected: _filter == InventorySerialFilter.all,
-                onTap: () =>
-                    setState(() => _filter = InventorySerialFilter.all),
-              ),
-              _SerialFilterChip(
-                label: 'Sẵn sàng',
-                selected: _filter == InventorySerialFilter.available,
-                onTap: () =>
-                    setState(() => _filter = InventorySerialFilter.available),
-              ),
-              _SerialFilterChip(
-                label: 'Đã bán',
-                selected: _filter == InventorySerialFilter.sold,
-                onTap: () =>
-                    setState(() => _filter = InventorySerialFilter.sold),
-              ),
-            ],
-          ),
-          const SizedBox(height: _detailSectionSpacing),
-          if (serials.isEmpty)
-            const Card(
-              elevation: 0,
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('Sản phẩm này chưa có danh sách serial.'),
-              ),
-            )
-          else if (filtered.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: Text('Không có serial phù hợp bộ lọc.')),
-            )
-          else
-            ...filtered.map((record) {
-              final status = _serialStatus(
-                record.serial,
-                warrantyController,
-                activatedSet: activatedSet,
-                defectiveSet: defectiveSet,
-              );
-              return Padding(
-                padding: const EdgeInsets.only(bottom: _detailItemSpacing),
-                child: _SerialTile(
-                  record: record,
-                  status: status,
-                  onOpenOrder: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            OrderDetailScreen(orderId: record.orderId),
-                      ),
-                    );
-                  },
-                  onCopy: () => _copySerial(record.serial),
-                  onToggleDefective: () {
-                    final next = status != 'defective';
-                    warrantyController.markSerialDefective(
-                      serial: record.serial,
-                      defective: next,
-                    );
-                  },
-                ),
-              );
-            }),
-        ],
+        ),
       ),
     );
+  }
+
+  void _setFilter(InventorySerialFilter filter) {
+    setState(() {
+      _filter = filter;
+      _visibleSerialCount = _initialVisibleSerialCount;
+    });
   }
 
   String _serialStatus(

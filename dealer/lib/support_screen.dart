@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
@@ -18,6 +19,7 @@ class SupportScreen extends StatefulWidget {
 class _SupportScreenState extends State<SupportScreen> {
   final _subjectController = TextEditingController();
   final _messageController = TextEditingController();
+
   SupportCategory _category = SupportCategory.order;
   SupportPriority _priority = SupportPriority.normal;
   String? _lastTicketId;
@@ -40,7 +42,7 @@ class _SupportScreenState extends State<SupportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const BrandAppBarTitle('Ho tro')),
+      appBar: AppBar(title: const BrandAppBarTitle('Hỗ trợ')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         children: [
@@ -74,18 +76,12 @@ class _SupportScreenState extends State<SupportScreen> {
                     runSpacing: 8,
                     children: [
                       OutlinedButton.icon(
-                        onPressed: () => _copyToClipboard(
-                          _hotline,
-                          message: 'Đã sao chép số hotline.',
-                        ),
+                        onPressed: () => _launchHotline(_hotline),
                         icon: const Icon(Icons.phone_in_talk_outlined),
                         label: const Text('Gọi hotline'),
                       ),
                       OutlinedButton.icon(
-                        onPressed: () => _copyToClipboard(
-                          _supportEmail,
-                          message: 'Đã sao chép email hỗ trợ.',
-                        ),
+                        onPressed: () => _launchSupportEmail(_supportEmail),
                         icon: const Icon(Icons.alternate_email_outlined),
                         label: const Text('Gửi email'),
                       ),
@@ -95,7 +91,7 @@ class _SupportScreenState extends State<SupportScreen> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Thời gian hỗ trợ: 8:00–18:00 (T2–T7)',
+                      'Thời gian hỗ trợ: 8:00-18:00 (T2-T7)',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -257,6 +253,26 @@ class _SupportScreenState extends State<SupportScreen> {
     _showSnackBar(message ?? 'Đã sao chép $value');
   }
 
+  Future<void> _launchHotline(String phone) async {
+    final normalizedPhone = phone.replaceAll(RegExp(r'\s+'), '');
+    final uri = Uri(scheme: 'tel', path: normalizedPhone);
+    if (await launchUrl(uri)) {
+      return;
+    }
+    _copyToClipboard(phone, message: 'Không mở được cuộc gọi. Đã sao chép số.');
+  }
+
+  Future<void> _launchSupportEmail(String email) async {
+    final uri = Uri(scheme: 'mailto', path: email);
+    if (await launchUrl(uri)) {
+      return;
+    }
+    _copyToClipboard(
+      email,
+      message: 'Không mở được ứng dụng email. Đã sao chép địa chỉ.',
+    );
+  }
+
   void _handleSubmit() {
     final subject = _subjectController.text.trim();
     final message = _messageController.text.trim();
@@ -314,11 +330,11 @@ class _SupportScreenState extends State<SupportScreen> {
   String _slaText(SupportPriority priority) {
     switch (priority) {
       case SupportPriority.normal:
-        return '4–8 giờ làm việc';
+        return '4-8 giờ làm việc';
       case SupportPriority.high:
-        return '2–4 giờ làm việc';
+        return '2-4 giờ làm việc';
       case SupportPriority.urgent:
-        return '30–60 phút';
+        return '30-60 phút';
     }
   }
 
@@ -340,7 +356,9 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   void _showSnackBar(String message) {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
@@ -533,12 +551,12 @@ const List<_FaqItem> _faqItems = [
   ),
   _FaqItem(
     title: 'Đơn hàng chưa cập nhật',
-    body: 'Hệ thống có thể cần 3–5 phút để đồng bộ trạng thái đơn hàng.',
+    body: 'Hệ thống có thể cần 3-5 phút để đồng bộ trạng thái đơn hàng.',
     icon: Icons.receipt_long_outlined,
   ),
   _FaqItem(
-    title: 'Xu ly serial',
-    body: 'Chuan bi serial/IMEI va so dien thoai de xu ly nhanh hon.',
+    title: 'Xử lý serial',
+    body: 'Chuẩn bị serial/IMEI và số điện thoại để xử lý nhanh hơn.',
     icon: Icons.verified_outlined,
   ),
 ];

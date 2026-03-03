@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'dealer_profile_storage.dart';
+import 'global_search.dart';
 import 'mock_data.dart';
 import 'models.dart';
 import 'order_controller.dart';
@@ -9,6 +11,7 @@ import 'order_success_screen.dart';
 import 'utils.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
+import 'widgets/section_card.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -43,7 +46,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final colors = Theme.of(context).colorScheme;
     final cart = CartScope.of(context);
     final orderController = OrderScope.of(context);
-    final isTablet = MediaQuery.sizeOf(context).shortestSide >= 600;
+    final isTablet = AppBreakpoints.isTablet(context);
     final contentMaxWidth = isTablet ? 860.0 : double.infinity;
     final subtotal = cart.subtotal;
     final discountPercent = cart.discountPercent;
@@ -54,7 +57,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final total = cart.total;
 
     return Scaffold(
-      appBar: AppBar(title: const BrandAppBarTitle('Thanh toán')),
+      appBar: AppBar(
+        title: const BrandAppBarTitle('Thanh toán'),
+        actions: const [GlobalSearchIconButton()],
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: contentMaxWidth),
@@ -62,7 +68,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
             children: [
               FadeSlideIn(
-                child: _SectionCard(
+                child: SectionCard(
                   title: 'Thông tin nhận hàng',
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,7 +100,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               const SizedBox(height: 14),
               FadeSlideIn(
                 delay: const Duration(milliseconds: 60),
-                child: _SectionCard(
+                child: SectionCard(
                   title: 'Phương thức thanh toán',
                   child: RadioGroup<OrderPaymentMethod>(
                     groupValue: _method,
@@ -130,7 +136,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               const SizedBox(height: 14),
               FadeSlideIn(
                 delay: const Duration(milliseconds: 120),
-                child: _SectionCard(
+                child: SectionCard(
                   title: 'Tóm tắt đơn hàng',
                   child: Column(
                     children: [
@@ -395,41 +401,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 }
 
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.title, required this.child});
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.6)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 12),
-            child,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _SummaryRow extends StatelessWidget {
   const _SummaryRow({
     required this.label,
@@ -499,7 +470,7 @@ class _BankTransferInfoSheet extends StatefulWidget {
 class _BankTransferInfoSheetState extends State<_BankTransferInfoSheet> {
   @override
   Widget build(BuildContext context) {
-    final isTablet = MediaQuery.sizeOf(context).shortestSide >= 600;
+    final isTablet = AppBreakpoints.isTablet(context);
     final maxWidth = isTablet ? 760.0 : double.infinity;
     final colors = Theme.of(context).colorScheme;
     return SafeArea(

@@ -59,7 +59,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const BrandAppBarTitle('Cai dat tai khoan')),
+      appBar: AppBar(title: const BrandAppBarTitle('Cài đặt tài khoản')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -67,14 +67,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               children: [
                 FadeSlideIn(
                   child: _SectionCard(
-                    title: 'Thong tin doanh nghiep',
+                    title: 'Thông tin doanh nghiệp',
                     child: Column(
                       children: [
                         TextField(
                           controller: _businessNameController,
                           textInputAction: TextInputAction.next,
                           decoration: const InputDecoration(
-                            labelText: 'Ten doanh nghiep / dai ly',
+                            labelText: 'Tên doanh nghiệp / đại lý',
                             prefixIcon: Padding(
                               padding: EdgeInsets.all(12),
                               child: BrandLogoIcon(size: 20),
@@ -84,10 +84,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                         const SizedBox(height: 14),
                         TextField(
                           controller: _dealerCodeController,
-                          enabled: false,
+                          readOnly: true,
                           decoration: const InputDecoration(
-                            labelText: 'Ma dai ly',
+                            labelText: 'Mã đại lý',
                             prefixIcon: Icon(Icons.badge_outlined),
+                            suffixIcon: Icon(Icons.lock_outline, size: 18),
                           ),
                         ),
                         const SizedBox(height: 14),
@@ -95,7 +96,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                           controller: _contactNameController,
                           textInputAction: TextInputAction.next,
                           decoration: const InputDecoration(
-                            labelText: 'Nguoi lien he',
+                            labelText: 'Người liên hệ',
                             prefixIcon: Icon(Icons.person_outline),
                           ),
                         ),
@@ -107,7 +108,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 80),
                   child: _SectionCard(
-                    title: 'Dia chi giao hang va lien he',
+                    title: 'Địa chỉ giao hàng và liên hệ',
                     child: Column(
                       children: [
                         TextField(
@@ -125,7 +126,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                           keyboardType: TextInputType.phone,
                           textInputAction: TextInputAction.next,
                           decoration: const InputDecoration(
-                            labelText: 'So dien thoai',
+                            labelText: 'Số điện thoại',
                             prefixIcon: Icon(Icons.phone_outlined),
                           ),
                         ),
@@ -135,7 +136,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                           maxLines: 2,
                           textInputAction: TextInputAction.next,
                           decoration: const InputDecoration(
-                            labelText: 'Dia chi giao hang',
+                            labelText: 'Địa chỉ giao hàng',
                             prefixIcon: Icon(Icons.location_on_outlined),
                           ),
                         ),
@@ -147,13 +148,13 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 120),
                   child: _SectionCard(
-                    title: 'Chinh sach ban hang',
+                    title: 'Chính sách bán hàng',
                     child: TextField(
                       controller: _policyController,
                       minLines: 3,
                       maxLines: 5,
                       decoration: const InputDecoration(
-                        labelText: 'Noi dung chinh sach',
+                        labelText: 'Nội dung chính sách',
                         alignLabelWithHint: true,
                         prefixIcon: Icon(Icons.policy_outlined),
                       ),
@@ -175,7 +176,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                                 strokeWidth: 2.5,
                               ),
                             )
-                          : const Text('Luu thay doi'),
+                          : const Text('Lưu thay đổi'),
                     ),
                   ),
                 ),
@@ -198,15 +199,15 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         phone.isEmpty ||
         shippingAddress.isEmpty ||
         salesPolicy.isEmpty) {
-      _showSnackBar('Vui long nhap day du thong tin.');
+      _showSnackBar('Vui lòng nhập đầy đủ thông tin.');
       return;
     }
     if (!_isValidEmail(email)) {
-      _showSnackBar('Email khong hop le.');
+      _showSnackBar('Email không hợp lệ.');
       return;
     }
     if (!_isValidPhone(phone)) {
-      _showSnackBar('So dien thoai khong hop le.');
+      _showSnackBar('Số điện thoại không hợp lệ.');
       return;
     }
 
@@ -228,7 +229,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     }
 
     setState(() => _isSaving = false);
-    _showSnackBar('Da luu thong tin tai khoan.');
+    _showSnackBar('Đã lưu thông tin tài khoản.');
   }
 
   bool _isValidEmail(String email) {

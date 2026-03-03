@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'app_settings_controller.dart';
 import 'account_screen.dart';
+import 'app_settings_controller.dart';
+import 'breakpoints.dart';
 import 'dashboard_screen.dart';
 import 'inventory_screen.dart';
 import 'orders_screen.dart';
@@ -16,9 +18,62 @@ class DealerHomeShell extends StatefulWidget {
 }
 
 class _DealerHomeShellState extends State<DealerHomeShell> {
-  static const _desktopNavBreakpoint = 1024.0;
+  static const _onboardingSeenKey = 'onboarding_seen_v1';
 
   int _currentIndex = 0;
+  final PageStorageBucket _pageStorageBucket = PageStorageBucket();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeShowOnboarding();
+    });
+  }
+
+  void _switchToTab(int index) {
+    if (_currentIndex == index) {
+      return;
+    }
+    setState(() => _currentIndex = index);
+  }
+
+  Future<void> _maybeShowOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    final seen = prefs.getBool(_onboardingSeenKey) ?? false;
+    if (seen || !mounted) {
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Chào mừng đến 4thitek Dealer Hub'),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('1. Tạo đơn nhanh trong tab Sản phẩm.'),
+              SizedBox(height: 6),
+              Text('2. Theo dõi công nợ và trạng thái trong tab Đơn hàng.'),
+              SizedBox(height: 6),
+              Text('3. Dùng tìm kiếm toàn cục để tra đơn/sản phẩm tức thì.'),
+            ],
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Bắt đầu'),
+            ),
+          ],
+        );
+      },
+    );
+
+    await prefs.setBool(_onboardingSeenKey, true);
+  }
 
   List<_TabItem> _buildTabs(bool isEnglish) {
     return [
@@ -26,31 +81,37 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
         label: isEnglish ? 'Products' : 'Sản phẩm',
         icon: Icons.storefront_outlined,
         activeIcon: Icons.storefront,
-        widget: const ProductListScreen(),
+        widget: const ProductListScreen(key: PageStorageKey('tab-products')),
       ),
       _TabItem(
         label: isEnglish ? 'Orders' : 'Đơn hàng',
         icon: Icons.receipt_long_outlined,
         activeIcon: Icons.receipt_long,
-        widget: const OrdersScreen(),
+        widget: OrdersScreen(
+          key: const PageStorageKey('tab-orders'),
+          onSwitchTab: _switchToTab,
+        ),
       ),
       _TabItem(
         label: isEnglish ? 'Overview' : 'Tổng quan',
         icon: Icons.dashboard_outlined,
         activeIcon: Icons.dashboard,
-        widget: const DashboardScreen(),
+        widget: DashboardScreen(
+          key: const PageStorageKey('tab-dashboard'),
+          onSwitchTab: _switchToTab,
+        ),
       ),
       _TabItem(
         label: isEnglish ? 'Inventory' : 'Kho',
         icon: Icons.inventory_2_outlined,
         activeIcon: Icons.inventory_2,
-        widget: const InventoryScreen(),
+        widget: const InventoryScreen(key: PageStorageKey('tab-inventory')),
       ),
       _TabItem(
         label: isEnglish ? 'Account' : 'Tài khoản',
         icon: Icons.person_outline,
         activeIcon: Icons.person,
-        widget: const AccountScreen(),
+        widget: const AccountScreen(key: PageStorageKey('tab-account')),
       ),
     ];
   }
@@ -63,15 +124,19 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
     final safeIndex = _currentIndex >= tabs.length
         ? tabs.length - 1
         : _currentIndex;
-    final shellBody = IndexedStack(
-      index: safeIndex,
-      children: tabs.map((tab) => tab.widget).toList(),
+    final shellBody = PageStorage(
+      bucket: _pageStorageBucket,
+      child: IndexedStack(
+        index: safeIndex,
+        children: tabs.map((tab) => tab.widget).toList(),
+      ),
     );
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth >= _desktopNavBreakpoint;
-        final useExtendedRail = constraints.maxWidth >= 1320;
+        final isDesktop = constraints.maxWidth >= AppBreakpoints.desktop;
+        final useExtendedRail =
+            constraints.maxWidth >= AppBreakpoints.railExtended;
         if (isDesktop) {
           return Scaffold(
             body: Row(
@@ -92,9 +157,7 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
                     minWidth: 84,
                     minExtendedWidth: 220,
                     extended: useExtendedRail,
-                    onDestinationSelected: (index) {
-                      setState(() => _currentIndex = index);
-                    },
+                    onDestinationSelected: _switchToTab,
                     destinations: tabs
                         .map(
                           (tab) => NavigationRailDestination(
@@ -120,9 +183,7 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
           body: shellBody,
           bottomNavigationBar: NavigationBar(
             selectedIndex: safeIndex,
-            onDestinationSelected: (index) {
-              setState(() => _currentIndex = index);
-            },
+            onDestinationSelected: _switchToTab,
             destinations: tabs
                 .map(
                   (tab) => NavigationDestination(

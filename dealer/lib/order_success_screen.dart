@@ -23,6 +23,11 @@ class OrderSuccessScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final order = OrderScope.of(context).findById(orderId);
     final statusNote = _buildStatusNote(order);
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final successColor = isDark
+        ? const Color(0xFF4ADE80)
+        : const Color(0xFF16A34A);
 
     return Scaffold(
       appBar: AppBar(
@@ -35,10 +40,18 @@ class OrderSuccessScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(
-                Icons.check_circle_outline,
-                size: 72,
-                color: Colors.green,
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 0.9, end: 1.0),
+                duration: const Duration(milliseconds: 420),
+                curve: Curves.easeOutBack,
+                child: Icon(
+                  Icons.check_circle_outline,
+                  size: 72,
+                  color: successColor,
+                ),
+                builder: (context, value, child) {
+                  return Transform.scale(scale: value, child: child);
+                },
               ),
               const SizedBox(height: 16),
               Text(
@@ -52,16 +65,16 @@ class OrderSuccessScreen extends StatelessWidget {
               Text(
                 'Mã đơn hàng: $orderId',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
               Text(
                 statusNote,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.black87),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
@@ -74,10 +87,11 @@ class OrderSuccessScreen extends StatelessWidget {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.of(context).push(
+                  Navigator.of(context).pushAndRemoveUntil(
                     MaterialPageRoute(
-                      builder: (context) => OrderDetailScreen(orderId: orderId),
+                      builder: (_) => OrderDetailScreen(orderId: orderId),
                     ),
+                    (route) => route.isFirst,
                   );
                 },
                 child: const Text('Xem chi tiết đơn hàng'),

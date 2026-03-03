@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'app_settings_controller.dart';
 import 'auth_storage.dart';
+import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'home_shell.dart';
 import 'login_screen.dart';
@@ -12,7 +14,18 @@ import 'order_controller.dart';
 import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final view = WidgetsBinding.instance.platformDispatcher.views.first;
+  final shortestSide = view.physicalSize.shortestSide / view.devicePixelRatio;
+  if (shortestSide < AppBreakpoints.phone) {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  } else {
+    await SystemChrome.setPreferredOrientations(const <DeviceOrientation>[]);
+  }
   runApp(const DealerApp());
 }
 
@@ -90,8 +103,7 @@ class _DealerAppState extends State<DealerApp> {
                     home: FutureBuilder<bool>(
                       future: _startupFuture,
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState !=
-                            ConnectionState.done) {
+                        if (snapshot.connectionState != ConnectionState.done) {
                           return const _LaunchScreen();
                         }
 
@@ -129,11 +141,11 @@ class _DealerAppState extends State<DealerApp> {
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFE0E6F2)),
+          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFE0E6F2)),
+          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -169,7 +181,7 @@ class _DealerAppState extends State<DealerApp> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          side: const BorderSide(color: Color(0xFFE0E6F2)),
+          side: const BorderSide(color: Color(0xFFCBD5E1)),
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),

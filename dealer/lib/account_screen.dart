@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'account_settings_screen.dart';
 import 'app_preferences_screen.dart';
 import 'auth_storage.dart';
+import 'breakpoints.dart';
+import 'cart_controller.dart';
 import 'dealer_profile_storage.dart';
+import 'global_search.dart';
 import 'login_screen.dart';
 import 'notification_controller.dart';
 import 'notifications_screen.dart';
@@ -50,6 +53,7 @@ class _AccountScreenState extends State<AccountScreen> {
       if (!mounted) {
         return;
       }
+      CartScope.of(context).clear();
 
       shouldResetLoading = false;
       Navigator.of(context).pushAndRemoveUntil(
@@ -75,12 +79,13 @@ class _AccountScreenState extends State<AccountScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isTablet = MediaQuery.sizeOf(context).shortestSide >= 600;
+    final isTablet = AppBreakpoints.isTablet(context);
     final contentMaxWidth = isTablet ? 860.0 : double.infinity;
     return Scaffold(
       appBar: AppBar(
         title: const BrandAppBarTitle('Tài khoản'),
         actions: [
+          const GlobalSearchIconButton(),
           NotificationIconButton(
             count: NotificationScope.of(context).unreadCount,
             onPressed: () {

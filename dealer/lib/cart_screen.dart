@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinbox/flutter_spinbox.dart';
 
+import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'checkout_screen.dart';
+import 'global_search.dart';
+import 'models.dart';
 import 'utils.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
@@ -24,13 +27,36 @@ class CartScreen extends StatelessWidget {
     final totalAfterDiscount = cart.totalAfterDiscount;
     final vatAmount = cart.vatAmount;
     final total = cart.total;
-    final isTablet = MediaQuery.sizeOf(context).shortestSide >= 600;
+    final isTablet = AppBreakpoints.isTablet(context);
     final contentMaxWidth = isTablet ? 860.0 : double.infinity;
     final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.6);
-    final listBottomPadding = 120 + (textScale - 1) * 36;
+    final safeBottom = MediaQuery.paddingOf(context).bottom;
+    final listBottomPadding = 104 + safeBottom + (textScale - 1) * 24;
+
+    void removeItemWithUndo(CartItem item) {
+      final removedQty = item.quantity;
+      cart.remove(item.product.id);
+      final messenger = ScaffoldMessenger.of(context);
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('Đã xóa ${item.product.name} khỏi giỏ'),
+            action: SnackBarAction(
+              label: 'Hoàn tác',
+              onPressed: () {
+                cart.setQuantity(item.product, removedQty);
+              },
+            ),
+          ),
+        );
+    }
 
     return Scaffold(
-      appBar: AppBar(title: const BrandAppBarTitle('Giỏ hàng')),
+      appBar: AppBar(
+        title: const BrandAppBarTitle('Giỏ hàng'),
+        actions: const [GlobalSearchIconButton()],
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: contentMaxWidth),
@@ -66,131 +92,142 @@ class CartScreen extends StatelessWidget {
                       return FadeSlideIn(
                         key: ValueKey(item.product.id),
                         delay: Duration(milliseconds: 30 * index),
-                        child: Dismissible(
-                          key: ValueKey('dismiss-${item.product.id}'),
-                          direction: DismissDirection.endToStart,
-                          background: Container(
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.only(right: 20),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFDC2626),
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                          onDismissed: (_) => cart.remove(item.product.id),
-                          child: Card(
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
-                              side: BorderSide(
-                                color: colors.outlineVariant.withValues(
-                                  alpha: 0.6,
-                                ),
+                        child: Semantics(
+                          container: true,
+                          label: 'Mục giỏ hàng ${item.product.name}',
+                          hint: 'Vuốt sang trái để xóa và có thể hoàn tác',
+                          child: Dismissible(
+                            key: ValueKey('dismiss-${item.product.id}'),
+                            direction: DismissDirection.endToStart,
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDC2626),
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              child: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.white,
+                                size: 24,
                               ),
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 12, 4, 12),
-                              child: Row(
-                                children: [
-                                  ProductImage(
-                                    product: item.product,
-                                    width: 44,
-                                    height: 44,
-                                    borderRadius: BorderRadius.circular(12),
-                                    iconSize: 20,
+                            onDismissed: (_) => removeItemWithUndo(item),
+                            child: Card(
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                side: BorderSide(
+                                  color: colors.outlineVariant.withValues(
+                                    alpha: 0.6,
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          item.product.name,
-                                          style: theme.textTheme.titleSmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          formatVnd(item.product.price),
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color: colors.onSurfaceVariant,
-                                              ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'Tổng dòng: ${formatVnd(item.product.price * item.quantity)}',
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color: colors.primary,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'Số lượng chọn linh hoạt',
-                                          style: theme.textTheme.labelSmall
-                                              ?.copyWith(
-                                                color: colors.onSurfaceVariant,
-                                              ),
-                                        ),
-                                        if (!canIncrease) ...[
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  12,
+                                  4,
+                                  12,
+                                ),
+                                child: Row(
+                                  children: [
+                                    ProductImage(
+                                      product: item.product,
+                                      width: 44,
+                                      height: 44,
+                                      borderRadius: BorderRadius.circular(12),
+                                      iconSize: 20,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item.product.name,
+                                            style: theme.textTheme.titleSmall
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                          ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            item.product.isOrderable
-                                                ? 'Đã đạt tồn kho tối đa'
-                                                : 'Sản phẩm tạm ngưng phân phối',
+                                            formatVnd(item.product.price),
                                             style: theme.textTheme.bodySmall
                                                 ?.copyWith(
-                                                  color: colors.error,
+                                                  color:
+                                                      colors.onSurfaceVariant,
+                                                ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Tổng dòng: ${formatVnd(item.product.price * item.quantity)}',
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                                  color: colors.primary,
                                                   fontWeight: FontWeight.w600,
                                                 ),
                                           ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Số lượng chọn linh hoạt',
+                                            style: theme.textTheme.labelSmall
+                                                ?.copyWith(
+                                                  color:
+                                                      colors.onSurfaceVariant,
+                                                ),
+                                          ),
+                                          if (!canIncrease) ...[
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              item.product.isOrderable
+                                                  ? 'Đã đạt tồn kho tối đa'
+                                                  : 'Sản phẩm tạm ngưng phân phối',
+                                              style: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                    color: colors.error,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                            ),
+                                          ],
                                         ],
-                                      ],
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  SizedBox(
-                                    width: 120,
-                                    child: SpinBox(
-                                      min: minQty.toDouble(),
-                                      max: maxQty.toDouble(),
-                                      value: item.quantity.toDouble(),
-                                      step: 1,
-                                      decimals: 0,
-                                      decoration: const InputDecoration(
-                                        isDense: true,
-                                        contentPadding: EdgeInsets.symmetric(
-                                          vertical: 8,
+                                    const SizedBox(width: 4),
+                                    SizedBox(
+                                      width: 120,
+                                      child: SpinBox(
+                                        min: minQty.toDouble(),
+                                        max: maxQty.toDouble(),
+                                        value: item.quantity.toDouble(),
+                                        step: 1,
+                                        decimals: 0,
+                                        decoration: const InputDecoration(
+                                          isDense: true,
+                                          contentPadding: EdgeInsets.symmetric(
+                                            vertical: 8,
+                                          ),
+                                          border: InputBorder.none,
                                         ),
-                                        border: InputBorder.none,
-                                      ),
-                                      onChanged: (val) => cart.setQuantity(
-                                        item.product,
-                                        val.round(),
+                                        onChanged: (val) => cart.setQuantity(
+                                          item.product,
+                                          val.round(),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.delete_outline,
-                                      size: 20,
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.delete_outline,
+                                        size: 20,
+                                      ),
+                                      color: const Color(0xFFDC2626),
+                                      tooltip: 'Xóa khỏi giỏ',
+                                      onPressed: () => removeItemWithUndo(item),
                                     ),
-                                    color: const Color(0xFFDC2626),
-                                    tooltip: 'Xóa khỏi giỏ',
-                                    onPressed: () =>
-                                        cart.remove(item.product.id),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),

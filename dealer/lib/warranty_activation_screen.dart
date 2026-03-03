@@ -79,9 +79,9 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     final order = OrderScope.of(context).findById(widget.orderId);
     if (order == null) {
       return Scaffold(
-        appBar: AppBar(title: const BrandAppBarTitle('Xu ly serial')),
+        appBar: AppBar(title: const BrandAppBarTitle('Xử lý serial')),
         body: const Center(
-          child: Text('Khong tim thay don hang de xu ly serial.'),
+          child: Text('Không tìm thấy đơn hàng để xử lý serial.'),
         ),
       );
     }
@@ -91,7 +91,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
         order.status == OrderStatus.shipping;
     if (!canProcess) {
       return Scaffold(
-        appBar: AppBar(title: const BrandAppBarTitle('Xu ly serial')),
+        appBar: AppBar(title: const BrandAppBarTitle('Xử lý serial')),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -148,7 +148,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     final progressValue = totalCount == 0 ? 0.0 : activatedCount / totalCount;
 
     return Scaffold(
-      appBar: AppBar(title: const BrandAppBarTitle('Xu ly serial')),
+      appBar: AppBar(title: const BrandAppBarTitle('Xử lý serial')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         children: [
@@ -346,7 +346,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                                       warrantyController,
                                     ),
                               icon: const Icon(Icons.qr_code_scanner_outlined),
-                              label: const Text('Quet QR'),
+                              label: const Text('Quét QR'),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: const Size(0, _serialMinTapTarget),
                               ),
@@ -388,6 +388,8 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                                 prefixIcon: const Icon(
                                   Icons.confirmation_number_outlined,
                                 ),
+                                helperText:
+                                    'Vi du: SN-ABC-12345 (chi gom chu, so va dau -)',
                               ),
                             ),
                           );

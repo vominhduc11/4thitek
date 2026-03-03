@@ -12,30 +12,41 @@ class NotificationIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final semanticLabel = count > 0
+        ? 'Thông báo, $count chưa đọc'
+        : 'Thông báo, không có thông báo chưa đọc';
     return Stack(
       alignment: Alignment.center,
       clipBehavior: Clip.none,
       children: [
-        IconButton(
-          onPressed: onPressed,
-          icon: const Icon(Icons.notifications_outlined),
-          tooltip: 'Thong bao',
+        Semantics(
+          button: true,
+          label: semanticLabel,
+          child: ExcludeSemantics(
+            child: IconButton(
+              onPressed: onPressed,
+              icon: const Icon(Icons.notifications_outlined),
+              tooltip: 'Thông báo',
+            ),
+          ),
         ),
         if (count > 0)
-          Positioned(
-            right: 6,
-            top: 6,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                count > 99 ? '99+' : '$count',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
+          ExcludeSemantics(
+            child: Positioned(
+              right: 6,
+              top: 6,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  count > 99 ? '99+' : '$count',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),

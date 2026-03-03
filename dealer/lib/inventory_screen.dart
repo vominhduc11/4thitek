@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import 'global_search.dart';
 import 'inventory_product_detail_screen.dart';
 import 'models.dart';
 import 'order_controller.dart';
@@ -164,7 +165,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
         MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
-      appBar: AppBar(title: const BrandAppBarTitle('Kho')),
+      appBar: AppBar(
+        title: const BrandAppBarTitle('Kho'),
+        actions: const [GlobalSearchIconButton()],
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: switch (_loadState) {
         InventoryLoadState.loading => _InventoryLoadingView(

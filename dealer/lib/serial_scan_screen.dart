@@ -21,7 +21,7 @@ class _SerialScanScreenState extends State<SerialScanScreen>
 
   final MobileScannerController _scannerController = MobileScannerController(
     detectionSpeed: DetectionSpeed.normal,
-    detectionTimeoutMs: 120,
+    detectionTimeoutMs: 220,
   );
   final TextEditingController _manualController = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
@@ -149,9 +149,11 @@ class _SerialScanScreenState extends State<SerialScanScreen>
       } else if (code.contains('already_active')) {
         _showMessage('Thư viện ảnh đang mở. Vui lòng chờ trong giây lát.');
       } else {
+        final detailMessage = (error.message ?? '').trim();
         _showMessage(
-          'Không thể mở thư viện ảnh (${error.code}). ${error.message ?? ''}'
-              .trim(),
+          detailMessage.isEmpty
+              ? 'Không thể mở thư viện ảnh (${error.code}).'
+              : 'Không thể mở thư viện ảnh (${error.code}). $detailMessage',
         );
       }
     } catch (_) {

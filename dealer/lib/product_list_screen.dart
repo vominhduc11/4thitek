@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinbox/flutter_spinbox.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
+import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'cart_screen.dart';
+import 'global_search.dart';
 import 'mock_data.dart';
 import 'models.dart';
 import 'notification_controller.dart';
@@ -31,9 +33,8 @@ class ProductListScreen extends StatefulWidget {
 class _ProductListScreenState extends State<ProductListScreen> {
   static const int _pageSize = 10;
   static const int _lowStockThreshold = kLowStockThreshold;
-  static const double _tabletShortestSide = 600;
   static const double _tabletListMaxContentWidth = 1040;
-  static const Duration _apiLatency = Duration(milliseconds: 900);
+  static const Duration _apiLatency = Duration(milliseconds: 400);
 
   late final PagingController<int, Product> _pagingController;
   final TextEditingController _searchController = TextEditingController();
@@ -69,7 +70,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final size = MediaQuery.sizeOf(context);
     final width = size.width;
     final shortestSide = size.shortestSide;
-    final isTablet = shortestSide >= _tabletShortestSide;
+    final isTablet = shortestSide >= AppBreakpoints.phone;
     final baseHorizontalPadding = isTablet ? 32.0 : 20.0;
     final maxContentWidth = isTablet
         ? _tabletListMaxContentWidth
@@ -86,6 +87,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       appBar: AppBar(
         title: const BrandAppBarTitle('Sản phẩm'),
         actions: [
+          const GlobalSearchIconButton(),
           NotificationIconButton(
             count: NotificationScope.of(context).unreadCount,
             onPressed: () {
@@ -815,9 +817,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                       product.sku,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: theme.colorScheme.onSurfaceVariant,
-                                      ),
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -1057,7 +1062,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         behavior: SnackBarBehavior.floating,
         content: Text('Đã thêm $quantity sản phẩm vào giỏ'),
         action: SnackBarAction(
-          label: 'Xem giỏ',
+          label: 'Quay lại giỏ hàng',
           onPressed: () {
             Navigator.of(
               context,

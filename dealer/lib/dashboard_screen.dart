@@ -4,6 +4,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'breakpoints.dart';
+import 'global_search.dart';
 import 'mock_data.dart';
 import 'models.dart';
 import 'notification_controller.dart';
@@ -18,12 +20,13 @@ import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/skeleton_box.dart';
 import 'debt_tracking_screen.dart';
+import 'inventory_screen.dart';
 
-const _dashboardMutedText = Color(0xFF64748B);
+const _dashboardMutedText = Color(0xFF475569);
 const _lowStockAlertThreshold = kLowStockThreshold;
-const _mobileBreakpoint = 600.0;
-const _tabletBreakpoint = 900.0;
-const _desktopBreakpoint = 1200.0;
+const _mobileBreakpoint = AppBreakpoints.phone;
+const _tabletBreakpoint = AppBreakpoints.tablet;
+const _desktopBreakpoint = AppBreakpoints.desktop;
 const _overviewCompactBreakpoint = 480.0;
 const _donutStackBreakpoint = 600.0;
 const _compactDebtRowBreakpoint = 420.0;
@@ -34,7 +37,9 @@ enum _DashboardTimeFilter { month, quarter }
 enum _DashboardLoadState { loading, ready, error }
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  const DashboardScreen({super.key, this.onSwitchTab});
+
+  final ValueChanged<int>? onSwitchTab;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -76,6 +81,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _openCreateOrderFlow() {
+    if (widget.onSwitchTab != null) {
+      widget.onSwitchTab!(0);
+      return;
+    }
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const ProductListScreen()));
@@ -87,7 +96,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ).push(MaterialPageRoute(builder: (_) => const DebtTrackingScreen()));
   }
 
+  void _openInventoryScreen() {
+    if (widget.onSwitchTab != null) {
+      widget.onSwitchTab!(3);
+      return;
+    }
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const InventoryScreen()));
+  }
+
   void _openOrdersScreen() {
+    if (widget.onSwitchTab != null) {
+      widget.onSwitchTab!(1);
+      return;
+    }
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const OrdersScreen()));
@@ -96,7 +119,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final orderController = OrderScope.of(context);
-    final warrantyCtrl = WarrantyScope.of(context);
+    final warrantyCtrl =
+        context.dependOnInheritedWidgetOfExactType<WarrantyScope>()?.notifier ??
+        WarrantyController();
     final now = DateTime.now();
     final periodAnchor = _normalizePeriodAnchor(_selectedPeriod);
     final periodStart = _periodStart(periodAnchor);
@@ -144,12 +169,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
       0,
       (sum, order) => sum + order.outstandingAmount,
     );
+    final unreadNotificationCount =
+        context
+            .dependOnInheritedWidgetOfExactType<NotificationScope>()
+            ?.notifier
+            ?.unreadCount ??
+        0;
     final periodUnitLabel = _timeFilter == _DashboardTimeFilter.month
         ? 'tháng'
         : 'quý';
 
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isMobile = screenWidth < _mobileBreakpoint;
+    final isNarrowAppBar = screenWidth < 360;
     final horizontalPadding = isMobile ? 16.0 : 20.0;
     final listBottomPadding = 24.0;
 
@@ -225,7 +257,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     width: childWidth,
                     child: FadeSlideIn(
                       delay: const Duration(milliseconds: 120),
-                      child: _LowStockPanel(products: _buildLowStockProducts()),
+                      child: _LowStockPanel(
+                        products: _buildLowStockProducts(),
+                        onOpenInventory: _openInventoryScreen,
+                      ),
                     ),
                   ),
                   SizedBox(
@@ -312,16 +347,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: const BrandAppBarTitle('Tổng quan'),
         actions: [
-          Tooltip(
-            message: 'Lọc thời gian',
-            child: TextButton.icon(
-              onPressed: _openTimeFilterSheet,
-              icon: const Icon(Icons.calendar_month_outlined, size: 18),
-              label: Text(_periodCompactLabel(periodAnchor)),
+          if (isNarrowAppBar)
+            Tooltip(
+              message: 'Lọc thời gian',
+              child: IconButton(
+                tooltip: 'Lọc thời gian',
+                onPressed: _openTimeFilterSheet,
+                icon: const Icon(Icons.calendar_month_outlined),
+              ),
+            )
+          else
+            Tooltip(
+              message: 'Lọc thời gian',
+              child: TextButton.icon(
+                onPressed: _openTimeFilterSheet,
+                icon: const Icon(Icons.calendar_month_outlined, size: 18),
+                label: Text(_periodCompactLabel(periodAnchor)),
+              ),
             ),
-          ),
+          const GlobalSearchIconButton(),
           NotificationIconButton(
-            count: NotificationScope.of(context).unreadCount,
+            count: unreadNotificationCount,
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const NotificationsScreen()),
@@ -1041,8 +1087,8 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
             const SizedBox(height: 12),
             if (!hasAnyData)
               Container(
-                height: 220,
                 width: double.infinity,
+                constraints: const BoxConstraints(minHeight: 220),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(14),
@@ -1223,7 +1269,7 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                               child: Text(
                                 '${_formatCompactValue(value / 1000000)}M ₫',
                                 style: theme.textTheme.labelSmall?.copyWith(
-                                  color: const Color(0xFF64748B),
+                                  color: _dashboardMutedText,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -1362,7 +1408,7 @@ class _InsightChip extends StatelessWidget {
           Text(
             label,
             style: theme.textTheme.labelSmall?.copyWith(
-              color: const Color(0xFF64748B),
+              color: _dashboardMutedText,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -1569,7 +1615,7 @@ class _LowStockCard extends StatelessWidget {
                     Text(
                       'SKU: ${_compactSku(product.sku)}',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: const Color(0xFF64748B),
+                        color: _dashboardMutedText,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1699,9 +1745,10 @@ String _compactSku(String sku) {
 }
 
 class _LowStockPanel extends StatelessWidget {
-  const _LowStockPanel({required this.products});
+  const _LowStockPanel({required this.products, required this.onOpenInventory});
 
   final List<Product> products;
+  final VoidCallback onOpenInventory;
 
   @override
   Widget build(BuildContext context) {
@@ -1814,13 +1861,7 @@ class _LowStockPanel extends StatelessWidget {
                 ctaLabel: 'Xem tồn kho',
                 ctaSemanticLabel: 'Mở danh sách tồn kho',
                 ctaIcon: Icons.inventory_2_outlined,
-                onCtaPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const ProductListScreen(),
-                    ),
-                  );
-                },
+                onCtaPressed: onOpenInventory,
               )
             else
               ...products.asMap().entries.map((entry) {
@@ -1838,13 +1879,7 @@ class _LowStockPanel extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const ProductListScreen(),
-                      ),
-                    );
-                  },
+                  onPressed: onOpenInventory,
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFFDC2626),
                     foregroundColor: Colors.white,
@@ -2178,7 +2213,7 @@ class _StatusBar extends StatelessWidget {
             Icon(
               Icons.chevron_right_rounded,
               size: 18,
-              color: const Color(0xFF64748B),
+              color: _dashboardMutedText,
             ),
           ],
         ),
@@ -2414,7 +2449,7 @@ class _AgingDebtRow extends StatelessWidget {
     final theme = Theme.of(context);
     final label = Row(
       children: [
-        Icon(_bucketIcon(bucket), size: 14, color: const Color(0xFF64748B)),
+        Icon(_bucketIcon(bucket), size: 14, color: _dashboardMutedText),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
@@ -2577,6 +2612,7 @@ class _BarGuidePainter extends CustomPainter {
   }
 }
 
+// ignore: unused_element
 class _NoticeCard extends StatelessWidget {
   const _NoticeCard({required this.notice});
 
@@ -2842,6 +2878,7 @@ List<_MonthRevenue> _buildMonthlyRevenue(
   ];
 }
 
+// ignore: unused_element
 List<_CustomerStat> _buildTopCustomers(List<Order> orders) {
   final Map<String, _CustomerStat> map = {};
 
@@ -3123,7 +3160,7 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Xu ly serial $windowDays ngay gan nhat',
+              'Xử lý serial $windowDays ngày gần nhất',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -3883,7 +3920,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
               Text(
                 'Tổng',
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFF64748B),
+                  color: _dashboardMutedText,
                   fontWeight: FontWeight.w600,
                   fontSize: 12,
                 ),
@@ -4060,7 +4097,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
                   Text(
                     'Tổng',
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color: const Color(0xFF64748B),
+                      color: _dashboardMutedText,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -4286,6 +4323,7 @@ class _DonutTooltipPositionDelegate extends SingleChildLayoutDelegate {
   }
 }
 
+// ignore: unused_element
 class _TopCustomerCard extends StatelessWidget {
   const _TopCustomerCard({required this.stat});
 
@@ -4354,7 +4392,7 @@ class _TopCustomerCard extends StatelessWidget {
                 Text(
                   '${stat.orderCount} đơn • ${formatVnd(stat.total)}',
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: Colors.black87,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
               ],

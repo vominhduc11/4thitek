@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'breakpoints.dart';
 import 'order_detail_screen.dart';
 import 'utils.dart';
 import 'warranty_controller.dart';
@@ -97,245 +98,265 @@ class _WarrantySerialInventoryScreenState
     final importedCount = warrantyController.importedSerialCount;
     final readyCount = warrantyController.availableImportedSerialCount;
     final activatedCount = warrantyController.activatedImportedSerialCount;
+    final isTablet =
+        MediaQuery.sizeOf(context).shortestSide >= AppBreakpoints.phone;
+    final maxWidth = isTablet ? 1100.0 : double.infinity;
 
     return Scaffold(
       appBar: AppBar(title: const BrandAppBarTitle('Kho serial')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: _searchController,
-                  onChanged: (value) => setState(() => _query = value),
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search),
-                    hintText: 'Tim serial, SKU, ten san pham, ma don',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _FilterChip(
-                      label: 'Tat ca',
-                      selected: _filter == SerialInventoryFilter.all,
-                      onTap: () =>
-                          setState(() => _filter = SerialInventoryFilter.all),
-                    ),
-                    _FilterChip(
-                      label: 'San sang',
-                      selected: _filter == SerialInventoryFilter.ready,
-                      onTap: () =>
-                          setState(() => _filter = SerialInventoryFilter.ready),
-                    ),
-                    _FilterChip(
-                      label: 'Da kich hoat',
-                      selected: _filter == SerialInventoryFilter.activated,
-                      onTap: () => setState(
-                        () => _filter = SerialInventoryFilter.activated,
+                    TextField(
+                      controller: _searchController,
+                      onChanged: (value) => setState(() => _query = value),
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.search),
+                        hintText: 'Tìm serial, SKU, tên sản phẩm, mã đơn',
                       ),
                     ),
-                    _MenuFilterButton(
-                      label: _selectedOrderId == null
-                          ? 'Don: Tat ca'
-                          : 'Don: $_selectedOrderId',
-                      items: [
-                        const PopupMenuItem<String>(
-                          value: _allFilterValue,
-                          child: Text('Tat ca don'),
-                        ),
-                        ...orderIds.map(
-                          (orderId) => PopupMenuItem<String>(
-                            value: orderId,
-                            child: Text(orderId),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _FilterChip(
+                          label: 'Tất cả',
+                          selected: _filter == SerialInventoryFilter.all,
+                          onTap: () => setState(
+                            () => _filter = SerialInventoryFilter.all,
                           ),
                         ),
-                      ],
-                      onSelected: (value) {
-                        setState(() {
-                          _selectedOrderId = value == _allFilterValue
-                              ? null
-                              : value;
-                        });
-                      },
-                    ),
-                    _MenuFilterButton(
-                      label: _selectedSku == null
-                          ? 'SKU: Tat ca'
-                          : 'SKU: $_selectedSku',
-                      items: [
-                        const PopupMenuItem<String>(
-                          value: _allFilterValue,
-                          child: Text('Tat ca SKU'),
-                        ),
-                        ...skus.map(
-                          (sku) => PopupMenuItem<String>(
-                            value: sku,
-                            child: Text(sku),
+                        _FilterChip(
+                          label: 'Sẵn sàng',
+                          selected: _filter == SerialInventoryFilter.ready,
+                          onTap: () => setState(
+                            () => _filter = SerialInventoryFilter.ready,
                           ),
                         ),
+                        _FilterChip(
+                          label: 'Đã kích hoạt',
+                          selected: _filter == SerialInventoryFilter.activated,
+                          onTap: () => setState(
+                            () => _filter = SerialInventoryFilter.activated,
+                          ),
+                        ),
+                        _MenuFilterButton(
+                          label: _selectedOrderId == null
+                              ? 'Đơn: Tất cả'
+                              : 'Đơn: $_selectedOrderId',
+                          items: [
+                            const PopupMenuItem<String>(
+                              value: _allFilterValue,
+                              child: Text('Tất cả đơn'),
+                            ),
+                            ...orderIds.map(
+                              (orderId) => PopupMenuItem<String>(
+                                value: orderId,
+                                child: Text(orderId),
+                              ),
+                            ),
+                          ],
+                          onSelected: (value) {
+                            setState(() {
+                              _selectedOrderId = value == _allFilterValue
+                                  ? null
+                                  : value;
+                            });
+                          },
+                        ),
+                        _MenuFilterButton(
+                          label: _selectedSku == null
+                              ? 'SKU: Tất cả'
+                              : 'SKU: $_selectedSku',
+                          items: [
+                            const PopupMenuItem<String>(
+                              value: _allFilterValue,
+                              child: Text('Tất cả SKU'),
+                            ),
+                            ...skus.map(
+                              (sku) => PopupMenuItem<String>(
+                                value: sku,
+                                child: Text(sku),
+                              ),
+                            ),
+                          ],
+                          onSelected: (value) {
+                            setState(() {
+                              _selectedSku = value == _allFilterValue
+                                  ? null
+                                  : value;
+                            });
+                          },
+                        ),
+                        _MenuFilterButton(
+                          label: _sort == SerialInventorySort.newest
+                              ? 'Sắp xếp: Mới nhất'
+                              : 'Sắp xếp: Cũ nhất',
+                          items: const [
+                            PopupMenuItem<String>(
+                              value: 'newest',
+                              child: Text('Mới nhất'),
+                            ),
+                            PopupMenuItem<String>(
+                              value: 'oldest',
+                              child: Text('Cũ nhất'),
+                            ),
+                          ],
+                          onSelected: (value) {
+                            setState(() {
+                              _sort = value == 'oldest'
+                                  ? SerialInventorySort.oldest
+                                  : SerialInventorySort.newest;
+                            });
+                          },
+                        ),
                       ],
-                      onSelected: (value) {
-                        setState(() {
-                          _selectedSku = value == _allFilterValue
-                              ? null
-                              : value;
-                        });
-                      },
                     ),
-                    _MenuFilterButton(
-                      label: _sort == SerialInventorySort.newest
-                          ? 'Sap xep: Moi nhat'
-                          : 'Sap xep: Cu nhat',
-                      items: const [
-                        PopupMenuItem<String>(
-                          value: 'newest',
-                          child: Text('Moi nhat'),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _SummaryChip(
+                          label: 'Đã nhập',
+                          value: '$importedCount',
+                          color: const Color(0xFF1D4ED8),
                         ),
-                        PopupMenuItem<String>(
-                          value: 'oldest',
-                          child: Text('Cu nhat'),
+                        _SummaryChip(
+                          label: 'Sẵn sàng',
+                          value: '$readyCount',
+                          color: const Color(0xFF047857),
+                        ),
+                        _SummaryChip(
+                          label: 'Đã kích hoạt',
+                          value: '$activatedCount',
+                          color: const Color(0xFFB45309),
                         ),
                       ],
-                      onSelected: (value) {
-                        setState(() {
-                          _sort = value == 'oldest'
-                              ? SerialInventorySort.oldest
-                              : SerialInventorySort.newest;
-                        });
-                      },
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _SummaryChip(
-                      label: 'Da nhap',
-                      value: '$importedCount',
-                      color: const Color(0xFF1D4ED8),
-                    ),
-                    _SummaryChip(
-                      label: 'San sang',
-                      value: '$readyCount',
-                      color: const Color(0xFF047857),
-                    ),
-                    _SummaryChip(
-                      label: 'Da kich hoat',
-                      value: '$activatedCount',
-                      color: const Color(0xFFB45309),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: filtered.isEmpty
-                ? const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Text('Khong co serial phu hop bo loc hien tai.'),
-                    ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    itemCount: filtered.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final record = filtered[index];
-                      final normalized = warrantyController.normalizeSerial(
-                        record.serial,
-                      );
-                      final isActivated = activatedSet.contains(normalized);
-                      final statusLabel = isActivated
-                          ? 'Da kich hoat'
-                          : 'San sang';
-                      final statusColor = isActivated
-                          ? const Color(0xFFB45309)
-                          : const Color(0xFF047857);
+              ),
+              Expanded(
+                child: filtered.isEmpty
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Text(
+                            'Không có serial phù hợp bộ lọc hiện tại.',
+                          ),
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                        itemCount: filtered.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final record = filtered[index];
+                          final normalized = warrantyController.normalizeSerial(
+                            record.serial,
+                          );
+                          final isActivated = activatedSet.contains(normalized);
+                          final statusLabel = isActivated
+                              ? 'Đã kích hoạt'
+                              : 'Sẵn sàng';
+                          final statusColor = isActivated
+                              ? const Color(0xFFB45309)
+                              : const Color(0xFF047857);
 
-                      return Card(
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          side: BorderSide(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.outlineVariant.withValues(alpha: 0.6),
-                          ),
-                        ),
-                        child: ListTile(
-                          onTap: () => _openOrderDetail(record.orderId),
-                          title: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  record.serial,
-                                  style: Theme.of(context).textTheme.titleSmall
-                                      ?.copyWith(fontWeight: FontWeight.w700),
-                                ),
+                          return Card(
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              side: BorderSide(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .outlineVariant
+                                    .withValues(alpha: 0.6),
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: statusColor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Text(
-                                  statusLabel,
-                                  style: Theme.of(context).textTheme.labelSmall
-                                      ?.copyWith(
-                                        color: statusColor,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                ),
+                            ),
+                            child: ListTile(
+                              onTap: () => _openOrderDetail(record.orderId),
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      record.serial,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: statusColor.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      statusLabel,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            color: statusColor,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          subtitle: Text(
-                            '${record.productSku} - Don ${record.orderId}\nNhap ${formatDateTime(record.importedAt)}',
-                          ),
-                          isThreeLine: true,
-                          trailing: PopupMenuButton<String>(
-                            tooltip: 'Tac vu serial',
-                            icon: const Icon(Icons.more_vert),
-                            onSelected: (value) {
-                              if (value == 'copy') {
-                                _copySerial(record.serial);
-                                return;
-                              }
-                              if (value == 'order') {
-                                _openOrderDetail(record.orderId);
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              const PopupMenuItem<String>(
-                                value: 'copy',
-                                child: Text('Sao chep serial'),
+                              subtitle: Text(
+                                '${record.productSku} - Đơn ${record.orderId}\nNhập ${formatDateTime(record.importedAt)}',
                               ),
-                              const PopupMenuItem<String>(
-                                value: 'order',
-                                child: Text('Xem chi tiet don'),
+                              isThreeLine: true,
+                              trailing: PopupMenuButton<String>(
+                                tooltip: 'Tác vụ serial',
+                                icon: const Icon(Icons.more_vert),
+                                onSelected: (value) {
+                                  if (value == 'copy') {
+                                    _copySerial(record.serial);
+                                    return;
+                                  }
+                                  if (value == 'order') {
+                                    _openOrderDetail(record.orderId);
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem<String>(
+                                    value: 'copy',
+                                    child: Text('Sao chép serial'),
+                                  ),
+                                  const PopupMenuItem<String>(
+                                    value: 'order',
+                                    child: Text('Xem chi tiết đơn'),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

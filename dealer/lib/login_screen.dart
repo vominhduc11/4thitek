@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'auth_service.dart';
 import 'auth_storage.dart';
+import 'breakpoints.dart';
 import 'forgot_password_screen.dart';
 import 'home_shell.dart';
 import 'register_screen.dart';
@@ -85,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     const mobileCardMaxWidth = 420.0;
     const tabletCardMaxWidth = 560.0;
-    final isTablet = screenWidth >= 768;
+    final isTablet = mediaSize.shortestSide >= AppBreakpoints.phone;
     final isLandscape = orientation == Orientation.landscape;
     final isSmallMobile = screenWidth < 360;
     final isCompactVisual =
@@ -616,15 +617,15 @@ class _TabletBrandPanel extends StatelessWidget {
             children: const [
               _BrandPill(
                 icon: Icons.inventory_2_outlined,
-                text: 'Quan ly don nhap',
+                text: 'Quản lý đơn nhập',
               ),
               _BrandPill(
                 icon: Icons.account_balance_wallet_outlined,
-                text: 'Theo doi cong no',
+                text: 'Theo dõi công nợ',
               ),
               _BrandPill(
                 icon: Icons.verified_user_outlined,
-                text: 'Xu ly bao hanh',
+                text: 'Xử lý bảo hành',
               ),
             ],
           ),
@@ -655,11 +656,15 @@ class _BrandPill extends StatelessWidget {
           children: [
             Icon(icon, size: 16, color: Colors.white),
             const SizedBox(width: 6),
-            Text(
-              text,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+            Flexible(
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],

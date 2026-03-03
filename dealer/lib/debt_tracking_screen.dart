@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'breakpoints.dart';
 import 'models.dart';
 import 'order_controller.dart';
 import 'utils.dart';
@@ -15,95 +17,107 @@ class DebtTrackingScreen extends StatelessWidget {
     final orderController = OrderScope.of(context);
     final debtOrders = orderController.debtOrders;
     final paymentHistory = orderController.paymentHistory;
+    final isTablet =
+        MediaQuery.sizeOf(context).shortestSide >= AppBreakpoints.phone;
+    final maxWidth = isTablet ? 960.0 : double.infinity;
 
     return Scaffold(
-      appBar: AppBar(title: const BrandAppBarTitle('Cong no')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        children: [
-          FadeSlideIn(
-            child: _DebtSummaryCard(
-              totalOutstandingDebt: orderController.totalOutstandingDebt,
-              debtOrderCount: debtOrders.length,
-            ),
-          ),
-          const SizedBox(height: 14),
-          FadeSlideIn(
-            delay: const Duration(milliseconds: 60),
-            child: Text(
-              'Don hang con no',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ),
-          const SizedBox(height: 10),
-          if (debtOrders.isEmpty)
-            const _EmptyCard(message: 'Khong co don hang nao con no tien.')
-          else
-            ...debtOrders.asMap().entries.map((entry) {
-              final index = entry.key;
-              final order = entry.value;
-              return FadeSlideIn(
-                key: ValueKey('debt-${order.id}'),
-                delay: Duration(milliseconds: 90 + index * 40),
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _DebtOrderCard(order: order),
+      appBar: AppBar(title: const BrandAppBarTitle('Công nợ')),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            children: [
+              FadeSlideIn(
+                child: _DebtSummaryCard(
+                  totalOutstandingDebt: orderController.totalOutstandingDebt,
+                  debtOrderCount: debtOrders.length,
                 ),
-              );
-            }),
-          const SizedBox(height: 14),
-          FadeSlideIn(
-            delay: const Duration(milliseconds: 120),
-            child: Text(
-              'Lich su thanh toan',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ),
-          const SizedBox(height: 10),
-          if (paymentHistory.isEmpty)
-            const _EmptyCard(message: 'Chua co lich su thanh toan.')
-          else
-            ...paymentHistory.asMap().entries.map((entry) {
-              final index = entry.key;
-              final payment = entry.value;
-              return FadeSlideIn(
-                key: ValueKey(payment.id),
-                delay: Duration(milliseconds: 140 + index * 35),
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.outlineVariant.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    child: ListTile(
-                      title: Text(
-                        '${payment.orderId} - ${formatVnd(payment.amount)}',
-                      ),
-                      subtitle: Text(
-                        '${payment.channel} · ${formatDateTime(payment.paidAt)}',
-                      ),
-                      trailing: payment.proofFileName == null
-                          ? null
-                          : Tooltip(
-                              message: payment.proofFileName!,
-                              child: const Icon(Icons.attach_file, size: 18),
-                            ),
-                    ),
+              ),
+              const SizedBox(height: 14),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 60),
+                child: Text(
+                  'Đơn hàng còn nợ',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              );
-            }),
-        ],
+              ),
+              const SizedBox(height: 10),
+              if (debtOrders.isEmpty)
+                const _EmptyCard(message: 'Không có đơn hàng nào còn nợ tiền.')
+              else
+                ...debtOrders.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final order = entry.value;
+                  return FadeSlideIn(
+                    key: ValueKey('debt-${order.id}'),
+                    delay: Duration(milliseconds: 90 + index * 40),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _DebtOrderCard(order: order),
+                    ),
+                  );
+                }),
+              const SizedBox(height: 14),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 120),
+                child: Text(
+                  'Lịch sử thanh toán',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              if (paymentHistory.isEmpty)
+                const _EmptyCard(message: 'Chưa có lịch sử thanh toán.')
+              else
+                ...paymentHistory.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final payment = entry.value;
+                  return FadeSlideIn(
+                    key: ValueKey(payment.id),
+                    delay: Duration(milliseconds: 140 + index * 35),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Card(
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        child: ListTile(
+                          title: Text(
+                            '${payment.orderId} - ${formatVnd(payment.amount)}',
+                          ),
+                          subtitle: Text(
+                            '${payment.channel} · ${formatDateTime(payment.paidAt)}',
+                          ),
+                          trailing: payment.proofFileName == null
+                              ? null
+                              : Tooltip(
+                                  message: payment.proofFileName!,
+                                  child: const Icon(
+                                    Icons.attach_file,
+                                    size: 18,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -120,6 +134,11 @@ class _DebtSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final debtColor = isDark
+        ? const Color(0xFFFBBF24)
+        : const Color(0xFFB45309);
+
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -136,7 +155,7 @@ class _DebtSummaryCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Tong cong no hien tai',
+              'Tổng công nợ hiện tại',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -146,7 +165,7 @@ class _DebtSummaryCard extends StatelessWidget {
               formatVnd(totalOutstandingDebt),
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFFB45309),
+                color: debtColor,
               ),
             ),
             const SizedBox(height: 10),
@@ -155,7 +174,7 @@ class _DebtSummaryCard extends StatelessWidget {
                 const Icon(Icons.receipt_long_outlined, size: 18),
                 const SizedBox(width: 6),
                 Text(
-                  '$debtOrderCount don hang con no',
+                  '$debtOrderCount đơn hàng còn nợ',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -174,6 +193,11 @@ class _DebtOrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final debtColor = isDark
+        ? const Color(0xFFFBBF24)
+        : const Color(0xFFB45309);
+
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -203,19 +227,19 @@ class _DebtOrderCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text('Ngay dat: ${formatDateTime(order.createdAt)}'),
+            Text('Ngày đặt: ${formatDateTime(order.createdAt)}'),
             const SizedBox(height: 4),
             Text('PTTT: ${order.paymentMethod.label}'),
             const SizedBox(height: 4),
-            Text('Tong don: ${formatVnd(order.total)}'),
+            Text('Tổng đơn: ${formatVnd(order.total)}'),
             const SizedBox(height: 4),
-            Text('Da thanh toan: ${formatVnd(order.paidAmount)}'),
+            Text('Đã thanh toán: ${formatVnd(order.paidAmount)}'),
             const SizedBox(height: 4),
             Text(
-              'Con no: ${formatVnd(order.outstandingAmount)}',
+              'Còn nợ: ${formatVnd(order.outstandingAmount)}',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFFB45309),
+                color: debtColor,
               ),
             ),
             const SizedBox(height: 12),
@@ -224,7 +248,7 @@ class _DebtOrderCard extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: () => _showRecordPaymentDialog(context, order),
                 icon: const Icon(Icons.payments_outlined, size: 18),
-                label: const Text('Ghi nhan thanh toan'),
+                label: const Text('Ghi nhận thanh toán'),
               ),
             ),
           ],
@@ -237,12 +261,13 @@ class _DebtOrderCard extends StatelessWidget {
     BuildContext context,
     Order order,
   ) async {
-    final amountController = TextEditingController(
-      text: order.outstandingAmount.toString(),
-    );
+    final amountController = TextEditingController();
     final noteController = TextEditingController();
     final proofController = TextEditingController();
-    var channel = 'Chuyen khoan';
+    final channels = <String>['Chuyển khoản', 'Tiền mặt', 'Bù trừ công nợ'];
+    var channel = order.paymentMethod == OrderPaymentMethod.debt
+        ? channels.last
+        : channels.first;
 
     await showDialog<void>(
       context: context,
@@ -251,37 +276,38 @@ class _DebtOrderCard extends StatelessWidget {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text('Ghi nhan thanh toan'),
+              title: const Text('Ghi nhận thanh toán'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Don: ${order.id}'),
+                    Text('Đơn: ${order.id}'),
                     const SizedBox(height: 8),
                     TextField(
                       controller: amountController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'So tien thanh toan',
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: InputDecoration(
+                        labelText: 'Số tiền thanh toán',
+                        hintText:
+                            'Tối đa ${formatVnd(order.outstandingAmount)}',
                       ),
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
                       initialValue: channel,
                       decoration: const InputDecoration(
-                        labelText: 'Kenh thanh toan',
+                        labelText: 'Kênh thanh toán',
                       ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'Chuyen khoan',
-                          child: Text('Chuyen khoan ngan hang'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Tien mat',
-                          child: Text('Tien mat'),
-                        ),
-                      ],
+                      items: channels
+                          .map(
+                            (item) => DropdownMenuItem<String>(
+                              value: item,
+                              child: Text(item),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (value) {
                         if (value == null) {
                           return;
@@ -292,7 +318,7 @@ class _DebtOrderCard extends StatelessWidget {
                     const SizedBox(height: 10),
                     TextField(
                       controller: noteController,
-                      decoration: const InputDecoration(labelText: 'Ghi chu'),
+                      decoration: const InputDecoration(labelText: 'Ghi chú'),
                     ),
                     const SizedBox(height: 10),
                     OutlinedButton.icon(
@@ -319,7 +345,7 @@ class _DebtOrderCard extends StatelessWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Huy'),
+                  child: const Text('Hủy'),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -329,6 +355,16 @@ class _DebtOrderCard extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Số tiền phải lớn hơn 0.'),
+                        ),
+                      );
+                      return;
+                    }
+                    if (parsedAmount > order.outstandingAmount) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Số tiền không được vượt quá ${formatVnd(order.outstandingAmount)}.',
+                          ),
                         ),
                       );
                       return;
@@ -346,7 +382,7 @@ class _DebtOrderCard extends StatelessWidget {
                     );
                     Navigator.of(dialogContext).pop();
                   },
-                  child: const Text('Xac nhan'),
+                  child: const Text('Xác nhận'),
                 ),
               ],
             );
@@ -368,16 +404,20 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final chipBg = isDark ? const Color(0xFF422006) : const Color(0xFFFFF7ED);
+    final chipText = isDark ? const Color(0xFFFCD34D) : const Color(0xFF9A3412);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED),
+        color: chipBg,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: const Color(0xFF9A3412),
+          color: chipText,
           fontWeight: FontWeight.w700,
         ),
       ),
