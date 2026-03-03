@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import 'dealer_profile_storage.dart';
 import 'widgets/brand_identity.dart';
@@ -59,9 +59,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const BrandAppBarTitle('Cai dat tai khoan'),
-      ),
+      appBar: AppBar(title: const BrandAppBarTitle('Cai dat tai khoan')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -173,7 +171,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                           ? const SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2.5),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                              ),
                             )
                           : const Text('Luu thay doi'),
                     ),
@@ -240,9 +240,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -258,7 +259,11 @@ class _SectionCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: Color(0xFFE5EAF5)),
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),

@@ -86,7 +86,10 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
       );
     }
 
-    if (order.status != OrderStatus.completed) {
+    final canProcess =
+        order.status == OrderStatus.completed ||
+        order.status == OrderStatus.shipping;
+    if (!canProcess) {
       return Scaffold(
         appBar: AppBar(title: const BrandAppBarTitle('Xu ly serial')),
         body: Center(
@@ -96,7 +99,11 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: Color(0xFFE5EAF5)),
+                side: BorderSide(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+                ),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -106,7 +113,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                     const Icon(Icons.lock_outline, size: 38),
                     const SizedBox(height: 10),
                     Text(
-                      'Chi don da giao moi duoc xu ly serial.',
+                      'Chi don dang giao hoac da giao moi duoc xu ly serial.',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -423,24 +430,44 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   }
 
   void _syncSerialInputs(Order order, WarrantyController warrantyController) {
-    for (final inputList in _serialControllers.values) {
-      for (final controller in inputList) {
-        controller.dispose();
-      }
-    }
-    _serialControllers.clear();
-
     for (final item in order.items) {
       final activated = warrantyController.activationsForItem(
         order.id,
         item.product.id,
       );
-      final remaining = item.quantity - activated.length;
-      _serialControllers[item.product.id] =
-          List<TextEditingController>.generate(
-            remaining > 0 ? remaining : 0,
-            (_) => TextEditingController(),
-          );
+      final remaining = (item.quantity - activated.length).clamp(
+        0,
+        item.quantity,
+      );
+      final existing = _serialControllers[item.product.id] ?? [];
+      if (existing.length == remaining) {
+        continue;
+      }
+      if (existing.length > remaining) {
+        // Remove extra controllers from the end
+        final toDispose = existing.sublist(remaining);
+        for (final controller in toDispose) {
+          controller.dispose();
+        }
+        _serialControllers[item.product.id] = existing.sublist(0, remaining);
+      } else {
+        // Add more controllers
+        final toAdd = remaining - existing.length;
+        final newList = List<TextEditingController>.from(existing)
+          ..addAll(List.generate(toAdd, (_) => TextEditingController()));
+        _serialControllers[item.product.id] = newList;
+      }
+    }
+    // Remove entries for items no longer in the order
+    final productIds = order.items.map((item) => item.product.id).toSet();
+    final toRemove = _serialControllers.keys
+        .where((id) => !productIds.contains(id))
+        .toList();
+    for (final id in toRemove) {
+      for (final controller in _serialControllers[id]!) {
+        controller.dispose();
+      }
+      _serialControllers.remove(id);
     }
   }
 
@@ -800,6 +827,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   }
 
   void _showSnackBar(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
@@ -828,7 +856,11 @@ class _SectionCard extends StatelessWidget {
       shadowColor: const Color(0x100F172A),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: Color(0xFFE5EAF5)),
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),

@@ -1,18 +1,11 @@
-﻿class ProductSpecification {
+class ProductSpecification {
   const ProductSpecification({required this.label, required this.value});
 
   final String label;
   final String value;
 }
 
-enum ProductCategory {
-  headset,
-  keyboard,
-  mouse,
-  speaker,
-  webcam,
-  accessory,
-}
+enum ProductCategory { headset, keyboard, mouse, speaker, webcam, accessory }
 
 extension ProductCategoryLabel on ProductCategory {
   String get label {
@@ -20,15 +13,15 @@ extension ProductCategoryLabel on ProductCategory {
       case ProductCategory.headset:
         return 'Tai nghe';
       case ProductCategory.keyboard:
-        return 'Ban phim';
+        return 'Bàn phím';
       case ProductCategory.mouse:
-        return 'Chuot';
+        return 'Chuột';
       case ProductCategory.speaker:
         return 'Loa';
       case ProductCategory.webcam:
         return 'Webcam';
       case ProductCategory.accessory:
-        return 'Phu kien';
+        return 'Phụ kiện';
     }
   }
 }
@@ -158,7 +151,7 @@ class CartItem {
   }
 }
 
-enum OrderStatus { pendingApproval, approved, shipping, completed }
+enum OrderStatus { pendingApproval, approved, shipping, completed, cancelled }
 
 extension OrderStatusLabel on OrderStatus {
   String get label {
@@ -171,21 +164,21 @@ extension OrderStatusLabel on OrderStatus {
         return 'Đang giao';
       case OrderStatus.completed:
         return 'Hoàn thành';
+      case OrderStatus.cancelled:
+        return 'Đã hủy';
     }
   }
 }
 
-enum OrderPaymentMethod { cod, bankTransfer, debt }
+enum OrderPaymentMethod { bankTransfer, debt }
 
 extension OrderPaymentMethodLabel on OrderPaymentMethod {
   String get label {
     switch (this) {
-      case OrderPaymentMethod.cod:
-        return 'Thanh toan khi nhan hang (COD)';
       case OrderPaymentMethod.bankTransfer:
-        return 'Chuyen khoan ngan hang';
+        return 'Chuyển khoản ngân hàng';
       case OrderPaymentMethod.debt:
-        return 'Ghi nhan cong no';
+        return 'Ghi nhận công nợ';
     }
   }
 }
@@ -196,11 +189,11 @@ extension OrderPaymentStatusLabel on OrderPaymentStatus {
   String get label {
     switch (this) {
       case OrderPaymentStatus.unpaid:
-        return 'Chua thanh toan';
+        return 'Chưa thanh toán';
       case OrderPaymentStatus.paid:
-        return 'Da thanh toan';
+        return 'Đã thanh toán';
       case OrderPaymentStatus.debtRecorded:
-        return 'Ghi nhan cong no';
+        return 'Ghi nhận công nợ';
     }
   }
 }
@@ -215,10 +208,7 @@ int bulkDiscountPercentForItems(int totalItems) {
   return 0;
 }
 
-int bulkDiscountAmount({
-  required int subtotal,
-  required int discountPercent,
-}) {
+int bulkDiscountAmount({required int subtotal, required int discountPercent}) {
   if (subtotal <= 0 || discountPercent <= 0) {
     return 0;
   }
@@ -226,6 +216,9 @@ int bulkDiscountAmount({
 }
 
 const int kVatPercent = 10;
+
+/// Ngưỡng tồn kho thấp dùng chung cho product list filter và dashboard panel.
+const int kLowStockThreshold = 10;
 
 class OrderLineItem {
   const OrderLineItem({required this.product, required this.quantity});

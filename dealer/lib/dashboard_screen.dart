@@ -6,18 +6,21 @@ import 'package:flutter/material.dart';
 
 import 'mock_data.dart';
 import 'models.dart';
+import 'notification_controller.dart';
 import 'order_controller.dart';
 import 'notifications_screen.dart';
+import 'widgets/notification_icon_button.dart';
 import 'orders_screen.dart';
 import 'product_list_screen.dart';
 import 'utils.dart';
+import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/skeleton_box.dart';
 import 'debt_tracking_screen.dart';
 
 const _dashboardMutedText = Color(0xFF64748B);
-const _lowStockAlertThreshold = 10;
+const _lowStockAlertThreshold = kLowStockThreshold;
 const _mobileBreakpoint = 600.0;
 const _tabletBreakpoint = 900.0;
 const _desktopBreakpoint = 1200.0;
@@ -93,6 +96,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final orderController = OrderScope.of(context);
+    final warrantyCtrl = WarrantyScope.of(context);
     final now = DateTime.now();
     final periodAnchor = _normalizePeriodAnchor(_selectedPeriod);
     final periodStart = _periodStart(periodAnchor);
@@ -115,10 +119,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final activationSeries = _buildActivationSeries(
       days: activationWindowDays,
       endDate: periodEndDate,
+      activations: warrantyCtrl.activations,
     );
+    // Warranty donut card supports up to 90-day range toggles, so always
+    // provide the full 90-day dataset regardless of the period filter.
     final warrantyActivationSeries = _buildActivationSeries(
-      days: activationWindowDays,
+      days: 90,
       endDate: periodEndDate,
+      activations: warrantyCtrl.activations,
     );
     final warrantyRanges = _timeFilter == _DashboardTimeFilter.month
         ? const <int>[7, 30]
@@ -312,14 +320,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               label: Text(_periodCompactLabel(periodAnchor)),
             ),
           ),
-          IconButton(
-            tooltip: 'Thông báo',
+          NotificationIconButton(
+            count: NotificationScope.of(context).unreadCount,
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const NotificationsScreen()),
               );
             },
-            icon: const Icon(Icons.notifications_outlined),
           ),
         ],
       ),
@@ -436,7 +443,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -948,7 +955,11 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE5EAF5)),
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1383,7 +1394,11 @@ class _RecentOrderCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE5EAF5)),
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -1565,7 +1580,7 @@ class _LowStockCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.72),
+                  color: theme.colorScheme.surface.withValues(alpha: 0.72),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: borderColor.withValues(alpha: 0.65),
@@ -1866,9 +1881,13 @@ class _OrderStatusDistributionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5EAF5)),
+        border: Border.all(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -1979,7 +1998,7 @@ class _OrderStatusDistributionCard extends StatelessWidget {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -2183,9 +2202,13 @@ class _AgingDebtCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5EAF5)),
+        border: Border.all(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -2280,7 +2303,7 @@ class _AgingDebtCard extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -2565,7 +2588,11 @@ class _NoticeCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE5EAF5)),
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -2670,7 +2697,11 @@ class _EmptyCard extends StatelessWidget {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0xFFE5EAF5)),
+          side: BorderSide(
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -2890,16 +2921,31 @@ List<_DebtBucket> _buildDebtBuckets(int totalOutstandingDebt) {
 List<_DailyActivation> _buildActivationSeries({
   required int days,
   required DateTime endDate,
+  required List<WarrantyActivationRecord> activations,
 }) {
   final end = DateTime(endDate.year, endDate.month, endDate.day);
+  final startDate = end.subtract(Duration(days: days - 1));
+
+  // Group activations by calendar date within the window
+  final Map<DateTime, int> countByDate = {};
+  for (final a in activations) {
+    final d = DateTime(
+      a.activatedAt.year,
+      a.activatedAt.month,
+      a.activatedAt.day,
+    );
+    if (!d.isBefore(startDate) && !d.isAfter(end)) {
+      countByDate[d] = (countByDate[d] ?? 0) + 1;
+    }
+  }
+
   final List<_DailyActivation> list = [];
   for (var i = days - 1; i >= 0; i--) {
     final date = end.subtract(Duration(days: i));
-    // deterministic mock: based on date to stay stable
-    final count =
-        (date.day * date.month) % 7 +
-        (date.weekday == DateTime.saturday ? 2 : 0);
-    list.add(_DailyActivation(date: date, count: count));
+    final normalised = DateTime(date.year, date.month, date.day);
+    list.add(
+      _DailyActivation(date: normalised, count: countByDate[normalised] ?? 0),
+    );
   }
   return list;
 }
@@ -2985,6 +3031,8 @@ Color _statusColor(OrderStatus status) {
       return const Color(0xFF7C3AED);
     case OrderStatus.completed:
       return const Color(0xFF15803D);
+    case OrderStatus.cancelled:
+      return const Color(0xFF94A3B8);
   }
 }
 
@@ -3063,7 +3111,11 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE5EAF5)),
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -3510,7 +3562,11 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE5EAF5)),
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -3561,7 +3617,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
                       if (states.contains(WidgetState.selected)) {
                         return const Color(0xFF1D4ED8);
                       }
-                      return Colors.white;
+                      return theme.colorScheme.surface;
                     }),
                     foregroundColor: WidgetStateProperty.resolveWith((states) {
                       if (states.contains(WidgetState.selected)) {
@@ -4241,9 +4297,13 @@ class _TopCustomerCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5EAF5)),
+        border: Border.all(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),

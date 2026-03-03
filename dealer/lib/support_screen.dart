@@ -96,9 +96,9 @@ class _SupportScreenState extends State<SupportScreen> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Thời gian hỗ trợ: 8:00–18:00 (T2–T7)',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ],
@@ -230,9 +230,9 @@ class _SupportScreenState extends State<SupportScreen> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Thời gian phản hồi dự kiến: ${_slaText(_priority)}',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 18),
@@ -333,13 +333,14 @@ class _SupportScreenState extends State<SupportScreen> {
     }
     final color = isFocused
         ? Theme.of(context).colorScheme.primary
-        : Colors.black54;
+        : Theme.of(context).colorScheme.onSurfaceVariant;
     final style = Theme.of(context).textTheme.bodySmall?.copyWith(color: color);
 
     return Text('$currentLength/$maxLength', style: style);
   }
 
   void _showSnackBar(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
@@ -388,7 +389,11 @@ class _SectionCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: Color(0xFFE5EAF5)),
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -433,7 +438,11 @@ class _StatusCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: Color(0xFFE5EAF5)),
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -493,9 +502,9 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labelStyle = Theme.of(
-      context,
-    ).textTheme.bodySmall?.copyWith(color: Colors.black54);
+    final labelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    );
     final valueStyle = Theme.of(context).textTheme.bodyMedium;
 
     return Row(

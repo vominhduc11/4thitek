@@ -1,7 +1,7 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'cart_controller.dart';
+import 'dealer_profile_storage.dart';
 import 'mock_data.dart';
 import 'models.dart';
 import 'order_controller.dart';
@@ -18,7 +18,16 @@ class CheckoutScreen extends StatefulWidget {
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
-  OrderPaymentMethod _method = OrderPaymentMethod.cod;
+  OrderPaymentMethod _method = OrderPaymentMethod.bankTransfer;
+  DealerProfile _profile = DealerProfile.defaults;
+
+  @override
+  void initState() {
+    super.initState();
+    loadDealerProfile().then((p) {
+      if (mounted) setState(() => _profile = p);
+    });
+  }
 
   OrderPaymentStatus get _previewPaymentStatus {
     switch (_method) {
@@ -26,15 +35,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         return OrderPaymentStatus.unpaid;
       case OrderPaymentMethod.debt:
         return OrderPaymentStatus.debtRecorded;
-      default:
-        return OrderPaymentStatus.unpaid;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final cart = CartScope.of(context);
     final orderController = OrderScope.of(context);
+    final isTablet = MediaQuery.sizeOf(context).shortestSide >= 600;
+    final contentMaxWidth = isTablet ? 860.0 : double.infinity;
     final subtotal = cart.subtotal;
     final discountPercent = cart.discountPercent;
     final discountAmount = cart.discountAmount;
@@ -44,206 +54,191 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final total = cart.total;
 
     return Scaffold(
-      appBar: AppBar(title: const BrandAppBarTitle('Thanh toan')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        children: [
-          FadeSlideIn(
-            child: _SectionCard(
-              title: 'Thong tin nhan hang',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Dai ly SCS Ha Noi',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'So 12, Duong Tran Duy Hung, Cau Giay, Ha Noi',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'SDT: 0909 123 456',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          FadeSlideIn(
-            delay: const Duration(milliseconds: 60),
-            child: _SectionCard(
-              title: 'Phuong thuc thanh toan',
-              child: RadioGroup<OrderPaymentMethod>(
-                groupValue: _method,
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
-                  setState(() => _method = value);
-                },
-                child: Column(
-                  children: [
-                    RadioListTile<OrderPaymentMethod>(
-                      value: OrderPaymentMethod.bankTransfer,
-                      title: const Text('Chuyen khoan ngan hang'),
-                      subtitle: const Text(
-                        'Thanh toan truoc, doi soat theo ma don hang.',
+      appBar: AppBar(title: const BrandAppBarTitle('Thanh toán')),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: contentMaxWidth),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            children: [
+              FadeSlideIn(
+                child: _SectionCard(
+                  title: 'Thông tin nhận hàng',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _profile.businessName,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    RadioListTile<OrderPaymentMethod>(
-                      value: OrderPaymentMethod.debt,
-                      title: const Text('Ghi nhan cong no (thanh toan sau)'),
-                      subtitle: const Text(
-                        'Don duoc cong vao tong cong no hien tai.',
+                      const SizedBox(height: 4),
+                      Text(
+                        _profile.shippingAddress,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        'SĐT: ${_profile.phone}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ),
-          if (_method == OrderPaymentMethod.bankTransfer) ...[
-            const SizedBox(height: 14),
-            FadeSlideIn(
-              delay: const Duration(milliseconds: 90),
-              child: _SectionCard(
-                title: 'Thong tin chuyen khoan',
-                child: Column(
-                  children: [
-                    _SummaryRow(
-                      label: 'Chu tai khoan',
-                      value: distributorBankOwner,
-                      onCopy: () => _copyToClipboard(
-                        'Chu tai khoan',
-                        distributorBankOwner,
-                      ),
+              const SizedBox(height: 14),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 60),
+                child: _SectionCard(
+                  title: 'Phương thức thanh toán',
+                  child: RadioGroup<OrderPaymentMethod>(
+                    groupValue: _method,
+                    onChanged: (value) {
+                      if (value == null) {
+                        return;
+                      }
+                      setState(() => _method = value);
+                    },
+                    child: Column(
+                      children: [
+                        RadioListTile<OrderPaymentMethod>(
+                          value: OrderPaymentMethod.bankTransfer,
+                          title: const Text('Chuyển khoản ngân hàng'),
+                          subtitle: const Text(
+                            'Thanh toán trước, hệ thống tự động cập nhật giao dịch.',
+                          ),
+                        ),
+                        RadioListTile<OrderPaymentMethod>(
+                          value: OrderPaymentMethod.debt,
+                          title: const Text(
+                            'Ghi nhận công nợ (thanh toán sau)',
+                          ),
+                          subtitle: const Text(
+                            'Đơn được cộng vào tổng công nợ hiện tại.',
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    _SummaryRow(
-                      label: 'So tai khoan',
-                      value: distributorBankAccount,
-                      onCopy: () => _copyToClipboard(
-                        'So tai khoan',
-                        distributorBankAccount,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    _SummaryRow(label: 'Ngan hang', value: distributorBankName),
-                    const SizedBox(height: 8),
-                    _SummaryRow(
-                      label: 'Noi dung goi y',
-                      value: distributorTransferTemplate,
-                      onCopy: () => _copyToClipboard(
-                        'Noi dung chuyen khoan',
-                        distributorTransferTemplate,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ],
-          const SizedBox(height: 14),
-          FadeSlideIn(
-            delay: const Duration(milliseconds: 120),
-            child: _SectionCard(
-              title: 'Tom tat don hang',
-              child: Column(
-                children: [
-                  _SummaryRow(
-                    label: 'So luong san pham',
-                    value: '${cart.totalItems}',
+              const SizedBox(height: 14),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 120),
+                child: _SectionCard(
+                  title: 'Tóm tắt đơn hàng',
+                  child: Column(
+                    children: [
+                      _SummaryRow(
+                        label: 'Số lượng sản phẩm',
+                        value: '${cart.totalItems}',
+                      ),
+                      const SizedBox(height: 8),
+                      _SummaryRow(
+                        label: 'Tạm tính',
+                        value: formatVnd(subtotal),
+                      ),
+                      if (discountAmount > 0) ...[
+                        const SizedBox(height: 8),
+                        _SummaryRow(
+                          label: 'Chiết khấu ($discountPercent%)',
+                          value: '-${formatVnd(discountAmount)}',
+                        ),
+                        const SizedBox(height: 8),
+                        _SummaryRow(
+                          label: 'Sau chiết khấu',
+                          value: formatVnd(totalAfterDiscount),
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      _SummaryRow(
+                        label: 'VAT (${CartController.vatPercent}%)',
+                        value: formatVnd(vatAmount),
+                      ),
+                      const SizedBox(height: 8),
+                      _SummaryRow(
+                        label: 'Phí giao hàng',
+                        value: shippingFee == 0
+                            ? 'Miễn phí'
+                            : formatVnd(shippingFee),
+                      ),
+                      const SizedBox(height: 8),
+                      _SummaryRow(
+                        label: 'Trạng thái thanh toán',
+                        value: _previewPaymentStatus.label,
+                      ),
+                      if (_method == OrderPaymentMethod.bankTransfer) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Lưu ý: bấm "Tiếp tục" để mở thông tin chuyển khoản. Đơn chỉ được tạo khi hệ thống nhận thanh toán thành công.',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: colors.error,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                      const Divider(height: 20),
+                      _SummaryRow(
+                        label: 'Tổng cộng',
+                        value: formatVnd(total),
+                        isEmphasis: true,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  _SummaryRow(label: 'Tam tinh', value: formatVnd(subtotal)),
-                  if (discountAmount > 0) ...[
-                    const SizedBox(height: 8),
-                    _SummaryRow(
-                      label: 'Giam gia ($discountPercent%)',
-                      value: '-${formatVnd(discountAmount)}',
-                    ),
-                    const SizedBox(height: 8),
-                    _SummaryRow(
-                      label: 'Sau giam gia',
-                      value: formatVnd(totalAfterDiscount),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  _SummaryRow(
-                    label: 'VAT (${CartController.vatPercent}%)',
-                    value: formatVnd(vatAmount),
-                  ),
-                  const SizedBox(height: 8),
-                  _SummaryRow(
-                    label: 'Trang thai thanh toan',
-                    value: _previewPaymentStatus.label,
-                  ),
-                  const Divider(height: 20),
-                  _SummaryRow(
-                    label: 'Tong cong',
-                    value: formatVnd(total),
-                    isEmphasis: true,
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          FadeSlideIn(
-            delay: const Duration(milliseconds: 180),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: cart.isEmpty
-                    ? null
-                    : () async {
-                        final issues = _validateCart(cart);
-                        if (issues.isNotEmpty) {
-                          _showValidationDialog(context, issues);
-                          return;
-                        }
+              const SizedBox(height: 20),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 180),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: cart.isEmpty
+                        ? null
+                        : () async {
+                            final issues = _validateCart(cart);
+                            if (issues.isNotEmpty) {
+                              _showValidationDialog(context, issues);
+                              return;
+                            }
 
-                        final isBankTransfer =
-                            _method == OrderPaymentMethod.bankTransfer;
-                        if (isBankTransfer) {
-                          final confirmed = await _showBankTransferSheet(
-                            context,
-                            amount: total,
-                            content: distributorTransferTemplate,
-                            owner: distributorBankOwner,
-                            account: distributorBankAccount,
-                            bankName: distributorBankName,
-                          );
-                          if (confirmed != true) {
-                            return;
-                          }
-                        }
+                            final isBankTransfer =
+                                _method == OrderPaymentMethod.bankTransfer;
+                            var bankTransferPaid = false;
+                            if (isBankTransfer) {
+                              final paid = await _showBankTransferInfo(
+                                context,
+                                amount: total,
+                                owner: distributorBankOwner,
+                                account: distributorBankAccount,
+                                bankName: distributorBankName,
+                                content: distributorTransferTemplate,
+                              );
+                              if (paid != true) {
+                                return;
+                              }
+                              bankTransferPaid = true;
+                            }
 
-                        _placeOrder(
-                          cart: cart,
-                          orderController: orderController,
-                          markPaid: isBankTransfer,
-                        );
-                      },
-                child: Text(
-                  _method == OrderPaymentMethod.bankTransfer
-                      ? 'Quet QR & thanh toan'
-                      : 'Xac nhan dat hang',
+                            _placeOrder(
+                              cart: cart,
+                              orderController: orderController,
+                              bankTransferPaid: bankTransferPaid,
+                            );
+                          },
+                    child: const Text('Tiếp tục'),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -252,46 +247,43 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final List<String> issues = [];
     for (final item in cart.items) {
       if (!item.product.isOrderable) {
-        issues.add('${item.product.name} tam ngung ban.');
+        issues.add('${item.product.name} tạm ngừng bán.');
       }
       if (item.quantity > item.product.stock) {
         issues.add(
-          '${item.product.name} chi con ${item.product.stock} sp trong kho.',
+          '${item.product.name} chỉ còn ${item.product.stock} SP trong kho.',
         );
       }
       if (item.quantity < item.product.effectiveMinOrderQty) {
         issues.add(
-          '${item.product.name} yeu cau toi thieu ${item.product.effectiveMinOrderQty} sp.',
+          '${item.product.name} yêu cầu tối thiểu ${item.product.effectiveMinOrderQty} SP.',
         );
       }
     }
     return issues;
   }
 
-  Future<bool?> _showBankTransferSheet(
+  Future<bool?> _showBankTransferInfo(
     BuildContext context, {
     required int amount,
-    required String content,
     required String owner,
     required String account,
     required String bankName,
+    required String content,
   }) {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      showDragHandle: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      isDismissible: false,
+      enableDrag: false,
       builder: (sheetContext) {
-        return _BankTransferSheet(
+        return _BankTransferInfoSheet(
           amount: amount,
-          content: content,
           owner: owner,
           account: account,
           bankName: bankName,
-          onCopied: (label, value) => _copyToClipboard(label, value),
+          content: content,
+          onCopy: _copyToClipboard,
         );
       },
     );
@@ -300,17 +292,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void _placeOrder({
     required CartController cart,
     required OrderController orderController,
-    required bool markPaid,
+    required bool bankTransferPaid,
   }) {
+    final isPaidByBankTransfer =
+        _method == OrderPaymentMethod.bankTransfer && bankTransferPaid;
     final order = Order(
       id: _generateOrderId(orderController),
       createdAt: DateTime.now(),
       status: OrderStatus.pendingApproval,
       paymentMethod: _method,
-      paymentStatus: markPaid ? OrderPaymentStatus.paid : _previewPaymentStatus,
-      receiverName: 'Dai ly SCS Ha Noi',
-      receiverAddress: 'So 12, Duong Tran Duy Hung, Cau Giay, Ha Noi',
-      receiverPhone: '0909 123 456',
+      paymentStatus: isPaidByBankTransfer
+          ? OrderPaymentStatus.paid
+          : _previewPaymentStatus,
+      receiverName: _profile.businessName,
+      receiverAddress: _profile.shippingAddress,
+      receiverPhone: _profile.phone,
       shippingFee: 0,
       items: cart.items
           .map(
@@ -318,7 +314,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 OrderLineItem(product: item.product, quantity: item.quantity),
           )
           .toList(growable: false),
-      paidAmount: 0,
+      paidAmount: isPaidByBankTransfer ? cart.total : 0,
     );
     final itemCount = order.totalItems;
     final totalPrice = order.total;
@@ -344,12 +340,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Can dieu chinh don hang'),
+          title: const Text('Cần điều chỉnh đơn hàng'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Vui long kiem tra:'),
+              const Text('Vui lòng kiểm tra:'),
               const SizedBox(height: 10),
               ...issues.map(
                 (issue) => Padding(
@@ -368,7 +364,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Dong'),
+              child: const Text('Đóng'),
             ),
           ],
         );
@@ -379,15 +375,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Future<void> _copyToClipboard(String label, String value) async {
     await Clipboard.setData(ClipboardData(text: value));
     if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text('$label da duoc sao chep'),
-        ),
-      );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Đã sao chép $label')));
   }
 
   String _generateOrderId(OrderController orderController) {
@@ -413,11 +403,12 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: Color(0xFFE5EAF5)),
+        side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.6)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -444,15 +435,11 @@ class _SummaryRow extends StatelessWidget {
     required this.label,
     required this.value,
     this.isEmphasis = false,
-    this.hint,
-    this.onCopy,
   });
 
   final String label;
   final String value;
   final bool isEmphasis;
-  final String? hint;
-  final VoidCallback? onCopy;
 
   @override
   Widget build(BuildContext context) {
@@ -474,262 +461,156 @@ class _SummaryRow extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Flexible(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: Text(
-                      value,
-                      textAlign: TextAlign.right,
-                      style: valueStyle,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (onCopy != null) ...[
-                    const SizedBox(width: 6),
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.all(10),
-                      constraints: const BoxConstraints(
-                        minWidth: 44,
-                        minHeight: 44,
-                      ),
-                      icon: const Icon(Icons.copy, size: 18),
-                      onPressed: onCopy,
-                      tooltip: 'Sao chep',
-                    ),
-                  ],
-                ],
+              child: Text(
+                value,
+                textAlign: TextAlign.right,
+                style: valueStyle,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
         ),
-        if (hint != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            hint!,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(color: Colors.black54),
-          ),
-        ],
       ],
     );
   }
 }
 
-class _BankTransferSheet extends StatefulWidget {
-  const _BankTransferSheet({
+class _BankTransferInfoSheet extends StatefulWidget {
+  const _BankTransferInfoSheet({
     required this.amount,
-    required this.content,
     required this.owner,
     required this.account,
     required this.bankName,
-    required this.onCopied,
+    required this.content,
+    required this.onCopy,
   });
 
   final int amount;
-  final String content;
   final String owner;
   final String account;
   final String bankName;
-  final void Function(String label, String value) onCopied;
+  final String content;
+  final Future<void> Function(String label, String value) onCopy;
 
   @override
-  State<_BankTransferSheet> createState() => _BankTransferSheetState();
+  State<_BankTransferInfoSheet> createState() => _BankTransferInfoSheetState();
 }
 
-class _BankTransferSheetState extends State<_BankTransferSheet> {
-  static const Duration _simulateSuccessAfter = Duration(seconds: 6);
-  Timer? _timer;
-  bool _isDone = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer(_simulateSuccessAfter, _autoComplete);
-  }
-
-  void _autoComplete() {
-    if (_isDone) return;
-    _isDone = true;
-    if (mounted) {
-      Navigator.of(context).pop(true);
-    }
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
+class _BankTransferInfoSheetState extends State<_BankTransferInfoSheet> {
   @override
   Widget build(BuildContext context) {
-    final amountText = formatVnd(widget.amount);
-    final qrUrl =
-        'https://img.vietqr.io/image/970422-1234567890-compact.png?amount=${widget.amount}&addInfo=${Uri.encodeComponent(widget.content)}';
-    final maxHeight = MediaQuery.sizeOf(context).height * 0.88;
-
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: maxHeight),
+    final isTablet = MediaQuery.sizeOf(context).shortestSide >= 600;
+    final maxWidth = isTablet ? 760.0 : double.infinity;
+    final colors = Theme.of(context).colorScheme;
+    return SafeArea(
       child: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-            top: 12,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Column(
-                  children: [
-                    const Text(
-                      'Quet QR de thanh toan',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Don se tu xac nhan sau khi chuyen khoan thanh cong',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE5EAF5)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
-                            blurRadius: 12,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              qrUrl,
-                              width: 240,
-                              height: 240,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.qr_code_2, size: 120),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'So tien: $amountText',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Noi dung: ${widget.content}',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: Colors.black54),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF7F9FC),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: const Color(0xFFE5EAF5),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _BankInfoRow(
-                                  label: 'Chu TK',
-                                  value: widget.owner,
-                                  onCopy: () =>
-                                      widget.onCopied('Chu TK', widget.owner),
-                                ),
-                                const SizedBox(height: 6),
-                                _BankInfoRow(
-                                  label: 'So TK',
-                                  value: widget.account,
-                                  onCopy: () =>
-                                      widget.onCopied('So TK', widget.account),
-                                ),
-                                const SizedBox(height: 6),
-                                _BankInfoRow(
-                                  label: 'Ngan hang',
-                                  value: widget.bankName,
-                                  onCopy: () => widget.onCopied(
-                                    'Ngan hang',
-                                    widget.bankName,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 12,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
               ),
-              const SizedBox(height: 16),
-              Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () =>
-                          widget.onCopied('So tien', widget.amount.toString()),
-                      icon: const Icon(Icons.copy, size: 18),
-                      label: const Text('Sao chep so tien'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 44),
+                  Text(
+                    'Thông tin chuyển khoản',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Vui lòng xem thông tin chuyển khoản. Bạn có thể thanh toán bằng STK/nội dung hoặc quét QR bên ngoài ứng dụng.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: colors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: colors.primary.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Text(
+                      'Hệ thống sẽ theo dõi giao dịch từ chuyển khoản/QR bên ngoài. Khi nhận thành công, app sẽ tự động cập nhật và chuyển sang trang đơn hàng.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colors.primary,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () =>
-                          widget.onCopied('Noi dung', widget.content),
-                      icon: const Icon(Icons.copy, size: 18),
-                      label: const Text('Sao chep ND'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 44),
+                  const SizedBox(height: 14),
+                  _BankTransferInfoRow(
+                    label: 'Số tiền',
+                    value: formatVnd(widget.amount),
+                    onCopy: () {
+                      widget.onCopy('Số tiền', widget.amount.toString());
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  _BankTransferInfoRow(
+                    label: 'Chủ tài khoản',
+                    value: widget.owner,
+                    onCopy: () {
+                      widget.onCopy('Chủ tài khoản', widget.owner);
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  _BankTransferInfoRow(
+                    label: 'Số tài khoản',
+                    value: widget.account,
+                    onCopy: () {
+                      widget.onCopy('Số tài khoản', widget.account);
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  _BankTransferInfoRow(
+                    label: 'Ngân hàng',
+                    value: widget.bankName,
+                    onCopy: () {
+                      widget.onCopy('Ngân hàng', widget.bankName);
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  _BankTransferInfoRow(
+                    label: 'Nội dung',
+                    value: widget.content,
+                    onCopy: () {
+                      widget.onCopy('Nội dung chuyển khoản', widget.content);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: const Text('Hủy'),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          child: const Text('Đã chuyển khoản'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (_isDone) return;
-                    _isDone = true;
-                    Navigator.of(context).pop(true);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(44),
-                  ),
-                  child: const Text('Da quet / Da chuyen'),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -737,31 +618,54 @@ class _BankTransferSheetState extends State<_BankTransferSheet> {
   }
 }
 
-class _BankInfoRow extends StatelessWidget {
-  const _BankInfoRow({required this.label, required this.value, this.onCopy});
+class _BankTransferInfoRow extends StatelessWidget {
+  const _BankTransferInfoRow({
+    required this.label,
+    required this.value,
+    required this.onCopy,
+  });
 
   final String label;
   final String value;
-  final VoidCallback? onCopy;
+  final VoidCallback onCopy;
 
   @override
   Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.bodyMedium;
-    return Row(
-      children: [
-        Text('$label: ', style: style?.copyWith(fontWeight: FontWeight.w600)),
-        Expanded(
-          child: Text(value, style: style, overflow: TextOverflow.ellipsis),
-        ),
-        if (onCopy != null)
+    final borderColor = Theme.of(context).colorScheme.outlineVariant;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(value, style: Theme.of(context).textTheme.bodyMedium),
+              ],
+            ),
+          ),
           IconButton(
             visualDensity: VisualDensity.compact,
             padding: const EdgeInsets.all(10),
             constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-            icon: const Icon(Icons.copy, size: 16),
             onPressed: onCopy,
+            icon: const Icon(Icons.copy, size: 18),
+            tooltip: 'Sao chép',
           ),
-      ],
+        ],
+      ),
     );
   }
 }

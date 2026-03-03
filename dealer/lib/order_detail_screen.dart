@@ -14,168 +14,187 @@ class OrderDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final order = OrderScope.of(context).findById(orderId);
+    final isTablet = MediaQuery.sizeOf(context).shortestSide >= 600;
+    final contentMaxWidth = isTablet ? 860.0 : double.infinity;
 
     if (order == null) {
       return Scaffold(
-        appBar: AppBar(title: const BrandAppBarTitle('Chi tiet don hang')),
-        body: const Center(child: Text('Khong tim thay don hang.')),
+        appBar: AppBar(title: const BrandAppBarTitle('Chi tiết đơn hàng')),
+        body: const Center(child: Text('Không tìm thấy đơn hàng.')),
       );
     }
 
-    final canProcessSerial = order.status == OrderStatus.completed;
+    final canProcessSerial =
+        order.status == OrderStatus.completed ||
+        order.status == OrderStatus.shipping;
 
     return Scaffold(
-      appBar: AppBar(title: const BrandAppBarTitle('Chi tiet don hang')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        children: [
-          FadeSlideIn(
-            child: _SectionCard(
-              title: 'Thong tin don',
-              child: Column(
-                children: [
-                  _InfoRow(label: 'Ma don', value: order.id),
-                  const SizedBox(height: 8),
-                  _InfoRow(
-                    label: 'Ngay dat',
-                    value: formatDateTime(order.createdAt),
+      appBar: AppBar(title: const BrandAppBarTitle('Chi tiết đơn hàng')),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: contentMaxWidth),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            children: [
+              FadeSlideIn(
+                child: _SectionCard(
+                  title: 'Thông tin đơn',
+                  child: Column(
+                    children: [
+                      _InfoRow(label: 'Mã đơn', value: order.id),
+                      const SizedBox(height: 8),
+                      _InfoRow(
+                        label: 'Ngày đặt',
+                        value: formatDateTime(order.createdAt),
+                      ),
+                      const SizedBox(height: 8),
+                      _InfoRow(
+                        label: 'Trạng thái đơn',
+                        value: order.status.label,
+                      ),
+                      const SizedBox(height: 8),
+                      _InfoRow(
+                        label: 'Phương thức thanh toán',
+                        value: order.paymentMethod.label,
+                      ),
+                      const SizedBox(height: 8),
+                      _InfoRow(
+                        label: 'Trạng thái thanh toán',
+                        value: order.paymentStatus.label,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  _InfoRow(label: 'Trang thai don', value: order.status.label),
-                  const SizedBox(height: 8),
-                  _InfoRow(
-                    label: 'Phuong thuc thanh toan',
-                    value: order.paymentMethod.label,
-                  ),
-                  const SizedBox(height: 8),
-                  _InfoRow(
-                    label: 'Trang thai thanh toan',
-                    value: order.paymentStatus.label,
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          FadeSlideIn(
-            delay: const Duration(milliseconds: 60),
-            child: _SectionCard(
-              title: 'Thong tin nhan hang',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    order.receiverName,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    order.receiverAddress,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'SDT: ${order.receiverPhone}',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          FadeSlideIn(
-            delay: const Duration(milliseconds: 120),
-            child: _SectionCard(
-              title: 'San pham (${order.totalItems})',
-              child: Column(
-                children: [
-                  for (var i = 0; i < order.items.length; i++) ...[
-                    _OrderItemTile(item: order.items[i]),
-                    if (i != order.items.length - 1) const Divider(height: 18),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          FadeSlideIn(
-            delay: const Duration(milliseconds: 180),
-            child: _SectionCard(
-              title: 'Thanh toan',
-              child: Column(
-                children: [
-                  _InfoRow(label: 'Tam tinh', value: formatVnd(order.subtotal)),
-                  if (order.discountAmount > 0) ...[
-                    const SizedBox(height: 8),
-                    _InfoRow(
-                      label: 'Giam gia (${order.discountPercent}%)',
-                      value: '-${formatVnd(order.discountAmount)}',
-                    ),
-                    const SizedBox(height: 8),
-                    _InfoRow(
-                      label: 'Sau giam gia',
-                      value: formatVnd(order.totalAfterDiscount),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  _InfoRow(
-                    label: 'Phi van chuyen',
-                    value: formatVnd(order.shippingFee),
-                  ),
-                  const SizedBox(height: 8),
-                  _InfoRow(
-                    label: 'VAT (${order.vatPercent}%)',
-                    value: formatVnd(order.vatAmount),
-                  ),
-                  const SizedBox(height: 8),
-                  _InfoRow(
-                    label: 'Da thanh toan',
-                    value: formatVnd(order.paidAmount),
-                  ),
-                  const SizedBox(height: 8),
-                  _InfoRow(
-                    label: 'Con no',
-                    value: formatVnd(order.outstandingAmount),
-                  ),
-                  const Divider(height: 20),
-                  _InfoRow(
-                    label: 'Tong cong',
-                    value: formatVnd(order.total),
-                    isEmphasis: true,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          FadeSlideIn(
-            delay: const Duration(milliseconds: 240),
-            child: ElevatedButton(
-              onPressed: canProcessSerial
-                  ? () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              WarrantyActivationScreen(orderId: order.id),
+              const SizedBox(height: 14),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 60),
+                child: _SectionCard(
+                  title: 'Thông tin nhận hàng',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        order.receiverName,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
                         ),
-                      );
-                    }
-                  : null,
-              child: Text(
-                canProcessSerial
-                    ? 'Xu ly serial'
-                    : 'Chi xu ly serial khi don da giao',
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        order.receiverAddress,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'SĐT: ${order.receiverPhone}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(height: 14),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 120),
+                child: _SectionCard(
+                  title: 'Sản phẩm (${order.totalItems})',
+                  child: Column(
+                    children: [
+                      for (var i = 0; i < order.items.length; i++) ...[
+                        _OrderItemTile(item: order.items[i]),
+                        if (i != order.items.length - 1)
+                          const Divider(height: 18),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 180),
+                child: _SectionCard(
+                  title: 'Thanh toán',
+                  child: Column(
+                    children: [
+                      _InfoRow(
+                        label: 'Tạm tính',
+                        value: formatVnd(order.subtotal),
+                      ),
+                      if (order.discountAmount > 0) ...[
+                        const SizedBox(height: 8),
+                        _InfoRow(
+                          label: 'Chiết khấu (${order.discountPercent}%)',
+                          value: '-${formatVnd(order.discountAmount)}',
+                        ),
+                        const SizedBox(height: 8),
+                        _InfoRow(
+                          label: 'Sau chiết khấu',
+                          value: formatVnd(order.totalAfterDiscount),
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      _InfoRow(
+                        label: 'Phí vận chuyển',
+                        value: formatVnd(order.shippingFee),
+                      ),
+                      const SizedBox(height: 8),
+                      _InfoRow(
+                        label: 'VAT (${order.vatPercent}%)',
+                        value: formatVnd(order.vatAmount),
+                      ),
+                      const SizedBox(height: 8),
+                      _InfoRow(
+                        label: 'Đã thanh toán',
+                        value: formatVnd(order.paidAmount),
+                      ),
+                      if (order.outstandingAmount > 0) ...[
+                        const SizedBox(height: 8),
+                        _InfoRow(
+                          label: 'Còn nợ',
+                          value: formatVnd(order.outstandingAmount),
+                        ),
+                      ],
+                      const Divider(height: 20),
+                      _InfoRow(
+                        label: 'Tổng cộng',
+                        value: formatVnd(order.total),
+                        isEmphasis: true,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 240),
+                child: ElevatedButton(
+                  onPressed: canProcessSerial
+                      ? () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  WarrantyActivationScreen(orderId: order.id),
+                            ),
+                          );
+                        }
+                      : null,
+                  child: Text(
+                    canProcessSerial
+                        ? 'Xử lý serial'
+                        : 'Chỉ xử lý serial khi đơn đang giao hoặc hoàn thành',
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -189,11 +208,12 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: Color(0xFFE5EAF5)),
+        side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.6)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -257,6 +277,7 @@ class _OrderItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -285,14 +306,14 @@ class _OrderItemTile extends StatelessWidget {
                 'SKU: ${item.product.sku}',
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
               ),
               const SizedBox(height: 2),
               Text(
                 '${formatVnd(item.product.price)} x ${item.quantity}',
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
               ),
             ],
           ),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'models.dart';
+import 'notification_controller.dart';
 import 'order_controller.dart';
 import 'notifications_screen.dart';
+import 'widgets/notification_icon_button.dart';
 import 'utils.dart';
 import 'warranty_activation_screen.dart';
 import 'warranty_controller.dart';
@@ -34,14 +36,13 @@ class WarrantyHubScreen extends StatelessWidget {
       appBar: AppBar(
         title: const BrandAppBarTitle('Kho'),
         actions: [
-          IconButton(
-            tooltip: 'Thong bao',
+          NotificationIconButton(
+            count: NotificationScope.of(context).unreadCount,
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const NotificationsScreen()),
               );
             },
-            icon: const Icon(Icons.notifications_outlined),
           ),
         ],
       ),
@@ -53,7 +54,11 @@ class WarrantyHubScreen extends StatelessWidget {
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18),
-                side: const BorderSide(color: Color(0xFFE5EAF5)),
+                side: BorderSide(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+                ),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -74,7 +79,7 @@ class WarrantyHubScreen extends StatelessWidget {
                                 : 'Tat ca don da giao da xu ly du serial.')
                           : 'Mo don ${quickOrder.id} de xu ly serial va thong tin khach hang.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.black54,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         height: 1.5,
                       ),
                     ),
@@ -109,7 +114,11 @@ class WarrantyHubScreen extends StatelessWidget {
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18),
-                side: const BorderSide(color: Color(0xFFE5EAF5)),
+                side: BorderSide(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+                ),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -126,7 +135,7 @@ class WarrantyHubScreen extends StatelessWidget {
                     Text(
                       'Serial duoc NPP dong bo khi don chuyen sang hoan thanh. Dealer khong can ghi nhan thu cong.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.black54,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         height: 1.5,
                       ),
                     ),
@@ -209,7 +218,11 @@ class WarrantyHubScreen extends StatelessWidget {
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: Color(0xFFE5EAF5)),
+                    side: BorderSide(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+                    ),
                   ),
                   child: ListTile(
                     title: Text(activation.serial),

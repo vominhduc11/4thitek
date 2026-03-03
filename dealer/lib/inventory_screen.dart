@@ -375,7 +375,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.95),
+                    color: Theme.of(
+                      sheetContext,
+                    ).colorScheme.surface.withValues(alpha: 0.95),
                     boxShadow: const [
                       BoxShadow(
                         color: Color(0x240F172A),
@@ -572,9 +574,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -1012,7 +1015,9 @@ class _QuickActionSheetItem extends StatelessWidget {
                     width: 30,
                     height: 30,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.94),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0.94),
                       borderRadius: BorderRadius.circular(9),
                     ),
                     alignment: Alignment.center,
@@ -1091,7 +1096,11 @@ class _InventoryProductTile extends StatelessWidget {
         shadowColor: const Color(0x120F172A),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: Color(0xFFE5EAF5)),
+          side: BorderSide(
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+          ),
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),

@@ -453,18 +453,9 @@ class WarrantyController extends ChangeNotifier {
         continue;
       }
 
-      final current = _importedSerials[currentIndex];
-      final isSameOrder = current.orderId == activation.orderId;
-      final isSameProduct = current.productId == activation.productId;
-      if (isSameOrder && isSameProduct) {
-        continue;
-      }
-      _importedSerials[currentIndex] = current.copyWith(
-        orderId: activation.orderId,
-        productId: activation.productId,
-        productName: activation.productName,
-        productSku: activation.productSku,
-      );
+      // Serial already has an import record – preserve it as-is to avoid
+      // losing warehouse info (warehouseId, warehouseName, importedAt).
+      continue;
     }
   }
 }

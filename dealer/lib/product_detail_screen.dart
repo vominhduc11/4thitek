@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_spinbox/flutter_spinbox.dart';
@@ -147,9 +147,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         _showMaxStockMessage();
         return;
       }
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => const CheckoutScreen()),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => const CheckoutScreen()));
     } finally {
       if (mounted) {
         setState(() => _isBuyingNow = false);
@@ -162,7 +162,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     required int maxQuantity,
   }) async {
     final minQuantity = widget.product.effectiveMinOrderQty;
-    var selectedQuantity = minQuantity <= maxQuantity ? minQuantity : maxQuantity;
+    var selectedQuantity = minQuantity <= maxQuantity
+        ? minQuantity
+        : maxQuantity;
     final result = await showDialog<int>(
       context: context,
       builder: (dialogContext) {
@@ -174,7 +176,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(productName, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(
+                    productName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 8),
                   Text('Tối thiểu: $minQuantity  •  Tối đa: $maxQuantity'),
                   const SizedBox(height: 12),
@@ -188,8 +194,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     textInputAction: TextInputAction.done,
                     onChanged: (value) {
                       setDialogState(() {
-                        selectedQuantity =
-                            value.round().clamp(minQuantity, maxQuantity);
+                        selectedQuantity = value.round().clamp(
+                          minQuantity,
+                          maxQuantity,
+                        );
                       });
                     },
                   ),
@@ -197,14 +205,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     Text(
                       'Đã đạt tối đa theo tồn kho.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.black54,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   if (selectedQuantity == minQuantity && minQuantity > 1)
                     Text(
                       'Số lượng tối thiểu: $minQuantity',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.black54,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                 ],
@@ -265,6 +273,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final cart = CartScope.of(context);
     final remainingStock = cart.remainingStockFor(widget.product);
     final quantityInCart = cart.quantityFor(widget.product.id);
@@ -341,9 +350,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         Container(
                           padding: EdgeInsets.all(isTablet ? 20 : 16),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: colors.surface,
                             borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: const Color(0xFFE5EAF5)),
+                            border: Border.all(
+                              color: colors.outlineVariant.withValues(
+                                alpha: 0.6,
+                              ),
+                            ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,7 +384,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                         style: Theme.of(context)
                                             .textTheme
                                             .labelSmall
-                                            ?.copyWith(color: Colors.black54),
+                                            ?.copyWith(
+                                              color: colors.onSurfaceVariant,
+                                            ),
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
@@ -394,7 +409,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               Text(
                                 'SKU: ${widget.product.sku}',
                                 style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(color: Colors.black54),
+                                    ?.copyWith(color: colors.onSurfaceVariant),
                               ),
                               const SizedBox(height: 12),
                               _StockBadge(remainingStock: remainingStock),
@@ -403,7 +418,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 widget.product.shortDescription,
                                 style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(
-                                      color: Colors.black54,
+                                      color: colors.onSurfaceVariant,
                                       height: 1.55,
                                     ),
                               ),
@@ -431,10 +446,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           Container(
                             padding: EdgeInsets.all(isTablet ? 18 : 14),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: colors.surface,
                               borderRadius: BorderRadius.circular(18),
                               border: Border.all(
-                                color: const Color(0xFFE5EAF5),
+                                color: colors.outlineVariant.withValues(
+                                  alpha: 0.6,
+                                ),
                               ),
                             ),
                             child: Column(
@@ -460,7 +477,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                 .textTheme
                                                 .bodySmall
                                                 ?.copyWith(
-                                                  color: Colors.black54,
+                                                  color:
+                                                      colors.onSurfaceVariant,
                                                 ),
                                           ),
                                         ),
@@ -527,25 +545,39 @@ class _QuickInfoPalette {
   final Color valueColor;
 }
 
-_QuickInfoPalette _quickInfoPaletteFor(_QuickInfoTone tone) {
+_QuickInfoPalette _quickInfoPaletteFor(
+  BuildContext context,
+  _QuickInfoTone tone,
+) {
+  final colors = Theme.of(context).colorScheme;
+  final isDark = Theme.of(context).brightness == Brightness.dark;
   switch (tone) {
     case _QuickInfoTone.info:
-      return const _QuickInfoPalette(
-        background: Color(0xFFF2F7FF),
-        border: Color(0xFFDCE8FF),
-        iconBackground: Color(0xFFE4EEFF),
-        iconColor: Color(0xFF245DB8),
-        valueColor: Color(0xFF1E4EA2),
+      return _QuickInfoPalette(
+        background: colors.primary.withValues(alpha: isDark ? 0.18 : 0.08),
+        border: colors.primary.withValues(alpha: isDark ? 0.34 : 0.2),
+        iconBackground: colors.primary.withValues(alpha: isDark ? 0.26 : 0.14),
+        iconColor: colors.primary,
+        valueColor: colors.primary,
       );
     case _QuickInfoTone.success:
-      return const _QuickInfoPalette(
-        background: Color(0xFFEEF9F1),
-        border: Color(0xFFD8EFDF),
-        iconBackground: Color(0xFFDFF3E5),
-        iconColor: Color(0xFF1F7E3F),
-        valueColor: Color(0xFF146E34),
+      return _QuickInfoPalette(
+        background: colors.tertiary.withValues(alpha: isDark ? 0.2 : 0.12),
+        border: colors.tertiary.withValues(alpha: isDark ? 0.34 : 0.2),
+        iconBackground: colors.tertiary.withValues(alpha: isDark ? 0.28 : 0.18),
+        iconColor: colors.tertiary,
+        valueColor: colors.tertiary,
       );
     case _QuickInfoTone.warning:
+      if (isDark) {
+        return const _QuickInfoPalette(
+          background: Color(0xFF4A3917),
+          border: Color(0xFF6C4E16),
+          iconBackground: Color(0xFF5C4518),
+          iconColor: Color(0xFFF4D18A),
+          valueColor: Color(0xFFF4D18A),
+        );
+      }
       return const _QuickInfoPalette(
         background: Color(0xFFFFF8EB),
         border: Color(0xFFFFE9C4),
@@ -554,20 +586,22 @@ _QuickInfoPalette _quickInfoPaletteFor(_QuickInfoTone tone) {
         valueColor: Color(0xFFA85F00),
       );
     case _QuickInfoTone.danger:
-      return const _QuickInfoPalette(
-        background: Color(0xFFFFEFED),
-        border: Color(0xFFFFDAD6),
-        iconBackground: Color(0xFFFFE2DE),
-        iconColor: Color(0xFFD94939),
-        valueColor: Color(0xFFC5372B),
+      return _QuickInfoPalette(
+        background: colors.errorContainer.withValues(
+          alpha: isDark ? 0.32 : 0.7,
+        ),
+        border: colors.error.withValues(alpha: isDark ? 0.4 : 0.24),
+        iconBackground: colors.error.withValues(alpha: isDark ? 0.32 : 0.16),
+        iconColor: colors.error,
+        valueColor: colors.error,
       );
     case _QuickInfoTone.neutral:
-      return const _QuickInfoPalette(
-        background: Color(0xFFF8FAFF),
-        border: Color(0xFFE5EAF5),
-        iconBackground: Color(0xFFEEF2FF),
-        iconColor: Color(0xFF4A5676),
-        valueColor: Color(0xFF1F2A44),
+      return _QuickInfoPalette(
+        background: colors.surfaceContainerHighest.withValues(alpha: 0.4),
+        border: colors.outlineVariant.withValues(alpha: 0.7),
+        iconBackground: colors.secondaryContainer.withValues(alpha: 0.7),
+        iconColor: colors.onSecondaryContainer,
+        valueColor: colors.onSurface,
       );
   }
 }
@@ -630,6 +664,7 @@ class _QuickInfoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final canAddNow = isOrderable && nextAddQuantity > 0 && remainingStock > 0;
     final items = <_QuickInfoItemData>[
       _buildStatusItem(),
@@ -667,9 +702,9 @@ class _QuickInfoSection extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(isTablet ? 18 : 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE5EAF5)),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.6)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -684,7 +719,7 @@ class _QuickInfoSection extends StatelessWidget {
           Text(
             'Chỉ số quan trọng để ra quyết định đặt hàng nhanh.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.black54,
+              color: colors.onSurfaceVariant,
               height: 1.35,
             ),
           ),
@@ -753,7 +788,7 @@ class _QuickInfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = _quickInfoPaletteFor(item.tone);
+    final palette = _quickInfoPaletteFor(context, item.tone);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
@@ -767,7 +802,7 @@ class _QuickInfoTile extends StatelessWidget {
           Text(
             item.label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Colors.black54,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -812,12 +847,13 @@ class _DescriptionSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE5EAF5)),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.6)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -834,7 +870,7 @@ class _DescriptionSection extends StatelessWidget {
               'Chưa có mô tả chi tiết.',
               style: Theme.of(
                 context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+              ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
             )
           else
             ...items.map(
@@ -856,6 +892,7 @@ class _DescriptionItemView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final text = item.text?.trim() ?? '';
     final caption = item.caption?.trim() ?? '';
@@ -881,7 +918,7 @@ class _DescriptionItemView extends StatelessWidget {
         return Text(
           text,
           style: textTheme.bodyMedium?.copyWith(
-            color: Colors.black87,
+            color: colors.onSurface,
             height: 1.55,
           ),
         );
@@ -897,7 +934,9 @@ class _DescriptionItemView extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 caption,
-                style: textTheme.bodySmall?.copyWith(color: Colors.black54),
+                style: textTheme.bodySmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
               ),
             ],
           ],
@@ -926,7 +965,9 @@ class _DescriptionItemView extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 caption,
-                style: textTheme.bodySmall?.copyWith(color: Colors.black54),
+                style: textTheme.bodySmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
               ),
             ],
           ],
@@ -938,9 +979,9 @@ class _DescriptionItemView extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFFF7FAFF),
+            color: colors.primary.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE3E9F8)),
+            border: Border.all(color: colors.primary.withValues(alpha: 0.18)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -962,14 +1003,14 @@ class _DescriptionItemView extends StatelessWidget {
                       Text(
                         caption,
                         style: textTheme.bodySmall?.copyWith(
-                          color: Colors.black54,
+                          color: colors.onSurfaceVariant,
                         ),
                       ),
                     if (url.isNotEmpty)
                       Text(
                         url,
                         style: textTheme.labelSmall?.copyWith(
-                          color: Colors.black54,
+                          color: colors.onSurfaceVariant,
                         ),
                       ),
                   ],
@@ -989,6 +1030,7 @@ class _MediaPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: AspectRatio(
@@ -997,7 +1039,7 @@ class _MediaPreview extends StatelessWidget {
           url: url,
           fit: BoxFit.cover,
           placeholderBuilder: (context) => Container(
-            color: const Color(0xFFF0F3FA),
+            color: colors.surfaceContainerHighest.withValues(alpha: 0.6),
             alignment: Alignment.center,
             child: const SizedBox(
               width: 18,
@@ -1006,11 +1048,11 @@ class _MediaPreview extends StatelessWidget {
             ),
           ),
           errorBuilder: (context, error, stackTrace) => Container(
-            color: const Color(0xFFF0F3FA),
+            color: colors.surfaceContainerHighest.withValues(alpha: 0.6),
             alignment: Alignment.center,
-            child: const Icon(
+            child: Icon(
               Icons.broken_image_outlined,
-              color: Colors.black45,
+              color: colors.onSurfaceVariant,
             ),
           ),
         ),
@@ -1026,14 +1068,15 @@ class _VideoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE5EAF5)),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.6)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1046,7 +1089,9 @@ class _VideoSection extends StatelessWidget {
           if (videos.isEmpty)
             Text(
               'Chưa có video cho sản phẩm này.',
-              style: textTheme.bodySmall?.copyWith(color: Colors.black54),
+              style: textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
             )
           else
             ...videos.map(
@@ -1057,9 +1102,11 @@ class _VideoSection extends StatelessWidget {
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF7FAFF),
+                  color: colors.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE3E9F8)),
+                  border: Border.all(
+                    color: colors.primary.withValues(alpha: 0.18),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1089,7 +1136,7 @@ class _VideoSection extends StatelessWidget {
                       Text(
                         video.description!.trim(),
                         style: textTheme.bodySmall?.copyWith(
-                          color: Colors.black54,
+                          color: colors.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -1265,7 +1312,9 @@ class _InlineVideoPlayerState extends State<_InlineVideoPlayer> {
       return _VideoFallback(message: _errorMessage, onRetry: _requestLoad);
     }
 
-    if (_isInitializing || videoController == null || chewieController == null) {
+    if (_isInitializing ||
+        videoController == null ||
+        chewieController == null) {
       return const AspectRatio(
         aspectRatio: 16 / 9,
         child: Center(child: CircularProgressIndicator(strokeWidth: 2.2)),
@@ -1308,16 +1357,17 @@ class _VideoFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F3FA),
+        color: colors.surfaceContainerHighest.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(12),
       ),
       padding: const EdgeInsets.all(12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline, size: 18, color: Colors.black54),
+          Icon(Icons.error_outline, size: 18, color: colors.onSurfaceVariant),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -1325,9 +1375,9 @@ class _VideoFallback extends StatelessWidget {
               children: [
                 Text(
                   'Khong the tai video tren thiet bi nay.',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
                 ),
                 if (message != null && message!.trim().isNotEmpty) ...[
                   const SizedBox(height: 4),
@@ -1335,9 +1385,9 @@ class _VideoFallback extends StatelessWidget {
                     message!,
                     maxLines: 6,
                     overflow: TextOverflow.fade,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.labelSmall?.copyWith(color: Colors.black54),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
                   ),
                 ],
                 if (onRetry != null) ...[
@@ -1364,10 +1414,11 @@ class _VideoDeferredPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: Material(
-        color: const Color(0xFFF0F3FA),
+        color: colors.surfaceContainerHighest.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: onTap,
@@ -1376,16 +1427,12 @@ class _VideoDeferredPlaceholder extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.play_circle_fill,
-                  size: 38,
-                  color: Color(0xFF3C4A67),
-                ),
+                Icon(Icons.play_circle_fill, size: 38, color: colors.primary),
                 const SizedBox(height: 8),
                 Text(
                   'Nhan de tai video',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF3C4A67),
+                    color: colors.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1397,6 +1444,7 @@ class _VideoDeferredPlaceholder extends StatelessWidget {
     );
   }
 }
+
 class _StockBadge extends StatelessWidget {
   const _StockBadge({required this.remainingStock});
 
@@ -1483,20 +1531,21 @@ class _BottomActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final label = !isOrderable
         ? 'Ngưng phân phối'
         : remainingStock <= 0
-            ? 'Hết hàng'
-            : remainingStock <= 10
-                ? 'Còn ít hàng'
-                : 'Còn hàng';
+        ? 'Hết hàng'
+        : remainingStock <= 10
+        ? 'Còn ít hàng'
+        : 'Còn hàng';
     final labelColor = !isOrderable
-        ? Colors.black54
+        ? colors.onSurfaceVariant
         : remainingStock <= 0
-            ? const Color(0xFFD94939)
-            : remainingStock <= 10
-                ? const Color(0xFFB26A00)
-                : const Color(0xFF127A34);
+        ? const Color(0xFFD94939)
+        : remainingStock <= 10
+        ? const Color(0xFFB26A00)
+        : const Color(0xFF127A34);
 
     return SafeArea(
       top: false,
@@ -1508,10 +1557,10 @@ class _BottomActionBar extends StatelessWidget {
           isTablet ? 16 : 14,
         ),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colors.surface,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
+              color: Theme.of(context).shadowColor.withValues(alpha: 0.08),
               blurRadius: 18,
               offset: const Offset(0, -8),
             ),
@@ -1543,7 +1592,7 @@ class _BottomActionBar extends StatelessWidget {
                     Text(
                       'Đã có $quantityInCart trong giỏ',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.black54,
+                        color: colors.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1552,7 +1601,7 @@ class _BottomActionBar extends StatelessWidget {
                     Text(
                       'Chọn số lượng tùy ý',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.black54,
+                        color: colors.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1572,7 +1621,9 @@ class _BottomActionBar extends StatelessWidget {
                           ? const SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2.5),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                              ),
                             )
                           : const Text('Thêm vào giỏ'),
                     ),
@@ -1585,14 +1636,16 @@ class _BottomActionBar extends StatelessWidget {
                           ? const SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2.5),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                              ),
                             )
                           : const Text('Mua ngay'),
                     ),
                   ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),

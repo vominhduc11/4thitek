@@ -18,24 +18,24 @@ class DealerHomeShell extends StatefulWidget {
 class _DealerHomeShellState extends State<DealerHomeShell> {
   static const _desktopNavBreakpoint = 1024.0;
 
-  int _currentIndex = 2;
+  int _currentIndex = 0;
 
   List<_TabItem> _buildTabs(bool isEnglish) {
     return [
       _TabItem(
-        label: isEnglish ? 'Products' : 'San pham',
+        label: isEnglish ? 'Products' : 'Sản phẩm',
         icon: Icons.storefront_outlined,
         activeIcon: Icons.storefront,
         widget: const ProductListScreen(),
       ),
       _TabItem(
-        label: isEnglish ? 'Orders' : 'Don hang',
+        label: isEnglish ? 'Orders' : 'Đơn hàng',
         icon: Icons.receipt_long_outlined,
         activeIcon: Icons.receipt_long,
         widget: const OrdersScreen(),
       ),
       _TabItem(
-        label: isEnglish ? 'Overview' : 'Tong quan',
+        label: isEnglish ? 'Overview' : 'Tổng quan',
         icon: Icons.dashboard_outlined,
         activeIcon: Icons.dashboard,
         widget: const DashboardScreen(),
@@ -47,7 +47,7 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
         widget: const InventoryScreen(),
       ),
       _TabItem(
-        label: isEnglish ? 'Account' : 'Tai khoan',
+        label: isEnglish ? 'Account' : 'Tài khoản',
         icon: Icons.person_outline,
         activeIcon: Icons.person,
         widget: const AccountScreen(),
@@ -60,9 +60,6 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
     final appSettings = AppSettingsScope.of(context);
     final isEnglish = appSettings.locale.languageCode == 'en';
     final tabs = _buildTabs(isEnglish);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colorScheme = Theme.of(context).colorScheme;
-
     final safeIndex = _currentIndex >= tabs.length
         ? tabs.length - 1
         : _currentIndex;
@@ -121,36 +118,16 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
 
         return Scaffold(
           body: shellBody,
-          bottomNavigationBar: BottomNavigationBar(
-            currentIndex: safeIndex,
-            type: BottomNavigationBarType.fixed,
-            showSelectedLabels: true,
-            showUnselectedLabels: false,
-            selectedItemColor: isDark
-                ? colorScheme.primary
-                : const Color(0xFF1D4ED8),
-            unselectedItemColor: isDark
-                ? colorScheme.onSurfaceVariant
-                : const Color(0xFF64748B),
-            selectedLabelStyle: const TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
-            ),
-            unselectedLabelStyle: const TextStyle(
-              fontWeight: FontWeight.w500,
-              fontSize: 11,
-            ),
-            selectedIconTheme: const IconThemeData(size: 26),
-            unselectedIconTheme: const IconThemeData(size: 22),
-            backgroundColor: isDark ? colorScheme.surface : Colors.white,
-            onTap: (index) {
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: safeIndex,
+            onDestinationSelected: (index) {
               setState(() => _currentIndex = index);
             },
-            items: tabs
+            destinations: tabs
                 .map(
-                  (tab) => BottomNavigationBarItem(
+                  (tab) => NavigationDestination(
                     icon: Icon(tab.icon),
-                    activeIcon: Icon(tab.activeIcon),
+                    selectedIcon: Icon(tab.activeIcon),
                     label: tab.label,
                   ),
                 )

@@ -9,14 +9,17 @@ import 'cart_controller.dart';
 import 'cart_screen.dart';
 import 'mock_data.dart';
 import 'models.dart';
+import 'notification_controller.dart';
 import 'product_detail_screen.dart';
 import 'utils.dart';
 import 'widgets/cart_icon_button.dart';
+import 'widgets/notification_icon_button.dart';
 import 'notifications_screen.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/product_image.dart';
 import 'widgets/skeleton_box.dart';
+import 'widgets/stock_badge.dart';
 
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
@@ -27,9 +30,9 @@ class ProductListScreen extends StatefulWidget {
 
 class _ProductListScreenState extends State<ProductListScreen> {
   static const int _pageSize = 10;
-  static const int _lowStockThreshold = 10;
-  static const double _tabletBreakpoint = 760;
-  static const double _stickyFilterBarHeight = 74;
+  static const int _lowStockThreshold = kLowStockThreshold;
+  static const double _tabletShortestSide = 600;
+  static const double _tabletListMaxContentWidth = 1040;
   static const Duration _apiLatency = Duration(milliseconds: 900);
 
   late final PagingController<int, Product> _pagingController;
@@ -38,30 +41,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
   String _searchText = '';
   StockFilter _stockFilter = StockFilter.all;
   SortOption _sortOption = SortOption.none;
-  final List<Product> _catalogProducts = mockProducts
-      .where((product) => product.category == ProductCategory.headset)
-      .toList(growable: false);
-  late final double _minPrice;
-  late final double _maxPrice;
-  late RangeValues _priceRange;
-  final Set<int> _warrantyFilters = {};
+  final List<Product> _catalogProducts = List.unmodifiable(
+    mockProducts.where((p) => p.category == ProductCategory.headset).toList(),
+  );
   final Set<String> _addingProductIds = <String>{};
   int _queryRevision = 0;
 
   @override
   void initState() {
     super.initState();
-    final prices = _catalogProducts.map((product) => product.price).toList();
-    if (prices.isEmpty) {
-      _minPrice = 0;
-      _maxPrice = 0;
-      _priceRange = const RangeValues(0, 0);
-    } else {
-      _minPrice = prices.reduce(math.min).toDouble();
-      _maxPrice = prices.reduce(math.max).toDouble();
-      _priceRange = RangeValues(_minPrice, _maxPrice);
-    }
-
     _pagingController = PagingController(firstPageKey: 0);
     _pagingController.addPageRequestListener(_fetchPage);
     _searchController.addListener(_onSearchChanged);
@@ -78,23 +66,33 @@ class _ProductListScreenState extends State<ProductListScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = CartScope.of(context);
-    final width = MediaQuery.sizeOf(context).width;
-    final isTablet = width >= _tabletBreakpoint;
-    final horizontalPadding = isTablet ? 28.0 : 20.0;
-    final stickyBarHeight = isTablet ? 82.0 : _stickyFilterBarHeight;
+    final size = MediaQuery.sizeOf(context);
+    final width = size.width;
+    final shortestSide = size.shortestSide;
+    final isTablet = shortestSide >= _tabletShortestSide;
+    final baseHorizontalPadding = isTablet ? 32.0 : 20.0;
+    final maxContentWidth = isTablet
+        ? _tabletListMaxContentWidth
+        : double.infinity;
+    final availableWidth = width - (baseHorizontalPadding * 2);
+    final extraHorizontalInset =
+        maxContentWidth.isFinite && availableWidth > maxContentWidth
+        ? (availableWidth - maxContentWidth) / 2
+        : 0.0;
+    final horizontalPadding = baseHorizontalPadding + extraHorizontalInset;
+    final stickyBarHeight = _stickyFilterBarHeight(context, isTablet: isTablet);
 
     return Scaffold(
       appBar: AppBar(
         title: const BrandAppBarTitle('Sản phẩm'),
         actions: [
-          IconButton(
-            tooltip: 'Thông báo',
+          NotificationIconButton(
+            count: NotificationScope.of(context).unreadCount,
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const NotificationsScreen()),
               );
             },
-            icon: const Icon(Icons.notifications_outlined),
           ),
           CartIconButton(
             count: cart.totalItems,
@@ -109,17 +107,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
       ),
       body: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                horizontalPadding,
-                12,
-                horizontalPadding,
-                10,
-              ),
-              child: _buildHeaderTop(context, isTablet: isTablet),
-            ),
-          ),
           SliverPersistentHeader(
             pinned: true,
             delegate: _PinnedHeaderDelegate(
@@ -133,7 +120,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   horizontalPadding,
                   isTablet ? 14 : 12,
                 ),
-                child: _buildStickyFilterBar(context, isTablet: isTablet),
+                child: _buildStickyFilterBar(
+                  context,
+                  isTablet: isTablet,
+                  cartTotalItems: cart.totalItems,
+                ),
               ),
             ),
           ),
@@ -144,58 +135,99 @@ class _ProductListScreenState extends State<ProductListScreen> {
               horizontalPadding,
               24,
             ),
-            sliver: PagedSliverList<int, Product>(
-              pagingController: _pagingController,
-              builderDelegate: PagedChildBuilderDelegate<Product>(
-                itemBuilder: (context, product, index) {
-                  return _buildProductCard(
-                    context,
-                    product,
-                    index,
-                    cart,
-                    isTablet: isTablet,
-                  );
-                },
-                firstPageProgressIndicatorBuilder: (context) {
-                  return _buildFirstPageSkeleton();
-                },
-                newPageProgressIndicatorBuilder: (context) => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                firstPageErrorIndicatorBuilder: (context) {
-                  return _buildErrorIndicator(context, isFirstPage: true);
-                },
-                newPageErrorIndicatorBuilder: (context) {
-                  return _buildErrorIndicator(context);
-                },
-                noItemsFoundIndicatorBuilder: (context) {
-                  final message = _hasAnyFilters
-                      ? 'Không tìm thấy sản phẩm phù hợp bộ lọc.'
-                      : 'Chưa có sản phẩm để hiển thị.';
-                  return FadeSlideIn(
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 32,
-                        ),
-                        child: Text(
-                          message,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: Colors.black54),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
+            sliver: _buildResultsSliver(context, cart, isTablet: isTablet),
           ),
         ],
       ),
     );
+  }
+
+  double _stickyFilterBarHeight(
+    BuildContext context, {
+    required bool isTablet,
+  }) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.8);
+    final baseHeight = isTablet ? 194.0 : 182.0;
+    final additionalHeight = (textScale - 1) * 84;
+    return baseHeight + additionalHeight;
+  }
+
+  Widget _buildResultsSliver(
+    BuildContext context,
+    CartController cart, {
+    required bool isTablet,
+  }) {
+    final gridItemExtent = _tabletGridItemExtent(context);
+    final delegate = PagedChildBuilderDelegate<Product>(
+      itemBuilder: (context, product, index) {
+        return _buildProductCard(
+          context,
+          product,
+          index,
+          cart,
+          isTablet: isTablet,
+          isGridLayout: isTablet,
+        );
+      },
+      firstPageProgressIndicatorBuilder: (context) {
+        return _buildFirstPageSkeleton(
+          isGridLayout: isTablet,
+          gridItemExtent: gridItemExtent,
+        );
+      },
+      newPageProgressIndicatorBuilder: (context) => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      firstPageErrorIndicatorBuilder: (context) {
+        return _buildErrorIndicator(context, isFirstPage: true);
+      },
+      newPageErrorIndicatorBuilder: (context) {
+        return _buildErrorIndicator(context);
+      },
+      noItemsFoundIndicatorBuilder: (context) {
+        final message = _hasAnyFilters
+            ? 'Không tìm thấy sản phẩm phù hợp bộ lọc.'
+            : 'Chưa có sản phẩm để hiển thị.';
+        return FadeSlideIn(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+              child: Text(
+                message,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!isTablet) {
+      return PagedSliverList<int, Product>(
+        pagingController: _pagingController,
+        builderDelegate: delegate,
+      );
+    }
+
+    return PagedSliverGrid<int, Product>(
+      pagingController: _pagingController,
+      builderDelegate: delegate,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        mainAxisExtent: gridItemExtent,
+      ),
+    );
+  }
+
+  double _tabletGridItemExtent(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.8);
+    return 320 + (textScale - 1) * 100;
   }
 
   Future<void> _fetchPage(int pageKey) async {
@@ -257,8 +289,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
       _sortOption = SortOption.none;
       _searchText = '';
       _searchController.text = '';
-      _priceRange = RangeValues(_minPrice, _maxPrice);
-      _warrantyFilters.clear();
     });
     _refreshProducts();
   }
@@ -276,39 +306,26 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   List<Product> _applyFilters() {
     final query = _searchText.toLowerCase();
-    final filtered = _catalogProducts
-        .where((product) {
-          if (query.isNotEmpty) {
-            final name = product.name.toLowerCase();
-            final sku = product.sku.toLowerCase();
-            if (!name.contains(query) && !sku.contains(query)) {
-              return false;
-            }
-          }
+    final filtered = _catalogProducts.where((product) {
+      if (query.isNotEmpty) {
+        final name = product.name.toLowerCase();
+        final sku = product.sku.toLowerCase();
+        if (!name.contains(query) && !sku.contains(query)) {
+          return false;
+        }
+      }
 
-          switch (_stockFilter) {
-            case StockFilter.inStock:
-              return product.stock > _lowStockThreshold;
-            case StockFilter.lowStock:
-              return product.stock > 0 && product.stock <= _lowStockThreshold;
-            case StockFilter.outOfStock:
-              return product.stock == 0;
-            case StockFilter.all:
-              return true;
-          }
-        })
-        .where((product) {
-          final price = product.price.toDouble();
-          if (price < _priceRange.start || price > _priceRange.end) {
-            return false;
-          }
-          if (_warrantyFilters.isNotEmpty &&
-              !_warrantyFilters.contains(product.warrantyMonths)) {
-            return false;
-          }
+      switch (_stockFilter) {
+        case StockFilter.inStock:
+          return product.stock > _lowStockThreshold;
+        case StockFilter.lowStock:
+          return product.stock > 0 && product.stock <= _lowStockThreshold;
+        case StockFilter.outOfStock:
+          return product.stock == 0;
+        case StockFilter.all:
           return true;
-        })
-        .toList();
+      }
+    }).toList();
 
     switch (_sortOption) {
       case SortOption.priceAsc:
@@ -327,231 +344,188 @@ class _ProductListScreenState extends State<ProductListScreen> {
     return filtered;
   }
 
-  Widget _buildHeaderTop(BuildContext context, {required bool isTablet}) {
-    return ValueListenableBuilder<PagingState<int, Product>>(
-      valueListenable: _pagingController,
-      builder: (context, state, _) {
-        final total = _catalogProducts.length;
-        final filteredTotal = _applyFilters().length;
-        final loaded = math.min(state.itemList?.length ?? 0, filteredTotal);
-        final theme = Theme.of(context);
-
-        return FadeSlideIn(
-          child: Container(
-            padding: EdgeInsets.all(isTablet ? 20 : 16),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Colors.white, Color(0xFFF8FAFF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFE5EAF5)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 14,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Danh mục sản phẩm',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Tìm nhanh theo tên hoặc SKU',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: isTablet ? 14 : 10),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isTablet ? 12 : 10,
-                        vertical: isTablet ? 10 : 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            '$filteredTotal',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            'kết quả',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: isTablet ? 12 : 10),
-                Text(
-                  'Đang hiển thị: $loaded / $total',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.black54,
-                  ),
-                ),
-                SizedBox(height: isTablet ? 14 : 12),
-                TextField(
-                  controller: _searchController,
-                  onChanged: (_) => setState(() {}),
-                  decoration: InputDecoration(
-                    hintText: 'Tìm theo tên hoặc SKU',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchController.text.isEmpty
-                        ? null
-                        : IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: _clearSearch,
-                          ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFFE0E6F2)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFFE0E6F2)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
+  Widget _buildDiscountBanner(
+    BuildContext context, {
+    required int totalItems,
+    required bool isTablet,
+  }) {
+    final theme = Theme.of(context);
+    final borderRadius = isTablet ? 16.0 : 12.0;
+    final horizontalPadding = isTablet ? 18.0 : 14.0;
+    final verticalPadding = isTablet ? 10.0 : 8.0;
+    final iconSize = isTablet ? 18.0 : 16.0;
+    final iconSpacing = isTablet ? 10.0 : 8.0;
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPadding,
+        vertical: verticalPadding,
+      ),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.18),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.local_offer_outlined,
+            size: iconSize,
+            color: theme.colorScheme.primary,
+          ),
+          SizedBox(width: iconSpacing),
+          Expanded(
+            child: Text(
+              _discountBannerMessage(totalItems),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style:
+                  (isTablet
+                          ? theme.textTheme.bodyMedium
+                          : theme.textTheme.bodySmall)
+                      ?.copyWith(
                         color: theme.colorScheme.primary,
-                        width: 1.5,
+                        fontWeight: FontWeight.w600,
                       ),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                  ),
-                ),
-                if (_hasAdvancedFilters) ...[
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 9,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF4F7FF),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE2E9FA)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.tune, size: 16, color: Colors.black54),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _buildAdvancedSummary(),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
             ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
-  Widget _buildStickyFilterBar(BuildContext context, {required bool isTablet}) {
+  String _discountBannerMessage(int totalItems) {
+    if (totalItems >= 20) {
+      return 'Đã đạt mức chiết khấu tối đa 20%';
+    }
+    if (totalItems >= 10) {
+      return 'Đã đạt 10% - Mua thêm ${20 - totalItems} SP để lên 20%';
+    }
+    return 'Mua thêm ${10 - totalItems} SP để đạt chiết khấu 10%';
+  }
+
+  Widget _buildStickyFilterBar(
+    BuildContext context, {
+    required bool isTablet,
+    required int cartTotalItems,
+  }) {
     final hasActiveFilters = _hasAnyFilters;
     final activeCount = _activeFilterCount;
     final theme = Theme.of(context);
+    final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.6);
+    final chipRowHeight = math.max(48.0, 48.0 * textScale);
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5EAF5)),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: theme.shadowColor.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
+      child: Padding(
         padding: EdgeInsets.fromLTRB(
           10,
-          isTablet ? 8 : 6,
+          isTablet ? 10 : 8,
           10,
           isTablet ? 8 : 6,
         ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Center(
-              child: Icon(
-                Icons.filter_alt_outlined,
-                size: isTablet ? 20 : 18,
-                color: theme.colorScheme.primary,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildDiscountBanner(
+              context,
+              totalItems: cartTotalItems,
+              isTablet: isTablet,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _searchController,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: 'Tìm theo tên hoặc SKU...',
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: _searchController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.close, size: 18),
+                        onPressed: _clearSearch,
+                      ),
+                filled: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: theme.colorScheme.outlineVariant,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: theme.colorScheme.outlineVariant,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: theme.colorScheme.primary,
+                    width: 1.5,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 9,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 2),
-          _buildStockChip(context, StockFilter.all, 'Tất cả'),
-          const SizedBox(width: 8),
-          _buildStockChip(context, StockFilter.inStock, 'Còn hàng'),
-          const SizedBox(width: 8),
-          _buildStockChip(context, StockFilter.lowStock, 'Sắp hết'),
-          const SizedBox(width: 8),
-          _buildStockChip(context, StockFilter.outOfStock, 'Hết hàng'),
-          const SizedBox(width: 8),
-          _buildSortMenu(context),
-          const SizedBox(width: 8),
-          _buildAdvancedFilterButton(context),
-          if (hasActiveFilters) ...[
-            const SizedBox(width: 8),
-            TextButton.icon(
-              onPressed: _resetFilters,
-              icon: const Icon(Icons.close_rounded, size: 16),
-              label: Text('Xóa lọc ($activeCount)'),
+            const SizedBox(height: 6),
+            SizedBox(
+              height: chipRowHeight,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Center(
+                      child: Icon(
+                        Icons.filter_alt_outlined,
+                        size: isTablet ? 20 : 18,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  _buildStockChip(context, StockFilter.all, 'Tất cả'),
+                  const SizedBox(width: 8),
+                  _buildStockChip(context, StockFilter.inStock, 'Còn hàng'),
+                  const SizedBox(width: 8),
+                  _buildStockChip(context, StockFilter.lowStock, 'Sắp hết'),
+                  const SizedBox(width: 8),
+                  _buildStockChip(context, StockFilter.outOfStock, 'Hết hàng'),
+                  const SizedBox(width: 8),
+                  _buildSortMenu(context),
+                  if (hasActiveFilters) ...[
+                    const SizedBox(width: 8),
+                    TextButton.icon(
+                      onPressed: _resetFilters,
+                      icon: const Icon(Icons.close_rounded, size: 16),
+                      label: Text('Xóa lọc ($activeCount)'),
+                    ),
+                  ],
+                  const SizedBox(width: 2),
+                ],
+              ),
             ),
           ],
-          const SizedBox(width: 2),
-        ],
+        ),
       ),
     );
   }
@@ -570,67 +544,69 @@ class _ProductListScreenState extends State<ProductListScreen> {
       onSelected: (_) => _setStockFilter(filter),
       selectedColor: colors.primary.withValues(alpha: 0.15),
       labelStyle: TextStyle(
-        color: isSelected ? colors.primary : Colors.black87,
+        color: isSelected ? colors.primary : colors.onSurface,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(999),
         side: BorderSide(
-          color: isSelected ? colors.primary : const Color(0xFFE0E5F2),
+          color: isSelected ? colors.primary : colors.outlineVariant,
         ),
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       visualDensity: VisualDensity.compact,
     );
   }
 
   Widget _buildSortMenu(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final label = switch (_sortOption) {
-      SortOption.priceAsc => 'Giá thấp -> cao',
-      SortOption.priceDesc => 'Giá cao -> thấp',
-      SortOption.nameAsc => 'Tên A -> Z',
+      SortOption.priceAsc => 'Giá thấp → cao',
+      SortOption.priceDesc => 'Giá cao → thấp',
+      SortOption.nameAsc => 'Tên A → Z',
       SortOption.none => 'Sắp xếp',
     };
 
     return PopupMenuButton<SortOption>(
+      tooltip: 'Sắp xếp',
       onSelected: _setSortOption,
       itemBuilder: (context) => const [
         PopupMenuItem(value: SortOption.none, child: Text('Mặc định')),
         PopupMenuItem(
           value: SortOption.priceAsc,
-          child: Text('Giá thấp -> cao'),
+          child: Text('Giá thấp → cao'),
         ),
         PopupMenuItem(
           value: SortOption.priceDesc,
-          child: Text('Giá cao -> thấp'),
+          child: Text('Giá cao → thấp'),
         ),
-        PopupMenuItem(value: SortOption.nameAsc, child: Text('Tên A -> Z')),
+        PopupMenuItem(value: SortOption.nameAsc, child: Text('Tên A → Z')),
       ],
-      child: IgnorePointer(
-        child: OutlinedButton.icon(
-          onPressed: () {},
-          icon: const Icon(Icons.swap_vert),
-          label: Text(label),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.black87,
-            minimumSize: const Size(0, 40),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 48),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: ShapeDecoration(
+          color: colors.surface,
+          shape: StadiumBorder(
+            side: BorderSide(
+              color: colors.outlineVariant.withValues(alpha: 0.8),
+            ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildAdvancedFilterButton(BuildContext context) {
-    final activeCount = _activeFilterCount;
-    return OutlinedButton.icon(
-      onPressed: _openAdvancedFilters,
-      icon: const Icon(Icons.tune),
-      label: Text(
-        activeCount > 0 ? 'Lọc nâng cao ($activeCount)' : 'Lọc nâng cao',
-      ),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.black87,
-        minimumSize: const Size(0, 40),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.swap_vert, size: 18, color: colors.onSurface),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: colors.onSurface,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -651,7 +627,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         children: [
           Icon(
             Icons.cloud_off_outlined,
-            color: Colors.black45,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             size: isFirstPage ? 48 : 36,
           ),
           const SizedBox(height: 12),
@@ -663,7 +639,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
           const SizedBox(height: 6),
           Text(
             'Vui lòng kiểm tra kết nối và thử lại.',
-            style: textTheme.bodySmall?.copyWith(color: Colors.black54),
+            style: textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
@@ -676,14 +654,33 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
-  Widget _buildFirstPageSkeleton() {
+  Widget _buildFirstPageSkeleton({
+    required bool isGridLayout,
+    required double gridItemExtent,
+  }) {
+    if (isGridLayout) {
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 4,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          mainAxisExtent: gridItemExtent,
+        ),
+        itemBuilder: (context, index) =>
+            const _ProductCardSkeleton(isGridLayout: true),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Column(
         children: List.generate(
           5,
           (index) => const Padding(
-            padding: EdgeInsets.only(bottom: 12),
+            padding: EdgeInsets.only(bottom: 10),
             child: _ProductCardSkeleton(),
           ),
         ),
@@ -697,6 +694,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     int index,
     CartController cart, {
     required bool isTablet,
+    bool isGridLayout = false,
   }) {
     final delay = Duration(milliseconds: 30 * (index % _pageSize));
     final isAddingToCart = _addingProductIds.contains(product.id);
@@ -704,173 +702,269 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final suggestedAddQuantity = cart.suggestedAddQuantity(product);
     final canAddToCart = suggestedAddQuantity > 0 && !isAddingToCart;
     final theme = Theme.of(context);
-    final imageSize = isTablet ? 68.0 : 56.0;
-    final cardPadding = isTablet ? 18.0 : 16.0;
+    final isDark = theme.brightness == Brightness.dark;
+    final imageSize = isTablet ? 80.0 : 64.0;
+    final gridImageHeight = isTablet ? 132.0 : 112.0;
+    final cardPadding = isTablet ? (isGridLayout ? 16.0 : 18.0) : 14.0;
     final addButtonLabel = !product.isOrderable
         ? 'Ngưng bán'
         : remainingStock <= 0
         ? 'Hết hàng'
-        : 'Thêm vào giỏ';
+        : 'Thêm nhanh';
+
+    final useCompactQuickAdd = isGridLayout && canAddToCart;
 
     return FadeSlideIn(
       key: ValueKey(product.id),
       delay: delay,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 12),
+        padding: EdgeInsets.only(
+          bottom: isGridLayout ? 0 : (isTablet ? 12 : 10),
+        ),
         child: Card(
           elevation: 0,
+          clipBehavior: Clip.antiAlias,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
-            side: const BorderSide(color: Color(0xFFE5EAF5)),
+            side: BorderSide(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+            ),
           ),
-          child: Padding(
-            padding: EdgeInsets.all(cardPadding),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+          child: InkWell(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => ProductDetailScreen(product: product),
+                ),
+              );
+            },
+            child: Padding(
+              padding: EdgeInsets.all(cardPadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Info section
+                  if (isGridLayout) ...[
                     Hero(
                       tag: 'product-image-${product.id}',
                       child: ProductImage(
                         product: product,
-                        width: imageSize,
-                        height: imageSize,
-                        borderRadius: BorderRadius.circular(14),
-                        iconSize: isTablet ? 28 : 24,
+                        width: double.infinity,
+                        height: gridImageHeight,
+                        borderRadius: BorderRadius.circular(16),
+                        iconSize: 34,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            product.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'SKU: ${product.sku}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.black54,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          _StockBadge(remainingStock: remainingStock),
-                        ],
+                    const SizedBox(height: 10),
+                    Text(
+                      product.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
+                    const SizedBox(height: 4),
+                    Text(
+                      product.sku,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF4F7FF),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE2E9FA)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            'Giá',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: Colors.black54,
-                            ),
+                    ),
+                    const SizedBox(height: 8),
+                    StockBadge(
+                      remainingStock: remainingStock,
+                      lowStockThreshold: _lowStockThreshold,
+                      iconSize: 13,
+                      iconTextSpacing: 3.5,
+                    ),
+                  ] else ...[
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Hero(
+                          tag: 'product-image-${product.id}',
+                          child: ProductImage(
+                            product: product,
+                            width: imageSize,
+                            height: imageSize,
+                            borderRadius: BorderRadius.circular(14),
+                            iconSize: isTablet ? 32 : 26,
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            formatVnd(product.price),
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w700,
-                            ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                product.name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      product.sku,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  StockBadge(
+                                    remainingStock: remainingStock,
+                                    lowStockThreshold: _lowStockThreshold,
+                                    iconSize: isTablet ? 14 : 12,
+                                    iconTextSpacing: isTablet ? 4 : 3,
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  product.description,
-                  maxLines: isTablet ? 3 : 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.black54,
-                    height: 1.4,
+                  SizedBox(height: isGridLayout ? 10 : 12),
+                  Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.5,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _MetaPill(
-                      icon: Icons.verified_outlined,
-                      label: 'BH ${product.warrantyMonths} tháng',
-                    ),
-                    _MetaPill(
-                      icon: Icons.inventory_2_outlined,
-                      label: 'Còn lại: $remainingStock',
-                    ),
-                    _MetaPill(
-                      icon: Icons.edit_note_outlined,
-                      label: 'SL linh hoat',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                ProductDetailScreen(product: product),
+                  const SizedBox(height: 10),
+                  // Action row
+                  Builder(
+                    builder: (context) {
+                      final priceText = Text(
+                        formatVnd(product.price),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      );
+
+                      Widget buildQuantityButton() {
+                        return Tooltip(
+                          message: 'Chọn số lượng',
+                          child: OutlinedButton(
+                            onPressed: canAddToCart
+                                ? () => _handleAddToCart(
+                                    cart,
+                                    product,
+                                    openQuantityDialog: true,
+                                  )
+                                : null,
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(48, 48),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                              ),
+                            ),
+                            child: const Icon(Icons.tune, size: 18),
                           ),
                         );
-                      },
-                      icon: const Icon(Icons.info_outline, size: 18),
-                      label: const Text('Chi tiết'),
-                    ),
-                    const Spacer(),
-                    ElevatedButton(
-                      onPressed: canAddToCart
-                          ? () => _handleAddToCart(cart, product)
-                          : null,
-                      child: isAddingToCart
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.4,
-                              ),
-                            )
-                          : Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
+                      }
+
+                      Widget buildQuickAddButton() {
+                        return ElevatedButton(
+                          onPressed: canAddToCart
+                              ? () => _handleAddToCart(cart, product)
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(48, 48),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: useCompactQuickAdd ? 10 : 14,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: isDark ? 0 : null,
+                            backgroundColor: isDark
+                                ? theme.colorScheme.secondaryContainer
+                                      .withValues(alpha: 0.8)
+                                : null,
+                            foregroundColor: isDark
+                                ? theme.colorScheme.onSecondaryContainer
+                                : null,
+                          ),
+                          child: isAddingToCart
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.4,
+                                  ),
+                                )
+                              : useCompactQuickAdd
+                              ? const Icon(
                                   Icons.add_shopping_cart_outlined,
                                   size: 18,
+                                )
+                              : Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.add_shopping_cart_outlined,
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(addButtonLabel),
+                                  ],
                                 ),
-                                const SizedBox(width: 6),
-                                Text(addButtonLabel),
+                        );
+                      }
+
+                      final isMobileListLayout = !isTablet && !isGridLayout;
+                      if (isMobileListLayout) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            priceText,
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                buildQuantityButton(),
+                                const Spacer(),
+                                buildQuickAddButton(),
                               ],
                             ),
-                    ),
-                  ],
-                ),
-              ],
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: priceText,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          buildQuantityButton(),
+                          const SizedBox(width: 8),
+                          buildQuickAddButton(),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -878,251 +972,50 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
-  void _openAdvancedFilters() {
-    final initialRange = _priceRange;
-    final initialWarranty = Set<int>.from(_warrantyFilters);
-    final warrantyOptions =
-        _catalogProducts
-            .map((product) => product.warrantyMonths)
-            .toSet()
-            .toList()
-          ..sort();
-    final priceRangeEnabled = _minPrice < _maxPrice;
-    final divisions = priceRangeEnabled ? 10 : null;
-    RangeValues tempRange = initialRange;
-    final tempWarranty = <int>{...initialWarranty};
-
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  16,
-                  20,
-                  20 + MediaQuery.of(context).viewInsets.bottom,
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Bộ lọc nâng cao',
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: const Icon(Icons.close),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Khoảng giá',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${formatVnd(tempRange.start.round())} - ${formatVnd(tempRange.end.round())}',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodySmall?.copyWith(color: Colors.black54),
-                      ),
-                      if (priceRangeEnabled)
-                        RangeSlider(
-                          min: _minPrice,
-                          max: _maxPrice,
-                          divisions: divisions,
-                          values: tempRange,
-                          labels: RangeLabels(
-                            formatVnd(tempRange.start.round()),
-                            formatVnd(tempRange.end.round()),
-                          ),
-                          onChanged: (values) {
-                            setModalState(() => tempRange = values);
-                          },
-                        )
-                      else
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Text('Không có dữ liệu giá để lọc.'),
-                        ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Bảo hành (tháng)',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      if (warrantyOptions.isEmpty)
-                        const Text('Không có dữ liệu bảo hành.')
-                      else
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: warrantyOptions.map((months) {
-                            final isSelected = tempWarranty.contains(months);
-                            return FilterChip(
-                              label: Text('$months tháng'),
-                              selected: isSelected,
-                              onSelected: (selected) {
-                                setModalState(() {
-                                  if (selected) {
-                                    tempWarranty.add(months);
-                                  } else {
-                                    tempWarranty.remove(months);
-                                  }
-                                });
-                              },
-                              selectedColor: Theme.of(
-                                context,
-                              ).colorScheme.primary.withValues(alpha: 0.15),
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.padded,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 8,
-                              ),
-                              labelStyle: TextStyle(
-                                color: isSelected
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Colors.black87,
-                                fontWeight: isSelected
-                                    ? FontWeight.w600
-                                    : FontWeight.w400,
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          TextButton(
-                            onPressed: () {
-                              setModalState(() {
-                                tempRange = RangeValues(_minPrice, _maxPrice);
-                                tempWarranty.clear();
-                              });
-                            },
-                            style: TextButton.styleFrom(
-                              minimumSize: const Size(92, 44),
-                            ),
-                            child: const Text('Đặt lại'),
-                          ),
-                          const Spacer(),
-                          ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                _priceRange = tempRange;
-                                _warrantyFilters
-                                  ..clear()
-                                  ..addAll(tempWarranty);
-                              });
-                              _refreshProducts();
-                              Navigator.of(context).pop();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: const Size(92, 44),
-                            ),
-                            child: const Text('Áp dụng'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  bool get _hasPriceFilter =>
-      _priceRange.start > _minPrice || _priceRange.end < _maxPrice;
-
-  bool get _hasWarrantyFilter => _warrantyFilters.isNotEmpty;
-
-  bool get _hasAdvancedFilters => _hasPriceFilter || _hasWarrantyFilter;
-
   int get _activeFilterCount {
     var count = 0;
-    if (_searchText.isNotEmpty) {
-      count++;
-    }
-    if (_stockFilter != StockFilter.all) {
-      count++;
-    }
-    if (_sortOption != SortOption.none) {
-      count++;
-    }
-    if (_hasPriceFilter) {
-      count++;
-    }
-    if (_hasWarrantyFilter) {
-      count++;
-    }
+    if (_searchText.isNotEmpty) count++;
+    if (_stockFilter != StockFilter.all) count++;
+    if (_sortOption != SortOption.none) count++;
     return count;
   }
 
   bool get _hasAnyFilters =>
       _searchText.isNotEmpty ||
       _stockFilter != StockFilter.all ||
-      _sortOption != SortOption.none ||
-      _hasAdvancedFilters;
-
-  String _buildAdvancedSummary() {
-    final parts = <String>[];
-    if (_hasPriceFilter) {
-      parts.add(
-        'Giá: ${formatVnd(_priceRange.start.round())} - ${formatVnd(_priceRange.end.round())}',
-      );
-    }
-    if (_hasWarrantyFilter) {
-      final values = _warrantyFilters.toList()..sort();
-      parts.add('Bảo hành: ${values.join(', ')} tháng');
-    }
-    return parts.join(' | ');
-  }
+      _sortOption != SortOption.none;
 
   void _refreshProducts() {
     _queryRevision++;
     _pagingController.refresh();
   }
 
-  Future<void> _handleAddToCart(CartController cart, Product product) async {
+  Future<void> _handleAddToCart(
+    CartController cart,
+    Product product, {
+    bool openQuantityDialog = false,
+  }) async {
     if (_addingProductIds.contains(product.id)) {
       return;
     }
     final remainingStock = cart.remainingStockFor(product);
     if (!product.isOrderable || remainingStock <= 0) {
-      _showSnack(
-        product.isOrderable
-            ? 'Sản phẩm đã hết hàng hoặc đã đạt giới hạn trong giỏ'
-            : 'Sản phẩm tạm ngưng phân phối',
-      );
       return;
     }
-    final addQuantity = await _promptQuantity(product, remainingStock);
+
+    final quickQuantity = cart.suggestedAddQuantity(product);
+    if (quickQuantity <= 0) {
+      return;
+    }
+
+    final addQuantity = openQuantityDialog
+        ? await _promptQuantity(
+            product,
+            remainingStock,
+            initialQuantity: quickQuantity,
+          )
+        : quickQuantity;
+
     if (!mounted) {
       return;
     }
@@ -1130,7 +1023,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
       return;
     }
     if (!cart.canAdd(product, quantity: addQuantity)) {
-      _showSnack('Sản phẩm đã đạt giới hạn tồn kho');
       return;
     }
 
@@ -1144,29 +1036,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
         return;
       }
       if (!didAdd) {
-        _showSnack('Sản phẩm đã đạt giới hạn tồn kho');
         return;
       }
-
-      final messenger = ScaffoldMessenger.of(context);
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            content: Text(
-              'Đã thêm ${product.name} (x$addQuantity) vào giỏ hàng',
-            ),
-            action: SnackBarAction(
-              label: 'Xem giỏ',
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const CartScreen()),
-                );
-              },
-            ),
-          ),
-        );
+      _showAddedToCartSnackBar(addQuantity);
     } finally {
       if (mounted) {
         setState(() => _addingProductIds.remove(product.id));
@@ -1174,9 +1046,36 @@ class _ProductListScreenState extends State<ProductListScreen> {
     }
   }
 
-  Future<int?> _promptQuantity(Product product, int maxQuantity) {
-    final minQty = product.effectiveMinOrderQty;
-    var selected = minQty <= maxQuantity ? minQty : maxQuantity;
+  void _showAddedToCartSnackBar(int quantity) {
+    if (!mounted) {
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text('Đã thêm $quantity sản phẩm vào giỏ'),
+        action: SnackBarAction(
+          label: 'Xem giỏ',
+          onPressed: () {
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const CartScreen()));
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<int?> _promptQuantity(
+    Product product,
+    int maxQuantity, {
+    required int initialQuantity,
+  }) {
+    final minQty = math.min(product.effectiveMinOrderQty, maxQuantity);
+    final safeInitial = initialQuantity.clamp(minQty, maxQuantity);
+    var selected = safeInitial <= maxQuantity ? safeInitial : maxQuantity;
     return showDialog<int>(
       context: context,
       builder: (dialogContext) {
@@ -1200,9 +1099,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
               const SizedBox(height: 8),
               Text(
                 'Tối thiểu: $minQty • Tối đa: $maxQuantity',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -1218,130 +1117,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
           ],
         );
       },
-    );
-  }
-
-  Future<int?> _showAddQuantityDialog({
-    required String productName,
-    required int maxQuantity,
-  }) async {
-    var selectedQuantity = 1;
-    return showDialog<int>(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Chọn số lượng'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    productName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Tối đa: $maxQuantity'),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: selectedQuantity > 1
-                            ? () {
-                                setDialogState(() {
-                                  selectedQuantity -= 1;
-                                });
-                              }
-                            : null,
-                        icon: const Icon(Icons.remove_circle_outline),
-                      ),
-                      Expanded(
-                        child: Text(
-                          '$selectedQuantity',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: selectedQuantity < maxQuantity
-                            ? () {
-                                setDialogState(() {
-                                  selectedQuantity += 1;
-                                });
-                              }
-                            : null,
-                        icon: const Icon(Icons.add_circle_outline),
-                      ),
-                    ],
-                  ),
-                  if (selectedQuantity == maxQuantity)
-                    Text(
-                      'Đã đạt tối đa theo tồn kho.',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
-                    ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Hủy'),
-                ),
-                ElevatedButton(
-                  onPressed: () =>
-                      Navigator.of(dialogContext).pop(selectedQuantity),
-                  child: const Text('Thêm'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showSnack(String message) {
-    final messenger = ScaffoldMessenger.of(context);
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(behavior: SnackBarBehavior.floating, content: Text(message)),
-      );
-  }
-}
-
-class _MetaPill extends StatelessWidget {
-  const _MetaPill({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE5EAF5)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 15, color: Colors.black54),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -1367,20 +1142,24 @@ class _PinnedHeaderDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 160),
-      decoration: BoxDecoration(
-        boxShadow: overlapsContent
-            ? [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 14,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : null,
+    return SizedBox.expand(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        decoration: BoxDecoration(
+          boxShadow: overlapsContent
+              ? [
+                  BoxShadow(
+                    color: Theme.of(
+                      context,
+                    ).shadowColor.withValues(alpha: 0.06),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: child,
       ),
-      child: child,
     );
   }
 
@@ -1392,66 +1171,10 @@ class _PinnedHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 }
 
-class _StockBadge extends StatelessWidget {
-  const _StockBadge({required this.remainingStock});
-
-  final int remainingStock;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.bodySmall;
-    late final String label;
-    late final Color textColor;
-    late final Color background;
-
-    if (remainingStock <= 0) {
-      label = 'Hết hàng';
-      textColor = const Color(0xFFD94939);
-      background = const Color(0xFFFFEBE9);
-    } else if (remainingStock <= 10) {
-      label = 'Sắp hết ($remainingStock)';
-      textColor = const Color(0xFFB26A00);
-      background = const Color(0xFFFFF4DD);
-    } else {
-      label = 'Còn hàng';
-      textColor = const Color(0xFF127A34);
-      background = const Color(0xFFEAF7EE);
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            remainingStock <= 0
-                ? Icons.error_outline
-                : remainingStock <= 10
-                ? Icons.schedule
-                : Icons.check_circle_outline,
-            size: 14,
-            color: textColor,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: style?.copyWith(
-              color: textColor,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ProductCardSkeleton extends StatelessWidget {
-  const _ProductCardSkeleton();
+  const _ProductCardSkeleton({this.isGridLayout = false});
+
+  final bool isGridLayout;
 
   @override
   Widget build(BuildContext context) {
@@ -1459,52 +1182,83 @@ class _ProductCardSkeleton extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: Color(0xFFE5EAF5)),
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
       ),
-      child: const Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SkeletonBox(
-                  width: 56,
-                  height: 56,
-                  borderRadius: BorderRadius.all(Radius.circular(14)),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: EdgeInsets.all(isGridLayout ? 16 : 14),
+        child: isGridLayout
+            ? const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonBox(
+                    width: double.infinity,
+                    height: 132,
+                    borderRadius: BorderRadius.all(Radius.circular(16)),
+                  ),
+                  SizedBox(height: 10),
+                  SkeletonBox(width: double.infinity, height: 18),
+                  SizedBox(height: 4),
+                  SkeletonBox(width: 130, height: 13),
+                  SizedBox(height: 8),
+                  SkeletonBox(width: 96, height: 22),
+                  SizedBox(height: 10),
+                  Divider(height: 1, thickness: 1),
+                  SizedBox(height: 10),
+                  Row(
                     children: [
-                      SkeletonBox(width: 160, height: 18),
-                      SizedBox(height: 6),
-                      SkeletonBox(width: 100, height: 14),
-                      SizedBox(height: 8),
-                      SkeletonBox(width: 92, height: 20),
+                      SkeletonBox(width: 96, height: 20),
+                      Spacer(),
+                      SkeletonBox(width: 112, height: 40),
                     ],
                   ),
-                ),
-                SizedBox(width: 8),
-                SkeletonBox(width: 90, height: 20),
-              ],
-            ),
-            SizedBox(height: 12),
-            SkeletonBox(width: double.infinity, height: 14),
-            SizedBox(height: 8),
-            SkeletonBox(width: 280, height: 14),
-            SizedBox(height: 14),
-            Row(
-              children: [
-                SkeletonBox(width: 94, height: 40),
-                Spacer(),
-                SkeletonBox(width: 120, height: 40),
-              ],
-            ),
-          ],
-        ),
+                ],
+              )
+            : const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SkeletonBox(
+                        width: 64,
+                        height: 64,
+                        borderRadius: BorderRadius.all(Radius.circular(14)),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SkeletonBox(width: double.infinity, height: 18),
+                            SizedBox(height: 6),
+                            Row(
+                              children: [
+                                SkeletonBox(width: 80, height: 13),
+                                SizedBox(width: 8),
+                                SkeletonBox(width: 60, height: 20),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                  Divider(height: 1, thickness: 1),
+                  SizedBox(height: 10),
+                  Row(
+                    children: [
+                      SkeletonBox(width: 110, height: 20),
+                      Spacer(),
+                      SkeletonBox(width: 130, height: 40),
+                    ],
+                  ),
+                ],
+              ),
       ),
     );
   }

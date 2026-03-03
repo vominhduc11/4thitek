@@ -123,7 +123,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         child: Container(
                           padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: theme.colorScheme.surface,
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
@@ -175,7 +175,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           Text(
             'Hoàn tất thông tin để đội ngũ 4thitek duyệt và kích hoạt tài khoản.',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.black54,
+              color: theme.colorScheme.onSurfaceVariant,
               height: 1.5,
             ),
           ),
@@ -573,7 +573,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         Text(
           '4thitek sẽ xác minh thông tin và liên hệ lại trong thời gian sớm nhất.',
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: Colors.black54,
+            color: theme.colorScheme.onSurfaceVariant,
             height: 1.5,
           ),
         ),
@@ -581,7 +581,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           const SizedBox(height: 8),
           Text(
             'Email đăng ký: $_submittedEmail',
-            style: theme.textTheme.bodySmall?.copyWith(color: Colors.black54),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
         const SizedBox(height: 20),

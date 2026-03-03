@@ -7,6 +7,7 @@ import 'auth_storage.dart';
 import 'cart_controller.dart';
 import 'home_shell.dart';
 import 'login_screen.dart';
+import 'notification_controller.dart';
 import 'order_controller.dart';
 import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
@@ -27,6 +28,7 @@ class _DealerAppState extends State<DealerApp> {
   late final OrderController _orderController;
   late final WarrantyController _warrantyController;
   late final AppSettingsController _appSettingsController;
+  late final NotificationController _notificationController;
   late final AuthStorage _authStorage;
   late final Future<bool> _startupFuture;
 
@@ -37,6 +39,7 @@ class _DealerAppState extends State<DealerApp> {
     _orderController = OrderController();
     _warrantyController = WarrantyController();
     _appSettingsController = AppSettingsController();
+    _notificationController = NotificationController();
     _authStorage = AuthStorage();
     _startupFuture = _bootstrap();
   }
@@ -52,6 +55,7 @@ class _DealerAppState extends State<DealerApp> {
     _orderController.dispose();
     _warrantyController.dispose();
     _appSettingsController.dispose();
+    _notificationController.dispose();
     super.dispose();
   }
 
@@ -63,40 +67,44 @@ class _DealerAppState extends State<DealerApp> {
         controller: _orderController,
         child: WarrantyScope(
           controller: _warrantyController,
-          child: AppSettingsScope(
-            controller: _appSettingsController,
-            child: AnimatedBuilder(
-              animation: _appSettingsController,
-              builder: (context, _) {
-                return MaterialApp(
-                  debugShowCheckedModeBanner: false,
-                  title: '4thitek Dealer Hub',
-                  theme: _buildLightTheme(),
-                  darkTheme: _buildDarkTheme(),
-                  themeMode: _appSettingsController.themeMode,
-                  locale: _appSettingsController.locale,
-                  localizationsDelegates: const [
-                    GlobalMaterialLocalizations.delegate,
-                    GlobalWidgetsLocalizations.delegate,
-                    GlobalCupertinoLocalizations.delegate,
-                  ],
-                  supportedLocales: const [Locale('vi'), Locale('en')],
-                  home: FutureBuilder<bool>(
-                    future: _startupFuture,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState != ConnectionState.done) {
-                        return const _LaunchScreen();
-                      }
+          child: NotificationScope(
+            controller: _notificationController,
+            child: AppSettingsScope(
+              controller: _appSettingsController,
+              child: AnimatedBuilder(
+                animation: _appSettingsController,
+                builder: (context, _) {
+                  return MaterialApp(
+                    debugShowCheckedModeBanner: false,
+                    title: '4thitek Dealer Hub',
+                    theme: _buildLightTheme(),
+                    darkTheme: _buildDarkTheme(),
+                    themeMode: _appSettingsController.themeMode,
+                    locale: _appSettingsController.locale,
+                    localizationsDelegates: const [
+                      GlobalMaterialLocalizations.delegate,
+                      GlobalWidgetsLocalizations.delegate,
+                      GlobalCupertinoLocalizations.delegate,
+                    ],
+                    supportedLocales: const [Locale('vi'), Locale('en')],
+                    home: FutureBuilder<bool>(
+                      future: _startupFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState !=
+                            ConnectionState.done) {
+                          return const _LaunchScreen();
+                        }
 
-                      final shouldAutoLogin = snapshot.data ?? false;
-                      if (shouldAutoLogin) {
-                        return const DealerHomeShell();
-                      }
-                      return const LoginScreen();
-                    },
-                  ),
-                );
-              },
+                        final shouldAutoLogin = snapshot.data ?? false;
+                        if (shouldAutoLogin) {
+                          return const DealerHomeShell();
+                        }
+                        return const LoginScreen();
+                      },
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ),

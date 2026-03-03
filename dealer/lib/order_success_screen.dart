@@ -1,5 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
+import 'models.dart';
+import 'order_controller.dart';
 import 'order_detail_screen.dart';
 import 'utils.dart';
 import 'widgets/brand_identity.dart';
@@ -19,10 +21,13 @@ class OrderSuccessScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final order = OrderScope.of(context).findById(orderId);
+    final statusNote = _buildStatusNote(order);
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const BrandAppBarTitle('Dat hang thanh cong'),
+        title: const BrandAppBarTitle('Đặt hàng thành công'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
@@ -37,7 +42,7 @@ class OrderSuccessScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Don hang da duoc ghi nhan',
+                'Đơn hàng đã được ghi nhận',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
@@ -45,19 +50,29 @@ class OrderSuccessScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Ma don hang: $orderId',
+                'Mã đơn hàng: $orderId',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                statusNote,
                 style: Theme.of(
                   context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                ).textTheme.bodyMedium?.copyWith(color: Colors.black87),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
               _SummaryCard(
                 itemCount: itemCount,
                 totalPrice: totalPrice,
+                paymentMethod: order?.paymentMethod.label,
+                paymentStatus: order?.paymentStatus.label,
               ),
               const SizedBox(height: 24),
-              OutlinedButton(
+              ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -65,14 +80,14 @@ class OrderSuccessScreen extends StatelessWidget {
                     ),
                   );
                 },
-                child: const Text('Xem chi tiet don'),
+                child: const Text('Xem chi tiết đơn hàng'),
               ),
               const SizedBox(height: 12),
               OutlinedButton(
                 onPressed: () {
                   Navigator.of(context).popUntil((route) => route.isFirst);
                 },
-                child: const Text('Tiep tuc mua hang'),
+                child: const Text('Tiếp tục mua hàng'),
               ),
             ],
           ),
@@ -80,16 +95,30 @@ class OrderSuccessScreen extends StatelessWidget {
       ),
     );
   }
+
+  String _buildStatusNote(Order? order) {
+    if (order == null) {
+      return 'Đơn đang chờ duyệt phía nhà phân phối.';
+    }
+    if (order.paymentMethod == OrderPaymentMethod.debt) {
+      return 'Đơn đã được ghi nhận công nợ và đang chờ duyệt phía nhà phân phối.';
+    }
+    return 'Thanh toán chuyển khoản đã được ghi nhận. Đơn đang chờ duyệt phía nhà phân phối.';
+  }
 }
 
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({
     required this.itemCount,
     required this.totalPrice,
+    this.paymentMethod,
+    this.paymentStatus,
   });
 
   final int itemCount;
   final int totalPrice;
+  final String? paymentMethod;
+  final String? paymentStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -97,19 +126,34 @@ class _SummaryCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: Color(0xFFE5EAF5)),
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _SummaryRow(
-              label: 'So luong san pham',
-              value: '$itemCount',
-            ),
+            _SummaryRow(label: 'Số lượng sản phẩm', value: '$itemCount'),
             const SizedBox(height: 8),
+            if (paymentMethod != null) ...[
+              _SummaryRow(
+                label: 'Phương thức thanh toán',
+                value: paymentMethod!,
+              ),
+              const SizedBox(height: 8),
+            ],
+            if (paymentStatus != null) ...[
+              _SummaryRow(
+                label: 'Trạng thái thanh toán',
+                value: paymentStatus!,
+              ),
+              const SizedBox(height: 8),
+            ],
             _SummaryRow(
-              label: 'Tong thanh toan',
+              label: 'Tổng thanh toán',
               value: formatVnd(totalPrice),
               isEmphasis: true,
             ),

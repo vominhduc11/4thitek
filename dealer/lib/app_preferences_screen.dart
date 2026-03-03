@@ -34,7 +34,11 @@ class AppPreferencesScreen extends StatelessWidget {
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: Color(0xFFE5EAF5)),
+                  side: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+                  ),
                 ),
                 child: Column(
                   children: [

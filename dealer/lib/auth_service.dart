@@ -66,23 +66,17 @@ class MockAuthService implements AuthService {
     final normalizedEmail = email.trim().toLowerCase();
     final expectedPassword = _mockAccounts[normalizedEmail];
     if (expectedPassword == null) {
-      final isKnownPassword = _mockAccounts.values.contains(password);
-      if (!isKnownPassword) {
-        return LoginResult.failure(
-          type: LoginFailureType.invalidCredentials,
-          message:
-              'Email v\u00e0 m\u1eadt kh\u1ea9u kh\u00f4ng \u0111\u00fang.',
-        );
-      }
       return LoginResult.failure(
-        type: LoginFailureType.invalidEmail,
-        message: 'Email kh\u00f4ng \u0111\u00fang.',
+        type: LoginFailureType.invalidCredentials,
+        message:
+            'Email v\u00e0 m\u1eadt kh\u1ea9u kh\u00f4ng \u0111\u00fang.',
       );
     }
     if (expectedPassword != password) {
       return LoginResult.failure(
-        type: LoginFailureType.invalidPassword,
-        message: 'M\u1eadt kh\u1ea9u kh\u00f4ng \u0111\u00fang.',
+        type: LoginFailureType.invalidCredentials,
+        message:
+            'Email v\u00e0 m\u1eadt kh\u1ea9u kh\u00f4ng \u0111\u00fang.',
       );
     }
 

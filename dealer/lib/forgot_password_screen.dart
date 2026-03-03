@@ -88,7 +88,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         child: Container(
                           padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: theme.colorScheme.surface,
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
@@ -140,7 +140,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           Text(
             'Nhập email đăng ký để nhận liên kết đặt lại mật khẩu.',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.black54,
+              color: theme.colorScheme.onSurfaceVariant,
               height: 1.5,
             ),
           ),
@@ -295,14 +295,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         Text(
           'Nếu email tồn tại trong hệ thống, chúng tôi đã gửi liên kết đặt lại.',
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: Colors.black54,
+            color: theme.colorScheme.onSurfaceVariant,
             height: 1.5,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'Vui lòng kiểm tra cả thư rác (Spam).',
-          style: theme.textTheme.bodySmall?.copyWith(color: Colors.black54),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 20),
         SizedBox(

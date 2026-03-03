@@ -14,6 +14,7 @@ class OrderController extends ChangeNotifier {
 
   final List<Order> _orders;
   final List<DebtPaymentRecord> _paymentHistory;
+  bool _isDisposed = false;
 
   List<Order> get orders {
     final list = List<Order>.from(_orders);
@@ -22,13 +23,21 @@ class OrderController extends ChangeNotifier {
   }
 
   List<Order> get debtOrders {
-    final list = orders.where((order) => order.outstandingAmount > 0).toList();
+    final list = orders
+        .where(
+          (order) =>
+              order.outstandingAmount > 0 &&
+              order.status != OrderStatus.cancelled,
+        )
+        .toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
   }
 
   int get totalOutstandingDebt {
-    return _orders.fold<int>(0, (sum, order) => sum + order.outstandingAmount);
+    return _orders
+        .where((order) => order.status != OrderStatus.cancelled)
+        .fold<int>(0, (sum, order) => sum + order.outstandingAmount);
   }
 
   List<DebtPaymentRecord> get paymentHistory {
@@ -90,6 +99,18 @@ class OrderController extends ChangeNotifier {
       return false;
     }
 
+    // Prevent duplicate: same orderId + amount within the last 5 seconds
+    final now = DateTime.now();
+    final isDuplicate = _paymentHistory.any(
+      (record) =>
+          record.orderId == orderId &&
+          record.amount == safeAmount &&
+          now.difference(record.paidAt).inSeconds < 5,
+    );
+    if (isDuplicate) {
+      return false;
+    }
+
     final newPaidAmount = current.paidAmount + safeAmount;
     final newOutstanding = current.total - newPaidAmount;
     final nextPaymentStatus = newOutstanding <= 0
@@ -116,6 +137,61 @@ class OrderController extends ChangeNotifier {
     );
     notifyListeners();
     return true;
+  }
+
+  bool autoReconcileBankTransfer({
+    required String orderId,
+    String channel = 'Doi soat tu dong',
+  }) {
+    final index = _orders.indexWhere((order) => order.id == orderId);
+    if (index < 0) {
+      return false;
+    }
+
+    final current = _orders[index];
+    if (current.paymentMethod != OrderPaymentMethod.bankTransfer) {
+      return false;
+    }
+
+    final outstanding = current.outstandingAmount;
+    if (outstanding <= 0) {
+      return false;
+    }
+
+    _orders[index] = current.copyWith(
+      paymentStatus: OrderPaymentStatus.paid,
+      paidAmount: current.total,
+    );
+    _paymentHistory.add(
+      DebtPaymentRecord(
+        id: _buildPaymentId(orderId),
+        orderId: orderId,
+        amount: outstanding,
+        paidAt: DateTime.now(),
+        channel: channel,
+        note: 'Cap nhat tu giao dich chuyen khoan ngoai ung dung.',
+      ),
+    );
+    notifyListeners();
+    return true;
+  }
+
+  void scheduleAutoReconcileBankTransfer({
+    required String orderId,
+    Duration delay = const Duration(minutes: 1),
+  }) {
+    Future<void>.delayed(delay, () {
+      if (_isDisposed) {
+        return;
+      }
+      autoReconcileBankTransfer(orderId: orderId);
+    });
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
   }
 
   String _buildPaymentId(String orderId) {
@@ -177,7 +253,7 @@ List<Order> _defaultSeedOrders() {
     id: 'SCS-239902',
     createdAt: DateTime(2026, 2, 12, 15, 10),
     status: OrderStatus.completed,
-    paymentMethod: OrderPaymentMethod.cod,
+    paymentMethod: OrderPaymentMethod.bankTransfer,
     paymentStatus: OrderPaymentStatus.paid,
     receiverName: 'Dai ly SCS Ha Noi',
     receiverAddress: 'Số 12, Trần Duy Hưng, Cầu Giấy, Hà Nội',
@@ -229,7 +305,7 @@ List<Order> _defaultSeedOrders() {
     id: 'SCS-240221',
     createdAt: DateTime(2026, 2, 21, 14, 20),
     status: OrderStatus.completed,
-    paymentMethod: OrderPaymentMethod.cod,
+    paymentMethod: OrderPaymentMethod.bankTransfer,
     paymentStatus: OrderPaymentStatus.paid,
     receiverName: 'Dai ly SCS Ha Noi',
     receiverAddress: 'Số 12, Trần Duy Hưng, Cầu Giấy, Hà Nội',

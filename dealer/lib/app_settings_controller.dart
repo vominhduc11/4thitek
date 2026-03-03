@@ -46,6 +46,8 @@ ThemeMode _decodeThemeMode(String? raw) {
   switch (raw) {
     case 'dark':
       return ThemeMode.dark;
+    case 'system':
+      return ThemeMode.system;
     case 'light':
     default:
       return ThemeMode.light;
@@ -56,8 +58,9 @@ String _encodeThemeMode(ThemeMode mode) {
   switch (mode) {
     case ThemeMode.dark:
       return 'dark';
-    case ThemeMode.light:
     case ThemeMode.system:
+      return 'system';
+    case ThemeMode.light:
       return 'light';
   }
 }

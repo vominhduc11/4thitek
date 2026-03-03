@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'models.dart';
 import 'order_controller.dart';
@@ -78,7 +79,11 @@ class DebtTrackingScreen extends StatelessWidget {
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
-                      side: const BorderSide(color: Color(0xFFE5EAF5)),
+                      side: BorderSide(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+                      ),
                     ),
                     child: ListTile(
                       title: Text(
@@ -119,7 +124,11 @@ class _DebtSummaryCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: Color(0xFFE5EAF5)),
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -128,9 +137,9 @@ class _DebtSummaryCard extends StatelessWidget {
           children: [
             Text(
               'Tong cong no hien tai',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
@@ -169,7 +178,11 @@ class _DebtOrderCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE5EAF5)),
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -220,7 +233,10 @@ class _DebtOrderCard extends StatelessWidget {
     );
   }
 
-  Future<void> _showRecordPaymentDialog(BuildContext context, Order order) async {
+  Future<void> _showRecordPaymentDialog(
+    BuildContext context,
+    Order order,
+  ) async {
     final amountController = TextEditingController(
       text: order.outstandingAmount.toString(),
     );
@@ -231,10 +247,11 @@ class _DebtOrderCard extends StatelessWidget {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
+        String? pickedFileName;
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text('Ghi nhan thanh toan (mock)'),
+              title: const Text('Ghi nhan thanh toan'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -275,25 +292,26 @@ class _DebtOrderCard extends StatelessWidget {
                     const SizedBox(height: 10),
                     TextField(
                       controller: noteController,
-                      decoration: const InputDecoration(
-                        labelText: 'Ghi chu',
-                      ),
+                      decoration: const InputDecoration(labelText: 'Ghi chu'),
                     ),
                     const SizedBox(height: 10),
-                    TextField(
-                      controller: proofController,
-                      decoration: const InputDecoration(
-                        labelText: 'Ten chung tu (mock)',
-                      ),
-                    ),
-                    const SizedBox(height: 8),
                     OutlinedButton.icon(
-                      onPressed: () {
-                        final timestamp = DateTime.now().millisecondsSinceEpoch;
-                        proofController.text = 'chung-tu-$timestamp.jpg';
+                      onPressed: () async {
+                        final picked = await ImagePicker().pickImage(
+                          source: ImageSource.gallery,
+                        );
+                        if (picked != null) {
+                          setDialogState(() {
+                            pickedFileName = picked.name;
+                            proofController.text = picked.name;
+                          });
+                        }
                       },
-                      icon: const Icon(Icons.upload_file_outlined, size: 18),
-                      label: const Text('Upload chung tu (UI mock)'),
+                      icon: const Icon(Icons.attach_file_outlined, size: 18),
+                      label: Text(
+                        pickedFileName ?? 'Đính kèm chứng từ',
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
@@ -307,7 +325,15 @@ class _DebtOrderCard extends StatelessWidget {
                   onPressed: () {
                     final parsedAmount =
                         int.tryParse(amountController.text.trim()) ?? 0;
-                    final success = OrderScope.of(context).recordPayment(
+                    if (parsedAmount <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Số tiền phải lớn hơn 0.'),
+                        ),
+                      );
+                      return;
+                    }
+                    OrderScope.of(context).recordPayment(
                       orderId: order.id,
                       amount: parsedAmount,
                       channel: channel,
@@ -319,18 +345,6 @@ class _DebtOrderCard extends StatelessWidget {
                           : proofController.text.trim(),
                     );
                     Navigator.of(dialogContext).pop();
-                    ScaffoldMessenger.of(context)
-                      ..hideCurrentSnackBar()
-                      ..showSnackBar(
-                        SnackBar(
-                          behavior: SnackBarBehavior.floating,
-                          content: Text(
-                            success
-                                ? 'Da ghi nhan thanh toan thanh cong.'
-                                : 'Khong the ghi nhan thanh toan.',
-                          ),
-                        ),
-                      );
                   },
                   child: const Text('Xac nhan'),
                 ),
@@ -382,12 +396,13 @@ class _EmptyCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE5EAF5)),
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(message),
-      ),
+      child: Padding(padding: const EdgeInsets.all(16), child: Text(message)),
     );
   }
 }

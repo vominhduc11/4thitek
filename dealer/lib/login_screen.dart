@@ -624,7 +624,7 @@ class _LoginCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -651,7 +651,7 @@ class _LoginCard extends StatelessWidget {
               Text(
                 'Nh\u1eadp email v\u00e0 m\u1eadt kh\u1ea9u \u0111\u1ec3 ti\u1ebfp t\u1ee5c',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.black54,
+                  color: theme.colorScheme.onSurfaceVariant,
                   height: 1.5,
                 ),
               ),

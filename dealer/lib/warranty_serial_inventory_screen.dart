@@ -266,7 +266,11 @@ class _WarrantySerialInventoryScreenState
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
-                          side: const BorderSide(color: Color(0xFFE5EAF5)),
+                          side: BorderSide(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+                          ),
                         ),
                         child: ListTile(
                           onTap: () => _openOrderDetail(record.orderId),
@@ -338,12 +342,6 @@ class _WarrantySerialInventoryScreenState
 
   void _copySerial(String serial) {
     Clipboard.setData(ClipboardData(text: serial));
-    if (!mounted) {
-      return;
-    }
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('Da sao chep serial $serial.')));
   }
 
   void _openOrderDetail(String orderId) {
@@ -400,9 +398,13 @@ class _MenuFilterButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE0E6F2)),
+          border: Border.all(
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+          ),
           borderRadius: BorderRadius.circular(12),
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

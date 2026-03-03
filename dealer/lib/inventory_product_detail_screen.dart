@@ -15,7 +15,6 @@ import 'widgets/product_image.dart';
 
 enum InventorySerialFilter { all, available, sold }
 
-void _noopSerialTransfer() {}
 const double _detailSectionSpacing = 16;
 const double _detailSectionSpacingLarge = 18;
 const double _detailItemSpacing = 10;
@@ -96,7 +95,11 @@ class _InventoryProductDetailScreenState
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
-              side: const BorderSide(color: Color(0xFFE5EAF5)),
+              side: BorderSide(
+                color: Theme.of(
+                  context,
+                ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+              ),
             ),
             child: Padding(
               padding: const EdgeInsets.all(14),
@@ -321,8 +324,6 @@ class _InventoryProductDetailScreenState
                       defective: next,
                     );
                   },
-                  onTransferMain: _noopSerialTransfer,
-                  onTransferBackup: _noopSerialTransfer,
                 ),
               );
             }),
@@ -438,9 +439,10 @@ class _InventoryProductDetailScreenState
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -537,8 +539,6 @@ class _SerialTile extends StatelessWidget {
     required this.onOpenOrder,
     required this.onCopy,
     required this.onToggleDefective,
-    this.onTransferMain = _noopSerialTransfer,
-    this.onTransferBackup = _noopSerialTransfer,
   });
 
   final ImportedSerialRecord record;
@@ -546,8 +546,6 @@ class _SerialTile extends StatelessWidget {
   final VoidCallback onOpenOrder;
   final VoidCallback onCopy;
   final VoidCallback onToggleDefective;
-  final VoidCallback onTransferMain;
-  final VoidCallback onTransferBackup;
 
   @override
   Widget build(BuildContext context) {
@@ -566,7 +564,11 @@ class _SerialTile extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFFE5EAF5)),
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),

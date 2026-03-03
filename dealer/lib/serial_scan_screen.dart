@@ -20,7 +20,8 @@ class _SerialScanScreenState extends State<SerialScanScreen>
   static const Duration _scanSuccessDelay = Duration(milliseconds: 180);
 
   final MobileScannerController _scannerController = MobileScannerController(
-    detectionSpeed: DetectionSpeed.noDuplicates,
+    detectionSpeed: DetectionSpeed.normal,
+    detectionTimeoutMs: 120,
   );
   final TextEditingController _manualController = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
@@ -47,10 +48,16 @@ class _SerialScanScreenState extends State<SerialScanScreen>
   }
 
   Rect _scanWindowFor(Size size) {
-    final double side = math.min(280, math.max(220, size.width * 0.72));
-    final double availableHeight = math.max(side + 64, size.height - 210);
-    final double top = math.max(28, (availableHeight - side) / 2);
-    return Rect.fromLTWH((size.width - side) / 2, top, side, side);
+    // Keep scan area almost full-screen while preserving top/bottom UI space.
+    final double horizontalPadding = 20;
+    final double topPadding = 70;
+    final double bottomPadding = 170;
+    final double width = math.max(180, size.width - (horizontalPadding * 2));
+    final double height = math.max(
+      180,
+      size.height - topPadding - bottomPadding,
+    );
+    return Rect.fromLTWH(horizontalPadding, topPadding, width, height);
   }
 
   void _handleDetect(BarcodeCapture capture) {
@@ -84,15 +91,7 @@ class _SerialScanScreenState extends State<SerialScanScreen>
     });
   }
 
-  void _showMessage(String message) {
-    if (!mounted) {
-      return;
-    }
-    final messenger = ScaffoldMessenger.of(context);
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
-  }
+  void _showMessage(String _) {}
 
   Future<void> _scanFromImage() async {
     if (_isCompleting || _isPickingImage) {

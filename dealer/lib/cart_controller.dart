@@ -4,7 +4,7 @@ import 'models.dart';
 
 class CartController extends ChangeNotifier {
   static const Duration _cartApiLatency = Duration(milliseconds: 700);
-  static const int vatPercent = 10;
+  static const int vatPercent = kVatPercent;
   final Map<String, CartItem> _items = {};
 
   List<CartItem> get items {
