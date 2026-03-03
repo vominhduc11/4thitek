@@ -28,11 +28,14 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   static const double _tabletBreakpoint = 760;
+  static const double _midRangeBreakpoint = 560;
+  static const double _smallMobileBreakpoint = 360;
   static const Duration _detailApiLatency = Duration(milliseconds: 900);
 
   bool _isLoadingDetail = true;
   bool _isAddingToCart = false;
   bool _isBuyingNow = false;
+  double _bottomBarHeight = 0;
 
   @override
   void initState() {
@@ -58,8 +61,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return;
     }
     final addQuantity = await _showAddQuantityDialog(
+      title: 'Th\u00eam v\u00e0o gi\u1ecf',
+      confirmLabel: 'Th\u00eam',
       productName: widget.product.name,
       maxQuantity: remainingStock,
+      quantityInCart: cart.quantityFor(widget.product.id),
     );
     if (!mounted) {
       return;
@@ -123,8 +129,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return;
     }
     final addQuantity = await _showAddQuantityDialog(
+      title: 'Mua ngay',
+      confirmLabel: 'Ti\u1ebfp t\u1ee5c',
       productName: widget.product.name,
       maxQuantity: remainingStock,
+      quantityInCart: cart.quantityFor(widget.product.id),
     );
     if (!mounted || addQuantity == null) {
       return;
@@ -158,8 +167,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<int?> _showAddQuantityDialog({
+    required String title,
+    required String confirmLabel,
     required String productName,
     required int maxQuantity,
+    required int quantityInCart,
   }) async {
     final minQuantity = widget.product.effectiveMinOrderQty;
     var selectedQuantity = minQuantity <= maxQuantity
@@ -171,7 +183,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text('Chọn số lượng'),
+              title: Text(title),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,6 +195,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text('Tối thiểu: $minQuantity  •  Tối đa: $maxQuantity'),
+                  if (quantityInCart > 0) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'Bạn đã có $quantityInCart trong giỏ.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   SpinBox(
                     min: minQuantity.toDouble(),
@@ -225,7 +246,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 ElevatedButton(
                   onPressed: () =>
                       Navigator.of(dialogContext).pop(selectedQuantity),
-                  child: const Text('Thêm'),
+                  child: Text(confirmLabel),
                 ),
               ],
             );
@@ -252,6 +273,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       );
   }
 
+  String? _buildActionDisabledReason({
+    required int remainingStock,
+    required int suggestedAddQuantity,
+  }) {
+    if (!widget.product.isOrderable) {
+      return 'Sản phẩm tạm ngưng phân phối';
+    }
+    if (remainingStock <= 0) {
+      return 'Sản phẩm đã hết hàng';
+    }
+    if (suggestedAddQuantity <= 0) {
+      return 'Đã đạt giới hạn số lượng trong giỏ';
+    }
+    return null;
+  }
+
   List<ProductDescriptionItem> _buildVisibleDescriptionItems(Product product) {
     final items = product.effectiveDescriptions;
     return items.where((item) {
@@ -271,6 +308,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }).toList();
   }
 
+  void _handleBottomBarHeightChanged(double height) {
+    if (!mounted || (_bottomBarHeight - height).abs() < 0.5) {
+      return;
+    }
+    setState(() => _bottomBarHeight = height);
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -280,11 +324,67 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final suggestedAddQuantity = cart.suggestedAddQuantity(widget.product);
     final descriptionItems = _buildVisibleDescriptionItems(widget.product);
     final videos = _buildVisibleVideos(widget.product);
-    final width = MediaQuery.sizeOf(context).width;
-    final isTablet = width >= _tabletBreakpoint;
-    final horizontalPadding = isTablet ? 28.0 : 20.0;
-    final contentMaxWidth = isTablet ? 760.0 : double.infinity;
-    final heroImageHeight = isTablet ? 280.0 : 220.0;
+    final mediaQuery = MediaQuery.of(context);
+    final screenSize = mediaQuery.size;
+    final width = screenSize.width;
+    final height = screenSize.height;
+    final shortestSide = screenSize.shortestSide;
+    final isLandscape = mediaQuery.orientation == Orientation.landscape;
+    final isTablet = width >= _tabletBreakpoint && shortestSide >= 600;
+    final isSmallMobile = width <= _smallMobileBreakpoint;
+    final isMidRange = !isTablet && width >= _midRangeBreakpoint;
+    final isLandscapePhone = isLandscape && !isTablet;
+    final isVerticallyTight = !isTablet && (isLandscape || height < 640);
+    final horizontalPadding = isTablet
+        ? 28.0
+        : isMidRange
+        ? 24.0
+        : isSmallMobile
+        ? 16.0
+        : 20.0;
+    final contentMaxWidth = isTablet
+        ? 760.0
+        : isMidRange
+        ? 640.0
+        : double.infinity;
+    final heroImageHeight = isTablet
+        ? 280.0
+        : isLandscapePhone
+        ? 136.0
+        : isSmallMobile
+        ? 196.0
+        : 220.0;
+    final heroIconSize = isTablet
+        ? 72.0
+        : isLandscapePhone
+        ? 58.0
+        : 64.0;
+    final heroToContentGap = isVerticallyTight ? 12.0 : 18.0;
+    final sectionGap = isVerticallyTight ? 10.0 : 12.0;
+    final sectionCardPadding = isTablet
+        ? 18.0
+        : isVerticallyTight
+        ? 12.0
+        : 14.0;
+    final headerCardPadding = isTablet
+        ? 20.0
+        : isVerticallyTight
+        ? 14.0
+        : 16.0;
+    final addToCartDisabledReason = _buildActionDisabledReason(
+      remainingStock: remainingStock,
+      suggestedAddQuantity: suggestedAddQuantity,
+    );
+    final buyNowDisabledReason = addToCartDisabledReason;
+    final fallbackBarHeight = isSmallMobile
+        ? 132.0
+        : isTablet
+        ? 110.0
+        : 96.0;
+    final measuredBarHeight = _bottomBarHeight > 0
+        ? _bottomBarHeight
+        : fallbackBarHeight + mediaQuery.padding.bottom;
+    final contentBottomPadding = measuredBarHeight + 12;
 
     return Scaffold(
       appBar: AppBar(
@@ -301,27 +401,41 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           const SizedBox(width: 6),
         ],
       ),
-      bottomNavigationBar: _isLoadingDetail
-          ? null
-          : _BottomActionBar(
-              price: widget.product.price,
-              remainingStock: remainingStock,
-              quantityInCart: quantityInCart,
-              minOrderQty: widget.product.effectiveMinOrderQty,
-              isOrderable: widget.product.isOrderable,
-              nextAddQuantity: suggestedAddQuantity,
-              isTablet: isTablet,
-              isAddingToCart: _isAddingToCart,
-              isBuyingNow: _isBuyingNow,
-              onAddToCart: suggestedAddQuantity > 0 && !_isAddingToCart
-                  ? () => _handleAddToCart(cart)
-                  : null,
-              onBuyNow: suggestedAddQuantity > 0 && !_isBuyingNow
-                  ? () => _handleBuyNow(cart)
-                  : null,
-            ),
+      bottomNavigationBar: _BottomBarHeightReporter(
+        onHeightChanged: _handleBottomBarHeightChanged,
+        child: _isLoadingDetail
+            ? _BottomActionBarPlaceholder(
+                isTablet: isTablet,
+                isSmallMobile: isSmallMobile,
+              )
+            : _BottomActionBar(
+                price: widget.product.price,
+                remainingStock: remainingStock,
+                quantityInCart: quantityInCart,
+                minOrderQty: widget.product.effectiveMinOrderQty,
+                isOrderable: widget.product.isOrderable,
+                nextAddQuantity: suggestedAddQuantity,
+                addToCartDisabledReason: addToCartDisabledReason,
+                buyNowDisabledReason: buyNowDisabledReason,
+                isTablet: isTablet,
+                isSmallMobile: isSmallMobile,
+                isAddingToCart: _isAddingToCart,
+                isBuyingNow: _isBuyingNow,
+                onAddToCart: suggestedAddQuantity > 0 && !_isAddingToCart
+                    ? () => _handleAddToCart(cart)
+                    : null,
+                onBuyNow: suggestedAddQuantity > 0 && !_isBuyingNow
+                    ? () => _handleBuyNow(cart)
+                    : null,
+              ),
+      ),
       body: _isLoadingDetail
-          ? _ProductDetailLoadingView(isTablet: isTablet)
+          ? _ProductDetailLoadingView(
+              horizontalPadding: horizontalPadding,
+              maxWidth: contentMaxWidth,
+              heroImageHeight: heroImageHeight,
+              bottomPadding: contentBottomPadding,
+            )
           : Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: contentMaxWidth),
@@ -330,7 +444,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     horizontalPadding,
                     16,
                     horizontalPadding,
-                    isTablet ? 148 : 132,
+                    contentBottomPadding,
                   ),
                   child: FadeSlideIn(
                     child: Column(
@@ -343,12 +457,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             width: double.infinity,
                             height: heroImageHeight,
                             borderRadius: BorderRadius.circular(24),
-                            iconSize: isTablet ? 72 : 64,
+                            iconSize: heroIconSize,
                           ),
                         ),
-                        const SizedBox(height: 18),
+                        SizedBox(height: heroToContentGap),
                         Container(
-                          padding: EdgeInsets.all(isTablet ? 20 : 16),
+                          padding: EdgeInsets.all(headerCardPadding),
                           decoration: BoxDecoration(
                             color: colors.surface,
                             borderRadius: BorderRadius.circular(18),
@@ -381,6 +495,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     children: [
                                       Text(
                                         'Giá đại lý',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.copyWith(
+                                              color: colors.onSurfaceVariant,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Chưa gồm VAT',
                                         style: Theme.of(context)
                                             .textTheme
                                             .labelSmall
@@ -425,7 +549,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: sectionGap),
                         _QuickInfoSection(
                           isTablet: isTablet,
                           stock: widget.product.stock,
@@ -437,14 +561,24 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           nextAddQuantity: suggestedAddQuantity,
                           isOrderable: widget.product.isOrderable,
                         ),
-                        const SizedBox(height: 12),
-                        _DescriptionSection(items: descriptionItems),
-                        const SizedBox(height: 12),
-                        _VideoSection(videos: videos),
+                        if (descriptionItems.isNotEmpty) ...[
+                          SizedBox(height: sectionGap),
+                          _DescriptionSection(
+                            items: descriptionItems,
+                            contentPadding: sectionCardPadding,
+                          ),
+                        ],
+                        if (videos.isNotEmpty) ...[
+                          SizedBox(height: sectionGap),
+                          _VideoSection(
+                            videos: videos,
+                            contentPadding: sectionCardPadding,
+                          ),
+                        ],
                         if (widget.product.specifications.isNotEmpty) ...[
-                          const SizedBox(height: 12),
+                          SizedBox(height: sectionGap),
                           Container(
-                            padding: EdgeInsets.all(isTablet ? 18 : 14),
+                            padding: EdgeInsets.all(sectionCardPadding),
                             decoration: BoxDecoration(
                               color: colors.surface,
                               borderRadius: BorderRadius.circular(18),
@@ -463,42 +597,68 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       ?.copyWith(fontWeight: FontWeight.w700),
                                 ),
                                 const SizedBox(height: 10),
-                                ...widget.product.specifications.map(
-                                  (spec) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 8),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            spec.label,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.copyWith(
-                                                  color:
-                                                      colors.onSurfaceVariant,
-                                                ),
-                                          ),
+                                ...widget.product.specifications
+                                    .asMap()
+                                    .entries
+                                    .map((entry) {
+                                      final index = entry.key;
+                                      final spec = entry.value;
+                                      final isLast =
+                                          index ==
+                                          widget.product.specifications.length -
+                                              1;
+                                      return Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 8,
                                         ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Text(
-                                            spec.value,
-                                            textAlign: TextAlign.right,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w600,
+                                        child: Column(
+                                          children: [
+                                            Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Expanded(
+                                                  flex: 4,
+                                                  child: Text(
+                                                    spec.label,
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .bodySmall
+                                                        ?.copyWith(
+                                                          color: colors
+                                                              .onSurfaceVariant,
+                                                        ),
+                                                  ),
                                                 ),
-                                          ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  flex: 6,
+                                                  child: Text(
+                                                    spec.value,
+                                                    textAlign: TextAlign.right,
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .bodySmall
+                                                        ?.copyWith(
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            if (!isLast) ...[
+                                              const SizedBox(height: 8),
+                                              Divider(
+                                                height: 1,
+                                                color: colors.outlineVariant
+                                                    .withValues(alpha: 0.5),
+                                              ),
+                                            ],
+                                          ],
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                                      );
+                                    }),
                               ],
                             ),
                           ),
@@ -679,8 +839,8 @@ class _QuickInfoSection extends StatelessWidget {
             : _QuickInfoTone.info,
       ),
       _QuickInfoItemData(
-        label: 'Có thể thêm ngay',
-        value: canAddNow ? 'x$nextAddQuantity' : '--',
+        label: 'Thêm được ngay',
+        value: canAddNow ? '$nextAddQuantity sản phẩm' : '--',
         icon: canAddNow
             ? Icons.add_shopping_cart_outlined
             : Icons.remove_shopping_cart_outlined,
@@ -688,7 +848,9 @@ class _QuickInfoSection extends StatelessWidget {
       ),
       _QuickInfoItemData(
         label: 'Số lượng đặt',
-        value: 'Tùy ý',
+        value: orderStep <= 1
+            ? 'Tối thiểu $minOrderQty'
+            : 'Tối thiểu $minOrderQty • Bước $orderStep',
         icon: Icons.edit_note_outlined,
       ),
       _QuickInfoItemData(
@@ -729,23 +891,25 @@ class _QuickInfoSection extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFF4F8FF),
+                color: colors.primaryContainer.withValues(alpha: 0.45),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFDCE8FF)),
+                border: Border.all(
+                  color: colors.primary.withValues(alpha: 0.24),
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.shopping_cart_outlined,
                     size: 16,
-                    color: Color(0xFF245DB8),
+                    color: colors.onPrimaryContainer,
                   ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       'Đã có $quantityInCart sản phẩm trong giỏ',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF1E4EA2),
+                        color: colors.onPrimaryContainer,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -757,21 +921,30 @@ class _QuickInfoSection extends StatelessWidget {
           const SizedBox(height: 10),
           LayoutBuilder(
             builder: (context, constraints) {
-              final columns = constraints.maxWidth >= 620 ? 3 : 2;
+              final isVeryNarrow = constraints.maxWidth < 340;
+              final columns = isVeryNarrow
+                  ? 1
+                  : constraints.maxWidth >= 620
+                  ? 3
+                  : 2;
               const spacing = 10.0;
               final tileWidth =
                   (constraints.maxWidth - spacing * (columns - 1)) / columns;
               return Wrap(
                 spacing: spacing,
                 runSpacing: spacing,
-                children: items
-                    .map(
-                      (item) => SizedBox(
-                        width: tileWidth,
-                        child: _QuickInfoTile(item: item),
-                      ),
-                    )
-                    .toList(),
+                children: items.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final item = entry.value;
+                  final isLastOddTile =
+                      columns == 2 &&
+                      items.length.isOdd &&
+                      index == items.length - 1;
+                  return SizedBox(
+                    width: isLastOddTile ? constraints.maxWidth : tileWidth,
+                    child: _QuickInfoTile(item: item),
+                  );
+                }).toList(),
               );
             },
           ),
@@ -841,15 +1014,19 @@ class _QuickInfoTile extends StatelessWidget {
 }
 
 class _DescriptionSection extends StatelessWidget {
-  const _DescriptionSection({required this.items});
+  const _DescriptionSection({
+    required this.items,
+    required this.contentPadding,
+  });
 
   final List<ProductDescriptionItem> items;
+  final double contentPadding;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(contentPadding),
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(18),
@@ -949,17 +1126,26 @@ class _DescriptionItemView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (gallery.isNotEmpty)
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: gallery
-                    .map(
-                      (imageUrl) => SizedBox(
-                        width: 140,
-                        child: _MediaPreview(url: imageUrl),
-                      ),
-                    )
-                    .toList(),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final columns = constraints.maxWidth >= 560 ? 3 : 2;
+                  const spacing = 8.0;
+                  final tileWidth =
+                      (constraints.maxWidth - spacing * (columns - 1)) /
+                      columns;
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: gallery
+                        .map(
+                          (imageUrl) => SizedBox(
+                            width: tileWidth,
+                            child: _MediaPreview(url: imageUrl),
+                          ),
+                        )
+                        .toList(),
+                  );
+                },
               ),
             if (caption.isNotEmpty) ...[
               const SizedBox(height: 6),
@@ -1062,9 +1248,10 @@ class _MediaPreview extends StatelessWidget {
 }
 
 class _VideoSection extends StatelessWidget {
-  const _VideoSection({required this.videos});
+  const _VideoSection({required this.videos, required this.contentPadding});
 
   final List<ProductVideoItem> videos;
+  final double contentPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -1072,7 +1259,7 @@ class _VideoSection extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(contentPadding),
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(18),
@@ -1259,8 +1446,8 @@ class _InlineVideoPlayerState extends State<_InlineVideoPlayer> {
         _isInitializing = false;
         _hasError = true;
         _errorMessage = errors.isEmpty
-            ? 'Khong tim thay video hop le cho san pham nay.'
-            : 'Khong the phat video luc nay. Vui long thu lai sau.';
+            ? 'Không tìm thấy video hợp lệ cho sản phẩm này.'
+            : 'Không thể phát video lúc này. Vui lòng thử lại sau.';
       });
     } else {
       _isInitializing = false;
@@ -1274,12 +1461,6 @@ class _InlineVideoPlayerState extends State<_InlineVideoPlayer> {
     if (cleanedPrimary.isNotEmpty) {
       urls.add(cleanedPrimary);
     }
-
-    urls.addAll(const [
-      'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-      'https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4',
-      'https://samplelib.com/lib/preview/mp4/sample-5s.mp4',
-    ]);
 
     return urls.toSet().toList();
   }
@@ -1374,7 +1555,7 @@ class _VideoFallback extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Khong the tai video tren thiet bi nay.',
+                  'Không thể tải video trên thiết bị này.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colors.onSurfaceVariant,
                   ),
@@ -1395,7 +1576,7 @@ class _VideoFallback extends StatelessWidget {
                   OutlinedButton.icon(
                     onPressed: onRetry,
                     icon: const Icon(Icons.refresh, size: 16),
-                    label: const Text('Thu tai lai'),
+                    label: const Text('Thử tải lại'),
                   ),
                 ],
               ],
@@ -1430,7 +1611,7 @@ class _VideoDeferredPlaceholder extends StatelessWidget {
                 Icon(Icons.play_circle_fill, size: 38, color: colors.primary),
                 const SizedBox(height: 8),
                 Text(
-                  'Nhan de tai video',
+                  'Nhấn để tải video',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colors.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
@@ -1452,22 +1633,30 @@ class _StockBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final style = Theme.of(context).textTheme.bodySmall;
     late final String label;
     late final Color textColor;
     late final Color background;
     if (remainingStock <= 0) {
       label = 'Hết hàng';
-      textColor = const Color(0xFFD94939);
-      background = const Color(0xFFFFEBE9);
+      textColor = colors.error;
+      background = colors.errorContainer.withValues(
+        alpha: isDark ? 0.42 : 0.82,
+      );
     } else if (remainingStock <= 10) {
       label = 'Sắp hết: $remainingStock';
-      textColor = const Color(0xFFB26A00);
-      background = const Color(0xFFFFF4DD);
+      textColor = colors.tertiary;
+      background = colors.tertiaryContainer.withValues(
+        alpha: isDark ? 0.46 : 0.82,
+      );
     } else {
       label = 'Còn hàng: $remainingStock';
-      textColor = const Color(0xFF127A34);
-      background = const Color(0xFFEAF7EE);
+      textColor = colors.primary;
+      background = colors.primaryContainer.withValues(
+        alpha: isDark ? 0.4 : 0.8,
+      );
     }
 
     return Container(
@@ -1510,7 +1699,10 @@ class _BottomActionBar extends StatelessWidget {
     required this.minOrderQty,
     required this.isOrderable,
     required this.nextAddQuantity,
+    required this.addToCartDisabledReason,
+    required this.buyNowDisabledReason,
     required this.isTablet,
+    required this.isSmallMobile,
     required this.isAddingToCart,
     required this.isBuyingNow,
     required this.onAddToCart,
@@ -1523,7 +1715,10 @@ class _BottomActionBar extends StatelessWidget {
   final int minOrderQty;
   final bool isOrderable;
   final int nextAddQuantity;
+  final String? addToCartDisabledReason;
+  final String? buyNowDisabledReason;
   final bool isTablet;
+  final bool isSmallMobile;
   final bool isAddingToCart;
   final bool isBuyingNow;
   final VoidCallback? onAddToCart;
@@ -1532,6 +1727,7 @@ class _BottomActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final label = !isOrderable
         ? 'Ngưng phân phối'
         : remainingStock <= 0
@@ -1542,19 +1738,157 @@ class _BottomActionBar extends StatelessWidget {
     final labelColor = !isOrderable
         ? colors.onSurfaceVariant
         : remainingStock <= 0
-        ? const Color(0xFFD94939)
+        ? colors.error
         : remainingStock <= 10
-        ? const Color(0xFFB26A00)
-        : const Color(0xFF127A34);
+        ? colors.tertiary
+        : colors.primary;
+    final helperTextColor = colors.onSurfaceVariant.withValues(
+      alpha: isDark ? 0.9 : 0.95,
+    );
+    final shouldShowAddDisabledReason =
+        addToCartDisabledReason != null && onAddToCart == null;
+    final shouldShowBuyDisabledReason =
+        buyNowDisabledReason != null && onBuyNow == null;
+    final actionDisabledReason = shouldShowBuyDisabledReason
+        ? buyNowDisabledReason
+        : shouldShowAddDisabledReason
+        ? addToCartDisabledReason
+        : null;
+
+    final addButton = OutlinedButton(
+      onPressed: onAddToCart,
+      child: isAddingToCart
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            )
+          : const Text('Thêm vào giỏ'),
+    );
+    final buyButton = ElevatedButton(
+      onPressed: onBuyNow,
+      child: isBuyingNow
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            )
+          : const Text('Mua ngay'),
+    );
+    final horizontalPadding = isTablet
+        ? 28.0
+        : isSmallMobile
+        ? 16.0
+        : 20.0;
+    final topPadding = isTablet
+        ? 14.0
+        : isSmallMobile
+        ? 10.0
+        : 12.0;
+    final bottomPadding = isTablet
+        ? 16.0
+        : isSmallMobile
+        ? 12.0
+        : 14.0;
+
+    Widget buildPriceInfo() {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            formatVnd(price),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Chưa gồm VAT',
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: colors.onSurfaceVariant),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: labelColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (quantityInCart > 0) ...[
+            const SizedBox(height: 2),
+            Text(
+              'Đã có $quantityInCart trong giỏ',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: colors.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ] else if (isOrderable) ...[
+            const SizedBox(height: 2),
+            Text(
+              minOrderQty > 1
+                  ? 'Tối thiểu $minOrderQty sản phẩm'
+                  : 'Số lượng linh hoạt',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: colors.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ],
+      );
+    }
+
+    Widget buildActionControls() {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: shouldShowAddDisabledReason
+                    ? Tooltip(
+                        message: addToCartDisabledReason!,
+                        child: addButton,
+                      )
+                    : addButton,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: shouldShowBuyDisabledReason
+                    ? Tooltip(message: buyNowDisabledReason!, child: buyButton)
+                    : buyButton,
+              ),
+            ],
+          ),
+          if (actionDisabledReason != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              actionDisabledReason,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: helperTextColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ],
+      );
+    }
 
     return SafeArea(
       top: false,
       child: Container(
         padding: EdgeInsets.fromLTRB(
-          isTablet ? 28 : 20,
-          isTablet ? 14 : 12,
-          isTablet ? 28 : 20,
-          isTablet ? 16 : 14,
+          horizontalPadding,
+          topPadding,
+          horizontalPadding,
+          bottomPadding,
         ),
         decoration: BoxDecoration(
           color: colors.surface,
@@ -1566,103 +1900,204 @@ class _BottomActionBar extends StatelessWidget {
             ),
           ],
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: isSmallMobile
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    formatVnd(price),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    label,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: labelColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (quantityInCart > 0) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      'Đã có $quantityInCart trong giỏ',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ] else if (isOrderable) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      'Chọn số lượng tùy ý',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                  buildPriceInfo(),
+                  const SizedBox(height: 8),
+                  buildActionControls(),
                 ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 2,
-              child: Row(
+              )
+            : Row(
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: onAddToCart,
-                      child: isAddingToCart
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                              ),
-                            )
-                          : const Text('Thêm vào giỏ'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: onBuyNow,
-                      child: isBuyingNow
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                              ),
-                            )
-                          : const Text('Mua ngay'),
-                    ),
-                  ),
+                  Expanded(child: buildPriceInfo()),
+                  const SizedBox(width: 12),
+                  Expanded(flex: 2, child: buildActionControls()),
                 ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
 }
 
-class _ProductDetailLoadingView extends StatelessWidget {
-  const _ProductDetailLoadingView({required this.isTablet});
+class _BottomActionBarPlaceholder extends StatelessWidget {
+  const _BottomActionBarPlaceholder({
+    required this.isTablet,
+    required this.isSmallMobile,
+  });
 
   final bool isTablet;
+  final bool isSmallMobile;
 
   @override
   Widget build(BuildContext context) {
-    final horizontalPadding = isTablet ? 28.0 : 20.0;
-    final maxWidth = isTablet ? 760.0 : double.infinity;
+    final colors = Theme.of(context).colorScheme;
+    final horizontalPadding = isTablet
+        ? 28.0
+        : isSmallMobile
+        ? 16.0
+        : 20.0;
+    final topPadding = isTablet
+        ? 14.0
+        : isSmallMobile
+        ? 10.0
+        : 12.0;
+    final bottomPadding = isTablet
+        ? 16.0
+        : isSmallMobile
+        ? 12.0
+        : 14.0;
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: EdgeInsets.fromLTRB(
+          horizontalPadding,
+          topPadding,
+          horizontalPadding,
+          bottomPadding,
+        ),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(context).shadowColor.withValues(alpha: 0.08),
+              blurRadius: 18,
+              offset: const Offset(0, -8),
+            ),
+          ],
+        ),
+        child: isSmallMobile
+            ? const Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SkeletonBox(width: 120, height: 22),
+                  SizedBox(height: 6),
+                  SkeletonBox(width: 84, height: 12),
+                  SizedBox(height: 4),
+                  SkeletonBox(width: 140, height: 12),
+                  SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SkeletonBox(
+                          width: double.infinity,
+                          height: 40,
+                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: SkeletonBox(
+                          width: double.infinity,
+                          height: 40,
+                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              )
+            : Row(
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SkeletonBox(width: 120, height: 22),
+                        SizedBox(height: 6),
+                        SkeletonBox(width: 84, height: 12),
+                        SizedBox(height: 4),
+                        SkeletonBox(width: 140, height: 12),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: Row(
+                      children: const [
+                        Expanded(
+                          child: SkeletonBox(
+                            width: double.infinity,
+                            height: 40,
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: SkeletonBox(
+                            width: double.infinity,
+                            height: 40,
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
 
+class _BottomBarHeightReporter extends StatefulWidget {
+  const _BottomBarHeightReporter({
+    required this.child,
+    required this.onHeightChanged,
+  });
+
+  final Widget child;
+  final ValueChanged<double> onHeightChanged;
+
+  @override
+  State<_BottomBarHeightReporter> createState() =>
+      _BottomBarHeightReporterState();
+}
+
+class _BottomBarHeightReporterState extends State<_BottomBarHeightReporter> {
+  double _lastHeight = -1;
+
+  void _reportHeight() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final height = context.size?.height;
+      if (height == null || (height - _lastHeight).abs() < 0.5) {
+        return;
+      }
+      _lastHeight = height;
+      widget.onHeightChanged(height);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _reportHeight();
+    return widget.child;
+  }
+}
+
+class _ProductDetailLoadingView extends StatelessWidget {
+  const _ProductDetailLoadingView({
+    required this.horizontalPadding,
+    required this.maxWidth,
+    required this.heroImageHeight,
+    required this.bottomPadding,
+  });
+
+  final double horizontalPadding;
+  final double maxWidth;
+  final double heroImageHeight;
+  final double bottomPadding;
+
+  @override
+  Widget build(BuildContext context) {
     return Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
@@ -1671,14 +2106,14 @@ class _ProductDetailLoadingView extends StatelessWidget {
             horizontalPadding,
             16,
             horizontalPadding,
-            40,
+            bottomPadding,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SkeletonBox(
                 width: double.infinity,
-                height: isTablet ? 280 : 220,
+                height: heroImageHeight,
                 borderRadius: const BorderRadius.all(Radius.circular(24)),
               ),
               const SizedBox(height: 18),
@@ -1709,6 +2144,28 @@ class _ProductDetailLoadingView extends StatelessWidget {
                   SkeletonBox(width: 150, height: 70),
                   SkeletonBox(width: 150, height: 70),
                 ],
+              ),
+              const SizedBox(height: 18),
+              const SkeletonBox(width: 180, height: 18),
+              const SizedBox(height: 10),
+              const SkeletonBox(width: double.infinity, height: 16),
+              const SizedBox(height: 8),
+              const SkeletonBox(width: double.infinity, height: 16),
+              const SizedBox(height: 8),
+              const SkeletonBox(width: 260, height: 16),
+              const SizedBox(height: 16),
+              const SkeletonBox(
+                width: double.infinity,
+                height: 190,
+                borderRadius: BorderRadius.all(Radius.circular(16)),
+              ),
+              const SizedBox(height: 16),
+              const SkeletonBox(width: 180, height: 18),
+              const SizedBox(height: 10),
+              const SkeletonBox(
+                width: double.infinity,
+                height: 128,
+                borderRadius: BorderRadius.all(Radius.circular(16)),
               ),
             ],
           ),

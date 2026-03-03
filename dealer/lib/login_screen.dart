@@ -27,6 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _scrollController = ScrollController();
   final _emailFieldKey = GlobalKey();
   final _passwordFieldKey = GlobalKey();
+  final _submitButtonKey = GlobalKey();
   final _isFormValidNotifier = ValueNotifier<bool>(false);
   final _authErrorNotifier = ValueNotifier<String?>(null);
   final _emailFieldErrorNotifier = ValueNotifier<String?>(null);
@@ -38,6 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _rememberMe = false;
   bool _isLoggingIn = false;
+  bool _emailFormatValidationEnabled = false;
 
   @override
   void initState() {
@@ -48,6 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _passwordController.addListener(_onFormInputChanged);
     _emailFocusNode.addListener(_onEmailFocusChanged);
     _passwordFocusNode.addListener(_onPasswordFocusChanged);
+    _authErrorNotifier.addListener(_onAuthErrorChanged);
     _loadRemembered();
   }
 
@@ -57,6 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _passwordController.removeListener(_onFormInputChanged);
     _emailFocusNode.removeListener(_onEmailFocusChanged);
     _passwordFocusNode.removeListener(_onPasswordFocusChanged);
+    _authErrorNotifier.removeListener(_onAuthErrorChanged);
     _emailController.dispose();
     _passwordController.dispose();
     _emailFocusNode.dispose();
@@ -73,10 +77,111 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final isCompact = screenWidth < 420;
-    final topOrbSize = isCompact ? 170.0 : 220.0;
-    final bottomOrbSize = isCompact ? 150.0 : 200.0;
+    final mediaSize = MediaQuery.sizeOf(context);
+    final screenWidth = mediaSize.width;
+    final screenHeight = mediaSize.height;
+    final orientation = MediaQuery.orientationOf(context);
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+
+    const mobileCardMaxWidth = 420.0;
+    const tabletCardMaxWidth = 560.0;
+    final isTablet = screenWidth >= 768;
+    final isLandscape = orientation == Orientation.landscape;
+    final isSmallMobile = screenWidth < 360;
+    final isCompactVisual =
+        screenWidth <= mobileCardMaxWidth || (isLandscape && !isTablet);
+    final isVerticallyTight = (isLandscape && !isTablet) || screenHeight < 680;
+    final cardMaxWidth = isTablet ? tabletCardMaxWidth : mobileCardMaxWidth;
+    final contentMaxWidth = isTablet ? 1120.0 : cardMaxWidth;
+
+    final topOrbSize = isTablet ? 260.0 : (isCompactVisual ? 170.0 : 220.0);
+    final bottomOrbSize = isTablet ? 230.0 : (isCompactVisual ? 150.0 : 200.0);
+    final scrollHorizontalPadding = isTablet
+        ? 28.0
+        : (isSmallMobile ? 14.0 : 20.0);
+    final scrollVerticalPadding = isVerticallyTight ? 14.0 : 28.0;
+    final brandToCardGap = isVerticallyTight ? 12.0 : 24.0;
+    final cardToPromptGap = isVerticallyTight ? 10.0 : 14.0;
+    final logoHeight = isTablet ? 52.0 : (isVerticallyTight ? 34.0 : 40.0);
+    final showBrandSubtitle = !(isLandscape && !isTablet);
+    final showRegisterPrompt = keyboardInset == 0 || isTablet;
+
+    Widget buildFormColumn({required bool includeHeader}) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (includeHeader) ...[
+            FadeSlideIn(
+              child: _BrandHeader(
+                theme: theme,
+                logoHeight: logoHeight,
+                showSubtitle: showBrandSubtitle,
+              ),
+            ),
+            SizedBox(height: brandToCardGap),
+          ],
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 80),
+            child: _LoginCard(
+              theme: theme,
+              formKey: _formKey,
+              emailController: _emailController,
+              passwordController: _passwordController,
+              emailFocusNode: _emailFocusNode,
+              passwordFocusNode: _passwordFocusNode,
+              emailFieldKey: _emailFieldKey,
+              passwordFieldKey: _passwordFieldKey,
+              isLoading: _isLoggingIn,
+              isCompactLayout: isVerticallyTight,
+              isFormValidListenable: _isFormValidNotifier,
+              emailFieldErrorListenable: _emailFieldErrorNotifier,
+              passwordFieldErrorListenable: _passwordFieldErrorNotifier,
+              passwordShakeTickListenable: _passwordShakeTickNotifier,
+              obscurePassword: _obscurePassword,
+              onTogglePassword: _handleTogglePasswordVisibility,
+              rememberMe: _rememberMe,
+              onRememberMeChanged: (value) {
+                if (_isLoggingIn) {
+                  return;
+                }
+                setState(() => _rememberMe = value ?? false);
+              },
+              shouldValidateEmailFormat: _emailFormatValidationEnabled,
+              authErrorListenable: _authErrorNotifier,
+              submitButtonKey: _submitButtonKey,
+              onSubmitFromKeyboard: _handleLogin,
+              onLogin: _handleLogin,
+              onForgotPassword: () {
+                final initialEmail = _emailController.text.trim();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        ForgotPasswordScreen(initialEmail: initialEmail),
+                  ),
+                );
+              },
+            ),
+          ),
+          if (showRegisterPrompt) ...[
+            SizedBox(height: cardToPromptGap),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 140),
+              child: _RegisterPrompt(
+                theme: theme,
+                isLoading: _isLoggingIn,
+                onRegister: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const RegisterScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ],
+      );
+    }
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -102,13 +207,13 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           Positioned(
-            right: isCompact ? -56 : -80,
-            top: isCompact ? -26 : -40,
+            right: isTablet ? -96 : (isCompactVisual ? -56 : -80),
+            top: isTablet ? -60 : (isCompactVisual ? -26 : -40),
             child: _GlowOrb(size: topOrbSize, color: const Color(0x66FFFFFF)),
           ),
           Positioned(
-            left: isCompact ? -44 : -60,
-            bottom: isCompact ? -18 : -30,
+            left: isTablet ? -90 : (isCompactVisual ? -44 : -60),
+            bottom: isTablet ? -56 : (isCompactVisual ? -18 : -30),
             child: _GlowOrb(
               size: bottomOrbSize,
               color: const Color(0x33FFFFFF),
@@ -118,73 +223,41 @@ class _LoginScreenState extends State<LoginScreen> {
             child: SingleChildScrollView(
               controller: _scrollController,
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
+              padding: EdgeInsets.fromLTRB(
+                scrollHorizontalPadding,
+                scrollVerticalPadding,
+                scrollHorizontalPadding,
+                scrollVerticalPadding,
+              ),
               child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      FadeSlideIn(child: _BrandHeader(theme: theme)),
-                      const SizedBox(height: 24),
-                      FadeSlideIn(
-                        delay: const Duration(milliseconds: 80),
-                        child: _LoginCard(
-                          theme: theme,
-                          formKey: _formKey,
-                          emailController: _emailController,
-                          passwordController: _passwordController,
-                          emailFocusNode: _emailFocusNode,
-                          passwordFocusNode: _passwordFocusNode,
-                          emailFieldKey: _emailFieldKey,
-                          passwordFieldKey: _passwordFieldKey,
-                          isLoading: _isLoggingIn,
-                          isFormValidListenable: _isFormValidNotifier,
-                          emailFieldErrorListenable: _emailFieldErrorNotifier,
-                          passwordFieldErrorListenable:
-                              _passwordFieldErrorNotifier,
-                          passwordShakeTickListenable:
-                              _passwordShakeTickNotifier,
-                          obscurePassword: _obscurePassword,
-                          onTogglePassword: _handleTogglePasswordVisibility,
-                          rememberMe: _rememberMe,
-                          onRememberMeChanged: (value) {
-                            if (_isLoggingIn) {
-                              return;
-                            }
-                            setState(() => _rememberMe = value ?? false);
-                          },
-                          authErrorListenable: _authErrorNotifier,
-                          onSubmitFromKeyboard: _handleLogin,
-                          onLogin: _handleLogin,
-                          onForgotPassword: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const ForgotPasswordScreen(),
+                child: isTablet
+                    ? ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: FadeSlideIn(
+                                child: _TabletBrandPanel(
+                                  theme: theme,
+                                  logoHeight: logoHeight,
+                                ),
                               ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      FadeSlideIn(
-                        delay: const Duration(milliseconds: 140),
-                        child: _RegisterPrompt(
-                          theme: theme,
-                          isLoading: _isLoggingIn,
-                          onRegister: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const RegisterScreen(),
+                            ),
+                            const SizedBox(width: 28),
+                            ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: cardMaxWidth,
                               ),
-                            );
-                          },
+                              child: buildFormColumn(includeHeader: false),
+                            ),
+                          ],
                         ),
+                      )
+                    : ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: cardMaxWidth),
+                        child: buildFormColumn(includeHeader: true),
                       ),
-                    ],
-                  ),
-                ),
               ),
             ),
           ),
@@ -199,6 +272,11 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     FocusScope.of(context).unfocus();
+    if (!_emailFormatValidationEnabled) {
+      setState(() {
+        _emailFormatValidationEnabled = true;
+      });
+    }
     final isFormValid = _formKey.currentState?.validate() ?? false;
     if (!isFormValid) {
       final email = _emailController.text.trim();
@@ -232,22 +310,12 @@ class _LoginScreenState extends State<LoginScreen> {
         final failureType = result.failure?.type ?? LoginFailureType.unknown;
         switch (failureType) {
           case LoginFailureType.invalidCredentials:
+          case LoginFailureType.invalidEmail:
+          case LoginFailureType.invalidPassword:
             _handleInvalidCredentialFailure(
               type: LoginFailureType.invalidCredentials,
               message:
                   'Email ho\u1eb7c m\u1eadt kh\u1ea9u kh\u00f4ng \u0111\u00fang.',
-            );
-            break;
-          case LoginFailureType.invalidEmail:
-            _handleInvalidCredentialFailure(
-              type: LoginFailureType.invalidEmail,
-              message: 'Email kh\u00f4ng \u0111\u00fang.',
-            );
-            break;
-          case LoginFailureType.invalidPassword:
-            _handleInvalidCredentialFailure(
-              type: LoginFailureType.invalidPassword,
-              message: 'M\u1eadt kh\u1ea9u kh\u00f4ng \u0111\u00fang.',
             );
             break;
           case LoginFailureType.network:
@@ -365,7 +433,6 @@ class _LoginScreenState extends State<LoginScreen> {
     required String message,
   }) {
     _applyCredentialFieldError(type: type, message: message);
-    _authErrorNotifier.value = null;
   }
 
   void _clearCredentialFieldErrors() {
@@ -380,20 +447,19 @@ class _LoginScreenState extends State<LoginScreen> {
     _clearCredentialFieldErrors();
     switch (type) {
       case LoginFailureType.invalidEmail:
+        _authErrorNotifier.value = null;
         _emailFieldErrorNotifier.value = message;
         _emailFocusNode.requestFocus();
         break;
       case LoginFailureType.invalidPassword:
+        _authErrorNotifier.value = null;
         _passwordFieldErrorNotifier.value = message;
         _passwordFocusNode.requestFocus();
         _passwordShakeTickNotifier.value = _passwordShakeTickNotifier.value + 1;
         break;
       case LoginFailureType.invalidCredentials:
-        _emailFieldErrorNotifier.value = 'Email kh\u00f4ng \u0111\u00fang.';
-        _passwordFieldErrorNotifier.value =
-            'M\u1eadt kh\u1ea9u kh\u00f4ng \u0111\u00fang.';
+        _authErrorNotifier.value = message;
         _passwordFocusNode.requestFocus();
-        _passwordShakeTickNotifier.value = _passwordShakeTickNotifier.value + 1;
         break;
       case LoginFailureType.network:
       case LoginFailureType.unknown:
@@ -404,6 +470,14 @@ class _LoginScreenState extends State<LoginScreen> {
   void _onEmailFocusChanged() {
     if (_emailFocusNode.hasFocus) {
       _scrollToField(_emailFieldKey);
+      return;
+    }
+
+    if (!_emailFormatValidationEnabled) {
+      setState(() {
+        _emailFormatValidationEnabled = true;
+      });
+      _formKey.currentState?.validate();
     }
   }
 
@@ -413,7 +487,14 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _scrollToField(GlobalKey key) {
+  void _onAuthErrorChanged() {
+    if (_authErrorNotifier.value == null) {
+      return;
+    }
+    _scrollToField(_submitButtonKey, alignment: 0.92);
+  }
+
+  void _scrollToField(GlobalKey key, {double alignment = 0.25}) {
     final fieldContext = key.currentContext;
     if (fieldContext == null) {
       return;
@@ -427,7 +508,7 @@ class _LoginScreenState extends State<LoginScreen> {
         fieldContext,
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
-        alignment: 0.25,
+        alignment: alignment,
       );
     });
   }
@@ -465,33 +546,125 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 class _BrandHeader extends StatelessWidget {
-  const _BrandHeader({required this.theme});
+  const _BrandHeader({
+    required this.theme,
+    this.logoHeight = 40,
+    this.showSubtitle = true,
+    this.alignment = CrossAxisAlignment.center,
+    this.textAlign = TextAlign.center,
+  });
 
   final ThemeData theme;
+  final double logoHeight;
+  final bool showSubtitle;
+  final CrossAxisAlignment alignment;
+  final TextAlign textAlign;
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      crossAxisAlignment: alignment,
       children: [
-        const BrandLogoWordmark(height: 40),
-        const SizedBox(height: 16),
-        Text(
-          '\u0110\u0103ng nh\u1eadp \u0111\u1ec3 qu\u1ea3n l\u00fd \u0111\u01a1n nh\u1eadp, c\u00f4ng n\u1ee3 v\u00e0 b\u1ea3o h\u00e0nh c\u00f9ng 4thitek.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: Colors.white,
-            shadows: const [
-              Shadow(
-                color: Color(0x55000000),
-                blurRadius: 8,
-                offset: Offset(0, 1),
+        BrandLogoWordmark(height: logoHeight),
+        if (showSubtitle) ...[
+          const SizedBox(height: 16),
+          Text(
+            '\u0110\u0103ng nh\u1eadp \u0111\u1ec3 qu\u1ea3n l\u00fd \u0111\u01a1n nh\u1eadp, c\u00f4ng n\u1ee3 v\u00e0 b\u1ea3o h\u00e0nh c\u00f9ng 4thitek.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.white,
+              shadows: const [
+                Shadow(
+                  color: Color(0x55000000),
+                  blurRadius: 8,
+                  offset: Offset(0, 1),
+                ),
+              ],
+              height: 1.45,
+            ),
+            textAlign: textAlign,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _TabletBrandPanel extends StatelessWidget {
+  const _TabletBrandPanel({required this.theme, required this.logoHeight});
+
+  final ThemeData theme;
+  final double logoHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _BrandHeader(
+            theme: theme,
+            logoHeight: logoHeight,
+            alignment: CrossAxisAlignment.start,
+            textAlign: TextAlign.left,
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: const [
+              _BrandPill(
+                icon: Icons.inventory_2_outlined,
+                text: 'Quan ly don nhap',
+              ),
+              _BrandPill(
+                icon: Icons.account_balance_wallet_outlined,
+                text: 'Theo doi cong no',
+              ),
+              _BrandPill(
+                icon: Icons.verified_user_outlined,
+                text: 'Xu ly bao hanh',
               ),
             ],
-            height: 1.45,
           ),
-          textAlign: TextAlign.center,
+        ],
+      ),
+    );
+  }
+}
+
+class _BrandPill extends StatelessWidget {
+  const _BrandPill({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.32)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: Colors.white),
+            const SizedBox(width: 6),
+            Text(
+              text,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -508,6 +681,7 @@ class _LoginCard extends StatelessWidget {
     required this.emailFieldKey,
     required this.passwordFieldKey,
     required this.isLoading,
+    required this.isCompactLayout,
     required this.isFormValidListenable,
     required this.emailFieldErrorListenable,
     required this.passwordFieldErrorListenable,
@@ -516,7 +690,9 @@ class _LoginCard extends StatelessWidget {
     required this.onTogglePassword,
     required this.rememberMe,
     required this.onRememberMeChanged,
+    required this.shouldValidateEmailFormat,
     required this.authErrorListenable,
+    required this.submitButtonKey,
     required this.onSubmitFromKeyboard,
     required this.onLogin,
     required this.onForgotPassword,
@@ -531,6 +707,7 @@ class _LoginCard extends StatelessWidget {
   final GlobalKey emailFieldKey;
   final GlobalKey passwordFieldKey;
   final bool isLoading;
+  final bool isCompactLayout;
   final ValueNotifier<bool> isFormValidListenable;
   final ValueNotifier<String?> emailFieldErrorListenable;
   final ValueNotifier<String?> passwordFieldErrorListenable;
@@ -539,29 +716,28 @@ class _LoginCard extends StatelessWidget {
   final VoidCallback onTogglePassword;
   final bool rememberMe;
   final ValueChanged<bool?> onRememberMeChanged;
+  final bool shouldValidateEmailFormat;
   final ValueNotifier<String?> authErrorListenable;
+  final GlobalKey submitButtonKey;
   final VoidCallback onSubmitFromKeyboard;
   final Future<void> Function() onLogin;
   final VoidCallback onForgotPassword;
 
-  static const _primaryBlue = Color(0xFF0A67FF);
-  static const _errorPink = Color(0xFFE11D48);
-  static const _disabledBg = Color(0xFFE5E7EB);
-  static const _disabledFg = Color(0xFF9CA3AF);
-  static const _labelColor = Color(0xFF0F172A);
-
   InputDecoration _buildInputDecoration({
     required IconData icon,
+    required Color borderColor,
+    required Color focusedBorderColor,
+    required Color errorColor,
     Widget? suffixIcon,
     bool forceErrorBorder = false,
     String? forceErrorText,
   }) {
     final baseBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      borderSide: BorderSide(color: borderColor),
     );
     final errorBorder = baseBorder.copyWith(
-      borderSide: const BorderSide(color: _errorPink, width: 1.6),
+      borderSide: BorderSide(color: errorColor, width: 1.6),
     );
     return InputDecoration(
       prefixIcon: Icon(icon),
@@ -570,8 +746,8 @@ class _LoginCard extends StatelessWidget {
       isDense: true,
       constraints: const BoxConstraints(minHeight: 44),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      errorStyle: const TextStyle(
-        color: _errorPink,
+      errorStyle: TextStyle(
+        color: errorColor,
         fontSize: 13,
         fontWeight: FontWeight.w500,
         height: 1.2,
@@ -581,13 +757,13 @@ class _LoginCard extends StatelessWidget {
       focusedBorder: forceErrorBorder
           ? errorBorder
           : baseBorder.copyWith(
-              borderSide: const BorderSide(color: _primaryBlue, width: 1.6),
+              borderSide: BorderSide(color: focusedBorderColor, width: 1.6),
             ),
       errorBorder: baseBorder.copyWith(
-        borderSide: const BorderSide(color: _errorPink, width: 1.3),
+        borderSide: BorderSide(color: errorColor, width: 1.3),
       ),
       focusedErrorBorder: baseBorder.copyWith(
-        borderSide: const BorderSide(color: _errorPink, width: 1.6),
+        borderSide: BorderSide(color: errorColor, width: 1.6),
       ),
     );
   }
@@ -595,6 +771,8 @@ class _LoginCard extends StatelessWidget {
   Widget _buildFieldLabel({
     required String text,
     required FocusNode focusNode,
+    required Color focusedColor,
+    required Color defaultColor,
   }) {
     final baseStyle =
         theme.textTheme.labelLarge ?? const TextStyle(fontSize: 14);
@@ -606,7 +784,7 @@ class _LoginCard extends StatelessWidget {
           curve: Curves.easeOut,
           style: baseStyle.copyWith(
             fontWeight: FontWeight.w600,
-            color: focusNode.hasFocus ? _primaryBlue : _labelColor,
+            color: focusNode.hasFocus ? focusedColor : defaultColor,
           ),
           child: Text(text),
         );
@@ -616,13 +794,33 @@ class _LoginCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = theme.colorScheme;
+    final primaryActionColor = colorScheme.primary;
+    final borderColor = colorScheme.outlineVariant;
+    final errorColor = colorScheme.error;
+    final labelColor = colorScheme.onSurface.withValues(alpha: 0.84);
+    final errorContainerColor = colorScheme.errorContainer;
+    final onErrorContainerColor = colorScheme.onErrorContainer;
+    final errorBorderColor = errorColor.withValues(alpha: 0.5);
+    final disabledBg = Color.alphaBlend(
+      colorScheme.onSurface.withValues(alpha: 0.08),
+      colorScheme.surface,
+    );
+    final disabledFg = colorScheme.onSurface.withValues(alpha: 0.45);
+    final cardPadding = isCompactLayout
+        ? const EdgeInsets.fromLTRB(16, 16, 16, 12)
+        : const EdgeInsets.fromLTRB(20, 20, 20, 16);
+    final introGap = isCompactLayout ? 6.0 : 8.0;
+    final sectionStartGap = isCompactLayout ? 16.0 : 24.0;
+    final labelGap = isCompactLayout ? 6.0 : 8.0;
+    final sectionGap = isCompactLayout ? 12.0 : 16.0;
     final inputTextStyle = theme.textTheme.bodyLarge?.copyWith(
-      fontSize: 16,
+      fontSize: isCompactLayout ? 15 : 16,
       fontWeight: FontWeight.w500,
     );
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+      padding: cardPadding,
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
@@ -647,7 +845,7 @@ class _LoginCard extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: introGap),
               Text(
                 'Nh\u1eadp email v\u00e0 m\u1eadt kh\u1ea9u \u0111\u1ec3 ti\u1ebfp t\u1ee5c',
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -655,9 +853,14 @@ class _LoginCard extends StatelessWidget {
                   height: 1.5,
                 ),
               ),
-              const SizedBox(height: 24),
-              _buildFieldLabel(text: 'Email', focusNode: emailFocusNode),
-              const SizedBox(height: 8),
+              SizedBox(height: sectionStartGap),
+              _buildFieldLabel(
+                text: 'Email',
+                focusNode: emailFocusNode,
+                focusedColor: primaryActionColor,
+                defaultColor: labelColor,
+              ),
+              SizedBox(height: labelGap),
               Container(
                 key: emailFieldKey,
                 child: ValueListenableBuilder<String?>(
@@ -682,6 +885,9 @@ class _LoginCard extends StatelessWidget {
                         style: inputTextStyle,
                         decoration: _buildInputDecoration(
                           icon: Icons.mail_outline,
+                          borderColor: borderColor,
+                          focusedBorderColor: primaryActionColor,
+                          errorColor: errorColor,
                           forceErrorBorder: emailFieldError != null,
                           forceErrorText: emailFieldError,
                         ),
@@ -693,7 +899,10 @@ class _LoginCard extends StatelessWidget {
                           final isValidEmail = RegExp(
                             r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
                           ).hasMatch(email);
-                          if (!isValidEmail) {
+                          final shouldShowFormatError =
+                              shouldValidateEmailFormat ||
+                              !emailFocusNode.hasFocus;
+                          if (!isValidEmail && shouldShowFormatError) {
                             return 'Email kh\u00f4ng h\u1ee3p l\u1ec7';
                           }
                           return null;
@@ -705,12 +914,14 @@ class _LoginCard extends StatelessWidget {
                   },
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: sectionGap),
               _buildFieldLabel(
                 text: 'M\u1eadt kh\u1ea9u',
                 focusNode: passwordFocusNode,
+                focusedColor: primaryActionColor,
+                defaultColor: labelColor,
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: labelGap),
               Container(
                 key: passwordFieldKey,
                 child: ValueListenableBuilder<String?>(
@@ -719,65 +930,103 @@ class _LoginCard extends StatelessWidget {
                     return ValueListenableBuilder<int>(
                       valueListenable: passwordShakeTickListenable,
                       builder: (context, shakeTick, _) {
-                        final field = Semantics(
-                          textField: true,
-                          label: 'M\u1eadt kh\u1ea9u',
-                          child: TextFormField(
-                            controller: passwordController,
-                            focusNode: passwordFocusNode,
-                            enabled: !isLoading,
-                            obscureText: obscurePassword,
-                            textInputAction: TextInputAction.done,
-                            autofillHints: const [AutofillHints.password],
-                            autocorrect: false,
-                            enableSuggestions: false,
-                            style: inputTextStyle,
-                            decoration: _buildInputDecoration(
-                              icon: Icons.lock_outline,
-                              forceErrorBorder: passwordFieldError != null,
-                              forceErrorText: passwordFieldError,
-                              suffixIcon: IconButton(
-                                onPressed: isLoading ? null : onTogglePassword,
-                                tooltip: obscurePassword
-                                    ? 'Hi\u1ec7n m\u1eadt kh\u1ea9u'
-                                    : '\u1ea8n m\u1eadt kh\u1ea9u',
-                                icon: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 160),
-                                  switchInCurve: Curves.easeOut,
-                                  switchOutCurve: Curves.easeOut,
-                                  transitionBuilder: (child, animation) {
-                                    return FadeTransition(
-                                      opacity: animation,
-                                      child: RotationTransition(
-                                        turns: Tween<double>(
-                                          begin: 0.9,
-                                          end: 1,
-                                        ).animate(animation),
-                                        child: child,
+                        final shouldShowPasswordHint =
+                            passwordFieldError == null &&
+                            passwordController.text.length < 6;
+                        final field = Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Semantics(
+                              textField: true,
+                              label: 'M\u1eadt kh\u1ea9u',
+                              child: TextFormField(
+                                controller: passwordController,
+                                focusNode: passwordFocusNode,
+                                enabled: !isLoading,
+                                obscureText: obscurePassword,
+                                textInputAction: TextInputAction.done,
+                                autofillHints: const [AutofillHints.password],
+                                autocorrect: false,
+                                enableSuggestions: false,
+                                style: inputTextStyle,
+                                decoration: _buildInputDecoration(
+                                  icon: Icons.lock_outline,
+                                  borderColor: borderColor,
+                                  focusedBorderColor: primaryActionColor,
+                                  errorColor: errorColor,
+                                  forceErrorBorder: passwordFieldError != null,
+                                  forceErrorText: passwordFieldError,
+                                  suffixIcon: IconButton(
+                                    onPressed: isLoading
+                                        ? null
+                                        : onTogglePassword,
+                                    tooltip: obscurePassword
+                                        ? 'Hi\u1ec7n m\u1eadt kh\u1ea9u'
+                                        : '\u1ea8n m\u1eadt kh\u1ea9u',
+                                    icon: AnimatedSwitcher(
+                                      duration: const Duration(
+                                        milliseconds: 160,
                                       ),
-                                    );
-                                  },
-                                  child: Icon(
-                                    obscurePassword
-                                        ? Icons.visibility_off_outlined
-                                        : Icons.visibility_outlined,
-                                    key: ValueKey<bool>(obscurePassword),
+                                      switchInCurve: Curves.easeOut,
+                                      switchOutCurve: Curves.easeOut,
+                                      transitionBuilder: (child, animation) {
+                                        return FadeTransition(
+                                          opacity: animation,
+                                          child: RotationTransition(
+                                            turns: Tween<double>(
+                                              begin: 0.9,
+                                              end: 1,
+                                            ).animate(animation),
+                                            child: child,
+                                          ),
+                                        );
+                                      },
+                                      child: Icon(
+                                        obscurePassword
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
+                                        key: ValueKey<bool>(obscurePassword),
+                                      ),
+                                    ),
                                   ),
                                 ),
+                                validator: (value) {
+                                  final password = value ?? '';
+                                  if (password.isEmpty) {
+                                    return 'M\u1eadt kh\u1ea9u kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u1ec3 tr\u1ed1ng';
+                                  }
+                                  if (password.length < 6) {
+                                    return 'M\u1eadt kh\u1ea9u t\u1ed1i thi\u1ec3u 6 k\u00fd t\u1ef1';
+                                  }
+                                  return null;
+                                },
+                                onFieldSubmitted: (_) => onSubmitFromKeyboard(),
                               ),
                             ),
-                            validator: (value) {
-                              final password = value ?? '';
-                              if (password.isEmpty) {
-                                return 'M\u1eadt kh\u1ea9u kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u1ec3 tr\u1ed1ng';
-                              }
-                              if (password.length < 6) {
-                                return 'M\u1eadt kh\u1ea9u t\u1ed1i thi\u1ec3u 6 k\u00fd t\u1ef1';
-                              }
-                              return null;
-                            },
-                            onFieldSubmitted: (_) => onSubmitFromKeyboard(),
-                          ),
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 140),
+                              child: shouldShowPasswordHint
+                                  ? Padding(
+                                      key: const ValueKey<String>(
+                                        'password_hint',
+                                      ),
+                                      padding: const EdgeInsets.only(
+                                        top: 6,
+                                        left: 12,
+                                      ),
+                                      child: Text(
+                                        'T\u1ed1i thi\u1ec3u 6 k\u00fd t\u1ef1',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
+                                      ),
+                                    )
+                                  : const SizedBox.shrink(),
+                            ),
+                          ],
                         );
                         if (shakeTick == 0) {
                           return field;
@@ -824,19 +1073,19 @@ class _LoginCard extends StatelessWidget {
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFEF2F2),
+                          color: errorContainerColor,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFEF4444)),
+                          border: Border.all(color: errorBorderColor),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.only(top: 1),
                               child: Icon(
                                 Icons.error_outline,
                                 size: 18,
-                                color: Color(0xFFDC2626),
+                                color: onErrorContainerColor,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -844,7 +1093,7 @@ class _LoginCard extends StatelessWidget {
                               child: Text(
                                 authErrorMessage,
                                 style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: const Color(0xFFDC2626),
+                                  color: onErrorContainerColor,
                                   height: 1.35,
                                 ),
                               ),
@@ -858,7 +1107,7 @@ class _LoginCard extends StatelessWidget {
                                   horizontal: 8,
                                   vertical: 4,
                                 ),
-                                foregroundColor: const Color(0xFFDC2626),
+                                foregroundColor: onErrorContainerColor,
                                 textStyle: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
@@ -875,54 +1124,58 @@ class _LoginCard extends StatelessWidget {
                   );
                 },
               ),
-              const SizedBox(height: 16),
-              Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 12,
-                runSpacing: 8,
+              SizedBox(height: sectionGap),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      minHeight: 44,
-                      minWidth: 44,
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: isLoading
-                            ? null
-                            : () {
-                                onRememberMeChanged(!rememberMe);
-                              },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 6,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IgnorePointer(
-                                child: Checkbox(
-                                  value: rememberMe,
-                                  onChanged: isLoading
-                                      ? null
-                                      : onRememberMeChanged,
+                  Expanded(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minHeight: 44,
+                        minWidth: 44,
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: isLoading
+                              ? null
+                              : () {
+                                  onRememberMeChanged(!rememberMe);
+                                },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 6,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.max,
+                              children: [
+                                IgnorePointer(
+                                  child: Checkbox(
+                                    value: rememberMe,
+                                    onChanged: isLoading
+                                        ? null
+                                        : onRememberMeChanged,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 2),
-                              Text(
-                                'Ghi nh\u1edb \u0111\u0103ng nh\u1eadp',
-                                style: theme.textTheme.bodyMedium,
-                              ),
-                            ],
+                                const SizedBox(width: 2),
+                                Flexible(
+                                  child: Text(
+                                    'Ghi nh\u1edb email',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   TextButton(
                     onPressed: isLoading ? null : onForgotPassword,
                     style: TextButton.styleFrom(
@@ -931,7 +1184,7 @@ class _LoginCard extends StatelessWidget {
                         horizontal: 6,
                         vertical: 8,
                       ),
-                      foregroundColor: _primaryBlue,
+                      foregroundColor: primaryActionColor,
                       textStyle: const TextStyle(
                         fontWeight: FontWeight.w700,
                         decoration: TextDecoration.underline,
@@ -942,8 +1195,9 @@ class _LoginCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: sectionGap),
               SizedBox(
+                key: submitButtonKey,
                 width: double.infinity,
                 child: ValueListenableBuilder<bool>(
                   valueListenable: isFormValidListenable,
@@ -959,12 +1213,12 @@ class _LoginCard extends StatelessWidget {
                         backgroundColor: WidgetStateProperty.resolveWith<Color>(
                           (states) {
                             if (isLoading) {
-                              return _primaryBlue;
+                              return primaryActionColor;
                             }
                             if (states.contains(WidgetState.disabled)) {
-                              return _disabledBg;
+                              return disabledBg;
                             }
-                            return _primaryBlue;
+                            return primaryActionColor;
                           },
                         ),
                         foregroundColor: WidgetStateProperty.resolveWith<Color>(
@@ -973,7 +1227,7 @@ class _LoginCard extends StatelessWidget {
                               return Colors.white;
                             }
                             if (states.contains(WidgetState.disabled)) {
-                              return _disabledFg;
+                              return disabledFg;
                             }
                             return Colors.white;
                           },
@@ -1046,34 +1300,30 @@ class _AnimatedSubmitButtonState extends State<_AnimatedSubmitButton> {
         scale: _isPressed ? 0.98 : 1,
         duration: const Duration(milliseconds: 90),
         curve: Curves.easeOut,
-        child: Semantics(
-          button: true,
-          enabled: widget.canSubmit,
-          child: ElevatedButton(
-            onPressed: widget.canSubmit
-                ? () async {
-                    await widget.onPressed();
-                  }
-                : null,
-            style: widget.style,
-            child: widget.isLoading
-                ? const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.2,
-                          color: Colors.white,
-                        ),
+        child: ElevatedButton(
+          onPressed: widget.canSubmit
+              ? () async {
+                  await widget.onPressed();
+                }
+              : null,
+          style: widget.style,
+          child: widget.isLoading
+              ? const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.2,
+                        color: Colors.white,
                       ),
-                      SizedBox(width: 10),
-                      Text('\u0110ang \u0111\u0103ng nh\u1eadp...'),
-                    ],
-                  )
-                : Text(widget.label),
-          ),
+                    ),
+                    SizedBox(width: 10),
+                    Text('\u0110ang \u0111\u0103ng nh\u1eadp...'),
+                  ],
+                )
+              : Text(widget.label),
         ),
       ),
     );
@@ -1093,24 +1343,46 @@ class _RegisterPrompt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final backgroundColor = theme.brightness == Brightness.dark
+        ? Colors.white.withValues(alpha: 0.16)
+        : Colors.black.withValues(alpha: 0.24);
+    final borderColor = Colors.white.withValues(
+      alpha: theme.brightness == Brightness.dark ? 0.24 : 0.34,
+    );
+
     return Center(
-      child: TextButton(
-        onPressed: isLoading ? null : onRegister,
-        child: Text.rich(
-          TextSpan(
-            text: 'Ch\u01b0a c\u00f3 t\u00e0i kho\u1ea3n? ',
-            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
-            children: [
-              TextSpan(
-                text: '\u0110\u0103ng k\u00fd \u0111\u1ea1i l\u00fd',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  decoration: TextDecoration.underline,
-                  decorationColor: Colors.white,
-                ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: borderColor),
+        ),
+        child: TextButton(
+          onPressed: isLoading ? null : onRegister,
+          style: TextButton.styleFrom(
+            minimumSize: const Size(44, 44),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            foregroundColor: Colors.white,
+          ),
+          child: Text.rich(
+            TextSpan(
+              text: 'Ch\u01b0a c\u00f3 t\u00e0i kho\u1ea3n? ',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.white,
+                height: 1.2,
               ),
-            ],
+              children: [
+                TextSpan(
+                  text: '\u0110\u0103ng k\u00fd \u0111\u1ea1i l\u00fd',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    decoration: TextDecoration.underline,
+                    decorationColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
