@@ -57,7 +57,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return;
     }
     final remainingStock = cart.remainingStockFor(widget.product);
-    if (!widget.product.isOrderable || remainingStock <= 0) {
+    if (remainingStock <= 0) {
       _showMaxStockMessage();
       return;
     }
@@ -96,12 +96,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             behavior: SnackBarBehavior.floating,
             content: Text(
               didAdd
-                  ? 'Đã thêm ${widget.product.name} (x$addQuantity) vào giỏ hàng'
-                  : 'Sản phẩm đã đạt giới hạn tồn kho',
+                  ? 'ÄĂ£ thĂªm ${widget.product.name} (x$addQuantity) vĂ o giá» hĂ ng'
+                  : 'Sáº£n pháº©m Ä‘Ă£ Ä‘áº¡t giá»›i háº¡n tá»“n kho',
             ),
             action: didAdd
                 ? SnackBarAction(
-                    label: 'Quay lại giỏ hàng',
+                    label: 'Quay láº¡i giá» hĂ ng',
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -125,7 +125,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return;
     }
     final remainingStock = cart.remainingStockFor(widget.product);
-    if (!widget.product.isOrderable || remainingStock <= 0) {
+    if (remainingStock <= 0) {
       _showMaxStockMessage();
       return;
     }
@@ -174,7 +174,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     required int maxQuantity,
     required int quantityInCart,
   }) async {
-    final minQuantity = widget.product.effectiveMinOrderQty;
+    final minQuantity = 1;
     var selectedQuantity = minQuantity <= maxQuantity
         ? minQuantity
         : maxQuantity;
@@ -195,11 +195,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
-                  Text('Tối thiểu: $minQuantity  •  Tối đa: $maxQuantity'),
+                  Text('Tá»‘i thiá»ƒu: $minQuantity  â€¢  Tá»‘i Ä‘a: $maxQuantity'),
                   if (quantityInCart > 0) ...[
                     const SizedBox(height: 6),
                     Text(
-                      'Bạn đã có $quantityInCart trong giỏ.',
+                      'Báº¡n Ä‘Ă£ cĂ³ $quantityInCart trong giá».',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -225,14 +225,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                   if (selectedQuantity == maxQuantity)
                     Text(
-                      'Đã đạt tối đa theo tồn kho.',
+                      'ÄĂ£ Ä‘áº¡t tá»‘i Ä‘a theo tá»“n kho.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   if (selectedQuantity == minQuantity && minQuantity > 1)
                     Text(
-                      'Số lượng tối thiểu: $minQuantity',
+                      'Sá»‘ lÆ°á»£ng tá»‘i thiá»ƒu: $minQuantity',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -242,7 +242,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Hủy'),
+                  child: const Text('Há»§y'),
                 ),
                 ElevatedButton(
                   onPressed: () =>
@@ -263,12 +263,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
+        const SnackBar(
           behavior: SnackBarBehavior.floating,
           content: Text(
-            widget.product.isOrderable
-                ? 'Sản phẩm đã hết hàng hoặc đã đạt giới hạn trong giỏ'
-                : 'Sản phẩm tạm ngưng phân phối',
+            'San pham da het hang hoac da dat gioi han trong gio',
           ),
         ),
       );
@@ -278,14 +276,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     required int remainingStock,
     required int suggestedAddQuantity,
   }) {
-    if (!widget.product.isOrderable) {
-      return 'Sản phẩm tạm ngưng phân phối';
-    }
     if (remainingStock <= 0) {
-      return 'Sản phẩm đã hết hàng';
+      return 'Sáº£n pháº©m Ä‘Ă£ háº¿t hĂ ng';
     }
     if (suggestedAddQuantity <= 0) {
-      return 'Đã đạt giới hạn số lượng trong giỏ';
+      return 'ÄĂ£ Ä‘áº¡t giá»›i háº¡n sá»‘ lÆ°á»£ng trong giá»';
     }
     return null;
   }
@@ -414,8 +409,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 price: widget.product.price,
                 remainingStock: remainingStock,
                 quantityInCart: quantityInCart,
-                minOrderQty: widget.product.effectiveMinOrderQty,
-                isOrderable: widget.product.isOrderable,
                 nextAddQuantity: suggestedAddQuantity,
                 addToCartDisabledReason: addToCartDisabledReason,
                 buyNowDisabledReason: buyNowDisabledReason,
@@ -496,7 +489,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text(
-                                        'Giá đại lý',
+                                        'GiĂ¡ Ä‘áº¡i lĂ½',
                                         style: Theme.of(context)
                                             .textTheme
                                             .labelSmall
@@ -506,7 +499,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        'Chưa gồm VAT',
+                                        'ChÆ°a gá»“m VAT',
                                         style: Theme.of(context)
                                             .textTheme
                                             .labelSmall
@@ -557,11 +550,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           stock: widget.product.stock,
                           remainingStock: remainingStock,
                           quantityInCart: quantityInCart,
-                          minOrderQty: widget.product.effectiveMinOrderQty,
-                          orderStep: widget.product.effectiveOrderStep,
                           warrantyMonths: widget.product.warrantyMonths,
                           nextAddQuantity: suggestedAddQuantity,
-                          isOrderable: widget.product.isOrderable,
                         ),
                         if (descriptionItems.isNotEmpty) ...[
                           SizedBox(height: sectionGap),
@@ -594,7 +584,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Thông số kỹ thuật',
+                                  'ThĂ´ng sá»‘ ká»¹ thuáº­t',
                                   style: Theme.of(context).textTheme.titleSmall
                                       ?.copyWith(fontWeight: FontWeight.w700),
                                 ),
@@ -774,51 +764,37 @@ class _QuickInfoSection extends StatelessWidget {
     required this.stock,
     required this.remainingStock,
     required this.quantityInCart,
-    required this.minOrderQty,
-    required this.orderStep,
     required this.warrantyMonths,
     required this.nextAddQuantity,
-    required this.isOrderable,
   });
 
   final bool isTablet;
   final int stock;
   final int remainingStock;
   final int quantityInCart;
-  final int minOrderQty;
-  final int orderStep;
   final int warrantyMonths;
   final int nextAddQuantity;
-  final bool isOrderable;
 
   _QuickInfoItemData _buildStatusItem() {
-    if (!isOrderable) {
-      return const _QuickInfoItemData(
-        label: 'Trạng thái',
-        value: 'Tạm dừng',
-        icon: Icons.pause_circle_outline,
-        tone: _QuickInfoTone.neutral,
-      );
-    }
     if (remainingStock <= 0) {
       return const _QuickInfoItemData(
-        label: 'Trạng thái',
-        value: 'Hết hàng',
+        label: 'Tráº¡ng thĂ¡i',
+        value: 'Háº¿t hĂ ng',
         icon: Icons.cancel_outlined,
         tone: _QuickInfoTone.danger,
       );
     }
     if (remainingStock <= 10) {
       return const _QuickInfoItemData(
-        label: 'Trạng thái',
-        value: 'Sắp hết',
+        label: 'Tráº¡ng thĂ¡i',
+        value: 'Sáº¯p háº¿t',
         icon: Icons.schedule_outlined,
         tone: _QuickInfoTone.warning,
       );
     }
     return const _QuickInfoItemData(
-      label: 'Trạng thái',
-      value: 'Còn hàng',
+      label: 'Tráº¡ng thĂ¡i',
+      value: 'CĂ²n hĂ ng',
       icon: Icons.check_circle_outline,
       tone: _QuickInfoTone.success,
     );
@@ -827,11 +803,11 @@ class _QuickInfoSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final canAddNow = isOrderable && nextAddQuantity > 0 && remainingStock > 0;
+    final canAddNow = nextAddQuantity > 0 && remainingStock > 0;
     final items = <_QuickInfoItemData>[
       _buildStatusItem(),
       _QuickInfoItemData(
-        label: 'Tồn kho còn lại',
+        label: 'Tá»“n kho cĂ²n láº¡i',
         value: '$remainingStock/$stock',
         icon: Icons.inventory_2_outlined,
         tone: remainingStock <= 0
@@ -841,23 +817,16 @@ class _QuickInfoSection extends StatelessWidget {
             : _QuickInfoTone.info,
       ),
       _QuickInfoItemData(
-        label: 'Thêm được ngay',
-        value: canAddNow ? '$nextAddQuantity sản phẩm' : '--',
+        label: 'ThĂªm Ä‘Æ°á»£c ngay',
+        value: canAddNow ? '$nextAddQuantity sáº£n pháº©m' : '--',
         icon: canAddNow
             ? Icons.add_shopping_cart_outlined
             : Icons.remove_shopping_cart_outlined,
         tone: canAddNow ? _QuickInfoTone.success : _QuickInfoTone.neutral,
       ),
       _QuickInfoItemData(
-        label: 'Số lượng đặt',
-        value: orderStep <= 1
-            ? 'Tối thiểu $minOrderQty'
-            : 'Tối thiểu $minOrderQty • Bước $orderStep',
-        icon: Icons.edit_note_outlined,
-      ),
-      _QuickInfoItemData(
-        label: 'Bảo hành',
-        value: '$warrantyMonths tháng',
+        label: 'Báº£o hĂ nh',
+        value: '$warrantyMonths thĂ¡ng',
         icon: Icons.verified_outlined,
         tone: _QuickInfoTone.success,
       ),
@@ -874,14 +843,14 @@ class _QuickInfoSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Thông tin nhanh',
+            'ThĂ´ng tin nhanh',
             style: Theme.of(
               context,
             ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
-            'Chỉ số quan trọng để ra quyết định đặt hàng nhanh.',
+            'Chá»‰ sá»‘ quan trá»ng Ä‘á»ƒ ra quyáº¿t Ä‘á»‹nh Ä‘áº·t hĂ ng nhanh.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: colors.onSurfaceVariant,
               height: 1.35,
@@ -909,7 +878,7 @@ class _QuickInfoSection extends StatelessWidget {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'Đã có $quantityInCart sản phẩm trong giỏ',
+                      'ÄĂ£ cĂ³ $quantityInCart sáº£n pháº©m trong giá»',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: colors.onPrimaryContainer,
                         fontWeight: FontWeight.w600,
@@ -1038,7 +1007,7 @@ class _DescriptionSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Mô tả chi tiết',
+            'MĂ´ táº£ chi tiáº¿t',
             style: Theme.of(
               context,
             ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
@@ -1046,7 +1015,7 @@ class _DescriptionSection extends StatelessWidget {
           const SizedBox(height: 10),
           if (items.isEmpty)
             Text(
-              'Chưa có mô tả chi tiết.',
+              'ChÆ°a cĂ³ mĂ´ táº£ chi tiáº¿t.',
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
@@ -1271,13 +1240,13 @@ class _VideoSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Video sản phẩm',
+            'Video sáº£n pháº©m',
             style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 10),
           if (videos.isEmpty)
             Text(
-              'Chưa có video cho sản phẩm này.',
+              'ChÆ°a cĂ³ video cho sáº£n pháº©m nĂ y.',
               style: textTheme.bodySmall?.copyWith(
                 color: colors.onSurfaceVariant,
               ),
@@ -1448,8 +1417,8 @@ class _InlineVideoPlayerState extends State<_InlineVideoPlayer> {
         _isInitializing = false;
         _hasError = true;
         _errorMessage = errors.isEmpty
-            ? 'Không tìm thấy video hợp lệ cho sản phẩm này.'
-            : 'Không thể phát video lúc này. Vui lòng thử lại sau.';
+            ? 'KhĂ´ng tĂ¬m tháº¥y video há»£p lá»‡ cho sáº£n pháº©m nĂ y.'
+            : 'KhĂ´ng thá»ƒ phĂ¡t video lĂºc nĂ y. Vui lĂ²ng thá»­ láº¡i sau.';
       });
     } else {
       _isInitializing = false;
@@ -1557,7 +1526,7 @@ class _VideoFallback extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Không thể tải video trên thiết bị này.',
+                  'KhĂ´ng thá»ƒ táº£i video trĂªn thiáº¿t bá»‹ nĂ y.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colors.onSurfaceVariant,
                   ),
@@ -1578,7 +1547,7 @@ class _VideoFallback extends StatelessWidget {
                   OutlinedButton.icon(
                     onPressed: onRetry,
                     icon: const Icon(Icons.refresh, size: 16),
-                    label: const Text('Thử tải lại'),
+                    label: const Text('Thá»­ táº£i láº¡i'),
                   ),
                 ],
               ],
@@ -1613,7 +1582,7 @@ class _VideoDeferredPlaceholder extends StatelessWidget {
                 Icon(Icons.play_circle_fill, size: 38, color: colors.primary),
                 const SizedBox(height: 8),
                 Text(
-                  'Nhấn để tải video',
+                  'Nháº¥n Ä‘á»ƒ táº£i video',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colors.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
@@ -1642,19 +1611,19 @@ class _StockBadge extends StatelessWidget {
     late final Color textColor;
     late final Color background;
     if (remainingStock <= 0) {
-      label = 'Hết hàng';
+      label = 'Háº¿t hĂ ng';
       textColor = colors.error;
       background = colors.errorContainer.withValues(
         alpha: isDark ? 0.42 : 0.82,
       );
     } else if (remainingStock <= 10) {
-      label = 'Sắp hết: $remainingStock';
+      label = 'Sáº¯p háº¿t: $remainingStock';
       textColor = colors.tertiary;
       background = colors.tertiaryContainer.withValues(
         alpha: isDark ? 0.46 : 0.82,
       );
     } else {
-      label = 'Còn hàng: $remainingStock';
+      label = 'CĂ²n hĂ ng: $remainingStock';
       textColor = colors.primary;
       background = colors.primaryContainer.withValues(
         alpha: isDark ? 0.4 : 0.8,
@@ -1698,8 +1667,6 @@ class _BottomActionBar extends StatelessWidget {
     required this.price,
     required this.remainingStock,
     required this.quantityInCart,
-    required this.minOrderQty,
-    required this.isOrderable,
     required this.nextAddQuantity,
     required this.addToCartDisabledReason,
     required this.buyNowDisabledReason,
@@ -1714,8 +1681,6 @@ class _BottomActionBar extends StatelessWidget {
   final int price;
   final int remainingStock;
   final int quantityInCart;
-  final int minOrderQty;
-  final bool isOrderable;
   final int nextAddQuantity;
   final String? addToCartDisabledReason;
   final String? buyNowDisabledReason;
@@ -1730,16 +1695,12 @@ class _BottomActionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final label = !isOrderable
-        ? 'Ngưng phân phối'
-        : remainingStock <= 0
-        ? 'Hết hàng'
+    final label = remainingStock <= 0
+        ? 'Háº¿t hĂ ng'
         : remainingStock <= 10
-        ? 'Còn ít hàng'
-        : 'Còn hàng';
-    final labelColor = !isOrderable
-        ? colors.onSurfaceVariant
-        : remainingStock <= 0
+        ? 'CĂ²n Ă­t hĂ ng'
+        : 'CĂ²n hĂ ng';
+    final labelColor = remainingStock <= 0
         ? colors.error
         : remainingStock <= 10
         ? colors.tertiary
@@ -1765,7 +1726,7 @@ class _BottomActionBar extends StatelessWidget {
               height: 20,
               child: CircularProgressIndicator(strokeWidth: 2.5),
             )
-          : const Text('Thêm vào giỏ'),
+          : const Text('ThĂªm vĂ o giá»'),
     );
     final buyButton = ElevatedButton(
       onPressed: onBuyNow,
@@ -1806,7 +1767,7 @@ class _BottomActionBar extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Chưa gồm VAT',
+            'ChÆ°a gá»“m VAT',
             style: Theme.of(
               context,
             ).textTheme.labelSmall?.copyWith(color: colors.onSurfaceVariant),
@@ -1822,18 +1783,16 @@ class _BottomActionBar extends StatelessWidget {
           if (quantityInCart > 0) ...[
             const SizedBox(height: 2),
             Text(
-              'Đã có $quantityInCart trong giỏ',
+              'ÄĂ£ cĂ³ $quantityInCart trong giá»',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: colors.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
               ),
             ),
-          ] else if (isOrderable) ...[
+          ] else if (remainingStock > 0) ...[
             const SizedBox(height: 2),
             Text(
-              minOrderQty > 1
-                  ? 'Tối thiểu $minOrderQty sản phẩm'
-                  : 'Số lượng linh hoạt',
+              'So luong linh hoat',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: colors.onSurfaceVariant,
                 fontWeight: FontWeight.w600,

@@ -650,9 +650,6 @@ List<InventoryProductItem> _buildInventoryItems({
   final map = <String, _InventoryAccumulator>{};
   for (final order in completedOrders) {
     for (final item in order.items) {
-      if (item.product.category != ProductCategory.headset) {
-        continue;
-      }
       final current =
           map[item.product.id] ??
           _InventoryAccumulator(

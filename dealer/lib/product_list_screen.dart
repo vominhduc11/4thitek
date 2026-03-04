@@ -43,7 +43,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   StockFilter _stockFilter = StockFilter.all;
   SortOption _sortOption = SortOption.none;
   final List<Product> _catalogProducts = List.unmodifiable(
-    mockProducts.where((p) => p.category == ProductCategory.headset).toList(),
+    mockProducts,
   );
   final Set<String> _addingProductIds = <String>{};
   int _queryRevision = 0;
@@ -708,9 +708,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final imageSize = isTablet ? 80.0 : 64.0;
     final gridImageHeight = isTablet ? 132.0 : 112.0;
     final cardPadding = isTablet ? (isGridLayout ? 16.0 : 18.0) : 14.0;
-    final addButtonLabel = !product.isOrderable
-        ? 'Ngưng bán'
-        : remainingStock <= 0
+    final addButtonLabel = remainingStock <= 0
         ? 'Hết hàng'
         : 'Thêm nhanh';
 
@@ -1004,7 +1002,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       return;
     }
     final remainingStock = cart.remainingStockFor(product);
-    if (!product.isOrderable || remainingStock <= 0) {
+    if (remainingStock <= 0) {
       return;
     }
 
@@ -1078,7 +1076,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     int maxQuantity, {
     required int initialQuantity,
   }) {
-    final minQty = math.min(product.effectiveMinOrderQty, maxQuantity);
+    final minQty = 1;
     final safeInitial = initialQuantity.clamp(minQty, maxQuantity);
     var selected = safeInitial <= maxQuantity ? safeInitial : maxQuantity;
     return showDialog<int>(

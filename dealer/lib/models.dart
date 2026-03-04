@@ -5,27 +5,6 @@ class ProductSpecification {
   final String value;
 }
 
-enum ProductCategory { headset, keyboard, mouse, speaker, webcam, accessory }
-
-extension ProductCategoryLabel on ProductCategory {
-  String get label {
-    switch (this) {
-      case ProductCategory.headset:
-        return 'Tai nghe';
-      case ProductCategory.keyboard:
-        return 'Bàn phím';
-      case ProductCategory.mouse:
-        return 'Chuột';
-      case ProductCategory.speaker:
-        return 'Loa';
-      case ProductCategory.webcam:
-        return 'Webcam';
-      case ProductCategory.accessory:
-        return 'Phụ kiện';
-    }
-  }
-}
-
 enum ProductDescriptionType { title, description, image, gallery, video }
 
 class ProductDescriptionItem {
@@ -62,38 +41,28 @@ class Product {
   const Product({
     required this.id,
     required this.name,
-    required this.category,
     required this.sku,
     required this.shortDescription,
-    required this.dealerPrice,
+    required this.price,
     required this.stock,
     required this.warrantyMonths,
-    this.listPrice,
     this.imageUrl,
     this.descriptions = const <ProductDescriptionItem>[],
     this.videos = const <ProductVideoItem>[],
     this.specifications = const <ProductSpecification>[],
-    this.minOrderQty = 1,
-    this.orderStep = 1,
-    this.isOrderable = true,
   });
 
   final String id;
   final String name;
-  final ProductCategory category;
   final String sku;
   final String shortDescription;
-  final int dealerPrice;
-  final int? listPrice;
+  final int price;
   final int stock;
   final int warrantyMonths;
   final String? imageUrl;
   final List<ProductDescriptionItem> descriptions;
   final List<ProductVideoItem> videos;
   final List<ProductSpecification> specifications;
-  final int minOrderQty;
-  final int orderStep;
-  final bool isOrderable;
 
   String get description {
     final textBlock = descriptions.firstWhere(
@@ -124,20 +93,6 @@ class Product {
   }
 
   List<ProductVideoItem> get effectiveVideos => videos;
-
-  int get price => dealerPrice;
-
-  int get effectiveMinOrderQty {
-    final normalized = minOrderQty <= 0 ? 1 : minOrderQty;
-    if (stock <= 0) {
-      return normalized;
-    }
-    return normalized > stock ? stock : normalized;
-  }
-
-  int get effectiveOrderStep => orderStep <= 0 ? 1 : orderStep;
-
-  bool get hasDiscount => listPrice != null && listPrice! > dealerPrice;
 }
 
 class CartItem {

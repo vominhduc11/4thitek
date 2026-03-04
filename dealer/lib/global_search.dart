@@ -118,7 +118,7 @@ class _GlobalSearchDelegate extends SearchDelegate<void> {
         final title = isOrder ? item.order!.id : item.product!.name;
         final subtitle = isOrder
             ? '${item.order!.receiverName} • ${item.order!.receiverPhone}'
-            : '${item.product!.sku} • ${item.product!.category.label}';
+            : item.product!.sku;
         final trailingLabel = isOrder ? 'Đơn hàng' : 'Sản phẩm';
 
         return Card(
