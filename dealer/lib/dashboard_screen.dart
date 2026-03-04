@@ -10,6 +10,7 @@ import 'mock_data.dart';
 import 'models.dart';
 import 'notification_controller.dart';
 import 'order_controller.dart';
+import 'order_detail_screen.dart';
 import 'notifications_screen.dart';
 import 'widgets/notification_icon_button.dart';
 import 'orders_screen.dart';
@@ -22,7 +23,6 @@ import 'widgets/skeleton_box.dart';
 import 'debt_tracking_screen.dart';
 import 'inventory_screen.dart';
 
-const _dashboardMutedText = Color(0xFF475569);
 const _lowStockAlertThreshold = kLowStockThreshold;
 const _mobileBreakpoint = AppBreakpoints.phone;
 const _tabletBreakpoint = AppBreakpoints.tablet;
@@ -31,6 +31,9 @@ const _overviewCompactBreakpoint = 480.0;
 const _donutStackBreakpoint = 600.0;
 const _compactDebtRowBreakpoint = 420.0;
 const _maxDashboardContentWidth = 1280.0;
+
+Color _dashboardMutedText(BuildContext context) =>
+    Theme.of(context).colorScheme.onSurfaceVariant;
 
 enum _DashboardTimeFilter { month, quarter }
 
@@ -106,6 +109,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ).push(MaterialPageRoute(builder: (_) => const InventoryScreen()));
   }
 
+  void _openLowStockInventoryScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const InventoryScreen(
+          initialStockFilter: InventoryStockFilter.lowStock,
+        ),
+      ),
+    );
+  }
+
   void _openOrdersScreen() {
     if (widget.onSwitchTab != null) {
       widget.onSwitchTab!(1);
@@ -114,6 +127,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const OrdersScreen()));
+  }
+
+  void _openOrderDetail(String orderId) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => OrderDetailScreen(orderId: orderId)),
+    );
   }
 
   @override
@@ -179,21 +198,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ? 'tháng'
         : 'quý';
 
-    final screenWidth = MediaQuery.sizeOf(context).width;
+    final screenSize = MediaQuery.sizeOf(context);
+    final screenWidth = screenSize.width;
     final isMobile = screenWidth < _mobileBreakpoint;
-    final isNarrowAppBar = screenWidth < 360;
+    final isNarrowAppBar = screenSize.shortestSide < 360;
+    final canMoveNextPeriod = _canMoveToNextPeriod(
+      periodAnchor,
+      _timeFilter,
+      now,
+    );
     final horizontalPadding = isMobile ? 16.0 : 20.0;
     final listBottomPadding = 24.0;
 
     final Widget content;
     if (_loadState == _DashboardLoadState.loading) {
-      content = const _DashboardLoadingView();
+      content = _DashboardLoadingView(horizontalPadding: horizontalPadding);
     } else if (_loadState == _DashboardLoadState.error) {
       content = _DashboardErrorView(
         message:
             _loadErrorMessage ??
             'Không thể tải dữ liệu dashboard. Vui lòng thử lại.',
         onRetry: _loadMockDashboard,
+        horizontalPadding: horizontalPadding,
       );
     } else {
       content = ListView(
@@ -247,6 +273,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     width: childWidth,
                     child: FadeSlideIn(
                       delay: const Duration(milliseconds: 115),
+                      child: _RevenueChartCard(
+                        data: monthlyRevenue,
+                        focusMonth: periodAnchor.month,
+                        displayYear: periodAnchor.year,
+                        onCreateOrder: _openCreateOrderFlow,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: childWidth,
+                    child: FadeSlideIn(
+                      delay: const Duration(milliseconds: 120),
                       child: _AgingDebtCard(
                         buckets: _buildDebtBuckets(periodOutstandingDebt),
                         onViewAll: _openDebtTracking,
@@ -256,17 +294,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   SizedBox(
                     width: childWidth,
                     child: FadeSlideIn(
-                      delay: const Duration(milliseconds: 120),
+                      delay: const Duration(milliseconds: 125),
                       child: _LowStockPanel(
                         products: _buildLowStockProducts(),
                         onOpenInventory: _openInventoryScreen,
+                        onOpenLowStockInventory: _openLowStockInventoryScreen,
                       ),
                     ),
                   ),
                   SizedBox(
                     width: childWidth,
                     child: FadeSlideIn(
-                      delay: const Duration(milliseconds: 125),
+                      delay: const Duration(milliseconds: 130),
                       child: _ActivationTrendCard(
                         data: activationSeries,
                         windowDays: activationWindowDays,
@@ -276,23 +315,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   SizedBox(
                     width: childWidth,
                     child: FadeSlideIn(
-                      delay: const Duration(milliseconds: 130),
+                      delay: const Duration(milliseconds: 135),
                       child: _WarrantyStatusDonutCard(
                         activations: warrantyActivationSeries,
                         ranges: warrantyRanges,
                         initialRange: warrantyRanges.last,
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: childWidth,
-                    child: FadeSlideIn(
-                      delay: const Duration(milliseconds: 135),
-                      child: _RevenueChartCard(
-                        data: monthlyRevenue,
-                        focusMonth: periodAnchor.month,
-                        displayYear: periodAnchor.year,
-                        onCreateOrder: _openCreateOrderFlow,
                       ),
                     ),
                   ),
@@ -336,7 +363,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ...periodOrders.take(5).map((order) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                child: _RecentOrderCard(order: order),
+                child: _RecentOrderCard(
+                  order: order,
+                  onTap: () => _openOrderDetail(order.id),
+                ),
               );
             }),
         ],
@@ -347,6 +377,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: const BrandAppBarTitle('Tổng quan'),
         actions: [
+          if (!isNarrowAppBar)
+            Tooltip(
+              message: 'Kỳ trước',
+              child: IconButton(
+                onPressed: _moveToPreviousPeriod,
+                icon: const Icon(Icons.chevron_left_rounded),
+              ),
+            ),
           if (isNarrowAppBar)
             Tooltip(
               message: 'Lọc thời gian',
@@ -365,6 +403,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 label: Text(_periodCompactLabel(periodAnchor)),
               ),
             ),
+          if (!isNarrowAppBar)
+            Tooltip(
+              message: 'Kỳ sau',
+              child: IconButton(
+                onPressed: canMoveNextPeriod ? _moveToNextPeriod : null,
+                icon: const Icon(Icons.chevron_right_rounded),
+              ),
+            ),
           const GlobalSearchIconButton(),
           NotificationIconButton(
             count: unreadNotificationCount,
@@ -375,6 +421,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(38),
+          child: SizedBox(
+            height: 38,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              children: [
+                _HeaderSummaryChip(
+                  icon: Icons.calendar_today_outlined,
+                  label: _periodContextLabel(periodAnchor),
+                ),
+                const SizedBox(width: 8),
+                _HeaderSummaryChip(
+                  icon: Icons.payments_outlined,
+                  label: 'Doanh thu ${_formatCompactVnd(periodRevenue)}',
+                ),
+                const SizedBox(width: 8),
+                _HeaderSummaryChip(
+                  icon: Icons.receipt_long_outlined,
+                  label: '$periodOrderCount \u0111\u01a1n',
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
       body: Center(
         child: ConstrainedBox(
@@ -385,6 +457,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
     );
+  }
+
+  void _moveToPreviousPeriod() {
+    setState(() {
+      _selectedPeriod = _previousPeriodStartForFilter(
+        _selectedPeriod,
+        _timeFilter,
+      );
+    });
+  }
+
+  void _moveToNextPeriod() {
+    final now = DateTime.now();
+    final periodAnchor = _normalizePeriodAnchor(_selectedPeriod);
+    if (!_canMoveToNextPeriod(periodAnchor, _timeFilter, now)) {
+      return;
+    }
+    setState(() {
+      _selectedPeriod = _nextPeriodStartForFilter(periodAnchor, _timeFilter);
+    });
   }
 
   String _periodContextLabel(DateTime date) {
@@ -551,9 +643,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
                       ),
                       child: Text(
                         _periodContextLabelFor(draftPeriod, draftFilter),
@@ -887,6 +983,8 @@ class _OverviewMetricTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: const Color(0xE6FFFFFF),
                     fontWeight: FontWeight.w600,
@@ -992,10 +1090,13 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
               : 'Kh\u00f4ng \u0111\u1ed5i')
         : '${monthChangePercent >= 0 ? '+' : ''}${monthChangePercent.toStringAsFixed(1)}%';
     final monthChangeColor = previousMonthValue <= 0
-        ? const Color(0xFF475569)
+        ? _dashboardMutedText(context)
         : focusMonthValue >= previousMonthValue
         ? const Color(0xFF15803D)
         : const Color(0xFFB91C1C);
+    final chartHeight = (MediaQuery.sizeOf(context).width * 0.46)
+        .clamp(240.0, 340.0)
+        .toDouble();
 
     return Card(
       elevation: 0,
@@ -1023,7 +1124,7 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
               Text(
                 subtitle,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: _dashboardMutedText,
+                  color: _dashboardMutedText(context),
                 ),
               ),
             ],
@@ -1090,9 +1191,9 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                 width: double.infinity,
                 constraints: const BoxConstraints(minHeight: 220),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: theme.colorScheme.surfaceContainerLow,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: theme.colorScheme.outlineVariant),
                 ),
                 alignment: Alignment.center,
                 child: Column(
@@ -1102,12 +1203,12 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6FF),
+                        color: theme.colorScheme.primaryContainer,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.bar_chart_rounded,
-                        color: Color(0xFF1D4ED8),
+                        color: theme.colorScheme.onPrimaryContainer,
                         size: 20,
                       ),
                     ),
@@ -1115,7 +1216,7 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                     Text(
                       'Bạn chưa có đơn nhập nào trong năm $displayYear.',
                       style: theme.textTheme.titleSmall?.copyWith(
-                        color: const Color(0xFF1E293B),
+                        color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w700,
                       ),
                       textAlign: TextAlign.center,
@@ -1124,7 +1225,7 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                     Text(
                       'Hãy tạo đơn hàng mới để bắt đầu theo dõi giá trị nhập theo tháng.',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF475569),
+                        color: _dashboardMutedText(context),
                         fontWeight: FontWeight.w500,
                       ),
                       textAlign: TextAlign.center,
@@ -1154,7 +1255,7 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
               )
             else
               SizedBox(
-                height: 240,
+                height: chartHeight,
                 child: BarChart(
                   BarChartData(
                     alignment: BarChartAlignment.spaceAround,
@@ -1269,7 +1370,7 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                               child: Text(
                                 '${_formatCompactValue(value / 1000000)}M ₫',
                                 style: theme.textTheme.labelSmall?.copyWith(
-                                  color: _dashboardMutedText,
+                                  color: _dashboardMutedText(context),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -1395,12 +1496,13 @@ class _InsightChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1408,7 +1510,7 @@ class _InsightChip extends StatelessWidget {
           Text(
             label,
             style: theme.textTheme.labelSmall?.copyWith(
-              color: _dashboardMutedText,
+              color: _dashboardMutedText(context),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -1427,9 +1529,10 @@ class _InsightChip extends StatelessWidget {
 }
 
 class _RecentOrderCard extends StatelessWidget {
-  const _RecentOrderCard({required this.order});
+  const _RecentOrderCard({required this.order, this.onTap});
 
   final Order order;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1446,45 +1549,52 @@ class _RecentOrderCard extends StatelessWidget {
           ).colorScheme.outlineVariant.withValues(alpha: 0.6),
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    order.id,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: const Color(0xFF0F172A),
-                      fontWeight: FontWeight.w800,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      order.id,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  _OrderStatusTag(
+                    label: order.status.label,
+                    color: statusColor,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                formatVnd(order.total),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w900,
                 ),
-                const SizedBox(width: 8),
-                _OrderStatusTag(label: order.status.label, color: statusColor),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              formatVnd(order.total),
-              style: theme.textTheme.titleLarge?.copyWith(
-                color: const Color(0xFF0F172A),
-                fontWeight: FontWeight.w900,
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${_formatRecentOrderMetaDate(order.createdAt)} \u2022 ${order.totalItems} SP \u2022 ${_shortPaymentStatus(order.paymentStatus)}',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF475569),
-                fontWeight: FontWeight.w600,
+              const SizedBox(height: 8),
+              Text(
+                '${_formatRecentOrderMetaDate(order.createdAt)} \u2022 ${order.totalItems} SP \u2022 ${_shortPaymentStatus(order.paymentStatus)}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: _dashboardMutedText(context),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1544,17 +1654,16 @@ class _LowStockCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final shortage = math.max(0, _lowStockAlertThreshold - product.stock);
     final isCritical = product.stock <= 3;
     final accentColor = isCritical
         ? const Color(0xFFDC2626)
         : const Color(0xFFD97706);
     final surfaceColor = isCritical
-        ? const Color(0xFFFEF2F2)
-        : const Color(0xFFFFF7ED);
-    final borderColor = isCritical
-        ? const Color(0xFFFCA5A5)
-        : const Color(0xFFFCD34D);
+        ? colorScheme.errorContainer
+        : colorScheme.tertiaryContainer;
+    final borderColor = isCritical ? colorScheme.error : colorScheme.tertiary;
     final ratio = (product.stock / _lowStockAlertThreshold)
         .clamp(0.0, 1.0)
         .toDouble();
@@ -1608,14 +1717,14 @@ class _LowStockCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF111827),
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       'SKU: ${_compactSku(product.sku)}',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: _dashboardMutedText,
+                        color: _dashboardMutedText(context),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1645,7 +1754,7 @@ class _LowStockCard extends StatelessWidget {
                     Text(
                       'Tồn / Ngưỡng',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: const Color(0xFF475569),
+                        color: _dashboardMutedText(context),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1703,7 +1812,7 @@ class _LowStockCard extends StatelessWidget {
                     ? 'Min $minimumTarget (thiếu $shortageToMinimum)'
                     : 'Min: $minimumTarget',
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: const Color(0xFF334155),
+                  color: colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -1745,27 +1854,33 @@ String _compactSku(String sku) {
 }
 
 class _LowStockPanel extends StatelessWidget {
-  const _LowStockPanel({required this.products, required this.onOpenInventory});
+  const _LowStockPanel({
+    required this.products,
+    required this.onOpenInventory,
+    required this.onOpenLowStockInventory,
+  });
 
   final List<Product> products;
   final VoidCallback onOpenInventory;
+  final VoidCallback onOpenLowStockInventory;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final hasAlerts = products.isNotEmpty;
     final panelColor = hasAlerts
-        ? const Color(0xFFFFF1F2)
-        : const Color(0xFFF0FDF4);
+        ? colorScheme.errorContainer
+        : colorScheme.tertiaryContainer;
     final panelBorderColor = hasAlerts
-        ? const Color(0xFFEF4444)
-        : const Color(0xFF86EFAC);
+        ? colorScheme.error
+        : colorScheme.tertiary;
     final headerIconBg = hasAlerts
-        ? const Color(0xFFFEF2F2)
-        : const Color(0xFFDCFCE7);
+        ? colorScheme.errorContainer
+        : colorScheme.tertiaryContainer;
     final headerIconColor = hasAlerts
-        ? const Color(0xFFDC2626)
-        : const Color(0xFF15803D);
+        ? colorScheme.onErrorContainer
+        : colorScheme.onTertiaryContainer;
     final headerTitle = hasAlerts ? 'Cảnh báo tồn kho thấp' : 'Tồn kho ổn định';
     final headerSubtitle = hasAlerts
         ? 'Mức ưu tiên cao, cần bổ sung hàng ngay.'
@@ -1812,8 +1927,8 @@ class _LowStockPanel extends StatelessWidget {
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w800,
                           color: hasAlerts
-                              ? const Color(0xFF7F1D1D)
-                              : const Color(0xFF14532D),
+                              ? colorScheme.onErrorContainer
+                              : colorScheme.onTertiaryContainer,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -1821,8 +1936,12 @@ class _LowStockPanel extends StatelessWidget {
                         headerSubtitle,
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: hasAlerts
-                              ? const Color(0xFF7C2D12)
-                              : const Color(0xFF166534),
+                              ? colorScheme.onErrorContainer.withValues(
+                                  alpha: 0.85,
+                                )
+                              : colorScheme.onTertiaryContainer.withValues(
+                                  alpha: 0.85,
+                                ),
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -1836,14 +1955,14 @@ class _LowStockPanel extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFEF2F2),
+                      color: colorScheme.errorContainer,
                       borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: const Color(0xFFFCA5A5)),
+                      border: Border.all(color: colorScheme.error),
                     ),
                     child: Text(
                       '${products.length} SKU',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: const Color(0xFFB91C1C),
+                        color: colorScheme.onErrorContainer,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -1879,10 +1998,10 @@ class _LowStockPanel extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: onOpenInventory,
+                  onPressed: onOpenLowStockInventory,
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFDC2626),
-                    foregroundColor: Colors.white,
+                    backgroundColor: colorScheme.error,
+                    foregroundColor: colorScheme.onError,
                     minimumSize: const Size(0, 44),
                   ),
                   icon: const Icon(Icons.local_shipping_outlined, size: 18),
@@ -1913,99 +2032,95 @@ class _OrderStatusDistributionCard extends StatelessWidget {
     final totalCount = totals.values.fold<int>(0, (sum, v) => sum + v);
     final showEmpty = totalCount == 0;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(
-            context,
-          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  'Phân bố trạng thái đơn',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          if (!showEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Text(
-                'Chạm vào từng trạng thái để xem danh sách đơn tương ứng.',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: const Color(0xFF475569),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          const SizedBox(height: 12),
-          if (showEmpty)
-            _EmptyCard(
-              title: 'Phân bố trạng thái đơn',
-              message: 'Bạn chưa có đơn hàng nào.',
-              description: 'Hãy tạo đơn hàng mới để bắt đầu theo dõi.',
-              icon: Icons.inbox_outlined,
-              ctaLabel: 'Tạo đơn hàng',
-              ctaSemanticLabel: 'Tạo đơn hàng mới để theo dõi trạng thái',
-              ctaIcon: Icons.add_shopping_cart_outlined,
-              onCtaPressed: onCreateOrder,
-            )
-          else
-            Column(
-              children: _statusOrder.map((status) {
-                final count = totals[status] ?? 0;
-                final ratio = totalCount == 0 ? 0.0 : count / totalCount;
-                final percent = totalCount == 0 ? 0 : (ratio * 100).round();
-                final statusOrders =
-                    orders.where((order) => order.status == status).toList()
-                      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _StatusBar(
-                    label: status.label,
-                    count: count,
-                    ratio: ratio,
-                    percent: percent,
-                    color: _statusColor(status),
-                    onTap: () => _showStatusDetailSheet(
-                      context: context,
-                      status: status,
-                      orders: statusOrders,
-                      totalCount: totalCount,
-                      color: _statusColor(status),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Phân bố trạng thái đơn',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                );
-              }).toList(),
+                ),
+              ],
             ),
-        ],
+            const SizedBox(height: 8),
+            if (!showEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: theme.colorScheme.outlineVariant),
+                ),
+                child: Text(
+                  'Chạm vào từng trạng thái để xem danh sách đơn tương ứng.',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: _dashboardMutedText(context),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 12),
+            if (showEmpty)
+              _EmptyCard(
+                title: 'Phân bố trạng thái đơn',
+                message: 'Bạn chưa có đơn hàng nào.',
+                description: 'Hãy tạo đơn hàng mới để bắt đầu theo dõi.',
+                icon: Icons.inbox_outlined,
+                ctaLabel: 'Tạo đơn hàng',
+                ctaSemanticLabel: 'Tạo đơn hàng mới để theo dõi trạng thái',
+                ctaIcon: Icons.add_shopping_cart_outlined,
+                onCtaPressed: onCreateOrder,
+              )
+            else
+              Column(
+                children: _statusOrder.map((status) {
+                  final count = totals[status] ?? 0;
+                  final ratio = totalCount == 0 ? 0.0 : count / totalCount;
+                  final percent = totalCount == 0 ? 0 : (ratio * 100).round();
+                  final statusOrders =
+                      orders.where((order) => order.status == status).toList()
+                        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _StatusBar(
+                      label: status.label,
+                      count: count,
+                      ratio: ratio,
+                      percent: percent,
+                      color: _statusColor(status),
+                      onTap: () => _showStatusDetailSheet(
+                        context: context,
+                        status: status,
+                        orders: statusOrders,
+                        totalCount: totalCount,
+                        color: _statusColor(status),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -2069,7 +2184,7 @@ class _OrderStatusDistributionCard extends StatelessWidget {
                     Text(
                       '$count đơn ($percent%)',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF1E293B),
+                        color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -2079,7 +2194,7 @@ class _OrderStatusDistributionCard extends StatelessWidget {
                 Text(
                   'Danh sách đơn theo trạng thái đã chọn',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF475569),
+                    color: _dashboardMutedText(context),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -2112,7 +2227,7 @@ class _OrderStatusDistributionCard extends StatelessWidget {
                           trailing: Text(
                             formatVnd(order.total),
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: const Color(0xFF1E293B),
+                              color: theme.colorScheme.onSurface,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -2149,7 +2264,62 @@ class _StatusBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final content = Row(
+
+    Widget ratioBar() {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          height: 11,
+          color: color.withValues(alpha: 0.16),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0, end: ratio.clamp(0.0, 1.0)),
+            duration: const Duration(milliseconds: 450),
+            curve: Curves.easeOutCubic,
+            builder: (context, animatedRatio, _) {
+              return FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: animatedRatio,
+                child: Container(color: color),
+              );
+            },
+          ),
+        ),
+      );
+    }
+
+    final compactContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '$count đơn ($percent%)',
+              textAlign: TextAlign.right,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ratioBar(),
+      ],
+    );
+
+    final regularContent = Row(
       children: [
         SizedBox(
           width: 86,
@@ -2158,33 +2328,13 @@ class _StatusBar extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: const Color(0xFF334155),
+              color: theme.colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
             ),
           ),
         ),
         const SizedBox(width: 10),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: Container(
-              height: 11,
-              color: color.withValues(alpha: 0.16),
-              child: TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0, end: ratio.clamp(0.0, 1.0)),
-                duration: const Duration(milliseconds: 450),
-                curve: Curves.easeOutCubic,
-                builder: (context, animatedRatio, _) {
-                  return FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: animatedRatio,
-                    child: Container(color: color),
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
+        Expanded(child: ratioBar()),
         const SizedBox(width: 10),
         SizedBox(
           width: 78,
@@ -2193,7 +2343,7 @@ class _StatusBar extends StatelessWidget {
             textAlign: TextAlign.right,
             style: theme.textTheme.bodySmall?.copyWith(
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF1E293B),
+              color: theme.colorScheme.onSurface,
               height: 1.25,
             ),
           ),
@@ -2206,16 +2356,21 @@ class _StatusBar extends StatelessWidget {
       borderRadius: BorderRadius.circular(10),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-        child: Row(
-          children: [
-            Expanded(child: content),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 18,
-              color: _dashboardMutedText,
-            ),
-          ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxWidth < 350;
+            return Row(
+              children: [
+                Expanded(child: isCompact ? compactContent : regularContent),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 18,
+                  color: _dashboardMutedText(context),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -2234,95 +2389,107 @@ class _AgingDebtCard extends StatelessWidget {
     final total = buckets.fold<int>(0, (sum, b) => sum + b.amount);
     final showEmpty = total == 0;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(
-            context,
-          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  'Công nợ theo tuổi nợ',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (!showEmpty)
-                TextButton.icon(
-                  onPressed: onViewAll,
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    minimumSize: const Size(44, 44),
-                    foregroundColor: const Color(0xFF1D4ED8),
-                  ),
-                  icon: const Icon(Icons.list_alt_outlined, size: 18),
-                  label: const Text('Xem danh sách'),
-                ),
-            ],
-          ),
-          if (!showEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Tổng công nợ: ${formatVnd(total)}',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF1E293B),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-          const SizedBox(height: 12),
-          if (showEmpty)
-            _EmptyCard(
-              title: 'Công nợ theo tuổi nợ',
-              message: 'Hiện chưa có công nợ phát sinh.',
-              description: 'Công nợ sẽ hiển thị sau khi có giao dịch.',
-              icon: Icons.account_balance_wallet_outlined,
-              ctaLabel: 'Xem danh sách công nợ',
-              ctaSemanticLabel: 'Mở danh sách công nợ',
-              ctaIcon: Icons.list_alt_outlined,
-              onCtaPressed: onViewAll,
-            )
-          else
-            Column(
-              children: buckets.map((bucket) {
-                final ratio = total == 0 ? 0.0 : bucket.amount / total;
-                final percent = total == 0 ? 0 : (ratio * 100).round();
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _AgingDebtRow(
-                    bucket: bucket,
-                    ratio: ratio,
-                    percent: percent,
-                    onTap: () => _showBucketDetailSheet(
-                      context: context,
-                      bucket: bucket,
-                      total: total,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Công nợ theo tuổi nợ',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                );
-              }).toList(),
+                ),
+                if (!showEmpty)
+                  TextButton.icon(
+                    onPressed: onViewAll,
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      minimumSize: const Size(44, 44),
+                      foregroundColor: const Color(0xFF1D4ED8),
+                    ),
+                    icon: const Icon(Icons.list_alt_outlined, size: 18),
+                    label: const Text('Xem danh sách'),
+                  ),
+              ],
             ),
-        ],
+            if (!showEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Tổng công nợ: ${formatVnd(total)}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: theme.colorScheme.outlineVariant),
+                ),
+                child: Text(
+                  'Chạm vào từng nhóm tuổi nợ để xem chi tiết công nợ.',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: _dashboardMutedText(context),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            if (showEmpty)
+              _EmptyCard(
+                title: 'Công nợ theo tuổi nợ',
+                message: 'Hiện chưa có công nợ phát sinh.',
+                description: 'Công nợ sẽ hiển thị sau khi có giao dịch.',
+                icon: Icons.account_balance_wallet_outlined,
+                ctaLabel: 'Xem danh sách công nợ',
+                ctaSemanticLabel: 'Mở danh sách công nợ',
+                ctaIcon: Icons.list_alt_outlined,
+                onCtaPressed: onViewAll,
+              )
+            else
+              Column(
+                children: buckets.map((bucket) {
+                  final ratio = total == 0 ? 0.0 : bucket.amount / total;
+                  final percent = total == 0 ? 0 : (ratio * 100).round();
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _AgingDebtRow(
+                      bucket: bucket,
+                      ratio: ratio,
+                      percent: percent,
+                      onTap: () => _showBucketDetailSheet(
+                        context: context,
+                        bucket: bucket,
+                        total: total,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -2374,7 +2541,7 @@ class _AgingDebtCard extends StatelessWidget {
                     Text(
                       '$percent%',
                       style: theme.textTheme.titleSmall?.copyWith(
-                        color: const Color(0xFF1E293B),
+                        color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -2384,7 +2551,7 @@ class _AgingDebtCard extends StatelessWidget {
                 Text(
                   'Giá trị: ${formatVnd(bucket.amount)}',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF1E293B),
+                    color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -2392,7 +2559,7 @@ class _AgingDebtCard extends StatelessWidget {
                 Text(
                   _bucketDescription(bucket),
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF475569),
+                    color: _dashboardMutedText(context),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -2449,7 +2616,11 @@ class _AgingDebtRow extends StatelessWidget {
     final theme = Theme.of(context);
     final label = Row(
       children: [
-        Icon(_bucketIcon(bucket), size: 14, color: _dashboardMutedText),
+        Icon(
+          _bucketIcon(bucket),
+          size: 14,
+          color: _dashboardMutedText(context),
+        ),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
@@ -2481,14 +2652,14 @@ class _AgingDebtRow extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleSmall?.copyWith(
-                  color: const Color(0xFF1E293B),
+                  color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               Text(
                 '$percent%',
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: const Color(0xFF475569),
+                  color: _dashboardMutedText(context),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -2646,9 +2817,9 @@ class _NoticeCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               formatDate(notice.createdAt),
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: _dashboardMutedText),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: _dashboardMutedText(context),
+              ),
             ),
           ],
         ),
@@ -2669,6 +2840,40 @@ class _SectionTitle extends StatelessWidget {
       style: Theme.of(
         context,
       ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+    );
+  }
+}
+
+class _HeaderSummaryChip extends StatelessWidget {
+  const _HeaderSummaryChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: _dashboardMutedText(context)),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -2748,12 +2953,16 @@ class _EmptyCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
+                  color: theme.colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
                   child: ExcludeSemantics(
-                    child: Icon(icon, size: 20, color: const Color(0xFF1D4ED8)),
+                    child: Icon(
+                      icon,
+                      size: 20,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
                   ),
                 ),
               ),
@@ -2762,7 +2971,7 @@ class _EmptyCard extends StatelessWidget {
                 title,
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0F172A),
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 4),
@@ -2770,7 +2979,7 @@ class _EmptyCard extends StatelessWidget {
                 message,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF1E293B),
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
               if (desc != null && desc.isNotEmpty) ...[
@@ -2778,7 +2987,7 @@ class _EmptyCard extends StatelessWidget {
                 Text(
                   desc,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF475569),
+                    color: _dashboardMutedText(context),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -2803,15 +3012,25 @@ class _EmptyCard extends StatelessWidget {
 }
 
 class _DashboardErrorView extends StatelessWidget {
-  const _DashboardErrorView({required this.message, required this.onRetry});
+  const _DashboardErrorView({
+    required this.message,
+    required this.onRetry,
+    required this.horizontalPadding,
+  });
 
   final String message;
   final VoidCallback onRetry;
+  final double horizontalPadding;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        16,
+        horizontalPadding,
+        24,
+      ),
       children: [
         _EmptyCard(
           title: 'Không thể tải dữ liệu dashboard',
@@ -2829,12 +3048,19 @@ class _DashboardErrorView extends StatelessWidget {
 }
 
 class _DashboardLoadingView extends StatelessWidget {
-  const _DashboardLoadingView();
+  const _DashboardLoadingView({required this.horizontalPadding});
+
+  final double horizontalPadding;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        16,
+        horizontalPadding,
+        24,
+      ),
       children: const [
         SkeletonBox(width: double.infinity, height: 150),
         SizedBox(height: 14),
@@ -3090,7 +3316,7 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
   Widget build(BuildContext context) {
     final rawData = widget.data;
     final theme = Theme.of(context);
-    const secondaryTextColor = Color(0xFF475569);
+    final secondaryTextColor = _dashboardMutedText(context);
     final windowDays = widget.windowDays;
     final isCompactMobile =
         MediaQuery.sizeOf(context).width < _mobileBreakpoint;
@@ -3101,7 +3327,7 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
         title: 'Chưa có dữ liệu kích hoạt',
         message:
             'Chưa ghi nhận lượt kích hoạt nào trong $windowDays ngày gần đây.',
-        description: 'Hay hoan tat don va xu ly serial de bat dau theo doi.',
+        description: 'Hãy hoàn tất đơn và xử lý serial để bắt đầu theo dõi.',
         icon: Icons.show_chart_outlined,
       );
     }
@@ -3135,10 +3361,13 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
         _selectedSpotIndex != null &&
         _selectedSpotIndex! >= 0 &&
         _selectedSpotIndex! < data.length;
-    final xLabelStep = math.max(
-      1,
-      (data.length / (isCompactMobile ? 4 : 7)).ceil(),
-    );
+    final targetLabelCount = useWeeklyBuckets
+        ? (isCompactMobile ? 3 : 6)
+        : (isCompactMobile ? 4 : 7);
+    final xLabelStep = math.max(1, (data.length / targetLabelCount).ceil());
+    final chartHeight = (MediaQuery.sizeOf(context).width * 0.45)
+        .clamp(220.0, 320.0)
+        .toDouble();
 
     bool shouldShowMarker(int index) {
       return index == 0 || index == data.length - 1 || index == peakIndex;
@@ -3191,14 +3420,14 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
+                  color: theme.colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                  border: Border.all(color: theme.colorScheme.outlineVariant),
                 ),
                 child: Text(
                   'Đang gộp dữ liệu theo tuần để dễ đọc trên mobile.',
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: const Color(0xFF1E3A8A),
+                    color: theme.colorScheme.onPrimaryContainer,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -3206,7 +3435,7 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
             ],
             const SizedBox(height: 8),
             SizedBox(
-              height: 220,
+              height: chartHeight,
               child: LineChart(
                 LineChartData(
                   minX: chartMinX,
@@ -3611,16 +3840,16 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Trang thai serial',
+              'Trạng thái serial',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              'Tong: $total don xu ly serial',
+              'Tổng: $total đơn xử lý serial',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: _dashboardMutedText,
+                color: _dashboardMutedText(context),
               ),
             ),
             const SizedBox(height: 10),
@@ -3910,7 +4139,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
               Text(
                 '$total',
                 style: theme.textTheme.headlineMedium?.copyWith(
-                  color: const Color(0xFF0F172A),
+                  color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.w900,
                   fontSize: 22,
                   height: 1.0,
@@ -3920,7 +4149,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
               Text(
                 'Tổng',
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: _dashboardMutedText,
+                  color: _dashboardMutedText(context),
                   fontWeight: FontWeight.w600,
                   fontSize: 12,
                 ),
@@ -3957,7 +4186,9 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
       button: true,
       label: '${stat.label}: ${stat.count} đơn, $percent%',
       child: Material(
-        color: isSelected ? const Color(0xFFF8FAFC) : Colors.transparent,
+        color: isSelected
+            ? theme.colorScheme.surfaceContainerLow
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
@@ -3989,7 +4220,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF1E293B),
+                        color: theme.colorScheme.onSurface,
                         fontWeight: isSelected
                             ? FontWeight.w800
                             : FontWeight.w700,
@@ -4018,7 +4249,9 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
       button: true,
       label: '${stat.label}: ${stat.count} đơn, $percent%',
       child: Material(
-        color: isSelected ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
+        color: isSelected
+            ? theme.colorScheme.surfaceContainerHighest
+            : theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(999),
         child: InkWell(
           borderRadius: BorderRadius.circular(999),
@@ -4044,7 +4277,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
                               ? theme.textTheme.labelSmall
                               : theme.textTheme.labelMedium)
                           ?.copyWith(
-                            color: const Color(0xFF0F172A),
+                            color: theme.colorScheme.onSurface,
                             fontWeight: isSelected
                                 ? FontWeight.w800
                                 : FontWeight.w700,
@@ -4097,7 +4330,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
                   Text(
                     'Tổng',
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color: _dashboardMutedText,
+                      color: _dashboardMutedText(context),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -4110,7 +4343,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
         Text(
           'Chưa có dữ liệu trong khoảng thời gian này. Hãy chọn mốc khác hoặc bổ sung kích hoạt mới.',
           style: theme.textTheme.bodySmall?.copyWith(
-            color: const Color(0xFF475569),
+            color: _dashboardMutedText(context),
             fontWeight: FontWeight.w600,
           ),
           textAlign: TextAlign.center,
@@ -4385,7 +4618,7 @@ class _TopCustomerCard extends StatelessWidget {
                 Text(
                   stat.phone,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: _dashboardMutedText,
+                    color: _dashboardMutedText(context),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -4411,7 +4644,7 @@ class _TopCustomerCard extends StatelessWidget {
               Text(
                 'TB/đơn: ${formatVnd(stat.avgOrder)}',
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: _dashboardMutedText,
+                  color: _dashboardMutedText(context),
                 ),
               ),
             ],
@@ -4533,7 +4766,7 @@ class _MiniKpi extends StatelessWidget {
         Text(
           label,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: const Color(0xFF475569),
+            color: _dashboardMutedText(context),
           ),
         ),
       ],

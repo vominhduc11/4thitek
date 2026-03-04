@@ -32,7 +32,12 @@ enum InventoryStockFilter { all, inStock, lowStock, outOfStock }
 enum InventorySortOption { name, quantity, importedDate }
 
 class InventoryScreen extends StatefulWidget {
-  const InventoryScreen({super.key});
+  const InventoryScreen({
+    super.key,
+    this.initialStockFilter = InventoryStockFilter.all,
+  });
+
+  final InventoryStockFilter initialStockFilter;
 
   @override
   State<InventoryScreen> createState() => _InventoryScreenState();
@@ -52,6 +57,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   @override
   void initState() {
     super.initState();
+    _stockFilter = widget.initialStockFilter;
     _scrollController.addListener(_handleListScroll);
     unawaited(_reload());
   }
