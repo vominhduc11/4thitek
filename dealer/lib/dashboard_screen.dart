@@ -1044,6 +1044,7 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final focusMonth = widget.focusMonth.clamp(1, 12);
     final displayYear = widget.displayYear;
 
@@ -1160,23 +1161,25 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0F9FF),
+                  color: colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFBAE6FD)),
+                  border: Border.all(
+                    color: colorScheme.primary.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.info_outline_rounded,
                       size: 15,
-                      color: Color(0xFF0369A1),
+                      color: colorScheme.onPrimaryContainer,
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'Hiển thị đủ 12 tháng, $zeroValueMonthCount tháng chưa có dữ liệu đang được hiển thị là 0.',
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: const Color(0xFF075985),
+                          color: colorScheme.onPrimaryContainer,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
