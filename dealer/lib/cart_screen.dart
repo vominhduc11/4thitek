@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinbox/flutter_spinbox.dart';
 
+import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'checkout_screen.dart';
@@ -18,20 +19,28 @@ class CartScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isEnglish = AppSettingsScope.of(context).locale.languageCode == 'en';
+    final texts = _CartTexts(isEnglish: isEnglish);
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final cart = CartScope.of(context);
     final items = cart.items;
+    final hasAnyOrderableItems = items.any((item) => item.product.isOrderable);
     final discountPercent = cart.discountPercent;
     final discountAmount = cart.discountAmount;
     final totalAfterDiscount = cart.totalAfterDiscount;
     final vatAmount = cart.vatAmount;
     final total = cart.total;
     final isTablet = AppBreakpoints.isTablet(context);
+    final isLandscapePhone =
+        MediaQuery.orientationOf(context) == Orientation.landscape && !isTablet;
     final contentMaxWidth = isTablet ? 860.0 : double.infinity;
     final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.6);
     final safeBottom = MediaQuery.paddingOf(context).bottom;
     final listBottomPadding = 104 + safeBottom + (textScale - 1) * 24;
+    final quantityFieldWidth = isTablet
+        ? 148.0
+        : (isLandscapePhone ? 136.0 : 128.0);
 
     void removeItemWithUndo(CartItem item) {
       final removedQty = item.quantity;
@@ -41,9 +50,9 @@ class CartScreen extends StatelessWidget {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text('Đã xóa ${item.product.name} khỏi giỏ'),
+            content: Text(texts.removedFromCart(item.product.name)),
             action: SnackBarAction(
-              label: 'Hoàn tác',
+              label: texts.undoAction,
               onPressed: () {
                 cart.setQuantity(item.product, removedQty);
               },
@@ -52,9 +61,129 @@ class CartScreen extends StatelessWidget {
         );
     }
 
+    Future<bool?> confirmDismiss(CartItem item) {
+      return showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: Text(texts.deleteConfirmTitle),
+            content: Text(texts.deleteConfirmMessage(item.product.name)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(texts.cancelAction),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: colors.error,
+                  foregroundColor: colors.onError,
+                ),
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(texts.deleteAction),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    List<Widget> buildSummaryBreakdown() {
+      final rows = <Widget>[
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(texts.subtotalLabel, style: theme.textTheme.bodyMedium),
+            Text(
+              formatVnd(cart.subtotal),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ];
+
+      if (discountAmount > 0) {
+        rows.addAll([
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                texts.discountLabel(discountPercent),
+                style: theme.textTheme.bodyMedium,
+              ),
+              Text(
+                '-${formatVnd(discountAmount)}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(texts.afterDiscountLabel, style: theme.textTheme.bodyMedium),
+              Text(
+                formatVnd(totalAfterDiscount),
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ]);
+      }
+
+      rows.addAll([
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              texts.vatLabel(CartController.vatPercent),
+              style: theme.textTheme.bodyMedium,
+            ),
+            Text(formatVnd(vatAmount), style: theme.textTheme.bodyMedium),
+          ],
+        ),
+      ]);
+
+      if (cart.totalItems < 10) {
+        rows.addAll([
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              texts.buyMoreHint(target: 10, current: cart.totalItems),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ]);
+      } else if (cart.totalItems < 20) {
+        rows.addAll([
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              texts.buyMoreHint(target: 20, current: cart.totalItems),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ]);
+      }
+
+      return rows;
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const BrandAppBarTitle('Giỏ hàng'),
+        title: BrandAppBarTitle(texts.screenTitle),
         actions: const [GlobalSearchIconButton()],
       ),
       body: Center(
@@ -68,6 +197,7 @@ class CartScreen extends StatelessWidget {
                 ? FadeSlideIn(
                     key: const ValueKey('empty-cart'),
                     child: _EmptyCart(
+                      texts: texts,
                       onShop:
                           onShop ??
                           () {
@@ -89,16 +219,78 @@ class CartScreen extends StatelessWidget {
                           cart.suggestedAddQuantity(item.product) > 0;
                       final minQty = item.product.effectiveMinOrderQty;
                       final maxQty = item.product.stock;
+                      final isWide = isTablet || isLandscapePhone;
+                      final quantitySpinBox = SizedBox(
+                        width: quantityFieldWidth,
+                        child: SpinBox(
+                          min: minQty.toDouble(),
+                          max: maxQty.toDouble(),
+                          value: item.quantity.toDouble(),
+                          step: 1,
+                          decimals: 0,
+                          decoration: InputDecoration(
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: colors.outlineVariant,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: colors.primary,
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                          onChanged: (val) => cart.setQuantity(
+                            item.product,
+                            val.round(),
+                          ),
+                        ),
+                      );
+                      final deleteButton = IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          size: 20,
+                        ),
+                        color: const Color(0xFFDC2626),
+                        tooltip: texts.deleteTooltip,
+                        onPressed: () => removeItemWithUndo(item),
+                      );
+                      final stockWarning = !canIncrease
+                          ? <Widget>[
+                              const SizedBox(height: 4),
+                              Text(
+                                item.product.isOrderable
+                                    ? texts.maxStockReached
+                                    : texts.discontinuedProduct,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colors.error,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ]
+                          : <Widget>[];
                       return FadeSlideIn(
                         key: ValueKey(item.product.id),
                         delay: Duration(milliseconds: 30 * index),
                         child: Semantics(
                           container: true,
-                          label: 'Mục giỏ hàng ${item.product.name}',
-                          hint: 'Vuốt sang trái để xóa và có thể hoàn tác',
+                          label: texts.cartItemSemantics(item.product.name),
+                          hint: texts.cartItemHint,
                           child: Dismissible(
                             key: ValueKey('dismiss-${item.product.id}'),
                             direction: DismissDirection.endToStart,
+                            confirmDismiss: (_) => confirmDismiss(item),
                             background: Container(
                               alignment: Alignment.centerRight,
                               padding: const EdgeInsets.only(right: 20),
@@ -114,6 +306,7 @@ class CartScreen extends StatelessWidget {
                             ),
                             onDismissed: (_) => removeItemWithUndo(item),
                             child: Card(
+                              margin: EdgeInsets.zero,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(18),
@@ -124,110 +317,185 @@ class CartScreen extends StatelessWidget {
                                 ),
                               ),
                               child: Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  16,
+                                padding: EdgeInsets.fromLTRB(
+                                  isWide ? 16 : 12,
                                   12,
                                   4,
                                   12,
                                 ),
-                                child: Row(
-                                  children: [
-                                    ProductImage(
-                                      product: item.product,
-                                      width: 44,
-                                      height: 44,
-                                      borderRadius: BorderRadius.circular(12),
-                                      iconSize: 20,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
+                                child: isWide
+                                    // ── Wide layout (tablet / landscape) ──
+                                    ? Row(
+                                        children: [
+                                          ProductImage(
+                                            product: item.product,
+                                            width: 44,
+                                            height: 44,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            iconSize: 20,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  item.product.name,
+                                                  style: theme
+                                                      .textTheme.titleSmall
+                                                      ?.copyWith(
+                                                    fontWeight:
+                                                        FontWeight.w700,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  formatVnd(
+                                                    item.product.price,
+                                                  ),
+                                                  style: theme
+                                                      .textTheme.bodySmall
+                                                      ?.copyWith(
+                                                    color: colors
+                                                        .onSurfaceVariant,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  texts.lineTotalLabel(
+                                                    formatVnd(
+                                                      item.product.price *
+                                                          item.quantity,
+                                                    ),
+                                                  ),
+                                                  style: theme
+                                                      .textTheme.bodySmall
+                                                      ?.copyWith(
+                                                    color: colors.primary,
+                                                    fontWeight:
+                                                        FontWeight.w600,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  texts.skuLabel(
+                                                    item.product.sku,
+                                                  ),
+                                                  style: theme
+                                                      .textTheme.labelSmall
+                                                      ?.copyWith(
+                                                    color: colors
+                                                        .onSurfaceVariant,
+                                                  ),
+                                                ),
+                                                ...stockWarning,
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          quantitySpinBox,
+                                          deleteButton,
+                                        ],
+                                      )
+                                    // ── Compact layout (phone portrait) ──
+                                    : Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            item.product.name,
-                                            style: theme.textTheme.titleSmall
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w700,
+                                          Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              ProductImage(
+                                                product: item.product,
+                                                width: 56,
+                                                height: 56,
+                                                borderRadius:
+                                                    BorderRadius.circular(14),
+                                                iconSize: 22,
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment
+                                                          .start,
+                                                  children: [
+                                                    Text(
+                                                      item.product.name,
+                                                      style: theme.textTheme
+                                                          .titleSmall
+                                                          ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                      maxLines: 2,
+                                                      overflow: TextOverflow
+                                                          .ellipsis,
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      formatVnd(
+                                                        item.product.price,
+                                                      ),
+                                                      style: theme.textTheme
+                                                          .bodySmall
+                                                          ?.copyWith(
+                                                        color: colors
+                                                            .onSurfaceVariant,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      texts.skuLabel(
+                                                        item.product.sku,
+                                                      ),
+                                                      style: theme.textTheme
+                                                          .labelSmall
+                                                          ?.copyWith(
+                                                        color: colors
+                                                            .onSurfaceVariant,
+                                                      ),
+                                                    ),
+                                                    ...stockWarning,
+                                                  ],
                                                 ),
+                                              ),
+                                              deleteButton,
+                                            ],
                                           ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            formatVnd(item.product.price),
-                                            style: theme.textTheme.bodySmall
-                                                ?.copyWith(
-                                                  color:
-                                                      colors.onSurfaceVariant,
-                                                ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            'Tổng dòng: ${formatVnd(item.product.price * item.quantity)}',
-                                            style: theme.textTheme.bodySmall
-                                                ?.copyWith(
-                                                  color: colors.primary,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            'Số lượng chọn linh hoạt',
-                                            style: theme.textTheme.labelSmall
-                                                ?.copyWith(
-                                                  color:
-                                                      colors.onSurfaceVariant,
-                                                ),
-                                          ),
-                                          if (!canIncrease) ...[
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              item.product.isOrderable
-                                                  ? 'Đã đạt tồn kho tối đa'
-                                                  : 'Sản phẩm tạm ngưng phân phối',
-                                              style: theme.textTheme.bodySmall
-                                                  ?.copyWith(
-                                                    color: colors.error,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
+                                          const SizedBox(height: 8),
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              left: 68,
                                             ),
-                                          ],
+                                            child: Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    texts.lineTotalLabel(
+                                                      formatVnd(
+                                                        item.product.price *
+                                                            item.quantity,
+                                                      ),
+                                                    ),
+                                                    style: theme
+                                                        .textTheme.bodySmall
+                                                        ?.copyWith(
+                                                      color: colors.primary,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
+                                                quantitySpinBox,
+                                              ],
+                                            ),
+                                          ),
                                         ],
                                       ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    SizedBox(
-                                      width: 120,
-                                      child: SpinBox(
-                                        min: minQty.toDouble(),
-                                        max: maxQty.toDouble(),
-                                        value: item.quantity.toDouble(),
-                                        step: 1,
-                                        decimals: 0,
-                                        decoration: const InputDecoration(
-                                          isDense: true,
-                                          contentPadding: EdgeInsets.symmetric(
-                                            vertical: 8,
-                                          ),
-                                          border: InputBorder.none,
-                                        ),
-                                        onChanged: (val) => cart.setQuantity(
-                                          item.product,
-                                          val.round(),
-                                        ),
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.delete_outline,
-                                        size: 20,
-                                      ),
-                                      color: const Color(0xFFDC2626),
-                                      tooltip: 'Xóa khỏi giỏ',
-                                      onPressed: () => removeItemWithUndo(item),
-                                    ),
-                                  ],
-                                ),
                               ),
                             ),
                           ),
@@ -254,76 +522,44 @@ class CartScreen extends StatelessWidget {
                   ],
                 ),
                 child: Center(
+                  heightFactor: 1.0,
                   child: ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: contentMaxWidth),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Tạm tính', style: theme.textTheme.bodyMedium),
-                            Text(
-                              formatVnd(cart.subtotal),
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                        if (isLandscapePhone)
+                          Theme(
+                            data: theme.copyWith(
+                              dividerColor: Colors.transparent,
                             ),
-                          ],
-                        ),
-                        if (discountAmount > 0) ...[
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Chiết khấu ($discountPercent%)',
-                                style: theme.textTheme.bodyMedium,
-                              ),
-                              Text(
-                                '-${formatVnd(discountAmount)}',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: colors.primary,
+                            child: ExpansionTile(
+                              tilePadding: EdgeInsets.zero,
+                              childrenPadding: const EdgeInsets.only(top: 6),
+                              initiallyExpanded: false,
+                              title: Text(
+                                texts.paymentDetailsTitle,
+                                style: theme.textTheme.titleSmall?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Sau giảm giá',
-                                style: theme.textTheme.bodyMedium,
+                              subtitle: Text(
+                                texts.itemCountLabel(cart.totalItems),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colors.onSurfaceVariant,
+                                ),
                               ),
-                              Text(
-                                formatVnd(totalAfterDiscount),
-                                style: theme.textTheme.bodyMedium,
-                              ),
-                            ],
-                          ),
-                        ],
+                              children: buildSummaryBreakdown(),
+                            ),
+                          )
+                        else
+                          ...buildSummaryBreakdown(),
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'VAT (${CartController.vatPercent}%)',
-                              style: theme.textTheme.bodyMedium,
-                            ),
-                            Text(
-                              formatVnd(vatAmount),
-                              style: theme.textTheme.bodyMedium,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Tổng thanh toán',
+                              texts.totalPaymentLabel,
                               style: theme.textTheme.titleSmall,
                             ),
                             Text(
@@ -334,42 +570,35 @@ class CartScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                        if (cart.totalItems < 10) ...[
-                          const SizedBox(height: 6),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Mua thêm ${10 - cart.totalItems} sản phẩm để giảm 10%.',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colors.onSurfaceVariant,
+                        const SizedBox(height: 18),
+                        if (!hasAnyOrderableItems)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                texts.checkoutUnavailableHint,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colors.error,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),
-                        ] else if (cart.totalItems < 20) ...[
-                          const SizedBox(height: 6),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Mua thêm ${20 - cart.totalItems} sản phẩm để giảm 20%.',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colors.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                        ] else
-                          const SizedBox(height: 6),
-                        const SizedBox(height: 12),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => const CheckoutScreen(),
-                                ),
-                              );
-                            },
-                            child: const Text('Thanh toán'),
+                            onPressed: hasAnyOrderableItems
+                                ? () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const CheckoutScreen(),
+                                      ),
+                                    );
+                                  }
+                                : null,
+                            child: Text(texts.checkoutButton),
                           ),
                         ),
                       ],
@@ -383,9 +612,10 @@ class CartScreen extends StatelessWidget {
 }
 
 class _EmptyCart extends StatelessWidget {
-  const _EmptyCart({required this.onShop});
+  const _EmptyCart({required this.onShop, required this.texts});
 
   final VoidCallback onShop;
+  final _CartTexts texts;
 
   @override
   Widget build(BuildContext context) {
@@ -395,10 +625,14 @@ class _EmptyCart extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.shopping_cart_outlined, size: 64),
+            Icon(
+              Icons.shopping_cart_outlined,
+              size: 64,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
             const SizedBox(height: 16),
             Text(
-              'Giỏ hàng đang trống',
+              texts.emptyTitle,
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
@@ -406,7 +640,7 @@ class _EmptyCart extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Hãy thêm sản phẩm để bắt đầu đặt hàng.',
+              texts.emptySubtitle,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -415,11 +649,79 @@ class _EmptyCart extends StatelessWidget {
             const SizedBox(height: 18),
             ElevatedButton(
               onPressed: onShop,
-              child: const Text('Tiếp tục mua hàng'),
+              child: Text(texts.continueShoppingButton),
             ),
           ],
         ),
       ),
     );
   }
+}
+
+class _CartTexts {
+  const _CartTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get screenTitle => isEnglish ? 'Cart' : 'Giỏ hàng';
+  String get subtotalLabel => isEnglish ? 'Subtotal' : 'Tạm tính';
+  String discountLabel(int percent) =>
+      isEnglish ? 'Discount ($percent%)' : 'Chiết khấu ($percent%)';
+  String get afterDiscountLabel =>
+      isEnglish ? 'After discount' : 'Sau giảm giá';
+  String vatLabel(int percent) => 'VAT ($percent%)';
+  String get paymentDetailsTitle =>
+      isEnglish ? 'Payment details' : 'Chi tiết thanh toán';
+  String itemCountLabel(int count) =>
+      isEnglish ? '$count items' : '$count sản phẩm';
+  String get totalPaymentLabel =>
+      isEnglish ? 'Total payment' : 'Tổng thanh toán';
+  String get checkoutButton => isEnglish ? 'Checkout' : 'Thanh toán';
+  String get checkoutUnavailableHint => isEnglish
+      ? 'No available products for checkout.'
+      : 'Không có sản phẩm khả dụng để thanh toán.';
+
+  String removedFromCart(String productName) => isEnglish
+      ? 'Removed $productName from cart'
+      : 'Đã xóa $productName khỏi giỏ';
+  String get undoAction => isEnglish ? 'Undo' : 'Hoàn tác';
+  String get deleteAction => isEnglish ? 'Delete' : 'Xóa';
+  String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
+  String get deleteTooltip => isEnglish ? 'Remove from cart' : 'Xóa khỏi giỏ';
+  String get deleteConfirmTitle =>
+      isEnglish ? 'Confirm removal' : 'Xác nhận xóa';
+  String deleteConfirmMessage(String productName) => isEnglish
+      ? 'Remove $productName from your cart?'
+      : 'Xóa $productName khỏi giỏ hàng?';
+
+  String cartItemSemantics(String productName) =>
+      isEnglish ? 'Cart item $productName' : 'Mục giỏ hàng $productName';
+  String get cartItemHint => isEnglish
+      ? 'Swipe left to remove and undo if needed'
+      : 'Vuốt sang trái để xóa và có thể hoàn tác';
+
+  String lineTotalLabel(String amount) =>
+      isEnglish ? 'Line total: $amount' : 'Tổng dòng: $amount';
+  String skuLabel(String sku) => 'SKU: $sku';
+  String get maxStockReached =>
+      isEnglish ? 'Reached maximum stock' : 'Đã đạt tồn kho tối đa';
+  String get discontinuedProduct => isEnglish
+      ? 'Product is temporarily unavailable'
+      : 'Sản phẩm tạm ngưng phân phối';
+
+  String buyMoreHint({required int target, required int current}) {
+    final remaining = target - current;
+    if (isEnglish) {
+      return 'Buy $remaining more products to get $target% off.';
+    }
+    return 'Mua thêm $remaining sản phẩm để giảm $target%.';
+  }
+
+  String get emptyTitle =>
+      isEnglish ? 'Your cart is empty' : 'Giỏ hàng đang trống';
+  String get emptySubtitle => isEnglish
+      ? 'Add products to start placing your order.'
+      : 'Hãy thêm sản phẩm để bắt đầu đặt hàng.';
+  String get continueShoppingButton =>
+      isEnglish ? 'Continue shopping' : 'Tiếp tục mua hàng';
 }
