@@ -206,7 +206,6 @@ class _AccountScreenState extends State<AccountScreen> {
         ? 'Unable to load account profile.'
         : 'Không thể tải dữ liệu tài khoản.';
     final retryLabel = isEnglish ? 'Retry' : 'Thử lại';
-    final dealerCodePrefix = isEnglish ? 'Dealer code' : 'Mã đại lý';
 
     Widget buildBody() {
       if (_isProfileLoading) {
@@ -312,27 +311,6 @@ class _AccountScreenState extends State<AccountScreen> {
                                   profile.businessName,
                                   style: Theme.of(context).textTheme.titleLarge
                                       ?.copyWith(fontWeight: FontWeight.w700),
-                                ),
-                                const SizedBox(height: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: colors.secondaryContainer,
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                  child: Text(
-                                    '$dealerCodePrefix: ${profile.dealerCode}',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelMedium
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                          color: colors.onSecondaryContainer,
-                                        ),
-                                  ),
                                 ),
                               ],
                             ),

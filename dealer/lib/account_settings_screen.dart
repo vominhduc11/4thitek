@@ -16,7 +16,6 @@ class AccountSettingsScreen extends StatefulWidget {
 
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   final _businessNameController = TextEditingController();
-  final _dealerCodeController = TextEditingController();
   final _contactNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -54,7 +53,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       return;
     }
     _businessNameController.text = profile.businessName;
-    _dealerCodeController.text = profile.dealerCode;
     _contactNameController.text = profile.contactName;
     _emailController.text = profile.email;
     _phoneController.text = profile.phone;
@@ -74,7 +72,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       controller.removeListener(_handleFormChanged);
     }
     _businessNameController.dispose();
-    _dealerCodeController.dispose();
     _contactNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
@@ -250,7 +247,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     await saveDealerProfile(
       DealerProfile(
         businessName: _businessNameController.text.trim(),
-        dealerCode: _dealerCodeController.text.trim(),
         contactName: _contactNameController.text.trim(),
         email: _emailController.text.trim(),
         phone: _phoneController.text.trim(),
@@ -318,7 +314,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     final businessLabel = isEnglish
         ? 'Business / dealer name'
         : 'Tên doanh nghiệp / đại lý';
-    final dealerCodeLabel = isEnglish ? 'Dealer code' : 'Mã đại lý';
     final contactLabel = isEnglish ? 'Contact person' : 'Người liên hệ';
     final emailLabel = 'Email';
     final phoneLabel = isEnglish ? 'Phone number' : 'Số điện thoại';
@@ -378,22 +373,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                                     prefixIcon: const Padding(
                                       padding: EdgeInsets.all(12),
                                       child: BrandLogoIcon(size: 20),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 14),
-                                TextFormField(
-                                  controller: _dealerCodeController,
-                                  readOnly: true,
-                                  enabled: false,
-                                  decoration: InputDecoration(
-                                    labelText: dealerCodeLabel,
-                                    prefixIcon: const Icon(
-                                      Icons.badge_outlined,
-                                    ),
-                                    suffixIcon: const Icon(
-                                      Icons.lock_outline,
-                                      size: 18,
                                     ),
                                   ),
                                 ),
