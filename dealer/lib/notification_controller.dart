@@ -39,6 +39,11 @@ class NotificationController extends ChangeNotifier {
     _readIds.addAll(ids);
     notifyListeners();
   }
+
+  Future<void> refresh() async {
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    notifyListeners();
+  }
 }
 
 class NotificationScope extends InheritedNotifier<NotificationController> {

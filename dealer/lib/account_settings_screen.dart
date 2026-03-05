@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import 'app_settings_controller.dart';
+import 'breakpoints.dart';
 import 'dealer_profile_storage.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
+import 'widgets/section_card.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -19,13 +22,29 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   final _phoneController = TextEditingController();
   final _shippingAddressController = TextEditingController();
   final _policyController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _hasUnsavedChanges = false;
+  bool _didLoadInitialData = false;
+  String _initialSnapshot = '';
+
+  List<TextEditingController> get _editableControllers => [
+    _businessNameController,
+    _contactNameController,
+    _emailController,
+    _phoneController,
+    _shippingAddressController,
+    _policyController,
+  ];
 
   @override
   void initState() {
     super.initState();
+    for (final controller in _editableControllers) {
+      controller.addListener(_handleFormChanged);
+    }
     _loadData();
   }
 
@@ -41,11 +60,19 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     _phoneController.text = profile.phone;
     _shippingAddressController.text = profile.shippingAddress;
     _policyController.text = profile.salesPolicy;
-    setState(() => _isLoading = false);
+    _initialSnapshot = _formSnapshot();
+    _didLoadInitialData = true;
+    setState(() {
+      _isLoading = false;
+      _hasUnsavedChanges = false;
+    });
   }
 
   @override
   void dispose() {
+    for (final controller in _editableControllers) {
+      controller.removeListener(_handleFormChanged);
+    }
     _businessNameController.dispose();
     _dealerCodeController.dispose();
     _contactNameController.dispose();
@@ -56,180 +83,26 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const BrandAppBarTitle('Cài đặt tài khoản')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              children: [
-                FadeSlideIn(
-                  child: _SectionCard(
-                    title: 'Thông tin doanh nghiệp',
-                    child: Column(
-                      children: [
-                        TextField(
-                          controller: _businessNameController,
-                          textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            labelText: 'Tên doanh nghiệp / đại lý',
-                            prefixIcon: Padding(
-                              padding: EdgeInsets.all(12),
-                              child: BrandLogoIcon(size: 20),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        TextField(
-                          controller: _dealerCodeController,
-                          readOnly: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Mã đại lý',
-                            prefixIcon: Icon(Icons.badge_outlined),
-                            suffixIcon: Icon(Icons.lock_outline, size: 18),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        TextField(
-                          controller: _contactNameController,
-                          textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            labelText: 'Người liên hệ',
-                            prefixIcon: Icon(Icons.person_outline),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 80),
-                  child: _SectionCard(
-                    title: 'Địa chỉ giao hàng và liên hệ',
-                    child: Column(
-                      children: [
-                        TextField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
-                            prefixIcon: Icon(Icons.mail_outline),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        TextField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            labelText: 'Số điện thoại',
-                            prefixIcon: Icon(Icons.phone_outlined),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        TextField(
-                          controller: _shippingAddressController,
-                          maxLines: 2,
-                          textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            labelText: 'Địa chỉ giao hàng',
-                            prefixIcon: Icon(Icons.location_on_outlined),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 120),
-                  child: _SectionCard(
-                    title: 'Chính sách bán hàng',
-                    child: TextField(
-                      controller: _policyController,
-                      minLines: 3,
-                      maxLines: 5,
-                      decoration: const InputDecoration(
-                        labelText: 'Nội dung chính sách',
-                        alignLabelWithHint: true,
-                        prefixIcon: Icon(Icons.policy_outlined),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 160),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isSaving ? null : _handleSave,
-                      child: _isSaving
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                              ),
-                            )
-                          : const Text('Lưu thay đổi'),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-    );
+  void _handleFormChanged() {
+    if (!_didLoadInitialData) {
+      return;
+    }
+    final hasChanges = _formSnapshot() != _initialSnapshot;
+    if (hasChanges == _hasUnsavedChanges) {
+      return;
+    }
+    setState(() => _hasUnsavedChanges = hasChanges);
   }
 
-  Future<void> _handleSave() async {
-    final businessName = _businessNameController.text.trim();
-    final contactName = _contactNameController.text.trim();
-    final email = _emailController.text.trim();
-    final phone = _phoneController.text.trim();
-    final shippingAddress = _shippingAddressController.text.trim();
-    final salesPolicy = _policyController.text.trim();
-
-    if (businessName.isEmpty ||
-        contactName.isEmpty ||
-        email.isEmpty ||
-        phone.isEmpty ||
-        shippingAddress.isEmpty ||
-        salesPolicy.isEmpty) {
-      _showSnackBar('Vui lòng nhập đầy đủ thông tin.');
-      return;
-    }
-    if (!_isValidEmail(email)) {
-      _showSnackBar('Email không hợp lệ.');
-      return;
-    }
-    if (!_isValidPhone(phone)) {
-      _showSnackBar('Số điện thoại không hợp lệ.');
-      return;
-    }
-
-    setState(() => _isSaving = true);
-    await saveDealerProfile(
-      DealerProfile(
-        businessName: businessName,
-        dealerCode: _dealerCodeController.text.trim(),
-        contactName: contactName,
-        email: email,
-        phone: phone,
-        shippingAddress: shippingAddress,
-        salesPolicy: salesPolicy,
-      ),
-    );
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() => _isSaving = false);
-    _showSnackBar('Đã lưu thông tin tài khoản.');
+  String _formSnapshot() {
+    return [
+      _businessNameController.text.trim(),
+      _contactNameController.text.trim(),
+      _emailController.text.trim(),
+      _phoneController.text.trim(),
+      _shippingAddressController.text.trim(),
+      _policyController.text.trim(),
+    ].join('||');
   }
 
   bool _isValidEmail(String email) {
@@ -240,47 +113,414 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     return RegExp(r'^[0-9+\s-]{8,}$').hasMatch(phone);
   }
 
+  Future<bool> _handleWillPop(bool isEnglish) async {
+    if (_isSaving) {
+      return false;
+    }
+    if (!_hasUnsavedChanges) {
+      return true;
+    }
+    final shouldDiscard = await _confirmDiscardChanges(isEnglish);
+    return shouldDiscard ?? false;
+  }
+
+  Future<bool?> _confirmDiscardChanges(bool isEnglish) {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(isEnglish ? 'Unsaved changes' : 'Có thay đổi chưa lưu'),
+          content: Text(
+            isEnglish
+                ? 'You have unsaved changes. Do you want to leave this screen?'
+                : 'Bạn có thay đổi chưa lưu. Bạn có muốn thoát màn hình này không?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(isEnglish ? 'Stay' : 'Ở lại'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(isEnglish ? 'Leave' : 'Thoát'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _resetToDefaults(bool isEnglish) async {
+    if (_isSaving) {
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(isEnglish ? 'Reset fields' : 'Đặt lại dữ liệu'),
+          content: Text(
+            isEnglish
+                ? 'Reset editable fields to default values?'
+                : 'Đặt lại các trường có thể chỉnh sửa về giá trị mặc định?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(isEnglish ? 'Cancel' : 'Hủy'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(isEnglish ? 'Reset' : 'Đặt lại'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true) {
+      return;
+    }
+    final defaults = DealerProfile.defaults;
+    _businessNameController.text = defaults.businessName;
+    _contactNameController.text = defaults.contactName;
+    _emailController.text = defaults.email;
+    _phoneController.text = defaults.phone;
+    _shippingAddressController.text = defaults.shippingAddress;
+    _policyController.text = defaults.salesPolicy;
+    _showSnackBar(
+      isEnglish
+          ? 'Default values applied. Press Save to confirm.'
+          : 'Đã áp dụng giá trị mặc định. Nhấn Lưu để xác nhận.',
+    );
+  }
+
+  String? _requiredValidator(String? value, String message) {
+    if (value == null || value.trim().isEmpty) {
+      return message;
+    }
+    return null;
+  }
+
+  String? _emailValidator(String? value, bool isEnglish) {
+    final requiredMessage = isEnglish
+        ? 'Please enter your email.'
+        : 'Vui lòng nhập email.';
+    final invalidMessage = isEnglish
+        ? 'Invalid email format.'
+        : 'Email không hợp lệ.';
+    final requiredResult = _requiredValidator(value, requiredMessage);
+    if (requiredResult != null) {
+      return requiredResult;
+    }
+    if (!_isValidEmail(value!.trim())) {
+      return invalidMessage;
+    }
+    return null;
+  }
+
+  String? _phoneValidator(String? value, bool isEnglish) {
+    final requiredMessage = isEnglish
+        ? 'Please enter your phone number.'
+        : 'Vui lòng nhập số điện thoại.';
+    final invalidMessage = isEnglish
+        ? 'Invalid phone number format.'
+        : 'Số điện thoại không hợp lệ.';
+    final requiredResult = _requiredValidator(value, requiredMessage);
+    if (requiredResult != null) {
+      return requiredResult;
+    }
+    if (!_isValidPhone(value!.trim())) {
+      return invalidMessage;
+    }
+    return null;
+  }
+
+  Future<void> _handleSave(bool isEnglish) async {
+    final form = _formKey.currentState;
+    if (form == null || !form.validate()) {
+      _showSnackBar(
+        isEnglish
+            ? 'Please review the highlighted fields.'
+            : 'Vui lòng kiểm tra các trường đang báo lỗi.',
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    await saveDealerProfile(
+      DealerProfile(
+        businessName: _businessNameController.text.trim(),
+        dealerCode: _dealerCodeController.text.trim(),
+        contactName: _contactNameController.text.trim(),
+        email: _emailController.text.trim(),
+        phone: _phoneController.text.trim(),
+        shippingAddress: _shippingAddressController.text.trim(),
+        salesPolicy: _policyController.text.trim(),
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    _initialSnapshot = _formSnapshot();
+    setState(() {
+      _isSaving = false;
+      _hasUnsavedChanges = false;
+    });
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            isEnglish
+                ? 'Profile saved successfully.'
+                : 'Đã lưu thông tin tài khoản.',
+          ),
+          action: SnackBarAction(
+            label: isEnglish ? 'Back' : 'Quay lại',
+            onPressed: () {
+              if (mounted) {
+                Navigator.of(context).maybePop();
+              }
+            },
+          ),
+        ),
+      );
+  }
+
   void _showSnackBar(String message) {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
-}
-
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.title, required this.child});
-
-  final String title;
-  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(
-          color: Theme.of(
-            context,
-          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+    final appSettings = AppSettingsScope.of(context);
+    final isEnglish = appSettings.locale.languageCode == 'en';
+    final isTablet = AppBreakpoints.isTablet(context);
+    final contentMaxWidth = isTablet ? 860.0 : double.infinity;
+
+    final screenTitle = isEnglish ? 'Account settings' : 'Cài đặt tài khoản';
+    final resetTooltip = isEnglish ? 'Reset to defaults' : 'Đặt lại mặc định';
+    final companyTitle = isEnglish
+        ? 'Business information'
+        : 'Thông tin doanh nghiệp';
+    final shippingTitle = isEnglish
+        ? 'Shipping and contact'
+        : 'Địa chỉ giao hàng và liên hệ';
+    final policyTitle = isEnglish ? 'Sales policy' : 'Chính sách bán hàng';
+    final saveLabel = isEnglish ? 'Save changes' : 'Lưu thay đổi';
+    final businessLabel = isEnglish
+        ? 'Business / dealer name'
+        : 'Tên doanh nghiệp / đại lý';
+    final dealerCodeLabel = isEnglish ? 'Dealer code' : 'Mã đại lý';
+    final contactLabel = isEnglish ? 'Contact person' : 'Người liên hệ';
+    final emailLabel = 'Email';
+    final phoneLabel = isEnglish ? 'Phone number' : 'Số điện thoại';
+    final shippingLabel = isEnglish ? 'Shipping address' : 'Địa chỉ giao hàng';
+    final policyLabel = isEnglish ? 'Policy details' : 'Nội dung chính sách';
+
+    return PopScope<void>(
+      canPop: !_hasUnsavedChanges && !_isSaving,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) {
+          return;
+        }
+        final canLeave = await _handleWillPop(isEnglish);
+        if (!canLeave || !context.mounted) {
+          return;
+        }
+        Navigator.of(context).pop();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: BrandAppBarTitle(screenTitle),
+          actions: [
+            IconButton(
+              tooltip: resetTooltip,
+              onPressed: _isSaving ? null : () => _resetToDefaults(isEnglish),
+              icon: const Icon(Icons.restore_outlined),
             ),
-            const SizedBox(height: 12),
-            child,
           ],
         ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                  child: Form(
+                    key: _formKey,
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                      children: [
+                        FadeSlideIn(
+                          child: SectionCard(
+                            title: companyTitle,
+                            child: Column(
+                              children: [
+                                TextFormField(
+                                  controller: _businessNameController,
+                                  textInputAction: TextInputAction.next,
+                                  validator: (value) => _requiredValidator(
+                                    value,
+                                    isEnglish
+                                        ? 'Please enter business name.'
+                                        : 'Vui lòng nhập tên doanh nghiệp.',
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText: businessLabel,
+                                    prefixIcon: const Padding(
+                                      padding: EdgeInsets.all(12),
+                                      child: BrandLogoIcon(size: 20),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _dealerCodeController,
+                                  readOnly: true,
+                                  enabled: false,
+                                  decoration: InputDecoration(
+                                    labelText: dealerCodeLabel,
+                                    prefixIcon: const Icon(
+                                      Icons.badge_outlined,
+                                    ),
+                                    suffixIcon: const Icon(
+                                      Icons.lock_outline,
+                                      size: 18,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _contactNameController,
+                                  textInputAction: TextInputAction.next,
+                                  validator: (value) => _requiredValidator(
+                                    value,
+                                    isEnglish
+                                        ? 'Please enter contact person.'
+                                        : 'Vui lòng nhập người liên hệ.',
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText: contactLabel,
+                                    prefixIcon: const Icon(
+                                      Icons.person_outline,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        FadeSlideIn(
+                          delay: const Duration(milliseconds: 80),
+                          child: SectionCard(
+                            title: shippingTitle,
+                            child: Column(
+                              children: [
+                                TextFormField(
+                                  controller: _emailController,
+                                  keyboardType: TextInputType.emailAddress,
+                                  textInputAction: TextInputAction.next,
+                                  validator: (value) =>
+                                      _emailValidator(value, isEnglish),
+                                  decoration: InputDecoration(
+                                    labelText: emailLabel,
+                                    prefixIcon: const Icon(Icons.mail_outline),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _phoneController,
+                                  keyboardType: TextInputType.phone,
+                                  textInputAction: TextInputAction.next,
+                                  validator: (value) =>
+                                      _phoneValidator(value, isEnglish),
+                                  decoration: InputDecoration(
+                                    labelText: phoneLabel,
+                                    prefixIcon: const Icon(
+                                      Icons.phone_outlined,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _shippingAddressController,
+                                  maxLines: 2,
+                                  textInputAction: TextInputAction.next,
+                                  validator: (value) => _requiredValidator(
+                                    value,
+                                    isEnglish
+                                        ? 'Please enter shipping address.'
+                                        : 'Vui lòng nhập địa chỉ giao hàng.',
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText: shippingLabel,
+                                    prefixIcon: const Icon(
+                                      Icons.location_on_outlined,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        FadeSlideIn(
+                          delay: const Duration(milliseconds: 120),
+                          child: SectionCard(
+                            title: policyTitle,
+                            child: TextFormField(
+                              controller: _policyController,
+                              minLines: 3,
+                              maxLines: 5,
+                              validator: (value) => _requiredValidator(
+                                value,
+                                isEnglish
+                                    ? 'Please enter policy details.'
+                                    : 'Vui lòng nhập nội dung chính sách.',
+                              ),
+                              decoration: InputDecoration(
+                                labelText: policyLabel,
+                                alignLabelWithHint: true,
+                                prefixIcon: const Icon(Icons.policy_outlined),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        FadeSlideIn(
+                          delay: const Duration(milliseconds: 160),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: _isSaving
+                                  ? null
+                                  : () => _handleSave(isEnglish),
+                              child: _isSaving
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                      ),
+                                    )
+                                  : Text(saveLabel),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
       ),
     );
   }

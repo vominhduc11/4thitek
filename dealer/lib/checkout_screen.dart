@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'account_settings_screen.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'dealer_profile_storage.dart';
@@ -11,6 +12,7 @@ import 'order_success_screen.dart';
 import 'utils.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
+import 'widgets/product_image.dart';
 import 'widgets/section_card.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -23,6 +25,8 @@ class CheckoutScreen extends StatefulWidget {
 class _CheckoutScreenState extends State<CheckoutScreen> {
   OrderPaymentMethod _method = OrderPaymentMethod.bankTransfer;
   DealerProfile _profile = DealerProfile.defaults;
+  final TextEditingController _orderNoteController = TextEditingController();
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -32,6 +36,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    _orderNoteController.dispose();
+    super.dispose();
+  }
+
   OrderPaymentStatus get _previewPaymentStatus {
     switch (_method) {
       case OrderPaymentMethod.bankTransfer:
@@ -39,6 +49,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       case OrderPaymentMethod.debt:
         return OrderPaymentStatus.debtRecorded;
     }
+  }
+
+  String get _primaryActionLabel {
+    if (_method == OrderPaymentMethod.bankTransfer) {
+      return 'Chuyển khoản & đặt hàng';
+    }
+    return 'Xác nhận đặt hàng';
+  }
+
+  Future<void> _openAccountSettings() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const AccountSettingsScreen()));
+    final latestProfile = await loadDealerProfile();
+    if (!mounted) {
+      return;
+    }
+    setState(() => _profile = latestProfile);
   }
 
   @override
@@ -73,10 +101,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: _openAccountSettings,
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                          label: const Text('Sửa thông tin nhận hàng'),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
                       Text(
                         _profile.businessName,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Người liên hệ: ${_profile.contactName}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colors.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -137,6 +181,60 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 120),
                 child: SectionCard(
+                  title: 'Sản phẩm trong đơn (${cart.totalItems})',
+                  child: Theme(
+                    data: Theme.of(
+                      context,
+                    ).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      childrenPadding: const EdgeInsets.only(top: 8),
+                      initiallyExpanded: cart.items.length <= 3,
+                      title: Text(
+                        '${cart.items.length} dòng sản phẩm',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Nhấn để xem chi tiết từng sản phẩm',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                      children: [
+                        for (var i = 0; i < cart.items.length; i++) ...[
+                          _CheckoutItemRow(item: cart.items[i]),
+                          if (i != cart.items.length - 1)
+                            const Divider(height: 18),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 160),
+                child: SectionCard(
+                  title: 'Ghi chú đơn hàng',
+                  child: TextField(
+                    controller: _orderNoteController,
+                    maxLines: 3,
+                    minLines: 2,
+                    maxLength: 200,
+                    decoration: const InputDecoration(
+                      hintText:
+                          'Ví dụ: giao giờ hành chính, gọi trước khi giao, lưu ý xuất hóa đơn...',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 200),
+                child: SectionCard(
                   title: 'Tóm tắt đơn hàng',
                   child: Column(
                     children: [
@@ -181,7 +279,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       if (_method == OrderPaymentMethod.bankTransfer) ...[
                         const SizedBox(height: 8),
                         Text(
-                          'Lưu ý: bấm "Tiếp tục" để mở thông tin chuyển khoản. Đơn chỉ được tạo khi hệ thống nhận thanh toán thành công.',
+                          'Lưu ý: bấm "$_primaryActionLabel" để mở thông tin chuyển khoản. Đơn chỉ được tạo khi hệ thống nhận thanh toán thành công.',
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: colors.error,
@@ -205,40 +303,62 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: cart.isEmpty
+                    onPressed: cart.isEmpty || _isSubmitting
                         ? null
                         : () async {
-                            final issues = _validateCart(cart);
-                            if (issues.isNotEmpty) {
-                              _showValidationDialog(context, issues);
-                              return;
-                            }
-
-                            final isBankTransfer =
-                                _method == OrderPaymentMethod.bankTransfer;
-                            var bankTransferPaid = false;
-                            if (isBankTransfer) {
-                              final paid = await _showBankTransferInfo(
-                                context,
-                                amount: total,
-                                owner: distributorBankOwner,
-                                account: distributorBankAccount,
-                                bankName: distributorBankName,
-                                content: distributorTransferTemplate,
-                              );
-                              if (paid != true) {
+                            setState(() => _isSubmitting = true);
+                            try {
+                              final issues = _validateCart(cart);
+                              if (issues.isNotEmpty) {
+                                _showValidationDialog(context, issues);
                                 return;
                               }
-                              bankTransferPaid = true;
-                            }
 
-                            _placeOrder(
-                              cart: cart,
-                              orderController: orderController,
-                              bankTransferPaid: bankTransferPaid,
-                            );
+                              final isBankTransfer =
+                                  _method == OrderPaymentMethod.bankTransfer;
+                              var bankTransferPaid = false;
+                              if (isBankTransfer) {
+                                final paid = await _showBankTransferInfo(
+                                  context,
+                                  amount: total,
+                                  owner: distributorBankOwner,
+                                  account: distributorBankAccount,
+                                  bankName: distributorBankName,
+                                  content: distributorTransferTemplate,
+                                );
+                                if (paid != true) {
+                                  return;
+                                }
+                                bankTransferPaid = true;
+                              } else {
+                                final confirmed = await _showDebtConfirmDialog(
+                                  context,
+                                  amount: total,
+                                  itemCount: cart.totalItems,
+                                );
+                                if (confirmed != true) {
+                                  return;
+                                }
+                              }
+
+                              _placeOrder(
+                                cart: cart,
+                                orderController: orderController,
+                                bankTransferPaid: bankTransferPaid,
+                              );
+                            } finally {
+                              if (mounted) {
+                                setState(() => _isSubmitting = false);
+                              }
+                            }
                           },
-                    child: const Text('Tiếp tục'),
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2.5),
+                          )
+                        : Text(_primaryActionLabel),
                   ),
                 ),
               ),
@@ -295,6 +415,44 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
+  Future<bool?> _showDebtConfirmDialog(
+    BuildContext context, {
+    required int amount,
+    required int itemCount,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Xác nhận ghi nhận công nợ'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Đơn hàng sẽ được tạo ngay và ghi nhận vào tổng công nợ hiện tại.',
+              ),
+              const SizedBox(height: 12),
+              Text('Số lượng sản phẩm: $itemCount'),
+              const SizedBox(height: 4),
+              Text('Tổng thanh toán: ${formatVnd(amount)}'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Hủy'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Xác nhận đặt hàng'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _placeOrder({
     required CartController cart,
     required OrderController orderController,
@@ -321,6 +479,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           )
           .toList(growable: false),
       paidAmount: isPaidByBankTransfer ? cart.total : 0,
+      note: _orderNoteController.text.trim().isEmpty
+          ? null
+          : _orderNoteController.text.trim(),
     );
     final itemCount = order.totalItems;
     final totalPrice = order.total;
@@ -438,6 +599,69 @@ class _SummaryRow extends StatelessWidget {
                 style: valueStyle,
                 overflow: TextOverflow.ellipsis,
               ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _CheckoutItemRow extends StatelessWidget {
+  const _CheckoutItemRow({required this.item});
+
+  final CartItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ProductImage(
+          product: item.product,
+          width: 42,
+          height: 42,
+          borderRadius: BorderRadius.circular(10),
+          iconSize: 18,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                item.product.name,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'SKU: ${item.product.sku}',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              'x${item.quantity}',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              formatVnd(item.quantity * item.product.price),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
             ),
           ],
         ),

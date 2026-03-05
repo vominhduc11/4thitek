@@ -1,102 +1,140 @@
 import { Bell, Save, Shield } from 'lucide-react'
-import { useLanguage } from '../context/LanguageContext'
+import { useState } from 'react'
+import { useAdminData } from '../context/AdminDataContext'
+import { useToast } from '../context/ToastContext'
+import { useSimulatedPageLoad } from '../hooks/useSimulatedPageLoad'
+import { LoadingRows, PagePanel, PrimaryButton } from '../components/ui-kit'
 
 function SettingsPage() {
-  const { t } = useLanguage()
-  const panelClass =
-    'rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]'
-  const ghostButtonClass =
-    'btn-stable inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--accent)] hover:text-slate-900 hover:shadow-[0_12px_26px_rgba(15,23,42,0.12)]'
+  const { settings, updateSettings } = useAdminData()
+  const { notify } = useToast()
+  const { isLoading } = useSimulatedPageLoad('settings-page')
+
+  const [draft, setDraft] = useState(settings)
+
+  if (isLoading) {
+    return (
+      <PagePanel>
+        <LoadingRows rows={4} />
+      </PagePanel>
+    )
+  }
 
   return (
-    <section className={`${panelClass} animate-card-enter`}>
+    <PagePanel>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">
-            {t('Cài đặt')}
-          </h3>
+          <h3 className="text-lg font-semibold text-slate-900">Cai dat</h3>
           <p className="text-sm text-slate-500">
-            {t('Cấu hình bảo mật, thông báo và chính sách mặc định.')}
+            Cau hinh bao mat, thong bao va chinh sach mac dinh.
           </p>
         </div>
-        <button className={ghostButtonClass} type="button">
-          <Save className="h-4 w-4" />
-          {t('Lưu thay đổi')}
-        </button>
+        <PrimaryButton
+          icon={<Save className="h-4 w-4" />}
+          onClick={() => {
+            updateSettings(draft)
+            notify('Da luu cai dat he thong', { title: 'Settings', variant: 'success' })
+          }}
+          type="button"
+        >
+          Luu thay doi
+        </PrimaryButton>
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <div className="rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] p-5">
+        <section className="rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] p-5">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
             <Shield className="h-4 w-4 text-[var(--accent-strong)]" />
-            {t('Bảo mật')}
+            Bao mat
           </div>
-          <div className="mt-4 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">
-                  {t('Xác nhận email')}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {t('Yêu cầu admin xác nhận đăng nhập qua email.')}
-                </p>
-              </div>
-              <button className={ghostButtonClass} type="button">
-                {t('Cấu hình')}
-              </button>
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">
-                  {t('Hết phiên đăng nhập')}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {t('Tự động đăng xuất sau 30 phút.')}
-                </p>
-              </div>
-              <button className={ghostButtonClass} type="button">
-                {t('Điều chỉnh')}
-              </button>
-            </div>
-          </div>
-        </div>
 
-        <div className="rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] p-5">
+          <div className="mt-4 space-y-3">
+            <label className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Xac nhan email</p>
+                <p className="text-xs text-slate-500">
+                  Yeu cau admin xac nhan dang nhap qua email.
+                </p>
+              </div>
+              <input
+                checked={draft.emailConfirmation}
+                className="mt-1 h-5 w-5 accent-[var(--accent)]"
+                onChange={(event) =>
+                  setDraft((prev) => ({ ...prev, emailConfirmation: event.target.checked }))
+                }
+                type="checkbox"
+              />
+            </label>
+
+            <label className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Het phien dang nhap</p>
+                <p className="text-xs text-slate-500">
+                  Tu dong dang xuat sau so phut cau hinh.
+                </p>
+              </div>
+              <select
+                aria-label="Session timeout"
+                className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                onChange={(event) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    sessionTimeoutMinutes: Number(event.target.value),
+                  }))
+                }
+                value={draft.sessionTimeoutMinutes}
+              >
+                <option value={15}>15 phut</option>
+                <option value={30}>30 phut</option>
+                <option value={45}>45 phut</option>
+                <option value={60}>60 phut</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] p-5">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
             <Bell className="h-4 w-4 text-[var(--accent-cool)]" />
-            {t('Thông báo')}
+            Thong bao
           </div>
-          <div className="mt-4 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
+          <div className="mt-4 space-y-3">
+            <label className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
               <div>
-                <p className="text-sm font-semibold text-slate-900">
-                  {t('Cảnh báo đơn hàng')}
-                </p>
+                <p className="text-sm font-semibold text-slate-900">Canh bao don hang</p>
                 <p className="text-xs text-slate-500">
-                  {t('Thông báo khi có đơn hàng giá trị cao.')}
+                  Thong bao khi co don hang gia tri cao.
                 </p>
               </div>
-              <button className={ghostButtonClass} type="button">
-                {t('Chỉnh sửa')}
-              </button>
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
+              <input
+                checked={draft.orderAlerts}
+                className="mt-1 h-5 w-5 accent-[var(--accent)]"
+                onChange={(event) =>
+                  setDraft((prev) => ({ ...prev, orderAlerts: event.target.checked }))
+                }
+                type="checkbox"
+              />
+            </label>
+            <label className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
               <div>
-                <p className="text-sm font-semibold text-slate-900">
-                  {t('Cảnh báo tồn kho')}
-                </p>
+                <p className="text-sm font-semibold text-slate-900">Canh bao ton kho</p>
                 <p className="text-xs text-slate-500">
-                  {t('Gửi thông báo khi tồn kho thấp.')}
+                  Gui thong bao khi ton kho thap.
                 </p>
               </div>
-              <button className={ghostButtonClass} type="button">
-                {t('Chỉnh sửa')}
-              </button>
-            </div>
+              <input
+                checked={draft.inventoryAlerts}
+                className="mt-1 h-5 w-5 accent-[var(--accent)]"
+                onChange={(event) =>
+                  setDraft((prev) => ({ ...prev, inventoryAlerts: event.target.checked }))
+                }
+                type="checkbox"
+              />
+            </label>
           </div>
-        </div>
+        </section>
       </div>
-    </section>
+    </PagePanel>
   )
 }
 

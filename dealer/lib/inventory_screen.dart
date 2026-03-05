@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import 'breakpoints.dart';
 import 'global_search.dart';
 import 'inventory_product_detail_screen.dart';
 import 'models.dart';
@@ -31,6 +32,8 @@ enum InventoryStockFilter { all, inStock, lowStock, outOfStock }
 
 enum InventorySortOption { name, quantity, importedDate }
 
+enum InventorySortDirection { ascending, descending }
+
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({
     super.key,
@@ -46,11 +49,18 @@ class InventoryScreen extends StatefulWidget {
 class _InventoryScreenState extends State<InventoryScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  Timer? _searchDebounce;
+  OrderController? _observedOrderController;
+  WarrantyController? _observedWarrantyController;
+  List<InventoryProductItem> _cachedInventoryItems =
+      const <InventoryProductItem>[];
+  bool _inventoryCacheDirty = true;
   InventoryLoadState _loadState = InventoryLoadState.loading;
 
   String _query = '';
   InventoryStockFilter _stockFilter = InventoryStockFilter.all;
   InventorySortOption _sortOption = InventorySortOption.importedDate;
+  InventorySortDirection _sortDirection = InventorySortDirection.descending;
   int _visibleItemCount = _inventoryPageSize;
   int _filteredItemCount = 0;
 
@@ -63,12 +73,39 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final nextOrderController = OrderScope.of(context);
+    if (!identical(_observedOrderController, nextOrderController)) {
+      _observedOrderController?.removeListener(_markInventoryCacheDirty);
+      _observedOrderController = nextOrderController;
+      _observedOrderController?.addListener(_markInventoryCacheDirty);
+      _inventoryCacheDirty = true;
+    }
+
+    final nextWarrantyController = WarrantyScope.of(context);
+    if (!identical(_observedWarrantyController, nextWarrantyController)) {
+      _observedWarrantyController?.removeListener(_markInventoryCacheDirty);
+      _observedWarrantyController = nextWarrantyController;
+      _observedWarrantyController?.addListener(_markInventoryCacheDirty);
+      _inventoryCacheDirty = true;
+    }
+  }
+
+  @override
   void dispose() {
+    _searchDebounce?.cancel();
+    _observedOrderController?.removeListener(_markInventoryCacheDirty);
+    _observedWarrantyController?.removeListener(_markInventoryCacheDirty);
     _searchController.dispose();
     _scrollController
       ..removeListener(_handleListScroll)
       ..dispose();
     super.dispose();
+  }
+
+  void _markInventoryCacheDirty() {
+    _inventoryCacheDirty = true;
   }
 
   Future<void> _reload() async {
@@ -122,6 +159,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 250), () {
+      if (!mounted) {
+        return;
+      }
+      _applySearchQuery(value);
+    });
+  }
+
+  void _applySearchQuery(String value) {
     setState(() {
       _query = value;
       _visibleItemCount = _inventoryPageSize;
@@ -139,17 +186,61 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   void _onSortChanged(InventorySortOption value) {
     setState(() {
-      _sortOption = value;
+      if (_sortOption != value) {
+        _sortOption = value;
+        _sortDirection = _defaultSortDirectionFor(value);
+      }
       _visibleItemCount = _inventoryPageSize;
     });
     _jumpToTop();
+  }
+
+  void _toggleSortDirection() {
+    setState(() {
+      _sortDirection = _sortDirection == InventorySortDirection.ascending
+          ? InventorySortDirection.descending
+          : InventorySortDirection.ascending;
+      _visibleItemCount = _inventoryPageSize;
+    });
+    _jumpToTop();
+  }
+
+  InventorySortDirection _defaultSortDirectionFor(InventorySortOption option) {
+    return switch (option) {
+      InventorySortOption.name => InventorySortDirection.ascending,
+      InventorySortOption.quantity ||
+      InventorySortOption.importedDate => InventorySortDirection.descending,
+    };
+  }
+
+  void _clearSearchQuery() {
+    _searchDebounce?.cancel();
+    _searchController.clear();
+    _applySearchQuery('');
+  }
+
+  List<InventoryProductItem> _resolveInventoryItems({
+    required OrderController orderController,
+    required WarrantyController warrantyController,
+  }) {
+    if (!_inventoryCacheDirty &&
+        identical(orderController, _observedOrderController) &&
+        identical(warrantyController, _observedWarrantyController)) {
+      return _cachedInventoryItems;
+    }
+    _cachedInventoryItems = _buildInventoryItems(
+      orderController: orderController,
+      warrantyController: warrantyController,
+    );
+    _inventoryCacheDirty = false;
+    return _cachedInventoryItems;
   }
 
   @override
   Widget build(BuildContext context) {
     final orderController = OrderScope.of(context);
     final warrantyController = WarrantyScope.of(context);
-    final inventoryItems = _buildInventoryItems(
+    final inventoryItems = _resolveInventoryItems(
       orderController: orderController,
       warrantyController: warrantyController,
     );
@@ -159,9 +250,38 @@ class _InventoryScreenState extends State<InventoryScreen> {
       query: _query,
       stockFilter: _stockFilter,
       sortOption: _sortOption,
+      sortAscending: _sortDirection == InventorySortDirection.ascending,
     );
 
     final summary = _buildSummary(inventoryItems);
+    final sortLabel = switch (_sortOption) {
+      InventorySortOption.name => 'Sắp xếp: Tên',
+      InventorySortOption.quantity => 'Sắp xếp: Tồn kho',
+      InventorySortOption.importedDate => 'Sắp xếp: Ngày nhập',
+    };
+    final summaryCards = <Widget>[
+      _SummaryChip(
+        label: 'Tổng sản phẩm',
+        value: '${summary.totalProducts}',
+        color: const Color(0xFF1D4ED8),
+        icon: Icons.inventory_2_outlined,
+        helperText: 'SKU đang theo dõi',
+      ),
+      _SummaryChip(
+        label: 'Tổng tồn kho',
+        value: '${summary.totalQuantity}',
+        color: const Color(0xFF047857),
+        icon: Icons.stacked_bar_chart_outlined,
+        helperText: 'Đơn vị còn khả dụng',
+      ),
+      _SummaryChip(
+        label: 'Sắp hết hàng',
+        value: '${summary.lowStockProducts}',
+        color: const Color(0xFFB45309),
+        icon: Icons.warning_amber_rounded,
+        helperText: 'Cần nhập thêm sớm',
+      ),
+    ];
     _filteredItemCount = filteredItems.length;
     final visibleItemCount = math.min(_visibleItemCount, filteredItems.length);
     final listBottomPadding =
@@ -169,6 +289,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
         kFloatingActionButtonMargin +
         _inventoryFabBottomSpacing +
         MediaQuery.paddingOf(context).bottom;
+    final isTablet =
+        MediaQuery.sizeOf(context).shortestSide >= AppBreakpoints.phone;
+    final maxWidth = isTablet ? 1040.0 : double.infinity;
 
     return Scaffold(
       appBar: AppBar(
@@ -176,163 +299,175 @@ class _InventoryScreenState extends State<InventoryScreen> {
         actions: const [GlobalSearchIconButton()],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      body: switch (_loadState) {
-        InventoryLoadState.loading => _InventoryLoadingView(
-          bottomPadding: listBottomPadding,
-        ),
-        InventoryLoadState.error => _InventoryErrorView(onRetry: _reload),
-        InventoryLoadState.ready => ListView(
-          controller: _scrollController,
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: EdgeInsets.fromLTRB(16, 12, 16, listBottomPadding),
-          children: [
-            Semantics(
-              textField: true,
-              label: 'Tìm kiếm sản phẩm theo tên, SKU hoặc serial',
-              child: TextField(
-                controller: _searchController,
-                onChanged: _onSearchChanged,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.search),
-                  hintText: 'Tìm theo tên sản phẩm, SKU, serial',
-                ),
-              ),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: switch (_loadState) {
+            InventoryLoadState.loading => _InventoryLoadingView(
+              bottomPadding: listBottomPadding,
             ),
-            const SizedBox(height: _inventorySectionSpacing),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _FilterChip(
-                  label: 'Tất cả',
-                  selected: _stockFilter == InventoryStockFilter.all,
-                  onTap: () => _onStockFilterChanged(InventoryStockFilter.all),
-                ),
-                _FilterChip(
-                  label: 'Còn hàng',
-                  selected: _stockFilter == InventoryStockFilter.inStock,
-                  onTap: () =>
-                      _onStockFilterChanged(InventoryStockFilter.inStock),
-                ),
-                _FilterChip(
-                  label: 'Sắp hết',
-                  selected: _stockFilter == InventoryStockFilter.lowStock,
-                  onTap: () =>
-                      _onStockFilterChanged(InventoryStockFilter.lowStock),
-                ),
-                _FilterChip(
-                  label: 'Hết hàng',
-                  selected: _stockFilter == InventoryStockFilter.outOfStock,
-                  onTap: () =>
-                      _onStockFilterChanged(InventoryStockFilter.outOfStock),
-                ),
-                _MenuFilterButton(
-                  label: switch (_sortOption) {
-                    InventorySortOption.name => 'Sắp xếp: Tên',
-                    InventorySortOption.quantity => 'Sắp xếp: Tồn kho',
-                    InventorySortOption.importedDate => 'Sắp xếp: Ngày nhập',
-                  },
-                  items: const [
-                    PopupMenuItem<String>(
-                      value: 'name',
-                      child: Text('Theo tên'),
+            InventoryLoadState.error => _InventoryErrorView(onRetry: _reload),
+            InventoryLoadState.ready => RefreshIndicator(
+              onRefresh: _reload,
+              child: ListView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: EdgeInsets.fromLTRB(16, 12, 16, listBottomPadding),
+                children: [
+                  Semantics(
+                    textField: true,
+                    label: 'Tìm kiếm sản phẩm theo tên, SKU hoặc serial',
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: _onSearchChanged,
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.search),
+                        hintText: 'Tìm theo tên sản phẩm, SKU, serial',
+                        suffixIcon: _query.isNotEmpty
+                            ? IconButton(
+                                tooltip: 'Xóa tìm kiếm',
+                                onPressed: _clearSearchQuery,
+                                icon: const Icon(Icons.close_rounded),
+                              )
+                            : null,
+                      ),
                     ),
-                    PopupMenuItem<String>(
-                      value: 'quantity',
-                      child: Text('Theo số lượng tồn'),
-                    ),
-                    PopupMenuItem<String>(
-                      value: 'importedDate',
-                      child: Text('Theo ngày nhập'),
-                    ),
-                  ],
-                  onSelected: (value) {
-                    _onSortChanged(switch (value) {
-                      'name' => InventorySortOption.name,
-                      'quantity' => InventorySortOption.quantity,
-                      _ => InventorySortOption.importedDate,
-                    });
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: _inventorySectionSpacing),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _SummaryChip(
-                  label: 'Tổng sản phẩm',
-                  value: '${summary.totalProducts}',
-                  color: const Color(0xFF1D4ED8),
-                  icon: Icons.inventory_2_outlined,
-                  helperText: 'SKU đang theo dõi',
-                ),
-                _SummaryChip(
-                  label: 'Tổng tồn kho',
-                  value: '${summary.totalQuantity}',
-                  color: const Color(0xFF047857),
-                  icon: Icons.stacked_bar_chart_outlined,
-                  helperText: 'Đơn vị còn khả dụng',
-                ),
-                _SummaryChip(
-                  label: 'Sắp hết hàng',
-                  value: '${summary.lowStockProducts}',
-                  color: const Color(0xFFB45309),
-                  icon: Icons.warning_amber_rounded,
-                  helperText: 'Cần nhập thêm sớm',
-                ),
-              ],
-            ),
-            const SizedBox(height: _inventorySectionSpacingLarge),
-            if (inventoryItems.isEmpty)
-              _InventoryEmptyView(
-                onImport: () =>
-                    unawaited(_handleQuickAction('import', orderController)),
-              )
-            else if (filteredItems.isEmpty)
-              _InventoryFilteredEmptyView(onClear: _clearFilters)
-            else ...[
-              for (var index = 0; index < visibleItemCount; index++)
-                Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: _inventoryListItemSpacing,
                   ),
-                  child: _InventoryProductTile(
-                    item: filteredItems[index],
-                    onTap: () {
-                      final item = filteredItems[index];
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => InventoryProductDetailScreen(
-                            product: item.product,
-                            availableQuantity: item.availableQuantity,
-                            importedQuantity: item.importedQuantity,
-                            soldQuantity: item.soldQuantity,
-                            defectiveQuantity: item.defectiveQuantity,
-                            orderIds: item.orderIds.toList(growable: false),
-                            latestImportedAt: item.latestImportedAt,
+                  const SizedBox(height: _inventorySectionSpacing),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _FilterChip(
+                        label: 'Tất cả',
+                        selected: _stockFilter == InventoryStockFilter.all,
+                        onTap: () =>
+                            _onStockFilterChanged(InventoryStockFilter.all),
+                      ),
+                      _FilterChip(
+                        label: 'Còn hàng',
+                        selected: _stockFilter == InventoryStockFilter.inStock,
+                        onTap: () =>
+                            _onStockFilterChanged(InventoryStockFilter.inStock),
+                      ),
+                      _FilterChip(
+                        label: 'Sắp hết',
+                        selected: _stockFilter == InventoryStockFilter.lowStock,
+                        onTap: () => _onStockFilterChanged(
+                          InventoryStockFilter.lowStock,
+                        ),
+                      ),
+                      _FilterChip(
+                        label: 'Hết hàng',
+                        selected:
+                            _stockFilter == InventoryStockFilter.outOfStock,
+                        onTap: () => _onStockFilterChanged(
+                          InventoryStockFilter.outOfStock,
+                        ),
+                      ),
+                      _MenuFilterButton(
+                        label:
+                            '$sortLabel ${_sortDirection == InventorySortDirection.ascending ? '↑' : '↓'}',
+                        items: const [
+                          PopupMenuItem<String>(
+                            value: 'name',
+                            child: Text('Theo tên'),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'quantity',
+                            child: Text('Theo số lượng tồn'),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'importedDate',
+                            child: Text('Theo ngày nhập'),
+                          ),
+                        ],
+                        onSelected: (value) {
+                          _onSortChanged(switch (value) {
+                            'name' => InventorySortOption.name,
+                            'quantity' => InventorySortOption.quantity,
+                            _ => InventorySortOption.importedDate,
+                          });
+                        },
+                      ),
+                      _SortDirectionButton(
+                        ascending:
+                            _sortDirection == InventorySortDirection.ascending,
+                        onTap: _toggleSortDirection,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: _inventorySectionSpacing),
+                  if (isTablet)
+                    Row(
+                      children: [
+                        Expanded(child: summaryCards[0]),
+                        const SizedBox(width: 8),
+                        Expanded(child: summaryCards[1]),
+                        const SizedBox(width: 8),
+                        Expanded(child: summaryCards[2]),
+                      ],
+                    )
+                  else
+                    Wrap(spacing: 8, runSpacing: 8, children: summaryCards),
+                  const SizedBox(height: _inventorySectionSpacingLarge),
+                  if (inventoryItems.isEmpty)
+                    _InventoryEmptyView(
+                      onImport: () => unawaited(
+                        _handleQuickAction('import', orderController),
+                      ),
+                    )
+                  else if (filteredItems.isEmpty)
+                    _InventoryFilteredEmptyView(onClear: _clearFilters)
+                  else ...[
+                    for (var index = 0; index < visibleItemCount; index++)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: _inventoryListItemSpacing,
+                        ),
+                        child: _InventoryProductTile(
+                          item: filteredItems[index],
+                          onTap: () {
+                            final item = filteredItems[index];
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => InventoryProductDetailScreen(
+                                  product: item.product,
+                                  availableQuantity: item.availableQuantity,
+                                  importedQuantity: item.importedQuantity,
+                                  soldQuantity: item.soldQuantity,
+                                  defectiveQuantity: item.defectiveQuantity,
+                                  orderIds: item.orderIds.toList(
+                                    growable: false,
+                                  ),
+                                  latestImportedAt: item.latestImportedAt,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    if (visibleItemCount < filteredItems.length)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 4, bottom: 4),
+                        child: Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                         ),
-                      );
-                    },
-                  ),
-                ),
-              if (visibleItemCount < filteredItems.length)
-                const Padding(
-                  padding: EdgeInsets.only(top: 4, bottom: 4),
-                  child: Center(
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                ),
-            ],
-          ],
+                      ),
+                  ],
+                ],
+              ),
+            ),
+          },
         ),
-      },
+      ),
       floatingActionButton: Semantics(
         button: true,
         label: 'Tác vụ nhanh',
@@ -350,28 +485,37 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   void _clearFilters() {
+    _searchDebounce?.cancel();
     _searchController.clear();
     setState(() {
       _query = '';
       _stockFilter = InventoryStockFilter.all;
       _sortOption = InventorySortOption.importedDate;
+      _sortDirection = InventorySortDirection.descending;
       _visibleItemCount = _inventoryPageSize;
     });
     _jumpToTop();
   }
 
   void _showActionSheet(OrderController orderController) {
+    final colorScheme = Theme.of(context).colorScheme;
     showModalBottomSheet<void>(
       context: context,
-      showDragHandle: false,
+      showDragHandle: true,
       backgroundColor: Colors.transparent,
-      barrierColor: const Color(0x660F172A),
+      barrierColor: colorScheme.scrim.withValues(alpha: 0.42),
       builder: (sheetContext) {
         void onSelect(String action) {
           Navigator.of(sheetContext).pop();
-          unawaited(_handleQuickAction(action, orderController));
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) {
+              return;
+            }
+            unawaited(_handleQuickAction(action, orderController));
+          });
         }
 
+        final sheetScheme = Theme.of(sheetContext).colorScheme;
         return SafeArea(
           top: false,
           child: Padding(
@@ -385,12 +529,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      sheetContext,
-                    ).colorScheme.surface.withValues(alpha: 0.95),
-                    boxShadow: const [
+                    color: sheetScheme.surface.withValues(alpha: 0.95),
+                    boxShadow: [
                       BoxShadow(
-                        color: Color(0x240F172A),
+                        color: sheetScheme.shadow.withValues(alpha: 0.14),
                         blurRadius: 20,
                         offset: Offset(0, -4),
                       ),
@@ -402,30 +544,19 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Center(
-                          child: Container(
-                            width: 38,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFCBD5E1),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
                         Row(
                           children: [
                             Container(
                               width: 24,
                               height: 24,
                               decoration: BoxDecoration(
-                                color: const Color(0xFFE0ECFF),
+                                color: sheetScheme.primaryContainer,
                                 borderRadius: BorderRadius.circular(999),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.flash_on_rounded,
                                 size: 14,
-                                color: Color(0xFF1D4ED8),
+                                color: sheetScheme.onPrimaryContainer,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -433,7 +564,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                               'Tác vụ nhanh',
                               style: Theme.of(context).textTheme.titleSmall
                                   ?.copyWith(
-                                    color: const Color(0xFF0F172A),
+                                    color: sheetScheme.onSurface,
                                     fontWeight: FontWeight.w800,
                                   ),
                             ),
@@ -443,7 +574,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         Text(
                           'Xuất hàng là thao tác chính',
                           style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: const Color(0xFF64748B)),
+                              ?.copyWith(color: sheetScheme.onSurfaceVariant),
                         ),
                         const SizedBox(height: 14),
                         _QuickActionSheetItem(
@@ -487,6 +618,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
     String action,
     OrderController orderController,
   ) async {
+    if (!mounted) {
+      return;
+    }
     switch (action) {
       case 'import':
         Navigator.of(
@@ -497,7 +631,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
         await _handleScanSerial(orderController);
         return;
       case 'export':
-        final orderId = _pickOrderForExport(orderController);
+        final orderId = await _pickOrderForExport(orderController);
+        if (!mounted) {
+          return;
+        }
         if (orderId == null) {
           _showSnackBar('Không có đơn phù hợp để xuất hàng lúc này.');
           return;
@@ -563,24 +700,135 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  String? _pickOrderForExport(OrderController orderController) {
+  Future<String?> _pickOrderForExport(OrderController orderController) async {
     final warrantyController = WarrantyScope.of(context);
+    final options = <_MainExportOrderOption>[];
     for (final order in orderController.orders) {
       if (order.status != OrderStatus.completed) {
         continue;
       }
+      var availableSerials = 0;
       for (final item in order.items) {
-        final available = warrantyController
+        availableSerials += warrantyController
             .availableImportedSerialCountForOrderItem(
               order.id,
               item.product.id,
             );
-        if (available > 0) {
-          return order.id;
-        }
+      }
+      if (availableSerials > 0) {
+        options.add(
+          _MainExportOrderOption(
+            orderId: order.id,
+            availableSerials: availableSerials,
+            createdAt: order.createdAt,
+          ),
+        );
       }
     }
-    return null;
+    if (options.isEmpty) {
+      return null;
+    }
+    options.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    if (options.length == 1) {
+      return options.first.orderId;
+    }
+    if (!mounted) {
+      return null;
+    }
+    return showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final colorScheme = Theme.of(sheetContext).colorScheme;
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Chọn đơn để xuất hàng',
+                  style: Theme.of(sheetContext).textTheme.titleSmall?.copyWith(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Có nhiều đơn hoàn thành còn serial khả dụng.',
+                  style: Theme.of(sheetContext).textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                for (final option in options) ...[
+                  Material(
+                    color: colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.38,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: colorScheme.outlineVariant.withValues(
+                          alpha: 0.6,
+                        ),
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () =>
+                          Navigator.of(sheetContext).pop(option.orderId),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Đơn ${option.orderId}',
+                                    style: Theme.of(sheetContext)
+                                        .textTheme
+                                        .bodyLarge
+                                        ?.copyWith(
+                                          color: colorScheme.onSurface,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Còn ${option.availableSerials} serial • ${formatDate(option.createdAt)}',
+                                    style: Theme.of(sheetContext)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: colorScheme.onSurfaceVariant,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _showSnackBar(String message) {
@@ -589,6 +837,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
+}
+
+class _MainExportOrderOption {
+  const _MainExportOrderOption({
+    required this.orderId,
+    required this.availableSerials,
+    required this.createdAt,
+  });
+
+  final String orderId;
+  final int availableSerials;
+  final DateTime createdAt;
 }
 
 class InventorySummary {
@@ -650,9 +910,6 @@ List<InventoryProductItem> _buildInventoryItems({
   final map = <String, _InventoryAccumulator>{};
   for (final order in completedOrders) {
     for (final item in order.items) {
-      if (item.product.category != ProductCategory.headset) {
-        continue;
-      }
       final current =
           map[item.product.id] ??
           _InventoryAccumulator(
@@ -732,6 +989,7 @@ List<InventoryProductItem> _filterAndSortItems({
   required String query,
   required InventoryStockFilter stockFilter,
   required InventorySortOption sortOption,
+  required bool sortAscending,
 }) {
   final keyword = query.trim().toLowerCase();
   final filtered = items
@@ -760,16 +1018,18 @@ List<InventoryProductItem> _filterAndSortItems({
       .toList(growable: false);
 
   filtered.sort((a, b) {
-    switch (sortOption) {
-      case InventorySortOption.name:
-        return a.product.name.toLowerCase().compareTo(
-          b.product.name.toLowerCase(),
-        );
-      case InventorySortOption.quantity:
-        return b.availableQuantity.compareTo(a.availableQuantity);
-      case InventorySortOption.importedDate:
-        return b.latestImportedAt.compareTo(a.latestImportedAt);
-    }
+    final compare = switch (sortOption) {
+      InventorySortOption.name => a.product.name.toLowerCase().compareTo(
+        b.product.name.toLowerCase(),
+      ),
+      InventorySortOption.quantity => a.availableQuantity.compareTo(
+        b.availableQuantity,
+      ),
+      InventorySortOption.importedDate => a.latestImportedAt.compareTo(
+        b.latestImportedAt,
+      ),
+    };
+    return sortAscending ? compare : -compare;
   });
   return filtered;
 }
@@ -828,6 +1088,7 @@ class _SummaryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
@@ -848,7 +1109,7 @@ class _SummaryChip extends StatelessWidget {
                 Text(
                   label,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF334155),
+                    color: colorScheme.onSurfaceVariant,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     height: 1.3,
@@ -870,7 +1131,7 @@ class _SummaryChip extends StatelessWidget {
             Text(
               helperText,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF475569),
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.92),
                 fontSize: 11,
               ),
             ),
@@ -894,6 +1155,7 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
       selected: selected,
@@ -905,13 +1167,20 @@ class _FilterChip extends StatelessWidget {
             label,
             style: Theme.of(
               context,
-            ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF1E293B)),
+            ).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
           ),
           selected: selected,
           showCheckmark: false,
           labelPadding: const EdgeInsets.symmetric(horizontal: 2),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           materialTapTargetSize: MaterialTapTargetSize.padded,
+          selectedColor: colorScheme.secondaryContainer,
+          backgroundColor: colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.42,
+          ),
+          side: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.8),
+          ),
           onSelected: (_) => onTap(),
         ),
       ),
@@ -932,6 +1201,7 @@ class _MenuFilterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
       label: 'Mở bộ lọc sắp xếp',
@@ -948,20 +1218,77 @@ class _MenuFilterButton extends StatelessWidget {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: ShapeDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
               shape: StadiumBorder(
                 side: BorderSide(
-                  color: Theme.of(context).dividerColor.withValues(alpha: 0.8),
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.78),
                 ),
               ),
             ),
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF1E293B),
-                fontWeight: FontWeight.w600,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(
+                  Icons.unfold_more_rounded,
+                  size: 18,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SortDirectionButton extends StatelessWidget {
+  const _SortDirectionButton({required this.ascending, required this.onTap});
+
+  final bool ascending;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final label = ascending ? 'Tăng dần' : 'Giảm dần';
+    return Semantics(
+      button: true,
+      label: 'Đổi chiều sắp xếp, hiện tại $label',
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: _inventoryMinTapTarget),
+        child: IconButton(
+          tooltip: 'Đổi chiều sắp xếp ($label)',
+          onPressed: onTap,
+          style: IconButton.styleFrom(
+            minimumSize: const Size(
+              _inventoryMinTapTarget,
+              _inventoryMinTapTarget,
+            ),
+            backgroundColor: colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.4,
+            ),
+            side: BorderSide(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.78),
+            ),
+          ),
+          icon: Icon(
+            ascending
+                ? Icons.arrow_upward_rounded
+                : Icons.arrow_downward_rounded,
+            size: 18,
+            color: colorScheme.onSurface,
           ),
         ),
       ),
@@ -988,19 +1315,18 @@ class _QuickActionSheetItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isPrimary = tone == _QuickActionTone.primary;
     final iconColor = isPrimary
-        ? const Color(0xFF1D4ED8)
-        : const Color(0xFF334155);
+        ? colorScheme.primary
+        : colorScheme.onSurfaceVariant;
     final surfaceColor = isPrimary
-        ? const Color(0xFFE7F0FF)
-        : const Color(0xFFF8FAFC);
+        ? colorScheme.primaryContainer.withValues(alpha: 0.58)
+        : colorScheme.surfaceContainerHighest.withValues(alpha: 0.55);
     final borderColor = isPrimary
-        ? const Color(0xFFBBD0FB)
-        : const Color(0xFFDCE4F1);
-    final titleColor = isPrimary
-        ? const Color(0xFF123A9D)
-        : const Color(0xFF0F172A);
+        ? colorScheme.primary.withValues(alpha: 0.34)
+        : colorScheme.outlineVariant.withValues(alpha: 0.72);
+    final titleColor = isPrimary ? colorScheme.primary : colorScheme.onSurface;
 
     return Material(
       color: Colors.transparent,
@@ -1025,9 +1351,7 @@ class _QuickActionSheetItem extends StatelessWidget {
                     width: 30,
                     height: 30,
                     decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surface.withValues(alpha: 0.94),
+                      color: colorScheme.surface.withValues(alpha: 0.95),
                       borderRadius: BorderRadius.circular(9),
                     ),
                     alignment: Alignment.center,
@@ -1051,7 +1375,7 @@ class _QuickActionSheetItem extends StatelessWidget {
                         Text(
                           subtitle,
                           style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: const Color(0xFF64748B)),
+                              ?.copyWith(color: colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -1079,21 +1403,32 @@ class _InventoryProductTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth <= 380;
+    final rightColumnWidth = isCompact ? 104.0 : 150.0;
     late final String status;
     late final Color statusColor;
     late final IconData statusIcon;
     switch (item.stockStatus) {
       case InventoryStockStatus.inStock:
         status = 'Còn hàng';
-        statusColor = const Color(0xFF166534);
+        statusColor = isDark
+            ? const Color(0xFF4ADE80)
+            : const Color(0xFF166534);
         statusIcon = Icons.check_circle_outline;
       case InventoryStockStatus.lowStock:
         status = 'Sắp hết';
-        statusColor = const Color(0xFF9A3412);
+        statusColor = isDark
+            ? const Color(0xFFFBBF24)
+            : const Color(0xFF9A3412);
         statusIcon = Icons.warning_amber_rounded;
       case InventoryStockStatus.outOfStock:
         status = 'Hết hàng';
-        statusColor = const Color(0xFFB91C1C);
+        statusColor = isDark
+            ? const Color(0xFFFCA5A5)
+            : const Color(0xFFB91C1C);
         statusIcon = Icons.remove_circle_outline;
     }
 
@@ -1103,7 +1438,7 @@ class _InventoryProductTile extends StatelessWidget {
           '${item.product.name}, SKU ${item.product.sku}, tồn ${item.availableQuantity}, trạng thái $status',
       child: Card(
         elevation: 1,
-        shadowColor: const Color(0x120F172A),
+        shadowColor: colorScheme.shadow.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
           side: BorderSide(
@@ -1144,7 +1479,7 @@ class _InventoryProductTile extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: const Color(0xFF0F172A),
+                          color: colorScheme.onSurface,
                           fontSize: 17,
                           height: 1.25,
                           fontWeight: FontWeight.w800,
@@ -1154,7 +1489,7 @@ class _InventoryProductTile extends StatelessWidget {
                       Text(
                         'SKU: ${item.product.sku}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF64748B),
+                          color: colorScheme.onSurfaceVariant,
                           fontSize: 11.5,
                           height: 1.3,
                         ),
@@ -1164,7 +1499,7 @@ class _InventoryProductTile extends StatelessWidget {
                         text: TextSpan(
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
-                                color: const Color(0xFF0F172A),
+                                color: colorScheme.onSurface,
                                 fontSize: 15,
                                 height: 1.2,
                               ),
@@ -1186,7 +1521,7 @@ class _InventoryProductTile extends StatelessWidget {
                           'Đã bán: ${item.soldQuantity} • Lỗi: ${item.defectiveQuantity}',
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
-                                color: const Color(0xFF475569),
+                                color: colorScheme.onSurfaceVariant,
                                 fontSize: 12,
                                 height: 1.25,
                               ),
@@ -1195,49 +1530,60 @@ class _InventoryProductTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: statusColor.withValues(alpha: 0.28),
+                SizedBox(width: isCompact ? 4 : 8),
+                SizedBox(
+                  width: rightColumnWidth,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: statusColor.withValues(alpha: 0.28),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(statusIcon, size: 12, color: statusColor),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                status,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: statusColor,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(statusIcon, size: 12, color: statusColor),
-                          const SizedBox(width: 4),
-                          Text(
-                            status,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: statusColor,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ],
+                      const SizedBox(height: 8),
+                      Text(
+                        isCompact
+                            ? formatDate(item.latestImportedAt)
+                            : 'Nhập gần nhất: ${formatDate(item.latestImportedAt)}',
+                        maxLines: isCompact ? 1 : 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                          height: 1.25,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Nhập gần nhất: ${formatDate(item.latestImportedAt)}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF64748B),
-                        fontSize: 12,
-                        height: 1.25,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -1291,7 +1637,7 @@ class _InventoryLoadingView extends StatelessWidget {
   }
 }
 
-class _SkeletonBox extends StatelessWidget {
+class _SkeletonBox extends StatefulWidget {
   const _SkeletonBox({
     this.width = double.infinity,
     required this.height,
@@ -1303,14 +1649,50 @@ class _SkeletonBox extends StatelessWidget {
   final double radius;
 
   @override
+  State<_SkeletonBox> createState() => _SkeletonBoxState();
+}
+
+class _SkeletonBoxState extends State<_SkeletonBox>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 980),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: const Color(0xFFEFF3FB),
-        borderRadius: BorderRadius.circular(radius),
-      ),
+    final colorScheme = Theme.of(context).colorScheme;
+    final baseColor =
+        Color.lerp(
+          colorScheme.surfaceContainerHighest,
+          colorScheme.surfaceContainerLow,
+          0.55,
+        ) ??
+        colorScheme.surfaceContainerHighest;
+    final highlightColor =
+        Color.lerp(baseColor, colorScheme.surface, 0.35) ?? colorScheme.surface;
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (_, _) {
+        final pulse =
+            Color.lerp(baseColor, highlightColor, _controller.value) ??
+            baseColor;
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          decoration: BoxDecoration(
+            color: pulse,
+            borderRadius: BorderRadius.circular(widget.radius),
+          ),
+        );
+      },
     );
   }
 }

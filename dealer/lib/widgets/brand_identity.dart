@@ -58,9 +58,9 @@ class BrandLogoWordmark extends StatelessWidget {
               '4THITEK',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
           ),
         );
@@ -70,17 +70,25 @@ class BrandLogoWordmark extends StatelessWidget {
 }
 
 class BrandAppBarTitle extends StatelessWidget {
-  const BrandAppBarTitle(this.title, {super.key, this.maxLines = 1});
+  const BrandAppBarTitle(
+    this.title, {
+    super.key,
+    this.maxLines = 1,
+    this.logoSize = 30,
+    this.logoGap = 4,
+  });
 
   final String title;
   final int maxLines;
+  final double logoSize;
+  final double logoGap;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const BrandLogoIcon(size: 22),
-        const SizedBox(width: 10),
+        BrandLogoIcon(size: logoSize),
+        SizedBox(width: logoGap),
         Expanded(
           child: Text(
             title,

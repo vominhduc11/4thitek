@@ -318,6 +318,23 @@ function ProductDetailPage() {
     return () => window.clearTimeout(timer)
   }, [actionMessage])
 
+  const descriptionEditorModules = useMemo(
+    () => ({
+      toolbar: [
+        [{ header: [1, 2, 3, false] }],
+        ['bold', 'italic', 'link'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        ['clean'],
+      ],
+    }),
+    [],
+  )
+
+  const descriptionEditorFormats = useMemo(
+    () => ['header', 'bold', 'italic', 'link', 'list'],
+    [],
+  )
+
   if (!product) {
     return (
       <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
@@ -465,23 +482,6 @@ function ProductDetailPage() {
     { id: 'gallery', label: t('Nhiều hình ảnh') },
     { id: 'video', label: t('Video') },
   ]
-
-  const descriptionEditorModules = useMemo(
-    () => ({
-      toolbar: [
-        [{ header: [1, 2, 3, false] }],
-        ['bold', 'italic', 'link'],
-        [{ list: 'ordered' }, { list: 'bullet' }],
-        ['clean'],
-      ],
-    }),
-    [],
-  )
-
-  const descriptionEditorFormats = useMemo(
-    () => ['header', 'bold', 'italic', 'link', 'list'],
-    [],
-  )
 
   const changeDescriptionType = (index: number, nextType: DescriptionItem['type']) => {
     setDraft((prev) => {
@@ -645,8 +645,14 @@ function ProductDetailPage() {
         const copy = [...prev.descriptions]
         const current = copy[index] ?? { type: 'gallery' as const, gallery: [] as { url: string }[] }
         const nextGallery = [...(current.gallery ?? [])]
-        const existing = nextGallery[itemIndex] ?? { url: '' }
-        nextGallery[itemIndex] = { ...existing, url }
+        const existing = nextGallery[itemIndex]
+        const existingItem =
+          typeof existing === 'string'
+            ? { url: existing }
+            : existing && typeof existing === 'object'
+              ? existing
+              : { url: '' }
+        nextGallery[itemIndex] = { ...existingItem, url }
         copy[index] = { ...current, type: 'gallery', gallery: nextGallery }
         return { ...prev, descriptions: copy }
       })

@@ -1,0 +1,227 @@
+import { Search, type LucideIcon } from 'lucide-react'
+import type {
+  ButtonHTMLAttributes,
+  ChangeEventHandler,
+  HTMLAttributes,
+  InputHTMLAttributes,
+  ReactNode,
+} from 'react'
+
+const cx = (...classes: Array<string | false | null | undefined>) =>
+  classes.filter(Boolean).join(' ')
+
+export const panelClass =
+  'rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]'
+
+export const softCardClass =
+  'rounded-3xl border border-slate-200/70 bg-white/80 p-4 shadow-sm backdrop-blur'
+
+export const ghostButtonClass =
+  'btn-stable inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--accent)] hover:text-slate-900 hover:shadow-[0_12px_26px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2'
+
+export const primaryButtonClass =
+  'btn-stable inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2'
+
+export const inputClass =
+  'h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1'
+
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  icon?: ReactNode
+}
+
+export const GhostButton = ({
+  className,
+  children,
+  icon,
+  ...props
+}: ButtonProps) => (
+  <button className={cx(ghostButtonClass, className)} {...props}>
+    {icon}
+    {children}
+  </button>
+)
+
+export const PrimaryButton = ({
+  className,
+  children,
+  icon,
+  ...props
+}: ButtonProps) => (
+  <button className={cx(primaryButtonClass, className)} {...props}>
+    {icon}
+    {children}
+  </button>
+)
+
+type SearchInputProps = {
+  id: string
+  label: string
+  placeholder: string
+  value: string
+  onChange: ChangeEventHandler<HTMLInputElement>
+  className?: string
+  inputProps?: Omit<InputHTMLAttributes<HTMLInputElement>, 'id' | 'value' | 'onChange' | 'placeholder' | 'type'>
+}
+
+export const SearchInput = ({
+  id,
+  label,
+  placeholder,
+  value,
+  onChange,
+  className,
+  inputProps,
+}: SearchInputProps) => (
+  <label className={cx('relative block', className)} htmlFor={id}>
+    <span className="sr-only">{label}</span>
+    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+    <input
+      id={id}
+      className={cx(inputClass, 'w-full pl-10 pr-4')}
+      placeholder={placeholder}
+      type="search"
+      value={value}
+      onChange={onChange}
+      {...inputProps}
+    />
+  </label>
+)
+
+type PagePanelProps = HTMLAttributes<HTMLElement> & {
+  as?: 'section' | 'div' | 'article'
+}
+
+export const PagePanel = ({
+  as: Tag = 'section',
+  className,
+  children,
+  ...props
+}: PagePanelProps) => (
+  <Tag className={cx(panelClass, 'animate-card-enter', className)} {...props}>
+    {children}
+  </Tag>
+)
+
+type StatCardProps = {
+  label: string
+  value: ReactNode
+  hint?: string
+  icon?: LucideIcon
+  tone?: 'neutral' | 'success' | 'warning' | 'info'
+}
+
+const statToneClass: Record<NonNullable<StatCardProps['tone']>, string> = {
+  neutral: 'text-slate-400',
+  success: 'text-emerald-500',
+  warning: 'text-amber-500',
+  info: 'text-blue-500',
+}
+
+export const StatCard = ({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  tone = 'neutral',
+}: StatCardProps) => (
+  <div className={softCardClass}>
+    <div className="flex items-center justify-between">
+      <span className="text-xs uppercase tracking-[0.2em] text-slate-400">{label}</span>
+      {Icon && <Icon className={cx('h-4 w-4', statToneClass[tone])} />}
+    </div>
+    <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
+    {hint && <p className="text-xs text-slate-500">{hint}</p>}
+  </div>
+)
+
+export type BadgeTone = 'success' | 'warning' | 'info' | 'neutral' | 'danger'
+
+type StatusBadgeProps = {
+  tone: BadgeTone
+  children: ReactNode
+  icon?: ReactNode
+  className?: string
+}
+
+const badgeToneClass: Record<BadgeTone, string> = {
+  success: 'bg-emerald-500/15 text-emerald-700',
+  warning: 'bg-amber-500/15 text-amber-700',
+  info: 'bg-[var(--accent-cool-soft)] text-[var(--accent-cool)]',
+  neutral: 'bg-slate-200/70 text-slate-700',
+  danger: 'bg-rose-500/15 text-rose-700',
+}
+
+export const StatusBadge = ({ tone, children, icon, className }: StatusBadgeProps) => (
+  <span
+    className={cx(
+      'inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold',
+      badgeToneClass[tone],
+      className,
+    )}
+  >
+    {icon}
+    {children}
+  </span>
+)
+
+type EmptyStateProps = {
+  title: string
+  message: string
+  icon?: LucideIcon
+  action?: ReactNode
+}
+
+export const EmptyState = ({ title, message, icon: Icon, action }: EmptyStateProps) => (
+  <div className="rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] px-6 py-10 text-center text-sm text-slate-500">
+    {Icon ? <Icon className="mx-auto h-10 w-10 text-slate-400" /> : null}
+    <p className="mt-4 text-base font-semibold text-slate-900">{title}</p>
+    <p className="mt-2 text-xs text-slate-500">{message}</p>
+    {action ? <div className="mt-4">{action}</div> : null}
+  </div>
+)
+
+type ErrorStateProps = {
+  title: string
+  message: string
+  onRetry?: () => void
+  retryLabel?: string
+}
+
+export const ErrorState = ({
+  title,
+  message,
+  onRetry,
+  retryLabel = 'Thu lai',
+}: ErrorStateProps) => (
+  <div
+    className="rounded-3xl border border-rose-200 bg-rose-50/80 px-6 py-10 text-center"
+    role="alert"
+  >
+    <p className="text-base font-semibold text-rose-700">{title}</p>
+    <p className="mt-2 text-sm text-rose-600">{message}</p>
+    {onRetry ? (
+      <button
+        className="mt-4 inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+        onClick={onRetry}
+        type="button"
+      >
+        {retryLabel}
+      </button>
+    ) : null}
+  </div>
+)
+
+type LoadingRowsProps = {
+  rows?: number
+}
+
+export const LoadingRows = ({ rows = 4 }: LoadingRowsProps) => (
+  <div className="grid gap-3" aria-busy="true" aria-live="polite">
+    {Array.from({ length: rows }).map((_, index) => (
+      <div
+        key={`skeleton-row-${index}`}
+        className="h-16 animate-pulse rounded-2xl bg-slate-200/70 dark:bg-slate-700/40"
+      />
+    ))}
+  </div>
+)

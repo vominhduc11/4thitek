@@ -15,43 +15,20 @@ class CartIconButton extends StatelessWidget {
     final semanticLabel = count > 0
         ? 'Giỏ hàng, $count sản phẩm'
         : 'Giỏ hàng, chưa có sản phẩm';
-    return Stack(
-      alignment: Alignment.center,
-      clipBehavior: Clip.none,
-      children: [
-        Semantics(
-          button: true,
-          label: semanticLabel,
-          child: ExcludeSemantics(
-            child: IconButton(
-              onPressed: onPressed,
-              icon: const Icon(Icons.shopping_cart_outlined),
-              tooltip: 'Giỏ hàng',
-            ),
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: ExcludeSemantics(
+        child: IconButton(
+          onPressed: onPressed,
+          tooltip: 'Giỏ hàng',
+          icon: Badge(
+            isLabelVisible: count > 0,
+            label: Text(count > 99 ? '99+' : '$count'),
+            child: const Icon(Icons.shopping_cart_outlined),
           ),
         ),
-        if (count > 0)
-          ExcludeSemantics(
-            child: Positioned(
-              right: 6,
-              top: 6,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  count > 99 ? '99+' : '$count',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
+      ),
     );
   }
 }

@@ -20,7 +20,9 @@ import {
   type ChartOptions,
 } from 'chart.js'
 import { Bar, Doughnut } from 'react-chartjs-2'
+import { LoadingRows } from '../components/ui-kit'
 import { useLanguage } from '../context/LanguageContext'
+import { useSimulatedPageLoad } from '../hooks/useSimulatedPageLoad'
 
 ChartJS.register(
   CategoryScale,
@@ -507,6 +509,7 @@ function DashboardPage() {
   const softCardClass =
     'rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-4'
   const { t, language } = useLanguage()
+  const { isLoading } = useSimulatedPageLoad('dashboard-page')
 
   const today = new Date()
   const todayInput = toInputDate(today)
@@ -803,6 +806,14 @@ function DashboardPage() {
       document.removeEventListener('keydown', handleKeyDown)
     }
   }, [])
+
+  if (isLoading) {
+    return (
+      <section className={`${panelClass} animate-card-enter`}>
+        <LoadingRows rows={7} />
+      </section>
+    )
+  }
 
   return (
     <section className={`${panelClass} animate-card-enter`}>

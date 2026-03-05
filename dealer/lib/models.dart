@@ -242,6 +242,7 @@ class Order {
     required this.shippingFee,
     required this.items,
     this.paidAmount = 0,
+    this.note,
   });
 
   final String id;
@@ -255,6 +256,7 @@ class Order {
   final int shippingFee;
   final List<OrderLineItem> items;
   final int paidAmount;
+  final String? note;
 
   int get totalItems {
     return items.fold<int>(0, (sum, item) => sum + item.quantity);
@@ -297,6 +299,7 @@ class Order {
     int? shippingFee,
     List<OrderLineItem>? items,
     int? paidAmount,
+    String? note,
   }) {
     return Order(
       id: id,
@@ -310,6 +313,7 @@ class Order {
       shippingFee: shippingFee ?? this.shippingFee,
       items: items ?? this.items,
       paidAmount: paidAmount ?? this.paidAmount,
+      note: note ?? this.note,
     );
   }
 }

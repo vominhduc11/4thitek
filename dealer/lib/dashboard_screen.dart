@@ -201,7 +201,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final screenSize = MediaQuery.sizeOf(context);
     final screenWidth = screenSize.width;
     final isMobile = screenWidth < _mobileBreakpoint;
-    final isNarrowAppBar = screenSize.shortestSide < 360;
+    final isNarrowAppBar = screenWidth < 430;
     final canMoveNextPeriod = _canMoveToNextPeriod(
       periodAnchor,
       _timeFilter,
@@ -375,7 +375,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const BrandAppBarTitle('Tổng quan'),
+        title: const BrandAppBarTitle('Tổng quan', logoSize: 30, logoGap: 4),
         actions: [
           if (!isNarrowAppBar)
             Tooltip(
@@ -879,7 +879,7 @@ class _OverviewCard extends StatelessWidget {
               final orderCard = _OverviewMetricTile(
                 icon: Icons.receipt_long_rounded,
                 accentColor: orderAccent,
-                label: 'Đơn trong $periodUnitLabel',
+                label: 'ÄÆ¡n trong $periodUnitLabel',
                 value: '$periodOrders',
                 isPrimary: false,
               );

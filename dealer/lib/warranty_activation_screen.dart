@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'breakpoints.dart';
 import 'models.dart';
 import 'order_controller.dart';
 import 'serial_scan_screen.dart';
@@ -36,6 +37,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   final _customerNameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   final Map<String, List<TextEditingController>> _serialControllers = {};
   bool _isInitialized = false;
   bool _isSubmitting = false;
@@ -71,6 +73,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     _customerNameController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -113,7 +116,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                     const Icon(Icons.lock_outline, size: 38),
                     const SizedBox(height: 10),
                     Text(
-                      'Chi don dang giao hoac da giao moi duoc xu ly serial.',
+                      'Chỉ đơn đang giao hoặc đã giao mới được xử lý serial.',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -121,7 +124,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Trang thai hien tai: ${order.status.label}',
+                      'Trạng thái hiện tại: ${order.status.label}',
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -146,287 +149,331 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     final lockAddressField =
         isFullyActivated || order.receiverAddress.trim().isNotEmpty;
     final progressValue = totalCount == 0 ? 0.0 : activatedCount / totalCount;
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isTablet =
+        MediaQuery.sizeOf(context).shortestSide >= AppBreakpoints.phone;
+    final maxWidth = isTablet ? 1040.0 : double.infinity;
+    final submitMaxWidth = isTablet ? 420.0 : double.infinity;
+    final itemProgressColor = isDark
+        ? const Color(0xFF4ADE80)
+        : const Color(0xFF16A34A);
 
     return Scaffold(
       appBar: AppBar(title: const BrandAppBarTitle('Xử lý serial')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        children: [
-          FadeSlideIn(
-            child: _SectionCard(
-              title: 'Thong tin xu ly serial',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _InfoRow(label: 'Ma don hang', value: order.id),
-                  const SizedBox(height: 10),
-                  _InfoRow(
-                    label: 'Ngay dat',
-                    value: formatDateTime(order.createdAt),
-                  ),
-                  const SizedBox(height: 12),
-                  const Divider(height: 1),
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFF),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFD9E5FB)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _InfoRow(
-                          label: 'Tien do',
-                          value: '$activatedCount/$totalCount serial',
-                          isEmphasis: true,
-                        ),
-                        const SizedBox(height: 8),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(999),
-                          child: LinearProgressIndicator(
-                            value: progressValue,
-                            minHeight: 8,
-                            backgroundColor: const Color(0xFFE2E8F0),
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Color(0xFF1D4ED8),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Chi serial da nhap kho va thuoc san pham trong don moi duoc kich hoat.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF64748B),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _customerNameController,
-                    enabled: !lockNameField,
-                    decoration: const InputDecoration(
-                      labelText: 'Ten khach hang',
-                      prefixIcon: Icon(Icons.person_outline),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    enabled: !lockPhoneField,
-                    decoration: const InputDecoration(
-                      labelText: 'So dien thoai khach hang',
-                      prefixIcon: Icon(Icons.phone_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _addressController,
-                    enabled: !lockAddressField,
-                    decoration: const InputDecoration(
-                      labelText: 'Dia chi khach hang',
-                      prefixIcon: Icon(Icons.location_on_outlined),
-                    ),
-                  ),
-                  if (hasOrderCustomerData) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'Thong tin khach hang da duoc lay tu don hang va khoa chinh sua.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF64748B),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: _serialSectionGap),
-          ...order.items.asMap().entries.map((entry) {
-            final index = entry.key;
-            final item = entry.value;
-            final activated = warrantyController.activationsForItem(
-              order.id,
-              item.product.id,
-            );
-            final remaining = item.quantity - activated.length;
-            final serialInputs =
-                _serialControllers[item.product.id] ?? const [];
-            final availableSerials = warrantyController
-                .availableImportedSerialsForOrderItem(
-                  order.id,
-                  item.product.id,
-                );
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: _serialItemGap),
-              child: FadeSlideIn(
-                key: ValueKey('line-${item.product.id}'),
-                delay: Duration(milliseconds: 60 + 40 * index),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: ListView(
+            controller: _scrollController,
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            children: [
+              FadeSlideIn(
                 child: _SectionCard(
-                  title: '${item.product.name} (${item.product.sku})',
+                  title: 'Thông tin xử lý serial',
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _InfoRow(label: 'So luong', value: '${item.quantity}'),
+                      _InfoRow(label: 'Mã đơn hàng', value: order.id),
                       const SizedBox(height: 10),
                       _InfoRow(
-                        label: 'Da kich hoat',
-                        value: '${activated.length}/${item.quantity}',
-                      ),
-                      const SizedBox(height: 10),
-                      _InfoRow(
-                        label: 'Serial hop le trong kho',
-                        value: '${availableSerials.length}',
+                        label: 'Ngày đặt',
+                        value: formatDateTime(order.createdAt),
                       ),
                       const SizedBox(height: 12),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(999),
-                        child: LinearProgressIndicator(
-                          value: item.quantity == 0
-                              ? 0
-                              : activated.length / item.quantity,
-                          minHeight: 7,
-                          backgroundColor: const Color(0xFFE2E8F0),
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            Color(0xFF16A34A),
+                      const Divider(height: 1),
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest.withValues(
+                            alpha: 0.48,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: colorScheme.outlineVariant.withValues(
+                              alpha: 0.8,
+                            ),
                           ),
                         ),
-                      ),
-                      if (activated.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        const Divider(height: 1),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: activated
-                              .map(
-                                (record) => Chip(
-                                  label: Text(
-                                    '${record.serial} (${formatDate(record.startsAt)} - ${formatDate(record.expiresAt)})',
-                                  ),
-                                  avatar: const Icon(
-                                    Icons.verified_outlined,
-                                    size: 16,
-                                  ),
-                                ),
-                              )
-                              .toList(growable: false),
-                        ),
-                      ],
-                      if (remaining > 0) ...[
-                        const SizedBox(height: 12),
-                        const Divider(height: 1),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Nhap $remaining serial con thieu',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            OutlinedButton.icon(
-                              onPressed: isFullyActivated
-                                  ? null
-                                  : () => _scanSerialForItem(
-                                      order,
-                                      item,
-                                      warrantyController,
-                                    ),
-                              icon: const Icon(Icons.qr_code_scanner_outlined),
-                              label: const Text('Quét QR'),
-                              style: OutlinedButton.styleFrom(
-                                minimumSize: const Size(0, _serialMinTapTarget),
-                              ),
+                            _InfoRow(
+                              label: 'Tiến độ',
+                              value: '$activatedCount/$totalCount serial',
+                              isEmphasis: true,
                             ),
-                            TextButton.icon(
-                              onPressed: isFullyActivated
-                                  ? null
-                                  : () => _showBulkPasteDialog(
-                                      order,
-                                      item,
-                                      warrantyController,
-                                    ),
-                              icon: const Icon(Icons.content_paste_rounded),
-                              label: const Text('Dan nhieu serial'),
-                              style: TextButton.styleFrom(
-                                minimumSize: const Size(0, _serialMinTapTarget),
+                            const SizedBox(height: 8),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(999),
+                              child: LinearProgressIndicator(
+                                value: progressValue,
+                                minHeight: 8,
+                                backgroundColor: colorScheme
+                                    .surfaceContainerHighest
+                                    .withValues(alpha: 0.9),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  colorScheme.primary,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 10),
-                        ...serialInputs.asMap().entries.map((serialEntry) {
-                          final serialIndex = serialEntry.key;
-                          final controller = serialEntry.value;
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: TextField(
-                              controller: controller,
-                              textCapitalization: TextCapitalization.characters,
-                              enabled: !isFullyActivated,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                  RegExp(r'[A-Za-z0-9-]'),
-                                ),
-                              ],
-                              decoration: InputDecoration(
-                                labelText:
-                                    'Serial ${serialIndex + 1}/$remaining',
-                                prefixIcon: const Icon(
-                                  Icons.confirmation_number_outlined,
-                                ),
-                                helperText:
-                                    'Vi du: SN-ABC-12345 (chi gom chu, so va dau -)',
-                              ),
-                            ),
-                          );
-                        }),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Chỉ serial đã nhập kho và thuộc sản phẩm trong đơn mới được kích hoạt.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _customerNameController,
+                        enabled: !lockNameField,
+                        decoration: const InputDecoration(
+                          labelText: 'Tên khách hàng',
+                          prefixIcon: Icon(Icons.person_outline),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        enabled: !lockPhoneField,
+                        decoration: const InputDecoration(
+                          labelText: 'Số điện thoại khách hàng',
+                          prefixIcon: Icon(Icons.phone_outlined),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _addressController,
+                        enabled: !lockAddressField,
+                        decoration: const InputDecoration(
+                          labelText: 'Địa chỉ khách hàng',
+                          prefixIcon: Icon(Icons.location_on_outlined),
+                        ),
+                      ),
+                      if (hasOrderCustomerData) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Thông tin khách hàng đã được lấy từ đơn hàng và khóa chỉnh sửa.',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: colorScheme.onSurfaceVariant),
+                        ),
                       ],
                     ],
                   ),
                 ),
               ),
-            );
-          }),
-          FadeSlideIn(
-            delay: const Duration(milliseconds: 240),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: isFullyActivated || _isSubmitting
-                    ? null
-                    : () => _handleSubmit(order),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(52),
-                  elevation: 2,
-                  shadowColor: const Color(0x401D4ED8),
-                  textStyle: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
+              const SizedBox(height: _serialSectionGap),
+              ...order.items.asMap().entries.map((entry) {
+                final index = entry.key;
+                final item = entry.value;
+                final activated = warrantyController.activationsForItem(
+                  order.id,
+                  item.product.id,
+                );
+                final remaining = item.quantity - activated.length;
+                final serialInputs =
+                    _serialControllers[item.product.id] ?? const [];
+                final availableSerials = warrantyController
+                    .availableImportedSerialsForOrderItem(
+                      order.id,
+                      item.product.id,
+                    );
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: _serialItemGap),
+                  child: FadeSlideIn(
+                    key: ValueKey('line-${item.product.id}'),
+                    delay: Duration(milliseconds: 60 + 40 * index),
+                    child: _SectionCard(
+                      title: '${item.product.name} (${item.product.sku})',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _InfoRow(
+                            label: 'Số lượng',
+                            value: '${item.quantity}',
+                          ),
+                          const SizedBox(height: 10),
+                          _InfoRow(
+                            label: 'Đã kích hoạt',
+                            value: '${activated.length}/${item.quantity}',
+                          ),
+                          const SizedBox(height: 10),
+                          _InfoRow(
+                            label: 'Serial hợp lệ trong kho',
+                            value: '${availableSerials.length}',
+                          ),
+                          const SizedBox(height: 12),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(999),
+                            child: LinearProgressIndicator(
+                              value: item.quantity == 0
+                                  ? 0
+                                  : activated.length / item.quantity,
+                              minHeight: 7,
+                              backgroundColor: colorScheme
+                                  .surfaceContainerHighest
+                                  .withValues(alpha: 0.9),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                itemProgressColor,
+                              ),
+                            ),
+                          ),
+                          if (activated.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            const Divider(height: 1),
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: activated
+                                  .map(
+                                    (record) => Chip(
+                                      label: Text(
+                                        '${record.serial} (${formatDate(record.startsAt)} - ${formatDate(record.expiresAt)})',
+                                      ),
+                                      avatar: const Icon(
+                                        Icons.verified_outlined,
+                                        size: 16,
+                                      ),
+                                    ),
+                                  )
+                                  .toList(growable: false),
+                            ),
+                          ],
+                          if (remaining > 0) ...[
+                            const SizedBox(height: 12),
+                            const Divider(height: 1),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Nhập $remaining serial còn thiếu',
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: isFullyActivated
+                                      ? null
+                                      : () => _scanSerialForItem(
+                                          order,
+                                          item,
+                                          warrantyController,
+                                        ),
+                                  icon: const Icon(
+                                    Icons.qr_code_scanner_outlined,
+                                  ),
+                                  label: const Text('Quét QR'),
+                                  style: OutlinedButton.styleFrom(
+                                    minimumSize: const Size(
+                                      0,
+                                      _serialMinTapTarget,
+                                    ),
+                                  ),
+                                ),
+                                TextButton.icon(
+                                  onPressed: isFullyActivated
+                                      ? null
+                                      : () => _showBulkPasteDialog(
+                                          order,
+                                          item,
+                                          warrantyController,
+                                        ),
+                                  icon: const Icon(Icons.content_paste_rounded),
+                                  label: const Text('Dán nhiều serial'),
+                                  style: TextButton.styleFrom(
+                                    minimumSize: const Size(
+                                      0,
+                                      _serialMinTapTarget,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            ...serialInputs.asMap().entries.map((serialEntry) {
+                              final serialIndex = serialEntry.key;
+                              final controller = serialEntry.value;
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: TextField(
+                                  controller: controller,
+                                  textCapitalization:
+                                      TextCapitalization.characters,
+                                  enabled: !isFullyActivated,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.allow(
+                                      RegExp(r'[A-Za-z0-9-]'),
+                                    ),
+                                  ],
+                                  decoration: InputDecoration(
+                                    labelText:
+                                        'Serial ${serialIndex + 1}/$remaining',
+                                    prefixIcon: const Icon(
+                                      Icons.confirmation_number_outlined,
+                                    ),
+                                    helperText:
+                                        'Ví dụ: SN-ABC-12345 (chỉ gồm chữ, số và dấu -)',
+                                  ),
+                                ),
+                              );
+                            }),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 240),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: submitMaxWidth),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: isFullyActivated || _isSubmitting
+                            ? null
+                            : () => _handleSubmit(order),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(52),
+                          elevation: 2,
+                          shadowColor: colorScheme.primary.withValues(
+                            alpha: 0.25,
+                          ),
+                          textStyle: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                        child: Text(
+                          isFullyActivated
+                              ? 'Đơn đã kích hoạt đủ serial'
+                              : 'Xác nhận kích hoạt serial',
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                child: Text(
-                  isFullyActivated
-                      ? 'Don da kich hoat du serial'
-                      : 'Xac nhan kich hoat serial',
-                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -757,7 +804,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     if (customerName.isEmpty ||
         customerPhone.isEmpty ||
         customerAddress.isEmpty) {
-      _showSnackBar('Vui long nhap day du thong tin khach hang.');
+      _showSnackBar('Vui lòng nhập đầy đủ thông tin khách hàng.');
       return;
     }
 
@@ -769,14 +816,14 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
         final rawSerial = controller.text.trim();
         if (rawSerial.isEmpty) {
           _showSnackBar(
-            'Vui long nhap day du serial cho ${item.product.name}.',
+            'Vui lòng nhập đầy đủ serial cho ${item.product.name}.',
           );
           return;
         }
 
         final normalized = warrantyController.normalizeSerial(rawSerial);
         if (localSerialSet.contains(normalized)) {
-          _showSnackBar('Serial $normalized dang bi trung trong lan nhap nay.');
+          _showSnackBar('Serial $normalized đang bị trùng trong lần nhập này.');
           return;
         }
         final serialValidationError = warrantyController
@@ -810,7 +857,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     }
 
     if (newRecords.isEmpty) {
-      _showSnackBar('Don hang nay da kich hoat du serial.');
+      _showSnackBar('Đơn hàng này đã kích hoạt đủ serial.');
       return;
     }
 
@@ -825,7 +872,15 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
       _isSubmitting = false;
       _syncSerialInputs(order, warrantyController);
     });
-    _showSnackBar('Da kich hoat thanh cong ${newRecords.length} serial.');
+    _jumpToTop();
+    _showSnackBar('Đã kích hoạt thành công ${newRecords.length} serial.');
+  }
+
+  void _jumpToTop() {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    _scrollController.jumpTo(0);
   }
 
   void _showSnackBar(String message) {
@@ -853,9 +908,10 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
       elevation: 1,
-      shadowColor: const Color(0x100F172A),
+      shadowColor: colorScheme.shadow.withValues(alpha: 0.16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
         side: BorderSide(
@@ -872,7 +928,7 @@ class _SectionCard extends StatelessWidget {
             Text(
               title,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: const Color(0xFF0F172A),
+                color: colorScheme.onSurface,
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
                 height: 1.2,
@@ -900,20 +956,21 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final labelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-      color: const Color(0xFF64748B),
+      color: colorScheme.onSurfaceVariant,
       fontSize: 12,
       fontWeight: FontWeight.w500,
       height: 1.3,
     );
     final valueStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-      color: const Color(0xFF0F172A),
+      color: colorScheme.onSurface,
       fontSize: 14,
       fontWeight: FontWeight.w700,
       height: 1.25,
     );
     final emphasisStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
-      color: const Color(0xFF1D4ED8),
+      color: colorScheme.primary,
       fontSize: 16,
       fontWeight: FontWeight.w800,
     );

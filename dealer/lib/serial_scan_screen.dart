@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import 'app_settings_controller.dart';
+import 'breakpoints.dart';
 import 'widgets/brand_identity.dart';
 
 class SerialScanScreen extends StatefulWidget {
@@ -47,17 +49,32 @@ class _SerialScanScreenState extends State<SerialScanScreen>
     super.dispose();
   }
 
-  Rect _scanWindowFor(Size size) {
-    // Keep scan area almost full-screen while preserving top/bottom UI space.
-    final double horizontalPadding = 20;
-    final double topPadding = 70;
-    final double bottomPadding = 170;
-    final double width = math.max(180, size.width - (horizontalPadding * 2));
-    final double height = math.max(
-      180,
-      size.height - topPadding - bottomPadding,
-    );
-    return Rect.fromLTWH(horizontalPadding, topPadding, width, height);
+  bool _isEnglishLocale() {
+    return AppSettingsScope.of(context).locale.languageCode == 'en';
+  }
+
+  Rect _scanWindowFor({
+    required Size size,
+    required EdgeInsets safePadding,
+    required bool isLandscape,
+    required double rightPanelWidth,
+  }) {
+    const double horizontalPadding = 20;
+    const double verticalPadding = 16;
+    const double panelGap = 12;
+
+    final double left = safePadding.left + horizontalPadding;
+    final double top = safePadding.top + verticalPadding;
+
+    final double rightReserved =
+        safePadding.right +
+        horizontalPadding +
+        (isLandscape ? rightPanelWidth + panelGap : 0);
+    final double bottomReserved = safePadding.bottom + (isLandscape ? 28 : 156);
+
+    final double width = math.max(180, size.width - left - rightReserved);
+    final double height = math.max(180, size.height - top - bottomReserved);
+    return Rect.fromLTWH(left, top, width, height);
   }
 
   void _handleDetect(BarcodeCapture capture) {
@@ -91,13 +108,47 @@ class _SerialScanScreenState extends State<SerialScanScreen>
     });
   }
 
-  void _showMessage(String _) {}
+  void _showMessage(String message) {
+    if (!mounted || message.trim().isEmpty) {
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _pasteManual() async {
+    if (_isCompleting) {
+      return;
+    }
+    final isEnglish = _isEnglishLocale();
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (!mounted) {
+      return;
+    }
+    final pasted = data?.text?.trim() ?? '';
+    if (pasted.isEmpty) {
+      _showMessage(
+        isEnglish
+            ? 'Clipboard has no serial text to paste.'
+            : 'Clipboard không có dữ liệu serial để dán.',
+      );
+      return;
+    }
+    _manualController.value = TextEditingValue(
+      text: pasted,
+      selection: TextSelection.collapsed(offset: pasted.length),
+    );
+    HapticFeedback.selectionClick();
+  }
 
   Future<void> _scanFromImage() async {
     if (_isCompleting || _isPickingImage) {
       return;
     }
 
+    final isEnglish = _isEnglishLocale();
     HapticFeedback.selectionClick();
     final bool wasScannerRunning = _scannerController.value.isRunning;
     setState(() => _isPickingImage = true);
@@ -117,7 +168,11 @@ class _SerialScanScreenState extends State<SerialScanScreen>
       }
 
       if (picked == null) {
-        _showMessage('Bạn chưa chọn ảnh để quét.');
+        _showMessage(
+          isEnglish
+              ? 'No image selected for scanning.'
+              : 'Bạn chưa chọn ảnh để quét.',
+        );
         return;
       }
 
@@ -134,30 +189,52 @@ class _SerialScanScreenState extends State<SerialScanScreen>
       }
 
       if (serial == null) {
-        _showMessage('Không tìm thấy mã QR hoặc barcode trong ảnh.');
+        _showMessage(
+          isEnglish
+              ? 'No QR or barcode found in the selected image.'
+              : 'Không tìm thấy mã QR hoặc barcode trong ảnh.',
+        );
         return;
       }
       _completeWith(serial);
     } on MissingPluginException {
-      _showMessage('Chức năng chọn ảnh chưa sẵn sàng. Hãy khởi động lại app.');
+      _showMessage(
+        isEnglish
+            ? 'Image picker is unavailable. Please restart the app.'
+            : 'Chức năng chọn ảnh chưa sẵn sàng. Hãy khởi động lại app.',
+      );
     } on PlatformException catch (error) {
       final code = error.code.toLowerCase();
       if (code.contains('denied')) {
         _showMessage(
-          'Không có quyền truy cập thư viện ảnh. Hãy cấp quyền rồi thử lại.',
+          isEnglish
+              ? 'Photo library permission denied. Please allow permission and try again.'
+              : 'Không có quyền truy cập thư viện ảnh. Hãy cấp quyền rồi thử lại.',
         );
       } else if (code.contains('already_active')) {
-        _showMessage('Thư viện ảnh đang mở. Vui lòng chờ trong giây lát.');
+        _showMessage(
+          isEnglish
+              ? 'Photo picker is already open. Please wait a moment.'
+              : 'Thư viện ảnh đang mở. Vui lòng chờ trong giây lát.',
+        );
       } else {
         final detailMessage = (error.message ?? '').trim();
         _showMessage(
           detailMessage.isEmpty
-              ? 'Không thể mở thư viện ảnh (${error.code}).'
+              ? isEnglish
+                    ? 'Cannot open photo library (${error.code}).'
+                    : 'Không thể mở thư viện ảnh (${error.code}).'
+              : isEnglish
+              ? 'Cannot open photo library (${error.code}). $detailMessage'
               : 'Không thể mở thư viện ảnh (${error.code}). $detailMessage',
         );
       }
     } catch (_) {
-      _showMessage('Không thể đọc mã từ ảnh. Vui lòng thử lại.');
+      _showMessage(
+        isEnglish
+            ? 'Cannot read serial from image. Please try again.'
+            : 'Không thể đọc mã từ ảnh. Vui lòng thử lại.',
+      );
     } finally {
       if (mounted) {
         setState(() => _isPickingImage = false);
@@ -165,7 +242,11 @@ class _SerialScanScreenState extends State<SerialScanScreen>
           try {
             await _scannerController.start();
           } catch (_) {
-            _showMessage('Không thể khởi động lại camera. Vui lòng thử lại.');
+            _showMessage(
+              isEnglish
+                  ? 'Cannot restart camera. Please try again.'
+                  : 'Không thể khởi động lại camera. Vui lòng thử lại.',
+            );
           }
         }
       }
@@ -173,18 +254,28 @@ class _SerialScanScreenState extends State<SerialScanScreen>
   }
 
   Future<void> _restartCamera() async {
+    final isEnglish = _isEnglishLocale();
     try {
       await _scannerController.stop();
       await _scannerController.start();
     } catch (_) {
-      _showMessage('Không thể khởi động camera. Vui lòng thử lại.');
+      _showMessage(
+        isEnglish
+            ? 'Cannot start camera. Please try again.'
+            : 'Không thể khởi động camera. Vui lòng thử lại.',
+      );
     }
   }
 
   void _submitManual() {
+    final isEnglish = _isEnglishLocale();
     final value = _manualController.text.trim();
     if (value.isEmpty) {
-      _showMessage('Vui lòng nhập serial hoặc mã QR.');
+      _showMessage(
+        isEnglish
+            ? 'Please enter serial or QR content.'
+            : 'Vui lòng nhập serial hoặc mã QR.',
+      );
       return;
     }
     _completeWith(value);
@@ -192,12 +283,209 @@ class _SerialScanScreenState extends State<SerialScanScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isEnglish = _isEnglishLocale();
+    final colors = Theme.of(context).colorScheme;
+    final isTablet = AppBreakpoints.isTablet(context);
+
+    final title = isEnglish ? 'Scan QR / Barcode' : 'Quét QR / Barcode';
+    final fromImageTooltip = isEnglish ? 'Scan from image' : 'Quét từ ảnh';
+    final torchOnTooltip = isEnglish ? 'Turn off flashlight' : 'Tắt đèn pin';
+    final torchOffTooltip = isEnglish ? 'Turn on flashlight' : 'Bật đèn pin';
+    final switchCameraTooltip = isEnglish ? 'Switch camera' : 'Đổi camera';
+    final permissionDeniedMessage = isEnglish
+        ? 'Camera permission is denied. Open app settings and enable camera access.'
+        : 'Quyền camera đang bị từ chối. Hãy vào cài đặt ứng dụng và bật lại quyền.';
+    final cameraAccessError = isEnglish
+        ? 'Cannot access camera. Please check and try again.'
+        : 'Không thể truy cập camera. Hãy kiểm tra lại và thử lại.';
+    final statusError = isEnglish
+        ? 'Cannot access camera'
+        : 'Không thể truy cập camera';
+    final statusLoading = isEnglish
+        ? 'Starting camera...'
+        : 'Đang khởi động camera...';
+    final statusReady = isEnglish
+        ? 'Scanning... Keep the code inside the frame.'
+        : 'Đang quét mã. Giữ mã trong khung.';
+    final manualTitle = isEnglish
+        ? 'Cannot scan? Enter manually'
+        : 'Không quét được? Nhập thủ công';
+    final manualDescription = isEnglish
+        ? 'Paste or type serial when camera cannot read the code.'
+        : 'Dán hoặc nhập serial nếu camera không đọc được mã.';
+    final manualHint = isEnglish ? 'Enter serial...' : 'Nhập serial...';
+    final submitSerialTooltip = isEnglish ? 'Submit serial' : 'Xác nhận serial';
+    final clearSerialTooltip = isEnglish ? 'Clear input' : 'Xóa nội dung';
+    final pasteSerialTooltip = isEnglish
+        ? 'Paste from clipboard'
+        : 'Dán từ clipboard';
+    final loadingCameraText = statusLoading;
+    final cameraErrorTitle = statusError;
+    final retryLabel = isEnglish ? 'Retry' : 'Thử lại';
+    final scannerAreaLabel = isEnglish
+        ? 'Camera scan frame'
+        : 'Khung quét camera';
+    final scannerAreaHint = isEnglish
+        ? 'Align QR or barcode within the frame.'
+        : 'Đưa mã QR hoặc barcode vào trong khung.';
+    final statusBannerSemantics = isEnglish ? 'Scan status' : 'Trạng thái quét';
+    final manualSectionSemanticsLabel = isEnglish
+        ? 'Manual serial input section'
+        : 'Khu vực nhập serial thủ công';
+    final manualSectionSemanticsHint = isEnglish
+        ? 'Type, paste, or submit serial manually.'
+        : 'Nhập, dán hoặc xác nhận serial thủ công.';
+    final manualFieldSemanticsLabel = isEnglish
+        ? 'Serial text input'
+        : 'Ô nhập serial';
+
+    Widget buildManualSection({
+      required bool landscape,
+      required double width,
+    }) {
+      final panel = Semantics(
+        container: true,
+        label: manualSectionSemanticsLabel,
+        hint: manualSectionSemanticsHint,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+          decoration: BoxDecoration(
+            color: colors.surface.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: colors.outlineVariant.withValues(alpha: 0.8),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: colors.shadow.withValues(alpha: 0.16),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                manualTitle,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: colors.onSurface,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                manualDescription,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                  height: 1.25,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Semantics(
+                textField: true,
+                label: manualFieldSemanticsLabel,
+                child: ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: _manualController,
+                  builder: (context, value, child) {
+                    final hasText = value.text.trim().isNotEmpty;
+                    return TextField(
+                      controller: _manualController,
+                      textCapitalization: TextCapitalization.characters,
+                      textInputAction: TextInputAction.send,
+                      style: TextStyle(color: colors.onSurface),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        hintText: manualHint,
+                        hintStyle: TextStyle(
+                          color: colors.onSurfaceVariant.withValues(alpha: 0.9),
+                        ),
+                        filled: true,
+                        fillColor: colors.surfaceContainerHigh,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.edit_note_outlined,
+                          color: colors.onSurfaceVariant,
+                        ),
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: pasteSerialTooltip,
+                              onPressed: _isCompleting ? null : _pasteManual,
+                              icon: const Icon(Icons.content_paste_go_outlined),
+                            ),
+                            if (hasText)
+                              IconButton(
+                                tooltip: clearSerialTooltip,
+                                onPressed: _isCompleting
+                                    ? null
+                                    : () => _manualController.clear(),
+                                icon: const Icon(Icons.close_rounded),
+                              ),
+                            IconButton(
+                              tooltip: submitSerialTooltip,
+                              onPressed: _isCompleting ? null : _submitManual,
+                              icon: const Icon(Icons.check_circle_outline),
+                            ),
+                          ],
+                        ),
+                      ),
+                      onSubmitted: (_) => _submitManual(),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      if (landscape) {
+        return Align(
+          alignment: Alignment.centerRight,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              12,
+              MediaQuery.paddingOf(context).top + 12,
+              MediaQuery.paddingOf(context).right + 12,
+              MediaQuery.paddingOf(context).bottom + 12,
+            ),
+            child: SizedBox(width: width, child: panel),
+          ),
+        );
+      }
+
+      return SafeArea(
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: isTablet ? 480 : double.infinity,
+              ),
+              child: panel,
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const BrandAppBarTitle('Quét QR / Barcode'),
+        title: BrandAppBarTitle(title),
         actions: [
           IconButton(
-            tooltip: 'Quét từ ảnh',
+            tooltip: fromImageTooltip,
             onPressed: _isCompleting || _isPickingImage ? null : _scanFromImage,
             icon: _isPickingImage
                 ? const SizedBox(
@@ -214,7 +502,7 @@ class _SerialScanScreenState extends State<SerialScanScreen>
                   state.torchState != TorchState.unavailable;
               final bool torchOn = state.torchState == TorchState.on;
               return IconButton(
-                tooltip: torchOn ? 'Tắt đèn pin' : 'Bật đèn pin',
+                tooltip: torchOn ? torchOnTooltip : torchOffTooltip,
                 onPressed: !state.isRunning || _isCompleting || !torchAvailable
                     ? null
                     : _scannerController.toggleTorch,
@@ -232,7 +520,7 @@ class _SerialScanScreenState extends State<SerialScanScreen>
               final int? cameraCount = state.availableCameras;
               final bool canSwitch = cameraCount == null || cameraCount > 1;
               return IconButton(
-                tooltip: 'Đổi camera',
+                tooltip: switchCameraTooltip,
                 onPressed: !state.isInitialized || _isCompleting || !canSwitch
                     ? null
                     : _scannerController.switchCamera,
@@ -244,159 +532,135 @@ class _SerialScanScreenState extends State<SerialScanScreen>
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final Rect scanWindow = _scanWindowFor(constraints.biggest);
+          final Size size = constraints.biggest;
+          final EdgeInsets safePadding = MediaQuery.paddingOf(context);
+          final bool isLandscape = size.width > size.height;
+
+          final double panelMaxWidth = isTablet ? 480 : 420;
+          double rightPanelWidth = 0;
+          if (isLandscape) {
+            final double desired = math.min(panelMaxWidth, size.width * 0.38);
+            final double maxAllowed = math.max(
+              0,
+              size.width -
+                  (safePadding.left + safePadding.right + 40 + 12 + 220),
+            );
+            rightPanelWidth = math.max(0, math.min(desired, maxAllowed));
+          }
+
+          final Rect scanWindow = _scanWindowFor(
+            size: size,
+            safePadding: safePadding,
+            isLandscape: isLandscape,
+            rightPanelWidth: rightPanelWidth,
+          );
+
           return Stack(
             children: [
-              MobileScanner(
-                controller: _scannerController,
-                scanWindow: scanWindow,
-                onDetect: _handleDetect,
-                placeholderBuilder: (context, child) {
-                  return const _CameraLoadingView();
-                },
-                errorBuilder: (context, error, child) {
-                  final bool permissionDenied =
-                      error.errorCode ==
-                      MobileScannerErrorCode.permissionDenied;
-                  return _CameraErrorView(
-                    onRetry: _restartCamera,
-                    message: permissionDenied
-                        ? 'Quyền camera đang bị từ chối. Hãy vào cài đặt ứng dụng và bật lại quyền.'
-                        : 'Không thể truy cập camera. Hãy kiểm tra lại và thử lại.',
-                  );
-                },
-                overlayBuilder: (context, overlayConstraints) {
-                  return AnimatedBuilder(
-                    animation: _scanLineController,
-                    builder: (context, child) {
-                      return CustomPaint(
-                        size: overlayConstraints.biggest,
-                        painter: _ScannerOverlayPainter(
-                          scanWindow: scanWindow,
-                          frameRadius: _scanFrameRadius,
-                          scanLineProgress: Curves.easeInOut.transform(
-                            _scanLineController.value,
+              Semantics(
+                container: true,
+                label: scannerAreaLabel,
+                hint: scannerAreaHint,
+                readOnly: true,
+                child: MobileScanner(
+                  controller: _scannerController,
+                  scanWindow: scanWindow,
+                  onDetect: _handleDetect,
+                  placeholderBuilder: (context, child) {
+                    return _CameraLoadingView(message: loadingCameraText);
+                  },
+                  errorBuilder: (context, error, child) {
+                    final bool permissionDenied =
+                        error.errorCode ==
+                        MobileScannerErrorCode.permissionDenied;
+                    return _CameraErrorView(
+                      title: cameraErrorTitle,
+                      retryLabel: retryLabel,
+                      onRetry: _restartCamera,
+                      message: permissionDenied
+                          ? permissionDeniedMessage
+                          : cameraAccessError,
+                    );
+                  },
+                  overlayBuilder: (context, overlayConstraints) {
+                    return AnimatedBuilder(
+                      animation: _scanLineController,
+                      builder: (context, child) {
+                        return CustomPaint(
+                          size: overlayConstraints.biggest,
+                          painter: _ScannerOverlayPainter(
+                            scanWindow: scanWindow,
+                            frameRadius: _scanFrameRadius,
+                            scanLineProgress: Curves.easeInOut.transform(
+                              _scanLineController.value,
+                            ),
+                            showSuccessFlash: _showSuccessFlash,
                           ),
-                          showSuccessFlash: _showSuccessFlash,
-                        ),
-                      );
-                    },
-                  );
-                },
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
               SafeArea(
                 child: Align(
                   alignment: Alignment.topCenter,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-                    child: ValueListenableBuilder<MobileScannerState>(
-                      valueListenable: _scannerController,
-                      builder: (context, state, child) {
-                        final String status;
-                        if (state.error != null) {
-                          status = 'Không thể truy cập camera';
-                        } else if (!state.isInitialized) {
-                          status = 'Đang khởi động camera...';
-                        } else {
-                          status = 'Đang quét mã. Giữ mã trong khung.';
-                        }
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.45),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            status,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: isTablet ? 480 : double.infinity,
+                      ),
+                      child: ValueListenableBuilder<MobileScannerState>(
+                        valueListenable: _scannerController,
+                        builder: (context, state, child) {
+                          final String status;
+                          if (state.error != null) {
+                            status = statusError;
+                          } else if (!state.isInitialized) {
+                            status = statusLoading;
+                          } else {
+                            status = statusReady;
+                          }
+                          return Semantics(
+                            container: true,
+                            liveRegion: true,
+                            label: '$statusBannerSemantics: $status',
+                            child: ExcludeSemantics(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: colors.surface.withValues(alpha: 0.86),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: colors.outlineVariant.withValues(
+                                      alpha: 0.78,
+                                    ),
+                                  ),
+                                ),
+                                child: Text(
+                                  status,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: colors.onSurface,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),
               ),
-              SafeArea(
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.64),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.14),
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Không quét được? Nhập thủ công',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Dán hoặc nhập serial nếu camera không đọc được mã.',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.78),
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        TextField(
-                          controller: _manualController,
-                          textCapitalization: TextCapitalization.characters,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            isDense: true,
-                            hintText: 'Nhập serial...',
-                            hintStyle: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.72),
-                            ),
-                            filled: true,
-                            fillColor: Colors.white.withValues(alpha: 0.12),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 14,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                            prefixIcon: const Icon(
-                              Icons.edit_note_outlined,
-                              color: Colors.white70,
-                            ),
-                            suffixIconConstraints: const BoxConstraints(
-                              minHeight: 44,
-                              minWidth: 44,
-                            ),
-                            suffixIcon: IconButton(
-                              tooltip: 'Xác nhận serial',
-                              onPressed: _submitManual,
-                              icon: const Icon(Icons.check_circle_outline),
-                              color: Colors.white,
-                            ),
-                          ),
-                          onSubmitted: (_) => _submitManual(),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+              buildManualSection(
+                landscape: isLandscape && rightPanelWidth > 0,
+                width: rightPanelWidth,
               ),
             ],
           );
@@ -407,7 +671,9 @@ class _SerialScanScreenState extends State<SerialScanScreen>
 }
 
 class _CameraLoadingView extends StatelessWidget {
-  const _CameraLoadingView();
+  const _CameraLoadingView({required this.message});
+
+  final String message;
 
   @override
   Widget build(BuildContext context) {
@@ -416,16 +682,16 @@ class _CameraLoadingView extends StatelessWidget {
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            SizedBox(
+          children: [
+            const SizedBox(
               width: 28,
               height: 28,
               child: CircularProgressIndicator(strokeWidth: 2.4),
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Text(
-              'Đang khởi động camera...',
-              style: TextStyle(
+              message,
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
               ),
@@ -438,10 +704,17 @@ class _CameraLoadingView extends StatelessWidget {
 }
 
 class _CameraErrorView extends StatelessWidget {
-  const _CameraErrorView({required this.onRetry, required this.message});
+  const _CameraErrorView({
+    required this.onRetry,
+    required this.message,
+    required this.title,
+    required this.retryLabel,
+  });
 
   final VoidCallback onRetry;
   final String message;
+  final String title;
+  final String retryLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -459,9 +732,9 @@ class _CameraErrorView extends StatelessWidget {
                 color: Colors.white,
               ),
               const SizedBox(height: 10),
-              const Text(
-                'Không thể truy cập camera',
-                style: TextStyle(
+              Text(
+                title,
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
                   fontSize: 17,
@@ -474,13 +747,11 @@ class _CameraErrorView extends StatelessWidget {
                 style: TextStyle(color: Colors.white.withValues(alpha: 0.84)),
               ),
               const SizedBox(height: 14),
-              OutlinedButton.icon(
+              FilledButton.tonalIcon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Thử lại'),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(132, 46),
-                ),
+                label: Text(retryLabel),
+                style: FilledButton.styleFrom(minimumSize: const Size(132, 46)),
               ),
             ],
           ),

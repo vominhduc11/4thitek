@@ -4,7 +4,10 @@ import { BrowserRouter } from 'react-router-dom'
 import Modal from 'react-modal'
 import './index.css'
 import App from './App.tsx'
+import { AdminDataProvider } from './context/AdminDataContext'
+import { AuthProvider } from './context/AuthContext'
 import { LanguageProvider } from './context/LanguageContext'
+import { ToastProvider } from './context/ToastContext'
 
 const getInitialTheme = () => {
   try {
@@ -31,11 +34,17 @@ if (typeof window !== 'undefined') {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <LanguageProvider>
-      <BrowserRouter
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
-        <App />
-      </BrowserRouter>
+      <ToastProvider>
+        <AuthProvider>
+          <AdminDataProvider>
+            <BrowserRouter
+              future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+            >
+              <App />
+            </BrowserRouter>
+          </AdminDataProvider>
+        </AuthProvider>
+      </ToastProvider>
     </LanguageProvider>
   </StrictMode>,
 )

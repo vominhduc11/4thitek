@@ -20,9 +20,12 @@ import {
   X,
 } from 'lucide-react'
 import Modal, { type Styles } from 'react-modal'
+import { LoadingRows } from '../components/ui-kit'
 import { useProducts } from '../context/ProductsContext'
 import { useLanguage } from '../context/LanguageContext'
+import { useToast } from '../context/ToastContext'
 import type { Product } from '../data/products'
+import { useSimulatedPageLoad } from '../hooks/useSimulatedPageLoad'
 
 type ProductFilter = 'all' | 'active' | 'lowStock' | 'outOfStock' | 'draft' | 'deleted'
 type FeaturedFilter = 'all' | 'featured' | 'nonFeatured'
@@ -184,6 +187,8 @@ const QuillEditor = ({
 
 function ProductsPage() {
   const { t } = useLanguage()
+  const { notify } = useToast()
+  const { isLoading } = useSimulatedPageLoad('products-page')
   const {
     products,
     archiveProduct,
@@ -328,14 +333,18 @@ function ProductsPage() {
   }), [baseFilteredProducts, filter])
 
   useEffect(() => {
-    setCurrentPage(0)
+    const timer = window.setTimeout(() => {
+      setCurrentPage(0)
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [normalizedSearch, filter, filterFeatured, filterHomepage])
 
   useEffect(() => {
     if (!actionMessage) return
+    notify(actionMessage, { title: 'Products', variant: 'info' })
     const timer = window.setTimeout(() => setActionMessage(''), 3000)
     return () => window.clearTimeout(timer)
-  }, [actionMessage])
+  }, [actionMessage, notify])
 
   const pageCount = Math.ceil(visibleProducts.length / ITEMS_PER_PAGE)
   const pagedProducts = useMemo(() => {
@@ -344,13 +353,16 @@ function ProductsPage() {
   }, [visibleProducts, currentPage])
 
   useEffect(() => {
-    if (pageCount === 0) {
-      if (currentPage !== 0) setCurrentPage(0)
-      return
-    }
-    if (currentPage > pageCount - 1) {
-      setCurrentPage(pageCount - 1)
-    }
+    const timer = window.setTimeout(() => {
+      if (pageCount === 0) {
+        if (currentPage !== 0) setCurrentPage(0)
+        return
+      }
+      if (currentPage > pageCount - 1) {
+        setCurrentPage(pageCount - 1)
+      }
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [pageCount, currentPage])
 
   const panelClass =
@@ -659,24 +671,44 @@ function ProductsPage() {
   }
 
   const handleDelete = useCallback((sku: string) => {
-    if (
-      window.confirm(
-        t('Xóa vĩnh viễn sản phẩm này? Hành động không thể hoàn tác.'),
-      )
-    ) {
-      deleteProduct(sku)
+    if (!window.confirm(t("Xoa vinh vien san pham nay?"))) {
+      return
     }
+    deleteProduct(sku)
+    setActionMessage(t("Da xoa vinh vien san pham."))
   }, [deleteProduct, t])
 
   const handleArchiveToggle = useCallback((product: Product) => {
     if (product.isDeleted) {
       restoreProduct(product.sku)
-      setActionMessage(t('Đã khôi phục sản phẩm về bản nháp.'))
+      setActionMessage(t("Da khoi phuc san pham ve ban nhap."))
+      return
+    }
+    const confirmed = window.confirm(t("An san pham nay khoi danh muc?"))
+    if (!confirmed) {
       return
     }
     archiveProduct(product.sku)
-    setActionMessage('')
+    setActionMessage(t("Da an san pham khoi danh muc."))
   }, [archiveProduct, restoreProduct, t])
+
+  const handlePublishToggle = useCallback((product: Product) => {
+    if (product.isDeleted) {
+      return
+    }
+    if (product.publishStatus === "PUBLISHED") {
+      const confirmed = window.confirm(t("Huy xuat ban san pham nay?"))
+      if (!confirmed) {
+        return
+      }
+    }
+    togglePublishStatus(product.sku)
+    setActionMessage(
+      product.publishStatus === "PUBLISHED"
+        ? t("Da huy xuat ban san pham.")
+        : t("Da xuat ban san pham."),
+    )
+  }, [t, togglePublishStatus])
 
   const filters = useMemo(() => ([
     { value: 'all', label: 'Tất cả', count: filterCounts.all },
@@ -691,7 +723,7 @@ function ProductsPage() {
     },
   ] as const), [filterCounts])
 
-  const listContent = useMemo(() => {
+  const listContent = (() => {
     if (visibleProducts.length === 0) {
       return (
         <div className="rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] px-6 py-10 text-center text-sm text-slate-500">
@@ -791,7 +823,7 @@ function ProductsPage() {
                 : 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:border-[var(--accent)] hover:text-[var(--accent)]'
             }
             type="button"
-            onClick={() => togglePublishStatus(product.sku)}
+            onClick={() => handlePublishToggle(product)}
             disabled={product.isDeleted}
             aria-label={
               product.publishStatus === 'DRAFT'
@@ -852,15 +884,15 @@ function ProductsPage() {
         </div>
       </div>
     ))
-  }, [
-    visibleProducts.length,
-    pagedProducts,
-    archiveProduct,
-    restoreProduct,
-    togglePublishStatus,
-    handleDelete,
-    t,
-  ])
+  })()
+
+  if (isLoading) {
+    return (
+      <section className={`${panelClass} animate-card-enter`}>
+        <LoadingRows rows={6} />
+      </section>
+    )
+  }
 
   return (
     <section className={`${panelClass} animate-card-enter`}>

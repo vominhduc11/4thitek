@@ -518,6 +518,25 @@ class OrderDetailScreen extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if (order.note != null &&
+                          order.note!.trim().isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: colors.surfaceContainerHighest.withValues(
+                              alpha: 0.4,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            'Ghi chú: ${order.note!}',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: colors.onSurfaceVariant),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

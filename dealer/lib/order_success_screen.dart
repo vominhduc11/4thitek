@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'breakpoints.dart';
 import 'models.dart';
 import 'order_controller.dart';
 import 'order_detail_screen.dart';
@@ -25,6 +26,8 @@ class OrderSuccessScreen extends StatelessWidget {
     final statusNote = _buildStatusNote(order);
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isTablet = AppBreakpoints.isTablet(context);
+    final maxWidth = isTablet ? 860.0 : double.infinity;
     final successColor = isDark
         ? const Color(0xFF4ADE80)
         : const Color(0xFF16A34A);
@@ -34,76 +37,82 @@ class OrderSuccessScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
         title: const BrandAppBarTitle('Đặt hàng thành công'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-        child: FadeSlideIn(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0.9, end: 1.0),
-                duration: const Duration(milliseconds: 420),
-                curve: Curves.easeOutBack,
-                child: Icon(
-                  Icons.check_circle_outline,
-                  size: 72,
-                  color: successColor,
-                ),
-                builder: (context, value, child) {
-                  return Transform.scale(scale: value, child: child);
-                },
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Đơn hàng đã được ghi nhận',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Mã đơn hàng: $orderId',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              Text(
-                statusNote,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              _SummaryCard(
-                itemCount: itemCount,
-                totalPrice: totalPrice,
-                paymentMethod: order?.paymentMethod.label,
-                paymentStatus: order?.paymentStatus.label,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(
-                      builder: (_) => OrderDetailScreen(orderId: orderId),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+            child: FadeSlideIn(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0.9, end: 1.0),
+                    duration: const Duration(milliseconds: 420),
+                    curve: Curves.easeOutBack,
+                    child: Icon(
+                      Icons.check_circle_outline,
+                      size: 72,
+                      color: successColor,
                     ),
-                    (route) => route.isFirst,
-                  );
-                },
-                child: const Text('Xem chi tiết đơn hàng'),
+                    builder: (context, value, child) {
+                      return Transform.scale(scale: value, child: child);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Đơn hàng đã được ghi nhận',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Mã đơn hàng: $orderId',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    statusNote,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  _SummaryCard(
+                    itemCount: itemCount,
+                    totalPrice: totalPrice,
+                    paymentMethod: order?.paymentMethod.label,
+                    paymentStatus: order?.paymentStatus.label,
+                    note: order?.note,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (_) => OrderDetailScreen(orderId: orderId),
+                        ),
+                        (route) => route.isFirst,
+                      );
+                    },
+                    child: const Text('Xem chi tiết đơn hàng'),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: () {
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    },
+                    child: const Text('Tiếp tục mua hàng'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: () {
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                },
-                child: const Text('Tiếp tục mua hàng'),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -127,12 +136,14 @@ class _SummaryCard extends StatelessWidget {
     required this.totalPrice,
     this.paymentMethod,
     this.paymentStatus,
+    this.note,
   });
 
   final int itemCount;
   final int totalPrice;
   final String? paymentMethod;
   final String? paymentStatus;
+  final String? note;
 
   @override
   Widget build(BuildContext context) {
@@ -164,6 +175,10 @@ class _SummaryCard extends StatelessWidget {
                 label: 'Trạng thái thanh toán',
                 value: paymentStatus!,
               ),
+              const SizedBox(height: 8),
+            ],
+            if (note != null && note!.trim().isNotEmpty) ...[
+              _SummaryRow(label: 'Ghi chú', value: note!),
               const SizedBox(height: 8),
             ],
             _SummaryRow(

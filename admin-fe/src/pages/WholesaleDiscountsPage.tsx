@@ -1,163 +1,266 @@
+import { CheckCircle2, Clock3, Plus, Tag } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { useAdminData, type RuleStatus } from '../context/AdminDataContext'
+import { useToast } from '../context/ToastContext'
+import { ruleStatusLabel, ruleStatusTone } from '../lib/adminLabels'
+import { formatDateTime } from '../lib/formatters'
+import { useSimulatedPageLoad } from '../hooks/useSimulatedPageLoad'
 import {
-  CheckCircle,
-  Clock,
-  Plus,
-  Search,
-  SlidersHorizontal,
-  Tag,
-} from 'lucide-react'
-import { useLanguage } from '../context/LanguageContext'
+  EmptyState,
+  LoadingRows,
+  PagePanel,
+  PrimaryButton,
+  SearchInput,
+  StatCard,
+  StatusBadge,
+} from '../components/ui-kit'
 
-const discountRules = [
-  {
-    id: 'WS-2026-01',
-    label: 'Đơn từ 50 triệu',
-    range: '50 - 100 triệu',
-    percent: 3,
-    status: 'Đang hoạt động',
-    updated: '3 ngày trước',
-  },
-  {
-    id: 'WS-2026-02',
-    label: 'Đơn từ 100 triệu',
-    range: '100 - 200 triệu',
-    percent: 5,
-    status: 'Đang hoạt động',
-    updated: '1 tuần trước',
-  },
-  {
-    id: 'WS-2026-03',
-    label: 'Đơn từ 200 triệu',
-    range: '>= 200 triệu',
-    percent: 7,
-    status: 'Chờ duyệt',
-    updated: 'Hôm qua',
-  },
-  {
-    id: 'WS-2026-Q2',
-    label: 'Chương trình Q2',
-    range: 'Áp dụng theo chiến dịch',
-    percent: 2,
-    status: 'Bản nháp',
-    updated: 'Hôm nay',
-  },
+const RULE_STATUS_OPTIONS: Array<{ value: 'all' | RuleStatus; label: string }> = [
+  { value: 'all', label: 'Tat ca' },
+  { value: 'active', label: ruleStatusLabel.active },
+  { value: 'pending', label: ruleStatusLabel.pending },
+  { value: 'draft', label: ruleStatusLabel.draft },
 ]
 
 function WholesaleDiscountsPage() {
-  const { t } = useLanguage()
-  const panelClass =
-    'rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]'
-  const ghostButtonClass =
-    'btn-stable inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--accent)] hover:text-slate-900 hover:shadow-[0_12px_26px_rgba(15,23,42,0.12)]'
+  const { notify } = useToast()
+  const { discountRules, addDiscountRule, updateDiscountRuleStatus } = useAdminData()
+  const { isLoading } = useSimulatedPageLoad('discounts-page')
+
+  const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | RuleStatus>('all')
+  const [showForm, setShowForm] = useState(false)
+  const [error, setError] = useState('')
+  const [form, setForm] = useState({
+    label: '',
+    range: '',
+    percent: '',
+    status: 'draft' as RuleStatus,
+  })
+
+  const normalizedQuery = query.trim().toLowerCase()
+  const filteredRules = useMemo(
+    () =>
+      discountRules.filter((rule) => {
+        const matchesStatus = statusFilter === 'all' ? true : rule.status === statusFilter
+        const matchesSearch =
+          !normalizedQuery ||
+          rule.id.toLowerCase().includes(normalizedQuery) ||
+          rule.label.toLowerCase().includes(normalizedQuery)
+        return matchesStatus && matchesSearch
+      }),
+    [discountRules, normalizedQuery, statusFilter],
+  )
+
+  const stats = useMemo(() => {
+    const active = discountRules.filter((item) => item.status === 'active').length
+    const pending = discountRules.filter((item) => item.status === 'pending').length
+    const highest = discountRules.reduce(
+      (max, item) => Math.max(max, item.percent),
+      0,
+    )
+    return { active, pending, highest }
+  }, [discountRules])
+
+  const handleCreateRule = () => {
+    setError('')
+    const percent = Number(form.percent)
+    if (!form.label.trim() || !form.range.trim() || Number.isNaN(percent) || percent <= 0) {
+      setError('Vui long nhap day du quy tac, nguong va phan tram')
+      return
+    }
+    const created = addDiscountRule({
+      label: form.label,
+      range: form.range,
+      percent,
+      status: form.status,
+    })
+    notify(`Da them quy tac ${created.id}`, { title: 'Discounts', variant: 'success' })
+    setShowForm(false)
+    setForm({ label: '', range: '', percent: '', status: 'draft' })
+  }
+
+  if (isLoading) {
+    return (
+      <PagePanel>
+        <LoadingRows rows={5} />
+      </PagePanel>
+    )
+  }
 
   return (
-    <section className={`${panelClass} animate-card-enter`}>
+    <PagePanel>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">
-            {t('Chiết khấu bán sỉ')}
-          </h3>
+          <h3 className="text-lg font-semibold text-slate-900">Chiet khau ban si</h3>
           <p className="text-sm text-slate-500">
-            {t('Quản lý quy tắc chiết khấu bán sỉ theo ngưỡng doanh số.')}
+            Quan ly quy tac chiet khau ban si theo nguong doanh so.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <label className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              className="h-11 w-56 rounded-2xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-700 shadow-sm transition focus:outline-none"
-              placeholder={t('Tìm quy tắc...')}
-              type="search"
-            />
-          </label>
-          <button className={ghostButtonClass} type="button">
-            <SlidersHorizontal className="h-4 w-4" />
-            {t('Bộ lọc')}
-          </button>
-          <button className={ghostButtonClass} type="button">
-            <Plus className="h-4 w-4" />
-            {t('Thêm quy tắc')}
-          </button>
+          <SearchInput
+            id="discounts-search"
+            label="Search discount rules"
+            placeholder="Tim quy tac..."
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            className="w-60 max-w-full"
+          />
+          <select
+            aria-label="Discount status filter"
+            className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            onChange={(event) => setStatusFilter(event.target.value as 'all' | RuleStatus)}
+            value={statusFilter}
+          >
+            {RULE_STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <PrimaryButton
+            icon={<Plus className="h-4 w-4" />}
+            onClick={() => setShowForm((value) => !value)}
+            type="button"
+          >
+            Them quy tac
+          </PrimaryButton>
         </div>
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <div className="rounded-3xl border border-slate-200/70 bg-white/80 p-4 shadow-sm backdrop-blur">
-          <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-[0.2em] text-slate-400">
-              {t('Đang hoạt động')}
-            </span>
-            <CheckCircle className="h-4 w-4 text-emerald-500" />
-          </div>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">2</p>
-          <p className="text-xs text-slate-500">{t('Cập nhật gần đây')}</p>
-        </div>
-        <div className="rounded-3xl border border-slate-200/70 bg-white/80 p-4 shadow-sm backdrop-blur">
-          <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-[0.2em] text-slate-400">
-              {t('Chờ duyệt')}
-            </span>
-            <Clock className="h-4 w-4 text-amber-500" />
-          </div>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">1</p>
-          <p className="text-xs text-slate-500">{t('Cần phê duyệt')}</p>
-        </div>
-        <div className="rounded-3xl border border-slate-200/70 bg-white/80 p-4 shadow-sm backdrop-blur">
-          <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-[0.2em] text-slate-400">
-              {t('Doanh số áp dụng')}
-            </span>
-            <Tag className="h-4 w-4 text-blue-500" />
-          </div>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">
-            200 triệu
-          </p>
-          <p className="text-xs text-slate-500">{t('Ngưỡng cao nhất')}</p>
-        </div>
+        <StatCard icon={CheckCircle2} label="Dang hoat dong" value={stats.active} tone="success" />
+        <StatCard icon={Clock3} label="Cho phe duyet" value={stats.pending} tone="warning" />
+        <StatCard icon={Tag} label="Muc cao nhat" value={`${stats.highest}%`} tone="info" />
       </div>
 
-      <div className="mt-6 grid gap-3">
-        <div className="hidden grid-cols-[1.2fr_0.9fr_0.6fr_0.7fr_0.7fr] gap-3 text-xs uppercase tracking-[0.2em] text-slate-400 md:grid">
-          <span>{t('Quy tắc')}</span>
-          <span>{t('Ngưỡng')}</span>
-          <span>{t('Chiết khấu')}</span>
-          <span>{t('Trạng thái')}</span>
-          <span>{t('Cập nhật')}</span>
-        </div>
-        {discountRules.map((rule) => (
-          <div
-            className="grid gap-3 rounded-3xl border border-slate-200/70 bg-white/80 px-4 py-4 text-sm text-slate-700 shadow-sm backdrop-blur md:grid-cols-[1.2fr_0.9fr_0.6fr_0.7fr_0.7fr] md:items-center"
-            key={rule.id}
-          >
-            <div>
-            <p className="font-semibold text-slate-900">{t(rule.label)}</p>
-              <p className="text-xs text-slate-500">{rule.id}</p>
-            </div>
-            <span className="text-slate-500">{t(rule.range)}</span>
-            <span className="font-semibold text-[var(--accent)]">
-              {rule.percent}%
-            </span>
-            <span
-              className={
-                rule.status === 'Đang hoạt động'
-                  ? 'inline-flex items-center gap-2 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-700'
-                  : rule.status === 'Chờ duyệt'
-                    ? 'inline-flex items-center gap-2 rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-700'
-                  : 'inline-flex items-center gap-2 rounded-full bg-[var(--surface-muted)] px-3 py-1 text-xs font-semibold text-slate-700'
+      {showForm ? (
+        <div className="mt-6 rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] p-4">
+          <p className="text-sm font-semibold text-slate-900">Them quy tac moi</p>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <input
+              className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              onChange={(event) => setForm((prev) => ({ ...prev, label: event.target.value }))}
+              placeholder="Ten quy tac"
+              value={form.label}
+            />
+            <input
+              className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              onChange={(event) => setForm((prev) => ({ ...prev, range: event.target.value }))}
+              placeholder="Nguong ap dung (vd: 100 - 200 trieu)"
+              value={form.range}
+            />
+            <input
+              className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              onChange={(event) => setForm((prev) => ({ ...prev, percent: event.target.value }))}
+              placeholder="Ty le (%)"
+              type="number"
+              value={form.percent}
+            />
+            <select
+              aria-label="Rule status"
+              className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, status: event.target.value as RuleStatus }))
               }
+              value={form.status}
             >
-              {rule.status === 'Đang hoạt động' ? (
-                <CheckCircle className="h-3.5 w-3.5" />
-              ) : (
-                <Clock className="h-3.5 w-3.5" />
-              )}
-              {t(rule.status)}
-            </span>
-            <span className="text-slate-500">{t(rule.updated)}</span>
+              {RULE_STATUS_OPTIONS.filter((option) => option.value !== 'all').map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
-        ))}
+          {error ? <p className="mt-2 text-sm text-rose-600">{error}</p> : null}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <PrimaryButton onClick={handleCreateRule} type="button">
+              Luu quy tac
+            </PrimaryButton>
+            <button
+              className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-[var(--accent)]"
+              onClick={() => setShowForm(false)}
+              type="button"
+            >
+              Huy
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-6">
+        {filteredRules.length === 0 ? (
+          <EmptyState
+            icon={Tag}
+            title="Khong co quy tac"
+            message="Thu doi bo loc hoac them quy tac moi."
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-separate border-spacing-y-2">
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-[0.2em] text-slate-400">
+                  <th className="px-3 py-2 font-semibold">Quy tac</th>
+                  <th className="px-3 py-2 font-semibold">Nguong</th>
+                  <th className="px-3 py-2 font-semibold">Ty le</th>
+                  <th className="px-3 py-2 font-semibold">Trang thai</th>
+                  <th className="px-3 py-2 font-semibold">Cap nhat</th>
+                  <th className="px-3 py-2 font-semibold">Thao tac</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRules.map((rule) => (
+                  <tr
+                    className="rounded-2xl bg-white/80 text-sm text-slate-700 shadow-sm"
+                    key={rule.id}
+                  >
+                    <td className="rounded-l-2xl px-3 py-3">
+                      <p className="font-semibold text-slate-900">{rule.label}</p>
+                      <p className="text-xs text-slate-500">{rule.id}</p>
+                    </td>
+                    <td className="px-3 py-3">{rule.range}</td>
+                    <td className="px-3 py-3 font-semibold text-[var(--accent)]">
+                      {rule.percent}%
+                    </td>
+                    <td className="px-3 py-3">
+                      <StatusBadge tone={ruleStatusTone[rule.status]}>
+                        {ruleStatusLabel[rule.status]}
+                      </StatusBadge>
+                    </td>
+                    <td className="px-3 py-3 text-xs text-slate-500">
+                      {formatDateTime(rule.updatedAt)}
+                    </td>
+                    <td className="rounded-r-2xl px-3 py-3">
+                      <select
+                        aria-label={`Rule status ${rule.id}`}
+                        className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                        onChange={(event) => {
+                          const next = event.target.value as RuleStatus
+                          updateDiscountRuleStatus(rule.id, next)
+                          notify(`Cap nhat ${rule.id} -> ${ruleStatusLabel[next]}`, {
+                            title: 'Discounts',
+                            variant: 'info',
+                          })
+                        }}
+                        value={rule.status}
+                      >
+                        {RULE_STATUS_OPTIONS.filter((option) => option.value !== 'all').map(
+                          (option) => (
+                            <option key={`${rule.id}-${option.value}`} value={option.value}>
+                              {option.label}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
-    </section>
+    </PagePanel>
   )
 }
 

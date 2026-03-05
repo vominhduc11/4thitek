@@ -3,16 +3,20 @@ import 'models.dart';
 class DistributorNotice {
   const DistributorNotice({
     required this.id,
+    required this.type,
     required this.title,
     required this.message,
     required this.createdAt,
   });
 
   final String id;
+  final NoticeType type;
   final String title;
   final String message;
   final DateTime createdAt;
 }
+
+enum NoticeType { system, promotion, order }
 
 const List<Product> mockProducts = [
   Product(
@@ -539,18 +543,21 @@ const List<Product> mockProducts = [
 final List<DistributorNotice> mockDistributorNotices = [
   DistributorNotice(
     id: 'notice-01',
+    type: NoticeType.order,
     title: 'Cập nhật chính sách giao hàng',
     message: 'Đơn nội thành giao trong 24h. Đơn tỉnh xa giao từ 2-4 ngày.',
     createdAt: DateTime(2026, 2, 14),
   ),
   DistributorNotice(
     id: 'notice-02',
+    type: NoticeType.promotion,
     title: 'Chương trình hỗ trợ quý I',
     message: 'Đơn từ 50 triệu được hỗ trợ POSM và tài liệu bán hàng.',
     createdAt: DateTime(2026, 2, 11),
   ),
   DistributorNotice(
     id: 'notice-03',
+    type: NoticeType.system,
     title: 'Lịch bảo trì hệ thống',
     message: 'Hệ thống mock API bảo trì 23:00-23:30 Chủ Nhật.',
     createdAt: DateTime(2026, 2, 9),

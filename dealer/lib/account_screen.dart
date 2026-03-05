@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'account_settings_screen.dart';
 import 'app_preferences_screen.dart';
+import 'app_settings_controller.dart';
 import 'auth_storage.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
@@ -10,10 +11,10 @@ import 'global_search.dart';
 import 'login_screen.dart';
 import 'notification_controller.dart';
 import 'notifications_screen.dart';
-import 'widgets/notification_icon_button.dart';
 import 'support_screen.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
+import 'widgets/notification_icon_button.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -23,32 +24,122 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  bool _isLoggingOut = false;
-  late Future<DealerProfile> _profileFuture;
   final _authStorage = AuthStorage();
+
+  bool _isLoggingOut = false;
+  bool _isProfileLoading = true;
+  DealerProfile? _profile;
+  Object? _profileError;
+
+  static const _appVersion = '1.0.0+1';
 
   @override
   void initState() {
     super.initState();
-    _profileFuture = loadDealerProfile();
+    _loadProfile();
   }
 
-  void _reloadProfile() {
+  Future<void> _loadProfile() async {
     setState(() {
-      _profileFuture = loadDealerProfile();
+      _isProfileLoading = true;
+      _profileError = null;
     });
+    try {
+      final profile = await loadDealerProfile();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _profile = profile;
+        _isProfileLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _profileError = error;
+        _isProfileLoading = false;
+      });
+    }
   }
 
-  Future<void> _handleLogout() async {
+  Future<void> _openAccountSettings() async {
     if (_isLoggingOut) {
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const AccountSettingsScreen()),
+    );
+    if (!mounted) {
+      return;
+    }
+    await _loadProfile();
+  }
+
+  Future<void> _openSupport() async {
+    if (_isLoggingOut) {
+      return;
+    }
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const SupportScreen()));
+  }
+
+  Future<void> _openAppPreferences() async {
+    if (_isLoggingOut) {
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const AppPreferencesScreen()),
+    );
+  }
+
+  Future<bool?> _confirmLogout(bool isEnglish) {
+    final title = isEnglish ? 'Confirm logout' : 'Xác nhận đăng xuất';
+    final message = isEnglish
+        ? 'You are about to log out. Your current cart data will be cleared. Do you want to continue?'
+        : 'Bạn sắp đăng xuất. Dữ liệu giỏ hàng hiện tại sẽ bị xóa. Bạn có muốn tiếp tục không?';
+    final cancelLabel = isEnglish ? 'Cancel' : 'Hủy';
+    final confirmLabel = isEnglish ? 'Log out' : 'Đăng xuất';
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(cancelLabel),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+                foregroundColor: Theme.of(context).colorScheme.onError,
+              ),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(confirmLabel),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _handleLogout(bool isEnglish) async {
+    if (_isLoggingOut) {
+      return;
+    }
+    final shouldLogout = await _confirmLogout(isEnglish);
+    if (shouldLogout != true || !mounted) {
       return;
     }
 
     setState(() => _isLoggingOut = true);
     var shouldResetLoading = true;
     try {
-      await Future.delayed(const Duration(seconds: 1));
-
+      await Future.delayed(const Duration(milliseconds: 600));
       await _authStorage.clearSession();
       if (!mounted) {
         return;
@@ -67,23 +158,305 @@ class _AccountScreenState extends State<AccountScreen> {
     }
   }
 
-  Future<void> _openAppPreferences() async {
-    if (_isLoggingOut) {
-      return;
+  String _avatarInitial(String businessName) {
+    final trimmed = businessName.trim();
+    if (trimmed.isEmpty) {
+      return 'D';
     }
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const AppPreferencesScreen()),
-    );
+    return trimmed.substring(0, 1).toUpperCase();
   }
 
   @override
   Widget build(BuildContext context) {
+    final appSettings = AppSettingsScope.of(context);
+    final isEnglish = appSettings.locale.languageCode == 'en';
     final colors = Theme.of(context).colorScheme;
     final isTablet = AppBreakpoints.isTablet(context);
     final contentMaxWidth = isTablet ? 860.0 : double.infinity;
+
+    final screenTitle = isEnglish ? 'Account' : 'Tài khoản';
+    final loadingLabel = isEnglish ? 'Signing out...' : 'Đang đăng xuất...';
+    final menuSettingsTitle = isEnglish
+        ? 'Account settings'
+        : 'Cài đặt tài khoản';
+    final menuSettingsSubtitle = isEnglish
+        ? 'Update company profile, contacts, and shipping information.'
+        : 'Cập nhật thông tin đại lý, liên hệ và địa chỉ giao hàng.';
+    final menuSupportTitle = isEnglish ? 'Support' : 'Hỗ trợ';
+    final menuSupportSubtitle = isEnglish
+        ? 'Contact support and submit product, order, or warranty requests.'
+        : 'Liên hệ hỗ trợ và gửi yêu cầu đơn hàng, sản phẩm, bảo hành.';
+    final menuPreferencesTitle = isEnglish
+        ? 'Appearance and language'
+        : 'Giao diện và ngôn ngữ';
+    final menuPreferencesSubtitle = isEnglish
+        ? 'Switch theme mode and language preferences.'
+        : 'Chuyển chế độ giao diện và ngôn ngữ sử dụng.';
+    final logoutLabel = isEnglish ? 'Log out' : 'Đăng xuất';
+    final editProfileLabel = isEnglish ? 'Edit profile' : 'Sửa hồ sơ';
+    final versionLabel = isEnglish
+        ? 'Version $_appVersion'
+        : 'Phiên bản $_appVersion';
+    final contactLabel = isEnglish ? 'Contact person' : 'Người liên hệ';
+    final emailLabel = 'Email';
+    final phoneLabel = isEnglish ? 'Phone' : 'Số điện thoại';
+    final shippingLabel = isEnglish ? 'Shipping address' : 'Địa chỉ giao hàng';
+    final policyLabel = isEnglish ? 'Sales policy' : 'Chính sách';
+    final profileErrorTitle = isEnglish
+        ? 'Unable to load account profile.'
+        : 'Không thể tải dữ liệu tài khoản.';
+    final retryLabel = isEnglish ? 'Retry' : 'Thử lại';
+    final dealerCodePrefix = isEnglish ? 'Dealer code' : 'Mã đại lý';
+
+    Widget buildBody() {
+      if (_isProfileLoading) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      if (_profileError != null || _profile == null) {
+        return Center(
+          child: Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+              side: BorderSide(
+                color: colors.outlineVariant.withValues(alpha: 0.6),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.error_outline, color: colors.error, size: 28),
+                  const SizedBox(height: 10),
+                  Text(
+                    profileErrorTitle,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: _loadProfile,
+                    child: Text(retryLabel),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
+      final profile = _profile!;
+      final profileRows = <Widget>[
+        _ProfileValueRow(label: contactLabel, value: profile.contactName),
+        const SizedBox(height: 10),
+        _ProfileValueRow(label: emailLabel, value: profile.email),
+        const SizedBox(height: 10),
+        _ProfileValueRow(label: phoneLabel, value: profile.phone),
+        const SizedBox(height: 10),
+        _ProfileValueRow(
+          label: shippingLabel,
+          value: profile.shippingAddress,
+          maxLines: 2,
+        ),
+      ];
+
+      final policyWidget = _ProfileValueRow(
+        label: policyLabel,
+        value: profile.salesPolicy,
+        maxLines: 2,
+      );
+
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        children: [
+          FadeSlideIn(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: _isLoggingOut ? null : _openAccountSettings,
+              child: Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  side: BorderSide(
+                    color: colors.outlineVariant.withValues(alpha: 0.6),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CircleAvatar(
+                            radius: 26,
+                            backgroundColor: colors.primaryContainer,
+                            child: Text(
+                              _avatarInitial(profile.businessName),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    color: colors.onPrimaryContainer,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  profile.businessName,
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                ),
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: colors.secondaryContainer,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    '$dealerCodePrefix: ${profile.dealerCode}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: colors.onSecondaryContainer,
+                                        ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: editProfileLabel,
+                            onPressed: _isLoggingOut
+                                ? null
+                                : _openAccountSettings,
+                            icon: const Icon(Icons.edit_outlined),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Divider(
+                        height: 1,
+                        color: colors.outlineVariant.withValues(alpha: 0.6),
+                      ),
+                      const SizedBox(height: 12),
+                      if (isTablet)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: profileRows,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(child: policyWidget),
+                          ],
+                        )
+                      else
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ...profileRows,
+                            const SizedBox(height: 10),
+                            policyWidget,
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 80),
+            child: Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+                side: BorderSide(
+                  color: colors.outlineVariant.withValues(alpha: 0.6),
+                ),
+              ),
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.settings_outlined),
+                    title: Text(menuSettingsTitle),
+                    subtitle: Text(menuSettingsSubtitle),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: _isLoggingOut ? null : _openAccountSettings,
+                  ),
+                  const Divider(height: 0),
+                  ListTile(
+                    leading: const Icon(Icons.support_agent_outlined),
+                    title: Text(menuSupportTitle),
+                    subtitle: Text(menuSupportSubtitle),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: _isLoggingOut ? null : _openSupport,
+                  ),
+                  const Divider(height: 0),
+                  ListTile(
+                    leading: const Icon(Icons.palette_outlined),
+                    title: Text(menuPreferencesTitle),
+                    subtitle: Text(menuPreferencesSubtitle),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: _isLoggingOut ? null : _openAppPreferences,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 140),
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: colors.error,
+                side: BorderSide(color: colors.error.withValues(alpha: 0.55)),
+              ),
+              onPressed: _isLoggingOut ? null : () => _handleLogout(isEnglish),
+              child: _isLoggingOut
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(colors.error),
+                      ),
+                    )
+                  : Text(logoutLabel),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            versionLabel,
+            textAlign: TextAlign.center,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+          ),
+        ],
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const BrandAppBarTitle('Tài khoản'),
+        title: BrandAppBarTitle(screenTitle),
         actions: [
           const GlobalSearchIconButton(),
           NotificationIconButton(
@@ -98,187 +471,67 @@ class _AccountScreenState extends State<AccountScreen> {
       ),
       body: Stack(
         children: [
-          FutureBuilder<DealerProfile>(
-            future: _profileFuture,
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final profile = snapshot.data!;
-
-              return Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: contentMaxWidth),
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                    children: [
-                      FadeSlideIn(
-                        child: Card(
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                            side: BorderSide(
-                              color: colors.outlineVariant.withValues(
-                                alpha: 0.6,
-                              ),
-                            ),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  profile.businessName,
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.w700),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Mã đại lý: ${profile.dealerCode}',
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        color: colors.onSurfaceVariant,
-                                      ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Người liên hệ: ${profile.contactName}',
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        color: colors.onSurfaceVariant,
-                                      ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Email: ${profile.email}',
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        color: colors.onSurfaceVariant,
-                                      ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'SĐT: ${profile.phone}',
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        color: colors.onSurfaceVariant,
-                                      ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Địa chỉ giao hàng: ${profile.shippingAddress}',
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        color: colors.onSurfaceVariant,
-                                      ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Chính sách: ${profile.salesPolicy}',
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        color: colors.onSurfaceVariant,
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      FadeSlideIn(
-                        delay: const Duration(milliseconds: 80),
-                        child: Card(
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                            side: BorderSide(
-                              color: colors.outlineVariant.withValues(
-                                alpha: 0.6,
-                              ),
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              ListTile(
-                                leading: const Icon(Icons.settings_outlined),
-                                title: const Text('Cài đặt tài khoản'),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: _isLoggingOut
-                                    ? null
-                                    : () async {
-                                        await Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                const AccountSettingsScreen(),
-                                          ),
-                                        );
-                                        _reloadProfile();
-                                      },
-                              ),
-                              const Divider(height: 0),
-                              ListTile(
-                                leading: const Icon(
-                                  Icons.support_agent_outlined,
-                                ),
-                                title: const Text('Hỗ trợ'),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: _isLoggingOut
-                                    ? null
-                                    : () {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                const SupportScreen(),
-                                          ),
-                                        );
-                                      },
-                              ),
-                              const Divider(height: 0),
-                              ListTile(
-                                leading: const Icon(Icons.palette_outlined),
-                                title: const Text('Giao diện và ngôn ngữ'),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: _isLoggingOut
-                                    ? null
-                                    : _openAppPreferences,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      FadeSlideIn(
-                        delay: const Duration(milliseconds: 140),
-                        child: OutlinedButton(
-                          onPressed: _isLoggingOut ? null : _handleLogout,
-                          child: _isLoggingOut
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                  ),
-                                )
-                              : const Text('Đăng xuất'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+          Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: contentMaxWidth),
+              child: buildBody(),
+            ),
           ),
-          if (_isLoggingOut) const _LogoutLoadingOverlay(),
+          if (_isLoggingOut) _LogoutLoadingOverlay(message: loadingLabel),
         ],
       ),
     );
   }
 }
 
+class _ProfileValueRow extends StatelessWidget {
+  const _ProfileValueRow({
+    required this.label,
+    required this.value,
+    this.maxLines = 1,
+  });
+
+  final String label;
+  final String value;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 3,
+          child: Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 4,
+          child: Text(
+            value,
+            maxLines: maxLines,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _LogoutLoadingOverlay extends StatelessWidget {
-  const _LogoutLoadingOverlay();
+  const _LogoutLoadingOverlay({required this.message});
+
+  final String message;
 
   @override
   Widget build(BuildContext context) {
@@ -292,16 +545,16 @@ class _LogoutLoadingOverlay extends StatelessWidget {
               color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Column(
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(
+                const SizedBox(
                   width: 28,
                   height: 28,
                   child: CircularProgressIndicator(strokeWidth: 2.8),
                 ),
-                SizedBox(height: 12),
-                Text('Đang đăng xuất...'),
+                const SizedBox(height: 12),
+                Text(message),
               ],
             ),
           ),

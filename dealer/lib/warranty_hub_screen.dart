@@ -211,9 +211,17 @@ class WarrantyHubScreen extends StatelessWidget {
               if (recentActivations.isEmpty)
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 90),
-                  child: const Card(
+                  child: Card(
                     elevation: 0,
-                    child: Padding(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    child: const Padding(
                       padding: EdgeInsets.all(16),
                       child: Text('Chưa có lượt xử lý serial nào.'),
                     ),
@@ -251,7 +259,11 @@ class WarrantyHubScreen extends StatelessWidget {
                           'Đã xử lý',
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
-                                color: const Color(0xFF127A34),
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? const Color(0xFF4ADE80)
+                                    : const Color(0xFF127A34),
                                 fontWeight: FontWeight.w600,
                               ),
                         ),
@@ -297,6 +309,7 @@ class _MetricChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
@@ -310,7 +323,7 @@ class _MetricChip extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: const Color(0xFF475569),
+              color: colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
             ),
           ),
