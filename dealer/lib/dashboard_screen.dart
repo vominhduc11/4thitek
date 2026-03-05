@@ -1670,7 +1670,7 @@ class _LowStockCard extends StatelessWidget {
     final ratio = (product.stock / _lowStockAlertThreshold)
         .clamp(0.0, 1.0)
         .toDouble();
-    final minimumTarget = product.minOrderQty <= 0 ? 1 : product.minOrderQty;
+    const minimumTarget = 1;
     final shortageToMinimum = math.max(0, minimumTarget - product.stock);
     final statusLabel = shortage > 0
         ? 'Thiếu $shortage so với ngưỡng $_lowStockAlertThreshold'
@@ -1704,7 +1704,7 @@ class _LowStockCard extends StatelessWidget {
                 ),
                 alignment: Alignment.center,
                 child: Icon(
-                  _categoryIcon(product.category),
+                  _productIcon(),
                   size: 20,
                   color: accentColor,
                 ),
@@ -1827,21 +1827,8 @@ class _LowStockCard extends StatelessWidget {
   }
 }
 
-IconData _categoryIcon(ProductCategory category) {
-  switch (category) {
-    case ProductCategory.headset:
-      return Icons.headset_mic_rounded;
-    case ProductCategory.keyboard:
-      return Icons.keyboard_rounded;
-    case ProductCategory.mouse:
-      return Icons.mouse_rounded;
-    case ProductCategory.speaker:
-      return Icons.speaker_rounded;
-    case ProductCategory.webcam:
-      return Icons.videocam_rounded;
-    case ProductCategory.accessory:
-      return Icons.cable_rounded;
-  }
+IconData _productIcon() {
+  return Icons.inventory_2_rounded;
 }
 
 String _compactSku(String sku) {
@@ -3138,9 +3125,7 @@ List<_CustomerStat> _buildTopCustomers(List<Order> orders) {
 
 List<Product> _buildLowStockProducts() {
   final products =
-      mockProducts
-          .where((p) => p.isOrderable && p.stock <= _lowStockAlertThreshold)
-          .toList()
+      mockProducts.where((p) => p.stock <= _lowStockAlertThreshold).toList()
         ..sort((a, b) => a.stock.compareTo(b.stock));
   return products.take(5).toList();
 }

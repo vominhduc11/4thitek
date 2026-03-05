@@ -50,20 +50,20 @@ class CartController extends ChangeNotifier {
   }
 
   int suggestedAddQuantity(Product product) {
-    if (!product.isOrderable || product.stock <= 0) {
+    if (product.stock <= 0) {
       return 0;
     }
     final remaining = remainingStockFor(product);
     if (remaining <= 0) {
       return 0;
     }
-    final step = product.effectiveOrderStep;
+    const step = 1;
     return remaining < step ? remaining : step;
   }
 
   bool canAdd(Product product, {int? quantity}) {
     final requested = quantity ?? suggestedAddQuantity(product);
-    if (!product.isOrderable || requested <= 0 || product.stock <= 0) {
+    if (requested <= 0 || product.stock <= 0) {
       return false;
     }
     return remainingStockFor(product) >= requested;
@@ -128,9 +128,6 @@ class CartController extends ChangeNotifier {
   }
 
   bool setQuantity(Product product, int quantity) {
-    if (!product.isOrderable) {
-      return false;
-    }
     if (quantity <= 0) {
       _items.remove(product.id);
       notifyListeners();
@@ -138,7 +135,7 @@ class CartController extends ChangeNotifier {
     }
 
     final maxQty = product.stock;
-    final minQty = product.effectiveMinOrderQty;
+    const minQty = 1;
     var next = quantity;
     if (next > maxQty) next = maxQty;
     if (next < minQty) next = minQty;

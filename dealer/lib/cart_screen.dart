@@ -25,7 +25,7 @@ class CartScreen extends StatelessWidget {
     final colors = theme.colorScheme;
     final cart = CartScope.of(context);
     final items = cart.items;
-    final hasAnyOrderableItems = items.any((item) => item.product.isOrderable);
+    final hasAnyOrderableItems = items.any((item) => item.product.stock > 0);
     final discountPercent = cart.discountPercent;
     final discountAmount = cart.discountAmount;
     final totalAfterDiscount = cart.totalAfterDiscount;
@@ -217,7 +217,7 @@ class CartScreen extends StatelessWidget {
                       final item = items[index];
                       final canIncrease =
                           cart.suggestedAddQuantity(item.product) > 0;
-                      final minQty = item.product.effectiveMinOrderQty;
+                      const minQty = 1;
                       final maxQty = item.product.stock;
                       final isWide = isTablet || isLandscapePhone;
                       final quantitySpinBox = SizedBox(
@@ -270,9 +270,7 @@ class CartScreen extends StatelessWidget {
                           ? <Widget>[
                               const SizedBox(height: 4),
                               Text(
-                                item.product.isOrderable
-                                    ? texts.maxStockReached
-                                    : texts.discontinuedProduct,
+                                texts.maxStockReached,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: colors.error,
                                   fontWeight: FontWeight.w600,

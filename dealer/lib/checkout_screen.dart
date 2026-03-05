@@ -372,17 +372,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   List<String> _validateCart(CartController cart) {
     final List<String> issues = [];
     for (final item in cart.items) {
-      if (!item.product.isOrderable) {
-        issues.add('${item.product.name} tạm ngừng bán.');
-      }
       if (item.quantity > item.product.stock) {
         issues.add(
           '${item.product.name} chỉ còn ${item.product.stock} SP trong kho.',
-        );
-      }
-      if (item.quantity < item.product.effectiveMinOrderQty) {
-        issues.add(
-          '${item.product.name} yêu cầu tối thiểu ${item.product.effectiveMinOrderQty} SP.',
         );
       }
     }
