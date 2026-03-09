@@ -1,88 +1,108 @@
 services:
   postgres:
-    image: postgres:16
-    container_name: 4thitek-postgres
+    image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: app_password
-      POSTGRES_DB: app_db
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: ${POSTGRES_DB:-app_db}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U app -d app_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-app_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
+
   backend:
-    image: maven:3.9.8-eclipse-temurin-17
-    container_name: 4thitek-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     restart: unless-stopped
-    working_dir: /app
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/app_db
-      SPRING_DATASOURCE_USERNAME: app
-      SPRING_DATASOURCE_PASSWORD: app_password
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-app_db}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-app}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
-      JWT_SECRET: 0123456789abcdef0123456789abcdef
+      SPRING_H2_CONSOLE_ENABLED: "false"
+      JWT_SECRET: ${JWT_SECRET}
+      APP_SEED_DEMO_DATA: ${APP_SEED_DEMO_DATA:-false}
+      APP_CORS_ALLOWED_ORIGIN_PATTERNS: ${APP_CORS_ALLOWED_ORIGIN_PATTERNS}
       UPLOAD_DIR: /app/uploads
-      UPLOAD_BASE_URL: /uploads
-      APP_CORS_ALLOWED_ORIGIN_PATTERNS: http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174
-      APP_PASSWORD_RESET_BASE_URL: http://localhost:3000/reset-password
+      UPLOAD_BASE_URL: ${UPLOAD_BASE_URL:-/uploads}
+      APP_MAIL_ENABLED: ${APP_MAIL_ENABLED:-false}
+      APP_MAIL_FROM: ${APP_MAIL_FROM:-}
+      APP_MAIL_FROM_NAME: ${APP_MAIL_FROM_NAME:-4ThiTek}
+      APP_PASSWORD_RESET_BASE_URL: ${APP_PASSWORD_RESET_BASE_URL}
+      APP_PASSWORD_RESET_EXPIRATION_MINUTES: ${APP_PASSWORD_RESET_EXPIRATION_MINUTES:-30}
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:-true}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:-true}
+      SEPAY_ENABLED: ${SEPAY_ENABLED:-false}
+      SEPAY_WEBHOOK_TOKEN: ${SEPAY_WEBHOOK_TOKEN:-}
+      SEPAY_BANK_NAME: ${SEPAY_BANK_NAME:-}
+      SEPAY_ACCOUNT_NUMBER: ${SEPAY_ACCOUNT_NUMBER:-}
+      SEPAY_ACCOUNT_HOLDER: ${SEPAY_ACCOUNT_HOLDER:-}
     ports:
-      - "8080:8080"
+      - "${BACKEND_PORT:-8080}:8080"
     volumes:
-      - ./backend:/app
       - upload-data:/app/uploads
-      - m2:/root/.m2
-    command: mvn -DskipTests spring-boot:run
-  admin-fe:
-    image: node:20
-    container_name: 4thitek-admin-fe
-    restart: unless-stopped
-    working_dir: /app
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./admin-fe:/app
-      - admin_node_modules:/app/node_modules
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
-  dealer:
-    image: ghcr.io/cirruslabs/flutter:stable
-    container_name: 4thitek-dealer
-    restart: unless-stopped
-    working_dir: /app
-    depends_on:
-      - backend
-    ports:
-      - "5174:5174"
-    volumes:
-      - ./dealer:/app
-    command: sh -c "flutter config --enable-web && flutter pub get && flutter run -d web-server --web-hostname 0.0.0.0 --web-port 5174 --dart-define=API_BASE_URL=http://localhost:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
   main-fe:
-    image: node:20
-    container_name: 4thitek-main-fe
+    build:
+      context: ./main-fe
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+        INTERNAL_API_BASE_URL: ${INTERNAL_API_BASE_URL:-http://backend:8080/api}
     restart: unless-stopped
-    working_dir: /app
     depends_on:
-      - backend
-    environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080/api
-      INTERNAL_API_BASE_URL: http://backend:8080/api
+      backend:
+        condition: service_healthy
     ports:
-      - "3000:3000"
-    volumes:
-      - ./main-fe:/app
-      - main_node_modules:/app/node_modules
-    command: sh -c "npm install && npm run dev -- -H 0.0.0.0 -p 3000"
+      - "${MAIN_FE_PORT:-3000}:3000"
+
+  admin-fe:
+    build:
+      context: ./admin-fe
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${ADMIN_FE_PORT:-4173}:80"
+
+  dealer:
+    build:
+      context: ./dealer
+      dockerfile: Dockerfile
+      args:
+        API_BASE_URL: ${DEALER_API_BASE_URL}
+        WS_BASE_URL: ${DEALER_WS_BASE_URL:-}
+        PUBLIC_SITE_BASE_URL: ${PUBLIC_SITE_BASE_URL}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${DEALER_PORT:-4174}:80"
 
 volumes:
   pgdata:
   upload-data:
-  m2:
-  admin_node_modules:
-  main_node_modules:

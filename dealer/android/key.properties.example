@@ -1,0 +1,7 @@
+# Copy this file to dealer/android/key.properties and fill in your real release keystore values.
+# Keep the actual key.properties and keystore file out of git.
+
+storeFile=../../upload-keystore.jks
+storePassword=REPLACE_WITH_STORE_PASSWORD
+keyAlias=upload
+keyPassword=REPLACE_WITH_KEY_PASSWORD

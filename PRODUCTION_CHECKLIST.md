@@ -16,7 +16,8 @@ Trang thai hien tai da tot hon ve mat cau hinh mac dinh, nhung van chua du de co
 ## Van hanh va release
 
 - Tao artifact production rieng cho backend, `main-fe`, `admin-fe` va `dealer`; khong deploy bang `spring-boot:run`, `npm run dev`, hoac `flutter run`.
-- Dung [docker-compose.prod.yaml](docker-compose.prod.yaml) va [.env.production.example](.env.production.example) lam diem xuat phat cho stack production.
+- Dung [docker-compose.yaml](docker-compose.yaml) va [.env.example](.env.example) lam diem xuat phat mac dinh cho stack production.
+- [docker-compose.prod.yaml](docker-compose.prod.yaml) va [.env.production.example](.env.production.example) duoc giu lai nhu alias/tuong thich nguoc cho luong cu.
 - Lam sach working tree truoc khi release; khong cat ban release tu repo dang co nhieu file modified/untracked.
 - Chot env matrix cho `dev`, `staging`, `production` va luu trong tai lieu van hanh.
 

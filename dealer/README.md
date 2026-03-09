@@ -29,6 +29,39 @@ Neu can test socket qua domain rieng tren production build:
 flutter build web --release --dart-define=API_BASE_URL=https://api.4thitek.vn --dart-define=WS_BASE_URL=https://ws.4thitek.vn --dart-define=PUBLIC_SITE_BASE_URL=https://4thitek.vn
 ```
 
+## Android release signing
+
+Play Console se tu choi APK/AAB neu ban ky bang debug key. Repo da duoc cau hinh de build `release` chi khi co keystore that.
+
+1. Tao release keystore:
+
+```bash
+keytool -genkeypair -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+```
+
+2. Copy [dealer/android/key.properties.example](android/key.properties.example) thanh `dealer/android/key.properties` va dien gia tri that:
+
+```properties
+storeFile=../../upload-keystore.jks
+storePassword=your_store_password
+keyAlias=upload
+keyPassword=your_key_password
+```
+
+3. Build Android release:
+
+```bash
+flutter build appbundle --release --dart-define=API_BASE_URL=https://api.4thitek.vn --dart-define=WS_BASE_URL=https://ws.4thitek.vn --dart-define=PUBLIC_SITE_BASE_URL=https://4thitek.vn
+```
+
+Hoac:
+
+```bash
+flutter build apk --release --dart-define=API_BASE_URL=https://api.4thitek.vn --dart-define=WS_BASE_URL=https://ws.4thitek.vn --dart-define=PUBLIC_SITE_BASE_URL=https://4thitek.vn
+```
+
+Neu chua cau hinh `key.properties`, Gradle se fail som thay vi am tham dung debug key.
+
 ## Tai khoan demo
 
 - `daily.hn@4thitek.vn` / `123456`

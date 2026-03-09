@@ -56,33 +56,37 @@ npm run dev
 
 ## Docker Compose
 
-`docker-compose.yaml` hien la stack local/dev, khong phai artifact production. File nay da duoc cap nhat de:
+`docker-compose.yaml` gio la stack production-safe mac dinh.
 
-- chay backend voi PostgreSQL duy nhat, khong kem Redis/Kafka/Zookeeper,
-- mount them `upload-data` de giu file upload qua cac lan restart container,
-- chay `main-fe` voi API URL public/internal tach rieng,
-- chay dealer Flutter web o cong `5174`.
+Tren cloud server:
 
-Len stack:
+1. Tao file `.env` tu [.env.example](.env.example)
+2. Dien day du secrets, domain va API URL that
+3. Chay:
 
 ```bash
-docker compose up --build
+docker compose up -d
 ```
 
-## Production Docker
-
-Stack production tach rieng tai [docker-compose.prod.yaml](docker-compose.prod.yaml).
-
-1. Tao file env production tu [.env.production.example](.env.production.example).
-2. Dien day du secrets, domain va API URL that.
-3. Build va chay:
+Neu muon rebuild image sau khi `git pull` hoac sua code:
 
 ```bash
-docker compose --env-file .env.production -f docker-compose.prod.yaml build
-docker compose --env-file .env.production -f docker-compose.prod.yaml up -d
+docker compose up -d --build
 ```
 
 Stack nay khong kem reverse proxy/TLS. Neu deploy internet-facing, can dat them Nginx, Caddy hoac load balancer ben ngoai.
+
+## Docker Compose Dev
+
+Stack local/dev duoc tach rieng tai [docker-compose.dev.yaml](docker-compose.dev.yaml).
+
+Chay dev stack:
+
+```bash
+docker compose -f docker-compose.dev.yaml up --build
+```
+
+File [docker-compose.prod.yaml](docker-compose.prod.yaml) duoc giu lai nhu alias production de tuong thich nguoc voi lenh cu.
 
 ### Production domains hien tai
 

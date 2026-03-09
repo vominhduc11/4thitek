@@ -1,4 +1,4 @@
-package com.example.dealer
+package vn.fourthitek.dealer
 
 import io.flutter.embedding.android.FlutterActivity
 
