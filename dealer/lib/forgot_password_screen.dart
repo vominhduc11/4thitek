@@ -415,7 +415,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Lien ket co hieu luc trong 30 phut.',
+          'Liên kết có hiệu lực trong 30 phút.',
           style: theme.textTheme.bodySmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -629,7 +629,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (!result.isSuccess) {
         _showErrorSnackbar(
           result.failure?.message ??
-              'Khong the gui lien ket luc nay. Vui long thu lai.',
+              'Không thể gửi liên kết lúc này. Vui lòng thử lại.',
         );
         return;
       }
@@ -643,7 +643,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _startResendCooldown();
       if (isResend) {
         _showSuccessSnackbar(
-          result.message ?? 'Da gui lai lien ket dat lai den $_submittedEmail.',
+          result.message ?? 'Đã gửi lại liên kết đặt lại đến $_submittedEmail.',
         );
       }
     } on TimeoutException {

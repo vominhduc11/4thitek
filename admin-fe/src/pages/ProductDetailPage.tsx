@@ -461,7 +461,7 @@ function ProductDetailPage() {
 
       setIsEditing(false)
     } catch (error) {
-      notify(error instanceof Error ? error.message : t('Khong the luu san pham'), {
+      notify(error instanceof Error ? error.message : t('Không thể lưu sản phẩm'), {
         title: 'Products',
         variant: 'error',
       })
@@ -480,7 +480,7 @@ function ProductDetailPage() {
         await deleteProduct(product.sku)
         navigate('/products')
       } catch (error) {
-        notify(error instanceof Error ? error.message : t('Khong the xoa san pham'), {
+        notify(error instanceof Error ? error.message : t('Không thể xóa sản phẩm'), {
           title: 'Products',
           variant: 'error',
         })
@@ -492,9 +492,9 @@ function ProductDetailPage() {
     if (product.isDeleted) {
       try {
         await restoreProduct(product.sku)
-        setActionMessage(t('Da khoi phuc san pham ve ban nhap.'))
+        setActionMessage(t('Đã khôi phục sản phẩm về bản nháp.'))
       } catch (error) {
-        notify(error instanceof Error ? error.message : t('Khong the khoi phuc san pham'), {
+        notify(error instanceof Error ? error.message : t('Không thể khôi phục sản phẩm'), {
           title: 'Products',
           variant: 'error',
         })
@@ -505,7 +505,7 @@ function ProductDetailPage() {
       await archiveProduct(product.sku)
       setActionMessage('')
     } catch (error) {
-      notify(error instanceof Error ? error.message : t('Khong the an san pham'), {
+      notify(error instanceof Error ? error.message : t('Không thể ẩn sản phẩm'), {
         title: 'Products',
         variant: 'error',
       })
@@ -718,7 +718,7 @@ function ProductDetailPage() {
       const stored = await uploadImageAsset(file)
       setDraft((prev) => (prev ? { ...prev, image: stored.url } : prev))
     } catch {
-      notify(t('Khong the tai anh san pham'), {
+      notify(t('Không thể tải ảnh sản phẩm'), {
         title: 'Products',
         variant: 'error',
       })
@@ -938,7 +938,7 @@ function ProductDetailPage() {
                     notify(
                       error instanceof Error
                         ? error.message
-                        : t('Khong the cap nhat trang thai xuat ban'),
+                        : t('Không thể cập nhật trạng thái xuất bản'),
                       {
                         title: 'Products',
                         variant: 'error',

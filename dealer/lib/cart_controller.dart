@@ -372,7 +372,7 @@ class CartController extends ChangeNotifier {
     if (error != null && error.trim().isNotEmpty) {
       return error.trim();
     }
-    return 'Khong the dong bo gio hang.';
+    return 'Không thể đồng bộ giỏ hàng.';
   }
 
   Map<String, String> _authorizedHeaders(String token) {

@@ -350,7 +350,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text(
-                      'Khong the cap nhat trang thai don hang. Vui long thu lai.',
+                      'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.',
                     ),
                   ),
                 );

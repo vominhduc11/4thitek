@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (username.length < 3 || password.length < 4) {
       return {
         ok: false,
-        message: 'Thong tin dang nhap khong hop le',
+        message: 'Thông tin đăng nhập không hợp lệ',
       }
     }
 
@@ -122,7 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!response.ok || !payloadData?.success || !payloadData.data?.accessToken) {
         return {
           ok: false,
-          message: payloadData?.error || 'Dang nhap that bai',
+          message: payloadData?.error || 'Đăng nhập thất bại',
         }
       }
 
@@ -133,7 +133,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!roles.includes('ADMIN')) {
         return {
           ok: false,
-          message: 'Tai khoan khong co quyen admin',
+          message: 'Tài khoản không có quyền admin',
         }
       }
 
@@ -161,7 +161,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch {
       return {
         ok: false,
-        message: 'Khong ket noi duoc backend',
+        message: 'Không kết nối được backend',
       }
     } finally {
       setIsLoggingIn(false)

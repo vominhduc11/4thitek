@@ -146,7 +146,7 @@ class RemoteAuthService implements AuthService {
       if (accessToken.isEmpty) {
         return LoginResult.failure(
           type: LoginFailureType.unknown,
-          message: 'Khong the tao phien dang nhap.',
+          message: 'Không thể tạo phiên đăng nhập.',
         );
       }
 
@@ -163,7 +163,7 @@ class RemoteAuthService implements AuthService {
     } on Exception {
       return LoginResult.failure(
         type: LoginFailureType.network,
-        message: 'Khong the ket noi may chu.',
+        message: 'Không thể kết nối máy chủ.',
       );
     }
   }
@@ -211,7 +211,7 @@ class RemoteAuthService implements AuthService {
     } on Exception {
       return PasswordResetRequestResult.failure(
         type: LoginFailureType.network,
-        message: 'Khong the ket noi may chu.',
+        message: 'Không thể kết nối máy chủ.',
       );
     }
   }
@@ -240,7 +240,7 @@ class RemoteAuthService implements AuthService {
     if (error != null && error.trim().isNotEmpty) {
       return error.trim();
     }
-    return 'Yeu cau that bai.';
+    return 'Yêu cầu thất bại.';
   }
 
   String _extractSuccessMessage(Map<String, dynamic> payload, String fallback) {

@@ -188,7 +188,7 @@ class _DealerAppState extends State<DealerApp> {
             initialErrorMessage:
                 sessionMessage != null && sessionMessage.isNotEmpty
                 ? sessionMessage
-                : 'Phien dang nhap da het han. Vui long dang nhap lai.',
+                : 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
           ),
         ),
         (route) => false,

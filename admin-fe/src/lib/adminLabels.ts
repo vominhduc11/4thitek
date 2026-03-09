@@ -11,7 +11,7 @@ import type { BadgeTone } from '../components/ui-kit'
 export const orderStatusLabel: Record<OrderStatus, string> = {
   packing: 'Dong goi',
   pending: 'Cho xu ly',
-  delivering: 'Dang giao',
+  delivering: 'Đang giao',
   completed: 'Hoan tat',
   cancelled: 'Huy',
 }
@@ -68,9 +68,9 @@ export const dealerTierTone: Record<DealerTier, BadgeTone> = {
 }
 
 export const dealerStatusLabel: Record<DealerStatus, string> = {
-  active: 'Da kich hoat',
-  under_review: 'Cho duyet ho so',
-  needs_attention: 'Can bo sung ho so',
+  active: 'Đã kích hoạt',
+  under_review: 'Chờ duyệt hồ sơ',
+  needs_attention: 'Cần bổ sung hồ sơ',
 }
 
 export const dealerStatusTone: Record<DealerStatus, BadgeTone> = {
@@ -80,13 +80,13 @@ export const dealerStatusTone: Record<DealerStatus, BadgeTone> = {
 }
 
 export const dealerStatusDescription: Record<DealerStatus, string> = {
-  active: 'Dai ly da duoc phe duyet va co the dang nhap ung dung dealer.',
-  under_review: 'Ho so dang cho admin xac minh. Dai ly chua the dang nhap dealer app.',
-  needs_attention: 'Ho so can bo sung them thong tin truoc khi kich hoat tai khoan.',
+  active: 'Đại lý đã được phê duyệt và có thể đăng nhập ứng dụng dealer.',
+  under_review: 'Hồ sơ đang chờ admin xác minh. Đại lý chưa thể đăng nhập dealer app.',
+  needs_attention: 'Hồ sơ cần bổ sung thêm thông tin trước khi kích hoạt tài khoản.',
 }
 
 export const userStatusLabel: Record<UserStatus, string> = {
-  active: 'Dang hoat dong',
+  active: 'Đang hoạt động',
   pending: 'Cho duyet',
 }
 
@@ -96,7 +96,7 @@ export const userStatusTone: Record<UserStatus, BadgeTone> = {
 }
 
 export const ruleStatusLabel: Record<RuleStatus, string> = {
-  active: 'Dang hoat dong',
+  active: 'Đang hoạt động',
   pending: 'Cho duyet',
   draft: 'Ban nhap',
 }

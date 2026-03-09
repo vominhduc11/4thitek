@@ -22,7 +22,7 @@ function BlogDetailPage() {
       <PagePanel>
         <EmptyState
           icon={FileText}
-          title="Khong tim thay bai viet"
+          title="Không tìm thấy bài viết"
           message={`Bai ${postId} khong ton tai hoac da bi xoa.`}
         />
       </PagePanel>
@@ -78,7 +78,7 @@ function BlogDetailPage() {
                   variant: 'info',
                 })
               } catch (error) {
-                notify(error instanceof Error ? error.message : 'Khong the cap nhat bai viet', {
+                notify(error instanceof Error ? error.message : 'Không thể cập nhật bài viết', {
                   title: 'Blogs',
                   variant: 'error',
                 })
@@ -105,7 +105,7 @@ function BlogDetailPage() {
                   notify(`Da xoa bai ${post.id}`, { title: 'Blogs', variant: 'error' })
                   navigate('/blogs')
                 } catch (error) {
-                  notify(error instanceof Error ? error.message : 'Khong the xoa bai viet', {
+                  notify(error instanceof Error ? error.message : 'Không thể xóa bài viết', {
                     title: 'Blogs',
                     variant: 'error',
                   })

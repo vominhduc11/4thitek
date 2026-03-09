@@ -163,7 +163,7 @@ function AppLayout() {
       return
     }
 
-    notify('Khong tim thay trang phu hop', { title: 'Search', variant: 'info' })
+    notify('Không tìm thấy trang phù hợp', { title: 'Search', variant: 'info' })
   }
 
   const renderSidebar = (mobile = false) => (
@@ -349,7 +349,7 @@ function AppLayout() {
                       type="button"
                     >
                       <LogOut className="h-4 w-4" />
-                      Dang xuat
+                      Đăng xuất
                     </button>
                   </div>
                 ) : null}

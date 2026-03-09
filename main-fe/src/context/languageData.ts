@@ -12,7 +12,7 @@ export const translations = {
         },
         hero: {
             title: 'Professional Audio Communication',
-            subtitle: `Discover a breakthrough era of motorcycle communication with 4T HITEKâ€”a pioneering brand in Ho Chi Minh City specializing in telecom components and motorcycle accessories. The 4THITEK solution offers limitless connectivity, safety, and convenience. Featuring cutting-edge Bluetooth technology, a wind-noise reducing mic, and crisp audio, it lets you talk, listen to music, access GPS navigation, and receive real-time safety alertsâ€”even at high speeds or in harsh terrain. Its compact, easy-to-install, and waterproof design fits most standard helmets. With group-connect capability for 2â€“8 riders and hundreds-of-meters range, you'll stay in touch during group rides or events. Firmware updates via mobile app ensure you always enjoy the latest features without replacing hardware. With 4THITEK, every journey becomes an intelligent, seamless, and stylish communication experienceâ€”truly the future of motorcycle connectivity.`,
+            subtitle: `Discover a breakthrough era of motorcycle communication with 4T HITEK—a pioneering brand in Ho Chi Minh City specializing in telecom components and motorcycle accessories. The 4THITEK solution offers limitless connectivity, safety, and convenience. Featuring cutting-edge Bluetooth technology, a wind-noise reducing mic, and crisp audio, it lets you talk, listen to music, access GPS navigation, and receive real-time safety alerts—even at high speeds or in harsh terrain. Its compact, easy-to-install, and waterproof design fits most standard helmets. With group-connect capability for 2–8 riders and hundreds-of-meters range, you'll stay in touch during group rides or events. Firmware updates via mobile app ensure you always enjoy the latest features without replacing hardware. With 4THITEK, every journey becomes an intelligent, seamless, and stylish communication experience—truly the future of motorcycle connectivity.`,
             cta: 'Explore Products'
         },
         products: {
@@ -277,7 +277,7 @@ export const translations = {
         },
         about: {
             title: 'ABOUT US',
-            description: 'At 4thitek, we believe that exceptional audio is not just heardâ€”it\'s experienced. Our journey began with a simple mission: to create audio products that deliver uncompromising sound quality, innovative design, and reliable performance.',
+            description: 'At 4thitek, we believe that exceptional audio is not just heard—it\'s experienced. Our journey began with a simple mission: to create audio products that deliver uncompromising sound quality, innovative design, and reliable performance.',
             purpose: {
                 title: 'Our Purpose',
                 description: 'At 4thitek, we\'re driven by our passion for sound. We combine cutting-edge technology with meticulous craftsmanship to create audio products that deliver an immersive and authentic listening experience.'
@@ -354,7 +354,7 @@ export const translations = {
                 address: 'Address',
                 phone: 'Phone',
                 email: 'Email',
-                addressContent: ['79/30/52 Ă‚u CÆ¡, PhÆ°á»ng 14', 'Quáº­n 11, ThĂ nh phá»‘ Há»“ ChĂ­ Minh'],
+                addressContent: ['79/30/52 Âu Cơ, Phường 14', 'Quận 11, Thành phố Hồ Chí Minh'],
                 phoneContent: ['+84 679689900'],
                 emailContent: ['info@4thitek.vn']
             },
@@ -539,9 +539,9 @@ export const translations = {
                 alertSerial: 'Please enter serial number',
                 notes: {
                     title: 'Note:',
-                    serialRequired: 'â€¢ Serial number is required for warranty check',
-                    infoDisplay: 'â€¢ Warranty information will be displayed immediately after check',
-                    contactSupport: 'â€¢ Contact support if you encounter any issues'
+                    serialRequired: '• Serial number is required for warranty check',
+                    infoDisplay: '• Warranty information will be displayed immediately after check',
+                    contactSupport: '• Contact support if you encounter any issues'
                 }
             },
             instructions: {
@@ -609,7 +609,7 @@ export const translations = {
                 blog: 'Blog',
                 contact: 'Contact Us'
             },
-            copyright: 'CopyRight Â© 2023 4T HITEK All Right Reserved.',
+            copyright: 'CopyRight © 2023 4T HITEK All Right Reserved.',
             languageSelector: 'Vietnam'
         },
         becomeReseller: {
@@ -809,519 +809,519 @@ export const translations = {
     },
     vi: {
         nav: {
-            navigation: 'Äiá»u HÆ°á»›ng',
-            home: 'Trang Chá»§',
-            products: 'Sáº£n Pháº©m',
-            company: 'CĂ´ng Ty',
-            reseller: 'Äáº¡i LĂ½',
+            navigation: 'Điều Hướng',
+            home: 'Trang Chủ',
+            products: 'Sản Phẩm',
+            company: 'Công Ty',
+            reseller: 'Đại Lý',
             blog: 'Blog',
-            contact: 'LiĂªn Há»‡'
+            contact: 'Liên Hệ'
         },
         hero: {
-            title: 'Truyá»n ThĂ´ng Ă‚m Thanh ChuyĂªn Nghiá»‡p',
-            subtitle: 'Tráº£i nghiá»‡m tÆ°Æ¡ng lai cá»§a giao tiáº¿p xe mĂ¡y vá»›i 4THITEK',
-            cta: 'KhĂ¡m PhĂ¡ Sáº£n Pháº©m'
+            title: 'Truyền Thông Âm Thanh Chuyên Nghiệp',
+            subtitle: 'Trải nghiệm tương lai của giao tiếp xe máy với 4THITEK',
+            cta: 'Khám Phá Sản Phẩm'
         },
         products: {
-            title: 'Sáº£n Pháº©m Cá»§a ChĂºng TĂ´i',
-            subtitle: 'KhĂ¡m phĂ¡ dĂ²ng sáº£n pháº©m thiáº¿t bá»‹ truyá»n thĂ´ng Ă¢m thanh chuyĂªn nghiá»‡p',
-            contactForInfo: 'LiĂªn Há»‡ Äá»ƒ Biáº¿t ThĂ´ng Tin',
-            distributorProduct: 'Sáº£n Pháº©m PhĂ¢n Phá»‘i',
-            viewDetails: 'Xem Chi Tiáº¿t',
+            title: 'Sản Phẩm Của Chúng Tôi',
+            subtitle: 'Khám phá dòng sản phẩm thiết bị truyền thông âm thanh chuyên nghiệp',
+            contactForInfo: 'Liên Hệ Để Biết Thông Tin',
+            distributorProduct: 'Sản Phẩm Phân Phối',
+            viewDetails: 'Xem Chi Tiết',
             categories: {
-                all: 'Táº¥t Cáº£',
+                all: 'Tất Cả',
                 bluetooth: 'Bluetooth',
-                wireless: 'KhĂ´ng DĂ¢y',
-                professional: 'ChuyĂªn Nghiá»‡p',
+                wireless: 'Không Dây',
+                professional: 'Chuyên Nghiệp',
                 gaming: 'Tai Nghe Gaming',
-                wirelessHeadsets: 'Tai Nghe KhĂ´ng DĂ¢y',
-                professionalAudio: 'Ă‚m Thanh ChuyĂªn Nghiá»‡p'
+                wirelessHeadsets: 'Tai Nghe Không Dây',
+                professionalAudio: 'Âm Thanh Chuyên Nghiệp'
             },
             featured: {
-                title: 'Bá»™ SÆ°u Táº­p Sáº£n Pháº©m',
-                subtitle: 'KhĂ¡m phĂ¡ dĂ²ng sáº£n pháº©m cĂ´ng nghá»‡ Ă¢m thanh tiĂªn tiáº¿n vĂ  Ä‘a dáº¡ng cá»§a chĂºng tĂ´i',
-                carouselTitle: 'Sáº£n Pháº©m TiĂªu Biá»ƒu',
-                product: 'Sáº¢N PHáº¨M',
-                discoveryNow: 'KHĂM PHĂ NGAY',
-                sxProElite: 'Tai nghe Gaming chuyĂªn nghiá»‡p vá»›i driver 50mm vĂ  cĂ´ng nghá»‡ chá»‘ng á»“n tiĂªn tiáº¿n',
-                gxWirelessPro: 'Tai nghe Gaming khĂ´ng dĂ¢y vá»›i káº¿t ná»‘i 2.4GHz vĂ  thá»i lÆ°á»£ng pin 30 giá»',
-                hxStudioMaster: 'Tai nghe Studio chuyĂªn nghiá»‡p vá»›i driver planar magnetic cháº¥t lÆ°á»£ng cao',
-                mxSportElite: 'Tai nghe thá»ƒ thao khĂ´ng dĂ¢y vá»›i kháº£ nÄƒng chá»‘ng nÆ°á»›c IPX7 vĂ  sáº¡c nhanh'
+                title: 'Bộ Sưu Tập Sản Phẩm',
+                subtitle: 'Khám phá dòng sản phẩm công nghệ âm thanh tiên tiến và đa dạng của chúng tôi',
+                carouselTitle: 'Sản Phẩm Tiêu Biểu',
+                product: 'SẢN PHẨM',
+                discoveryNow: 'KHÁM PHÁ NGAY',
+                sxProElite: 'Tai nghe Gaming chuyên nghiệp với driver 50mm và công nghệ chống ồn tiên tiến',
+                gxWirelessPro: 'Tai nghe Gaming không dây với kết nối 2.4GHz và thời lượng pin 30 giờ',
+                hxStudioMaster: 'Tai nghe Studio chuyên nghiệp với driver planar magnetic chất lượng cao',
+                mxSportElite: 'Tai nghe thể thao không dây với khả năng chống nước IPX7 và sạc nhanh'
             },
             detail: {
                 breadcrumbs: {
-                    productDetails: 'MĂ” Táº¢ Sáº¢N PHáº¨M',
-                    productVideos: 'VIDEO Sáº¢N PHáº¨M',
-                    specifications: 'THĂ”NG Sá» Ká»¸ THUáº¬T',
-                    warranty: 'Báº¢O HĂ€NH'
+                    productDetails: 'MÔ TẢ SẢN PHẨM',
+                    productVideos: 'VIDEO SẢN PHẨM',
+                    specifications: 'THÔNG SỐ KỸ THUẬT',
+                    warranty: 'BẢO HÀNH'
                 },
-                loading: 'Äang táº£i sáº£n pháº©m...',
-                notFound: 'KhĂ´ng tĂ¬m tháº¥y sáº£n pháº©m',
-                backToProducts: 'Quay láº¡i Sáº£n pháº©m',
-                relatedProducts: 'Sáº¢N PHáº¨M LIĂN QUAN',
-                viewOtherProducts: 'Xem cĂ¡c sáº£n pháº©m liĂªn quan khĂ¡c'
+                loading: 'Đang tải sản phẩm...',
+                notFound: 'Không tìm thấy sản phẩm',
+                backToProducts: 'Quay lại Sản phẩm',
+                relatedProducts: 'SẢN PHẨM LIÊN QUAN',
+                viewOtherProducts: 'Xem các sản phẩm liên quan khác'
             }
         },
         reseller: {
-            title: 'TĂ¬m Äáº¡i LĂ½ á»¦y Quyá»n',
-            subtitle: 'TĂ¬m kiáº¿m Ä‘áº¡i lĂ½ á»§y quyá»n 4THITEK gáº§n nháº¥t Ä‘á»ƒ mua sáº£n pháº©m vĂ  nháº­n há»— trá»£ ká»¹ thuáº­t tá»‘t nháº¥t.',
-            city: 'ThĂ nh Phá»‘',
-            district: 'Quáº­n/Huyá»‡n',
-            specificAddress: 'Äá»‹a Chá»‰ Cá»¥ Thá»ƒ',
-            selectCity: 'Chá»n ThĂ nh Phá»‘',
-            selectDistrict: 'Chá»n Quáº­n/Huyá»‡n',
-            enterAddress: 'Nháº­p Ä‘á»‹a chá»‰...',
-            search: 'TĂ¬m Kiáº¿m',
-            searchingDealers: 'Äang tĂ¬m kiáº¿m Ä‘áº¡i lĂ½...',
-            loadingMap: 'Äang táº£i báº£n Ä‘á»“...',
-            resellerMapTitle: 'Báº£n Ä‘á»“ Ä‘áº¡i lĂ½',
-            clickToSelectReseller: 'Nháº¥p vĂ o Ä‘áº¡i lĂ½ Ä‘á»ƒ xem vá»‹ trĂ­ trĂªn báº£n Ä‘á»“',
-            zoomOut: 'PhĂ³ng nhá»',
-            zoomIn: 'PhĂ³ng to',
-            fullscreen: 'ToĂ n mĂ n hĂ¬nh',
-            exitFullscreen: 'ThoĂ¡t toĂ n mĂ n hĂ¬nh',
-            selectedDealer: 'Äáº¡i lĂ½ Ä‘Æ°á»£c chá»n',
-            otherDealers: 'Äáº¡i lĂ½ khĂ¡c',
-            showingOnMap: 'Hiá»ƒn thá»‹ {count} Ä‘áº¡i lĂ½ trĂªn báº£n Ä‘á»“',
-            useCtrlScroll: 'Sá»­ dá»¥ng Ctrl + Scroll Ä‘á»ƒ zoom',
-            pressEscToExit: 'Nháº¥n ESC Ä‘á»ƒ thoĂ¡t toĂ n mĂ n hĂ¬nh',
-            searchResults: 'Káº¿t quáº£ tĂ¬m kiáº¿m',
-            foundDealers: 'TĂ¬m tháº¥y {count} Ä‘áº¡i lĂ½',
-            noResellersFound: 'KhĂ´ng tĂ¬m tháº¥y Ä‘áº¡i lĂ½',
-            noResellersMessage: 'Vui lĂ²ng thá»­ tĂ¬m kiáº¿m vá»›i tá»« khĂ³a khĂ¡c hoáº·c má»Ÿ rá»™ng khu vá»±c tĂ¬m kiáº¿m.',
-            processingLocations: 'Äang xá»­ lĂ½ vá»‹ trĂ­...',
-            loadingDealers: 'Äang táº£i Ä‘áº¡i lĂ½...',
-            errorTitle: 'Lá»—i Táº£i Dá»¯ Liá»‡u Äáº¡i LĂ½',
-            fallbackMessage: 'Khong the tai du lieu dai ly. Vui long thu lai.',
-            hours: 'Giá» Má»Ÿ Cá»­a',
-            phone: 'Äiá»‡n Thoáº¡i',
+            title: 'Tìm Đại Lý Ủy Quyền',
+            subtitle: 'Tìm kiếm đại lý ủy quyền 4THITEK gần nhất để mua sản phẩm và nhận hỗ trợ kỹ thuật tốt nhất.',
+            city: 'Thành Phố',
+            district: 'Quận/Huyện',
+            specificAddress: 'Địa Chỉ Cụ Thể',
+            selectCity: 'Chọn Thành Phố',
+            selectDistrict: 'Chọn Quận/Huyện',
+            enterAddress: 'Nhập địa chỉ...',
+            search: 'Tìm Kiếm',
+            searchingDealers: 'Đang tìm kiếm đại lý...',
+            loadingMap: 'Đang tải bản đồ...',
+            resellerMapTitle: 'Bản đồ đại lý',
+            clickToSelectReseller: 'Nhấp vào đại lý để xem vị trí trên bản đồ',
+            zoomOut: 'Phóng nhỏ',
+            zoomIn: 'Phóng to',
+            fullscreen: 'Toàn màn hình',
+            exitFullscreen: 'Thoát toàn màn hình',
+            selectedDealer: 'Đại lý được chọn',
+            otherDealers: 'Đại lý khác',
+            showingOnMap: 'Hiển thị {count} đại lý trên bản đồ',
+            useCtrlScroll: 'Sử dụng Ctrl + Scroll để zoom',
+            pressEscToExit: 'Nhấn ESC để thoát toàn màn hình',
+            searchResults: 'Kết quả tìm kiếm',
+            foundDealers: 'Tìm thấy {count} đại lý',
+            noResellersFound: 'Không tìm thấy đại lý',
+            noResellersMessage: 'Vui lòng thử tìm kiếm với từ khóa khác hoặc mở rộng khu vực tìm kiếm.',
+            processingLocations: 'Đang xử lý vị trí...',
+            loadingDealers: 'Đang tải đại lý...',
+            errorTitle: 'Lỗi Tải Dữ Liệu Đại Lý',
+            fallbackMessage: 'Không thể tải dữ liệu đại lý. Vui lòng thử lại.',
+            hours: 'Giờ Mở Cửa',
+            phone: 'Điện Thoại',
             email: 'Email',
-            specialties: 'ChuyĂªn MĂ´n',
-            directions: 'Chá»‰ ÄÆ°á»ng'
+            specialties: 'Chuyên Môn',
+            directions: 'Chỉ Đường'
         },
         blog: {
-            title: 'Tin Tá»©c & BĂ i Viáº¿t Má»›i Nháº¥t',
-            subtitle: 'Cáº­p nháº­t xu hÆ°á»›ng cĂ´ng nghá»‡ má»›i nháº¥t vĂ  thĂ´ng tin sáº£n pháº©m',
-            readMore: 'Äá»c ThĂªm',
-            relatedArticles: 'BĂ i Viáº¿t LiĂªn Quan',
+            title: 'Tin Tức & Bài Viết Mới Nhất',
+            subtitle: 'Cập nhật xu hướng công nghệ mới nhất và thông tin sản phẩm',
+            readMore: 'Đọc Thêm',
+            relatedArticles: 'Bài Viết Liên Quan',
             list: {
-                title: 'DANH SĂCH BLOG',
-                searchPlaceholder: 'TĂ¬m kiáº¿m bĂ i viáº¿t...',
-                showingAll: 'Hiá»ƒn thá»‹ táº¥t cáº£',
-                showingFiltered: 'Hiá»ƒn thá»‹',
-                articles: 'bĂ i viáº¿t',
-                articlesIn: 'bĂ i viáº¿t trong',
-                allCategories: 'Táº¤T Cáº¢ DANH Má»¤C',
-                all: 'Táº¤T Cáº¢',
-                more: 'Xem ThĂªm'
+                title: 'DANH SÁCH BLOG',
+                searchPlaceholder: 'Tìm kiếm bài viết...',
+                showingAll: 'Hiển thị tất cả',
+                showingFiltered: 'Hiển thị',
+                articles: 'bài viết',
+                articlesIn: 'bài viết trong',
+                allCategories: 'TẤT CẢ DANH MỤC',
+                all: 'TẤT CẢ',
+                more: 'Xem Thêm'
             },
             detail: {
-                loading: 'Äang táº£i...',
-                notFound: 'KhĂ´ng tĂ¬m tháº¥y bĂ i viáº¿t',
-                backToList: 'Quay láº¡i danh sĂ¡ch blog',
-                readTime: 'phĂºt Ä‘á»c',
-                relatedArticles: 'BĂ i viáº¿t liĂªn quan',
-                breadcrumbDetail: 'Chi tiáº¿t blog'
+                loading: 'Đang tải...',
+                notFound: 'Không tìm thấy bài viết',
+                backToList: 'Quay lại danh sách blog',
+                readTime: 'phút đọc',
+                relatedArticles: 'Bài viết liên quan',
+                breadcrumbDetail: 'Chi tiết blog'
             },
             categories: {
-                all: 'Táº¥t Cáº£',
-                technology: 'CĂ´ng Nghá»‡',
-                tutorial: 'HÆ°á»›ng Dáº«n',
-                news: 'Tin Tá»©c',
-                review: 'ÄĂ¡nh GiĂ¡',
-                tips: 'Máº¹o Hay',
-                safety: 'An ToĂ n'
+                all: 'Tất Cả',
+                technology: 'Công Nghệ',
+                tutorial: 'Hướng Dẫn',
+                news: 'Tin Tức',
+                review: 'Đánh Giá',
+                tips: 'Mẹo Hay',
+                safety: 'An Toàn'
             }
         },
         newsroom: {
             title: 'Newsroom',
             subtitle: '#RIDING, EXPLORING, ENJOYING',
             tagline: '4T HITEK is here for your Ride...',
-            exploreMore: 'KhĂ¡m PhĂ¡ ThĂªm',
+            exploreMore: 'Khám Phá Thêm',
             categories: {
-                technology: 'CĂ”NG NGHá»†',
-                tutorial: 'HÆ¯á»NG DáºªN',
-                news: 'TIN Tá»¨C',
-                review: 'ÄĂNH GIĂ',
-                tips: 'Máº¸O HAY'
+                technology: 'CÔNG NGHỆ',
+                tutorial: 'HƯỚNG DẪN',
+                news: 'TIN TỨC',
+                review: 'ĐÁNH GIÁ',
+                tips: 'MẸO HAY'
             },
             news: {
                 '1': {
-                    caption: 'CĂ´ng nghá»‡ truyá»n thĂ´ng xe mĂ¡y má»›i nháº¥t Ä‘á»™t phĂ¡ nÄƒm 2024',
-                    title: 'CĂ´ng nghá»‡ Bluetooth 5.0 CĂ¡ch máº¡ng',
-                    content: 'KhĂ¡m phĂ¡ Ä‘á»™t phĂ¡ má»›i nháº¥t trong truyá»n thĂ´ng xe mĂ¡y vá»›i cĂ´ng nghá»‡ Bluetooth 5.0 tiĂªn tiáº¿n. Káº¿t ná»‘i nĂ¢ng cao, cháº¥t lÆ°á»£ng Ă¢m thanh trong tráº»o vĂ  tĂ­ch há»£p liá»n máº¡ch vá»›i cĂ¡c thiáº¿t bá»‹ hiá»‡n Ä‘áº¡i.',
-                    date: '15 thĂ¡ng 3, 2024'
+                    caption: 'Công nghệ truyền thông xe máy mới nhất đột phá năm 2024',
+                    title: 'Công nghệ Bluetooth 5.0 Cách mạng',
+                    content: 'Khám phá đột phá mới nhất trong truyền thông xe máy với công nghệ Bluetooth 5.0 tiên tiến. Kết nối nâng cao, chất lượng âm thanh trong trẻo và tích hợp liền mạch với các thiết bị hiện đại.',
+                    date: '15 tháng 3, 2024'
                 },
                 '2': {
-                    caption: 'KhĂ¡m phĂ¡ nhá»¯ng chĂ¢n trá»i má»›i vá»›i há»‡ thá»‘ng truyá»n thĂ´ng rider tiĂªn tiáº¿n',
-                    title: 'Truyá»n thĂ´ng PhiĂªu lÆ°u Xe mĂ¡y',
-                    content: 'Tham gia cuá»™c phiĂªu lÆ°u vá»›i há»‡ thá»‘ng truyá»n thĂ´ng cao cáº¥p Ä‘Æ°á»£c thiáº¿t káº¿ cho touring Ä‘Æ°á»ng dĂ i. Thiáº¿t káº¿ chá»‘ng nÆ°á»›c, tuá»•i thá» pin má»Ÿ rá»™ng vĂ  kháº£ nÄƒng liĂªn láº¡c nhĂ³m cho tráº£i nghiá»‡m lĂ¡i xe tá»‘i Æ°u.',
-                    date: '10 thĂ¡ng 3, 2024'
+                    caption: 'Khám phá những chân trời mới với hệ thống truyền thông rider tiên tiến',
+                    title: 'Truyền thông Phiêu lưu Xe máy',
+                    content: 'Tham gia cuộc phiêu lưu với hệ thống truyền thông cao cấp được thiết kế cho touring đường dài. Thiết kế chống nước, tuổi thọ pin mở rộng và khả năng liên lạc nhóm cho trải nghiệm lái xe tối ưu.',
+                    date: '10 tháng 3, 2024'
                 },
                 '3': {
-                    caption: 'Táº­n hÆ°á»Ÿng chuyáº¿n Ä‘i vá»›i giao tiáº¿p nhĂ³m trong tráº»o',
-                    title: 'Intercom NhĂ³m Xuáº¥t sáº¯c',
-                    content: 'Tráº£i nghiá»‡m giao tiáº¿p nhĂ³m liá»n máº¡ch vá»›i tá»‘i Ä‘a 8 rider Ä‘á»“ng thá»i. CĂ´ng nghá»‡ khá»­ tiáº¿ng á»“n tiĂªn tiáº¿n Ä‘áº£m báº£o cuá»™c trĂ² chuyá»‡n rĂµ rĂ ng ngay cáº£ á»Ÿ tá»‘c Ä‘á»™ cao vĂ  trong Ä‘iá»u kiá»‡n thá»i tiáº¿t kháº¯c nghiá»‡t.',
-                    date: '5 thĂ¡ng 3, 2024'
+                    caption: 'Tận hưởng chuyến đi với giao tiếp nhóm trong trẻo',
+                    title: 'Intercom Nhóm Xuất sắc',
+                    content: 'Trải nghiệm giao tiếp nhóm liền mạch với tối đa 8 rider đồng thời. Công nghệ khử tiếng ồn tiên tiến đảm bảo cuộc trò chuyện rõ ràng ngay cả ở tốc độ cao và trong điều kiện thời tiết khắc nghiệt.',
+                    date: '5 tháng 3, 2024'
                 },
                 '4': {
-                    caption: 'CĂ¡c rider chuyĂªn nghiá»‡p chá»n 4T HITEK Ä‘á»ƒ truyá»n thĂ´ng Ä‘Ă¡ng tin cáº­y',
-                    title: 'Äá»™ tin cáº­y Cáº¥p chuyĂªn nghiá»‡p',
-                    content: 'ÄÆ°á»£c tin tÆ°á»Ÿng bá»Ÿi cĂ¡c rider chuyĂªn nghiá»‡p trĂªn toĂ n tháº¿ giá»›i, há»‡ thá»‘ng truyá»n thĂ´ng cá»§a chĂºng tĂ´i mang láº¡i Ä‘á»™ tin cáº­y vĂ  hiá»‡u suáº¥t vĂ´ song. ÄÆ°á»£c cháº¿ táº¡o Ä‘á»ƒ chá»‹u Ä‘á»±ng cĂ¡c Ä‘iá»u kiá»‡n kháº¯c nghiá»‡t trong khi váº«n duy trĂ¬ cháº¥t lÆ°á»£ng Ă¢m thanh vÆ°á»£t trá»™i.',
-                    date: '28 thĂ¡ng 2, 2024'
+                    caption: 'Các rider chuyên nghiệp chọn 4T HITEK để truyền thông đáng tin cậy',
+                    title: 'Độ tin cậy Cấp chuyên nghiệp',
+                    content: 'Được tin tưởng bởi các rider chuyên nghiệp trên toàn thế giới, hệ thống truyền thông của chúng tôi mang lại độ tin cậy và hiệu suất vô song. Được chế tạo để chịu đựng các điều kiện khắc nghiệt trong khi vẫn duy trì chất lượng âm thanh vượt trội.',
+                    date: '28 tháng 2, 2024'
                 },
                 '5': {
-                    caption: 'Cuá»™c phiĂªu lÆ°u Ä‘ang chá» Ä‘á»£i vá»›i cĂ¡c thiáº¿t bá»‹ truyá»n thĂ´ng cao cáº¥p',
-                    title: 'Ra máº¯t DĂ²ng sáº£n pháº©m Premium',
-                    content: 'Giá»›i thiá»‡u dĂ²ng sáº£n pháº©m cao cáº¥p má»›i vá»›i cĂ¡c tĂ­nh nÄƒng nĂ¢ng cao bao gá»“m tĂ­ch há»£p GPS navigation, lá»‡nh giá»ng nĂ³i vĂ  káº¿t ná»‘i thĂ´ng minh. HoĂ n háº£o cho nhá»¯ng rider Ä‘Ă²i há»i cĂ´ng nghá»‡ tá»‘t nháº¥t.',
-                    date: '20 thĂ¡ng 2, 2024'
+                    caption: 'Cuộc phiêu lưu đang chờ đợi với các thiết bị truyền thông cao cấp',
+                    title: 'Ra mắt Dòng sản phẩm Premium',
+                    content: 'Giới thiệu dòng sản phẩm cao cấp mới với các tính năng nâng cao bao gồm tích hợp GPS navigation, lệnh giọng nói và kết nối thông minh. Hoàn hảo cho những rider đòi hỏi công nghệ tốt nhất.',
+                    date: '20 tháng 2, 2024'
                 },
                 '6': {
-                    caption: 'Äá»•i má»›i trong cĂ´ng nghá»‡ an toĂ n vĂ  truyá»n thĂ´ng xe mĂ¡y',
-                    title: 'Giáº£i thÆ°á»Ÿng Äá»•i má»›i An toĂ n',
-                    content: '4T HITEK giĂ nh Ä‘Æ°á»£c nhiá»u giáº£i thÆ°á»Ÿng Ä‘á»•i má»›i an toĂ n cho cĂ´ng nghá»‡ truyá»n thĂ´ng Ä‘á»™t phĂ¡ cá»§a chĂºng tĂ´i, nĂ¢ng cao an toĂ n rider thĂ´ng qua káº¿t ná»‘i cáº£i tiáº¿n vĂ  tĂ­nh nÄƒng kháº©n cáº¥p.',
-                    date: '15 thĂ¡ng 2, 2024'
+                    caption: 'Đổi mới trong công nghệ an toàn và truyền thông xe máy',
+                    title: 'Giải thưởng Đổi mới An toàn',
+                    content: '4T HITEK giành được nhiều giải thưởng đổi mới an toàn cho công nghệ truyền thông đột phá của chúng tôi, nâng cao an toàn rider thông qua kết nối cải tiến và tính năng khẩn cấp.',
+                    date: '15 tháng 2, 2024'
                 }
             }
         },
         common: {
-            loading: 'Äang táº£i...',
-            notFound: 'KhĂ´ng tĂ¬m tháº¥y',
-            backToHome: 'Vá» Trang Chá»§',
-            backToBlog: 'Quay Láº¡i Danh SĂ¡ch Blog',
-            backToList: 'Quay Láº¡i Danh SĂ¡ch',
-            contactUs: 'LiĂªn Há»‡',
-            readTime: 'phĂºt Ä‘á»c',
-            language: 'NgĂ´n Ngá»¯',
-            vietnamese: 'Tiáº¿ng Viá»‡t',
-            english: 'Tiáº¿ng Anh',
-            retry: 'Thá»­ Láº¡i',
-            retrying: 'Äang Thá»­ Láº¡i'
+            loading: 'Đang tải...',
+            notFound: 'Không tìm thấy',
+            backToHome: 'Về Trang Chủ',
+            backToBlog: 'Quay Lại Danh Sách Blog',
+            backToList: 'Quay Lại Danh Sách',
+            contactUs: 'Liên Hệ',
+            readTime: 'phút đọc',
+            language: 'Ngôn Ngữ',
+            vietnamese: 'Tiếng Việt',
+            english: 'Tiếng Anh',
+            retry: 'Thử Lại',
+            retrying: 'Đang Thử Lại'
         },
         // account section removed - no longer used
         certification: {
-            title: 'CHá»¨NG NHáº¬N',
-            subtitle: 'Sáº£n pháº©m cá»§a chĂºng tĂ´i Ä‘Ă¡p á»©ng cĂ¡c tiĂªu chuáº©n cĂ´ng nghiá»‡p cao nháº¥t vĂ  Ä‘Ă£ nháº­n Ä‘Æ°á»£c chá»©ng nháº­n tá»« cĂ¡c tá»• chá»©c quá»‘c táº¿ hĂ ng Ä‘áº§u. Nhá»¯ng chá»©ng nháº­n nĂ y Ä‘áº£m báº£o ráº±ng cĂ¡c thiáº¿t bá»‹ Ă¢m thanh cá»§a chĂºng tĂ´i mang láº¡i cháº¥t lÆ°á»£ng, an toĂ n vĂ  hiá»‡u suáº¥t Ä‘áº·c biá»‡t.',
+            title: 'CHỨNG NHẬN',
+            subtitle: 'Sản phẩm của chúng tôi đáp ứng các tiêu chuẩn công nghiệp cao nhất và đã nhận được chứng nhận từ các tổ chức quốc tế hàng đầu. Những chứng nhận này đảm bảo rằng các thiết bị âm thanh của chúng tôi mang lại chất lượng, an toàn và hiệu suất đặc biệt.',
             list: {
-                title: 'Chá»©ng Nháº­n Cá»§a ChĂºng TĂ´i',
-                description: 'Sáº£n pháº©m cá»§a chĂºng tĂ´i Ä‘Ă¡p á»©ng cĂ¡c tiĂªu chuáº©n cĂ´ng nghiá»‡p cao nháº¥t vĂ  Ä‘Ă£ nháº­n Ä‘Æ°á»£c chá»©ng nháº­n tá»« cĂ¡c tá»• chá»©c quá»‘c táº¿ hĂ ng Ä‘áº§u.',
-                issuedBy: 'ÄÆ°á»£c cáº¥p bá»Ÿi',
-                details: 'Xem Chi Tiáº¿t'
+                title: 'Chứng Nhận Của Chúng Tôi',
+                description: 'Sản phẩm của chúng tôi đáp ứng các tiêu chuẩn công nghiệp cao nhất và đã nhận được chứng nhận từ các tổ chức quốc tế hàng đầu.',
+                issuedBy: 'Được cấp bởi',
+                details: 'Xem Chi Tiết'
             },
             certifications: {
                 ce: {
-                    name: 'Chá»©ng Nháº­n CE',
-                    description: 'Dáº¥u CE cho biáº¿t sáº£n pháº©m cá»§a chĂºng tĂ´i tuĂ¢n thá»§ cĂ¡c tiĂªu chuáº©n vá» sá»©c khá»e, an toĂ n vĂ  báº£o vá»‡ mĂ´i trÆ°á»ng Ä‘á»‘i vá»›i cĂ¡c sáº£n pháº©m bĂ¡n trong Khu vá»±c Kinh táº¿ ChĂ¢u Ă‚u.',
-                    issuedBy: 'LiĂªn minh ChĂ¢u Ă‚u'
+                    name: 'Chứng Nhận CE',
+                    description: 'Dấu CE cho biết sản phẩm của chúng tôi tuân thủ các tiêu chuẩn về sức khỏe, an toàn và bảo vệ môi trường đối với các sản phẩm bán trong Khu vực Kinh tế Châu Âu.',
+                    issuedBy: 'Liên minh Châu Âu'
                 },
                 fcc: {
-                    name: 'Chá»©ng Nháº­n FCC',
-                    description: 'Chá»©ng nháº­n FCC xĂ¡c nháº­n ráº±ng nhiá»…u Ä‘iá»‡n tá»« tá»« thiáº¿t bá»‹ cá»§a chĂºng tĂ´i náº±m trong giá»›i háº¡n Ä‘Æ°á»£c á»¦y ban Truyá»n thĂ´ng LiĂªn bang phĂª duyá»‡t.',
-                    issuedBy: 'á»¦y ban Truyá»n thĂ´ng LiĂªn bang, Hoa Ká»³'
+                    name: 'Chứng Nhận FCC',
+                    description: 'Chứng nhận FCC xác nhận rằng nhiễu điện từ từ thiết bị của chúng tôi nằm trong giới hạn được Ủy ban Truyền thông Liên bang phê duyệt.',
+                    issuedBy: 'Ủy ban Truyền thông Liên bang, Hoa Kỳ'
                 },
                 rohs: {
-                    name: 'TuĂ¢n Thá»§ RoHS',
-                    description: 'Chá»©ng nháº­n RoHS Ä‘áº£m báº£o sáº£n pháº©m cá»§a chĂºng tĂ´i khĂ´ng chá»©a cĂ¡c cháº¥t Ä‘á»™c háº¡i cá»¥ thá»ƒ nhÆ° chĂ¬, thá»§y ngĂ¢n vĂ  cadmium.',
-                    issuedBy: 'LiĂªn minh ChĂ¢u Ă‚u'
+                    name: 'Tuân Thủ RoHS',
+                    description: 'Chứng nhận RoHS đảm bảo sản phẩm của chúng tôi không chứa các chất độc hại cụ thể như chì, thủy ngân và cadmium.',
+                    issuedBy: 'Liên minh Châu Âu'
                 },
                 iso9001: {
                     name: 'ISO 9001:2015',
-                    description: 'Chá»©ng nháº­n ISO 9001:2015 xĂ¡c nháº­n ráº±ng há»‡ thá»‘ng quáº£n lĂ½ cháº¥t lÆ°á»£ng cá»§a chĂºng tĂ´i Ä‘Ă¡p á»©ng cĂ¡c tiĂªu chuáº©n quá»‘c táº¿ vá» sáº£n pháº©m cháº¥t lÆ°á»£ng nháº¥t quĂ¡n.',
-                    issuedBy: 'Tá»• chá»©c TiĂªu chuáº©n Quá»‘c táº¿'
+                    description: 'Chứng nhận ISO 9001:2015 xác nhận rằng hệ thống quản lý chất lượng của chúng tôi đáp ứng các tiêu chuẩn quốc tế về sản phẩm chất lượng nhất quán.',
+                    issuedBy: 'Tổ chức Tiêu chuẩn Quốc tế'
                 },
                 bluetooth: {
-                    name: 'Chá»©ng Nháº­n Bluetooth SIG',
-                    description: 'Chá»©ng nháº­n Bluetooth SIG Ä‘áº£m báº£o cĂ¡c thiáº¿t bá»‹ khĂ´ng dĂ¢y cá»§a chĂºng tĂ´i Ä‘Ă¡p á»©ng cĂ¡c tiĂªu chuáº©n Bluetooth vá» kháº£ nÄƒng tÆ°Æ¡ng thĂ­ch vĂ  hiá»‡u suáº¥t.',
-                    issuedBy: 'NhĂ³m Quan tĂ¢m Äáº·c biá»‡t Bluetooth'
+                    name: 'Chứng Nhận Bluetooth SIG',
+                    description: 'Chứng nhận Bluetooth SIG đảm bảo các thiết bị không dây của chúng tôi đáp ứng các tiêu chuẩn Bluetooth về khả năng tương thích và hiệu suất.',
+                    issuedBy: 'Nhóm Quan tâm Đặc biệt Bluetooth'
                 },
                 energy: {
-                    name: 'Chá»©ng Nháº­n Energy Star',
-                    description: 'Chá»©ng nháº­n Energy Star xĂ¡c nháº­n ráº±ng sáº£n pháº©m cá»§a chĂºng tĂ´i Ä‘Ă¡p á»©ng hÆ°á»›ng dáº«n tiáº¿t kiá»‡m nÄƒng lÆ°á»£ng Ä‘Æ°á»£c thiáº¿t láº­p bá»Ÿi CÆ¡ quan Báº£o vá»‡ MĂ´i trÆ°á»ng Hoa Ká»³.',
-                    issuedBy: 'CÆ¡ quan Báº£o vá»‡ MĂ´i trÆ°á»ng Hoa Ká»³'
+                    name: 'Chứng Nhận Energy Star',
+                    description: 'Chứng nhận Energy Star xác nhận rằng sản phẩm của chúng tôi đáp ứng hướng dẫn tiết kiệm năng lượng được thiết lập bởi Cơ quan Bảo vệ Môi trường Hoa Kỳ.',
+                    issuedBy: 'Cơ quan Bảo vệ Môi trường Hoa Kỳ'
                 }
             },
             process: {
-                title: 'Quy TrĂ¬nh Chá»©ng Nháº­n',
-                subtitle: 'Quy trĂ¬nh chá»©ng nháº­n nghiĂªm ngáº·t cá»§a chĂºng tĂ´i Ä‘áº£m báº£o má»i sáº£n pháº©m Ä‘á»u Ä‘Ă¡p á»©ng cĂ¡c tiĂªu chuáº©n cao nháº¥t',
+                title: 'Quy Trình Chứng Nhận',
+                subtitle: 'Quy trình chứng nhận nghiêm ngặt của chúng tôi đảm bảo mọi sản phẩm đều đáp ứng các tiêu chuẩn cao nhất',
                 steps: {
                     design: {
-                        title: 'Thiáº¿t Káº¿ & PhĂ¡t Triá»ƒn',
-                        description: 'Thiáº¿t káº¿ sáº£n pháº©m vá»›i cĂ¡c tiĂªu chuáº©n tuĂ¢n thá»§ tá»« ban Ä‘áº§u'
+                        title: 'Thiết Kế & Phát Triển',
+                        description: 'Thiết kế sản phẩm với các tiêu chuẩn tuân thủ từ ban đầu'
                     },
                     testing: {
-                        title: 'Kiá»ƒm Tra & XĂ¡c Thá»±c',
-                        description: 'Kiá»ƒm tra toĂ n diá»‡n trong cĂ¡c phĂ²ng thĂ­ nghiá»‡m Ä‘Æ°á»£c cĂ´ng nháº­n'
+                        title: 'Kiểm Tra & Xác Thực',
+                        description: 'Kiểm tra toàn diện trong các phòng thí nghiệm được công nhận'
                     },
                     documentation: {
-                        title: 'TĂ i Liá»‡u & ÄĂ¡nh GiĂ¡',
-                        description: 'TĂ i liá»‡u hoĂ n chá»‰nh vĂ  quy trĂ¬nh Ä‘Ă¡nh giĂ¡ bĂªn thá»© ba'
+                        title: 'Tài Liệu & Đánh Giá',
+                        description: 'Tài liệu hoàn chỉnh và quy trình đánh giá bên thứ ba'
                     },
                     certification: {
-                        title: 'Chá»©ng Nháº­n & PhĂª Duyá»‡t',
-                        description: 'Chá»©ng nháº­n cuá»‘i cĂ¹ng vĂ  phĂª duyá»‡t quy Ä‘á»‹nh'
+                        title: 'Chứng Nhận & Phê Duyệt',
+                        description: 'Chứng nhận cuối cùng và phê duyệt quy định'
                     }
                 }
             },
             faq: {
-                title: 'CĂ¢u Há»i ThÆ°á»ng Gáº·p',
-                subtitle: 'TĂ¬m cĂ¢u tráº£ lá»i cho cĂ¡c cĂ¢u há»i thÆ°á»ng gáº·p vá» chá»©ng nháº­n sáº£n pháº©m vĂ  tiĂªu chuáº©n cháº¥t lÆ°á»£ng cá»§a chĂºng tĂ´i.',
+                title: 'Câu Hỏi Thường Gặp',
+                subtitle: 'Tìm câu trả lời cho các câu hỏi thường gặp về chứng nhận sản phẩm và tiêu chuẩn chất lượng của chúng tôi.',
                 questions: {
                     q1: {
-                        question: 'Sáº£n pháº©m cá»§a báº¡n cĂ³ nhá»¯ng chá»©ng nháº­n gĂ¬?',
-                        answer: 'Sáº£n pháº©m cá»§a chĂºng tĂ´i Ä‘Æ°á»£c chá»©ng nháº­n vá»›i CE, FCC, RoHS, ISO 9001:2015, Bluetooth SIG vĂ  chá»©ng nháº­n Energy Star.'
+                        question: 'Sản phẩm của bạn có những chứng nhận gì?',
+                        answer: 'Sản phẩm của chúng tôi được chứng nhận với CE, FCC, RoHS, ISO 9001:2015, Bluetooth SIG và chứng nhận Energy Star.'
                     },
                     q2: {
-                        question: 'LĂ m tháº¿ nĂ o Ä‘á»ƒ xĂ¡c minh tĂ­nh há»£p lá»‡ cá»§a chá»©ng nháº­n?',
-                        answer: 'Báº¡n cĂ³ thá»ƒ xĂ¡c minh chá»©ng nháº­n cá»§a chĂºng tĂ´i báº±ng cĂ¡ch kiá»ƒm tra sá»‘ chá»©ng nháº­n trĂªn tĂ i liá»‡u sáº£n pháº©m hoáº·c liĂªn há»‡ trá»±c tiáº¿p vá»›i cĂ¡c tá»• chá»©c cáº¥p chá»©ng nháº­n.'
+                        question: 'Làm thế nào để xác minh tính hợp lệ của chứng nhận?',
+                        answer: 'Bạn có thể xác minh chứng nhận của chúng tôi bằng cách kiểm tra số chứng nhận trên tài liệu sản phẩm hoặc liên hệ trực tiếp với các tổ chức cấp chứng nhận.'
                     },
                     q3: {
-                        question: 'Sáº£n pháº©m cá»§a báº¡n cĂ³ an toĂ n khi sá»­ dá»¥ng quá»‘c táº¿ khĂ´ng?',
-                        answer: 'CĂ³, cĂ¡c chá»©ng nháº­n cá»§a chĂºng tĂ´i Ä‘áº£m báº£o tuĂ¢n thá»§ cĂ¡c tiĂªu chuáº©n an toĂ n vĂ  hiá»‡u suáº¥t quá»‘c táº¿ Ä‘á»ƒ sá»­ dá»¥ng toĂ n cáº§u.'
+                        question: 'Sản phẩm của bạn có an toàn khi sử dụng quốc tế không?',
+                        answer: 'Có, các chứng nhận của chúng tôi đảm bảo tuân thủ các tiêu chuẩn an toàn và hiệu suất quốc tế để sử dụng toàn cầu.'
                     }
                 }
             }
         },
         about: {
-            title: 'Vá»€ CHĂNG TĂ”I',
-            description: 'Táº¡i 4thitek, chĂºng tĂ´i tin ráº±ng Ă¢m thanh Ä‘áº·c biá»‡t khĂ´ng chá»‰ Ä‘Æ°á»£c nghe tháº¥y mĂ  cĂ²n Ä‘Æ°á»£c tráº£i nghiá»‡m. HĂ nh trĂ¬nh cá»§a chĂºng tĂ´i báº¯t Ä‘áº§u vá»›i má»™t sá»© má»‡nh Ä‘Æ¡n giáº£n: táº¡o ra cĂ¡c sáº£n pháº©m Ă¢m thanh mang láº¡i cháº¥t lÆ°á»£ng Ă¢m thanh khĂ´ng thá»a hiá»‡p, thiáº¿t káº¿ sĂ¡ng táº¡o vĂ  hiá»‡u suáº¥t Ä‘Ă¡ng tin cáº­y.',
+            title: 'VỀ CHÚNG TÔI',
+            description: 'Tại 4thitek, chúng tôi tin rằng âm thanh đặc biệt không chỉ được nghe thấy mà còn được trải nghiệm. Hành trình của chúng tôi bắt đầu với một sứ mệnh đơn giản: tạo ra các sản phẩm âm thanh mang lại chất lượng âm thanh không thỏa hiệp, thiết kế sáng tạo và hiệu suất đáng tin cậy.',
             purpose: {
-                title: 'Má»¥c ÄĂ­ch Cá»§a ChĂºng TĂ´i',
-                description: 'Táº¡i 4thitek, chĂºng tĂ´i Ä‘Æ°á»£c thĂºc Ä‘áº©y bá»Ÿi niá»m Ä‘am mĂª Ă¢m thanh. ChĂºng tĂ´i káº¿t há»£p cĂ´ng nghá»‡ tiĂªn tiáº¿n vá»›i sá»± khĂ©o lĂ©o tá»‰ má»‰ Ä‘á»ƒ táº¡o ra cĂ¡c sáº£n pháº©m Ă¢m thanh mang láº¡i tráº£i nghiá»‡m nghe nháº­p vai vĂ  chĂ¢n thá»±c.'
+                title: 'Mục Đích Của Chúng Tôi',
+                description: 'Tại 4thitek, chúng tôi được thúc đẩy bởi niềm đam mê âm thanh. Chúng tôi kết hợp công nghệ tiên tiến với sự khéo léo tỉ mỉ để tạo ra các sản phẩm âm thanh mang lại trải nghiệm nghe nhập vai và chân thực.'
             },
             mission: {
-                title: 'Sá»© Má»‡nh Cá»§a ChĂºng TĂ´i',
-                description: 'CĂ¡ch máº¡ng hĂ³a ngĂ nh cĂ´ng nghiá»‡p Ă¢m thanh báº±ng cĂ¡ch táº¡o ra cĂ¡c sáº£n pháº©m mang láº¡i cháº¥t lÆ°á»£ng Ă¢m thanh vĂ  tráº£i nghiá»‡m ngÆ°á»i dĂ¹ng Ä‘áº·c biá»‡t.'
+                title: 'Sứ Mệnh Của Chúng Tôi',
+                description: 'Cách mạng hóa ngành công nghiệp âm thanh bằng cách tạo ra các sản phẩm mang lại chất lượng âm thanh và trải nghiệm người dùng đặc biệt.'
             },
             vision: {
-                title: 'Táº§m NhĂ¬n Cá»§a ChĂºng TĂ´i',
-                description: 'Trá»Ÿ thĂ nh thÆ°Æ¡ng hiá»‡u toĂ n cáº§u hĂ ng Ä‘áº§u cho cĂ¡c giáº£i phĂ¡p Ă¢m thanh cao cáº¥p giĂºp nĂ¢ng cao cĂ¡ch má»i ngÆ°á»i tráº£i nghiá»‡m Ă¢m thanh.'
+                title: 'Tầm Nhìn Của Chúng Tôi',
+                description: 'Trở thành thương hiệu toàn cầu hàng đầu cho các giải pháp âm thanh cao cấp giúp nâng cao cách mọi người trải nghiệm âm thanh.'
             },
             values: {
-                title: 'GiĂ¡ Trá»‹ Cá»§a ChĂºng TĂ´i',
-                description: 'Äá»•i má»›i, cháº¥t lÆ°á»£ng, sá»± hĂ i lĂ²ng cá»§a khĂ¡ch hĂ ng vĂ  cáº£i tiáº¿n liĂªn tá»¥c thĂºc Ä‘áº©y má»i Ä‘iá»u chĂºng tĂ´i lĂ m.'
+                title: 'Giá Trị Của Chúng Tôi',
+                description: 'Đổi mới, chất lượng, sự hài lòng của khách hàng và cải tiến liên tục thúc đẩy mọi điều chúng tôi làm.'
             },
             history: {
-                title: 'HĂ nh TrĂ¬nh Cá»§a ChĂºng TĂ´i',
-                description: 'Tá»« nhá»¯ng khá»Ÿi Ä‘áº§u khiĂªm tá»‘n Ä‘áº¿n trá»Ÿ thĂ nh má»™t cĂ¡i tĂªn Ä‘Æ°á»£c cĂ´ng nháº­n trong cĂ´ng nghá»‡ Ă¢m thanh, hĂ nh trĂ¬nh cá»§a chĂºng tĂ´i Ä‘Æ°á»£c Ä‘á»‹nh nghÄ©a bá»Ÿi sá»± Ä‘á»•i má»›i vĂ  xuáº¥t sáº¯c.',
+                title: 'Hành Trình Của Chúng Tôi',
+                description: 'Từ những khởi đầu khiêm tốn đến trở thành một cái tên được công nhận trong công nghệ âm thanh, hành trình của chúng tôi được định nghĩa bởi sự đổi mới và xuất sắc.',
                 milestones: {
                     '2015': {
-                        title: 'ThĂ nh Láº­p CĂ´ng Ty',
-                        description: 'ÄÆ°á»£c thĂ nh láº­p táº¡i Viá»‡t Nam vá»›i táº§m nhĂ¬n táº¡o ra cĂ¡c sáº£n pháº©m Ă¢m thanh cao cáº¥p cho nhá»¯ng ngÆ°á»i nghe sĂ nh Ä‘iá»‡u.'
+                        title: 'Thành Lập Công Ty',
+                        description: 'Được thành lập tại Việt Nam với tầm nhìn tạo ra các sản phẩm âm thanh cao cấp cho những người nghe sành điệu.'
                     },
                     '2017': {
-                        title: 'Ra Máº¯t Sáº£n Pháº©m Äáº§u TiĂªn',
-                        description: 'PhĂ¡t hĂ nh dĂ²ng tai nghe SX Series Ä‘áº§u tiĂªn, thiáº¿t láº­p cĂ¡c tiĂªu chuáº©n má»›i vá» cháº¥t lÆ°á»£ng Ă¢m thanh trong táº§m giĂ¡.'
+                        title: 'Ra Mắt Sản Phẩm Đầu Tiên',
+                        description: 'Phát hành dòng tai nghe SX Series đầu tiên, thiết lập các tiêu chuẩn mới về chất lượng âm thanh trong tầm giá.'
                     },
                     '2019': {
-                        title: 'Má»Ÿ Rá»™ng Quá»‘c Táº¿',
-                        description: 'Má»Ÿ rá»™ng ra cĂ¡c thá»‹ trÆ°á»ng quá»‘c táº¿ trĂªn kháº¯p ÄĂ´ng Nam Ă vĂ  thiáº¿t láº­p cĂ¡c Ä‘á»‘i tĂ¡c phĂ¢n phá»‘i chĂ­nh.'
+                        title: 'Mở Rộng Quốc Tế',
+                        description: 'Mở rộng ra các thị trường quốc tế trên khắp Đông Nam Á và thiết lập các đối tác phân phối chính.'
                     },
                     '2021': {
-                        title: 'Thiáº¿t Káº¿ Äoáº¡t Giáº£i',
-                        description: 'DĂ²ng G Series cá»§a chĂºng tĂ´i Ä‘Ă£ nháº­n Ä‘Æ°á»£c nhiá»u giáº£i thÆ°á»Ÿng thiáº¿t káº¿ cho phÆ°Æ¡ng phĂ¡p tiáº¿p cáº­n sĂ¡ng táº¡o vá» sá»± thoáº£i mĂ¡i vĂ  cháº¥t lÆ°á»£ng Ă¢m thanh.'
+                        title: 'Thiết Kế Đoạt Giải',
+                        description: 'Dòng G Series của chúng tôi đã nhận được nhiều giải thưởng thiết kế cho phương pháp tiếp cận sáng tạo về sự thoải mái và chất lượng âm thanh.'
                     },
                     '2023': {
-                        title: 'Äá»•i Má»›i CĂ´ng Nghá»‡',
-                        description: 'Giá»›i thiá»‡u cĂ´ng nghá»‡ Ă¢m há»c Ä‘á»™c quyá»n trong dĂ²ng G+ Series hĂ ng Ä‘áº§u, Ä‘á»‹nh nghÄ©a láº¡i tráº£i nghiá»‡m Ă¢m thanh cao cáº¥p.'
+                        title: 'Đổi Mới Công Nghệ',
+                        description: 'Giới thiệu công nghệ âm học độc quyền trong dòng G+ Series hàng đầu, định nghĩa lại trải nghiệm âm thanh cao cấp.'
                     }
                 }
             },
             team: {
-                title: 'Gáº·p Gá»¡ Äá»™i NgÅ© Cá»§a ChĂºng TĂ´i',
-                description: 'Äá»™i ngÅ© tĂ i nÄƒng gá»“m nhá»¯ng ngÆ°á»i Ä‘am mĂª Ă¢m thanh, ká»¹ sÆ° vĂ  nhĂ  thiáº¿t káº¿ cĂ¹ng nhau táº¡o ra nhá»¯ng sáº£n pháº©m Ä‘á»‹nh nghÄ©a láº¡i tráº£i nghiá»‡m nghe.',
+                title: 'Gặp Gỡ Đội Ngũ Của Chúng Tôi',
+                description: 'Đội ngũ tài năng gồm những người đam mê âm thanh, kỹ sư và nhà thiết kế cùng nhau tạo ra những sản phẩm định nghĩa lại trải nghiệm nghe.',
                 members: {
                     johnSmith: {
                         name: 'John Smith',
-                        position: 'CEO & NgÆ°á»i SĂ¡ng Láº­p',
-                        bio: 'Ká»¹ sÆ° Ă¢m thanh vá»›i hÆ¡n 15 nÄƒm kinh nghiá»‡m trong ngĂ nh.'
+                        position: 'CEO & Người Sáng Lập',
+                        bio: 'Kỹ sư âm thanh với hơn 15 năm kinh nghiệm trong ngành.'
                     },
                     sarahJohnson: {
                         name: 'Sarah Johnson',
-                        position: 'GiĂ¡m Äá»‘c CĂ´ng Nghá»‡',
-                        bio: 'Cá»±u ká»¹ sÆ° Apple chuyĂªn vá» thiáº¿t káº¿ Ă¢m há»c vĂ  xá»­ lĂ½ tĂ­n hiá»‡u.'
+                        position: 'Giám Đốc Công Nghệ',
+                        bio: 'Cựu kỹ sư Apple chuyên về thiết kế âm học và xử lý tín hiệu.'
                     },
                     michaelChen: {
                         name: 'Michael Chen',
-                        position: 'TrÆ°á»Ÿng PhĂ²ng Thiáº¿t Káº¿ Sáº£n Pháº©m',
-                        bio: 'NhĂ  thiáº¿t káº¿ cĂ´ng nghiá»‡p Ä‘oáº¡t giáº£i vá»›i Ä‘am mĂª táº¡o ra cĂ¡c sáº£n pháº©m Ă¢m thanh Ä‘áº¹p máº¯t.'
+                        position: 'Trưởng Phòng Thiết Kế Sản Phẩm',
+                        bio: 'Nhà thiết kế công nghiệp đoạt giải với đam mê tạo ra các sản phẩm âm thanh đẹp mắt.'
                     },
                     emilyRodriguez: {
                         name: 'Emily Rodriguez',
-                        position: 'GiĂ¡m Äá»‘c Marketing',
-                        bio: 'ChuyĂªn gia marketing ká»¹ thuáº­t sá»‘ vá»›i kinh nghiá»‡m xĂ¢y dá»±ng thÆ°Æ¡ng hiá»‡u Ä‘iá»‡n tá»­ tiĂªu dĂ¹ng cao cáº¥p.'
+                        position: 'Giám Đốc Marketing',
+                        bio: 'Chuyên gia marketing kỹ thuật số với kinh nghiệm xây dựng thương hiệu điện tử tiêu dùng cao cấp.'
                     }
                 }
             }
         },
         contact: {
-            title: 'LIĂN Há»†',
-            description: 'LiĂªn há»‡ vá»›i chĂºng tĂ´i Ä‘á»ƒ Ä‘Æ°á»£c tÆ° váº¥n vĂ  há»— trá»£ tá»‘t nháº¥t. Äá»™i ngÅ© chuyĂªn viĂªn cá»§a TuneZone luĂ´n sáºµn sĂ ng giáº£i Ä‘Ă¡p má»i tháº¯c máº¯c vĂ  há»— trá»£ báº¡n tĂ¬m Ä‘Æ°á»£c sáº£n pháº©m phĂ¹ há»£p nháº¥t.',
+            title: 'LIÊN HỆ',
+            description: 'Liên hệ với chúng tôi để được tư vấn và hỗ trợ tốt nhất. Đội ngũ chuyên viên của TuneZone luôn sẵn sàng giải đáp mọi thắc mắc và hỗ trợ bạn tìm được sản phẩm phù hợp nhất.',
             info: {
-                address: 'Äá»‹a chá»‰',
-                phone: 'Äiá»‡n thoáº¡i',
+                address: 'Địa chỉ',
+                phone: 'Điện thoại',
                 email: 'Email',
-                addressContent: ['79/30/52 Ă‚u CÆ¡, PhÆ°á»ng 14', 'Quáº­n 11, ThĂ nh phá»‘ Há»“ ChĂ­ Minh'],
+                addressContent: ['79/30/52 Âu Cơ, Phường 14', 'Quận 11, Thành phố Hồ Chí Minh'],
                 phoneContent: ['+84 679689900'],
                 emailContent: ['info@4thitek.vn']
             },
             form: {
-                title: 'Gá»­i tin nháº¯n',
-                name: 'Há» vĂ  tĂªn',
-                nameRequired: 'Há» vĂ  tĂªn *',
-                namePlaceholder: 'Nháº­p há» vĂ  tĂªn',
-                phone: 'Sá»‘ Ä‘iá»‡n thoáº¡i',
-                phonePlaceholder: 'Nháº­p sá»‘ Ä‘iá»‡n thoáº¡i',
+                title: 'Gửi tin nhắn',
+                name: 'Họ và tên',
+                nameRequired: 'Họ và tên *',
+                namePlaceholder: 'Nhập họ và tên',
+                phone: 'Số điện thoại',
+                phonePlaceholder: 'Nhập số điện thoại',
                 email: 'Email',
                 emailRequired: 'Email *',
-                emailPlaceholder: 'Nháº­p Ä‘á»‹a chá»‰ email',
-                subject: 'Chá»§ Ä‘á»',
-                selectSubject: 'Chá»n chá»§ Ä‘á»',
+                emailPlaceholder: 'Nhập địa chỉ email',
+                subject: 'Chủ đề',
+                selectSubject: 'Chọn chủ đề',
                 subjects: {
-                    productInquiry: 'TÆ° váº¥n sáº£n pháº©m',
-                    warranty: 'Báº£o hĂ nh',
-                    complaint: 'Khiáº¿u náº¡i',
-                    partnership: 'Há»£p tĂ¡c',
-                    other: 'KhĂ¡c'
+                    productInquiry: 'Tư vấn sản phẩm',
+                    warranty: 'Bảo hành',
+                    complaint: 'Khiếu nại',
+                    partnership: 'Hợp tác',
+                    other: 'Khác'
                 },
-                message: 'Tin nháº¯n',
-                messageRequired: 'Tin nháº¯n *',
-                messagePlaceholder: 'Nháº­p ná»™i dung tin nháº¯n...',
-                sendButton: 'Gá»­i tin nháº¯n',
-                sendingButton: 'Äang gá»­i...',
-                successMessage: 'Cáº£m Æ¡n báº¡n Ä‘Ă£ liĂªn há»‡! ChĂºng tĂ´i sáº½ pháº£n há»“i trong thá»i gian sá»›m nháº¥t.'
+                message: 'Tin nhắn',
+                messageRequired: 'Tin nhắn *',
+                messagePlaceholder: 'Nhập nội dung tin nhắn...',
+                sendButton: 'Gửi tin nhắn',
+                sendingButton: 'Đang gửi...',
+                successMessage: 'Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong thời gian sớm nhất.'
             },
             map: {
-                title: 'Vá»‹ trĂ­ cá»­a hĂ ng',
-                connectTitle: 'Káº¿t ná»‘i vá»›i chĂºng tĂ´i'
+                title: 'Vị trí cửa hàng',
+                connectTitle: 'Kết nối với chúng tôi'
             }
         },
         policy: {
-            title: 'CHĂNH SĂCH',
-            breadcrumbLabel: 'ChĂ­nh sĂ¡ch',
+            title: 'CHÍNH SÁCH',
+            breadcrumbLabel: 'Chính sách',
             policies: {
-                warranty: 'ChĂ­nh sĂ¡ch báº£o hĂ nh',
-                return: 'ChĂ­nh sĂ¡ch Ä‘á»•i tráº£ hĂ ng',
-                privacy: 'Báº£o máº­t thĂ´ng tin',
-                terms: 'Äiá»u kiá»‡n, Ä‘iá»u khoáº£n'
+                warranty: 'Chính sách bảo hành',
+                return: 'Chính sách đổi trả hàng',
+                privacy: 'Bảo mật thông tin',
+                terms: 'Điều kiện, điều khoản'
             },
             descriptions: {
-                warranty: 'TĂ¬m hiá»ƒu vá» chĂ­nh sĂ¡ch báº£o hĂ nh sáº£n pháº©m, quy trĂ¬nh xá»­ lĂ½ vĂ  cĂ¡c Ä‘iá»u kiá»‡n Ă¡p dá»¥ng. ChĂºng tĂ´i cam káº¿t báº£o vá»‡ quyá»n lá»£i khĂ¡ch hĂ ng vá»›i dá»‹ch vá»¥ báº£o hĂ nh chuyĂªn nghiá»‡p vĂ  táº­n tĂ¢m.',
-                return: 'HÆ°á»›ng dáº«n chi tiáº¿t vá» quy trĂ¬nh Ä‘á»•i tráº£ hĂ ng, thá»i gian xá»­ lĂ½ vĂ  cĂ¡c Ä‘iá»u kiá»‡n cáº§n thiáº¿t. Äáº£m báº£o tráº£i nghiá»‡m mua sáº¯m an toĂ n vĂ  thuáº­n tiá»‡n cho khĂ¡ch hĂ ng.',
-                privacy: 'Cam káº¿t báº£o máº­t thĂ´ng tin cĂ¡ nhĂ¢n cá»§a khĂ¡ch hĂ ng. TĂ¬m hiá»ƒu cĂ¡ch chĂºng tĂ´i thu tháº­p, sá»­ dá»¥ng vĂ  báº£o vá»‡ dá»¯ liá»‡u cá»§a báº¡n má»™t cĂ¡ch an toĂ n vĂ  minh báº¡ch.',
-                terms: 'CĂ¡c Ä‘iá»u khoáº£n vĂ  Ä‘iá»u kiá»‡n sá»­ dá»¥ng dá»‹ch vá»¥. Quy Ä‘á»‹nh vá» quyá»n vĂ  nghÄ©a vá»¥ cá»§a khĂ¡ch hĂ ng khi sá»­ dá»¥ng sáº£n pháº©m vĂ  dá»‹ch vá»¥ cá»§a TuneZone.',
-                default: 'TĂ¬m hiá»ƒu vá» cĂ¡c chĂ­nh sĂ¡ch vĂ  quy Ä‘á»‹nh cá»§a TuneZone. ChĂºng tĂ´i cam káº¿t mang Ä‘áº¿n tráº£i nghiá»‡m dá»‹ch vá»¥ tá»‘t nháº¥t vá»›i cĂ¡c chĂ­nh sĂ¡ch minh báº¡ch vĂ  cĂ´ng báº±ng.'
+                warranty: 'Tìm hiểu về chính sách bảo hành sản phẩm, quy trình xử lý và các điều kiện áp dụng. Chúng tôi cam kết bảo vệ quyền lợi khách hàng với dịch vụ bảo hành chuyên nghiệp và tận tâm.',
+                return: 'Hướng dẫn chi tiết về quy trình đổi trả hàng, thời gian xử lý và các điều kiện cần thiết. Đảm bảo trải nghiệm mua sắm an toàn và thuận tiện cho khách hàng.',
+                privacy: 'Cam kết bảo mật thông tin cá nhân của khách hàng. Tìm hiểu cách chúng tôi thu thập, sử dụng và bảo vệ dữ liệu của bạn một cách an toàn và minh bạch.',
+                terms: 'Các điều khoản và điều kiện sử dụng dịch vụ. Quy định về quyền và nghĩa vụ của khách hàng khi sử dụng sản phẩm và dịch vụ của TuneZone.',
+                default: 'Tìm hiểu về các chính sách và quy định của TuneZone. Chúng tôi cam kết mang đến trải nghiệm dịch vụ tốt nhất với các chính sách minh bạch và công bằng.'
             },
             content: {
                 warranty: {
-                    title: 'ChĂ­nh sĂ¡ch báº£o hĂ nh',
+                    title: 'Chính sách bảo hành',
                     sections: {
                         'general-warranty': {
-                            title: 'Báº£o hĂ nh tá»•ng quĂ¡t',
+                            title: 'Bảo hành tổng quát',
                             content: {
-                                intro: 'Táº¥t cáº£ sáº£n pháº©m Ä‘Æ°á»£c bĂ¡n táº¡i TuneZone Ä‘á»u Ä‘Æ°á»£c báº£o hĂ nh theo chĂ­nh sĂ¡ch cá»§a nhĂ  sáº£n xuáº¥t vĂ  cĂ¡c quy Ä‘á»‹nh cá»§a chĂºng tĂ´i. Thá»i gian báº£o hĂ nh Ä‘Æ°á»£c tĂ­nh tá»« ngĂ y mua hĂ ng.',
-                                conditions: 'Äiá»u kiá»‡n báº£o hĂ nh:',
+                                intro: 'Tất cả sản phẩm được bán tại TuneZone đều được bảo hành theo chính sách của nhà sản xuất và các quy định của chúng tôi. Thời gian bảo hành được tính từ ngày mua hàng.',
+                                conditions: 'Điều kiện bảo hành:',
                                 conditionsList: [
-                                    'Sáº£n pháº©m cĂ²n trong thá»i háº¡n báº£o hĂ nh',
-                                    'CĂ³ hĂ³a Ä‘Æ¡n mua hĂ ng hoáº·c phiáº¿u báº£o hĂ nh',
-                                    'Sáº£n pháº©m khĂ´ng bá»‹ hÆ° há»ng do tĂ¡c Ä‘á»™ng bĂªn ngoĂ i',
-                                    'KhĂ´ng tá»± Ă½ sá»­a chá»¯a hoáº·c can thiá»‡p vĂ o sáº£n pháº©m'
+                                    'Sản phẩm còn trong thời hạn bảo hành',
+                                    'Có hóa đơn mua hàng hoặc phiếu bảo hành',
+                                    'Sản phẩm không bị hư hỏng do tác động bên ngoài',
+                                    'Không tự ý sửa chữa hoặc can thiệp vào sản phẩm'
                                 ],
-                                commitment: 'ChĂºng tĂ´i cam káº¿t há»— trá»£ khĂ¡ch hĂ ng má»™t cĂ¡ch tá»‘t nháº¥t trong quĂ¡ trĂ¬nh báº£o hĂ nh vĂ  sau bĂ¡n hĂ ng.'
+                                commitment: 'Chúng tôi cam kết hỗ trợ khách hàng một cách tốt nhất trong quá trình bảo hành và sau bán hàng.'
                             }
                         },
                         'warranty-process': {
-                            title: 'Quy trĂ¬nh báº£o hĂ nh',
+                            title: 'Quy trình bảo hành',
                             content: {
-                                contact: 'Khi sáº£n pháº©m gáº·p sá»± cá»‘, khĂ¡ch hĂ ng vui lĂ²ng liĂªn há»‡ vá»›i chĂºng tĂ´i qua hotline hoáº·c Ä‘áº¿n trá»±c tiáº¿p cá»­a hĂ ng Ä‘á»ƒ Ä‘Æ°á»£c há»— trá»£.',
-                                processing: 'Thá»i gian xá»­ lĂ½ báº£o hĂ nh tá»« 3-7 ngĂ y lĂ m viá»‡c tĂ¹y thuá»™c vĂ o tĂ¬nh tráº¡ng sáº£n pháº©m.',
-                                notification: 'Trong thá»i gian báº£o hĂ nh, chĂºng tĂ´i sáº½ thĂ´ng bĂ¡o tiáº¿n Ä‘á»™ xá»­ lĂ½ cho khĂ¡ch hĂ ng.'
+                                contact: 'Khi sản phẩm gặp sự cố, khách hàng vui lòng liên hệ với chúng tôi qua hotline hoặc đến trực tiếp cửa hàng để được hỗ trợ.',
+                                processing: 'Thời gian xử lý bảo hành từ 3-7 ngày làm việc tùy thuộc vào tình trạng sản phẩm.',
+                                notification: 'Trong thời gian bảo hành, chúng tôi sẽ thông báo tiến độ xử lý cho khách hàng.'
                             }
                         }
                     }
                 },
                 return: {
-                    title: 'ChĂ­nh sĂ¡ch Ä‘á»•i tráº£ hĂ ng',
+                    title: 'Chính sách đổi trả hàng',
                     sections: {
                         'return-conditions': {
-                            title: 'Äiá»u kiá»‡n Ä‘á»•i tráº£',
+                            title: 'Điều kiện đổi trả',
                             content: {
-                                intro: 'KhĂ¡ch hĂ ng cĂ³ thá»ƒ Ä‘á»•i tráº£ sáº£n pháº©m trong vĂ²ng 7 ngĂ y ká»ƒ tá»« ngĂ y mua hĂ ng vá»›i cĂ¡c Ä‘iá»u kiá»‡n sau:',
+                                intro: 'Khách hàng có thể đổi trả sản phẩm trong vòng 7 ngày kể từ ngày mua hàng với các điều kiện sau:',
                                 conditionsList: [
-                                    'Sáº£n pháº©m cĂ²n nguyĂªn váº¹n, chÆ°a qua sá»­ dá»¥ng',
-                                    'CĂ²n Ä‘áº§y Ä‘á»§ bao bĂ¬, phá»¥ kiá»‡n Ä‘i kĂ¨m',
-                                    'CĂ³ hĂ³a Ä‘Æ¡n mua hĂ ng',
-                                    'Sáº£n pháº©m khĂ´ng thuá»™c danh má»¥c khĂ´ng Ä‘Æ°á»£c Ä‘á»•i tráº£'
+                                    'Sản phẩm còn nguyên vẹn, chưa qua sử dụng',
+                                    'Còn đầy đủ bao bì, phụ kiện đi kèm',
+                                    'Có hóa đơn mua hàng',
+                                    'Sản phẩm không thuộc danh mục không được đổi trả'
                                 ],
-                                shipping: 'PhĂ­ váº­n chuyá»ƒn Ä‘á»•i tráº£ sáº½ do khĂ¡ch hĂ ng chá»‹u trá»« trÆ°á»ng há»£p sáº£n pháº©m bá»‹ lá»—i tá»« nhĂ  sáº£n xuáº¥t.'
+                                shipping: 'Phí vận chuyển đổi trả sẽ do khách hàng chịu trừ trường hợp sản phẩm bị lỗi từ nhà sản xuất.'
                             }
                         },
                         'return-process': {
-                            title: 'Quy trĂ¬nh Ä‘á»•i tráº£',
+                            title: 'Quy trình đổi trả',
                             content: {
-                                contact: 'KhĂ¡ch hĂ ng liĂªn há»‡ vá»›i bá»™ pháº­n chÄƒm sĂ³c khĂ¡ch hĂ ng Ä‘á»ƒ thĂ´ng bĂ¡o vá» viá»‡c Ä‘á»•i tráº£.',
-                                shipping: 'Gá»­i sáº£n pháº©m vá» Ä‘á»‹a chá»‰ cá»§a chĂºng tĂ´i hoáº·c Ä‘áº¿n trá»±c tiáº¿p cá»­a hĂ ng.',
-                                processing: 'Sau khi kiá»ƒm tra, chĂºng tĂ´i sáº½ xá»­ lĂ½ Ä‘á»•i tráº£ trong vĂ²ng 2-3 ngĂ y lĂ m viá»‡c.'
+                                contact: 'Khách hàng liên hệ với bộ phận chăm sóc khách hàng để thông báo về việc đổi trả.',
+                                shipping: 'Gửi sản phẩm về địa chỉ của chúng tôi hoặc đến trực tiếp cửa hàng.',
+                                processing: 'Sau khi kiểm tra, chúng tôi sẽ xử lý đổi trả trong vòng 2-3 ngày làm việc.'
                             }
                         }
                     }
                 },
                 privacy: {
-                    title: 'Báº£o máº­t thĂ´ng tin',
+                    title: 'Bảo mật thông tin',
                     sections: {
                         'information-collection': {
-                            title: 'Thu tháº­p thĂ´ng tin',
+                            title: 'Thu thập thông tin',
                             content: {
-                                commitment: 'TuneZone cam káº¿t báº£o vá»‡ thĂ´ng tin cĂ¡ nhĂ¢n cá»§a khĂ¡ch hĂ ng theo cĂ¡c tiĂªu chuáº©n báº£o máº­t cao nháº¥t. ChĂºng tĂ´i khĂ´ng chia sáº» thĂ´ng tin cĂ¡ nhĂ¢n vá»›i bĂªn thá»© ba mĂ  khĂ´ng cĂ³ sá»± Ä‘á»“ng Ă½ cá»§a báº¡n.',
-                                collectTitle: 'ThĂ´ng tin chĂºng tĂ´i thu tháº­p:',
+                                commitment: 'TuneZone cam kết bảo vệ thông tin cá nhân của khách hàng theo các tiêu chuẩn bảo mật cao nhất. Chúng tôi không chia sẻ thông tin cá nhân với bên thứ ba mà không có sự đồng ý của bạn.',
+                                collectTitle: 'Thông tin chúng tôi thu thập:',
                                 collectList: [
-                                    'ThĂ´ng tin liĂªn há»‡ (há» tĂªn, email, sá»‘ Ä‘iá»‡n thoáº¡i)',
-                                    'Äá»‹a chá»‰ giao hĂ ng',
-                                    'ThĂ´ng tin thanh toĂ¡n (Ä‘Æ°á»£c mĂ£ hĂ³a an toĂ n)',
-                                    'Lá»‹ch sá»­ mua hĂ ng'
+                                    'Thông tin liên hệ (họ tên, email, số điện thoại)',
+                                    'Địa chỉ giao hàng',
+                                    'Thông tin thanh toán (được mã hóa an toàn)',
+                                    'Lịch sử mua hàng'
                                 ]
                             }
                         },
                         'information-usage': {
-                            title: 'Sá»­ dá»¥ng thĂ´ng tin',
+                            title: 'Sử dụng thông tin',
                             content: {
-                                purposeTitle: 'Má»¥c Ä‘Ă­ch sá»­ dá»¥ng thĂ´ng tin:',
+                                purposeTitle: 'Mục đích sử dụng thông tin:',
                                 purposeList: [
-                                    'Xá»­ lĂ½ Ä‘Æ¡n hĂ ng vĂ  giao hĂ ng',
-                                    'Há»— trá»£ khĂ¡ch hĂ ng',
-                                    'Gá»­i thĂ´ng tin khuyáº¿n mĂ£i (náº¿u Ä‘á»“ng Ă½)',
-                                    'Cáº£i thiá»‡n dá»‹ch vá»¥'
+                                    'Xử lý đơn hàng và giao hàng',
+                                    'Hỗ trợ khách hàng',
+                                    'Gửi thông tin khuyến mãi (nếu đồng ý)',
+                                    'Cải thiện dịch vụ'
                                 ],
-                                rights: 'Báº¡n cĂ³ quyá»n yĂªu cáº§u xem, chá»‰nh sá»­a hoáº·c xĂ³a thĂ´ng tin cĂ¡ nhĂ¢n cá»§a mĂ¬nh báº¥t cá»© lĂºc nĂ o báº±ng cĂ¡ch liĂªn há»‡ vá»›i chĂºng tĂ´i.'
+                                rights: 'Bạn có quyền yêu cầu xem, chỉnh sửa hoặc xóa thông tin cá nhân của mình bất cứ lúc nào bằng cách liên hệ với chúng tôi.'
                             }
                         }
                     }
                 },
                 terms: {
-                    title: 'Äiá»u kiá»‡n, Ä‘iá»u khoáº£n',
+                    title: 'Điều kiện, điều khoản',
                     sections: {
                         'terms-conditions': {
-                            title: 'CĂ¡c Ä‘iá»u kiá»‡n vĂ  Ä‘iá»u khoáº£n',
+                            title: 'Các điều kiện và điều khoản',
                             content: {
-                                intro: 'Trang web nĂ y Ä‘Æ°á»£c Ä‘iá»u hĂ nh bá»Ÿi Cá»­a HĂ ng TuneZone. Xin vui lĂ²ng Ä‘á»c ká»¹ cĂ¡c Äiá»u kiá»‡n & Äiá»u khoáº£n trÆ°á»›c khi sá»­ dá»¥ng hoáº·c Ä‘Äƒng kĂ½ trĂªn trang web nĂ y. Báº¡n pháº£i hoĂ n toĂ n Ä‘á»“ng Ă½ vá»›i cĂ¡c Ä‘iá»u kiá»‡n vĂ  Ä‘iá»u khoáº£n nĂ y náº¿u muá»‘n sá»­ dá»¥ng trang web. Náº¿u báº¡n khĂ´ng Ä‘á»“ng Ă½ vá»›i báº¥t ká»³ pháº§n nĂ o trong cĂ¡c Ä‘iá»u kiá»‡n vĂ  Ä‘iá»u khoáº£n nĂ y, báº¡n sáº½ khĂ´ng thá»ƒ sá»­ dá»¥ng trang web nĂ y dÆ°á»›i báº¥t ká»³ hĂ¬nh thá»©c nĂ o.',
-                                global: 'LÆ°u Ă½ ráº±ng trang web nĂ y Ä‘Æ°á»£c xĂ¢y dá»±ng nháº±m phá»¥c vá»¥ truy cáº­p trĂªn pháº¡m vi toĂ n cáº§u Ä‘á»‘i vá»›i ngÆ°á»i sá»­ dá»¥ng.',
-                                application: 'Nhá»¯ng thĂ´ng tin trĂªn trang web nĂ y Ä‘Æ°á»£c Ă¡p dá»¥ng cho ngÆ°á»i sá»­ dá»¥ng trĂªn pháº¡m vi toĂ n cáº§u.',
-                                rights: 'ChĂºng tĂ´i cĂ³ quyá»n tá»« chá»‘i truy cáº­p vĂ o trang web nĂ y báº¥t cá»© lĂºc nĂ o mĂ  khĂ´ng cáº§n pháº£i thĂ´ng bĂ¡o trÆ°á»›c.'
+                                intro: 'Trang web này được điều hành bởi Cửa Hàng TuneZone. Xin vui lòng đọc kỹ các Điều kiện & Điều khoản trước khi sử dụng hoặc đăng ký trên trang web này. Bạn phải hoàn toàn đồng ý với các điều kiện và điều khoản này nếu muốn sử dụng trang web. Nếu bạn không đồng ý với bất kỳ phần nào trong các điều kiện và điều khoản này, bạn sẽ không thể sử dụng trang web này dưới bất kỳ hình thức nào.',
+                                global: 'Lưu ý rằng trang web này được xây dựng nhằm phục vụ truy cập trên phạm vi toàn cầu đối với người sử dụng.',
+                                application: 'Những thông tin trên trang web này được áp dụng cho người sử dụng trên phạm vi toàn cầu.',
+                                rights: 'Chúng tôi có quyền từ chối truy cập vào trang web này bất cứ lúc nào mà không cần phải thông báo trước.'
                             }
                         },
                         'governing-law': {
-                            title: 'Luáº­t Ä‘iá»u chá»‰nh',
+                            title: 'Luật điều chỉnh',
                             content: {
-                                law: 'CĂ¡c Ä‘iá»u khoáº£n vĂ  Ä‘iá»u kiá»‡n nĂ y Ä‘Æ°á»£c Ä‘iá»u chá»‰nh bá»Ÿi phĂ¡p luáº­t Viá»‡t Nam. Má»i tranh cháº¥p phĂ¡t sinh sáº½ Ä‘Æ°á»£c giáº£i quyáº¿t táº¡i cĂ¡c tĂ²a Ă¡n cĂ³ tháº©m quyá»n táº¡i Viá»‡t Nam.',
-                                validity: 'Trong trÆ°á»ng há»£p cĂ³ báº¥t ká»³ Ä‘iá»u khoáº£n nĂ o trong thá»a thuáº­n nĂ y Ä‘Æ°á»£c coi lĂ  khĂ´ng há»£p lá»‡ hoáº·c khĂ´ng thá»ƒ thá»±c thi, cĂ¡c Ä‘iá»u khoáº£n cĂ²n láº¡i váº«n cĂ³ hiá»‡u lá»±c Ä‘áº§y Ä‘á»§.',
-                                compliance: 'ChĂºng tĂ´i cam káº¿t tuĂ¢n thá»§ nghiĂªm tĂºc cĂ¡c quy Ä‘á»‹nh phĂ¡p luáº­t hiá»‡n hĂ nh vĂ  báº£o vá»‡ quyá»n lá»£i há»£p phĂ¡p cá»§a khĂ¡ch hĂ ng.'
+                                law: 'Các điều khoản và điều kiện này được điều chỉnh bởi pháp luật Việt Nam. Mọi tranh chấp phát sinh sẽ được giải quyết tại các tòa án có thẩm quyền tại Việt Nam.',
+                                validity: 'Trong trường hợp có bất kỳ điều khoản nào trong thỏa thuận này được coi là không hợp lệ hoặc không thể thực thi, các điều khoản còn lại vẫn có hiệu lực đầy đủ.',
+                                compliance: 'Chúng tôi cam kết tuân thủ nghiêm túc các quy định pháp luật hiện hành và bảo vệ quyền lợi hợp pháp của khách hàng.'
                             }
                         },
                         'changes': {
-                            title: 'Nhá»¯ng thay Ä‘á»•i',
+                            title: 'Những thay đổi',
                             content: {
-                                rights: 'TuneZone cĂ³ quyá»n thay Ä‘á»•i, bá»• sung hoáº·c xĂ³a bá» báº¥t ká»³ pháº§n nĂ o trong cĂ¡c Ä‘iá»u khoáº£n nĂ y vĂ o báº¥t cá»© lĂºc nĂ o. CĂ¡c thay Ä‘á»•i sáº½ cĂ³ hiá»‡u lá»±c ngay khi Ä‘Æ°á»£c Ä‘Äƒng táº£i trĂªn website.',
-                                recommendation: 'ChĂºng tĂ´i khuyáº¿n khĂ­ch báº¡n thÆ°á»ng xuyĂªn kiá»ƒm tra trang nĂ y Ä‘á»ƒ cáº­p nháº­t nhá»¯ng thay Ä‘á»•i má»›i nháº¥t. Viá»‡c tiáº¿p tá»¥c sá»­ dá»¥ng dá»‹ch vá»¥ sau khi cĂ³ thay Ä‘á»•i Ä‘á»“ng nghÄ©a vá»›i viá»‡c báº¡n cháº¥p nháº­n cĂ¡c Ä‘iá»u khoáº£n má»›i.',
-                                notification: 'Trong trÆ°á»ng há»£p cĂ³ thay Ä‘á»•i quan trá»ng, chĂºng tĂ´i sáº½ thĂ´ng bĂ¡o qua email hoáº·c thĂ´ng bĂ¡o trĂªn website trÆ°á»›c khi Ă¡p dá»¥ng.'
+                                rights: 'TuneZone có quyền thay đổi, bổ sung hoặc xóa bỏ bất kỳ phần nào trong các điều khoản này vào bất cứ lúc nào. Các thay đổi sẽ có hiệu lực ngay khi được đăng tải trên website.',
+                                recommendation: 'Chúng tôi khuyến khích bạn thường xuyên kiểm tra trang này để cập nhật những thay đổi mới nhất. Việc tiếp tục sử dụng dịch vụ sau khi có thay đổi đồng nghĩa với việc bạn chấp nhận các điều khoản mới.',
+                                notification: 'Trong trường hợp có thay đổi quan trọng, chúng tôi sẽ thông báo qua email hoặc thông báo trên website trước khi áp dụng.'
                             }
                         }
                     }
@@ -1329,287 +1329,287 @@ export const translations = {
             }
         },
         warrantyCheck: {
-            title: 'Kiá»ƒm Tra Báº£o HĂ nh',
-            breadcrumb: 'Kiá»ƒm Tra Báº£o HĂ nh',
+            title: 'Kiểm Tra Bảo Hành',
+            breadcrumb: 'Kiểm Tra Bảo Hành',
             form: {
-                title: 'Nháº­p thĂ´ng tin kiá»ƒm tra',
-                serialNumber: 'Sá»‘ Serial',
-                serialNumberRequired: 'Sá»‘ Serial *',
-                serialNumberPlaceholder: 'Nháº­p sá»‘ serial sáº£n pháº©m',
-                serialNumberHelper: 'Sá»‘ serial thÆ°á»ng Ä‘Æ°á»£c in trĂªn nhĂ£n sáº£n pháº©m hoáº·c há»™p Ä‘á»±ng',
-                invoiceNumber: 'Sá»‘ hĂ³a Ä‘Æ¡n (tĂ¹y chá»n)',
-                invoiceNumberPlaceholder: 'Nháº­p sá»‘ hĂ³a Ä‘Æ¡n (náº¿u cĂ³)',
-                invoiceNumberHelper: 'Sá»‘ hĂ³a Ä‘Æ¡n giĂºp tra cá»©u chĂ­nh xĂ¡c hÆ¡n',
-                checkButton: 'Kiá»ƒm tra báº£o hĂ nh',
-                checkingButton: 'Äang kiá»ƒm tra...',
-                alertSerial: 'Vui lĂ²ng nháº­p sá»‘ serial',
+                title: 'Nhập thông tin kiểm tra',
+                serialNumber: 'Số Serial',
+                serialNumberRequired: 'Số Serial *',
+                serialNumberPlaceholder: 'Nhập số serial sản phẩm',
+                serialNumberHelper: 'Số serial thường được in trên nhãn sản phẩm hoặc hộp đựng',
+                invoiceNumber: 'Số hóa đơn (tùy chọn)',
+                invoiceNumberPlaceholder: 'Nhập số hóa đơn (nếu có)',
+                invoiceNumberHelper: 'Số hóa đơn giúp tra cứu chính xác hơn',
+                checkButton: 'Kiểm tra bảo hành',
+                checkingButton: 'Đang kiểm tra...',
+                alertSerial: 'Vui lòng nhập số serial',
                 notes: {
-                    title: 'LÆ°u Ă½:',
-                    serialRequired: 'â€¢ Sá»‘ serial lĂ  báº¯t buá»™c Ä‘á»ƒ kiá»ƒm tra báº£o hĂ nh',
-                    infoDisplay: 'â€¢ ThĂ´ng tin báº£o hĂ nh sáº½ hiá»ƒn thá»‹ ngay sau khi kiá»ƒm tra',
-                    contactSupport: 'â€¢ LiĂªn há»‡ bá»™ pháº­n há»— trá»£ náº¿u gáº·p váº¥n Ä‘á»'
+                    title: 'Lưu ý:',
+                    serialRequired: '• Số serial là bắt buộc để kiểm tra bảo hành',
+                    infoDisplay: '• Thông tin bảo hành sẽ hiển thị ngay sau khi kiểm tra',
+                    contactSupport: '• Liên hệ bộ phận hỗ trợ nếu gặp vấn đề'
                 }
             },
             instructions: {
-                title: 'HÆ°á»›ng dáº«n kiá»ƒm tra báº£o hĂ nh',
+                title: 'Hướng dẫn kiểm tra bảo hành',
                 step1: {
-                    title: 'BÆ°á»›c 1',
-                    description: 'TĂ¬m sá»‘ serial trĂªn sáº£n pháº©m hoáº·c há»™p Ä‘á»±ng'
+                    title: 'Bước 1',
+                    description: 'Tìm số serial trên sản phẩm hoặc hộp đựng'
                 },
                 step2: {
-                    title: 'BÆ°á»›c 2',
-                    description: 'Nháº­p sá»‘ serial vĂ o form kiá»ƒm tra'
+                    title: 'Bước 2',
+                    description: 'Nhập số serial vào form kiểm tra'
                 },
                 step3: {
-                    title: 'BÆ°á»›c 3',
-                    description: 'Xem káº¿t quáº£ vĂ  thĂ´ng tin báº£o hĂ nh'
+                    title: 'Bước 3',
+                    description: 'Xem kết quả và thông tin bảo hành'
                 }
             },
             demo: {
-                title: 'Kiá»ƒm tra sá»‘ serial',
-                description: 'Nháº­p sá»‘ serial in trĂªn sáº£n pháº©m hoáº·c phiáº¿u báº£o hĂ nh Ä‘á»ƒ kiá»ƒm tra tĂ¬nh tráº¡ng báº£o hĂ nh.',
-                active: 'Nháº­p sá»‘ serial tá»« sáº£n pháº©m cá»§a báº¡n.',
-                expired: 'LiĂªn há»‡ há»— trá»£ náº¿u há»‡ thá»‘ng khĂ´ng xĂ¡c minh Ä‘Æ°á»£c serial.',
-                loginButton: 'ÄÄƒng nháº­p Ä‘á»ƒ xem sáº£n pháº©m Ä‘Ă£ mua'
+                title: 'Kiểm tra số serial',
+                description: 'Nhập số serial in trên sản phẩm hoặc phiếu bảo hành để kiểm tra tình trạng bảo hành.',
+                active: 'Nhập số serial từ sản phẩm của bạn.',
+                expired: 'Liên hệ hỗ trợ nếu hệ thống không xác minh được serial.',
+                loginButton: 'Đăng nhập để xem sản phẩm đã mua'
             },
             result: {
-                found: 'TĂ¬m tháº¥y thĂ´ng tin báº£o hĂ nh',
-                notFound: 'KhĂ´ng tĂ¬m tháº¥y sáº£n pháº©m',
-                notFoundMessage: 'KhĂ´ng tĂ¬m tháº¥y thĂ´ng tin báº£o hĂ nh cho sá»‘ serial nĂ y.',
-                backButton: 'Kiá»ƒm tra sáº£n pháº©m khĂ¡c',
+                found: 'Tìm thấy thông tin bảo hành',
+                notFound: 'Không tìm thấy sản phẩm',
+                notFoundMessage: 'Không tìm thấy thông tin bảo hành cho số serial này.',
+                backButton: 'Kiểm tra sản phẩm khác',
                 status: {
-                    active: 'CĂ²n báº£o hĂ nh',
-                    expired: 'Háº¿t báº£o hĂ nh',
-                    invalid: 'KhĂ´ng há»£p lá»‡'
+                    active: 'Còn bảo hành',
+                    expired: 'Hết bảo hành',
+                    invalid: 'Không hợp lệ'
                 },
                 fields: {
-                    serialNumber: 'Sá»‘ Serial',
-                    productName: 'TĂªn Sáº£n Pháº©m',
-                    purchaseDate: 'NgĂ y Mua',
-                    warrantyStatus: 'Tráº¡ng ThĂ¡i Báº£o HĂ nh',
-                    warrantyEndDate: 'NgĂ y Háº¿t Báº£o HĂ nh',
-                    remainingDays: 'Sá»‘ NgĂ y CĂ²n Láº¡i',
-                    customerName: 'TĂªn KhĂ¡ch HĂ ng',
-                    dealerName: 'TĂªn Äáº¡i LĂ½'
+                    serialNumber: 'Số Serial',
+                    productName: 'Tên Sản Phẩm',
+                    purchaseDate: 'Ngày Mua',
+                    warrantyStatus: 'Trạng Thái Bảo Hành',
+                    warrantyEndDate: 'Ngày Hết Bảo Hành',
+                    remainingDays: 'Số Ngày Còn Lại',
+                    customerName: 'Tên Khách Hàng',
+                    dealerName: 'Tên Đại Lý'
                 }
             }
         },
         footer: {
             company: {
-                title: 'CĂ´ng Ty',
-                aboutUs: 'Vá» ChĂºng TĂ´i',
-                certifications: 'Chá»©ng Nháº­n Äáº¡i LĂ½ Äá»™c Quyá»n'
+                title: 'Công Ty',
+                aboutUs: 'Về Chúng Tôi',
+                certifications: 'Chứng Nhận Đại Lý Độc Quyền'
             },
             product: {
-                title: 'Sáº£n Pháº©m'
+                title: 'Sản Phẩm'
             },
             reseller: {
-                title: 'Äáº¡i LĂ½',
-                information: 'ThĂ´ng Tin Äáº¡i LĂ½',
-                becomeReseller: 'Trá»Ÿ ThĂ nh Äáº¡i LĂ½'
+                title: 'Đại Lý',
+                information: 'Thông Tin Đại Lý',
+                becomeReseller: 'Trở Thành Đại Lý'
             },
             other: {
-                title: 'KhĂ¡c',
-                warrantyCheck: 'Kiá»ƒm Tra Báº£o HĂ nh',
-                policy: 'ChĂ­nh SĂ¡ch',
+                title: 'Khác',
+                warrantyCheck: 'Kiểm Tra Bảo Hành',
+                policy: 'Chính Sách',
                 blog: 'Blog',
-                contact: 'LiĂªn Há»‡'
+                contact: 'Liên Hệ'
             },
-            copyright: 'Báº£n quyá»n Â© 2023 4T HITEK Táº¥t cáº£ quyá»n Ä‘Æ°á»£c báº£o lÆ°u.',
-            languageSelector: 'Viá»‡t Nam'
+            copyright: 'Bản quyền © 2023 4T HITEK Tất cả quyền được bảo lưu.',
+            languageSelector: 'Việt Nam'
         },
         becomeReseller: {
-            title: 'Trá»Ÿ ThĂ nh Äáº¡i LĂ½',
-            subtitle: 'Tham gia máº¡ng lÆ°á»›i Ä‘á»‘i tĂ¡c Ä‘Ă¡ng tin cáº­y cá»§a chĂºng tĂ´i vĂ  phĂ¡t triá»ƒn doanh nghiá»‡p vá»›i cĂ¡c sáº£n pháº©m Ă¢m thanh cao cáº¥p. ChĂºng tĂ´i cung cáº¥p giĂ¡ cáº¡nh tranh, há»— trá»£ marketing vĂ  Ä‘Ă o táº¡o toĂ n diá»‡n.',
-            applyNow: 'ÄÄƒng KĂ½ Ngay',
-            downloadBrochure: 'Táº£i Brochure',
+            title: 'Trở Thành Đại Lý',
+            subtitle: 'Tham gia mạng lưới đối tác đáng tin cậy của chúng tôi và phát triển doanh nghiệp với các sản phẩm âm thanh cao cấp. Chúng tôi cung cấp giá cạnh tranh, hỗ trợ marketing và đào tạo toàn diện.',
+            applyNow: 'Đăng Ký Ngay',
+            downloadBrochure: 'Tải Brochure',
             whyPartner: {
-                title: 'Táº¡i Sao NĂªn Há»£p TĂ¡c Vá»›i ChĂºng TĂ´i?',
-                subtitle: 'Tham gia cĂ¹ng hĂ ng trÄƒm Ä‘á»‘i tĂ¡c thĂ nh cĂ´ng trĂªn toĂ n tháº¿ giá»›i vĂ  khĂ¡m phĂ¡ tiá»m nÄƒng kinh doanh cá»§a báº¡n'
+                title: 'Tại Sao Nên Hợp Tác Với Chúng Tôi?',
+                subtitle: 'Tham gia cùng hàng trăm đối tác thành công trên toàn thế giới và khám phá tiềm năng kinh doanh của bạn'
             },
             benefits: {
                 competitiveMargins: {
-                    title: 'Lá»£i Nhuáº­n Cáº¡nh Tranh',
-                    description: 'Táº­n hÆ°á»Ÿng má»©c lá»£i nhuáº­n háº¥p dáº«n trĂªn táº¥t cáº£ sáº£n pháº©m vá»›i cÆ¡ cáº¥u giĂ¡ linh hoáº¡t vĂ  chiáº¿t kháº¥u theo khá»‘i lÆ°á»£ng.',
-                    highlight: 'LĂªn Ä‘áº¿n 40% lá»£i nhuáº­n'
+                    title: 'Lợi Nhuận Cạnh Tranh',
+                    description: 'Tận hưởng mức lợi nhuận hấp dẫn trên tất cả sản phẩm với cơ cấu giá linh hoạt và chiết khấu theo khối lượng.',
+                    highlight: 'Lên đến 40% lợi nhuận'
                 },
                 marketingSupport: {
-                    title: 'Há»— Trá»£ Marketing',
-                    description: 'Tiáº¿p cáº­n tĂ i liá»‡u marketing toĂ n diá»‡n, Ä‘Ă o táº¡o sáº£n pháº©m vĂ  cÆ¡ há»™i marketing chung.',
-                    highlight: 'Bá»™ kit marketing Ä‘áº§y Ä‘á»§'
+                    title: 'Hỗ Trợ Marketing',
+                    description: 'Tiếp cận tài liệu marketing toàn diện, đào tạo sản phẩm và cơ hội marketing chung.',
+                    highlight: 'Bộ kit marketing đầy đủ'
                 },
                 technicalSupport: {
-                    title: 'Há»— Trá»£ Ká»¹ Thuáº­t',
-                    description: 'Äá»™i ngÅ© há»— trá»£ ká»¹ thuáº­t chuyĂªn dá»¥ng giĂºp báº¡n vĂ  khĂ¡ch hĂ ng giáº£i Ä‘Ă¡p má»i tháº¯c máº¯c hoáº·c váº¥n Ä‘á».',
-                    highlight: 'Há»— trá»£ 24/7'
+                    title: 'Hỗ Trợ Kỹ Thuật',
+                    description: 'Đội ngũ hỗ trợ kỹ thuật chuyên dụng giúp bạn và khách hàng giải đáp mọi thắc mắc hoặc vấn đề.',
+                    highlight: 'Hỗ trợ 24/7'
                 },
                 premiumProducts: {
-                    title: 'Sáº£n Pháº©m Cao Cáº¥p',
-                    description: 'Tiáº¿p cáº­n toĂ n bá»™ dĂ²ng sáº£n pháº©m Ă¢m thanh cháº¥t lÆ°á»£ng cao vá»›i quyá»n truy cáº­p sá»›m Ä‘á»™c quyá»n vĂ o cĂ¡c sáº£n pháº©m má»›i.',
-                    highlight: 'Quyá»n truy cáº­p Ä‘á»™c quyá»n'
+                    title: 'Sản Phẩm Cao Cấp',
+                    description: 'Tiếp cận toàn bộ dòng sản phẩm âm thanh chất lượng cao với quyền truy cập sớm độc quyền vào các sản phẩm mới.',
+                    highlight: 'Quyền truy cập độc quyền'
                 }
             },
             requirements: {
-                title: 'YĂªu Cáº§u Äá»‘i TĂ¡c',
-                subtitle: 'ChĂºng tĂ´i Ä‘ang tĂ¬m kiáº¿m nhá»¯ng Ä‘á»‘i tĂ¡c cam káº¿t chia sáº» táº§m nhĂ¬n xuáº¥t sáº¯c cá»§a chĂºng tĂ´i',
+                title: 'Yêu Cầu Đối Tác',
+                subtitle: 'Chúng tôi đang tìm kiếm những đối tác cam kết chia sẻ tầm nhìn xuất sắc của chúng tôi',
                 list: [
-                    'Doanh nghiá»‡p thĂ nh láº­p vá»›i thĂ nh tĂ­ch Ä‘Ă£ Ä‘Æ°á»£c chá»©ng minh',
-                    'Tá»‘i thiá»ƒu 2 nÄƒm kinh nghiá»‡m trong lÄ©nh vá»±c Ă¢m thanh/Ä‘iá»‡n tá»­',
-                    'Cam káº¿t Ä‘áº¡t má»¥c tiĂªu khá»‘i lÆ°á»£ng hĂ ng thĂ¡ng',
-                    'Kháº£ nÄƒng bĂ¡n hĂ ng vĂ  há»— trá»£ chuyĂªn nghiá»‡p',
-                    'TuĂ¢n thá»§ hÆ°á»›ng dáº«n vĂ  tiĂªu chuáº©n thÆ°Æ¡ng hiá»‡u'
+                    'Doanh nghiệp thành lập với thành tích đã được chứng minh',
+                    'Tối thiểu 2 năm kinh nghiệm trong lĩnh vực âm thanh/điện tử',
+                    'Cam kết đạt mục tiêu khối lượng hàng tháng',
+                    'Khả năng bán hàng và hỗ trợ chuyên nghiệp',
+                    'Tuân thủ hướng dẫn và tiêu chuẩn thương hiệu'
                 ]
             },
             form: {
-                title: 'Gá»­i ÄÆ¡n ÄÄƒng KĂ½',
-                subtitle: 'ÄĂ¢y lĂ  cá»•ng Ä‘Äƒng kĂ½ Ä‘áº¡i lĂ½ chĂ­nh thá»©c. HĂ£y gá»­i thĂ´ng tin doanh nghiá»‡p táº¡i Ä‘Ă¢y trÆ°á»›c khi sá»­ dá»¥ng á»©ng dá»¥ng Dealer.',
-                portalBadge: 'Cá»•ng ÄÄƒng KĂ½ ChĂ­nh Thá»©c',
-                portalTitle: 'ÄÄƒng kĂ½ táº¡i Ä‘Ă¢y trÆ°á»›c khi Ä‘Äƒng nháº­p á»©ng dá»¥ng Dealer',
-                portalDescription: 'Biá»ƒu máº«u nĂ y lĂ  nÆ¡i chĂ­nh thá»©c Ä‘á»ƒ táº¡o há»“ sÆ¡ Ä‘Äƒng kĂ½ Ä‘áº¡i lĂ½ vĂ  thĂ´ng tin tĂ i khoáº£n. Äá»™i ngÅ© cá»§a chĂºng tĂ´i sáº½ xem xĂ©t há»“ sÆ¡ vĂ  liĂªn há»‡ náº¿u cáº§n xĂ¡c minh thĂªm.',
-                portalFootnote: 'á»¨ng dá»¥ng Dealer chá»‰ dĂ nh cho cĂ¡c tĂ i khoáº£n Ä‘Ă£ Ä‘Æ°á»£c táº¡o hoáº·c Ä‘Æ°á»£c duyá»‡t thĂ´ng qua website nĂ y.',
-                companyInfo: 'ThĂ´ng Tin CĂ´ng Ty',
-                contactInfo: 'ThĂ´ng Tin LiĂªn Há»‡',
-                businessAddress: 'Äá»‹a Chá»‰ Kinh Doanh',
-                businessDetails: 'Chi Tiáº¿t Kinh Doanh',
-                additionalInfo: 'ThĂ´ng Tin Bá»• Sung',
-                companyName: 'TĂªn CĂ´ng Ty',
-                companyNameRequired: 'TĂªn CĂ´ng Ty *',
-                companyNamePlaceholder: 'TĂªn cĂ´ng ty cá»§a báº¡n',
+                title: 'Gửi Đơn Đăng Ký',
+                subtitle: 'Đây là cổng đăng ký đại lý chính thức. Hãy gửi thông tin doanh nghiệp tại đây trước khi sử dụng ứng dụng Dealer.',
+                portalBadge: 'Cổng Đăng Ký Chính Thức',
+                portalTitle: 'Đăng ký tại đây trước khi đăng nhập ứng dụng Dealer',
+                portalDescription: 'Biểu mẫu này là nơi chính thức để tạo hồ sơ đăng ký đại lý và thông tin tài khoản. Đội ngũ của chúng tôi sẽ xem xét hồ sơ và liên hệ nếu cần xác minh thêm.',
+                portalFootnote: 'Ứng dụng Dealer chỉ dành cho các tài khoản đã được tạo hoặc được duyệt thông qua website này.',
+                companyInfo: 'Thông Tin Công Ty',
+                contactInfo: 'Thông Tin Liên Hệ',
+                businessAddress: 'Địa Chỉ Kinh Doanh',
+                businessDetails: 'Chi Tiết Kinh Doanh',
+                additionalInfo: 'Thông Tin Bổ Sung',
+                companyName: 'Tên Công Ty',
+                companyNameRequired: 'Tên Công Ty *',
+                companyNamePlaceholder: 'Tên công ty của bạn',
                 website: 'Website',
                 websitePlaceholder: 'https://website-cua-ban.com',
-                contactName: 'TĂªn NgÆ°á»i LiĂªn Há»‡',
-                contactNameRequired: 'TĂªn NgÆ°á»i LiĂªn Há»‡ *',
-                contactNamePlaceholder: 'Há» vĂ  tĂªn Ä‘áº§y Ä‘á»§',
-                email: 'Äá»‹a Chá»‰ Email',
-                emailRequired: 'Äá»‹a Chá»‰ Email *',
+                contactName: 'Tên Người Liên Hệ',
+                contactNameRequired: 'Tên Người Liên Hệ *',
+                contactNamePlaceholder: 'Họ và tên đầy đủ',
+                email: 'Địa Chỉ Email',
+                emailRequired: 'Địa Chỉ Email *',
                 emailPlaceholder: 'email@cua-ban.com',
-                phone: 'Sá»‘ Äiá»‡n Thoáº¡i',
-                phoneRequired: 'Sá»‘ Äiá»‡n Thoáº¡i *',
+                phone: 'Số Điện Thoại',
+                phoneRequired: 'Số Điện Thoại *',
                 phonePlaceholder: '+84 (xxx) xxx-xxxx',
                 // Simplified form fields
-                resellerRegistration: 'ÄÄƒng KĂ½ Äáº¡i LĂ½',
-                name: 'TĂªn cĂ´ng ty',
-                nameRequired: 'TĂªn cĂ´ng ty *',
-                namePlaceholder: 'Nháº­p tĂªn cĂ´ng ty cá»§a báº¡n',
-                username: 'TĂªn Ä‘Äƒng nháº­p',
-                usernameRequired: 'TĂªn Ä‘Äƒng nháº­p *',
-                usernamePlaceholder: 'Nháº­p tĂªn Ä‘Äƒng nháº­p (3-20 kĂ½ tá»±)',
-                password: 'Máº­t kháº©u',
-                passwordRequired: 'Máº­t kháº©u *',
-                passwordPlaceholder: 'Nháº­p máº­t kháº©u (tá»‘i thiá»ƒu 6 kĂ½ tá»±)',
-                confirmPassword: 'XĂ¡c nháº­n máº­t kháº©u',
-                confirmPasswordRequired: 'XĂ¡c nháº­n máº­t kháº©u *',
-                confirmPasswordPlaceholder: 'Nháº­p láº¡i máº­t kháº©u',
-                address: 'Äá»‹a Chá»‰',
-                addressPlaceholder: 'Nháº­p Ä‘á»‹a chá»‰ chi tiáº¿t',
-                district: 'Quáº­n/Huyá»‡n',
-                districtRequired: 'Quáº­n/Huyá»‡n *',
-                districtPlaceholder: 'Nháº­p quáº­n/huyá»‡n',
+                resellerRegistration: 'Đăng Ký Đại Lý',
+                name: 'Tên công ty',
+                nameRequired: 'Tên công ty *',
+                namePlaceholder: 'Nhập tên công ty của bạn',
+                username: 'Tên đăng nhập',
+                usernameRequired: 'Tên đăng nhập *',
+                usernamePlaceholder: 'Nhập tên đăng nhập (3-20 ký tự)',
+                password: 'Mật khẩu',
+                passwordRequired: 'Mật khẩu *',
+                passwordPlaceholder: 'Nhập mật khẩu (tối thiểu 6 ký tự)',
+                confirmPassword: 'Xác nhận mật khẩu',
+                confirmPasswordRequired: 'Xác nhận mật khẩu *',
+                confirmPasswordPlaceholder: 'Nhập lại mật khẩu',
+                address: 'Địa Chỉ',
+                addressPlaceholder: 'Nhập địa chỉ chi tiết',
+                district: 'Quận/Huyện',
+                districtRequired: 'Quận/Huyện *',
+                districtPlaceholder: 'Nhập quận/huyện',
                 // Validation messages
-                fieldRequired: 'TrÆ°á»ng nĂ y lĂ  báº¯t buá»™c',
-                invalidEmail: 'Vui lĂ²ng nháº­p Ä‘á»‹a chá»‰ email há»£p lá»‡',
-                invalidPhone: 'Vui lĂ²ng nháº­p sá»‘ Ä‘iá»‡n thoáº¡i Viá»‡t Nam há»£p lá»‡ (vĂ­ dá»¥: 0987654321, +84987654321)',
-                invalidUsername: 'TĂªn Ä‘Äƒng nháº­p pháº£i cĂ³ 3-20 kĂ½ tá»± vĂ  chá»‰ chá»©a chá»¯ cĂ¡i, sá»‘, dáº¥u gáº¡ch dÆ°á»›i hoáº·c gáº¡ch ngang',
-                invalidPassword: 'Máº­t kháº©u pháº£i cĂ³ Ă­t nháº¥t 6 kĂ½ tá»±',
-                streetAddress: 'Äá»‹a Chá»‰',
-                streetAddressRequired: 'Äá»‹a Chá»‰ *',
-                streetAddressPlaceholder: '123 ÄÆ°á»ng Kinh Doanh',
-                city: 'ThĂ nh Phá»‘',
-                cityRequired: 'ThĂ nh Phá»‘ *',
-                cityPlaceholder: 'ThĂ nh phá»‘ cá»§a báº¡n',
-                country: 'Quá»‘c Gia',
-                countryRequired: 'Quá»‘c Gia *',
-                countryPlaceholder: 'Quá»‘c gia cá»§a báº¡n',
-                businessType: 'Loáº¡i HĂ¬nh Kinh Doanh',
-                businessTypeRequired: 'Loáº¡i HĂ¬nh Kinh Doanh *',
-                selectBusinessType: 'Chá»n loáº¡i hĂ¬nh kinh doanh',
+                fieldRequired: 'Trường này là bắt buộc',
+                invalidEmail: 'Vui lòng nhập địa chỉ email hợp lệ',
+                invalidPhone: 'Vui lòng nhập số điện thoại Việt Nam hợp lệ (ví dụ: 0987654321, +84987654321)',
+                invalidUsername: 'Tên đăng nhập phải có 3-20 ký tự và chỉ chứa chữ cái, số, dấu gạch dưới hoặc gạch ngang',
+                invalidPassword: 'Mật khẩu phải có ít nhất 6 ký tự',
+                streetAddress: 'Địa Chỉ',
+                streetAddressRequired: 'Địa Chỉ *',
+                streetAddressPlaceholder: '123 Đường Kinh Doanh',
+                city: 'Thành Phố',
+                cityRequired: 'Thành Phố *',
+                cityPlaceholder: 'Thành phố của bạn',
+                country: 'Quốc Gia',
+                countryRequired: 'Quốc Gia *',
+                countryPlaceholder: 'Quốc gia của bạn',
+                businessType: 'Loại Hình Kinh Doanh',
+                businessTypeRequired: 'Loại Hình Kinh Doanh *',
+                selectBusinessType: 'Chọn loại hình kinh doanh',
                 businessTypes: {
-                    retailer: 'NhĂ  BĂ¡n Láº»',
-                    distributor: 'NhĂ  PhĂ¢n Phá»‘i',
-                    onlineStore: 'Cá»­a HĂ ng Trá»±c Tuyáº¿n',
-                    systemIntegrator: 'NhĂ  TĂ­ch Há»£p Há»‡ Thá»‘ng',
-                    other: 'KhĂ¡c'
+                    retailer: 'Nhà Bán Lẻ',
+                    distributor: 'Nhà Phân Phối',
+                    onlineStore: 'Cửa Hàng Trực Tuyến',
+                    systemIntegrator: 'Nhà Tích Hợp Hệ Thống',
+                    other: 'Khác'
                 },
-                experience: 'Sá»‘ NÄƒm Kinh Nghiá»‡m',
-                experienceRequired: 'Sá»‘ NÄƒm Kinh Nghiá»‡m *',
-                selectExperience: 'Chá»n kinh nghiá»‡m',
+                experience: 'Số Năm Kinh Nghiệm',
+                experienceRequired: 'Số Năm Kinh Nghiệm *',
+                selectExperience: 'Chọn kinh nghiệm',
                 experienceOptions: {
-                    '0-2': '0-2 nÄƒm',
-                    '3-5': '3-5 nÄƒm',
-                    '6-10': '6-10 nÄƒm',
-                    '10+': '10+ nÄƒm'
+                    '0-2': '0-2 năm',
+                    '3-5': '3-5 năm',
+                    '6-10': '6-10 năm',
+                    '10+': '10+ năm'
                 },
-                expectedVolume: 'Khá»‘i LÆ°á»£ng Dá»± Kiáº¿n HĂ ng ThĂ¡ng',
-                expectedVolumeRequired: 'Khá»‘i LÆ°á»£ng Dá»± Kiáº¿n HĂ ng ThĂ¡ng *',
-                selectExpectedVolume: 'Chá»n khá»‘i lÆ°á»£ng dá»± kiáº¿n',
+                expectedVolume: 'Khối Lượng Dự Kiến Hàng Tháng',
+                expectedVolumeRequired: 'Khối Lượng Dự Kiến Hàng Tháng *',
+                selectExpectedVolume: 'Chọn khối lượng dự kiến',
                 volumeOptions: {
-                    '1-10': '1-10 sáº£n pháº©m',
-                    '11-50': '11-50 sáº£n pháº©m',
-                    '51-100': '51-100 sáº£n pháº©m',
-                    '100+': '100+ sáº£n pháº©m'
+                    '1-10': '1-10 sản phẩm',
+                    '11-50': '11-50 sản phẩm',
+                    '51-100': '51-100 sản phẩm',
+                    '100+': '100+ sản phẩm'
                 },
-                message: 'Chia sáº» vá» doanh nghiá»‡p cá»§a báº¡n',
-                messagePlaceholder: 'Chia sáº» vá» doanh nghiá»‡p, thá»‹ trÆ°á»ng má»¥c tiĂªu hoáº·c báº¥t ká»³ yĂªu cáº§u cá»¥ thá»ƒ nĂ o...',
-                submitButton: 'Gá»­i ÄÆ¡n ÄÄƒng KĂ½',
-                submittingButton: 'Äang gá»­i...',
-                successTitle: 'Gá»­i ÄÆ¡n ÄÄƒng KĂ½ ThĂ nh CĂ´ng!',
-                successMessage: 'ChĂºng tĂ´i sáº½ xem xĂ©t Ä‘Æ¡n Ä‘Äƒng kĂ½ vĂ  pháº£n há»“i trong vĂ²ng 24 giá». Sau khi Ä‘Æ°á»£c duyá»‡t, báº¡n cĂ³ thá»ƒ Ä‘Äƒng nháº­p á»©ng dá»¥ng Dealer báº±ng tĂ i khoáº£n nĂ y.',
-                errorTitle: 'Gá»­i Tháº¥t Báº¡i',
-                errorMessage: 'CĂ³ lá»—i xáº£y ra khi gá»­i Ä‘Æ¡n Ä‘Äƒng kĂ½. Vui lĂ²ng thá»­ láº¡i.'
+                message: 'Chia sẻ về doanh nghiệp của bạn',
+                messagePlaceholder: 'Chia sẻ về doanh nghiệp, thị trường mục tiêu hoặc bất kỳ yêu cầu cụ thể nào...',
+                submitButton: 'Gửi Đơn Đăng Ký',
+                submittingButton: 'Đang gửi...',
+                successTitle: 'Gửi Đơn Đăng Ký Thành Công!',
+                successMessage: 'Chúng tôi sẽ xem xét đơn đăng ký và phản hồi trong vòng 24 giờ. Sau khi được duyệt, bạn có thể đăng nhập ứng dụng Dealer bằng tài khoản này.',
+                errorTitle: 'Gửi Thất Bại',
+                errorMessage: 'Có lỗi xảy ra khi gửi đơn đăng ký. Vui lòng thử lại.'
             },
             contact: {
-                title: 'CĂ³ CĂ¢u Há»i?',
-                subtitle: 'Äá»™i ngÅ© Ä‘á»‘i tĂ¡c cá»§a chĂºng tĂ´i sáºµn sĂ ng há»— trá»£ báº¡n báº¯t Ä‘áº§u',
-                email: 'Email Cho ChĂºng TĂ´i',
+                title: 'Có Câu Hỏi?',
+                subtitle: 'Đội ngũ đối tác của chúng tôi sẵn sàng hỗ trợ bạn bắt đầu',
+                email: 'Email Cho Chúng Tôi',
                 emailContent: 'reseller@tunezonehifi.com',
-                phone: 'Gá»i Cho ChĂºng TĂ´i',
+                phone: 'Gọi Cho Chúng Tôi',
                 phoneContent: '+1 (555) 123-4567',
-                visit: 'GhĂ© ThÄƒm ChĂºng TĂ´i',
-                visitContent: 'Giá» lĂ m viá»‡c: Thá»© 2-6 9AM-6PM'
+                visit: 'Ghé Thăm Chúng Tôi',
+                visitContent: 'Giờ làm việc: Thứ 2-6 9AM-6PM'
             }
         },
         errors: {
             global: {
-                title: 'ÄĂ£ xáº£y ra lá»—i!',
-                message: 'ÄĂ£ xáº£y ra lá»—i khĂ´ng mong muá»‘n. Äá»™i ngÅ© cá»§a chĂºng tĂ´i Ä‘Ă£ Ä‘Æ°á»£c thĂ´ng bĂ¡o.',
-                tryAgain: 'Thá»­ láº¡i',
-                goHome: 'Vá» trang chá»§',
-                errorId: 'MĂ£ lá»—i:'
+                title: 'Đã xảy ra lỗi!',
+                message: 'Đã xảy ra lỗi không mong muốn. Đội ngũ của chúng tôi đã được thông báo.',
+                tryAgain: 'Thử lại',
+                goHome: 'Về trang chủ',
+                errorId: 'Mã lỗi:'
             },
             products: {
-                loadFailed: 'KhĂ´ng thá»ƒ táº£i sáº£n pháº©m',
-                retrying: 'Äang thá»­ láº¡i ({count}/3)...',
-                maxRetries: 'VÆ°á»£t quĂ¡ sá»‘ láº§n thá»­ láº¡i tá»‘i Ä‘a. Vui lĂ²ng táº£i láº¡i trang.',
-                notFound: 'Sáº£n pháº©m khĂ´ng tĂ¬m tháº¥y'
+                loadFailed: 'Không thể tải sản phẩm',
+                retrying: 'Đang thử lại ({count}/3)...',
+                maxRetries: 'Vượt quá số lần thử lại tối đa. Vui lòng tải lại trang.',
+                notFound: 'Sản phẩm không tìm thấy'
             },
             blogs: {
-                loadFailed: 'KhĂ´ng thá»ƒ táº£i bĂ i viáº¿t blog',
-                retrying: 'Äang thá»­ láº¡i...',
-                notFound: 'BĂ i viáº¿t blog khĂ´ng tĂ¬m tháº¥y'
+                loadFailed: 'Không thể tải bài viết blog',
+                retrying: 'Đang thử lại...',
+                notFound: 'Bài viết blog không tìm thấy'
             },
             warranty: {
-                loadFailed: 'KhĂ´ng thá»ƒ kiá»ƒm tra báº£o hĂ nh',
-                invalidSerial: 'Sá»‘ seri sáº£n pháº©m khĂ´ng há»£p lá»‡',
-                notFound: 'ThĂ´ng tin báº£o hĂ nh khĂ´ng tĂ¬m tháº¥y',
-                purchaseDateMissing: 'NgĂ y mua hĂ ng bá»‹ thiáº¿u',
-                serialMissing: 'Sá»‘ seri sáº£n pháº©m bá»‹ thiáº¿u',
-                customerMissing: 'ThĂ´ng tin khĂ¡ch hĂ ng bá»‹ thiáº¿u'
+                loadFailed: 'Không thể kiểm tra bảo hành',
+                invalidSerial: 'Số seri sản phẩm không hợp lệ',
+                notFound: 'Thông tin bảo hành không tìm thấy',
+                purchaseDateMissing: 'Ngày mua hàng bị thiếu',
+                serialMissing: 'Số seri sản phẩm bị thiếu',
+                customerMissing: 'Thông tin khách hàng bị thiếu'
             },
             reseller: {
-                loadFailed: 'KhĂ´ng thá»ƒ táº£i thĂ´ng tin nhĂ  bĂ¡n láº»',
-                errorTitle: 'Lá»—i Táº£i NhĂ  BĂ¡n Láº»',
-                fallbackMessage: 'Khong the tai thong tin nha ban le. Vui long thu lai.',
-                connectionError: 'Lá»—i káº¿t ná»‘i. Vui lĂ²ng thá»­ láº¡i.',
-                notFound: 'KhĂ´ng tĂ¬m tháº¥y nhĂ  bĂ¡n láº»'
+                loadFailed: 'Không thể tải thông tin nhà bán lẻ',
+                errorTitle: 'Lỗi Tải Nhà Bán Lẻ',
+                fallbackMessage: 'Không thể tải thông tin nhà bán lẻ. Vui lòng thử lại.',
+                connectionError: 'Lỗi kết nối. Vui lòng thử lại.',
+                notFound: 'Không tìm thấy nhà bán lẻ'
             },
             general: {
-                pageError: 'Lá»—i Trang',
-                retry: 'Thá»­ láº¡i',
-                reload: 'Táº£i láº¡i',
-                networkError: 'Lá»—i máº¡ng. Vui lĂ²ng kiá»ƒm tra káº¿t ná»‘i cá»§a báº¡n.',
-                serverError: 'Lá»—i mĂ¡y chá»§. Vui lĂ²ng thá»­ láº¡i sau.',
-                timeoutError: 'Háº¿t thá»i gian chá» yĂªu cáº§u. Vui lĂ²ng thá»­ láº¡i.',
-                notFoundError: 'KhĂ´ng tĂ¬m tháº¥y tĂ i nguyĂªn'
+                pageError: 'Lỗi Trang',
+                retry: 'Thử lại',
+                reload: 'Tải lại',
+                networkError: 'Lỗi mạng. Vui lòng kiểm tra kết nối của bạn.',
+                serverError: 'Lỗi máy chủ. Vui lòng thử lại sau.',
+                timeoutError: 'Hết thời gian chờ yêu cầu. Vui lòng thử lại.',
+                notFoundError: 'Không tìm thấy tài nguyên'
             }
         }
     }
@@ -1832,7 +1832,7 @@ export const extraTranslations = {
             description: 'The page you are looking for does not exist or has been moved.',
             backHome: 'Back to home',
             viewProducts: 'View products',
-            footer: 'Â© {year} 4T HITEK. All rights reserved.'
+            footer: '© {year} 4T HITEK. All rights reserved.'
         },
         pagination: {
             first: 'First page',
@@ -2035,7 +2035,7 @@ export const extraTranslations = {
                     description: 'Your product is covered by our standard warranty and support.'
                 },
                 covered: {
-                    title: 'Whatâ€™s Covered',
+                    title: "What's Covered",
                     items: [
                         'Manufacturing defects',
                         'Hardware failures under normal use',
@@ -2043,7 +2043,7 @@ export const extraTranslations = {
                     ]
                 },
                 notCovered: {
-                    title: 'Whatâ€™s Not Covered',
+                    title: "What's Not Covered",
                     items: [
                         'Physical damage or misuse',
                         'Unauthorized repairs or modifications',
@@ -2076,7 +2076,7 @@ export const extraTranslations = {
                     hotline: {
                         title: 'Hotline',
                         value: '1900 8888',
-                        note: 'Monâ€“Sat, 8:00â€“18:00'
+                        note: 'Mon–Sat, 8:00–18:00'
                     },
                     facebook: {
                         title: 'Facebook',
@@ -2251,112 +2251,112 @@ export const extraTranslations = {
             logoAlt: '4T HITEK'
         },
         common: {
-            closeMenu: 'ÄĂ³ng menu',
+            closeMenu: 'Đóng menu',
             email: 'Email',
-            loadingMessage: 'Vui lĂ²ng chá» trong khi chĂºng tĂ´i táº£i ná»™i dung.',
-            loadingVideo: 'Äang táº£i video...',
+            loadingMessage: 'Vui lòng chờ trong khi chúng tôi tải nội dung.',
+            loadingVideo: 'Đang tải video...',
             menu: 'Menu',
-            openMenu: 'Má»Ÿ menu',
-            recent: 'Gáº§n Ä‘Ă¢y',
-            reload: 'Táº£i láº¡i',
-            search: 'TĂ¬m kiáº¿m',
-            tryAgainLater: 'Vui lĂ²ng thá»­ láº¡i sau.',
-            unknown: 'KhĂ´ng rĂµ',
-            videoUnsupported: 'TrĂ¬nh duyá»‡t cá»§a báº¡n khĂ´ng há»— trá»£ tháº» video.',
-            videoLoadFailed: 'KhĂ´ng thá»ƒ táº£i video.'
+            openMenu: 'Mở menu',
+            recent: 'Gần đây',
+            reload: 'Tải lại',
+            search: 'Tìm kiếm',
+            tryAgainLater: 'Vui lòng thử lại sau.',
+            unknown: 'Không rõ',
+            videoUnsupported: 'Trình duyệt của bạn không hỗ trợ thẻ video.',
+            videoLoadFailed: 'Không thể tải video.'
         },
         about: {
-            breadcrumb: 'Giá»›i thiá»‡u',
-            errorTitle: 'KhĂ´ng thá»ƒ táº£i trang Giá»›i thiá»‡u',
-            errorMessage: 'Vui lĂ²ng thá»­ láº¡i sau.',
-            loadingTitle: 'Äang táº£i trang Giá»›i thiá»‡u',
-            loadingMessage: 'Äang chuáº©n bá»‹ ná»™i dung giá»›i thiá»‡u...',
+            breadcrumb: 'Giới thiệu',
+            errorTitle: 'Không thể tải trang Giới thiệu',
+            errorMessage: 'Vui lòng thử lại sau.',
+            loadingTitle: 'Đang tải trang Giới thiệu',
+            loadingMessage: 'Đang chuẩn bị nội dung giới thiệu...',
             mission: {
-                imageAlt: 'Äá»™i ngÅ© Ä‘ang lĂ m viá»‡c'
+                imageAlt: 'Đội ngũ đang làm việc'
             }
         },
         auth: {
             login: {
-                title: 'ÄÄƒng nháº­p',
-                modalLabel: 'Há»™p thoáº¡i Ä‘Äƒng nháº­p',
+                title: 'Đăng nhập',
+                modalLabel: 'Hộp thoại đăng nhập',
                 emailLabel: 'Email',
-                emailPlaceholder: 'Nháº­p email',
-                passwordLabel: 'Máº­t kháº©u',
-                passwordPlaceholder: 'Nháº­p máº­t kháº©u',
-                forgotPassword: 'QuĂªn máº­t kháº©u?',
-                submit: 'ÄÄƒng nháº­p',
-                submitting: 'Äang Ä‘Äƒng nháº­p...',
-                button: 'ÄÄƒng nháº­p',
+                emailPlaceholder: 'Nhập email',
+                passwordLabel: 'Mật khẩu',
+                passwordPlaceholder: 'Nhập mật khẩu',
+                forgotPassword: 'Quên mật khẩu?',
+                submit: 'Đăng nhập',
+                submitting: 'Đang đăng nhập...',
+                button: 'Đăng nhập',
                 demo: {
-                    title: 'TĂ i khoáº£n máº«u',
+                    title: 'Tài khoản mẫu',
                     emailLabel: 'Email',
-                    passwordLabel: 'Máº­t kháº©u',
+                    passwordLabel: 'Mật khẩu',
                     emailValue1: 'nguyenvana@email.com',
                     emailValue2: 'tranthib@email.com',
                     passwordValue: 'password123'
                 },
                 errors: {
-                    invalidCredentials: 'Email hoáº·c máº­t kháº©u khĂ´ng Ä‘Ăºng.',
-                    generic: 'KhĂ´ng thá»ƒ Ä‘Äƒng nháº­p. Vui lĂ²ng thá»­ láº¡i.'
+                    invalidCredentials: 'Email hoặc mật khẩu không đúng.',
+                    generic: 'Không thể đăng nhập. Vui lòng thử lại.'
                 }
             },
             menu: {
                 idLabel: 'ID',
-                orders: 'ÄÆ¡n hĂ ng cá»§a tĂ´i',
-                settings: 'CĂ i Ä‘áº·t tĂ i khoáº£n',
-                support: 'Trá»£ giĂºp & Há»— trá»£',
-                logout: 'ÄÄƒng xuáº¥t'
+                orders: 'Đơn hàng của tôi',
+                settings: 'Cài đặt tài khoản',
+                support: 'Trợ giúp & Hỗ trợ',
+                logout: 'Đăng xuất'
             }
         },
         blog: {
             author: {
-                name: 'Äá»™i ngÅ© 4THITEK',
-                title: 'Äá»™i ká»¹ thuáº­t',
-                bio: 'Äá»™i ngÅ© ká»¹ thuáº­t 4THITEK'
+                name: 'Đội ngũ 4THITEK',
+                title: 'Đội kỹ thuật',
+                bio: 'Đội ngũ kỹ thuật 4THITEK'
             },
             categories: {
-                uncategorized: 'ChÆ°a phĂ¢n loáº¡i'
+                uncategorized: 'Chưa phân loại'
             },
             grid: {
-                coverAlt: 'áº¢nh bĂ¬a cá»§a {title}',
-                emptyTitle: 'KhĂ´ng tĂ¬m tháº¥y bĂ i viáº¿t',
-                emptyBodyLine1: 'KhĂ´ng cĂ³ bĂ i viáº¿t nĂ o phĂ¹ há»£p vá»›i bá»™ lá»c hiá»‡n táº¡i.',
-                emptyBodyLine2: 'HĂ£y thá»­ Ä‘iá»u chá»‰nh bá»™ lá»c hoáº·c quay láº¡i sau.',
-                readArticle: 'Äá»c bĂ i viáº¿t'
+                coverAlt: 'Ảnh bìa của {title}',
+                emptyTitle: 'Không tìm thấy bài viết',
+                emptyBodyLine1: 'Không có bài viết nào phù hợp với bộ lọc hiện tại.',
+                emptyBodyLine2: 'Hãy thử điều chỉnh bộ lọc hoặc quay lại sau.',
+                readArticle: 'Đọc bài viết'
             },
             list: {
-                cachedNotice: 'Äang hiá»ƒn thá»‹ bĂ i viáº¿t Ä‘Ă£ lÆ°u trong khi káº¿t ná»‘i láº¡i.',
+                cachedNotice: 'Đang hiển thị bài viết đã lưu trong khi kết nối lại.',
                 categoryFallback: 'Chung',
-                checkingConnection: 'Äang kiá»ƒm tra káº¿t ná»‘i...'
+                checkingConnection: 'Đang kiểm tra kết nối...'
             },
             detail: {
-                loadingTitle: 'Äang táº£i bĂ i viáº¿t',
-                loadingMessage: 'Äang táº£i ná»™i dung bĂ i viáº¿t...',
-                loadFailedMessage: 'KhĂ´ng thá»ƒ táº£i bĂ i viáº¿t. Vui lĂ²ng thá»­ láº¡i.',
-                mediaImageAlt: 'HĂ¬nh áº£nh bĂ i viáº¿t',
-                mediaImageAltIndexed: 'HĂ¬nh áº£nh bĂ i viáº¿t {index}',
-                mediaVideoTitle: 'Video bĂ i viáº¿t',
-                noRelatedTitle: 'ChÆ°a cĂ³ bĂ i viáº¿t liĂªn quan',
-                noRelatedBody: 'KhĂ´ng tĂ¬m tháº¥y bĂ i viáº¿t liĂªn quan.',
-                viewAll: 'Xem táº¥t cáº£ bĂ i viáº¿t'
+                loadingTitle: 'Đang tải bài viết',
+                loadingMessage: 'Đang tải nội dung bài viết...',
+                loadFailedMessage: 'Không thể tải bài viết. Vui lòng thử lại.',
+                mediaImageAlt: 'Hình ảnh bài viết',
+                mediaImageAltIndexed: 'Hình ảnh bài viết {index}',
+                mediaVideoTitle: 'Video bài viết',
+                noRelatedTitle: 'Chưa có bài viết liên quan',
+                noRelatedBody: 'Không tìm thấy bài viết liên quan.',
+                viewAll: 'Xem tất cả bài viết'
             },
-            loadingTitle: 'Äang táº£i blog',
-            loadingMessage: 'Äang láº¥y cĂ¡c bĂ i viáº¿t má»›i nháº¥t...'
+            loadingTitle: 'Đang tải blog',
+            loadingMessage: 'Đang lấy các bài viết mới nhất...'
         },
         certification: {
-            breadcrumb: 'Chá»©ng nháº­n',
-            errorTitle: 'KhĂ´ng thá»ƒ táº£i trang Chá»©ng nháº­n',
-            errorMessage: 'Vui lĂ²ng thá»­ láº¡i sau.',
-            loadingTitle: 'Äang táº£i chá»©ng nháº­n',
-            loadingMessage: 'Äang láº¥y thĂ´ng tin chá»©ng nháº­n...'
+            breadcrumb: 'Chứng nhận',
+            errorTitle: 'Không thể tải trang Chứng nhận',
+            errorMessage: 'Vui lòng thử lại sau.',
+            loadingTitle: 'Đang tải chứng nhận',
+            loadingMessage: 'Đang lấy thông tin chứng nhận...'
         },
         contact: {
-            errorTitle: 'KhĂ´ng thá»ƒ táº£i trang LiĂªn há»‡',
-            errorMessage: 'Vui lĂ²ng thá»­ láº¡i sau.',
-            loadingTitle: 'Äang táº£i trang LiĂªn há»‡',
-            loadingMessage: 'Äang chuáº©n bá»‹ thĂ´ng tin liĂªn há»‡...',
+            errorTitle: 'Không thể tải trang Liên hệ',
+            errorMessage: 'Vui lòng thử lại sau.',
+            loadingTitle: 'Đang tải trang Liên hệ',
+            loadingMessage: 'Đang chuẩn bị thông tin liên hệ...',
             social: {
-                title: 'Káº¿t ná»‘i vá»›i chĂºng tĂ´i',
+                title: 'Kết nối với chúng tôi',
                 facebook: 'Facebook',
                 youtube: 'YouTube',
                 tiktok: 'TikTok'
@@ -2364,70 +2364,70 @@ export const extraTranslations = {
         },
         becomeReseller: {
             form: {
-                fullName: 'Há» vĂ  tĂªn',
-                fullNamePlaceholder: 'Nháº­p há» vĂ  tĂªn',
-                taxCode: 'MĂ£ sá»‘ thuáº¿',
-                taxCodePlaceholder: 'Nháº­p mĂ£ sá»‘ thuáº¿',
-                citySelectFirst: 'Chá»n thĂ nh phá»‘ trÆ°á»›c',
+                fullName: 'Họ và tên',
+                fullNamePlaceholder: 'Nhập họ và tên',
+                taxCode: 'Mã số thuế',
+                taxCodePlaceholder: 'Nhập mã số thuế',
+                citySelectFirst: 'Chọn thành phố trước',
                 errors: {
-                    nameRequired: 'Vui lĂ²ng nháº­p tĂªn cĂ´ng ty.',
-                    emailRequired: 'Vui lĂ²ng nháº­p email.',
-                    addressRequired: 'Vui lĂ²ng nháº­p Ä‘á»‹a chá»‰.',
-                    phoneRequired: 'Vui lĂ²ng nháº­p sá»‘ Ä‘iá»‡n thoáº¡i.',
-                    districtRequired: 'Vui lĂ²ng nháº­p quáº­n/huyá»‡n.',
-                    cityRequired: 'Vui lĂ²ng nháº­p thĂ nh phá»‘.',
-                    invalidEmail: 'Email khĂ´ng há»£p lá»‡.',
-                    emailMax: 'Email tá»‘i Ä‘a 100 kĂ½ tá»±.',
-                    invalidPhone: 'Sá»‘ Ä‘iá»‡n thoáº¡i khĂ´ng há»£p lá»‡.',
-                    companyNameLength: 'TĂªn cĂ´ng ty pháº£i tá»« 2 Ä‘áº¿n 150 kĂ½ tá»±.',
-                    fullNameMax: 'Há» vĂ  tĂªn tá»‘i Ä‘a 150 kĂ½ tá»±.',
-                    taxCodeMax: 'MĂ£ sá»‘ thuáº¿ tá»‘i Ä‘a 50 kĂ½ tá»±.',
-                    addressMax: 'Äá»‹a chá»‰ tá»‘i Ä‘a 255 kĂ½ tá»±.',
-                    districtMax: 'Quáº­n/huyá»‡n tá»‘i Ä‘a 100 kĂ½ tá»±.',
-                    cityMax: 'ThĂ nh phá»‘ tá»‘i Ä‘a 100 kĂ½ tá»±.',
-                    passwordRequired: 'Vui lĂ²ng nháº­p máº­t kháº©u.',
-                    confirmPasswordRequired: 'Vui lĂ²ng xĂ¡c nháº­n máº­t kháº©u.',
-                    passwordMin: 'Máº­t kháº©u pháº£i cĂ³ Ă­t nháº¥t 6 kĂ½ tá»±.',
-                    passwordMismatch: 'XĂ¡c nháº­n máº­t kháº©u khĂ´ng khá»›p.'
+                    nameRequired: 'Vui lòng nhập tên công ty.',
+                    emailRequired: 'Vui lòng nhập email.',
+                    addressRequired: 'Vui lòng nhập địa chỉ.',
+                    phoneRequired: 'Vui lòng nhập số điện thoại.',
+                    districtRequired: 'Vui lòng nhập quận/huyện.',
+                    cityRequired: 'Vui lòng nhập thành phố.',
+                    invalidEmail: 'Email không hợp lệ.',
+                    emailMax: 'Email tối đa 100 ký tự.',
+                    invalidPhone: 'Số điện thoại không hợp lệ.',
+                    companyNameLength: 'Tên công ty phải từ 2 đến 150 ký tự.',
+                    fullNameMax: 'Họ và tên tối đa 150 ký tự.',
+                    taxCodeMax: 'Mã số thuế tối đa 50 ký tự.',
+                    addressMax: 'Địa chỉ tối đa 255 ký tự.',
+                    districtMax: 'Quận/huyện tối đa 100 ký tự.',
+                    cityMax: 'Thành phố tối đa 100 ký tự.',
+                    passwordRequired: 'Vui lòng nhập mật khẩu.',
+                    confirmPasswordRequired: 'Vui lòng xác nhận mật khẩu.',
+                    passwordMin: 'Mật khẩu phải có ít nhất 6 ký tự.',
+                    passwordMismatch: 'Xác nhận mật khẩu không khớp.'
                 }
             }
         },
         errors: {
             blogs: {
-                loadFailedMessage: 'KhĂ´ng thá»ƒ táº£i bĂ i viáº¿t. Vui lĂ²ng thá»­ láº¡i sau.'
+                loadFailedMessage: 'Không thể tải bài viết. Vui lòng thử lại sau.'
             },
             general: {
-                maxRetries: 'VÆ°á»£t quĂ¡ sá»‘ láº§n thá»­ láº¡i tá»‘i Ä‘a. Vui lĂ²ng táº£i láº¡i trang.',
-                unexpectedError: 'ÄĂ£ xáº£y ra lá»—i khĂ´ng mong muá»‘n.'
+                maxRetries: 'Vượt quá số lần thử lại tối đa. Vui lòng tải lại trang.',
+                unexpectedError: 'Đã xảy ra lỗi không mong muốn.'
             },
             products: {
-                loadFailedMessage: 'KhĂ´ng thá»ƒ táº£i sáº£n pháº©m. Vui lĂ²ng thá»­ láº¡i sau.'
+                loadFailedMessage: 'Không thể tải sản phẩm. Vui lòng thử lại sau.'
             },
             reseller: {
-                responseFormatError: 'Äá»‹nh dáº¡ng pháº£n há»“i mĂ¡y chá»§ Ä‘Ă£ thay Ä‘á»•i. Vui lĂ²ng cáº­p nháº­t á»©ng dá»¥ng.'
+                responseFormatError: 'Định dạng phản hồi máy chủ đã thay đổi. Vui lòng cập nhật ứng dụng.'
             },
             pages: {
                 becomeReseller: {
-                    title: 'Lá»—i chÆ°Æ¡ng trĂ¬nh Ä‘áº¡i lĂ½',
-                    message: 'KhĂ´ng thá»ƒ táº£i thĂ´ng tin chÆ°Æ¡ng trĂ¬nh Ä‘áº¡i lĂ½. Vui lĂ²ng thá»­ láº¡i.'
+                    title: 'Lỗi chương trình đại lý',
+                    message: 'Không thể tải thông tin chương trình đại lý. Vui lòng thử lại.'
                 },
                 policy: {
-                    title: 'Lá»—i trang chĂ­nh sĂ¡ch',
-                    message: 'KhĂ´ng thá»ƒ táº£i thĂ´ng tin chĂ­nh sĂ¡ch. Vui lĂ²ng thá»­ láº¡i.'
+                    title: 'Lỗi trang chính sách',
+                    message: 'Không thể tải thông tin chính sách. Vui lòng thử lại.'
                 },
                 search: {
-                    title: 'Lá»—i tĂ¬m kiáº¿m',
-                    message: 'KhĂ´ng thá»ƒ thá»±c hiá»‡n tĂ¬m kiáº¿m. Vui lĂ²ng thá»­ láº¡i.'
+                    title: 'Lỗi tìm kiếm',
+                    message: 'Không thể thực hiện tìm kiếm. Vui lòng thử lại.'
                 },
                 resellerInfo: {
-                    title: 'Lá»—i thĂ´ng tin Ä‘áº¡i lĂ½',
-                    message: 'KhĂ´ng thá»ƒ táº£i thĂ´ng tin Ä‘áº¡i lĂ½. Vui lĂ²ng thá»­ láº¡i.'
+                    title: 'Lỗi thông tin đại lý',
+                    message: 'Không thể tải thông tin đại lý. Vui lòng thử lại.'
                 }
             },
             global: {
-                detailsTitle: 'Chi tiáº¿t lá»—i',
-                devDetailsTitle: 'Chi tiáº¿t lá»—i (Chá»‰ dĂ nh cho mĂ´i trÆ°á»ng phĂ¡t triá»ƒn)',
-                errorLabel: 'Lá»—i',
+                detailsTitle: 'Chi tiết lỗi',
+                devDetailsTitle: 'Chi tiết lỗi (Chỉ dành cho môi trường phát triển)',
+                errorLabel: 'Lỗi',
                 stackLabel: 'Stack'
             }
         },
@@ -2436,350 +2436,350 @@ export const extraTranslations = {
                 headphones: 'Tai nghe'
             },
             flagAlt: {
-                vi: 'Cá» Viá»‡t Nam',
-                en: 'Cá» Hoa Ká»³'
+                vi: 'Cờ Việt Nam',
+                en: 'Cờ Hoa Kỳ'
             },
-            languageSelectorLabel: 'Bá»™ chá»n ngĂ´n ngá»¯'
+            languageSelectorLabel: 'Bộ chọn ngôn ngữ'
         },
         hero: {
-            ariaLabel: 'Sáº£n pháº©m ná»•i báº­t {product}',
-            discoverAria: 'KhĂ¡m phĂ¡ {product}',
+            ariaLabel: 'Sản phẩm nổi bật {product}',
+            discoverAria: 'Khám phá {product}',
             errors: {
-                fallbackNotice: 'Vui long thu tai lai noi dung.'
+                fallbackNotice: 'Vui lòng thử tải lại nội dung.'
             }
         },
         home: {
-            loadingTitle: 'Äang táº£i trang chá»§',
-            loadingMessage: 'Äang chuáº©n bá»‹ ná»™i dung ná»•i báº­t...'
+            loadingTitle: 'Đang tải trang chủ',
+            loadingMessage: 'Đang chuẩn bị nội dung nổi bật...'
         },
         newsroom: {
-            exploreMoreAria: 'KhĂ¡m phĂ¡ thĂªm bĂ i viáº¿t',
-            readMoreAria: 'Äá»c thĂªm vá» {title}',
-            readTime: '{minutes} phĂºt Ä‘á»c'
+            exploreMoreAria: 'Khám phá thêm bài viết',
+            readMoreAria: 'Đọc thêm về {title}',
+            readTime: '{minutes} phút đọc'
         },
         notFound: {
-            title: 'KhĂ´ng tĂ¬m tháº¥y trang',
-            description: 'Trang báº¡n tĂ¬m kiáº¿m khĂ´ng tá»“n táº¡i hoáº·c Ä‘Ă£ Ä‘Æ°á»£c di chuyá»ƒn.',
-            backHome: 'Vá» trang chá»§',
-            viewProducts: 'Xem sáº£n pháº©m',
-            footer: 'Â© {year} 4T HITEK. ÄĂ£ Ä‘Äƒng kĂ½ báº£n quyá»n.'
+            title: 'Không tìm thấy trang',
+            description: 'Trang bạn tìm kiếm không tồn tại hoặc đã được di chuyển.',
+            backHome: 'Về trang chủ',
+            viewProducts: 'Xem sản phẩm',
+            footer: '© {year} 4T HITEK. Đã đăng ký bản quyền.'
         },
         pagination: {
-            first: 'Trang Ä‘áº§u',
-            previous: 'Trang trÆ°á»›c',
+            first: 'Trang đầu',
+            previous: 'Trang trước',
             next: 'Trang sau',
-            last: 'Trang cuá»‘i',
-            of: 'trĂªn',
+            last: 'Trang cuối',
+            of: 'trên',
             pageSummary: 'Trang {current} / {total}',
-            summary: 'Hiá»ƒn thá»‹ {start}-{end} trĂªn tá»•ng {total} {label}'
+            summary: 'Hiển thị {start}-{end} trên tổng {total} {label}'
         },
         policy: {
-            tableOfContents: 'Má»¥c lá»¥c',
+            tableOfContents: 'Mục lục',
             errors: {
-                title: 'KhĂ´ng thá»ƒ táº£i chĂ­nh sĂ¡ch',
-                message: 'KhĂ´ng thá»ƒ táº£i chĂ­nh sĂ¡ch {policy}. Vui lĂ²ng thá»­ láº¡i sau.',
-                hint: 'Náº¿u sá»± cá»‘ tiáº¿p diá»…n, vui lĂ²ng liĂªn há»‡ há»— trá»£.'
+                title: 'Không thể tải chính sách',
+                message: 'Không thể tải chính sách {policy}. Vui lòng thử lại sau.',
+                hint: 'Nếu sự cố tiếp diễn, vui lòng liên hệ hỗ trợ.'
             }
         },
         products: {
-            loadingTitle: 'Äang táº£i sáº£n pháº©m',
-            loadingMessage: 'Äang láº¥y danh má»¥c sáº£n pháº©m...',
+            loadingTitle: 'Đang tải sản phẩm',
+            loadingMessage: 'Đang lấy danh mục sản phẩm...',
             filters: {
-                applied: 'ÄĂ£ Ă¡p dá»¥ng bá»™ lá»c',
-                categories: 'Danh má»¥c',
-                features: 'TĂ­nh nÄƒng',
-                clearAll: 'XĂ³a táº¥t cáº£ bá»™ lá»c',
-                emptyTitle: 'KhĂ´ng tĂ¬m tháº¥y sáº£n pháº©m',
-                emptyBody: 'KhĂ´ng cĂ³ sáº£n pháº©m phĂ¹ há»£p vá»›i bá»™ lá»c hiá»‡n táº¡i. HĂ£y thá»­ Ä‘iá»u chá»‰nh tiĂªu chĂ­.',
-                title: 'Bá»™ lá»c',
-                count: '{filtered}/{total} sáº£n pháº©m',
-                breadcrumbAll: 'Táº¥t cáº£',
-                breadcrumbProducts: 'Sáº£n pháº©m',
-                breadcrumbFilter: 'Bá»™ lá»c'
+                applied: 'Đã áp dụng bộ lọc',
+                categories: 'Danh mục',
+                features: 'Tính năng',
+                clearAll: 'Xóa tất cả bộ lọc',
+                emptyTitle: 'Không tìm thấy sản phẩm',
+                emptyBody: 'Không có sản phẩm phù hợp với bộ lọc hiện tại. Hãy thử điều chỉnh tiêu chí.',
+                title: 'Bộ lọc',
+                count: '{filtered}/{total} sản phẩm',
+                breadcrumbAll: 'Tất cả',
+                breadcrumbProducts: 'Sản phẩm',
+                breadcrumbFilter: 'Bộ lọc'
             },
             list: {
-                titleAll: 'Táº¥t cáº£ sáº£n pháº©m',
-                titlePosition: 'Sáº£n pháº©m {position}',
-                showingAll: 'Hiá»ƒn thá»‹ táº¥t cáº£ {count} sáº£n pháº©m',
-                showingFiltered: 'Hiá»ƒn thá»‹ {count} sáº£n pháº©m trong {category}',
-                allProducts: 'Táº¥t cáº£ sáº£n pháº©m',
-                allShort: 'Táº¥t cáº£',
-                countLabel: 'sáº£n pháº©m',
-                filterLabel: 'Bá»™ lá»c'
+                titleAll: 'Tất cả sản phẩm',
+                titlePosition: 'Sản phẩm {position}',
+                showingAll: 'Hiển thị tất cả {count} sản phẩm',
+                showingFiltered: 'Hiển thị {count} sản phẩm trong {category}',
+                allProducts: 'Tất cả sản phẩm',
+                allShort: 'Tất cả',
+                countLabel: 'sản phẩm',
+                filterLabel: 'Bộ lọc'
             },
             positions: {
                 all: {
-                    label: 'Táº¥t cáº£',
-                    description: 'KhĂ¡m phĂ¡ toĂ n bá»™ dĂ²ng sáº£n pháº©m.'
+                    label: 'Tất cả',
+                    description: 'Khám phá toàn bộ dòng sản phẩm.'
                 },
                 entry: {
-                    label: 'Phá»• thĂ´ng',
-                    shortDescription: 'Thiáº¿t bá»‹ cÆ¡ báº£n cho nhu cáº§u hĂ ng ngĂ y.',
-                    description: 'Giáº£i phĂ¡p liĂªn láº¡c giĂ¡ tá»‘t vá»›i hiá»‡u nÄƒng á»•n Ä‘á»‹nh cho sá»­ dá»¥ng thÆ°á»ng ngĂ y.'
+                    label: 'Phổ thông',
+                    shortDescription: 'Thiết bị cơ bản cho nhu cầu hàng ngày.',
+                    description: 'Giải pháp liên lạc giá tốt với hiệu năng ổn định cho sử dụng thường ngày.'
                 },
                 midRange: {
-                    label: 'Trung cáº¥p',
-                    shortDescription: 'CĂ¢n báº±ng giá»¯a hiá»‡u nÄƒng vĂ  tĂ­nh nÄƒng.',
-                    description: 'Lá»±a chá»n cĂ¢n báº±ng vá» cháº¥t lÆ°á»£ng, tĂ­nh nÄƒng vĂ  giĂ¡ trá»‹.'
+                    label: 'Trung cấp',
+                    shortDescription: 'Cân bằng giữa hiệu năng và tính năng.',
+                    description: 'Lựa chọn cân bằng về chất lượng, tính năng và giá trị.'
                 },
                 premium: {
-                    label: 'Cao cáº¥p',
-                    shortDescription: 'Ă‚m thanh rĂµ rĂ ng, nhiá»u tĂ­nh nÄƒng.',
-                    description: 'Ă‚m thanh cao cáº¥p, pháº¡m vi xa hÆ¡n vĂ  tráº£i nghiá»‡m thoáº£i mĂ¡i.'
+                    label: 'Cao cấp',
+                    shortDescription: 'Âm thanh rõ ràng, nhiều tính năng.',
+                    description: 'Âm thanh cao cấp, phạm vi xa hơn và trải nghiệm thoải mái.'
                 },
                 ultimate: {
-                    label: 'Tá»‘i thÆ°á»£ng',
-                    shortDescription: 'Hiá»‡u nÄƒng Ä‘á»‰nh cao.',
-                    description: 'Há»‡ thá»‘ng flagship vá»›i pháº¡m vi vĂ  tĂ­nh nÄƒng tá»‘i Ä‘a.'
+                    label: 'Tối thượng',
+                    shortDescription: 'Hiệu năng đỉnh cao.',
+                    description: 'Hệ thống flagship với phạm vi và tính năng tối đa.'
                 },
                 items: [
                     {
                         id: '1',
-                        label: 'Phá»• thĂ´ng',
-                        description: 'Thiáº¿t bá»‹ cÆ¡ báº£n cho nhu cáº§u hĂ ng ngĂ y.',
+                        label: 'Phổ thông',
+                        description: 'Thiết bị cơ bản cho nhu cầu hàng ngày.',
                         img: '',
                         positionKey: 'Entry'
                     },
                     {
                         id: '2',
-                        label: 'Trung cáº¥p',
-                        description: 'CĂ¢n báº±ng giá»¯a hiá»‡u nÄƒng vĂ  tĂ­nh nÄƒng.',
+                        label: 'Trung cấp',
+                        description: 'Cân bằng giữa hiệu năng và tính năng.',
                         img: '',
                         positionKey: 'Mid-range'
                     },
                     {
                         id: '3',
-                        label: 'Cao cáº¥p',
-                        description: 'Ă‚m thanh rĂµ rĂ ng, nhiá»u tĂ­nh nÄƒng.',
+                        label: 'Cao cấp',
+                        description: 'Âm thanh rõ ràng, nhiều tính năng.',
                         img: '',
                         positionKey: 'Premium'
                     },
                     {
                         id: '4',
-                        label: 'Tá»‘i thÆ°á»£ng',
-                        description: 'Hiá»‡u nÄƒng Ä‘á»‰nh cao.',
+                        label: 'Tối thượng',
+                        description: 'Hiệu năng đỉnh cao.',
                         img: '',
                         positionKey: 'Ultimate'
                     }
                 ]
             },
             featured: {
-                discoverAria: 'KhĂ¡m phĂ¡ {name}',
-                empty: 'ChÆ°a cĂ³ sáº£n pháº©m ná»•i báº­t.',
-                goTo: 'Äáº¿n {target}',
-                loading: 'Äang táº£i sáº£n pháº©m ná»•i báº­t...',
-                navigationAria: 'Äiá»u hÆ°á»›ng sáº£n pháº©m ná»•i báº­t',
-                next: 'Sáº£n pháº©m tiáº¿p theo',
-                prev: 'Sáº£n pháº©m trÆ°á»›c'
+                discoverAria: 'Khám phá {name}',
+                empty: 'Chưa có sản phẩm nổi bật.',
+                goTo: 'Đến {target}',
+                loading: 'Đang tải sản phẩm nổi bật...',
+                navigationAria: 'Điều hướng sản phẩm nổi bật',
+                next: 'Sản phẩm tiếp theo',
+                prev: 'Sản phẩm trước'
             },
             showcase: {
-                categoryLabel: 'Danh má»¥c',
-                description: 'KhĂ¡m phĂ¡ cĂ¡c máº«u ná»•i báº­t trong danh má»¥c cá»§a chĂºng tĂ´i.',
-                keyFeatures: 'TĂ­nh nÄƒng ná»•i báº­t',
-                ratingLabel: 'ÄĂ¡nh giĂ¡',
-                titleHighlight: 'Sáº£n pháº©m',
-                titlePrimary: 'Bá»™ sÆ°u táº­p',
-                viewAll: 'Xem táº¥t cáº£',
-                viewDetails: 'Xem chi tiáº¿t',
-                warrantyLabel: 'Báº£o hĂ nh'
+                categoryLabel: 'Danh mục',
+                description: 'Khám phá các mẫu nổi bật trong danh mục của chúng tôi.',
+                keyFeatures: 'Tính năng nổi bật',
+                ratingLabel: 'Đánh giá',
+                titleHighlight: 'Sản phẩm',
+                titlePrimary: 'Bộ sưu tập',
+                viewAll: 'Xem tất cả',
+                viewDetails: 'Xem chi tiết',
+                warrantyLabel: 'Bảo hành'
             },
             additionalContent: {
-                title: 'Cáº§n TÆ° Váº¥n ThĂªm?',
+                title: 'Cần Tư Vấn Thêm?',
                 contact: {
-                    title: 'LiĂªn há»‡ Ä‘á»™i ngÅ© tÆ° váº¥n',
-                    descriptionAll: 'Chia sáº» nhu cáº§u sá»­ dá»¥ng, chĂºng tĂ´i sáº½ gá»£i Ă½ cáº¥u hĂ¬nh phĂ¹ há»£p.',
-                    descriptionPosition: 'Báº¡n Ä‘ang tĂ¬m phĂ¢n khĂºc {position}? ChĂºng tĂ´i sáº½ giĂºp báº¡n chá»n Ä‘Ăºng.',
+                    title: 'Liên hệ đội ngũ tư vấn',
+                    descriptionAll: 'Chia sẻ nhu cầu sử dụng, chúng tôi sẽ gợi ý cấu hình phù hợp.',
+                    descriptionPosition: 'Bạn đang tìm phân khúc {position}? Chúng tôi sẽ giúp bạn chọn đúng.',
                     emailLabel: 'Email',
                     emailValue: 'support@4thitek.vn',
                     phoneLabel: 'Hotline',
                     phoneValue: '1900 8888',
-                    addressLabel: 'Äá»‹a chá»‰',
-                    addressValue: 'TP. Há»“ ChĂ­ Minh, Viá»‡t Nam'
+                    addressLabel: 'Địa chỉ',
+                    addressValue: 'TP. Hồ Chí Minh, Việt Nam'
                 },
-                whyTitle: 'VĂ¬ Sao Chá»n 4T HITEK?',
+                whyTitle: 'Vì Sao Chọn 4T HITEK?',
                 features: [
-                    'TÆ° váº¥n sáº£n pháº©m chuyĂªn sĂ¢u',
-                    'Báº£o hĂ nh chĂ­nh hĂ£ng',
-                    'Máº¡ng lÆ°á»›i Ä‘áº¡i lĂ½ toĂ n quá»‘c',
-                    'Giao hĂ ng nhanh chĂ³ng'
+                    'Tư vấn sản phẩm chuyên sâu',
+                    'Bảo hành chính hãng',
+                    'Mạng lưới đại lý toàn quốc',
+                    'Giao hàng nhanh chóng'
                 ],
                 distributor: {
-                    label: 'NhĂ  phĂ¢n phá»‘i',
-                    description: 'Äá»‘i tĂ¡c Ä‘Æ°á»£c chá»©ng nháº­n trĂªn toĂ n quá»‘c, sáº£n pháº©m chĂ­nh hĂ£ng, há»— trá»£ táº­n tĂ¢m.'
+                    label: 'Nhà phân phối',
+                    description: 'Đối tác được chứng nhận trên toàn quốc, sản phẩm chính hãng, hỗ trợ tận tâm.'
                 }
             },
             detail: {
-                contentUpdating: 'Ná»™i dung Ä‘ang Ä‘Æ°á»£c cáº­p nháº­t.',
-                errorTitle: 'KhĂ´ng thá»ƒ táº£i sáº£n pháº©m',
-                errorMessage: 'KhĂ´ng thá»ƒ táº£i sáº£n pháº©m nĂ y. Vui lĂ²ng thá»­ láº¡i.',
-                findRetailer: 'TĂ¬m Ä‘áº¡i lĂ½',
-                loadingTitle: 'Äang táº£i sáº£n pháº©m',
-                loadingMessage: 'Äang láº¥y thĂ´ng tin sáº£n pháº©m...',
+                contentUpdating: 'Nội dung đang được cập nhật.',
+                errorTitle: 'Không thể tải sản phẩm',
+                errorMessage: 'Không thể tải sản phẩm này. Vui lòng thử lại.',
+                findRetailer: 'Tìm đại lý',
+                loadingTitle: 'Đang tải sản phẩm',
+                loadingMessage: 'Đang lấy thông tin sản phẩm...',
                 media: {
-                    detailImageAlt: 'áº¢nh chi tiáº¿t sáº£n pháº©m',
-                    detailImageAltIndexed: 'áº¢nh chi tiáº¿t sáº£n pháº©m {index}',
-                    imageAlt: 'áº¢nh sáº£n pháº©m',
-                    imageAltIndexed: 'áº¢nh sáº£n pháº©m {index}',
-                    videoTitle: 'Video sáº£n pháº©m',
-                    videoUnavailable: 'Video khĂ´ng kháº£ dá»¥ng'
+                    detailImageAlt: 'Ảnh chi tiết sản phẩm',
+                    detailImageAltIndexed: 'Ảnh chi tiết sản phẩm {index}',
+                    imageAlt: 'Ảnh sản phẩm',
+                    imageAltIndexed: 'Ảnh sản phẩm {index}',
+                    videoTitle: 'Video sản phẩm',
+                    videoUnavailable: 'Video không khả dụng'
                 },
-                noContent: 'ChÆ°a cĂ³ thĂ´ng tin sáº£n pháº©m.',
-                noRelatedProducts: 'ChÆ°a cĂ³ sáº£n pháº©m liĂªn quan.',
-                productLabel: 'Sáº£n pháº©m',
-                retailerShort: 'Äáº¡i lĂ½',
-                selectSection: 'Chá»n má»¥c',
-                shuffle: 'Äá»•i sáº£n pháº©m',
-                shuffleLoading: 'Äang Ä‘á»•i...',
-                videoUnsupported: 'TrĂ¬nh duyá»‡t cá»§a báº¡n khĂ´ng há»— trá»£ phĂ¡t video.'
+                noContent: 'Chưa có thông tin sản phẩm.',
+                noRelatedProducts: 'Chưa có sản phẩm liên quan.',
+                productLabel: 'Sản phẩm',
+                retailerShort: 'Đại lý',
+                selectSection: 'Chọn mục',
+                shuffle: 'Đổi sản phẩm',
+                shuffleLoading: 'Đang đổi...',
+                videoUnsupported: 'Trình duyệt của bạn không hỗ trợ phát video.'
             },
             specifications: {
-                title: 'ThĂ´ng sá»‘ ká»¹ thuáº­t',
-                updating: 'Äang cáº­p nháº­t thĂ´ng sá»‘...',
+                title: 'Thông số kỹ thuật',
+                updating: 'Đang cập nhật thông số...',
                 labels: {
-                    cable: 'CĂ¡p',
-                    connector: 'Cá»•ng káº¿t ná»‘i',
-                    dimensions: 'KĂ­ch thÆ°á»›c',
+                    cable: 'Cáp',
+                    connector: 'Cổng kết nối',
+                    dimensions: 'Kích thước',
                     driver: 'Driver',
-                    frequencyResponse: 'Dáº£i táº§n',
-                    impedance: 'Trá»Ÿ khĂ¡ng',
-                    maxPower: 'CĂ´ng suáº¥t tá»‘i Ä‘a',
-                    sensitivity: 'Äá»™ nháº¡y',
-                    weight: 'Trá»ng lÆ°á»£ng'
+                    frequencyResponse: 'Dải tần',
+                    impedance: 'Trở kháng',
+                    maxPower: 'Công suất tối đa',
+                    sensitivity: 'Độ nhạy',
+                    weight: 'Trọng lượng'
                 }
             },
             videos: {
-                empty: 'ChÆ°a cĂ³ video.',
-                emptyHint: 'Vui lĂ²ng quay láº¡i sau.',
-                emptyWithName: 'ChÆ°a cĂ³ video cho {name}.',
-                featuredDescription: 'Xem tá»•ng quan vĂ  hÆ°á»›ng dáº«n sá»­ dá»¥ng sáº£n pháº©m.',
-                featuredTitle: 'Video ná»•i báº­t vá» {name}',
-                noVideo: 'Video chÆ°a sáºµn sĂ ng.',
-                title: 'Video sáº£n pháº©m',
-                unavailable: 'Video khĂ´ng kháº£ dá»¥ng.',
-                videoAbout: 'Giá»›i thiá»‡u vá» {title}'
+                empty: 'Chưa có video.',
+                emptyHint: 'Vui lòng quay lại sau.',
+                emptyWithName: 'Chưa có video cho {name}.',
+                featuredDescription: 'Xem tổng quan và hướng dẫn sử dụng sản phẩm.',
+                featuredTitle: 'Video nổi bật về {name}',
+                noVideo: 'Video chưa sẵn sàng.',
+                title: 'Video sản phẩm',
+                unavailable: 'Video không khả dụng.',
+                videoAbout: 'Giới thiệu về {title}'
             },
             warranty: {
-                title: 'Báº£o hĂ nh & Há»— trá»£',
+                title: 'Bảo hành & Hỗ trợ',
                 overview: {
-                    title: 'Tá»•ng quan báº£o hĂ nh',
-                    description: 'Sáº£n pháº©m Ä‘Æ°á»£c báº£o hĂ nh theo chĂ­nh sĂ¡ch tiĂªu chuáº©n cá»§a chĂºng tĂ´i.'
+                    title: 'Tổng quan bảo hành',
+                    description: 'Sản phẩm được bảo hành theo chính sách tiêu chuẩn của chúng tôi.'
                 },
                 covered: {
-                    title: 'ÄÆ°á»£c báº£o hĂ nh',
+                    title: 'Được bảo hành',
                     items: [
-                        'Lá»—i do nhĂ  sáº£n xuáº¥t',
-                        'Lá»—i pháº§n cá»©ng khi sá»­ dá»¥ng bĂ¬nh thÆ°á»ng',
-                        'Suy giáº£m pin trong thá»i háº¡n báº£o hĂ nh'
+                        'Lỗi do nhà sản xuất',
+                        'Lỗi phần cứng khi sử dụng bình thường',
+                        'Suy giảm pin trong thời hạn bảo hành'
                     ]
                 },
                 notCovered: {
-                    title: 'KhĂ´ng Ä‘Æ°á»£c báº£o hĂ nh',
+                    title: 'Không được bảo hành',
                     items: [
-                        'HÆ° há»ng váº­t lĂ½ hoáº·c sá»­ dá»¥ng sai cĂ¡ch',
-                        'Tá»± Ă½ sá»­a chá»¯a hoáº·c can thiá»‡p',
-                        'Hao mĂ²n thĂ´ng thÆ°á»ng'
+                        'Hư hỏng vật lý hoặc sử dụng sai cách',
+                        'Tự ý sửa chữa hoặc can thiệp',
+                        'Hao mòn thông thường'
                     ]
                 },
                 process: {
-                    title: 'Quy trĂ¬nh báº£o hĂ nh',
+                    title: 'Quy trình bảo hành',
                     steps: [
                         {
-                            title: 'ÄÄƒng kĂ½ sáº£n pháº©m',
-                            description: 'Cung cáº¥p sá»‘ serial vĂ  ngĂ y mua.'
+                            title: 'Đăng ký sản phẩm',
+                            description: 'Cung cấp số serial và ngày mua.'
                         },
                         {
-                            title: 'LiĂªn há»‡ há»— trá»£',
-                            description: 'MĂ´ táº£ chi tiáº¿t váº¥n Ä‘á» gáº·p pháº£i.'
+                            title: 'Liên hệ hỗ trợ',
+                            description: 'Mô tả chi tiết vấn đề gặp phải.'
                         },
                         {
-                            title: 'Kiá»ƒm tra',
-                            description: 'XĂ¡c minh pháº¡m vi báº£o hĂ nh.'
+                            title: 'Kiểm tra',
+                            description: 'Xác minh phạm vi bảo hành.'
                         },
                         {
-                            title: 'Sá»­a chá»¯a hoáº·c Ä‘á»•i má»›i',
-                            description: 'Sá»­a chá»¯a hoáº·c thay tháº¿ linh kiá»‡n phĂ¹ há»£p.'
+                            title: 'Sửa chữa hoặc đổi mới',
+                            description: 'Sửa chữa hoặc thay thế linh kiện phù hợp.'
                         }
                     ]
                 },
                 contact: {
-                    title: 'LiĂªn há»‡ há»— trá»£',
+                    title: 'Liên hệ hỗ trợ',
                     hotline: {
                         title: 'Hotline',
                         value: '1900 8888',
-                        note: 'Thá»© 2â€“Thá»© 7, 8:00â€“18:00'
+                        note: 'Thứ 2–Thứ 7, 8:00–18:00'
                     },
                     facebook: {
                         title: 'Facebook',
                         value: 'facebook.com/4thitek',
-                        note: 'Nháº¯n tin cho chĂºng tĂ´i'
+                        note: 'Nhắn tin cho chúng tôi'
                     },
                     address: {
-                        title: 'Äá»‹a chá»‰',
-                        value: 'TP. Há»“ ChĂ­ Minh, Viá»‡t Nam',
-                        note: 'Trung tĂ¢m báº£o hĂ nh á»§y quyá»n'
+                        title: 'Địa chỉ',
+                        value: 'TP. Hồ Chí Minh, Việt Nam',
+                        note: 'Trung tâm bảo hành ủy quyền'
                     }
                 },
                 default: {
-                    period: '1 nÄƒm',
-                    coverage: ['Lá»—i do nhĂ  sáº£n xuáº¥t'],
-                    conditions: ['Sá»­ dá»¥ng bĂ¬nh thÆ°á»ng'],
-                    excludes: ['HÆ° há»ng váº­t lĂ½'],
-                    targetAudience: ['Phá»• thĂ´ng'],
-                    useCases: ['Sá»­ dá»¥ng thĂ´ng thÆ°á»ng']
+                    period: '1 năm',
+                    coverage: ['Lỗi do nhà sản xuất'],
+                    conditions: ['Sử dụng bình thường'],
+                    excludes: ['Hư hỏng vật lý'],
+                    targetAudience: ['Phổ thông'],
+                    useCases: ['Sử dụng thông thường']
                 }
             },
             category: {
                 electronics: {
-                    name: 'Thiáº¿t bá»‹ Ä‘iá»‡n tá»­',
-                    description: 'Sáº£n pháº©m Ä‘iá»‡n tá»­'
+                    name: 'Thiết bị điện tử',
+                    description: 'Sản phẩm điện tử'
                 }
             }
         },
         reseller: {
-            clickMarkerForDetails: 'Nháº¥n vĂ o Ä‘iá»ƒm Ä‘á»ƒ xem chi tiáº¿t.',
-            mapIframeTitle: 'Báº£n Ä‘á»“ vá»‹ trĂ­ Ä‘áº¡i lĂ½',
-            mapAttribution: 'Cung cáº¥p bá»Ÿi Google Maps',
+            clickMarkerForDetails: 'Nhấn vào điểm để xem chi tiết.',
+            mapIframeTitle: 'Bản đồ vị trí đại lý',
+            mapAttribution: 'Cung cấp bởi Google Maps',
             status: {
-                unavailable: 'API táº¡m thá»i khĂ´ng kháº£ dá»¥ng. Vui lĂ²ng thá»­ láº¡i sau.',
-                checking: 'Äang kiá»ƒm tra káº¿t ná»‘i...'
+                unavailable: 'API tạm thời không khả dụng. Vui lòng thử lại sau.',
+                checking: 'Đang kiểm tra kết nối...'
             },
-            dealerFallback: 'Äáº¡i lĂ½ {index}'
+            dealerFallback: 'Đại lý {index}'
         },
         search: {
-            placeholder: 'TĂ¬m kiáº¿m sáº£n pháº©m vĂ  bĂ i viáº¿t...',
+            placeholder: 'Tìm kiếm sản phẩm và bài viết...',
             tabs: {
-                all: 'Táº¥t cáº£',
-                products: 'Sáº£n pháº©m',
-                blogs: 'BĂ i viáº¿t'
+                all: 'Tất cả',
+                products: 'Sản phẩm',
+                blogs: 'Bài viết'
             },
             type: {
-                blog: 'BĂ i viáº¿t',
-                product: 'Sáº£n pháº©m'
+                blog: 'Bài viết',
+                product: 'Sản phẩm'
             },
             modal: {
-                closeAria: 'ÄĂ³ng tĂ¬m kiáº¿m',
-                noResultsBody: 'KhĂ´ng cĂ³ káº¿t quáº£ cho \"{query}\". HĂ£y thá»­ tá»« khĂ³a khĂ¡c.',
-                noResultsTitle: 'KhĂ´ng tĂ¬m tháº¥y káº¿t quáº£',
-                recentTitle: 'TĂ¬m kiáº¿m gáº§n Ä‘Ă¢y',
-                searchingBody: 'Äang tĂ¬m \"{query}\"...',
-                searchingTitle: 'Äang tĂ¬m kiáº¿m...',
-                viewAllResults: 'Xem táº¥t cáº£ káº¿t quáº£ cho \"{query}\"'
+                closeAria: 'Đóng tìm kiếm',
+                noResultsBody: 'Không có kết quả cho \"{query}\". Hãy thử từ khóa khác.',
+                noResultsTitle: 'Không tìm thấy kết quả',
+                recentTitle: 'Tìm kiếm gần đây',
+                searchingBody: 'Đang tìm \"{query}\"...',
+                searchingTitle: 'Đang tìm kiếm...',
+                viewAllResults: 'Xem tất cả kết quả cho \"{query}\"'
             },
             page: {
-                backHomeAria: 'Quay láº¡i trang chá»§',
-                breadcrumb: 'TĂ¬m kiáº¿m',
-                emptyBody: 'Nháº­p tá»« khĂ³a Ä‘á»ƒ tĂ¬m sáº£n pháº©m vĂ  bĂ i viáº¿t.',
-                emptyTitle: 'Báº¯t Ä‘áº§u tĂ¬m kiáº¿m',
-                filterLabel: 'Bá»™ lá»c',
-                loading: 'Äang tĂ¬m kiáº¿m...',
-                noResultsBody: 'KhĂ´ng cĂ³ káº¿t quáº£ cho \"{query}\". HĂ£y thá»­ tá»« khĂ³a khĂ¡c.',
-                noResultsTitle: 'KhĂ´ng tĂ¬m tháº¥y káº¿t quáº£',
-                queryLabel: 'Káº¿t quáº£ cho',
-                resultsCount: '{count} káº¿t quáº£',
-                resultsTitle: 'Káº¿t quáº£ tĂ¬m kiáº¿m',
+                backHomeAria: 'Quay lại trang chủ',
+                breadcrumb: 'Tìm kiếm',
+                emptyBody: 'Nhập từ khóa để tìm sản phẩm và bài viết.',
+                emptyTitle: 'Bắt đầu tìm kiếm',
+                filterLabel: 'Bộ lọc',
+                loading: 'Đang tìm kiếm...',
+                noResultsBody: 'Không có kết quả cho \"{query}\". Hãy thử từ khóa khác.',
+                noResultsTitle: 'Không tìm thấy kết quả',
+                queryLabel: 'Kết quả cho',
+                resultsCount: '{count} kết quả',
+                resultsTitle: 'Kết quả tìm kiếm',
                 suggestions: {
-                    default: ['Bluetooth', 'LiĂªn láº¡c', 'MÅ© báº£o hiá»ƒm', 'Phá»¥ kiá»‡n'],
-                    noResults: ['Bluetooth 5.0', 'Chá»‘ng á»“n', 'LiĂªn láº¡c nhĂ³m', 'Chá»‘ng nÆ°á»›c']
+                    default: ['Bluetooth', 'Liên lạc', 'Mũ bảo hiểm', 'Phụ kiện'],
+                    noResults: ['Bluetooth 5.0', 'Chống ồn', 'Liên lạc nhóm', 'Chống nước']
                 }
             }
         },
@@ -2788,86 +2788,86 @@ export const extraTranslations = {
             youtube: 'YouTube'
         },
         warrantyCheck: {
-            errorTitle: 'KhĂ´ng thá»ƒ kiá»ƒm tra báº£o hĂ nh',
-            errorMessage: 'Vui lĂ²ng thá»­ láº¡i sau.',
-            loadingTitle: 'Äang kiá»ƒm tra báº£o hĂ nh',
-            loadingMessage: 'Äang tra cá»©u thĂ´ng tin báº£o hĂ nh...',
+            errorTitle: 'Không thể kiểm tra bảo hành',
+            errorMessage: 'Vui lòng thử lại sau.',
+            loadingTitle: 'Đang kiểm tra bảo hành',
+            loadingMessage: 'Đang tra cứu thông tin bảo hành...',
             errors: {
-                networkTitle: 'Lá»—i máº¡ng',
-                networkMessage: 'Vui lĂ²ng kiá»ƒm tra káº¿t ná»‘i vĂ  thá»­ láº¡i.',
-                notFoundTitle: 'KhĂ´ng tĂ¬m tháº¥y sáº£n pháº©m',
-                notFoundMessage: 'KhĂ´ng tĂ¬m tháº¥y thĂ´ng tin báº£o hĂ nh cho sá»‘ serial nĂ y.',
-                serverTitle: 'Lá»—i mĂ¡y chá»§',
-                serverMessage: 'MĂ¡y chá»§ Ä‘ang báº­n. Vui lĂ²ng thá»­ láº¡i sau.',
-                unknownTitle: 'Lá»—i khĂ´ng xĂ¡c Ä‘á»‹nh',
-                unknownMessage: 'ÄĂ£ xáº£y ra lá»—i. Vui lĂ²ng thá»­ láº¡i.',
+                networkTitle: 'Lỗi mạng',
+                networkMessage: 'Vui lòng kiểm tra kết nối và thử lại.',
+                notFoundTitle: 'Không tìm thấy sản phẩm',
+                notFoundMessage: 'Không tìm thấy thông tin bảo hành cho số serial này.',
+                serverTitle: 'Lỗi máy chủ',
+                serverMessage: 'Máy chủ đang bận. Vui lòng thử lại sau.',
+                unknownTitle: 'Lỗi không xác định',
+                unknownMessage: 'Đã xảy ra lỗi. Vui lòng thử lại.',
                 tips: {
-                    title: 'Gá»£i Ă½',
+                    title: 'Gợi ý',
                     items: [
-                        'Kiá»ƒm tra láº¡i sá»‘ serial vĂ  thá»­ láº¡i.',
-                        'Äáº£m báº£o báº¡n cĂ³ káº¿t ná»‘i Internet á»•n Ä‘á»‹nh.',
-                        'LiĂªn há»‡ há»— trá»£ náº¿u sá»± cá»‘ tiáº¿p tá»¥c.'
+                        'Kiểm tra lại số serial và thử lại.',
+                        'Đảm bảo bạn có kết nối Internet ổn định.',
+                        'Liên hệ hỗ trợ nếu sự cố tiếp tục.'
                     ]
                 }
             },
             export: {
-                title: 'ThĂ´ng tin báº£o hĂ nh',
-                productInfoTitle: 'ThĂ´ng tin sáº£n pháº©m',
-                serialLabel: 'Sá»‘ Serial',
-                productNameLabel: 'TĂªn sáº£n pháº©m',
-                productSkuLabel: 'MĂ£ sáº£n pháº©m',
-                warrantyInfoTitle: 'ThĂ´ng tin báº£o hĂ nh',
-                purchaseDateLabel: 'NgĂ y mua',
-                warrantyEndDateLabel: 'NgĂ y háº¿t háº¡n',
-                warrantyCodeLabel: 'MĂ£ báº£o hĂ nh',
-                statusLabel: 'Tráº¡ng thĂ¡i',
-                remainingDaysLabel: 'Sá»‘ ngĂ y cĂ²n láº¡i',
-                remainingDaysValue: '{days} ngĂ y',
-                customerInfoTitle: 'ThĂ´ng tin khĂ¡ch hĂ ng',
-                customerNameLabel: 'TĂªn khĂ¡ch hĂ ng',
-                customerPhoneLabel: 'Sá»‘ Ä‘iá»‡n thoáº¡i',
+                title: 'Thông tin bảo hành',
+                productInfoTitle: 'Thông tin sản phẩm',
+                serialLabel: 'Số Serial',
+                productNameLabel: 'Tên sản phẩm',
+                productSkuLabel: 'Mã sản phẩm',
+                warrantyInfoTitle: 'Thông tin bảo hành',
+                purchaseDateLabel: 'Ngày mua',
+                warrantyEndDateLabel: 'Ngày hết hạn',
+                warrantyCodeLabel: 'Mã bảo hành',
+                statusLabel: 'Trạng thái',
+                remainingDaysLabel: 'Số ngày còn lại',
+                remainingDaysValue: '{days} ngày',
+                customerInfoTitle: 'Thông tin khách hàng',
+                customerNameLabel: 'Tên khách hàng',
+                customerPhoneLabel: 'Số điện thoại',
                 customerEmailLabel: 'Email',
-                customerAddressLabel: 'Äá»‹a chá»‰',
-                supportTitle: 'Há»— trá»£',
+                customerAddressLabel: 'Địa chỉ',
+                supportTitle: 'Hỗ trợ',
                 hotlineLabel: 'Hotline',
                 hotlineValue: '1900 8888',
-                supportEmailLabel: 'Email há»— trá»£',
+                supportEmailLabel: 'Email hỗ trợ',
                 supportEmailValue: 'support@4thitek.vn',
-                exportTimestampLabel: 'Thá»i gian xuáº¥t',
+                exportTimestampLabel: 'Thời gian xuất',
                 fileNamePrefix: 'bao-hanh'
             },
             result: {
-                title: 'Káº¿t quáº£ báº£o hĂ nh',
+                title: 'Kết quả bảo hành',
                 actions: {
-                    checkAnother: 'Kiá»ƒm tra khĂ¡c',
-                    download: 'Táº£i xuá»‘ng'
+                    checkAnother: 'Kiểm tra khác',
+                    download: 'Tải xuống'
                 },
                 active: {
-                    title: 'CĂ²n báº£o hĂ nh',
-                    message: 'CĂ²n {days} ngĂ y báº£o hĂ nh.',
-                    support: 'LiĂªn há»‡ há»— trá»£ náº¿u cáº§n.'
+                    title: 'Còn bảo hành',
+                    message: 'Còn {days} ngày bảo hành.',
+                    support: 'Liên hệ hỗ trợ nếu cần.'
                 },
                 expired: {
-                    title: 'Háº¿t báº£o hĂ nh',
-                    message: 'Háº¿t báº£o hĂ nh vĂ o ngĂ y {date}.',
-                    support: 'LiĂªn há»‡ há»— trá»£ Ä‘á»ƒ Ä‘Æ°á»£c tÆ° váº¥n.'
+                    title: 'Hết bảo hành',
+                    message: 'Hết bảo hành vào ngày {date}.',
+                    support: 'Liên hệ hỗ trợ để được tư vấn.'
                 },
                 sections: {
-                    customerInfo: 'ThĂ´ng tin khĂ¡ch hĂ ng',
-                    productImage: 'HĂ¬nh áº£nh sáº£n pháº©m',
-                    productInfo: 'ThĂ´ng tin sáº£n pháº©m',
-                    warrantyInfo: 'ThĂ´ng tin báº£o hĂ nh'
+                    customerInfo: 'Thông tin khách hàng',
+                    productImage: 'Hình ảnh sản phẩm',
+                    productInfo: 'Thông tin sản phẩm',
+                    warrantyInfo: 'Thông tin bảo hành'
                 },
                 fields: {
-                    customerAddress: 'Äá»‹a chá»‰',
+                    customerAddress: 'Địa chỉ',
                     customerEmail: 'Email',
-                    customerPhone: 'Sá»‘ Ä‘iá»‡n thoáº¡i',
-                    productSku: 'MĂ£ sáº£n pháº©m',
-                    warrantyCode: 'MĂ£ báº£o hĂ nh'
+                    customerPhone: 'Số điện thoại',
+                    productSku: 'Mã sản phẩm',
+                    warrantyCode: 'Mã bảo hành'
                 },
                 support: {
-                    title: 'Há»— trá»£',
-                    description: 'LiĂªn há»‡ bá»™ pháº­n há»— trá»£ Ä‘á»ƒ Ä‘Æ°á»£c trá»£ giĂºp.',
+                    title: 'Hỗ trợ',
+                    description: 'Liên hệ bộ phận hỗ trợ để được trợ giúp.',
                     hotlineLabel: 'Hotline',
                     hotlineValue: '1900 8888',
                     emailLabel: 'Email',
@@ -2877,5 +2877,4 @@ export const extraTranslations = {
         },
     }
 };
-
 

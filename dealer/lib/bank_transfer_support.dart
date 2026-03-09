@@ -40,7 +40,7 @@ class BankTransferService {
     final accessToken = await _authStorage.readAccessToken();
     if (accessToken == null || accessToken.trim().isEmpty) {
       throw const BankTransferException(
-        'Ban can dang nhap de lay thong tin chuyen khoan.',
+        'Bạn cần đăng nhập để lấy thông tin chuyển khoản.',
       );
     }
 
@@ -58,7 +58,7 @@ class BankTransferService {
     final data = payload['data'];
     if (data is! Map<String, dynamic>) {
       throw const BankTransferException(
-        'Khong nhan duoc thong tin chuyen khoan hop le.',
+        'Không nhận được thông tin chuyển khoản hợp lệ.',
       );
     }
     return BankTransferInstructions(
@@ -89,7 +89,7 @@ class BankTransferService {
     if (error != null && error.isNotEmpty) {
       return error;
     }
-    return 'Khong the tai thong tin chuyen khoan.';
+    return 'Không thể tải thông tin chuyển khoản.';
   }
 }
 
@@ -158,14 +158,14 @@ class _BankTransferInfoSheet extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Thong tin chuyen khoan',
+                    'Thông tin chuyển khoản',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Don hang da duoc tao. Vui long chuyen khoan dung so tien va dung noi dung ben duoi de SePay doi soat tu dong.',
+                    'Đơn hàng đã được tạo. Vui lòng chuyển khoản đúng số tiền và đúng nội dung bên dưới để SePay đối soát tự động.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: colors.onSurfaceVariant,
                     ),
@@ -182,7 +182,7 @@ class _BankTransferInfoSheet extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      'Khi SePay gui webhook thanh cong, he thong se tu dong cap nhat thanh toan cho don nay. Ban khong can tu xac nhan thanh toan trong app.',
+                      'Khi SePay gửi webhook thành công, hệ thống sẽ tự động cập nhật thanh toán cho đơn này. Bạn không cần tự xác nhận thanh toán trong app.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: colors.primary,
                         fontWeight: FontWeight.w600,
@@ -191,48 +191,48 @@ class _BankTransferInfoSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   _BankTransferInfoRow(
-                    label: 'Nha cung cap',
+                    label: 'Nhà cung cấp',
                     value: instructions.provider,
-                    onCopy: () => onCopy('Nha cung cap', instructions.provider),
+                    onCopy: () => onCopy('Nhà cung cấp', instructions.provider),
                   ),
                   const SizedBox(height: 10),
                   _BankTransferInfoRow(
-                    label: 'So tien',
+                    label: 'Số tiền',
                     value: formatVnd(amount),
-                    onCopy: () => onCopy('So tien', amount.toString()),
+                    onCopy: () => onCopy('Số tiền', amount.toString()),
                   ),
                   const SizedBox(height: 10),
                   _BankTransferInfoRow(
-                    label: 'Chu tai khoan',
+                    label: 'Chủ tài khoản',
                     value: instructions.accountHolder,
                     onCopy: () =>
-                        onCopy('Chu tai khoan', instructions.accountHolder),
+                        onCopy('Chủ tài khoản', instructions.accountHolder),
                   ),
                   const SizedBox(height: 10),
                   _BankTransferInfoRow(
-                    label: 'So tai khoan',
+                    label: 'Số tài khoản',
                     value: instructions.accountNumber,
                     onCopy: () =>
-                        onCopy('So tai khoan', instructions.accountNumber),
+                        onCopy('Số tài khoản', instructions.accountNumber),
                   ),
                   const SizedBox(height: 10),
                   _BankTransferInfoRow(
-                    label: 'Ngan hang',
+                    label: 'Ngân hàng',
                     value: instructions.bankName,
-                    onCopy: () => onCopy('Ngan hang', instructions.bankName),
+                    onCopy: () => onCopy('Ngân hàng', instructions.bankName),
                   ),
                   const SizedBox(height: 10),
                   _BankTransferInfoRow(
-                    label: 'Noi dung',
+                    label: 'Nội dung',
                     value: content,
-                    onCopy: () => onCopy('Noi dung chuyen khoan', content),
+                    onCopy: () => onCopy('Nội dung chuyển khoản', content),
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Da hieu'),
+                      child: const Text('Đã hiểu'),
                     ),
                   ),
                 ],

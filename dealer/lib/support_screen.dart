@@ -477,7 +477,7 @@ class _SupportScreenState extends State<SupportScreen> {
       _showSnackBar(
         isEnglish
             ? 'Request #${ticket.ticketCode} has been submitted.'
-            : 'Yeu cau #${ticket.ticketCode} da duoc gui.',
+            : 'Yêu cầu #${ticket.ticketCode} đã được gửi.',
       );
       _subjectController.clear();
       _messageController.clear();

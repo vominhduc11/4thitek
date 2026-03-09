@@ -71,7 +71,7 @@ function OrdersPage() {
     return (
       <PagePanel>
         <ErrorState
-          title="Khong the tai du lieu"
+          title="Không thể tải dữ liệu"
           message={error}
           onRetry={() => {
             setError(null)
@@ -118,14 +118,14 @@ function OrdersPage() {
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <StatCard label="Tong don" value={orders.length} tone="neutral" />
         <StatCard label="Cho xu ly" value={stats.pending} tone="warning" />
-        <StatCard label="Dang giao" value={stats.delivering} tone="info" />
+        <StatCard label="Đang giao" value={stats.delivering} tone="info" />
       </div>
 
       <div className="mt-6">
         {filteredOrders.length === 0 ? (
           <EmptyState
             icon={Package}
-            title="Khong co don hang"
+            title="Không có đơn hàng"
             message="Thu doi bo loc hoac tao don moi."
           />
         ) : (
@@ -134,7 +134,7 @@ function OrdersPage() {
               <thead>
                 <tr className="text-left text-xs uppercase tracking-[0.2em] text-slate-400">
                   <th className="px-3 py-2 font-semibold">Ma don</th>
-                  <th className="px-3 py-2 font-semibold">Dai ly</th>
+                  <th className="px-3 py-2 font-semibold">Đại lý</th>
                   <th className="px-3 py-2 font-semibold">Tong</th>
                   <th className="px-3 py-2 font-semibold">Trang thai</th>
                   <th className="px-3 py-2 font-semibold">Thao tac</th>
@@ -180,7 +180,7 @@ function OrdersPage() {
                               notify(
                                 updateError instanceof Error
                                   ? updateError.message
-                                  : 'Khong cap nhat duoc don hang',
+                                  : 'Không cập nhật được đơn hàng',
                                 {
                                   title: 'Orders',
                                   variant: 'error',
@@ -209,7 +209,7 @@ function OrdersPage() {
                               notify(
                                 deleteError instanceof Error
                                   ? deleteError.message
-                                  : 'Khong xoa duoc don hang',
+                                  : 'Không xóa được đơn hàng',
                                 {
                                   title: 'Orders',
                                   variant: 'error',

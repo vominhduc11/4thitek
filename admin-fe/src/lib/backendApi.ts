@@ -4,7 +4,23 @@ const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value)
 
 const ensureLeadingSlash = (value: string) => (value.startsWith('/') ? value : `/${value}`)
 
-const rawApiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').trim()
+const isPlaceholderHost = (value: string) => {
+  if (!value || value.startsWith('/')) {
+    return false
+  }
+
+  try {
+    const parsed = new URL(value)
+    return /(^|\.)example\.com$/i.test(parsed.hostname)
+  } catch {
+    return false
+  }
+}
+
+const rawApiBaseUrl = (() => {
+  const trimmed = (import.meta.env.VITE_API_BASE_URL ?? '').trim()
+  return isPlaceholderHost(trimmed) ? '' : trimmed
+})()
 
 const normalizeApiBaseUrl = (value: string) => {
   if (!value) return ''

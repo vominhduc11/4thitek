@@ -550,7 +550,7 @@ function ProductsPage() {
     }
     setDescriptionVideoErrors((prev) => ({
       ...prev,
-      [index]: t('Tai tep video chua duoc ho tro. Vui long dung URL video.'),
+      [index]: t('Tải tệp video chưa được hỗ trợ. Vui lòng dùng URL video.'),
     }))
   }
 
@@ -565,7 +565,7 @@ function ProductsPage() {
     }
     setProductVideoErrors((prev) => ({
       ...prev,
-      [index]: t('Tai tep video chua duoc ho tro. Vui long dung URL video.'),
+      [index]: t('Tải tệp video chưa được hỗ trợ. Vui lòng dùng URL video.'),
     }))
   }
 
@@ -638,7 +638,7 @@ function ProductsPage() {
       const stored = await uploadImageAsset(file)
       setNewProduct((prev) => ({ ...prev, imageUrl: stored.url }))
     } catch {
-      setImageError(t('Khong the xu ly tep da chon'))
+      setImageError(t('Không thể xử lý tệp đã chọn'))
       setSelectedImageName('')
       setNewProduct((prev) => ({ ...prev, imageUrl: '' }))
       event.target.value = ''
@@ -655,14 +655,14 @@ function ProductsPage() {
   }
 
   const handleDelete = useCallback(async (sku: string) => {
-    if (!window.confirm(t("Xoa vinh vien san pham nay?"))) {
+    if (!window.confirm(t("Xóa vĩnh viễn sản phẩm này?"))) {
       return
     }
     try {
       await deleteProduct(sku)
-      setActionMessage(t("Da xoa vinh vien san pham."))
+      setActionMessage(t("Đã xóa vĩnh viễn sản phẩm."))
     } catch (error) {
-      notify(error instanceof Error ? error.message : t('Khong the xoa san pham'), {
+      notify(error instanceof Error ? error.message : t('Không thể xóa sản phẩm'), {
         title: 'Products',
         variant: 'error',
       })
@@ -673,24 +673,24 @@ function ProductsPage() {
     if (product.isDeleted) {
       try {
         await restoreProduct(product.sku)
-        setActionMessage(t("Da khoi phuc san pham ve ban nhap."))
+        setActionMessage(t("Đã khôi phục sản phẩm về bản nháp."))
       } catch (error) {
-        notify(error instanceof Error ? error.message : t('Khong the khoi phuc san pham'), {
+        notify(error instanceof Error ? error.message : t('Không thể khôi phục sản phẩm'), {
           title: 'Products',
           variant: 'error',
         })
       }
       return
     }
-    const confirmed = window.confirm(t("An san pham nay khoi danh muc?"))
+    const confirmed = window.confirm(t("Ẩn sản phẩm này khỏi danh mục?"))
     if (!confirmed) {
       return
     }
     try {
       await archiveProduct(product.sku)
-      setActionMessage(t("Da an san pham khoi danh muc."))
+      setActionMessage(t("Đã ẩn sản phẩm khỏi danh mục."))
     } catch (error) {
-      notify(error instanceof Error ? error.message : t('Khong the an san pham'), {
+      notify(error instanceof Error ? error.message : t('Không thể ẩn sản phẩm'), {
         title: 'Products',
         variant: 'error',
       })
@@ -702,7 +702,7 @@ function ProductsPage() {
       return
     }
     if (product.publishStatus === "PUBLISHED") {
-      const confirmed = window.confirm(t("Huy xuat ban san pham nay?"))
+      const confirmed = window.confirm(t("Hủy xuất bản sản phẩm này?"))
       if (!confirmed) {
         return
       }
@@ -711,11 +711,11 @@ function ProductsPage() {
       await togglePublishStatus(product.sku)
       setActionMessage(
         product.publishStatus === "PUBLISHED"
-          ? t("Da huy xuat ban san pham.")
-          : t("Da xuat ban san pham."),
+          ? t("Đã hủy xuất bản sản phẩm.")
+          : t("Đã xuất bản sản phẩm."),
       )
     } catch (error) {
-      notify(error instanceof Error ? error.message : t('Khong the cap nhat trang thai xuat ban'), {
+      notify(error instanceof Error ? error.message : t('Không thể cập nhật trạng thái xuất bản'), {
         title: 'Products',
         variant: 'error',
       })
@@ -2106,7 +2106,7 @@ function ProductsPage() {
                         })
                         closeModal()
                       } catch (error) {
-                        notify(error instanceof Error ? error.message : t('Khong the tao san pham'), {
+                        notify(error instanceof Error ? error.message : t('Không thể tạo sản phẩm'), {
                           title: 'Products',
                           variant: 'error',
                         })

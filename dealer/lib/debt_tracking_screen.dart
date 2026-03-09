@@ -869,7 +869,7 @@ class _PaymentHistoryCard extends StatelessWidget {
   IconData _iconForChannel(String channel) {
     final normalized = channel.toLowerCase();
     if (normalized.contains('chuyển khoản') ||
-        normalized.contains('chuyen khoan') ||
+        normalized.contains('chuyển khoản') ||
         normalized.contains('bank transfer')) {
       return Icons.account_balance_outlined;
     }
@@ -1138,7 +1138,7 @@ class _DebtTexts {
   String get attachProofButton =>
       isEnglish ? 'Attach payment proof' : 'Đính kèm chứng từ';
   String get attachingProofLabel =>
-      isEnglish ? 'Uploading proof...' : 'Dang tai chung tu...';
+      isEnglish ? 'Uploading proof...' : 'Đang tải chứng từ...';
   String get cancelButton => isEnglish ? 'Cancel' : 'Hủy';
   String get confirmButton => isEnglish ? 'Confirm' : 'Xác nhận';
   String get continueButton => isEnglish ? 'Continue' : 'Tiếp tục';
@@ -1260,14 +1260,14 @@ class _DebtTexts {
     if (isEnglish) {
       return 'Attached proof $fileName.';
     }
-    return 'Da dinh kem chung tu $fileName.';
+    return 'Đã đính kèm chứng từ $fileName.';
   }
 
   String proofUploadFailed(String error) {
     if (isEnglish) {
       return 'Unable to upload proof: $error';
     }
-    return 'Khong the tai chung tu: $error';
+    return 'Không thể tải chứng từ: $error';
   }
 
   String largePaymentConfirmMessage({
@@ -1317,7 +1317,7 @@ class _DebtTexts {
     final normalized = channel.trim().toLowerCase();
     if (normalized.contains('bank transfer') ||
         normalized.contains('chuyển khoản') ||
-        normalized.contains('chuyen khoan')) {
+        normalized.contains('chuyển khoản')) {
       return 'Bank transfer';
     }
     if (normalized.contains('cash') ||

@@ -190,7 +190,7 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         if (!cancelled) {
-          notify(error instanceof Error ? error.message : 'Khong tai duoc danh sach san pham', {
+          notify(error instanceof Error ? error.message : 'Không tải được danh sách sản phẩm', {
             title: 'Products',
             variant: 'error',
           })

@@ -35,7 +35,7 @@ class OrderSuccessScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const BrandAppBarTitle('Dat hang thanh cong'),
+        title: const BrandAppBarTitle('Đặt hàng thành công'),
       ),
       body: Center(
         child: ConstrainedBox(
@@ -61,7 +61,7 @@ class OrderSuccessScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Don hang da duoc ghi nhan',
+                    'Đơn hàng đã được ghi nhận',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -69,7 +69,7 @@ class OrderSuccessScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Ma don hang: $orderId',
+                    'Mã đơn hàng: $orderId',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -101,7 +101,7 @@ class OrderSuccessScreen extends StatelessWidget {
                         (route) => route.isFirst,
                       );
                     },
-                    child: const Text('Xem chi tiet don hang'),
+                    child: const Text('Xem chi tiết đơn hàng'),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton(
@@ -121,12 +121,12 @@ class OrderSuccessScreen extends StatelessWidget {
 
   String _buildStatusNote(Order? order) {
     if (order == null) {
-      return 'Don dang cho duyet phia nha phan phoi.';
+      return 'Đơn đang chờ duyệt phía nhà phân phối.';
     }
     if (order.paymentMethod == OrderPaymentMethod.debt) {
-      return 'Don da duoc ghi nhan cong no va dang cho duyet phia nha phan phoi.';
+      return 'Đơn đã được ghi nhận công nợ và đang chờ duyệt phía nhà phân phối.';
     }
-    return 'Don da duoc tao. Hay chuyen khoan dung ma don hang, SePay webhook se tu dong cap nhat thanh toan khi ngan hang ghi nhan giao dich.';
+    return 'Đơn đã được tạo. Hãy chuyển khoản đúng mã đơn hàng, SePay webhook sẽ tự động cập nhật thanh toán khi ngân hàng ghi nhận giao dịch.';
   }
 }
 
@@ -161,7 +161,7 @@ class _SummaryCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _SummaryRow(label: 'So luong san pham', value: '$itemCount'),
+            _SummaryRow(label: 'Số lượng sản phẩm', value: '$itemCount'),
             const SizedBox(height: 8),
             if (paymentMethod != null) ...[
               _SummaryRow(
@@ -178,7 +178,7 @@ class _SummaryCard extends StatelessWidget {
               const SizedBox(height: 8),
             ],
             if (note != null && note!.trim().isNotEmpty) ...[
-              _SummaryRow(label: 'Ghi chu', value: note!),
+              _SummaryRow(label: 'Ghi chú', value: note!),
               const SizedBox(height: 8),
             ],
             _SummaryRow(

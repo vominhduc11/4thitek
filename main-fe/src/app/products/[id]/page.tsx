@@ -501,9 +501,9 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                     specifications = specsArray.reduce((acc: Record<string, string>, spec: { label: string; value: string }) => {
                                         const labelMap: Record<string, string> = {
                                             'Camera / Video': 'camera',
-                                            'Dung lÆ°á»£ng pin': 'battery',
-                                            'Thá»i gian ghi hĂ¬nh liĂªn tá»¥c': 'recordingTime',
-                                            'Thá»i gian Ä‘Ă m thoáº¡i / intercom': 'talkTime'
+                                            'Dung lượng pin': 'battery',
+                                            'Thời gian ghi hình liên tục': 'recordingTime',
+                                            'Thời gian đàm thoại / intercom': 'talkTime'
                                         };
                                         const key = labelMap[spec.label] || spec.label.toLowerCase().replace(/\s+/g, '');
                                         acc[key] = spec.value;

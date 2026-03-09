@@ -212,13 +212,13 @@ class WarrantyController extends ChangeNotifier {
   }) async {
     final normalized = _normalizeSerial(serial);
     if (normalized.isEmpty) {
-      return 'Serial khong hop le.';
+      return 'Serial không hợp lệ.';
     }
     if (_findImportedSerialIndex(normalized) < 0) {
-      return 'Serial $normalized chua duoc nhap kho.';
+      return 'Serial $normalized chưa được nhập kho.';
     }
     if (_activatedSerialSet().contains(normalized)) {
-      return 'Serial $normalized da duoc kich hoat, khong the danh dau loi.';
+      return 'Serial $normalized đã được kích hoạt, không thể đánh dấu lỗi.';
     }
 
     final alreadyDefective = _defectiveSerials.contains(normalized);
@@ -231,11 +231,11 @@ class WarrantyController extends ChangeNotifier {
       if (remoteSerialId == null || remoteSerialId <= 0) {
         final reloaded = await _loadRemoteState();
         if (!reloaded) {
-          return 'Khong the dong bo serial.';
+          return 'Không thể đồng bộ serial.';
         }
         remoteSerialId = _remoteSerialIds[normalized];
         if (remoteSerialId == null || remoteSerialId <= 0) {
-          return 'Khong tim thay serial tren he thong.';
+          return 'Không tìm thấy serial trên hệ thống.';
         }
       }
 
@@ -255,7 +255,7 @@ class WarrantyController extends ChangeNotifier {
         if (response.statusCode >= 400) {
           return _extractErrorMessage(
             payload,
-            fallback: 'Khong the dong bo serial.',
+            fallback: 'Không thể đồng bộ serial.',
           );
         }
 
@@ -288,11 +288,11 @@ class WarrantyController extends ChangeNotifier {
         notifyListeners();
         return null;
       } catch (error) {
-        return _describeError(error, fallback: 'Khong the dong bo serial.');
+        return _describeError(error, fallback: 'Không thể đồng bộ serial.');
       }
     }
 
-    return 'Khong the dong bo serial.';
+    return 'Không thể đồng bộ serial.';
   }
 
   List<ImportedSerialRecord> importedSerialsForProduct(String productId) {
@@ -451,27 +451,27 @@ class WarrantyController extends ChangeNotifier {
   }) {
     final normalized = _normalizeSerial(serial);
     if (normalized.isEmpty) {
-      return 'Serial khong hop le.';
+      return 'Serial không hợp lệ.';
     }
 
     final imported = findImportedSerial(normalized);
     if (imported == null) {
-      return 'Serial $normalized chua duoc nhap kho.';
+      return 'Serial $normalized chưa được nhập kho.';
     }
     if (imported.productId != productId) {
-      return 'Serial $normalized khong thuoc san pham $productName.';
+      return 'Serial $normalized không thuộc sản phẩm $productName.';
     }
 
     if (imported.orderId != orderId) {
-      return 'Serial $normalized thuoc don ${imported.orderId}, khong thuoc don $orderId.';
+      return 'Serial $normalized thuộc đơn ${imported.orderId}, không thuộc đơn $orderId.';
     }
 
     if (_defectiveSerials.contains(normalized)) {
-      return 'Serial $normalized dang o trang thai loi, khong the kich hoat.';
+      return 'Serial $normalized đang ở trạng thái lỗi, không thể kích hoạt.';
     }
 
     if (serialExists(normalized)) {
-      return 'Serial $normalized da duoc kich hoat truoc do.';
+      return 'Serial $normalized đã được kích hoạt trước đó.';
     }
 
     return null;
@@ -517,7 +517,7 @@ class WarrantyController extends ChangeNotifier {
           duplicateCount: prepared.duplicateCount,
           invalidCount: prepared.invalidCount,
           overLimitCount: prepared.overLimitCount,
-          errorMessage: 'Khong the xac dinh san pham de dong bo serial.',
+          errorMessage: 'Không thể xác định sản phẩm để đồng bộ serial.',
         );
       }
 
@@ -528,7 +528,7 @@ class WarrantyController extends ChangeNotifier {
           duplicateCount: prepared.duplicateCount,
           invalidCount: prepared.invalidCount,
           overLimitCount: prepared.overLimitCount,
-          errorMessage: 'Khong the xac dinh don hang de dong bo serial.',
+          errorMessage: 'Không thể xác định đơn hàng để đồng bộ serial.',
         );
       }
 
@@ -556,7 +556,7 @@ class WarrantyController extends ChangeNotifier {
             overLimitCount: prepared.overLimitCount,
             errorMessage: _extractErrorMessage(
               payload,
-              fallback: 'Khong the dong bo serial.',
+              fallback: 'Không thể đồng bộ serial.',
             ),
           );
         }
@@ -568,7 +568,7 @@ class WarrantyController extends ChangeNotifier {
             duplicateCount: prepared.duplicateCount,
             invalidCount: prepared.invalidCount,
             overLimitCount: prepared.overLimitCount,
-            errorMessage: 'Phan hoi serial khong hop le.',
+            errorMessage: 'Phản hồi serial không hợp lệ.',
           );
         }
 
@@ -614,7 +614,7 @@ class WarrantyController extends ChangeNotifier {
           overLimitCount: prepared.overLimitCount,
           errorMessage: _describeError(
             error,
-            fallback: 'Khong the dong bo serial.',
+            fallback: 'Không thể đồng bộ serial.',
           ),
         );
       }
@@ -625,7 +625,7 @@ class WarrantyController extends ChangeNotifier {
       duplicateCount: prepared.duplicateCount,
       invalidCount: prepared.invalidCount,
       overLimitCount: prepared.overLimitCount,
-      errorMessage: 'Khong the dong bo serial.',
+      errorMessage: 'Không thể đồng bộ serial.',
     );
   }
 
@@ -1113,7 +1113,7 @@ class WarrantyController extends ChangeNotifier {
 
   String _extractErrorMessage(
     Map<String, dynamic> payload, {
-    String fallback = 'Khong the dong bo du lieu.',
+    String fallback = 'Không thể đồng bộ dữ liệu.',
   }) {
     final error = payload['error']?.toString();
     if (error != null && error.trim().isNotEmpty) {

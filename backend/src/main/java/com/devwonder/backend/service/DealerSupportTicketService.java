@@ -47,7 +47,7 @@ public class DealerSupportTicketService {
         DealerSupportTicket saved = dealerSupportTicketRepository.save(ticket);
         notificationService.create(new CreateNotifyRequest(
                 dealer.getId(),
-                "Yeu cau ho tro da duoc tao",
+                "Yêu cầu hỗ trợ đã được tạo",
                 "Ma yeu cau " + saved.getTicketCode() + " da duoc ghi nhan.",
                 NotifyType.SYSTEM,
                 "/account/support"

@@ -30,17 +30,17 @@ function LoginPage() {
     setError('')
 
     if (!username.trim() || !password.trim()) {
-      setError('Vui long nhap day du ten dang nhap va mat khau')
+      setError('Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu')
       return
     }
 
     const result = await login({ username, password, remember })
     if (!result.ok) {
-      setError(result.message ?? 'Dang nhap that bai')
+      setError(result.message ?? 'Đăng nhập thất bại')
       return
     }
 
-    notify('Dang nhap thanh cong', { title: 'Auth', variant: 'success' })
+    notify('Đăng nhập thành công', { title: 'Auth', variant: 'success' })
     navigate(target, { replace: true })
   }
 
@@ -128,7 +128,7 @@ function LoginPage() {
             type="submit"
             disabled={isLoggingIn}
           >
-            {isLoggingIn ? 'Dang dang nhap...' : t('Đăng nhập')}
+            {isLoggingIn ? 'Đang đăng nhập...' : t('Đăng nhập')}
           </button>
 
           <p className="text-center text-xs text-slate-500">

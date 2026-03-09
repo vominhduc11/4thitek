@@ -561,7 +561,7 @@ class OrderController extends ChangeNotifier {
     if (error != null && error.trim().isNotEmpty) {
       return error.trim();
     }
-    return 'Khong the dong bo don hang.';
+    return 'Không thể đồng bộ đơn hàng.';
   }
 
   Product? _findProductById(String id) {

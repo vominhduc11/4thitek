@@ -91,13 +91,13 @@ Future<DealerProfile> loadDealerProfile() async {
     final payload = _decodeBody(response.body);
     if (response.statusCode >= 400) {
       throw DealerProfileStorageException(
-        _extractErrorMessage(payload, fallback: 'Khong the tai ho so dai ly.'),
+        _extractErrorMessage(payload, fallback: 'Không thể tải hồ sơ đại lý.'),
       );
     }
 
     final data = payload['data'];
     if (data is! Map<String, dynamic>) {
-      throw const DealerProfileStorageException('Du lieu ho so khong hop le.');
+      throw const DealerProfileStorageException('Dữ liệu hồ sơ không hợp lệ.');
     }
 
     final remoteProfile = _mapRemoteProfile(
@@ -129,14 +129,14 @@ Future<void> saveDealerProfile(DealerProfile profile) async {
   final token = await _readAccessToken();
   if (token == null) {
     throw const DealerProfileStorageException(
-      'Khong the luu ho so khi chua dang nhap.',
+      'Không thể lưu hồ sơ khi chưa đăng nhập.',
     );
   }
 
   final avatarUrl = normalizedProfile.avatarUrl ?? '';
   if (avatarUrl.startsWith('data:')) {
     throw const DealerProfileStorageException(
-      'Khong the luu avatar tam khi dang dung backend. Vui long tai anh len lai.',
+      'Không thể lưu avatar tạm khi đang dùng backend. Vui lòng tải ảnh lên lại.',
     );
   }
 
@@ -156,13 +156,13 @@ Future<void> saveDealerProfile(DealerProfile profile) async {
   final payload = _decodeBody(response.body);
   if (response.statusCode >= 400) {
     throw DealerProfileStorageException(
-      _extractErrorMessage(payload, fallback: 'Khong the luu ho so dai ly.'),
+      _extractErrorMessage(payload, fallback: 'Không thể lưu hồ sơ đại lý.'),
     );
   }
 
   final data = payload['data'];
   if (data is! Map<String, dynamic>) {
-    throw const DealerProfileStorageException('Du lieu ho so khong hop le.');
+    throw const DealerProfileStorageException('Dữ liệu hồ sơ không hợp lệ.');
   }
 
   final savedProfile = _mapRemoteProfile(data, fallback: normalizedProfile);

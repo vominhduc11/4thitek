@@ -29,8 +29,8 @@ function DealerDetailPage() {
     return (
       <PagePanel>
         <EmptyState
-          title="Khong tim thay dai ly"
-          message={`Dai ly ${dealerId} khong ton tai.`}
+          title="Không tìm thấy đại lý"
+          message={`Đại lý ${dealerId} không tồn tại.`}
         />
       </PagePanel>
     )
@@ -107,7 +107,7 @@ function DealerDetailPage() {
                   variant: 'info',
                 })
               } catch (error) {
-                notify(error instanceof Error ? error.message : 'Khong cap nhat duoc trang thai dai ly', {
+                notify(error instanceof Error ? error.message : 'Không cập nhật được trạng thái đại lý', {
                   title: 'Dealers',
                   variant: 'error',
                 })
@@ -128,7 +128,7 @@ function DealerDetailPage() {
           <div className="mt-6 rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-3 text-sm text-slate-700">
             <div className="flex items-center gap-2 font-semibold text-slate-900">
               <Phone className="h-4 w-4" />
-              Lien he nhanh
+              Liên hệ nhanh
             </div>
             <p className="mt-2 text-xs text-slate-500">
               Email: {dealer.email}

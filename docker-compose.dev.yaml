@@ -47,6 +47,8 @@ services:
     container_name: 4thitek-admin-fe
     restart: unless-stopped
     working_dir: /app
+    environment:
+      VITE_API_BASE_URL: http://localhost:8080/api
     ports:
       - "5173:5173"
     volumes:

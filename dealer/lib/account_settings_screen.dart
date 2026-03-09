@@ -60,7 +60,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     } catch (error) {
       profile = DealerProfile.defaults;
       if (mounted) {
-        _showSnackBar('Khong the tai ho so: $error');
+        _showSnackBar('Không thể tải hồ sơ: $error');
       }
     }
     if (!mounted) {
@@ -158,7 +158,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       _showSnackBar(
         isEnglish
             ? 'Unable to upload avatar: $error'
-            : 'Khong the tai avatar: $error',
+            : 'Không thể tải avatar: $error',
       );
     } finally {
       if (mounted) {
@@ -349,7 +349,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       _showSnackBar(
         isEnglish
             ? 'Unable to save profile: $error'
-            : 'Khong the luu ho so: $error',
+            : 'Không thể lưu hồ sơ: $error',
       );
       return;
     }
@@ -405,8 +405,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     final avatarTitle = isEnglish ? 'Avatar' : 'Anh dai dien';
     final avatarHint = isEnglish
         ? 'Upload a dealer avatar for profile screens.'
-        : 'Tai anh dai dien cho ho so dai ly.';
-    final uploadAvatarLabel = isEnglish ? 'Upload avatar' : 'Tai avatar';
+        : 'Tải ảnh đại diện cho hồ sơ đại lý.';
+    final uploadAvatarLabel = isEnglish ? 'Upload avatar' : 'Tải avatar';
     final replaceAvatarLabel = isEnglish ? 'Replace avatar' : 'Doi avatar';
     final removeAvatarLabel = isEnglish ? 'Remove avatar' : 'Xoa avatar';
     final companyTitle = isEnglish

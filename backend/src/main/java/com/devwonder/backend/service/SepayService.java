@@ -130,7 +130,7 @@ public class SepayService {
         if (order.getDealer() != null) {
             notificationService.create(new CreateNotifyRequest(
                     order.getDealer().getId(),
-                    "Thanh toan chuyen khoan da duoc xac nhan",
+                    "Thanh toán chuyển khoản đã được xác nhận",
                     "SePay da ghi nhan " + payment.getAmount().toPlainString() + " cho don " + order.getOrderCode() + ".",
                     NotifyType.ORDER,
                     "/orders/" + order.getOrderCode()

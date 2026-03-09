@@ -80,7 +80,7 @@ function DealersPage() {
     setFormError('')
     const revenue = Number(form.revenue || 0)
     if (!form.name.trim() || !form.email.trim() || !form.phone.trim()) {
-      setFormError('Vui long nhap day du ten, email va so dien thoai')
+      setFormError('Vui lòng nhập đầy đủ tên, email và số điện thoại')
       return
     }
     try {
@@ -103,7 +103,7 @@ function DealersPage() {
         revenue: '',
       })
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'Khong tao duoc dai ly')
+      setFormError(error instanceof Error ? error.message : 'Không tạo được đại lý')
     }
   }
 
@@ -119,9 +119,9 @@ function DealersPage() {
     <PagePanel>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">Dai ly</h3>
+          <h3 className="text-lg font-semibold text-slate-900">Đại lý</h3>
           <p className="text-sm text-slate-500">
-            Quan ly ho so dai ly, han muc va trang thai kich hoat tai khoan.
+            Quản lý hồ sơ đại lý, hạn mức và trạng thái kích hoạt tài khoản.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -159,9 +159,9 @@ function DealersPage() {
 
       <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={Users} label="Tong dai ly" value={dealers.length} />
-        <StatCard icon={CheckCircle2} label="Da kich hoat" value={stats.active} tone="success" />
-        <StatCard icon={Clock3} label="Cho duyet ho so" value={stats.underReview} tone="info" />
-        <StatCard icon={Bell} label="Can bo sung ho so" value={stats.attention} tone="warning" />
+        <StatCard icon={CheckCircle2} label="Đã kích hoạt" value={stats.active} tone="success" />
+        <StatCard icon={Clock3} label="Chờ duyệt hồ sơ" value={stats.underReview} tone="info" />
+        <StatCard icon={Bell} label="Cần bổ sung hồ sơ" value={stats.attention} tone="warning" />
       </div>
       <p className="mt-3 text-sm text-slate-500">
         Tong doanh thu: <span className="font-semibold text-[var(--accent)]">{formatCurrency(stats.totalRevenue)}</span>
@@ -234,15 +234,15 @@ function DealersPage() {
         {filteredDealers.length === 0 ? (
           <EmptyState
             icon={Users}
-            title="Khong co dai ly"
-            message="Thu doi bo loc hoac them dai ly moi."
+            title="Không có đại lý"
+            message="Thử đổi bộ lọc hoặc thêm đại lý mới."
           />
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full border-separate border-spacing-y-2">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-[0.2em] text-slate-400">
-                  <th className="px-3 py-2 font-semibold">Dai ly</th>
+                  <th className="px-3 py-2 font-semibold">Đại lý</th>
                   <th className="px-3 py-2 font-semibold">Hang</th>
                   <th className="px-3 py-2 font-semibold">Trang thai</th>
                   <th className="px-3 py-2 font-semibold">Don hang</th>
@@ -306,7 +306,7 @@ function DealersPage() {
                             notify(
                               error instanceof Error
                                 ? error.message
-                                : 'Khong cap nhat duoc trang thai dai ly',
+                                : 'Không cập nhật được trạng thái đại lý',
                               { title: 'Dealers', variant: 'error' },
                             )
                           }

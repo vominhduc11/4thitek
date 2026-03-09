@@ -4,12 +4,19 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
+import { Montserrat } from 'next/font/google';
 import Link from 'next/link';
 import AvoidSidebar from '@/components/layout/AvoidSidebar';
 import { useLanguage } from '@/context/LanguageContext';
 import { apiService } from '@/services/apiService';
 import { parseImageUrl } from '@/utils/media';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
+
+const montserrat = Montserrat({
+    subsets: ['latin', 'vietnamese'],
+    weight: ['700', '900'],
+    display: 'swap'
+});
 
 interface Product {
     id: string | number;
@@ -507,9 +514,8 @@ const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({
                                             }}
                                         >
                                             <motion.h3
-                                                className="font-black text-[1.75rem] lg:text-[2rem] xl:text-[2.25rem] text-[#48C7FF] relative z-10 min-h-[5.25rem] lg:min-h-[6rem] xl:min-h-[6.75rem] overflow-hidden line-clamp-3"
+                                                className={`${montserrat.className} font-black text-[1.75rem] lg:text-[2rem] xl:text-[2.25rem] text-[#48C7FF] relative z-10 min-h-[5.25rem] lg:min-h-[6rem] xl:min-h-[6.75rem] overflow-hidden line-clamp-3`}
                                                 style={{
-                                                    fontFamily: 'Montserrat, sans-serif',
                                                     letterSpacing: '0.1rem'
                                                 }}
                                                 variants={{

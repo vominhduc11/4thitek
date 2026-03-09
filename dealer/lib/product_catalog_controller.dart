@@ -149,7 +149,7 @@ class ProductCatalogController extends ChangeNotifier {
     if (error != null && error.trim().isNotEmpty) {
       return error.trim();
     }
-    return 'Khong the tai du lieu san pham.';
+    return 'Không thể tải dữ liệu sản phẩm.';
   }
 
   Product _mapSummaryProduct(Map<String, dynamic> json) {

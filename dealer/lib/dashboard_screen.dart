@@ -558,7 +558,7 @@ class _OverviewCard extends StatelessWidget {
               final orderCard = _OverviewMetricTile(
                 icon: Icons.receipt_long_rounded,
                 accentColor: orderAccent,
-                label: 'ÄÆ¡n trong $periodUnitLabel',
+                label: 'Đơn trong $periodUnitLabel',
                 value: '$periodOrders',
                 isPrimary: false,
               );

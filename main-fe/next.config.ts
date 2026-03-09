@@ -1,10 +1,32 @@
 import type { NextConfig } from 'next';
 
-const internalApiBaseUrl = (
-    process.env.INTERNAL_API_BASE_URL ||
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    'https://api.4thitek.vn/api'
-).replace(/\/$/, '');
+const trimTrailingSlash = (value: string) => value.replace(/\/$/, '');
+
+const isPlaceholderHost = (value: string) => {
+    if (!value || value.startsWith('/')) {
+        return false;
+    }
+
+    try {
+        const parsed = new URL(value);
+        return /(^|\.)example\.com$/i.test(parsed.hostname);
+    } catch {
+        return false;
+    }
+};
+
+const normalizeConfiguredApiBaseUrl = (value?: string | null) => {
+    const trimmed = (value || '').trim();
+    if (!trimmed || isPlaceholderHost(trimmed)) {
+        return '';
+    }
+    return trimTrailingSlash(trimmed);
+};
+
+const internalApiBaseUrl =
+    normalizeConfiguredApiBaseUrl(process.env.INTERNAL_API_BASE_URL) ||
+    normalizeConfiguredApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL) ||
+    'https://api.4thitek.vn/api';
 
 const nextConfig: NextConfig = {
     /* config options here */

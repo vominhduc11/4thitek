@@ -49,7 +49,7 @@ function DashboardPage() {
         }
       } catch (loadError) {
         if (!cancelled) {
-          const message = loadError instanceof Error ? loadError.message : 'Khong tai duoc dashboard'
+          const message = loadError instanceof Error ? loadError.message : 'Không tải được dashboard'
           setError(message)
           notify(message, { title: 'Dashboard', variant: 'error' })
         }
@@ -131,7 +131,7 @@ function DashboardPage() {
   if (error) {
     return (
       <PagePanel>
-        <ErrorState title="Khong the tai dashboard" message={error} />
+        <ErrorState title="Không thể tải dashboard" message={error} />
       </PagePanel>
     )
   }
@@ -139,7 +139,7 @@ function DashboardPage() {
   if (!dashboard) {
     return (
       <PagePanel>
-        <EmptyState title="Khong co du lieu" message="Dashboard backend chua tra ve du lieu." />
+        <EmptyState title="Không có dữ liệu" message="Dashboard backend chưa trả về dữ liệu." />
       </PagePanel>
     )
   }
@@ -164,7 +164,7 @@ function DashboardPage() {
         />
         <StatCard
           icon={ShoppingCart}
-          label="Tong don hang"
+          label="Tổng đơn hàng"
           value={formatNumber(dashboard.orders.total)}
           hint={`${formatNumber(dashboard.orders.pending)} don cho xu ly`}
           tone="info"
@@ -199,7 +199,7 @@ function DashboardPage() {
         </div>
 
         <div className="rounded-3xl border border-slate-200/70 bg-white/80 p-5 shadow-sm">
-          <p className="text-sm font-semibold text-slate-900">Phan bo trang thai don hang</p>
+          <p className="text-sm font-semibold text-slate-900">Phân bổ trạng thái đơn hàng</p>
           <div className="mt-4 grid gap-4 lg:grid-cols-[180px_1fr] xl:grid-cols-1">
             <div className="mx-auto h-44 w-44 xl:h-52 xl:w-52">
               <Doughnut data={orderStatusChart} options={orderStatusOptions} />
@@ -224,7 +224,7 @@ function DashboardPage() {
           <p className="text-sm font-semibold text-slate-900">San pham noi bat</p>
           <div className="mt-4 space-y-3">
             {dashboard.topProducts.length === 0 ? (
-              <EmptyState title="Chua co don hang" message="Backend chua co du lieu ban hang de xep hang." />
+              <EmptyState title="Chưa có đơn hàng" message="Backend chưa có dữ liệu bán hàng để xếp hạng." />
             ) : (
               dashboard.topProducts.map((item) => (
                 <div key={`${item.name}-${item.units}`} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm">
@@ -244,7 +244,7 @@ function DashboardPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-slate-900">{item.label}</p>
-                    <p className="text-xs text-slate-500">{item.hint || 'Khong co ghi chu them'}</p>
+                    <p className="text-xs text-slate-500">{item.hint || 'Không có ghi chú thêm'}</p>
                   </div>
                   <StatusBadge tone={item.tone === 'warn' ? 'warning' : item.tone === 'good' ? 'success' : 'neutral'}>
                     {item.value}

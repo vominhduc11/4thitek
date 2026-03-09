@@ -35,17 +35,17 @@ public class DealerAccountLifecycleService {
     public void sendApplicationReceivedEmail(Dealer dealer) {
         sendEmailIfPossible(
                 dealer.getEmail(),
-                "4ThiTek da nhan ho so dang ky dai ly",
+                "4ThiTek đã nhận hồ sơ đăng ký đại lý",
                 """
-                        Xin chao %s,
+                        Xin chào %s,
 
-                        4ThiTek da nhan ho so dang ky dai ly cua ban.
-                        Trang thai hien tai: Dang xem xet.
+                        4ThiTek đã nhận hồ sơ đăng ký đại lý của bạn.
+                        Trạng thái hiện tại: Đang xem xét.
 
-                        Tai khoan Dealer se duoc kich hoat sau khi ho so duoc phe duyet.
-                        Chung toi se gui email tiep theo khi co cap nhat.
+                        Tài khoản Dealer sẽ được kích hoạt sau khi hồ sơ được phê duyệt.
+                        Chúng tôi sẽ gửi email tiếp theo khi có cập nhật.
 
-                        Tran trong,
+                        Trân trọng,
                         4ThiTek
                         """.formatted(resolveDisplayName(dealer))
         );
@@ -75,15 +75,15 @@ public class DealerAccountLifecycleService {
 
     private String loginBlockedMessage(CustomerStatus status) {
         return switch (status) {
-            case UNDER_REVIEW -> "Tai khoan dai ly dang cho duyet. Vui long doi email cap nhat tu 4ThiTek.";
-            case NEEDS_ATTENTION -> "Ho so dai ly can bo sung thong tin. Vui long kiem tra email cap nhat tu 4ThiTek.";
-            case ACTIVE -> "Tai khoan dai ly da san sang.";
+            case UNDER_REVIEW -> "Tài khoản đại lý đang chờ duyệt. Vui lòng đợi email cập nhật từ 4ThiTek.";
+            case NEEDS_ATTENTION -> "Hồ sơ đại lý cần bổ sung thông tin. Vui lòng kiểm tra email cập nhật từ 4ThiTek.";
+            case ACTIVE -> "Tài khoản đại lý đã sẵn sàng.";
         };
     }
 
     private String notificationTitle(CustomerStatus status) {
         return switch (status) {
-            case ACTIVE -> "Tai khoan dai ly da duoc kich hoat";
+            case ACTIVE -> "Tài khoản đại lý đã được kích hoạt";
             case UNDER_REVIEW -> "Ho so dai ly dang duoc xem xet";
             case NEEDS_ATTENTION -> "Ho so dai ly can bo sung";
         };
@@ -91,17 +91,17 @@ public class DealerAccountLifecycleService {
 
     private String notificationContent(CustomerStatus status) {
         return switch (status) {
-            case ACTIVE -> "Ho so dai ly cua ban da duoc phe duyet. Ban co the dang nhap ung dung Dealer bang tai khoan da dang ky.";
+            case ACTIVE -> "Hồ sơ đại lý của bạn đã được phê duyệt. Bạn có thể đăng nhập ứng dụng Dealer bằng tài khoản đã đăng ký.";
             case UNDER_REVIEW -> "Ho so dai ly cua ban dang duoc 4ThiTek xem xet. Chung toi se gui email khi co cap nhat moi.";
-            case NEEDS_ATTENTION -> "Ho so dai ly cua ban can bo sung thong tin truoc khi kich hoat. Vui long kiem tra email de biet chi tiet.";
+            case NEEDS_ATTENTION -> "Hồ sơ đại lý của bạn cần bổ sung thông tin trước khi kích hoạt. Vui lòng kiểm tra email để biết chi tiết.";
         };
     }
 
     private String statusEmailSubject(CustomerStatus status) {
         return switch (status) {
-            case ACTIVE -> "4ThiTek da phe duyet tai khoan dai ly";
-            case UNDER_REVIEW -> "4ThiTek dang xem xet ho so dai ly";
-            case NEEDS_ATTENTION -> "4ThiTek yeu cau bo sung ho so dai ly";
+            case ACTIVE -> "4ThiTek đã phê duyệt tài khoản đại lý";
+            case UNDER_REVIEW -> "4ThiTek đang xem xét hồ sơ đại lý";
+            case NEEDS_ATTENTION -> "4ThiTek yêu cầu bổ sung hồ sơ đại lý";
         };
     }
 
@@ -109,30 +109,30 @@ public class DealerAccountLifecycleService {
         String greetingName = resolveDisplayName(dealer);
         return switch (status) {
             case ACTIVE -> """
-                    Xin chao %s,
+                    Xin chào %s,
 
-                    Ho so dai ly cua ban da duoc phe duyet va tai khoan Dealer da kich hoat.
-                    Ban co the dang nhap ung dung Dealer bang email da dang ky va mat khau da tao tren website.
+                    Hồ sơ đại lý của bạn đã được phê duyệt và tài khoản Dealer đã kích hoạt.
+                    Bạn có thể đăng nhập ứng dụng Dealer bằng email đã đăng ký và mật khẩu đã tạo trên website.
 
-                    Tran trong,
+                    Trân trọng,
                     4ThiTek
                     """.formatted(greetingName);
             case UNDER_REVIEW -> """
-                    Xin chao %s,
+                    Xin chào %s,
 
                     Ho so dai ly cua ban dang duoc 4ThiTek xem xet.
                     Chung toi se gui email tiep theo ngay khi co ket qua xu ly.
 
-                    Tran trong,
+                    Trân trọng,
                     4ThiTek
                     """.formatted(greetingName);
             case NEEDS_ATTENTION -> """
-                    Xin chao %s,
+                    Xin chào %s,
 
-                    Ho so dai ly cua ban dang can bo sung thong tin truoc khi kich hoat.
-                    Vui long kiem tra lai thong tin da gui va lien he doi ngu 4ThiTek neu ban can ho tro them.
+                    Hồ sơ đại lý của bạn đang cần bổ sung thông tin trước khi kích hoạt.
+                    Vui lòng kiểm tra lại thông tin đã gửi và liên hệ đội ngũ 4ThiTek nếu bạn cần hỗ trợ thêm.
 
-                    Tran trong,
+                    Trân trọng,
                     4ThiTek
                     """.formatted(greetingName);
         };

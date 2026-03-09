@@ -62,7 +62,7 @@ function BlogsPage() {
         imageName: file.name,
       }))
     } catch {
-      setCreateError('Khong the tai anh bai viet')
+      setCreateError('Không thể tải ảnh bài viết')
     } finally {
       setIsUploadingImage(false)
     }
@@ -92,7 +92,7 @@ function BlogsPage() {
   const handleCreate = async () => {
     setCreateError('')
     if (!form.title.trim() || !form.category.trim()) {
-      setCreateError('Vui long nhap day du tieu de va danh muc')
+      setCreateError('Vui lòng nhập đầy đủ tiêu đề và danh mục')
       return
     }
     try {
@@ -114,7 +114,7 @@ function BlogsPage() {
         imageName: '',
       })
     } catch (error) {
-      setCreateError(error instanceof Error ? error.message : 'Khong the tao bai viet')
+      setCreateError(error instanceof Error ? error.message : 'Không thể tạo bài viết')
     }
   }
 
@@ -173,7 +173,7 @@ function BlogsPage() {
           label="Da dang"
           value={stats.published}
           tone="success"
-          hint="Dang hoat dong"
+          hint="Đang hoạt động"
         />
         <StatCard
           icon={Clock3}
@@ -219,7 +219,7 @@ function BlogsPage() {
                   className="sr-only"
                   onChange={(event) => handleImageChange(event.target.files?.[0] ?? null)}
                 />
-                {isUploadingImage ? 'Dang tai anh...' : form.imageName || 'Tai anh bai viet'}
+                {isUploadingImage ? 'Đang tải ảnh...' : form.imageName || 'Tải ảnh bài viết'}
               </label>
               {form.imageUrl ? (
                 <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -266,7 +266,7 @@ function BlogsPage() {
         {filteredPosts.length === 0 ? (
           <EmptyState
             icon={FileText}
-            title="Khong co bai viet"
+            title="Không có bài viết"
             message="Thu doi bo loc hoac tao bai viet moi."
           />
         ) : (
@@ -335,7 +335,7 @@ function BlogsPage() {
                               })
                             } catch (error) {
                               notify(
-                                error instanceof Error ? error.message : 'Khong the cap nhat bai viet',
+                                error instanceof Error ? error.message : 'Không thể cập nhật bài viết',
                                 {
                                   title: 'Blogs',
                                   variant: 'error',
@@ -365,7 +365,7 @@ function BlogsPage() {
                               })
                             } catch (error) {
                               notify(
-                                error instanceof Error ? error.message : 'Khong the xoa bai viet',
+                                error instanceof Error ? error.message : 'Không thể xóa bài viết',
                                 {
                                   title: 'Blogs',
                                   variant: 'error',

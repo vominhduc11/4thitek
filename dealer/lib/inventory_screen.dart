@@ -652,7 +652,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       warrantyController: warrantyController,
     );
     if (options.isEmpty) {
-      _showSnackBar('Khong co dong PO nao san sang de nhap serial.');
+      _showSnackBar('Không co dong PO nao san sang de nhap serial.');
       return;
     }
 
@@ -993,7 +993,7 @@ class _SerialImportSheetState extends State<_SerialImportSheet> {
     final serials = _parseSerials(_serialsController.text);
     if (serials.isEmpty) {
       setState(() {
-        _errorMessage = 'Nhap it nhat 1 serial.';
+        _errorMessage = 'Nhập ít nhất 1 serial.';
       });
       return;
     }
@@ -1048,15 +1048,15 @@ class _SerialImportSheetState extends State<_SerialImportSheet> {
   ) {
     final parts = <String>[];
     if (result.addedCount > 0) {
-      parts.add('Da them ${result.addedCount} serial');
+      parts.add('Đã thêm ${result.addedCount} serial');
     } else {
-      parts.add('Khong co serial moi duoc them');
+      parts.add('Không co serial moi duoc them');
     }
     if (result.duplicateCount > 0) {
       parts.add('${result.duplicateCount} trung');
     }
     if (result.invalidCount > 0) {
-      parts.add('${result.invalidCount} khong hop le');
+      parts.add('${result.invalidCount} không hợp lệ');
     }
     if (result.overLimitCount > 0) {
       parts.add('${result.overLimitCount} vuot so luong');
@@ -1079,7 +1079,7 @@ class _SerialImportSheetState extends State<_SerialImportSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Nhap serial tu PO',
+                'Nhập serial từ PO',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: colorScheme.onSurface,
                   fontWeight: FontWeight.w800,
@@ -1087,7 +1087,7 @@ class _SerialImportSheetState extends State<_SerialImportSheet> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Chon don, san pham va dan danh sach serial de dong bo vao kho.',
+                'Chọn đơn, sản phẩm và dán danh sách serial để đồng bộ vào kho.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -1171,15 +1171,15 @@ class _SerialImportSheetState extends State<_SerialImportSheet> {
                 minLines: 5,
                 maxLines: 8,
                 decoration: const InputDecoration(
-                  labelText: 'Danh sach serial',
+                  labelText: 'Danh sách serial',
                   alignLabelWithHint: true,
-                  hintText: 'Moi dong 1 serial hoac tach bang dau phay',
+                  hintText: 'Mỗi dòng 1 serial hoặc tách bằng dấu phẩy',
                   prefixIcon: Icon(Icons.qr_code_2_outlined),
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Serial duoc tu dong chuan hoa, bo qua dong trong, trung va so luong vuot muc cho phep.',
+                'Serial được tự động chuẩn hóa, bỏ qua dòng trống, trùng và số lượng vượt mức cho phép.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -1241,7 +1241,7 @@ class _SerialImportSheetState extends State<_SerialImportSheet> {
                           )
                         : const Icon(Icons.inventory_2_outlined),
                     label: Text(
-                      _isSubmitting ? 'Dang import...' : 'Import serial',
+                      _isSubmitting ? 'Đang import...' : 'Import serial',
                     ),
                   ),
                 ],

@@ -871,7 +871,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     if (!success) {
       setState(() => _isSubmitting = false);
       _showSnackBar(
-        'Khong the dong bo kich hoat bao hanh. Vui long kiem tra lai.',
+        'Không thể đồng bộ kích hoạt bảo hành. Vui lòng kiểm tra lại.',
       );
       return;
     }

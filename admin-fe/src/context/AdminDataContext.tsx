@@ -149,7 +149,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
         setSettings(mapBackendSettings(settingsData))
       } catch (error) {
         if (!cancelled) {
-          notify(error instanceof Error ? error.message : 'Khong tai duoc du lieu admin', {
+          notify(error instanceof Error ? error.message : 'Không tải được dữ liệu admin', {
             title: 'Admin',
             variant: 'error',
           })

@@ -38,7 +38,7 @@ function SettingsPage() {
               await updateSettings(draft)
               notify('Da luu cai dat he thong', { title: 'Settings', variant: 'success' })
             } catch (error) {
-              notify(error instanceof Error ? error.message : 'Khong luu duoc cai dat', {
+              notify(error instanceof Error ? error.message : 'Không lưu được cài đặt', {
                 title: 'Settings',
                 variant: 'error',
               })
@@ -46,7 +46,7 @@ function SettingsPage() {
           }}
           type="button"
         >
-          {isSettingsSaving ? 'Dang luu...' : 'Luu thay doi'}
+          {isSettingsSaving ? 'Đang lưu...' : 'Luu thay doi'}
         </PrimaryButton>
       </div>
 
@@ -60,9 +60,9 @@ function SettingsPage() {
           <div className="mt-4 space-y-3">
             <label className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
               <div>
-                <p className="text-sm font-semibold text-slate-900">Xac nhan email</p>
+                <p className="text-sm font-semibold text-slate-900">Xác nhận email</p>
                 <p className="text-xs text-slate-500">
-                  Yeu cau admin xac nhan dang nhap qua email.
+                  Yêu cầu admin xác nhận đăng nhập qua email.
                 </p>
               </div>
               <input
@@ -77,7 +77,7 @@ function SettingsPage() {
 
             <label className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
               <div>
-                <p className="text-sm font-semibold text-slate-900">Het phien dang nhap</p>
+                <p className="text-sm font-semibold text-slate-900">Hết phiên đăng nhập</p>
                 <p className="text-xs text-slate-500">
                   Tu dong dang xuat sau so phut cau hinh.
                 </p>
@@ -105,14 +105,14 @@ function SettingsPage() {
         <section className="rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] p-5">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
             <Bell className="h-4 w-4 text-[var(--accent-cool)]" />
-            Thong bao
+            Thông báo
           </div>
           <div className="mt-4 space-y-3">
             <label className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
               <div>
-                <p className="text-sm font-semibold text-slate-900">Canh bao don hang</p>
+                <p className="text-sm font-semibold text-slate-900">Cảnh báo đơn hàng</p>
                 <p className="text-xs text-slate-500">
-                  Thong bao khi co don hang gia tri cao.
+                  Thông báo khi có đơn hàng giá trị cao.
                 </p>
               </div>
               <input

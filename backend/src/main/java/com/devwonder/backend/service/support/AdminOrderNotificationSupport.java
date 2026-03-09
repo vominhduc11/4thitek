@@ -37,11 +37,11 @@ public class AdminOrderNotificationSupport {
             return;
         }
 
-        String orderCode = firstNonBlank(order.getOrderCode(), "don hang #" + order.getId());
+        String orderCode = firstNonBlank(order.getOrderCode(), "đơn hàng #" + order.getId());
         notificationService.create(new CreateNotifyRequest(
                 dealer.getId(),
-                "Don hang da duoc go khoi he thong",
-                "Don " + orderCode + " khong con hien thi tren he thong. Vui long lien he admin neu can ho tro them.",
+                "Đơn hàng đã được gỡ khỏi hệ thống",
+                "Don " + orderCode + " không còn hiển thị trên hệ thống. Vui lòng liên hệ admin nếu cần hỗ trợ thêm.",
                 NotifyType.ORDER,
                 "/orders"
         ));
@@ -49,22 +49,22 @@ public class AdminOrderNotificationSupport {
 
     private String buildOrderStatusNotificationTitle(OrderStatus status) {
         return switch (status) {
-            case PENDING -> "Don hang dang cho xu ly";
-            case CONFIRMED -> "Don hang da duoc xac nhan";
-            case SHIPPING -> "Don hang dang duoc giao";
-            case COMPLETED -> "Don hang da hoan tat";
-            case CANCELLED -> "Don hang da bi huy";
+            case PENDING -> "Đơn hàng đang chờ xử lý";
+            case CONFIRMED -> "Đơn hàng đã được xác nhận";
+            case SHIPPING -> "Đơn hàng đang được giao";
+            case COMPLETED -> "Đơn hàng đã hoàn tất";
+            case CANCELLED -> "Đơn hàng đã bị hủy";
         };
     }
 
     private String buildOrderStatusNotificationContent(Order order, OrderStatus status) {
-        String orderCode = firstNonBlank(order.getOrderCode(), "don hang #" + order.getId());
+        String orderCode = firstNonBlank(order.getOrderCode(), "đơn hàng #" + order.getId());
         return switch (status) {
-            case PENDING -> "Don " + orderCode + " dang cho admin xu ly.";
+            case PENDING -> "Don " + orderCode + " đang chờ admin xử lý.";
             case CONFIRMED -> "Don " + orderCode + " da duoc admin xac nhan va dang duoc chuan bi.";
             case SHIPPING -> "Don " + orderCode + " dang tren duong giao den dai ly.";
             case COMPLETED -> "Don " + orderCode + " da hoan tat. Cam on ban da dat hang.";
-            case CANCELLED -> "Don " + orderCode + " da bi huy. Vui long lien he admin neu can ho tro them.";
+            case CANCELLED -> "Don " + orderCode + " đã bị hủy. Vui lòng liên hệ admin nếu cần hỗ trợ thêm.";
         };
     }
 

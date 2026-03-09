@@ -18,7 +18,7 @@ public class DealerOrderNotificationSupport {
     public void notifyOrderCreated(Dealer dealer, Order order) {
         notificationService.create(new CreateNotifyRequest(
                 dealer.getId(),
-                "Don hang moi da duoc tao",
+                "Đơn hàng mới đã được tạo",
                 "Don " + order.getOrderCode() + " da duoc ghi nhan tren he thong.",
                 NotifyType.ORDER,
                 "/orders/" + order.getOrderCode()

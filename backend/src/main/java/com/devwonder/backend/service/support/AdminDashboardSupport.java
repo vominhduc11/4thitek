@@ -69,8 +69,8 @@ public final class AdminDashboardSupport {
 
         List<AdminDashboardResponse.StatusItem> orderStatus = List.of(
                 new AdminDashboardResponse.StatusItem("Cho xu ly", countOrdersByStatus(activeOrders, OrderStatus.PENDING)),
-                new AdminDashboardResponse.StatusItem("Xac nhan", countOrdersByStatus(activeOrders, OrderStatus.CONFIRMED)),
-                new AdminDashboardResponse.StatusItem("Dang giao", countOrdersByStatus(activeOrders, OrderStatus.SHIPPING)),
+                new AdminDashboardResponse.StatusItem("Xác nhận", countOrdersByStatus(activeOrders, OrderStatus.CONFIRMED)),
+                new AdminDashboardResponse.StatusItem("Đang giao", countOrdersByStatus(activeOrders, OrderStatus.SHIPPING)),
                 new AdminDashboardResponse.StatusItem("Hoan tat", countOrdersByStatus(activeOrders, OrderStatus.COMPLETED)),
                 new AdminDashboardResponse.StatusItem("Huy", countOrdersByStatus(activeOrders, OrderStatus.CANCELLED))
         );
@@ -147,7 +147,7 @@ public final class AdminDashboardSupport {
 
         List<AdminDashboardResponse.SystemItem> items = new ArrayList<>();
         items.add(new AdminDashboardResponse.SystemItem(
-                "Dai ly",
+                "Đại lý",
                 dealers.size() + " tai khoan",
                 pendingDealers + " dang xem xet",
                 pendingDealers > 0 ? "warn" : "good",
@@ -170,7 +170,7 @@ public final class AdminDashboardSupport {
         items.add(new AdminDashboardResponse.SystemItem(
                 "Quan tri",
                 admins.size() + " tai khoan",
-                pendingAdmins + " cho kich hoat",
+                pendingAdmins + " chờ kích hoạt",
                 pendingAdmins > 0 ? "warn" : "neutral",
                 "ops"
         ));

@@ -67,9 +67,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   String get _primaryActionLabel {
     if (_method == OrderPaymentMethod.bankTransfer) {
-      return 'Tao don va xem thong tin chuyen khoan';
+      return 'Tạo đơn và xem thông tin chuyển khoản';
     }
-    return 'Xac nhan dat hang';
+    return 'Xác nhận đặt hàng';
   }
 
   Future<void> _openAccountSettings() async {
@@ -102,7 +102,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
       setState(() => _bankTransferInstructions = null);
       if (showError) {
-        _showSnackBar('Khong the tai thong tin chuyen khoan: $error');
+        _showSnackBar('Không thể tải thông tin chuyển khoản: $error');
       }
     } finally {
       if (mounted) {
@@ -164,7 +164,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             children: [
               FadeSlideIn(
                 child: SectionCard(
-                  title: 'Thong tin nhan hang',
+                  title: 'Thông tin nhận hàng',
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -173,7 +173,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         child: TextButton.icon(
                           onPressed: _openAccountSettings,
                           icon: const Icon(Icons.edit_outlined, size: 18),
-                          label: const Text('Sua thong tin nhan hang'),
+                          label: const Text('Sửa thông tin nhận hàng'),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -230,7 +230,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       children: [
                         RadioListTile<OrderPaymentMethod>(
                           value: OrderPaymentMethod.bankTransfer,
-                          title: const Text('Chuyen khoan ngan hang'),
+                          title: const Text('Chuyển khoản ngan hang'),
                           subtitle: const Text(
                             'Tao don truoc, SePay webhook se tu dong xac nhan thanh toan.',
                           ),
@@ -261,13 +261,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       childrenPadding: const EdgeInsets.only(top: 8),
                       initiallyExpanded: cart.items.length <= 3,
                       title: Text(
-                        '${cart.items.length} dong san pham',
+                        '${cart.items.length} dòng sản phẩm',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       subtitle: Text(
-                        'Nhan de xem chi tiet tung san pham',
+                        'Nhấn để xem chi tiết từng sản phẩm',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),
@@ -287,7 +287,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 160),
                 child: SectionCard(
-                  title: 'Ghi chu don hang',
+                  title: 'Ghi chú đơn hàng',
                   child: TextField(
                     controller: _orderNoteController,
                     maxLines: 3,
@@ -305,12 +305,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 200),
                 child: SectionCard(
-                  title: 'Tom tat don hang',
+                  title: 'Tóm tắt đơn hàng',
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _SummaryRow(
-                        label: 'So luong san pham',
+                        label: 'Số lượng sản phẩm',
                         value: '${cart.totalItems}',
                       ),
                       const SizedBox(height: 8),
@@ -350,7 +350,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       if (_method == OrderPaymentMethod.bankTransfer) ...[
                         const SizedBox(height: 8),
                         Text(
-                          'Don se duoc tao truoc. Sau do hay chuyen khoan dung so tien va dung ma don de SePay webhook doi soat tu dong.',
+                          'Đơn sẽ được tạo trước. Sau đó hãy chuyển khoản đúng số tiền và đúng mã đơn để SePay webhook đối soát tự động.',
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: colors.primary,
@@ -371,7 +371,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Dang tai thong tin chuyen khoan tu he thong...',
+                                  'Đang tải thông tin chuyển khoản từ hệ thống...',
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
                                         color: colors.onSurfaceVariant,
@@ -386,7 +386,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  'Chua tai duoc thong tin chuyen khoan. Hay thu lai truoc khi dat don.',
+                                  'Chưa tải được thông tin chuyển khoản. Hãy thử lại trước khi đặt đơn.',
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(color: colors.error),
                                 ),
@@ -397,7 +397,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                     : () => _loadBankTransferInstructions(
                                         showError: true,
                                       ),
-                                child: const Text('Tai lai'),
+                                child: const Text('Tải lại'),
                               ),
                             ],
                           ),
@@ -457,7 +457,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               );
                             } catch (_) {
                               _showSnackBar(
-                                'Khong the tao don hang. Vui long thu lai.',
+                                'Không thể tạo đơn hàng. Vui lòng thử lại.',
                               );
                             } finally {
                               if (mounted) {
@@ -503,16 +503,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Xac nhan ghi nhan cong no'),
+          title: const Text('Xác nhận ghi nhận công nợ'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Don hang se duoc tao ngay va ghi nhan vao tong cong no hien tai.',
+                'Đơn hàng sẽ được tạo ngay và ghi nhận vào tổng công nợ hiện tại.',
               ),
               const SizedBox(height: 12),
-              Text('So luong san pham: $itemCount'),
+              Text('Số lượng sản phẩm: $itemCount'),
               const SizedBox(height: 4),
               Text('Tong thanh toan: ${formatVnd(amount)}'),
             ],
@@ -524,7 +524,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Xac nhan dat hang'),
+              child: const Text('Xác nhận đặt hàng'),
             ),
           ],
         );
@@ -601,12 +601,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Can dieu chinh don hang'),
+          title: const Text('Cần điều chỉnh đơn hàng'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Vui long kiem tra:'),
+              const Text('Vui lòng kiểm tra:'),
               const SizedBox(height: 10),
               ...issues.map(
                 (issue) => Padding(

@@ -80,7 +80,7 @@ class NotificationController extends ChangeNotifier {
 
     final remoteId = _remoteNoticeIds[id];
     if (remoteId == null || !await _canUseRemoteApi()) {
-      return 'Khong the dong bo thong bao.';
+      return 'Không thể đồng bộ thông báo.';
     }
 
     final error = await _markRemoteRead(remoteId);
@@ -100,7 +100,7 @@ class NotificationController extends ChangeNotifier {
 
     final remoteId = _remoteNoticeIds[id];
     if (remoteId == null || !await _canUseRemoteApi()) {
-      return 'Khong the dong bo thong bao.';
+      return 'Không thể đồng bộ thông báo.';
     }
 
     final error = await _markRemoteUnread(remoteId);
@@ -119,7 +119,7 @@ class NotificationController extends ChangeNotifier {
     }
 
     if (_remoteNoticeIds.isEmpty || !await _canUseRemoteApi()) {
-      return 'Khong the dong bo thong bao.';
+      return 'Không thể đồng bộ thông báo.';
     }
 
     final error = await _markAllRemoteRead();
@@ -183,7 +183,7 @@ class NotificationController extends ChangeNotifier {
           DistributorNotice(
             id: noticeId,
             type: _mapRemoteType(entry['type']?.toString()),
-            title: _normalizeString(entry['title']) ?? 'Thong bao',
+            title: _normalizeString(entry['title']) ?? 'Thông báo',
             message: _normalizeString(entry['content']) ?? '',
             createdAt:
                 DateTime.tryParse(entry['createdAt']?.toString() ?? '') ??
@@ -225,7 +225,7 @@ class NotificationController extends ChangeNotifier {
       }
       return null;
     } catch (_) {
-      return 'Khong the dong bo thong bao.';
+      return 'Không thể đồng bộ thông báo.';
     }
   }
 
@@ -245,7 +245,7 @@ class NotificationController extends ChangeNotifier {
       }
       return null;
     } catch (_) {
-      return 'Khong the dong bo thong bao.';
+      return 'Không thể đồng bộ thông báo.';
     }
   }
 
@@ -263,7 +263,7 @@ class NotificationController extends ChangeNotifier {
       }
       return null;
     } catch (_) {
-      return 'Khong the dong bo thong bao.';
+      return 'Không thể đồng bộ thông báo.';
     }
   }
 
@@ -403,7 +403,7 @@ class NotificationController extends ChangeNotifier {
     final notice = DistributorNotice(
       id: remoteId.toString(),
       type: _mapRemoteType(payload['type']?.toString()),
-      title: _normalizeString(payload['title']) ?? 'Thong bao',
+      title: _normalizeString(payload['title']) ?? 'Thông báo',
       message: _normalizeString(payload['content']) ?? '',
       createdAt:
           DateTime.tryParse(payload['createdAt']?.toString() ?? '') ??
@@ -523,7 +523,7 @@ class NotificationController extends ChangeNotifier {
     if (error != null && error.trim().isNotEmpty) {
       return error.trim();
     }
-    return 'Khong the dong bo thong bao.';
+    return 'Không thể đồng bộ thông báo.';
   }
 
   NoticeType _mapRemoteType(String? raw) {

@@ -66,7 +66,7 @@ function WholesaleDiscountsPage() {
     setError('')
     const percent = Number(form.percent)
     if (!form.label.trim() || !form.range.trim() || Number.isNaN(percent) || percent <= 0) {
-      setError('Vui long nhap day du quy tac, nguong va phan tram')
+      setError('Vui lòng nhập đầy đủ quy tắc, ngưỡng và phần trăm')
       return
     }
     try {
@@ -80,7 +80,7 @@ function WholesaleDiscountsPage() {
       setShowForm(false)
       setForm({ label: '', range: '', percent: '', status: 'draft' })
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Khong tao duoc quy tac')
+      setError(saveError instanceof Error ? saveError.message : 'Không tạo được quy tắc')
     }
   }
 
@@ -133,7 +133,7 @@ function WholesaleDiscountsPage() {
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <StatCard icon={CheckCircle2} label="Dang hoat dong" value={stats.active} tone="success" />
+        <StatCard icon={CheckCircle2} label="Đang hoạt động" value={stats.active} tone="success" />
         <StatCard icon={Clock3} label="Cho phe duyet" value={stats.pending} tone="warning" />
         <StatCard icon={Tag} label="Muc cao nhat" value={`${stats.highest}%`} tone="info" />
       </div>
@@ -196,8 +196,8 @@ function WholesaleDiscountsPage() {
         {filteredRules.length === 0 ? (
           <EmptyState
             icon={Tag}
-            title="Khong co quy tac"
-            message="Thu doi bo loc hoac them quy tac moi."
+            title="Không có quy tắc"
+            message="Thử đổi bộ lọc hoặc thêm quy tắc mới."
           />
         ) : (
           <div className="overflow-x-auto">
@@ -247,7 +247,7 @@ function WholesaleDiscountsPage() {
                               variant: 'info',
                             })
                           } catch (error) {
-                            notify(error instanceof Error ? error.message : 'Khong cap nhat duoc quy tac', {
+                            notify(error instanceof Error ? error.message : 'Không cập nhật được quy tắc', {
                               title: 'Discounts',
                               variant: 'error',
                             })

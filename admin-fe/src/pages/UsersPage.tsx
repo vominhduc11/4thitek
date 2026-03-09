@@ -55,7 +55,7 @@ function UsersPage() {
   const handleInvite = async () => {
     setError('')
     if (!form.name.trim() || !form.role.trim()) {
-      setError('Vui long nhap ten va vai tro')
+      setError('Vui lòng nhập tên và vai trò')
       return
     }
 
@@ -65,7 +65,7 @@ function UsersPage() {
       setShowInvite(false)
       setForm({ name: '', role: '' })
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Khong tao duoc tai khoan')
+      setError(saveError instanceof Error ? saveError.message : 'Không tạo được tài khoản')
     }
   }
 
@@ -107,7 +107,7 @@ function UsersPage() {
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <StatCard icon={Users} label="Tong nhan su" value={users.length} />
-        <StatCard icon={ShieldCheck} label="Dang hoat dong" value={stats.active} tone="success" />
+        <StatCard icon={ShieldCheck} label="Đang hoạt động" value={stats.active} tone="success" />
         <StatCard label="Cho duyet" value={stats.pending} tone="info" />
       </div>
 
@@ -148,7 +148,7 @@ function UsersPage() {
         {filteredUsers.length === 0 ? (
           <EmptyState
             icon={Users}
-            title="Khong co nhan su"
+            title="Không có nhân sự"
             message="Thu tim tu khoa khac hoac moi thanh vien moi."
           />
         ) : (
@@ -186,7 +186,7 @@ function UsersPage() {
                             variant: 'info',
                           })
                         } catch (error) {
-                          notify(error instanceof Error ? error.message : 'Khong cap nhat duoc tai khoan', {
+                          notify(error instanceof Error ? error.message : 'Không cập nhật được tài khoản', {
                             title: 'Users',
                             variant: 'error',
                           })

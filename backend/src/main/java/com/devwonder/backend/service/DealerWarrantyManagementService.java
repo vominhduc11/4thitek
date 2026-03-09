@@ -274,8 +274,8 @@ public class DealerWarrantyManagementService {
             String dealerName = dealer == null ? "dai ly" : dealer.getBusinessName();
             notificationService.create(new CreateNotifyRequest(
                     customer.getId(),
-                    "Bao hanh da duoc kich hoat",
-                    String.format("Bao hanh cho %s (serial: %s) da duoc kich hoat boi %s.", productName, serial, dealerName),
+                    "Bảo hành đã được kích hoạt",
+                    String.format("Bảo hành cho %s (serial: %s) đã được kích hoạt bởi %s.", productName, serial, dealerName),
                     NotifyType.WARRANTY,
                     "/my-warranties"
             ));
@@ -291,8 +291,8 @@ public class DealerWarrantyManagementService {
         if (shouldNotifyExpiringSoon) {
             notificationService.create(new CreateNotifyRequest(
                     customer.getId(),
-                    "Bao hanh sap het han",
-                    String.format("Bao hanh cua %s se het han trong %d ngay.", productName, currentRemainingDays),
+                    "Bảo hành sắp hết hạn",
+                    String.format("Bảo hành của %s sẽ hết hạn trong %d ngày.", productName, currentRemainingDays),
                     NotifyType.SYSTEM,
                     "/my-warranties"
             ));

@@ -25,7 +25,7 @@ function OrderDetailPage() {
     return (
       <PagePanel>
         <EmptyState
-          title="Khong tim thay don hang"
+          title="Không tìm thấy đơn hàng"
           message={`Don ${decodedId} khong ton tai hoac da bi xoa.`}
         />
         <div className="mt-4">
@@ -49,7 +49,7 @@ function OrderDetailPage() {
           to="/orders"
         >
           <ArrowLeft className="h-4 w-4" />
-          Ve don hang
+          Về đơn hàng
         </Link>
         <StatusBadge tone={orderStatusTone[order.status]}>
           {orderStatusLabel[order.status]}
@@ -63,7 +63,7 @@ function OrderDetailPage() {
           <p className="mt-2 text-sm text-slate-500">{formatDateTime(order.createdAt)}</p>
           <div className="mt-4 space-y-2 text-sm text-slate-700">
             <p>
-              <span className="font-semibold text-slate-900">Dai ly:</span> {order.dealer}
+              <span className="font-semibold text-slate-900">Đại lý:</span> {order.dealer}
             </p>
             <p>
               <span className="font-semibold text-slate-900">So mat hang:</span> {order.items}
@@ -76,7 +76,7 @@ function OrderDetailPage() {
               <span className="font-semibold text-slate-900">Dia chi:</span> {order.address}
             </p>
             <p>
-              <span className="font-semibold text-slate-900">Ghi chu:</span> {order.note}
+              <span className="font-semibold text-slate-900">Ghi chú:</span> {order.note}
             </p>
           </div>
         </div>
@@ -96,7 +96,7 @@ function OrderDetailPage() {
                     variant: 'info',
                   })
                 } catch (error) {
-                  notify(error instanceof Error ? error.message : 'Khong cap nhat duoc don hang', {
+                  notify(error instanceof Error ? error.message : 'Không cập nhật được đơn hàng', {
                     title: 'Orders',
                     variant: 'error',
                   })
@@ -117,7 +117,7 @@ function OrderDetailPage() {
                   await updateOrderStatus(order.id, 'completed')
                   notify(`Don ${order.id} da hoan tat`, { title: 'Orders', variant: 'success' })
                 } catch (error) {
-                  notify(error instanceof Error ? error.message : 'Khong cap nhat duoc don hang', {
+                  notify(error instanceof Error ? error.message : 'Không cập nhật được đơn hàng', {
                     title: 'Orders',
                     variant: 'error',
                   })
@@ -130,7 +130,7 @@ function OrderDetailPage() {
           </div>
 
           <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50/70 p-3">
-            <p className="text-sm font-semibold text-rose-700">Xoa don hang</p>
+            <p className="text-sm font-semibold text-rose-700">Xóa đơn hàng</p>
             <p className="mt-1 text-xs text-rose-600">
               Hanh dong nay se xoa don khoi danh sach.
             </p>
@@ -142,7 +142,7 @@ function OrderDetailPage() {
                   notify(`Da xoa ${order.id}`, { title: 'Orders', variant: 'error' })
                   navigate('/orders')
                 } catch (error) {
-                  notify(error instanceof Error ? error.message : 'Khong xoa duoc don hang', {
+                  notify(error instanceof Error ? error.message : 'Không xóa được đơn hàng', {
                     title: 'Orders',
                     variant: 'error',
                   })

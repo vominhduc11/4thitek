@@ -1,14 +1,24 @@
 class DealerApiConfig {
-  static const String baseUrl = String.fromEnvironment('API_BASE_URL');
-  static const String webSocketBaseUrl = String.fromEnvironment(
+  static const String _rawBaseUrl = String.fromEnvironment('API_BASE_URL');
+  static const String _rawWebSocketBaseUrl = String.fromEnvironment(
     'WS_BASE_URL',
   );
-  static const String publicSiteBaseUrl = String.fromEnvironment(
+  static const String _rawPublicSiteBaseUrl = String.fromEnvironment(
     'PUBLIC_SITE_BASE_URL',
     defaultValue: 'https://4thitek.vn',
   );
 
-  static bool get isConfigured => baseUrl.trim().isNotEmpty;
+  static String get baseUrl => _sanitizeConfiguredBaseUrl(_rawBaseUrl);
+
+  static String get webSocketBaseUrl =>
+      _sanitizeConfiguredBaseUrl(_rawWebSocketBaseUrl);
+
+  static String get publicSiteBaseUrl {
+    final normalized = _sanitizeConfiguredBaseUrl(_rawPublicSiteBaseUrl);
+    return normalized.isEmpty ? 'https://4thitek.vn' : normalized;
+  }
+
+  static bool get isConfigured => baseUrl.isNotEmpty;
 
   static Uri get authLoginUri => Uri.parse('$baseUrl/api/auth/login');
 
@@ -19,6 +29,9 @@ class DealerApiConfig {
     final effectiveBaseUrl = normalizedWebSocketBaseUrl.isEmpty
         ? baseUrl
         : normalizedWebSocketBaseUrl;
+    if (effectiveBaseUrl.isEmpty) {
+      return '';
+    }
     return _resolveUrlWithBase(effectiveBaseUrl, '/ws');
   }
 
@@ -50,6 +63,22 @@ class DealerApiConfig {
       return '$normalizedBase$trimmed';
     }
     return '$normalizedBase/$trimmed';
+  }
+
+  static String _sanitizeConfiguredBaseUrl(String value) {
+    final trimmed = value.trim().replaceFirst(RegExp(r'/$'), '');
+    if (trimmed.isEmpty) {
+      return '';
+    }
+
+    final parsed = Uri.tryParse(trimmed);
+    final host = parsed?.host.trim().toLowerCase() ?? '';
+    if (host.isNotEmpty &&
+        (host == 'example.com' || host.endsWith('.example.com'))) {
+      return '';
+    }
+
+    return trimmed;
   }
 
   static const Map<String, String> jsonHeaders = <String, String>{
