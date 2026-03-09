@@ -88,20 +88,20 @@ services:
     ports:
       - "${ADMIN_FE_PORT:-4173}:80"
 
-  dealer:
-    build:
-      context: ./dealer
-      dockerfile: Dockerfile
-      args:
-        API_BASE_URL: ${DEALER_API_BASE_URL}
-        WS_BASE_URL: ${DEALER_WS_BASE_URL:-}
-        PUBLIC_SITE_BASE_URL: ${PUBLIC_SITE_BASE_URL}
-    restart: unless-stopped
-    depends_on:
-      backend:
-        condition: service_healthy
-    ports:
-      - "${DEALER_PORT:-4174}:80"
+  # dealer:
+  #   build:
+  #     context: ./dealer
+  #     dockerfile: Dockerfile
+  #     args:
+  #       API_BASE_URL: ${DEALER_API_BASE_URL}
+  #       WS_BASE_URL: ${DEALER_WS_BASE_URL:-}
+  #       PUBLIC_SITE_BASE_URL: ${PUBLIC_SITE_BASE_URL}
+  #   restart: unless-stopped
+  #   depends_on:
+  #     backend:
+  #       condition: service_healthy
+  #   ports:
+  #     - "${DEALER_PORT:-4174}:80"
 
 volumes:
   pgdata:
