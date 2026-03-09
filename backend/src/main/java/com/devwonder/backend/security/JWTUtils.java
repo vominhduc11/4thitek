@@ -6,15 +6,21 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.function.Function;
 
 @Component
 public class JWTUtils {
+    private static final Logger log = LoggerFactory.getLogger(JWTUtils.class);
+    private static final int MIN_HMAC_KEY_BYTES = 32;
     private final SecretKey key;
     private final long accessTokenExpirationMs;
     private final long refreshTokenExpirationMs;
@@ -29,10 +35,7 @@ public class JWTUtils {
             throw new IllegalStateException("Missing JWT secret. Set environment variable JWT_SECRET.");
         }
 
-        byte[] keyBytes = normalizedSecret.getBytes(StandardCharsets.UTF_8);
-        if (keyBytes.length < 32) {
-            throw new IllegalStateException("JWT secret must be at least 32 bytes.");
-        }
+        byte[] keyBytes = deriveKeyBytes(normalizedSecret);
         if (accessTokenExpirationMs <= 0) {
             throw new IllegalStateException("Access token expiration must be greater than 0.");
         }
@@ -46,6 +49,24 @@ public class JWTUtils {
         this.key = Keys.hmacShaKeyFor(keyBytes);
         this.accessTokenExpirationMs = accessTokenExpirationMs;
         this.refreshTokenExpirationMs = refreshTokenExpirationMs;
+    }
+
+    private byte[] deriveKeyBytes(String secret) {
+        byte[] rawKeyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (rawKeyBytes.length >= MIN_HMAC_KEY_BYTES) {
+            return rawKeyBytes;
+        }
+
+        log.warn(
+                "JWT secret is shorter than {} bytes; deriving an HMAC key via SHA-256. Use a longer JWT_SECRET in production.",
+                MIN_HMAC_KEY_BYTES
+        );
+
+        try {
+            return MessageDigest.getInstance("SHA-256").digest(rawKeyBytes);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is not available for JWT key derivation.", ex);
+        }
     }
 
     public String generateToken(UserDetails userDetails) {
