@@ -56,12 +56,12 @@ npm run dev
 
 ## Docker Compose
 
-`docker-compose.yaml` gio la stack production-safe mac dinh.
+`docker-compose.yaml` gio la stack mac dinh de bring-up nhanh, van uu tien gia tri trong `.env` neu co.
 
 Tren cloud server:
 
 1. Tao file `.env` tu [.env.example](.env.example)
-2. Dien day du secrets, domain va API URL that
+2. It nhat thay `POSTGRES_PASSWORD` va `JWT_SECRET`; neu deploy public thi dien tiep domain va API URL that
 3. Chay:
 
 ```bash
@@ -74,7 +74,20 @@ Neu muon rebuild image sau khi `git pull` hoac sua code:
 docker compose up -d --build
 ```
 
-Stack nay khong kem reverse proxy/TLS. Neu deploy internet-facing, can dat them Nginx, Caddy hoac load balancer ben ngoai.
+Mac dinh stack nay tu fallback duoc cac gia tri toi thieu de boot:
+
+- Postgres password mac dinh: `app_password`
+- JWT secret mac dinh: `change-me-to-a-32-byte-secret`
+- `main-fe` va `admin-fe` dung `/api`; `admin-fe` proxy `/api` va `/uploads` vao backend trong stack
+
+Neu da tung tao volume Postgres bang password sai hoac rong, can reset volume mot lan sau khi sua env:
+
+```bash
+docker compose down -v
+docker compose up -d --build
+```
+
+Stack nay khong kem reverse proxy/TLS. Neu deploy internet-facing, phai thay secret mac dinh va dat them Nginx, Caddy hoac load balancer ben ngoai.
 
 ## Docker Compose Dev
 

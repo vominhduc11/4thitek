@@ -19,7 +19,10 @@ const isPlaceholderHost = (value: string) => {
 
 const rawApiBaseUrl = (() => {
   const trimmed = (import.meta.env.VITE_API_BASE_URL ?? '').trim()
-  return isPlaceholderHost(trimmed) ? '' : trimmed
+  if (!trimmed || isPlaceholderHost(trimmed)) {
+    return '/api'
+  }
+  return trimmed
 })()
 
 const normalizeApiBaseUrl = (value: string) => {
