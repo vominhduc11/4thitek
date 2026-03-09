@@ -9,10 +9,10 @@ import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'cart_screen.dart';
 import 'global_search.dart';
-import 'mock_data.dart';
 import 'models.dart';
 import 'notification_controller.dart';
 import 'product_detail_screen.dart';
+import 'product_catalog_controller.dart';
 import 'utils.dart';
 import 'widgets/cart_icon_button.dart';
 import 'widgets/notification_icon_button.dart';
@@ -42,9 +42,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   String _searchText = '';
   StockFilter _stockFilter = StockFilter.all;
   SortOption _sortOption = SortOption.none;
-  final List<Product> _catalogProducts = List.unmodifiable(
-    mockProducts,
-  );
+  ProductCatalogController? _productCatalog;
   final Set<String> _addingProductIds = <String>{};
   int _queryRevision = 0;
 
@@ -57,7 +55,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final nextCatalog = ProductCatalogScope.maybeOf(context);
+    if (identical(_productCatalog, nextCatalog)) {
+      return;
+    }
+    _productCatalog?.removeListener(_handleCatalogChanged);
+    _productCatalog = nextCatalog;
+    _productCatalog?.addListener(_handleCatalogChanged);
+    unawaited(_productCatalog?.load());
+  }
+
+  @override
   void dispose() {
+    _productCatalog?.removeListener(_handleCatalogChanged);
     _searchDebounce?.cancel();
     _searchController.dispose();
     _pagingController.dispose();
@@ -235,6 +247,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   Future<void> _fetchPage(int pageKey) async {
     final requestRevision = _queryRevision;
     try {
+      await _productCatalog?.load();
       await Future.delayed(_apiLatency);
       if (!mounted || requestRevision != _queryRevision) {
         return;
@@ -307,8 +320,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   List<Product> _applyFilters() {
+    final catalogProducts = _productCatalog?.products ?? const <Product>[];
     final query = _searchText.toLowerCase();
-    final filtered = _catalogProducts.where((product) {
+    final filtered = catalogProducts.where((product) {
       if (query.isNotEmpty) {
         final name = product.name.toLowerCase();
         final sku = product.sku.toLowerCase();
@@ -648,7 +662,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
           ),
           const SizedBox(height: 12),
           OutlinedButton(
-            onPressed: _pagingController.retryLastFailedRequest,
+            onPressed: _retryLoadProducts,
             child: const Text('Thử lại'),
           ),
         ],
@@ -987,6 +1001,18 @@ class _ProductListScreenState extends State<ProductListScreen> {
       _searchText.isNotEmpty ||
       _stockFilter != StockFilter.all ||
       _sortOption != SortOption.none;
+
+  void _handleCatalogChanged() {
+    if (!mounted) {
+      return;
+    }
+    _refreshProducts();
+  }
+
+  void _retryLoadProducts() {
+    unawaited(_productCatalog?.load(forceRefresh: true));
+    _refreshProducts();
+  }
 
   void _refreshProducts() {
     _queryRevision++;

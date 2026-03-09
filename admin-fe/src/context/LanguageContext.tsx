@@ -26,7 +26,7 @@ const translations: Record<Language, TranslationMap> = {
     'Đơn hàng': 'Orders',
     'Bài viết': 'Posts',
     'Chiết khấu sỉ': 'Wholesale Discounts',
-    'Khách hàng': 'Customers',
+    'Đại lý': 'Dealers',
     'Quản trị': 'Admins',
     'Cài đặt': 'Settings',
     'Trung tâm vận hành': 'Operations center',
@@ -142,7 +142,7 @@ const translations: Record<Language, TranslationMap> = {
     '5 ngày trước': '5 days ago',
     'Quản lý đại lý, hạn mức và trạng thái mua hàng.':
       'Manage dealers, limits, and purchase status.',
-    'Tìm khách hàng...': 'Search customers...',
+    'Tìm đại lý...': 'Search dealers...',
     'Thêm khách hàng': 'Add customer',
     'Tổng đại lý': 'Total dealers',
     '+6 trong 30 ngày': '+6 in 30 days',

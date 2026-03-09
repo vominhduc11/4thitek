@@ -1,10 +1,16 @@
 package com.devwonder.backend.entity;
 
+import com.devwonder.backend.entity.enums.NotifyType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import lombok.Getter;
@@ -23,20 +29,28 @@ public class Notify {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_account")
+    private Account account;
+
     @Column(name = "title")
     private String title;
 
-    @Column(name = "message", columnDefinition = "text")
-    private String message;
+    @Column(name = "content", columnDefinition = "text")
+    private String content;
 
-    @Column(name = "time")
-    private Instant time;
-
-    @Column(name = "read")
+    @Column(name = "is_read")
     private Boolean isRead;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "type")
-    private String type;
+    private NotifyType type;
+
+    @Column(name = "link")
+    private String link;
+
+    @Column(name = "read_at")
+    private Instant readAt;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

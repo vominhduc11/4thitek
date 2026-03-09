@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'breakpoints.dart';
 import 'dashboard_screen.dart';
 import 'global_search.dart';
-import 'mock_data.dart';
+import 'models.dart';
 import 'notification_controller.dart';
 import 'orders_screen.dart';
 import 'product_list_screen.dart';
@@ -39,7 +39,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           IconButton(
             tooltip: 'Đánh dấu tất cả đã đọc',
             onPressed: hasUnread
-                ? () => _markAllAsRead(notificationController)
+                ? () async => _markAllAsRead(notificationController)
                 : null,
             icon: const Icon(Icons.done_all_outlined),
           ),
@@ -178,9 +178,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  void _markAllAsRead(NotificationController notificationController) {
-    notificationController.markAllAsRead();
+  Future<void> _markAllAsRead(
+    NotificationController notificationController,
+  ) async {
+    final error = await notificationController.markAllAsRead();
     if (!mounted) {
+      return;
+    }
+    if (error != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
@@ -190,9 +198,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _openNoticeDetail(DistributorNotice notice) async {
     final notificationController = NotificationScope.of(context);
-    notificationController.markRead(notice.id);
+    final readError = await notificationController.markRead(notice.id);
     if (!mounted) {
       return;
+    }
+    if (readError != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(readError)));
     }
 
     final action = await showModalBottomSheet<_NoticeDetailAction>(
@@ -285,9 +298,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     switch (action) {
       case _NoticeDetailAction.markUnread:
-        notificationController.markUnread(notice.id);
+        final error = await notificationController.markUnread(notice.id);
         if (!mounted) {
           return;
+        }
+        if (error != null) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(error)));
+          break;
         }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đã đánh dấu là chưa đọc.')),

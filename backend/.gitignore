@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+.env
+backend-run.log
+spring-boot-run.log

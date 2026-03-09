@@ -1,6 +1,7 @@
 package com.devwonder.backend.config;
 
 import lombok.RequiredArgsConstructor;
+import java.util.Arrays;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
@@ -17,35 +18,41 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final WebSocketAuthenticationInterceptor authenticationInterceptor;
     private final WebSocketAuthorizationInterceptor authorizationInterceptor;
 
-    @Value("${websocket.allowed-origins:http://localhost:3000,http://127.0.0.1:3000}")
-    private String[] allowedOrigins;
+    @Value("${app.cors.allowed-origin-patterns:}")
+    private String allowedOriginPatterns;
     
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         // Enable simple broker for /topic and /queue destinations
         config.enableSimpleBroker("/topic", "/queue");
-        
+
         // Set application destination prefix
         config.setApplicationDestinationPrefixes("/app");
+        config.setUserDestinationPrefix("/user");
     }
     
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Register SockJS endpoint with WebSocket fallback
         // Direct connection via reverse proxy (not through API Gateway)
-        // Allowed origins configured in application.yml
+        // Allowed origins configured from env-backed application properties
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns(allowedOrigins)
+                .setAllowedOriginPatterns(parseAllowedOrigins())
                 .withSockJS();
     }
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
         // Add JWT authentication interceptor for STOMP CONNECT frames
-        // Add role-based authorization interceptor for STOMP SEND frames
+        // Enforce destination-level authorization for client subscriptions
         registration.interceptors(authenticationInterceptor, authorizationInterceptor);
     }
+
+    private String[] parseAllowedOrigins() {
+        return Arrays.stream(allowedOriginPatterns.split(","))
+                .map(String::trim)
+                .filter(value -> !value.isEmpty())
+                .toArray(String[]::new);
+    }
 }
-
-
 

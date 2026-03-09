@@ -52,17 +52,21 @@ function UsersPage() {
     return { active, pending }
   }, [users])
 
-  const handleInvite = () => {
+  const handleInvite = async () => {
     setError('')
     if (!form.name.trim() || !form.role.trim()) {
       setError('Vui long nhap ten va vai tro')
       return
     }
 
-    const created = addUser(form)
-    notify(`Da moi ${created.name}`, { title: 'Users', variant: 'success' })
-    setShowInvite(false)
-    setForm({ name: '', role: '' })
+    try {
+      const created = await addUser(form)
+      notify(`Da moi ${created.name}`, { title: 'Users', variant: 'success' })
+      setShowInvite(false)
+      setForm({ name: '', role: '' })
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Khong tao duoc tai khoan')
+    }
   }
 
   if (isLoading) {
@@ -173,13 +177,20 @@ function UsersPage() {
                     <select
                       aria-label={`User status ${user.id}`}
                       className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                      onChange={(event) => {
+                      onChange={async (event) => {
                         const next = event.target.value as UserStatus
-                        updateUserStatus(user.id, next)
-                        notify(`Cap nhat ${user.name} -> ${userStatusLabel[next]}`, {
-                          title: 'Users',
-                          variant: 'info',
-                        })
+                        try {
+                          await updateUserStatus(user.id, next)
+                          notify(`Cap nhat ${user.name} -> ${userStatusLabel[next]}`, {
+                            title: 'Users',
+                            variant: 'info',
+                          })
+                        } catch (error) {
+                          notify(error instanceof Error ? error.message : 'Khong cap nhat duoc tai khoan', {
+                            title: 'Users',
+                            variant: 'error',
+                          })
+                        }
                       }}
                       value={user.status}
                     >

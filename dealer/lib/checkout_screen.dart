@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import 'account_settings_screen.dart';
+import 'bank_transfer_support.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'dealer_profile_storage.dart';
 import 'global_search.dart';
-import 'mock_data.dart';
 import 'models.dart';
 import 'order_controller.dart';
 import 'order_success_screen.dart';
@@ -26,18 +27,31 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   OrderPaymentMethod _method = OrderPaymentMethod.bankTransfer;
   DealerProfile _profile = DealerProfile.defaults;
   final TextEditingController _orderNoteController = TextEditingController();
+  late final BankTransferService _bankTransferService;
+  BankTransferInstructions? _bankTransferInstructions;
   bool _isSubmitting = false;
+  bool _isLoadingBankTransferInstructions = false;
 
   @override
   void initState() {
     super.initState();
-    loadDealerProfile().then((p) {
-      if (mounted) setState(() => _profile = p);
-    });
+    _bankTransferService = BankTransferService();
+    loadDealerProfile()
+        .then((profile) {
+          if (!mounted) {
+            return;
+          }
+          setState(() => _profile = profile);
+        })
+        .catchError((_) {
+          // Keep default profile when remote profile is temporarily unavailable.
+        });
+    _loadBankTransferInstructions();
   }
 
   @override
   void dispose() {
+    _bankTransferService.close();
     _orderNoteController.dispose();
     super.dispose();
   }
@@ -53,9 +67,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   String get _primaryActionLabel {
     if (_method == OrderPaymentMethod.bankTransfer) {
-      return 'Chuyển khoản & đặt hàng';
+      return 'Tao don va xem thong tin chuyen khoan';
     }
-    return 'Xác nhận đặt hàng';
+    return 'Xac nhan dat hang';
   }
 
   Future<void> _openAccountSettings() async {
@@ -67,6 +81,59 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return;
     }
     setState(() => _profile = latestProfile);
+  }
+
+  Future<void> _loadBankTransferInstructions({bool showError = false}) async {
+    if (_isLoadingBankTransferInstructions) {
+      return;
+    }
+    if (mounted) {
+      setState(() => _isLoadingBankTransferInstructions = true);
+    }
+    try {
+      final instructions = await _bankTransferService.fetchInstructions();
+      if (!mounted) {
+        return;
+      }
+      setState(() => _bankTransferInstructions = instructions);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _bankTransferInstructions = null);
+      if (showError) {
+        _showSnackBar('Khong the tai thong tin chuyen khoan: $error');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingBankTransferInstructions = false);
+      }
+    }
+  }
+
+  Future<BankTransferInstructions?> _ensureBankTransferInstructions() async {
+    if (_bankTransferInstructions != null) {
+      return _bankTransferInstructions;
+    }
+    await _loadBankTransferInstructions(showError: true);
+    return _bankTransferInstructions;
+  }
+
+  Future<void> _copyToClipboard(String label, String value) async {
+    await Clipboard.setData(ClipboardData(text: value));
+    if (!mounted) {
+      return;
+    }
+    _showSnackBar('Da sao chep $label');
+  }
+
+  void _showSnackBar(String message) {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -86,7 +153,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const BrandAppBarTitle('Thanh toán'),
+        title: const BrandAppBarTitle('Thanh toan'),
         actions: const [GlobalSearchIconButton()],
       ),
       body: Center(
@@ -97,7 +164,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             children: [
               FadeSlideIn(
                 child: SectionCard(
-                  title: 'Thông tin nhận hàng',
+                  title: 'Thong tin nhan hang',
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -106,7 +173,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         child: TextButton.icon(
                           onPressed: _openAccountSettings,
                           icon: const Icon(Icons.edit_outlined, size: 18),
-                          label: const Text('Sửa thông tin nhận hàng'),
+                          label: const Text('Sua thong tin nhan hang'),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -118,7 +185,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Người liên hệ: ${_profile.contactName}',
+                        'Nguoi lien he: ${_profile.contactName}',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),
@@ -132,7 +199,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'SĐT: ${_profile.phone}',
+                        'SDT: ${_profile.phone}',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),
@@ -145,7 +212,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 60),
                 child: SectionCard(
-                  title: 'Phương thức thanh toán',
+                  title: 'Phuong thuc thanh toan',
                   child: RadioGroup<OrderPaymentMethod>(
                     groupValue: _method,
                     onChanged: (value) {
@@ -153,23 +220,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         return;
                       }
                       setState(() => _method = value);
+                      if (value == OrderPaymentMethod.bankTransfer &&
+                          _bankTransferInstructions == null &&
+                          !_isLoadingBankTransferInstructions) {
+                        _loadBankTransferInstructions();
+                      }
                     },
                     child: Column(
                       children: [
                         RadioListTile<OrderPaymentMethod>(
                           value: OrderPaymentMethod.bankTransfer,
-                          title: const Text('Chuyển khoản ngân hàng'),
+                          title: const Text('Chuyen khoan ngan hang'),
                           subtitle: const Text(
-                            'Thanh toán trước, hệ thống tự động cập nhật giao dịch.',
+                            'Tao don truoc, SePay webhook se tu dong xac nhan thanh toan.',
                           ),
                         ),
                         RadioListTile<OrderPaymentMethod>(
                           value: OrderPaymentMethod.debt,
-                          title: const Text(
-                            'Ghi nhận công nợ (thanh toán sau)',
-                          ),
+                          title: const Text('Ghi nhan cong no'),
                           subtitle: const Text(
-                            'Đơn được cộng vào tổng công nợ hiện tại.',
+                            'Don duoc tao ngay va cong vao tong cong no hien tai.',
                           ),
                         ),
                       ],
@@ -181,7 +251,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 120),
                 child: SectionCard(
-                  title: 'Sản phẩm trong đơn (${cart.totalItems})',
+                  title: 'San pham trong don (${cart.totalItems})',
                   child: Theme(
                     data: Theme.of(
                       context,
@@ -191,13 +261,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       childrenPadding: const EdgeInsets.only(top: 8),
                       initiallyExpanded: cart.items.length <= 3,
                       title: Text(
-                        '${cart.items.length} dòng sản phẩm',
+                        '${cart.items.length} dong san pham',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       subtitle: Text(
-                        'Nhấn để xem chi tiết từng sản phẩm',
+                        'Nhan de xem chi tiet tung san pham',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),
@@ -217,7 +287,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 160),
                 child: SectionCard(
-                  title: 'Ghi chú đơn hàng',
+                  title: 'Ghi chu don hang',
                   child: TextField(
                     controller: _orderNoteController,
                     maxLines: 3,
@@ -225,7 +295,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     maxLength: 200,
                     decoration: const InputDecoration(
                       hintText:
-                          'Ví dụ: giao giờ hành chính, gọi trước khi giao, lưu ý xuất hóa đơn...',
+                          'Vi du: giao gio hanh chinh, goi truoc khi giao, luu y xuat hoa don...',
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -235,27 +305,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 200),
                 child: SectionCard(
-                  title: 'Tóm tắt đơn hàng',
+                  title: 'Tom tat don hang',
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _SummaryRow(
-                        label: 'Số lượng sản phẩm',
+                        label: 'So luong san pham',
                         value: '${cart.totalItems}',
                       ),
                       const SizedBox(height: 8),
                       _SummaryRow(
-                        label: 'Tạm tính',
+                        label: 'Tam tinh',
                         value: formatVnd(subtotal),
                       ),
                       if (discountAmount > 0) ...[
                         const SizedBox(height: 8),
                         _SummaryRow(
-                          label: 'Chiết khấu ($discountPercent%)',
+                          label: 'Chiet khau ($discountPercent%)',
                           value: '-${formatVnd(discountAmount)}',
                         ),
                         const SizedBox(height: 8),
                         _SummaryRow(
-                          label: 'Sau chiết khấu',
+                          label: 'Sau chiet khau',
                           value: formatVnd(totalAfterDiscount),
                         ),
                       ],
@@ -266,30 +337,75 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                       const SizedBox(height: 8),
                       _SummaryRow(
-                        label: 'Phí giao hàng',
+                        label: 'Phi giao hang',
                         value: shippingFee == 0
-                            ? 'Miễn phí'
+                            ? 'Mien phi'
                             : formatVnd(shippingFee),
                       ),
                       const SizedBox(height: 8),
                       _SummaryRow(
-                        label: 'Trạng thái thanh toán',
+                        label: 'Trang thai thanh toan',
                         value: _previewPaymentStatus.label,
                       ),
                       if (_method == OrderPaymentMethod.bankTransfer) ...[
                         const SizedBox(height: 8),
                         Text(
-                          'Lưu ý: bấm "$_primaryActionLabel" để mở thông tin chuyển khoản. Đơn chỉ được tạo khi hệ thống nhận thanh toán thành công.',
+                          'Don se duoc tao truoc. Sau do hay chuyen khoan dung so tien va dung ma don de SePay webhook doi soat tu dong.',
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
-                                color: colors.error,
+                                color: colors.primary,
                                 fontWeight: FontWeight.w600,
                               ),
                         ),
+                        if (_isLoadingBankTransferInstructions) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Dang tai thong tin chuyen khoan tu he thong...',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: colors.onSurfaceVariant,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ] else if (_bankTransferInstructions == null) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Chua tai duoc thong tin chuyen khoan. Hay thu lai truoc khi dat don.',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: colors.error),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: _isSubmitting
+                                    ? null
+                                    : () => _loadBankTransferInstructions(
+                                        showError: true,
+                                      ),
+                                child: const Text('Tai lai'),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                       const Divider(height: 20),
                       _SummaryRow(
-                        label: 'Tổng cộng',
+                        label: 'Tong cong',
                         value: formatVnd(total),
                         isEmphasis: true,
                       ),
@@ -310,26 +426,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             try {
                               final issues = _validateCart(cart);
                               if (issues.isNotEmpty) {
-                                _showValidationDialog(context, issues);
+                                await _showValidationDialog(context, issues);
                                 return;
                               }
 
-                              final isBankTransfer =
-                                  _method == OrderPaymentMethod.bankTransfer;
-                              var bankTransferPaid = false;
-                              if (isBankTransfer) {
-                                final paid = await _showBankTransferInfo(
-                                  context,
-                                  amount: total,
-                                  owner: distributorBankOwner,
-                                  account: distributorBankAccount,
-                                  bankName: distributorBankName,
-                                  content: distributorTransferTemplate,
-                                );
-                                if (paid != true) {
+                              BankTransferInstructions?
+                              bankTransferInstructions;
+                              if (_method == OrderPaymentMethod.bankTransfer) {
+                                bankTransferInstructions =
+                                    await _ensureBankTransferInstructions();
+                                if (bankTransferInstructions == null) {
                                   return;
                                 }
-                                bankTransferPaid = true;
                               } else {
                                 final confirmed = await _showDebtConfirmDialog(
                                   context,
@@ -341,10 +449,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 }
                               }
 
-                              _placeOrder(
+                              await _placeOrder(
                                 cart: cart,
                                 orderController: orderController,
-                                bankTransferPaid: bankTransferPaid,
+                                bankTransferInstructions:
+                                    bankTransferInstructions,
+                              );
+                            } catch (_) {
+                              _showSnackBar(
+                                'Khong the tao don hang. Vui long thu lai.',
                               );
                             } finally {
                               if (mounted) {
@@ -374,37 +487,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     for (final item in cart.items) {
       if (item.quantity > item.product.stock) {
         issues.add(
-          '${item.product.name} chỉ còn ${item.product.stock} SP trong kho.',
+          '${item.product.name} chi con ${item.product.stock} SP trong kho.',
         );
       }
     }
     return issues;
-  }
-
-  Future<bool?> _showBankTransferInfo(
-    BuildContext context, {
-    required int amount,
-    required String owner,
-    required String account,
-    required String bankName,
-    required String content,
-  }) {
-    return showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      isDismissible: false,
-      enableDrag: false,
-      builder: (sheetContext) {
-        return _BankTransferInfoSheet(
-          amount: amount,
-          owner: owner,
-          account: account,
-          bankName: bankName,
-          content: content,
-          onCopy: _copyToClipboard,
-        );
-      },
-    );
   }
 
   Future<bool?> _showDebtConfirmDialog(
@@ -416,28 +503,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Xác nhận ghi nhận công nợ'),
+          title: const Text('Xac nhan ghi nhan cong no'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Đơn hàng sẽ được tạo ngay và ghi nhận vào tổng công nợ hiện tại.',
+                'Don hang se duoc tao ngay va ghi nhan vao tong cong no hien tai.',
               ),
               const SizedBox(height: 12),
-              Text('Số lượng sản phẩm: $itemCount'),
+              Text('So luong san pham: $itemCount'),
               const SizedBox(height: 4),
-              Text('Tổng thanh toán: ${formatVnd(amount)}'),
+              Text('Tong thanh toan: ${formatVnd(amount)}'),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Hủy'),
+              child: const Text('Huy'),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Xác nhận đặt hàng'),
+              child: const Text('Xac nhan dat hang'),
             ),
           ],
         );
@@ -445,21 +532,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  void _placeOrder({
+  Future<void> _placeOrder({
     required CartController cart,
     required OrderController orderController,
-    required bool bankTransferPaid,
-  }) {
-    final isPaidByBankTransfer =
-        _method == OrderPaymentMethod.bankTransfer && bankTransferPaid;
+    BankTransferInstructions? bankTransferInstructions,
+  }) async {
+    final isBankTransfer = _method == OrderPaymentMethod.bankTransfer;
     final order = Order(
       id: _generateOrderId(orderController),
       createdAt: DateTime.now(),
       status: OrderStatus.pendingApproval,
       paymentMethod: _method,
-      paymentStatus: isPaidByBankTransfer
-          ? OrderPaymentStatus.paid
-          : _previewPaymentStatus,
+      paymentStatus: _previewPaymentStatus,
       receiverName: _profile.businessName,
       receiverAddress: _profile.shippingAddress,
       receiverPhone: _profile.phone,
@@ -470,22 +554,40 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 OrderLineItem(product: item.product, quantity: item.quantity),
           )
           .toList(growable: false),
-      paidAmount: isPaidByBankTransfer ? cart.total : 0,
+      paidAmount: 0,
       note: _orderNoteController.text.trim().isEmpty
           ? null
           : _orderNoteController.text.trim(),
     );
-    final itemCount = order.totalItems;
-    final totalPrice = order.total;
-    orderController.addOrder(order);
-    cart.clear();
+    final createdOrder = await orderController.addOrder(order);
+    if (!mounted) {
+      return;
+    }
+
+    if (isBankTransfer && bankTransferInstructions != null) {
+      await showBankTransferInfoSheet(
+        context: context,
+        instructions: bankTransferInstructions,
+        amount: createdOrder.total,
+        content: createdOrder.id,
+        onCopy: _copyToClipboard,
+      );
+      if (!mounted) {
+        return;
+      }
+    }
+
+    await cart.clear(rollbackOnFailure: false);
+    if (!mounted) {
+      return;
+    }
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => OrderSuccessScreen(
-          orderId: order.id,
-          itemCount: itemCount,
-          totalPrice: totalPrice,
+          orderId: createdOrder.id,
+          itemCount: createdOrder.totalItems,
+          totalPrice: createdOrder.total,
         ),
       ),
     );
@@ -499,12 +601,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Cần điều chỉnh đơn hàng'),
+          title: const Text('Can dieu chinh don hang'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Vui lòng kiểm tra:'),
+              const Text('Vui long kiem tra:'),
               const SizedBox(height: 10),
               ...issues.map(
                 (issue) => Padding(
@@ -523,20 +625,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Đóng'),
+              child: const Text('Dong'),
             ),
           ],
         );
       },
     );
-  }
-
-  Future<void> _copyToClipboard(String label, String value) async {
-    await Clipboard.setData(ClipboardData(text: value));
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Đã sao chép $label')));
   }
 
   String _generateOrderId(OrderController orderController) {
@@ -658,201 +752,6 @@ class _CheckoutItemRow extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-class _BankTransferInfoSheet extends StatefulWidget {
-  const _BankTransferInfoSheet({
-    required this.amount,
-    required this.owner,
-    required this.account,
-    required this.bankName,
-    required this.content,
-    required this.onCopy,
-  });
-
-  final int amount;
-  final String owner;
-  final String account;
-  final String bankName;
-  final String content;
-  final Future<void> Function(String label, String value) onCopy;
-
-  @override
-  State<_BankTransferInfoSheet> createState() => _BankTransferInfoSheetState();
-}
-
-class _BankTransferInfoSheetState extends State<_BankTransferInfoSheet> {
-  @override
-  Widget build(BuildContext context) {
-    final isTablet = AppBreakpoints.isTablet(context);
-    final maxWidth = isTablet ? 760.0 : double.infinity;
-    final colors = Theme.of(context).colorScheme;
-    return SafeArea(
-      child: SingleChildScrollView(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxWidth),
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 12,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Thông tin chuyển khoản',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Vui lòng xem thông tin chuyển khoản. Bạn có thể thanh toán bằng STK/nội dung hoặc quét QR bên ngoài ứng dụng.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: colors.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: colors.primary.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Text(
-                      'Hệ thống sẽ theo dõi giao dịch từ chuyển khoản/QR bên ngoài. Khi nhận thành công, app sẽ tự động cập nhật và chuyển sang trang đơn hàng.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  _BankTransferInfoRow(
-                    label: 'Số tiền',
-                    value: formatVnd(widget.amount),
-                    onCopy: () {
-                      widget.onCopy('Số tiền', widget.amount.toString());
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  _BankTransferInfoRow(
-                    label: 'Chủ tài khoản',
-                    value: widget.owner,
-                    onCopy: () {
-                      widget.onCopy('Chủ tài khoản', widget.owner);
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  _BankTransferInfoRow(
-                    label: 'Số tài khoản',
-                    value: widget.account,
-                    onCopy: () {
-                      widget.onCopy('Số tài khoản', widget.account);
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  _BankTransferInfoRow(
-                    label: 'Ngân hàng',
-                    value: widget.bankName,
-                    onCopy: () {
-                      widget.onCopy('Ngân hàng', widget.bankName);
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  _BankTransferInfoRow(
-                    label: 'Nội dung',
-                    value: widget.content,
-                    onCopy: () {
-                      widget.onCopy('Nội dung chuyển khoản', widget.content);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.of(context).pop(false),
-                          child: const Text('Hủy'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: () => Navigator.of(context).pop(true),
-                          child: const Text('Đã chuyển khoản'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BankTransferInfoRow extends StatelessWidget {
-  const _BankTransferInfoRow({
-    required this.label,
-    required this.value,
-    required this.onCopy,
-  });
-
-  final String label;
-  final String value;
-  final VoidCallback onCopy;
-
-  @override
-  Widget build(BuildContext context) {
-    final borderColor = Theme.of(context).colorScheme.outlineVariant;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(value, style: Theme.of(context).textTheme.bodyMedium),
-              ],
-            ),
-          ),
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            padding: const EdgeInsets.all(10),
-            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-            onPressed: onCopy,
-            icon: const Icon(Icons.copy, size: 18),
-            tooltip: 'Sao chép',
-          ),
-        ],
-      ),
     );
   }
 }

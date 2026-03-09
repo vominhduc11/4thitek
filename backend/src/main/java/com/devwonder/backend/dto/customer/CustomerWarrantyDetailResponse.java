@@ -2,11 +2,10 @@ package com.devwonder.backend.dto.customer;
 
 import com.devwonder.backend.entity.enums.WarrantyStatus;
 import java.time.Instant;
-import java.util.UUID;
 
 public record CustomerWarrantyDetailResponse(
-        UUID id,
-        UUID productId,
+        Long id,
+        Long productId,
         String productName,
         String productImage,
         String productSku,
@@ -15,7 +14,7 @@ public record CustomerWarrantyDetailResponse(
         Instant warrantyStart,
         Instant warrantyEnd,
         long remainingDays,
-        UUID dealerId,
+        Long dealerId,
         String dealerName,
         Instant createdAt
 ) {

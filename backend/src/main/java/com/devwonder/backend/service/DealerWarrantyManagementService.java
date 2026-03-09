@@ -1,8 +1,8 @@
 package com.devwonder.backend.service;
 
+import com.devwonder.backend.dto.notify.CreateNotifyRequest;
 import com.devwonder.backend.dto.warranty.CreateWarrantyRegistrationRequest;
 import com.devwonder.backend.dto.warranty.WarrantyRegistrationResponse;
-import com.devwonder.backend.dto.notify.CreateNotifyRequest;
 import com.devwonder.backend.entity.Customer;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
@@ -23,7 +23,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -44,7 +43,7 @@ public class DealerWarrantyManagementService {
     private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
-    public List<WarrantyRegistrationResponse> list(UUID dealerId) {
+    public List<WarrantyRegistrationResponse> list(Long dealerId) {
         if (dealerId != null) {
             if (!dealerRepository.existsById(dealerId)) {
                 throw new ResourceNotFoundException("Dealer not found");
@@ -61,7 +60,7 @@ public class DealerWarrantyManagementService {
     }
 
     @Transactional(readOnly = true)
-    public Page<WarrantyRegistrationResponse> list(UUID dealerId, Pageable pageable) {
+    public Page<WarrantyRegistrationResponse> list(Long dealerId, Pageable pageable) {
         Pageable effectivePageable = withDefaultSort(pageable, "createdAt");
         if (dealerId != null) {
             if (!dealerRepository.existsById(dealerId)) {
@@ -73,7 +72,7 @@ public class DealerWarrantyManagementService {
     }
 
     @Transactional(readOnly = true)
-    public WarrantyRegistrationResponse getById(UUID id) {
+    public WarrantyRegistrationResponse getById(Long id) {
         WarrantyRegistration registration = warrantyRegistrationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Warranty registration not found"));
         return toResponse(registration);
@@ -94,7 +93,7 @@ public class DealerWarrantyManagementService {
     }
 
     @Transactional
-    public WarrantyRegistrationResponse update(UUID id, CreateWarrantyRegistrationRequest request) {
+    public WarrantyRegistrationResponse update(Long id, CreateWarrantyRegistrationRequest request) {
         WarrantyRegistration registration = warrantyRegistrationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Warranty registration not found"));
         ProductSerial productSerial = productSerialRepository.findById(request.productSerialId())
@@ -111,7 +110,7 @@ public class DealerWarrantyManagementService {
     }
 
     @Transactional
-    public void delete(UUID id) {
+    public void delete(Long id) {
         WarrantyRegistration registration = warrantyRegistrationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Warranty registration not found"));
         warrantyRegistrationRepository.delete(registration);
@@ -135,51 +134,59 @@ public class DealerWarrantyManagementService {
         registration.setDealer(dealer);
         registration.setCustomer(customer);
         registration.setOrder(order);
+        registration.setCustomerName(customer == null ? registration.getCustomerName() : customer.getFullName());
+        registration.setCustomerEmail(customer == null ? registration.getCustomerEmail() : customer.getEmail());
+        registration.setCustomerPhone(customer == null ? registration.getCustomerPhone() : customer.getPhone());
 
         Instant warrantyStart = resolveWarrantyStart(request.warrantyStart(), registration.getWarrantyStart(), creating);
         registration.setWarrantyStart(warrantyStart);
+        registration.setPurchaseDate(warrantyStart);
         registration.setWarrantyEnd(resolveWarrantyEnd(request.warrantyEnd(), warrantyStart, productSerial));
+        registration.setWarrantyCode(buildWarrantyCode(productSerial));
 
         WarrantyStatus status = request.status() != null
                 ? request.status()
                 : (registration.getStatus() == null ? WarrantyStatus.ACTIVE : registration.getStatus());
         registration.setStatus(status);
 
+        productSerial.setDealer(dealer);
+        productSerial.setCustomer(customer);
+        productSerial.setOrder(order);
         if (status == WarrantyStatus.ACTIVE) {
             productSerial.setStatus(ProductSerialStatus.WARRANTY);
-            productSerialRepository.save(productSerial);
         }
+        productSerialRepository.save(productSerial);
 
         createWarrantyNotifications(registration, customer, dealer, creating, previousStatus, previousWarrantyEnd);
     }
 
     private Dealer resolveDealer(CreateWarrantyRegistrationRequest request, ProductSerial productSerial) {
-        UUID dealerId = request.dealerId();
+        Long dealerId = request.dealerId();
         if (dealerId == null && productSerial.getDealer() != null) {
             dealerId = productSerial.getDealer().getId();
         }
         if (dealerId == null) {
             return null;
         }
-        UUID finalDealerId = dealerId;
+        Long finalDealerId = dealerId;
         return dealerRepository.findById(finalDealerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Dealer not found"));
     }
 
     private Customer resolveCustomer(CreateWarrantyRegistrationRequest request, ProductSerial productSerial) {
-        UUID customerId = request.customerId();
+        Long customerId = request.customerId();
         if (customerId == null && productSerial.getCustomer() != null) {
             customerId = productSerial.getCustomer().getId();
         }
         if (customerId == null) {
             return null;
         }
-        UUID finalCustomerId = customerId;
+        Long finalCustomerId = customerId;
         return customerRepository.findById(finalCustomerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
     }
 
-    private Order resolveOrder(UUID orderId) {
+    private Order resolveOrder(Long orderId) {
         if (orderId == null) {
             return null;
         }
@@ -258,17 +265,17 @@ public class DealerWarrantyManagementService {
         ProductSerial productSerial = registration.getProductSerial();
         Product product = productSerial == null ? null : productSerial.getProduct();
         String productName = product == null || product.getName() == null || product.getName().isBlank()
-                ? "Sản phẩm"
+                ? "San pham"
                 : product.getName();
 
         boolean justActivated = creating || previousStatus != WarrantyStatus.ACTIVE;
         if (justActivated) {
             String serial = productSerial == null ? "" : productSerial.getSerial();
-            String dealerName = dealer == null ? "đại lý" : dealer.getBusinessName();
+            String dealerName = dealer == null ? "dai ly" : dealer.getBusinessName();
             notificationService.create(new CreateNotifyRequest(
                     customer.getId(),
-                    "Bảo hành đã được kích hoạt",
-                    String.format("Bảo hành cho %s (serial: %s) đã được kích hoạt bởi %s.", productName, serial, dealerName),
+                    "Bao hanh da duoc kich hoat",
+                    String.format("Bao hanh cho %s (serial: %s) da duoc kich hoat boi %s.", productName, serial, dealerName),
                     NotifyType.WARRANTY,
                     "/my-warranties"
             ));
@@ -284,8 +291,8 @@ public class DealerWarrantyManagementService {
         if (shouldNotifyExpiringSoon) {
             notificationService.create(new CreateNotifyRequest(
                     customer.getId(),
-                    "Bảo hành sắp hết hạn",
-                    String.format("Bảo hành của %s sẽ hết hạn trong %d ngày.", productName, currentRemainingDays),
+                    "Bao hanh sap het han",
+                    String.format("Bao hanh cua %s se het han trong %d ngay.", productName, currentRemainingDays),
                     NotifyType.SYSTEM,
                     "/my-warranties"
             ));
@@ -298,5 +305,11 @@ public class DealerWarrantyManagementService {
         }
         long days = ChronoUnit.DAYS.between(Instant.now(), warrantyEnd);
         return Math.max(0L, days);
+    }
+
+    private String buildWarrantyCode(ProductSerial productSerial) {
+        String serial = productSerial.getSerial() == null ? "UNKNOWN" : productSerial.getSerial().replaceAll("[^A-Za-z0-9]", "");
+        String suffix = serial.length() <= 8 ? serial : serial.substring(serial.length() - 8);
+        return "WAR-" + suffix.toUpperCase();
     }
 }

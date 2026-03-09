@@ -25,7 +25,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -111,7 +110,7 @@ public class CustomerPortalService {
     }
 
     @Transactional(readOnly = true)
-    public CustomerWarrantyDetailResponse getWarrantyDetail(String username, UUID warrantyId) {
+    public CustomerWarrantyDetailResponse getWarrantyDetail(String username, Long warrantyId) {
         Customer customer = requireCustomerByUsername(username);
         WarrantyRegistration registration = warrantyRegistrationRepository.findByIdAndCustomerId(warrantyId, customer.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Warranty registration not found"));
@@ -131,11 +130,19 @@ public class CustomerPortalService {
     }
 
     @Transactional
-    public NotifyResponse markNotificationRead(String username, UUID notifyId) {
+    public NotifyResponse markNotificationRead(String username, Long notifyId) {
         Customer customer = requireCustomerByUsername(username);
         Notify notify = notifyRepository.findByIdAndAccountId(notifyId, customer.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
         return notificationService.markRead(notify.getId());
+    }
+
+    @Transactional
+    public NotifyResponse markNotificationUnread(String username, Long notifyId) {
+        Customer customer = requireCustomerByUsername(username);
+        Notify notify = notifyRepository.findByIdAndAccountId(notifyId, customer.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
+        return notificationService.markUnread(notify.getId());
     }
 
     @Transactional
@@ -166,7 +173,7 @@ public class CustomerPortalService {
         return new CustomerWarrantySummaryResponse(
                 registration.getId(),
                 product == null ? "N/A" : product.getName(),
-                product == null ? null : product.getImage(),
+                serializeProductImage(product),
                 productSerial == null ? "N/A" : productSerial.getSerial(),
                 resolveStatus(registration),
                 registration.getWarrantyStart(),
@@ -184,7 +191,7 @@ public class CustomerPortalService {
                 registration.getId(),
                 product == null ? null : product.getId(),
                 product == null ? "N/A" : product.getName(),
-                product == null ? null : product.getImage(),
+                serializeProductImage(product),
                 product == null ? null : product.getSku(),
                 productSerial == null ? "N/A" : productSerial.getSerial(),
                 resolveStatus(registration),
@@ -227,6 +234,14 @@ public class CustomerPortalService {
             return "N/A";
         }
         return dealer.getBusinessName();
+    }
+
+    private String serializeProductImage(Product product) {
+        if (product == null || product.getImage() == null || product.getImage().isEmpty()) {
+            return null;
+        }
+        Object imageUrl = product.getImage().get("imageUrl");
+        return imageUrl == null ? null : imageUrl.toString();
     }
 
     private String normalize(String value) {

@@ -83,7 +83,7 @@ function AppLayout() {
       { to: '/orders', label: t('Đơn hàng'), icon: ShoppingCart },
       { to: '/blogs', label: t('Bài viết'), icon: FileText },
       { to: '/discounts', label: t('Chiết khấu sỉ'), icon: Percent },
-      { to: '/customers', label: t('Khách hàng'), icon: UserCircle },
+      { to: '/dealers', label: t('Đại lý'), icon: UserCircle },
       { to: '/users', label: t('Quản trị'), icon: Users },
       { to: '/settings', label: t('Cài đặt'), icon: Settings },
     ],

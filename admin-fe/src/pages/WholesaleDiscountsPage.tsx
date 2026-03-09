@@ -62,22 +62,26 @@ function WholesaleDiscountsPage() {
     return { active, pending, highest }
   }, [discountRules])
 
-  const handleCreateRule = () => {
+  const handleCreateRule = async () => {
     setError('')
     const percent = Number(form.percent)
     if (!form.label.trim() || !form.range.trim() || Number.isNaN(percent) || percent <= 0) {
       setError('Vui long nhap day du quy tac, nguong va phan tram')
       return
     }
-    const created = addDiscountRule({
-      label: form.label,
-      range: form.range,
-      percent,
-      status: form.status,
-    })
-    notify(`Da them quy tac ${created.id}`, { title: 'Discounts', variant: 'success' })
-    setShowForm(false)
-    setForm({ label: '', range: '', percent: '', status: 'draft' })
+    try {
+      const created = await addDiscountRule({
+        label: form.label,
+        range: form.range,
+        percent,
+        status: form.status,
+      })
+      notify(`Da them quy tac ${created.id}`, { title: 'Discounts', variant: 'success' })
+      setShowForm(false)
+      setForm({ label: '', range: '', percent: '', status: 'draft' })
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Khong tao duoc quy tac')
+    }
   }
 
   if (isLoading) {
@@ -234,13 +238,20 @@ function WholesaleDiscountsPage() {
                       <select
                         aria-label={`Rule status ${rule.id}`}
                         className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                        onChange={(event) => {
+                        onChange={async (event) => {
                           const next = event.target.value as RuleStatus
-                          updateDiscountRuleStatus(rule.id, next)
-                          notify(`Cap nhat ${rule.id} -> ${ruleStatusLabel[next]}`, {
-                            title: 'Discounts',
-                            variant: 'info',
-                          })
+                          try {
+                            await updateDiscountRuleStatus(rule.id, next)
+                            notify(`Cap nhat ${rule.id} -> ${ruleStatusLabel[next]}`, {
+                              title: 'Discounts',
+                              variant: 'info',
+                            })
+                          } catch (error) {
+                            notify(error instanceof Error ? error.message : 'Khong cap nhat duoc quy tac', {
+                              title: 'Discounts',
+                              variant: 'error',
+                            })
+                          }
                         }}
                         value={rule.status}
                       >

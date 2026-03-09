@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_spinbox/flutter_spinbox.dart';
 
@@ -42,9 +44,18 @@ class CartScreen extends StatelessWidget {
         ? 148.0
         : (isLandscapePhone ? 136.0 : 128.0);
 
-    void removeItemWithUndo(CartItem item) {
+    Future<void> removeItemWithUndo(CartItem item) async {
       final removedQty = item.quantity;
-      cart.remove(item.product.id);
+      final didRemove = await cart.remove(item.product.id);
+      if (!context.mounted) {
+        return;
+      }
+      if (!didRemove) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(texts.syncCartFailed)),
+        );
+        return;
+      }
       final messenger = ScaffoldMessenger.of(context);
       messenger
         ..hideCurrentSnackBar()
@@ -54,7 +65,7 @@ class CartScreen extends StatelessWidget {
             action: SnackBarAction(
               label: texts.undoAction,
               onPressed: () {
-                cart.setQuantity(item.product, removedQty);
+                unawaited(cart.setQuantity(item.product, removedQty));
               },
             ),
           ),
@@ -251,9 +262,8 @@ class CartScreen extends StatelessWidget {
                               ),
                             ),
                           ),
-                          onChanged: (val) => cart.setQuantity(
-                            item.product,
-                            val.round(),
+                          onChanged: (val) => unawaited(
+                            cart.setQuantity(item.product, val.round()),
                           ),
                         ),
                       );
@@ -264,7 +274,7 @@ class CartScreen extends StatelessWidget {
                         ),
                         color: const Color(0xFFDC2626),
                         tooltip: texts.deleteTooltip,
-                        onPressed: () => removeItemWithUndo(item),
+                        onPressed: () => unawaited(removeItemWithUndo(item)),
                       );
                       final stockWarning = !canIncrease
                           ? <Widget>[
@@ -302,7 +312,8 @@ class CartScreen extends StatelessWidget {
                                 size: 24,
                               ),
                             ),
-                            onDismissed: (_) => removeItemWithUndo(item),
+                            onDismissed: (_) =>
+                                unawaited(removeItemWithUndo(item)),
                             child: Card(
                               margin: EdgeInsets.zero,
                               elevation: 0,
@@ -682,6 +693,9 @@ class _CartTexts {
   String removedFromCart(String productName) => isEnglish
       ? 'Removed $productName from cart'
       : 'Đã xóa $productName khỏi giỏ';
+  String get syncCartFailed => isEnglish
+      ? 'Could not sync cart. Please try again.'
+      : 'Không thể đồng bộ giỏ hàng. Vui lòng thử lại.';
   String get undoAction => isEnglish ? 'Undo' : 'Hoàn tác';
   String get deleteAction => isEnglish ? 'Delete' : 'Xóa';
   String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';

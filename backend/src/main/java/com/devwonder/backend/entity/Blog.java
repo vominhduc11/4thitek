@@ -1,6 +1,7 @@
 package com.devwonder.backend.entity;
 
-import java.time.LocalDateTime;
+import com.devwonder.backend.entity.enums.BlogStatus;
+import java.time.Instant;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -16,6 +17,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -48,16 +51,20 @@ public class Blog {
     @Column(name = "show_on_homepage")
     private Boolean showOnHomepage = false;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private BlogStatus status = BlogStatus.DRAFT;
+
     @Column(name = "is_deleted")
     private Boolean isDeleted = false;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_category_blog")

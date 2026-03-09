@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'dealer_profile_storage.dart';
+import 'file_reference.dart';
+import 'upload_service.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/section_card.dart';
@@ -22,12 +25,15 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   final _shippingAddressController = TextEditingController();
   final _policyController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final _uploadService = UploadService();
 
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isUploadingAvatar = false;
   bool _hasUnsavedChanges = false;
   bool _didLoadInitialData = false;
   String _initialSnapshot = '';
+  String? _avatarUrl;
 
   List<TextEditingController> get _editableControllers => [
     _businessNameController,
@@ -48,7 +54,15 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Future<void> _loadData() async {
-    final profile = await loadDealerProfile();
+    DealerProfile profile;
+    try {
+      profile = await loadDealerProfile();
+    } catch (error) {
+      profile = DealerProfile.defaults;
+      if (mounted) {
+        _showSnackBar('Khong the tai ho so: $error');
+      }
+    }
     if (!mounted) {
       return;
     }
@@ -58,6 +72,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     _phoneController.text = profile.phone;
     _shippingAddressController.text = profile.shippingAddress;
     _policyController.text = profile.salesPolicy;
+    _avatarUrl = profile.avatarUrl;
     _initialSnapshot = _formSnapshot();
     _didLoadInitialData = true;
     setState(() {
@@ -99,6 +114,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       _phoneController.text.trim(),
       _shippingAddressController.text.trim(),
       _policyController.text.trim(),
+      _avatarUrl?.trim() ?? '',
     ].join('||');
   }
 
@@ -108,6 +124,72 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   bool _isValidPhone(String phone) {
     return RegExp(r'^[0-9+\s-]{8,}$').hasMatch(phone);
+  }
+
+  Future<void> _pickAvatar(bool isEnglish) async {
+    if (_isSaving || _isUploadingAvatar) {
+      return;
+    }
+
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked == null) {
+      return;
+    }
+
+    setState(() => _isUploadingAvatar = true);
+    try {
+      final nextAvatarUrl = await _uploadAvatar(picked);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _avatarUrl = nextAvatarUrl;
+      });
+      _showSnackBar(
+        isEnglish
+            ? 'Avatar updated. Save changes to keep it.'
+            : 'Da cap nhat avatar. Nhan Luu de xac nhan.',
+      );
+      _handleFormChanged();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showSnackBar(
+        isEnglish
+            ? 'Unable to upload avatar: $error'
+            : 'Khong the tai avatar: $error',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingAvatar = false);
+      }
+    }
+  }
+
+  Future<String> _uploadAvatar(XFile picked) async {
+    final uploaded = await _uploadService.uploadXFile(
+      file: picked,
+      category: 'dealer-avatars',
+    );
+    return uploaded.url;
+  }
+
+  void _removeAvatar(bool isEnglish) {
+    if (_isSaving ||
+        _isUploadingAvatar ||
+        (_avatarUrl?.trim().isEmpty ?? true)) {
+      return;
+    }
+    setState(() {
+      _avatarUrl = null;
+    });
+    _showSnackBar(
+      isEnglish
+          ? 'Avatar removed. Save changes to confirm.'
+          : 'Da xoa avatar. Nhan Luu de xac nhan.',
+    );
+    _handleFormChanged();
   }
 
   Future<bool> _handleWillPop(bool isEnglish) async {
@@ -184,6 +266,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     _phoneController.text = defaults.phone;
     _shippingAddressController.text = defaults.shippingAddress;
     _policyController.text = defaults.salesPolicy;
+    _avatarUrl = defaults.avatarUrl;
     _showSnackBar(
       isEnglish
           ? 'Default values applied. Press Save to confirm.'
@@ -244,16 +327,32 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     }
 
     setState(() => _isSaving = true);
-    await saveDealerProfile(
-      DealerProfile(
-        businessName: _businessNameController.text.trim(),
-        contactName: _contactNameController.text.trim(),
-        email: _emailController.text.trim(),
-        phone: _phoneController.text.trim(),
-        shippingAddress: _shippingAddressController.text.trim(),
-        salesPolicy: _policyController.text.trim(),
-      ),
-    );
+    try {
+      await saveDealerProfile(
+        DealerProfile(
+          businessName: _businessNameController.text.trim(),
+          contactName: _contactNameController.text.trim(),
+          email: _emailController.text.trim(),
+          phone: _phoneController.text.trim(),
+          shippingAddress: _shippingAddressController.text.trim(),
+          salesPolicy: _policyController.text.trim(),
+          avatarUrl: _avatarUrl?.trim().isEmpty ?? true
+              ? null
+              : _avatarUrl!.trim(),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _isSaving = false);
+      _showSnackBar(
+        isEnglish
+            ? 'Unable to save profile: $error'
+            : 'Khong the luu ho so: $error',
+      );
+      return;
+    }
 
     if (!mounted) {
       return;
@@ -303,6 +402,13 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
     final screenTitle = isEnglish ? 'Account settings' : 'Cài đặt tài khoản';
     final resetTooltip = isEnglish ? 'Reset to defaults' : 'Đặt lại mặc định';
+    final avatarTitle = isEnglish ? 'Avatar' : 'Anh dai dien';
+    final avatarHint = isEnglish
+        ? 'Upload a dealer avatar for profile screens.'
+        : 'Tai anh dai dien cho ho so dai ly.';
+    final uploadAvatarLabel = isEnglish ? 'Upload avatar' : 'Tai avatar';
+    final replaceAvatarLabel = isEnglish ? 'Replace avatar' : 'Doi avatar';
+    final removeAvatarLabel = isEnglish ? 'Remove avatar' : 'Xoa avatar';
     final companyTitle = isEnglish
         ? 'Business information'
         : 'Thông tin doanh nghiệp';
@@ -354,6 +460,89 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                       children: [
+                        FadeSlideIn(
+                          child: SectionCard(
+                            title: avatarTitle,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _AvatarPreview(
+                                  imageProvider: imageProviderFromReference(
+                                    _avatarUrl,
+                                  ),
+                                  fallbackLabel:
+                                      _businessNameController.text
+                                          .trim()
+                                          .isEmpty
+                                      ? 'D'
+                                      : _businessNameController.text
+                                            .trim()
+                                            .substring(0, 1)
+                                            .toUpperCase(),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        avatarHint,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Wrap(
+                                        spacing: 10,
+                                        runSpacing: 10,
+                                        children: [
+                                          OutlinedButton.icon(
+                                            onPressed: _isUploadingAvatar
+                                                ? null
+                                                : () => _pickAvatar(isEnglish),
+                                            icon: _isUploadingAvatar
+                                                ? const SizedBox(
+                                                    width: 16,
+                                                    height: 16,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                        ),
+                                                  )
+                                                : const Icon(
+                                                    Icons
+                                                        .photo_camera_back_outlined,
+                                                  ),
+                                            label: Text(
+                                              (_avatarUrl?.trim().isNotEmpty ??
+                                                      false)
+                                                  ? replaceAvatarLabel
+                                                  : uploadAvatarLabel,
+                                            ),
+                                          ),
+                                          if (_avatarUrl?.trim().isNotEmpty ??
+                                              false)
+                                            TextButton(
+                                              onPressed: () =>
+                                                  _removeAvatar(isEnglish),
+                                              child: Text(removeAvatarLabel),
+                                            ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
                         FadeSlideIn(
                           child: SectionCard(
                             title: companyTitle,
@@ -501,6 +690,35 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 ),
               ),
       ),
+    );
+  }
+}
+
+class _AvatarPreview extends StatelessWidget {
+  const _AvatarPreview({
+    required this.imageProvider,
+    required this.fallbackLabel,
+  });
+
+  final ImageProvider<Object>? imageProvider;
+  final String fallbackLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return CircleAvatar(
+      radius: 34,
+      backgroundColor: colors.primaryContainer,
+      backgroundImage: imageProvider,
+      child: imageProvider == null
+          ? Text(
+              fallbackLabel,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: colors.onPrimaryContainer,
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          : null,
     );
   }
 }

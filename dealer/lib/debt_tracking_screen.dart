@@ -7,6 +7,7 @@ import 'breakpoints.dart';
 import 'models.dart';
 import 'order_controller.dart';
 import 'order_detail_screen.dart';
+import 'upload_service.dart';
 import 'utils.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
@@ -20,7 +21,7 @@ class DebtTrackingScreen extends StatefulWidget {
 
 class _DebtTrackingScreenState extends State<DebtTrackingScreen> {
   Future<void> _handleRefresh() async {
-    await Future<void>.delayed(const Duration(milliseconds: 420));
+    await OrderScope.of(context).load(forceRefresh: true);
     if (!mounted) {
       return;
     }
@@ -33,7 +34,13 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen> {
     final texts = _DebtTexts(isEnglish: isEnglish);
     final orderController = OrderScope.of(context);
     final debtOrders = orderController.debtOrders;
-    final paymentHistory = orderController.paymentHistory;
+    final debtOrderIds = orderController.orders
+        .where((order) => order.paymentMethod == OrderPaymentMethod.debt)
+        .map((order) => order.id)
+        .toSet();
+    final paymentHistory = orderController.paymentHistory
+        .where((payment) => debtOrderIds.contains(payment.orderId))
+        .toList(growable: false);
     final isTablet = AppBreakpoints.isTablet(context);
     final maxWidth = isTablet ? 960.0 : double.infinity;
 
@@ -423,6 +430,7 @@ class _DebtOrderCard extends StatelessWidget {
     BuildContext context,
     Order order,
   ) async {
+    final uploadService = UploadService();
     final colors = Theme.of(context).colorScheme;
     final amountController = TextEditingController();
     final noteController = TextEditingController();
@@ -432,6 +440,7 @@ class _DebtOrderCard extends StatelessWidget {
         ? channels.last
         : channels.first;
     var isSubmitting = false;
+    var isUploadingProof = false;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -549,24 +558,81 @@ class _DebtOrderCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 10),
                           OutlinedButton.icon(
-                            onPressed: () async {
-                              final picked = await ImagePicker().pickImage(
-                                source: ImageSource.gallery,
-                              );
-                              if (picked == null) {
-                                return;
-                              }
-                              setDialogState(() {
-                                pickedFileName = picked.name;
-                                proofController.text = picked.name;
-                              });
-                            },
-                            icon: const Icon(
-                              Icons.attach_file_outlined,
-                              size: 18,
-                            ),
+                            onPressed: isUploadingProof
+                                ? null
+                                : () async {
+                                    final picked = await ImagePicker()
+                                        .pickImage(source: ImageSource.gallery);
+                                    if (picked == null) {
+                                      return;
+                                    }
+                                    setDialogState(() {
+                                      isUploadingProof = true;
+                                      pickedFileName = picked.name;
+                                    });
+                                    try {
+                                      final storedFileName = await uploadService
+                                          .uploadXFile(
+                                            file: picked,
+                                            category: 'payment-proofs',
+                                          )
+                                          .then((value) => value.fileName);
+                                      if (!context.mounted) {
+                                        return;
+                                      }
+                                      if (sheetRootContext.mounted) {
+                                        setDialogState(() {
+                                          proofController.text = storedFileName;
+                                        });
+                                      }
+                                      ScaffoldMessenger.of(context)
+                                        ..hideCurrentSnackBar()
+                                        ..showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              texts.proofAttachedSuccess(
+                                                picked.name,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                    } catch (error) {
+                                      if (!context.mounted) {
+                                        return;
+                                      }
+                                      ScaffoldMessenger.of(context)
+                                        ..hideCurrentSnackBar()
+                                        ..showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              texts.proofUploadFailed('$error'),
+                                            ),
+                                          ),
+                                        );
+                                    } finally {
+                                      if (sheetRootContext.mounted) {
+                                        setDialogState(() {
+                                          isUploadingProof = false;
+                                        });
+                                      }
+                                    }
+                                  },
+                            icon: isUploadingProof
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.2,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.attach_file_outlined,
+                                    size: 18,
+                                  ),
                             label: Text(
-                              pickedFileName ?? texts.attachProofButton,
+                              isUploadingProof
+                                  ? texts.attachingProofLabel
+                                  : (pickedFileName ?? texts.attachProofButton),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -575,7 +641,7 @@ class _DebtOrderCard extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: OutlinedButton(
-                                  onPressed: isSubmitting
+                                  onPressed: isSubmitting || isUploadingProof
                                       ? null
                                       : () => Navigator.of(
                                           sheetRootContext,
@@ -586,7 +652,7 @@ class _DebtOrderCard extends StatelessWidget {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: ElevatedButton(
-                                  onPressed: isSubmitting
+                                  onPressed: isSubmitting || isUploadingProof
                                       ? null
                                       : () async {
                                           final parsedAmount =
@@ -645,8 +711,10 @@ class _DebtOrderCard extends StatelessWidget {
                                           setDialogState(
                                             () => isSubmitting = true,
                                           );
-                                          final success = OrderScope.of(context)
-                                              .recordPayment(
+                                          final success =
+                                              await OrderScope.of(
+                                                context,
+                                              ).recordPayment(
                                                 orderId: order.id,
                                                 amount: parsedAmount,
                                                 channel: channel,
@@ -1069,6 +1137,8 @@ class _DebtTexts {
   String get noteLabel => isEnglish ? 'Note' : 'Ghi chú';
   String get attachProofButton =>
       isEnglish ? 'Attach payment proof' : 'Đính kèm chứng từ';
+  String get attachingProofLabel =>
+      isEnglish ? 'Uploading proof...' : 'Dang tai chung tu...';
   String get cancelButton => isEnglish ? 'Cancel' : 'Hủy';
   String get confirmButton => isEnglish ? 'Confirm' : 'Xác nhận';
   String get continueButton => isEnglish ? 'Continue' : 'Tiếp tục';
@@ -1186,6 +1256,20 @@ class _DebtTexts {
     return 'Đã ghi nhận thanh toán $amount cho đơn $orderId.';
   }
 
+  String proofAttachedSuccess(String fileName) {
+    if (isEnglish) {
+      return 'Attached proof $fileName.';
+    }
+    return 'Da dinh kem chung tu $fileName.';
+  }
+
+  String proofUploadFailed(String error) {
+    if (isEnglish) {
+      return 'Unable to upload proof: $error';
+    }
+    return 'Khong the tai chung tu: $error';
+  }
+
   String largePaymentConfirmMessage({
     required String amount,
     required String orderId,
@@ -1199,6 +1283,10 @@ class _DebtTexts {
   String paymentStatusLabel(OrderPaymentStatus status) {
     if (isEnglish) {
       switch (status) {
+        case OrderPaymentStatus.cancelled:
+          return 'Cancelled';
+        case OrderPaymentStatus.failed:
+          return 'Failed';
         case OrderPaymentStatus.unpaid:
           return 'Unpaid';
         case OrderPaymentStatus.paid:

@@ -7,11 +7,14 @@ import 'auth_storage.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'dealer_profile_storage.dart';
+import 'file_reference.dart';
 import 'global_search.dart';
 import 'login_screen.dart';
 import 'notification_controller.dart';
 import 'notifications_screen.dart';
+import 'order_controller.dart';
 import 'support_screen.dart';
+import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/notification_icon_button.dart';
@@ -144,7 +147,26 @@ class _AccountScreenState extends State<AccountScreen> {
       if (!mounted) {
         return;
       }
-      CartScope.of(context).clear();
+      await clearDealerProfileCache();
+      if (!mounted) {
+        return;
+      }
+      await CartScope.of(context).clear(syncRemote: false);
+      if (!mounted) {
+        return;
+      }
+      await OrderScope.of(context).clearSessionData();
+      if (!mounted) {
+        return;
+      }
+      await NotificationScope.of(context).clearSessionData();
+      if (!mounted) {
+        return;
+      }
+      await WarrantyScope.of(context).clearSessionData();
+      if (!mounted) {
+        return;
+      }
 
       shouldResetLoading = false;
       Navigator.of(context).pushAndRemoveUntil(
@@ -164,6 +186,29 @@ class _AccountScreenState extends State<AccountScreen> {
       return 'D';
     }
     return trimmed.substring(0, 1).toUpperCase();
+  }
+
+  Widget _buildAvatar(DealerProfile profile, ColorScheme colors) {
+    final imageProvider = imageProviderFromReference(profile.avatarUrl);
+    if (imageProvider != null) {
+      return CircleAvatar(
+        radius: 26,
+        backgroundColor: colors.primaryContainer,
+        backgroundImage: imageProvider,
+      );
+    }
+
+    return CircleAvatar(
+      radius: 26,
+      backgroundColor: colors.primaryContainer,
+      child: Text(
+        _avatarInitial(profile.businessName),
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: colors.onPrimaryContainer,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
   }
 
   @override
@@ -290,18 +335,7 @@ class _AccountScreenState extends State<AccountScreen> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          CircleAvatar(
-                            radius: 26,
-                            backgroundColor: colors.primaryContainer,
-                            child: Text(
-                              _avatarInitial(profile.businessName),
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    color: colors.onPrimaryContainer,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                            ),
-                          ),
+                          _buildAvatar(profile, colors),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(

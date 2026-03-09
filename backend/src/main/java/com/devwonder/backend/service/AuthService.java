@@ -11,6 +11,7 @@ import com.devwonder.backend.entity.Account;
 import com.devwonder.backend.entity.Customer;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Role;
+import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ConflictException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
@@ -26,6 +27,7 @@ import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -42,22 +44,29 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JWTUtils jwtUtils;
     private final WebSocketEventPublisher webSocketEventPublisher;
+    private final DealerAccountLifecycleService dealerAccountLifecycleService;
 
     @Value("${jwt.access-token-expiration-ms:1800000}")
     private long accessTokenExpirationMs;
 
     public AuthResponse login(LoginRequest request) {
+        String identity = normalize(request.username());
+        if (identity == null) {
+            throw new BadCredentialsException("Invalid credentials");
+        }
+
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.username(), request.password())
+                new UsernamePasswordAuthenticationToken(identity, request.password())
         );
 
-        Account account = accountRepository.findByUsername(request.username())
+        Account account = accountRepository.findByUsernameOrEmail(identity, identity)
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
+        dealerAccountLifecycleService.assertDealerPortalAccess(account);
 
         String accessToken = jwtUtils.generateToken(account);
         String refreshToken = jwtUtils.generateRefreshToken(new HashMap<>(), account);
         AuthResponse response = buildAuthResponse(account, accessToken, refreshToken);
-        webSocketEventPublisher.publishLoginConfirmed(response.user());
+        webSocketEventPublisher.publishLoginConfirmed(account.getUsername(), response.user());
         return response;
     }
 
@@ -65,9 +74,11 @@ public class AuthService {
         if (jwtUtils.isTokenExpired(request.refreshToken())) {
             throw new BadRequestException("Refresh token expired");
         }
+
         String username = jwtUtils.extractUsername(request.refreshToken());
-        Account account = accountRepository.findByUsername(username)
+        Account account = accountRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
+        dealerAccountLifecycleService.assertDealerPortalAccess(account);
 
         String accessToken = jwtUtils.generateToken(account);
         return buildAuthResponse(account, accessToken, request.refreshToken());
@@ -89,8 +100,10 @@ public class AuthService {
 
         Dealer dealer = new Dealer();
         dealer.setUsername(username);
+        dealer.setEmail(normalize(request.email()));
         dealer.setPassword(passwordEncoder.encode(request.password()));
         dealer.setBusinessName(normalize(request.businessName()));
+        dealer.setContactName(normalize(request.contactName()));
         dealer.setTaxCode(normalizedTaxCode);
         dealer.setPhone(normalize(request.phone()));
         dealer.setAddressLine(normalize(request.addressLine()));
@@ -98,11 +111,12 @@ public class AuthService {
         dealer.setDistrict(normalize(request.district()));
         dealer.setCity(normalize(request.city()));
         dealer.setCountry(Optional.ofNullable(normalize(request.country())).orElse("Vietnam"));
-        dealer.setEmail(normalize(request.email()));
         dealer.setAvatarUrl(normalize(request.avatarUrl()));
-        dealer.setRoles(new HashSet<>(Set.of(resolveDefaultRole())));
+        dealer.setCustomerStatus(CustomerStatus.UNDER_REVIEW);
+        dealer.setRoles(new HashSet<>(Set.of(resolveRole("USER", "Default dealer role"))));
 
         Dealer saved = dealerRepository.save(dealer);
+        dealerAccountLifecycleService.sendApplicationReceivedEmail(saved);
         RegisterDealerResponse response = new RegisterDealerResponse(saved.getId(), saved.getUsername(), "created");
         webSocketEventPublisher.publishDealerRegistrationFromAuth(response);
         return response;
@@ -140,7 +154,7 @@ public class AuthService {
         String accessToken = jwtUtils.generateToken(saved);
         String refreshToken = jwtUtils.generateRefreshToken(new HashMap<>(), saved);
         AuthResponse response = buildAuthResponse(saved, accessToken, refreshToken);
-        webSocketEventPublisher.publishLoginConfirmed(response.user());
+        webSocketEventPublisher.publishLoginConfirmed(saved.getUsername(), response.user());
         return response;
     }
 
@@ -152,10 +166,6 @@ public class AuthService {
                 account.getRoles().stream().map(Role::getName).collect(java.util.stream.Collectors.toSet())
         );
         return new AuthResponse(accessToken, refreshToken, "Bearer", accessTokenExpirationMs, user);
-    }
-
-    private Role resolveDefaultRole() {
-        return resolveRole("USER", "Default dealer role");
     }
 
     private Role resolveRole(String roleName, String description) {

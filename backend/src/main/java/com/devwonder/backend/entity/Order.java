@@ -1,6 +1,9 @@
 package com.devwonder.backend.entity;
 
 import com.devwonder.backend.entity.enums.PaymentStatus;
+import com.devwonder.backend.entity.enums.OrderStatus;
+import com.devwonder.backend.entity.enums.PaymentMethod;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,7 +15,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
@@ -20,6 +25,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
 @Table(name = "orders")
@@ -43,13 +49,48 @@ public class Order {
     @Column(name = "payment_status")
     private PaymentStatus paymentStatus;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private OrderStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method")
+    private PaymentMethod paymentMethod;
+
     @Column(name = "is_deleted")
     private Boolean isDeleted;
+
+    @Column(name = "receiver_name")
+    private String receiverName;
+
+    @Column(name = "receiver_address")
+    private String receiverAddress;
+
+    @Column(name = "receiver_phone")
+    private String receiverPhone;
+
+    @Column(name = "shipping_fee")
+    private Integer shippingFee;
+
+    @Column(name = "note", columnDefinition = "text")
+    private String note;
+
+    @Column(name = "paid_amount")
+    private BigDecimal paidAmount;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private Instant updatedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_dealer")
     private Dealer dealer;
 
-    @OneToMany(mappedBy = "order")
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id ASC")
     private Set<OrderItem> orderItems = new HashSet<>();
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("paidAt DESC, createdAt DESC")
+    private Set<Payment> payments = new HashSet<>();
 }

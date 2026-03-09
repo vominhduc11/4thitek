@@ -1,10 +1,13 @@
-import { Clock3, FileText, Plus, Tag, Trash2 } from 'lucide-react'
+import { Clock3, FileText, ImagePlus, Plus, Tag, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAdminData, type BlogStatus } from '../context/AdminDataContext'
+import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { blogStatusLabel, blogStatusTone } from '../lib/adminLabels'
-import { formatDateTime, formatNumber } from '../lib/formatters'
+import { resolveBackendAssetUrl } from '../lib/backendApi'
+import { formatDateTime } from '../lib/formatters'
+import { storeFileReference } from '../lib/upload'
 import { useSimulatedPageLoad } from '../hooks/useSimulatedPageLoad'
 import {
   EmptyState,
@@ -26,6 +29,7 @@ const BLOG_STATUS_OPTIONS: Array<{ value: 'all' | BlogStatus; label: string }> =
 function BlogsPage() {
   const navigate = useNavigate()
   const { notify } = useToast()
+  const { accessToken } = useAuth()
   const { posts, addPost, updatePostStatus, deletePost } = useAdminData()
   const { isLoading } = useSimulatedPageLoad('blogs-page')
 
@@ -33,13 +37,36 @@ function BlogsPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | BlogStatus>('all')
   const [showCreate, setShowCreate] = useState(false)
   const [createError, setCreateError] = useState('')
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [form, setForm] = useState({
     title: '',
     category: '',
-    author: '',
     excerpt: '',
     status: 'draft' as BlogStatus,
+    imageUrl: '',
+    imageName: '',
   })
+
+  const handleImageChange = async (file: File | null) => {
+    if (!file) return
+    setIsUploadingImage(true)
+    try {
+      const stored = await storeFileReference({
+        file,
+        category: 'blogs',
+        accessToken,
+      })
+      setForm((prev) => ({
+        ...prev,
+        imageUrl: stored.url,
+        imageName: file.name,
+      }))
+    } catch {
+      setCreateError('Khong the tai anh bai viet')
+    } finally {
+      setIsUploadingImage(false)
+    }
+  }
 
   const normalizedSearch = search.trim().toLowerCase()
   const filteredPosts = useMemo(
@@ -62,22 +89,33 @@ function BlogsPage() {
     return { published, scheduled, draft }
   }, [posts])
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     setCreateError('')
-    if (!form.title.trim() || !form.category.trim() || !form.author.trim()) {
-      setCreateError('Vui long nhap day du tieu de, danh muc va tac gia')
+    if (!form.title.trim() || !form.category.trim()) {
+      setCreateError('Vui long nhap day du tieu de va danh muc')
       return
     }
-    const created = addPost(form)
-    notify(`Da tao bai ${created.id}`, { title: 'Blogs', variant: 'success' })
-    setShowCreate(false)
-    setForm({
-      title: '',
-      category: '',
-      author: '',
-      excerpt: '',
-      status: 'draft',
-    })
+    try {
+      const created = await addPost({
+        title: form.title,
+        category: form.category,
+        excerpt: form.excerpt,
+        status: form.status,
+        imageUrl: form.imageUrl,
+      })
+      notify(`Da tao bai ${created.id}`, { title: 'Blogs', variant: 'success' })
+      setShowCreate(false)
+      setForm({
+        title: '',
+        category: '',
+        excerpt: '',
+        status: 'draft',
+        imageUrl: '',
+        imageName: '',
+      })
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : 'Khong the tao bai viet')
+    }
   }
 
   if (isLoading) {
@@ -164,12 +202,6 @@ function BlogsPage() {
               placeholder="Danh muc"
               value={form.category}
             />
-            <input
-              className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              onChange={(event) => setForm((prev) => ({ ...prev, author: event.target.value }))}
-              placeholder="Tac gia"
-              value={form.author}
-            />
             <textarea
               className="min-h-24 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] md:col-span-2"
               onChange={(event) =>
@@ -178,6 +210,27 @@ function BlogsPage() {
               placeholder="Mo ta ngan"
               value={form.excerpt}
             />
+            <div className="md:col-span-2">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
+                <ImagePlus className="h-4 w-4" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(event) => handleImageChange(event.target.files?.[0] ?? null)}
+                />
+                {isUploadingImage ? 'Dang tai anh...' : form.imageName || 'Tai anh bai viet'}
+              </label>
+              {form.imageUrl ? (
+                <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                  <img
+                    src={resolveBackendAssetUrl(form.imageUrl)}
+                    alt={form.title || 'Blog preview'}
+                    className="h-44 w-full object-cover"
+                  />
+                </div>
+              ) : null}
+            </div>
             <select
               aria-label="Create post status"
               className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
@@ -224,7 +277,6 @@ function BlogsPage() {
                   <th className="px-3 py-2 font-semibold">Bai viet</th>
                   <th className="px-3 py-2 font-semibold">Danh muc</th>
                   <th className="px-3 py-2 font-semibold">Trang thai</th>
-                  <th className="px-3 py-2 font-semibold">Luot xem</th>
                   <th className="px-3 py-2 font-semibold">Cap nhat</th>
                   <th className="px-3 py-2 font-semibold">Thao tac</th>
                 </tr>
@@ -237,18 +289,31 @@ function BlogsPage() {
                     onClick={() => navigate(`/blogs/${encodeURIComponent(post.id)}`)}
                   >
                     <td className="rounded-l-2xl px-3 py-3">
-                      <p className="font-semibold text-slate-900">{post.title}</p>
-                      <p className="text-xs text-slate-500">
-                        {post.id} · {post.author}
-                      </p>
+                      <div className="flex items-center gap-3">
+                        {post.imageUrl ? (
+                          <img
+                            src={resolveBackendAssetUrl(post.imageUrl)}
+                            alt={post.title}
+                            className="h-12 w-12 rounded-2xl border border-slate-200 bg-white object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="grid h-12 w-12 place-items-center rounded-2xl border border-slate-200 bg-slate-100 text-slate-400">
+                            <FileText className="h-4 w-4" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-semibold text-slate-900">{post.title}</p>
+                          <p className="text-xs text-slate-500">{post.id}</p>
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-3 py-3">{post.category}</td>
+                    <td className="px-3 py-3">{post.category || '-'}</td>
                     <td className="px-3 py-3">
                       <StatusBadge tone={blogStatusTone[post.status]}>
                         {blogStatusLabel[post.status]}
                       </StatusBadge>
                     </td>
-                    <td className="px-3 py-3">{formatNumber(post.views)}</td>
                     <td className="px-3 py-3 text-xs text-slate-500">
                       {formatDateTime(post.updatedAt)}
                     </td>
@@ -260,13 +325,23 @@ function BlogsPage() {
                         <select
                           aria-label={`Post status ${post.id}`}
                           className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                          onChange={(event) => {
+                          onChange={async (event) => {
                             const next = event.target.value as BlogStatus
-                            updatePostStatus(post.id, next)
-                            notify(`Cap nhat ${post.id} -> ${blogStatusLabel[next]}`, {
-                              title: 'Blogs',
-                              variant: 'info',
-                            })
+                            try {
+                              await updatePostStatus(post.id, next)
+                              notify(`Cap nhat ${post.id} -> ${blogStatusLabel[next]}`, {
+                                title: 'Blogs',
+                                variant: 'info',
+                              })
+                            } catch (error) {
+                              notify(
+                                error instanceof Error ? error.message : 'Khong the cap nhat bai viet',
+                                {
+                                  title: 'Blogs',
+                                  variant: 'error',
+                                },
+                              )
+                            }
                           }}
                           value={post.status}
                         >
@@ -281,12 +356,22 @@ function BlogsPage() {
                         <button
                           aria-label={`Delete ${post.id}`}
                           className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 text-rose-700 transition hover:border-rose-500"
-                          onClick={() => {
-                            deletePost(post.id)
-                            notify(`Da xoa bai ${post.id}`, {
-                              title: 'Blogs',
-                              variant: 'error',
-                            })
+                          onClick={async () => {
+                            try {
+                              await deletePost(post.id)
+                              notify(`Da xoa bai ${post.id}`, {
+                                title: 'Blogs',
+                                variant: 'error',
+                              })
+                            } catch (error) {
+                              notify(
+                                error instanceof Error ? error.message : 'Khong the xoa bai viet',
+                                {
+                                  title: 'Blogs',
+                                  variant: 'error',
+                                },
+                              )
+                            }
                           }}
                           type="button"
                         >

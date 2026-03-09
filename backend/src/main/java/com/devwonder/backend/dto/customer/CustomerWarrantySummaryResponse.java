@@ -2,10 +2,9 @@ package com.devwonder.backend.dto.customer;
 
 import com.devwonder.backend.entity.enums.WarrantyStatus;
 import java.time.Instant;
-import java.util.UUID;
 
 public record CustomerWarrantySummaryResponse(
-        UUID id,
+        Long id,
         String productName,
         String productImage,
         String serialNumber,

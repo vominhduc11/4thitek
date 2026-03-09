@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'bank_transfer_support.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'cart_screen.dart';
@@ -25,25 +26,35 @@ class OrderDetailScreen extends StatelessWidget {
       builder: (dialogContext) {
         final colors = Theme.of(context).colorScheme;
         return AlertDialog(
-          title: const Text('Xác nhận hủy đơn'),
-          content: Text('Bạn có chắc muốn hủy đơn hàng ${order.id}?'),
+          title: const Text('Xac nhan huy don'),
+          content: Text('Ban co chac muon huy don hang ${order.id}?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Không'),
+              child: const Text('Khong'),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
                 backgroundColor: colors.errorContainer,
                 foregroundColor: colors.onErrorContainer,
               ),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(dialogContext).pop();
-                OrderScope.of(
+                final success = await OrderScope.of(
                   context,
                 ).updateOrderStatus(order.id, OrderStatus.cancelled);
+                if (!context.mounted || success) {
+                  return;
+                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Khong the cap nhat trang thai don hang. Vui long thu lai.',
+                    ),
+                  ),
+                );
               },
-              child: const Text('Hủy đơn'),
+              child: const Text('Huy don'),
             ),
           ],
         );
@@ -56,21 +67,31 @@ class OrderDetailScreen extends StatelessWidget {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Xác nhận đã nhận hàng'),
-          content: Text('Đánh dấu đơn ${order.id} là hoàn thành?'),
+          title: const Text('Xac nhan da nhan hang'),
+          content: Text('Danh dau don ${order.id} la hoan thanh?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Không'),
+              child: const Text('Khong'),
             ),
             FilledButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(dialogContext).pop();
-                OrderScope.of(
+                final success = await OrderScope.of(
                   context,
                 ).updateOrderStatus(order.id, OrderStatus.completed);
+                if (!context.mounted || success) {
+                  return;
+                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Khong the cap nhat trang thai don hang. Vui long thu lai.',
+                    ),
+                  ),
+                );
               },
-              child: const Text('Xác nhận'),
+              child: const Text('Xac nhan'),
             ),
           ],
         );
@@ -106,7 +127,11 @@ class OrderDetailScreen extends StatelessWidget {
     );
   }
 
-  void _reorder(BuildContext context, CartController cart, Order order) {
+  Future<void> _reorder(
+    BuildContext context,
+    CartController cart,
+    Order order,
+  ) async {
     var addedCount = 0;
     final skipped = <String>[];
 
@@ -121,7 +146,7 @@ class OrderDetailScreen extends StatelessWidget {
         skipped.add(item.product.name);
         continue;
       }
-      final didAdd = cart.add(item.product, quantity: qtyToAdd);
+      final didAdd = await cart.add(item.product, quantity: qtyToAdd);
       if (didAdd) {
         addedCount++;
       } else {
@@ -139,6 +164,9 @@ class OrderDetailScreen extends StatelessWidget {
           'Đã thêm $addedCount sản phẩm. Bỏ qua: ${skipped.join(', ')} (hết hàng hoặc vượt tồn kho).';
     }
 
+    if (!context.mounted) {
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -156,13 +184,59 @@ class OrderDetailScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _copyToClipboard(
+    BuildContext context,
+    String label,
+    String value,
+  ) async {
+    await Clipboard.setData(ClipboardData(text: value));
+    if (!context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Da sao chep $label')));
+  }
+
+  Future<void> _showBankTransferInstructions(
+    BuildContext context,
+    Order order,
+  ) async {
+    final service = BankTransferService();
+    try {
+      final instructions = await service.fetchInstructions();
+      if (!context.mounted) {
+        return;
+      }
+      await showBankTransferInfoSheet(
+        context: context,
+        instructions: instructions,
+        amount: order.outstandingAmount > 0
+            ? order.outstandingAmount
+            : order.total,
+        content: order.id,
+        onCopy: (label, value) => _copyToClipboard(context, label, value),
+      );
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Khong the tai thong tin chuyen khoan: $error')),
+      );
+    } finally {
+      service.close();
+    }
+  }
+
   void _showRecordPaymentDialog(BuildContext context, Order order) {
     final amountController = TextEditingController();
-    const channels = <String>['Chuyển khoản', 'Tiền mặt', 'Bù trừ công nợ'];
+    const channels = <String>['Chuyen khoan', 'Tien mat', 'Bu tru cong no'];
     var selectedChannel = order.paymentMethod == OrderPaymentMethod.bankTransfer
         ? channels.first
         : channels.last;
     String? errorText;
+    var isSubmitting = false;
 
     showDialog<void>(
       context: context,
@@ -170,13 +244,13 @@ class OrderDetailScreen extends StatelessWidget {
         return StatefulBuilder(
           builder: (_, setDialogState) {
             return AlertDialog(
-              title: const Text('Ghi nhận thanh toán'),
+              title: const Text('Ghi nhan thanh toan'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Đơn ${order.id} còn nợ ${formatVnd(order.outstandingAmount)}',
+                    'Don ${order.id} con no ${formatVnd(order.outstandingAmount)}',
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -184,8 +258,8 @@ class OrderDetailScreen extends StatelessWidget {
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: InputDecoration(
-                      labelText: 'Số tiền',
-                      hintText: 'Tối đa ${formatVnd(order.outstandingAmount)}',
+                      labelText: 'So tien',
+                      hintText: 'Toi da ${formatVnd(order.outstandingAmount)}',
                       errorText: errorText,
                     ),
                   ),
@@ -193,7 +267,7 @@ class OrderDetailScreen extends StatelessWidget {
                   DropdownButtonFormField<String>(
                     initialValue: selectedChannel,
                     decoration: const InputDecoration(
-                      labelText: 'Kênh thanh toán',
+                      labelText: 'Kenh thanh toan',
                     ),
                     items: channels
                         .map(
@@ -214,53 +288,72 @@ class OrderDetailScreen extends StatelessWidget {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Đóng'),
+                  onPressed: isSubmitting
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Dong'),
                 ),
                 FilledButton(
-                  onPressed: () {
-                    final digitsOnly = amountController.text.replaceAll(
-                      RegExp(r'[^0-9]'),
-                      '',
-                    );
-                    final amount = int.tryParse(digitsOnly) ?? 0;
-                    if (amount <= 0) {
-                      setDialogState(() {
-                        errorText = 'Số tiền không hợp lệ.';
-                      });
-                      return;
-                    }
-                    if (amount > order.outstandingAmount) {
-                      setDialogState(() {
-                        errorText = 'Số tiền vượt quá công nợ còn lại.';
-                      });
-                      return;
-                    }
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          final digitsOnly = amountController.text.replaceAll(
+                            RegExp(r'[^0-9]'),
+                            '',
+                          );
+                          final amount = int.tryParse(digitsOnly) ?? 0;
+                          if (amount <= 0) {
+                            setDialogState(() {
+                              errorText = 'So tien khong hop le.';
+                            });
+                            return;
+                          }
+                          if (amount > order.outstandingAmount) {
+                            setDialogState(() {
+                              errorText = 'So tien vuot qua cong no con lai.';
+                            });
+                            return;
+                          }
 
-                    final success = OrderScope.of(context).recordPayment(
-                      orderId: order.id,
-                      amount: amount,
-                      channel: selectedChannel,
-                      note: 'Ghi nhận từ màn hình chi tiết đơn hàng.',
-                    );
-                    if (!success) {
-                      setDialogState(() {
-                        errorText =
-                            'Không thể ghi nhận thanh toán. Vui lòng kiểm tra lại.';
-                      });
-                      return;
-                    }
+                          setDialogState(() {
+                            errorText = null;
+                            isSubmitting = true;
+                          });
+                          final success = await OrderScope.of(context)
+                              .recordPayment(
+                                orderId: order.id,
+                                amount: amount,
+                                channel: selectedChannel,
+                                note: 'Ghi nhan tu man hinh chi tiet don hang.',
+                              );
+                          if (!dialogContext.mounted || !context.mounted) {
+                            return;
+                          }
+                          setDialogState(() => isSubmitting = false);
+                          if (!success) {
+                            setDialogState(() {
+                              errorText =
+                                  'Khong the ghi nhan thanh toan. Vui long kiem tra lai.';
+                            });
+                            return;
+                          }
 
-                    Navigator.of(dialogContext).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Đã ghi nhận ${formatVnd(amount)} cho đơn ${order.id}.',
-                        ),
-                      ),
-                    );
-                  },
-                  child: const Text('Ghi nhận'),
+                          Navigator.of(dialogContext).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Da ghi nhan ${formatVnd(amount)} cho don ${order.id}.',
+                              ),
+                            ),
+                          );
+                        },
+                  child: isSubmitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2.4),
+                        )
+                      : const Text('Ghi nhan'),
                 ),
               ],
             );
@@ -281,28 +374,46 @@ class OrderDetailScreen extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final canReorder = order.status != OrderStatus.cancelled;
     final markReceivedIsPrimary = canMarkReceived;
-    final recordPaymentIsPrimary =
-        !markReceivedIsPrimary && order.outstandingAmount > 0;
+    final canShowBankTransferInfo =
+        order.paymentMethod == OrderPaymentMethod.bankTransfer &&
+        order.outstandingAmount > 0;
+    final canRecordPayment =
+        order.paymentMethod != OrderPaymentMethod.bankTransfer &&
+        order.outstandingAmount > 0;
+    final paymentActionIsPrimary =
+        !markReceivedIsPrimary && (canShowBankTransferInfo || canRecordPayment);
     final processSerialIsPrimary =
-        !markReceivedIsPrimary && !recordPaymentIsPrimary && canProcessSerial;
+        !markReceivedIsPrimary && !paymentActionIsPrimary && canProcessSerial;
 
     final actions = <Widget>[
       if (canReorder)
         OutlinedButton(
           onPressed: () => _reorder(context, cart, order),
-          child: const Text('Đặt lại đơn cũ'),
+          child: const Text('Dat lai don cu'),
         ),
-      if (order.outstandingAmount > 0)
-        recordPaymentIsPrimary
+      if (canShowBankTransferInfo)
+        paymentActionIsPrimary
+            ? ElevatedButton.icon(
+                onPressed: () => _showBankTransferInstructions(context, order),
+                icon: const Icon(Icons.account_balance_outlined, size: 18),
+                label: const Text('Thong tin chuyen khoan'),
+              )
+            : OutlinedButton.icon(
+                onPressed: () => _showBankTransferInstructions(context, order),
+                icon: const Icon(Icons.account_balance_outlined, size: 18),
+                label: const Text('Thong tin chuyen khoan'),
+              ),
+      if (canRecordPayment)
+        paymentActionIsPrimary
             ? ElevatedButton.icon(
                 onPressed: () => _showRecordPaymentDialog(context, order),
                 icon: const Icon(Icons.payments_outlined, size: 18),
-                label: const Text('Ghi nhận thanh toán'),
+                label: const Text('Ghi nhan thanh toan'),
               )
             : OutlinedButton.icon(
                 onPressed: () => _showRecordPaymentDialog(context, order),
                 icon: const Icon(Icons.payments_outlined, size: 18),
-                label: const Text('Ghi nhận thanh toán'),
+                label: const Text('Ghi nhan thanh toan'),
               ),
       if (canProcessSerial)
         processSerialIsPrimary
@@ -315,7 +426,7 @@ class OrderDetailScreen extends StatelessWidget {
                     ),
                   );
                 },
-                child: const Text('Xử lý serial'),
+                child: const Text('Xu ly serial'),
               )
             : OutlinedButton(
                 onPressed: () {
@@ -326,12 +437,12 @@ class OrderDetailScreen extends StatelessWidget {
                     ),
                   );
                 },
-                child: const Text('Xử lý serial'),
+                child: const Text('Xu ly serial'),
               ),
       if (canMarkReceived)
         ElevatedButton(
           onPressed: () => _confirmReceived(context, order),
-          child: const Text('Xác nhận đã nhận hàng'),
+          child: const Text('Xac nhan da nhan hang'),
         ),
       if (canCancel)
         TextButton(
@@ -341,7 +452,7 @@ class OrderDetailScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14),
           ),
           onPressed: () => _confirmCancel(context, order),
-          child: const Text('Hủy đơn'),
+          child: const Text('Huy don'),
         ),
     ];
 
@@ -1024,6 +1135,10 @@ Color _paymentStatusBackground(
 }) {
   if (isDark) {
     switch (status) {
+      case OrderPaymentStatus.cancelled:
+        return const Color(0xFF3B1F26);
+      case OrderPaymentStatus.failed:
+        return const Color(0xFF4C2A15);
       case OrderPaymentStatus.unpaid:
         return const Color(0xFF4A1E24);
       case OrderPaymentStatus.paid:
@@ -1033,6 +1148,10 @@ Color _paymentStatusBackground(
     }
   }
   switch (status) {
+    case OrderPaymentStatus.cancelled:
+      return const Color(0xFFFDE7EC);
+    case OrderPaymentStatus.failed:
+      return const Color(0xFFFFEDD5);
     case OrderPaymentStatus.unpaid:
       return const Color(0xFFFEECEE);
     case OrderPaymentStatus.paid:
@@ -1048,6 +1167,10 @@ Color _paymentStatusTextColor(
 }) {
   if (isDark) {
     switch (status) {
+      case OrderPaymentStatus.cancelled:
+        return const Color(0xFFFDA4AF);
+      case OrderPaymentStatus.failed:
+        return const Color(0xFFF6AD55);
       case OrderPaymentStatus.unpaid:
         return const Color(0xFFFDA4AF);
       case OrderPaymentStatus.paid:
@@ -1057,6 +1180,10 @@ Color _paymentStatusTextColor(
     }
   }
   switch (status) {
+    case OrderPaymentStatus.cancelled:
+      return const Color(0xFFB42318);
+    case OrderPaymentStatus.failed:
+      return const Color(0xFFB54708);
     case OrderPaymentStatus.unpaid:
       return const Color(0xFFB42318);
     case OrderPaymentStatus.paid:

@@ -1,10 +1,10 @@
-import { Package, Plus, Trash2 } from 'lucide-react'
+import { Package, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAdminData, type OrderStatus } from '../context/AdminDataContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
-import { orderStatusLabel, orderStatusTone } from '../lib/adminLabels'
+import { getAllowedOrderStatuses, orderStatusLabel, orderStatusTone } from '../lib/adminLabels'
 import { formatCurrency } from '../lib/formatters'
 import { useSimulatedPageLoad } from '../hooks/useSimulatedPageLoad'
 import {
@@ -13,7 +13,6 @@ import {
   GhostButton,
   LoadingRows,
   PagePanel,
-  PrimaryButton,
   SearchInput,
   StatCard,
   StatusBadge,
@@ -32,20 +31,12 @@ function OrdersPage() {
   const { t } = useLanguage()
   const { notify } = useToast()
   const navigate = useNavigate()
-  const { orders, addOrder, deleteOrder, updateOrderStatus } = useAdminData()
+  const { orders, deleteOrder, updateOrderStatus } = useAdminData()
   const { isLoading, reload } = useSimulatedPageLoad('orders-page')
 
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all')
-  const [showCreateForm, setShowCreateForm] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [form, setForm] = useState({
-    customer: '',
-    total: '',
-    items: '1',
-    address: '',
-    note: '',
-  })
 
   const normalizedQuery = query.trim().toLowerCase()
 
@@ -56,7 +47,7 @@ function OrdersPage() {
         const matchesQuery =
           !normalizedQuery ||
           order.id.toLowerCase().includes(normalizedQuery) ||
-          order.customer.toLowerCase().includes(normalizedQuery)
+          order.dealer.toLowerCase().includes(normalizedQuery)
         return matchesStatus && matchesQuery
       }),
     [normalizedQuery, orders, statusFilter],
@@ -68,42 +59,6 @@ function OrdersPage() {
     return { pending, delivering }
   }, [orders])
 
-  const handleCreateOrder = () => {
-    setError(null)
-    const total = Number(form.total)
-    const items = Number(form.items)
-    if (!form.customer.trim()) {
-      setError('Vui long nhap ten khach hang')
-      return
-    }
-    if (Number.isNaN(total) || total <= 0) {
-      setError('Tong tien phai lon hon 0')
-      return
-    }
-    if (Number.isNaN(items) || items <= 0) {
-      setError('So luong san pham phai lon hon 0')
-      return
-    }
-
-    const created = addOrder({
-      customer: form.customer,
-      total,
-      items,
-      address: form.address || 'Chua cap nhat',
-      note: form.note || 'Khong co ghi chu',
-    })
-
-    setForm({
-      customer: '',
-      total: '',
-      items: '1',
-      address: '',
-      note: '',
-    })
-    setShowCreateForm(false)
-    notify(`Da tao don ${created.id}`, { variant: 'success', title: 'Orders' })
-  }
-
   if (isLoading) {
     return (
       <PagePanel>
@@ -112,7 +67,7 @@ function OrdersPage() {
     )
   }
 
-  if (error && !showCreateForm) {
+  if (error) {
     return (
       <PagePanel>
         <ErrorState
@@ -157,13 +112,6 @@ function OrdersPage() {
               </option>
             ))}
           </select>
-          <PrimaryButton
-            icon={<Plus className="h-4 w-4" />}
-            onClick={() => setShowCreateForm((value) => !value)}
-            type="button"
-          >
-            Tao don
-          </PrimaryButton>
         </div>
       </div>
 
@@ -172,65 +120,6 @@ function OrdersPage() {
         <StatCard label="Cho xu ly" value={stats.pending} tone="warning" />
         <StatCard label="Dang giao" value={stats.delivering} tone="info" />
       </div>
-
-      {showCreateForm ? (
-        <div className="mt-6 rounded-3xl border border-slate-200/80 bg-[var(--surface-muted)] p-4">
-          <p className="text-sm font-semibold text-slate-900">Tao don hang moi</p>
-          <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <input
-              className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, customer: event.target.value }))
-              }
-              placeholder="Ten khach hang"
-              value={form.customer}
-            />
-            <input
-              className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, total: event.target.value }))
-              }
-              placeholder="Tong tien (VND)"
-              type="number"
-              value={form.total}
-            />
-            <input
-              className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, items: event.target.value }))
-              }
-              placeholder="So luong san pham"
-              type="number"
-              value={form.items}
-            />
-            <input
-              className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, address: event.target.value }))
-              }
-              placeholder="Dia chi giao hang"
-              value={form.address}
-            />
-            <input
-              className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] md:col-span-2"
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, note: event.target.value }))
-              }
-              placeholder="Ghi chu"
-              value={form.note}
-            />
-          </div>
-          {error ? <p className="mt-2 text-sm text-rose-600">{error}</p> : null}
-          <div className="mt-4 flex flex-wrap gap-2">
-            <PrimaryButton onClick={handleCreateOrder} type="button">
-              Luu don
-            </PrimaryButton>
-            <GhostButton onClick={() => setShowCreateForm(false)} type="button">
-              Huy
-            </GhostButton>
-          </div>
-        </div>
-      ) : null}
 
       <div className="mt-6">
         {filteredOrders.length === 0 ? (
@@ -245,7 +134,7 @@ function OrdersPage() {
               <thead>
                 <tr className="text-left text-xs uppercase tracking-[0.2em] text-slate-400">
                   <th className="px-3 py-2 font-semibold">Ma don</th>
-                  <th className="px-3 py-2 font-semibold">Khach hang</th>
+                  <th className="px-3 py-2 font-semibold">Dai ly</th>
                   <th className="px-3 py-2 font-semibold">Tong</th>
                   <th className="px-3 py-2 font-semibold">Trang thai</th>
                   <th className="px-3 py-2 font-semibold">Thao tac</th>
@@ -262,7 +151,7 @@ function OrdersPage() {
                     <td className="rounded-l-2xl px-3 py-3 font-semibold text-slate-900">
                       #{order.id}
                     </td>
-                    <td className="px-3 py-3">{order.customer}</td>
+                    <td className="px-3 py-3">{order.dealer}</td>
                     <td className="px-3 py-3 font-semibold text-[var(--accent)]">
                       {formatCurrency(order.total)}
                     </td>
@@ -279,20 +168,32 @@ function OrdersPage() {
                         <select
                           aria-label={`Change status for ${order.id}`}
                           className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                          onChange={(event) => {
+                          onChange={async (event) => {
                             const next = event.target.value as OrderStatus
-                            updateOrderStatus(order.id, next)
-                            notify(`Cap nhat ${order.id} -> ${orderStatusLabel[next]}`, {
-                              title: 'Orders',
-                              variant: 'info',
-                            })
+                            try {
+                              await updateOrderStatus(order.id, next)
+                              notify(`Cap nhat ${order.id} -> ${orderStatusLabel[next]}`, {
+                                title: 'Orders',
+                                variant: 'info',
+                              })
+                            } catch (updateError) {
+                              notify(
+                                updateError instanceof Error
+                                  ? updateError.message
+                                  : 'Khong cap nhat duoc don hang',
+                                {
+                                  title: 'Orders',
+                                  variant: 'error',
+                                },
+                              )
+                            }
                           }}
                           value={order.status}
                         >
-                          {ORDER_STATUS_OPTIONS.filter((item) => item.value !== 'all').map(
+                          {getAllowedOrderStatuses(order.status).map(
                             (option) => (
-                              <option key={`${order.id}-${option.value}`} value={option.value}>
-                                {option.label}
+                              <option key={`${order.id}-${option}`} value={option}>
+                                {orderStatusLabel[option]}
                               </option>
                             ),
                           )}
@@ -300,9 +201,21 @@ function OrdersPage() {
                         <GhostButton
                           className="h-9 min-w-0 px-3"
                           icon={<Trash2 className="h-4 w-4" />}
-                          onClick={() => {
-                            deleteOrder(order.id)
-                            notify(`Da xoa ${order.id}`, { title: 'Orders', variant: 'error' })
+                          onClick={async () => {
+                            try {
+                              await deleteOrder(order.id)
+                              notify(`Da xoa ${order.id}`, { title: 'Orders', variant: 'error' })
+                            } catch (deleteError) {
+                              notify(
+                                deleteError instanceof Error
+                                  ? deleteError.message
+                                  : 'Khong xoa duoc don hang',
+                                {
+                                  title: 'Orders',
+                                  variant: 'error',
+                                },
+                              )
+                            }
                           }}
                           type="button"
                         >

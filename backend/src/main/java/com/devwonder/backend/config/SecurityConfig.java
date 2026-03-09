@@ -5,10 +5,10 @@ import com.devwonder.backend.security.OurUserDetailsService;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -34,6 +34,9 @@ public class SecurityConfig {
     @Autowired
     private JWTAuthFilter jwtAuthFilter;
 
+    @Value("${app.cors.allowed-origin-patterns:}")
+    private String allowedOriginPatterns;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
@@ -44,13 +47,15 @@ public class SecurityConfig {
                                 "/auth/**",
                                 "/api/auth/**",
                                 "/public/**",
+                                "/uploads/**",
+                                "/api/content/**",
                                 "/api/blog/**",
                                 "/api/product/**",
                                 "/api/warranty/check/**",
+                                "/api/webhooks/sepay",
                                 "/api/health",
                                 "/actuator/health",
                                 "/ws/**",
-                                "/ws-native/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
@@ -59,13 +64,14 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/user/dealer").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/user/dealer/page").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/user/dealer").permitAll()
+                        .requestMatchers("/api/upload/**").authenticated()
                         .requestMatchers("/admin/**", "/api/admin/**").hasAnyAuthority("ADMIN")
                         .requestMatchers("/api/customer/**").hasAnyAuthority("CUSTOMER", "ADMIN")
                         .requestMatchers("/user/**", "/api/dealer/**").hasAnyAuthority("USER", "ADMIN")
                         .requestMatchers("/adminuser/**").hasAnyAuthority("USER", "ADMIN")
                         .anyRequest().authenticated())
                 .sessionManagement(manager -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authenticationProvider(authenticationProvider()).addFilterBefore(
+                .authenticationProvider(daoAuthenticationProvider()).addFilterBefore(
                         jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return httpSecurity.build();
     }
@@ -74,10 +80,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of(
-                "http://localhost:*",
-                "http://127.0.0.1:*"
-        ));
+        configuration.setAllowedOriginPatterns(parseAllowedOriginPatterns());
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
@@ -87,10 +90,17 @@ public class SecurityConfig {
         return source;
     }
 
+    private List<String> parseAllowedOriginPatterns() {
+        return Arrays.stream(allowedOriginPatterns.split(","))
+                .map(String::trim)
+                .filter(value -> !value.isEmpty())
+                .toList();
+    }
 
-    @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(ourUserDetailsService);
+
+    private DaoAuthenticationProvider daoAuthenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(ourUserDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }

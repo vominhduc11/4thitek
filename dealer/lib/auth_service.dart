@@ -1,7 +1,15 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+
+import 'api_config.dart';
+
 enum LoginFailureType {
   invalidCredentials,
   invalidEmail,
   invalidPassword,
+  conflict,
   network,
   unknown,
 }
@@ -17,17 +25,28 @@ class LoginResult {
   const LoginResult._({
     required this.isSuccess,
     this.email,
-    this.token,
+    this.accessToken,
+    this.refreshToken,
     this.failure,
   });
 
   final bool isSuccess;
   final String? email;
-  final String? token;
+  final String? accessToken;
+  final String? refreshToken;
   final LoginFailure? failure;
 
-  factory LoginResult.success({required String email, required String token}) {
-    return LoginResult._(isSuccess: true, email: email, token: token);
+  factory LoginResult.success({
+    required String email,
+    required String accessToken,
+    String? refreshToken,
+  }) {
+    return LoginResult._(
+      isSuccess: true,
+      email: email,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    );
   }
 
   factory LoginResult.failure({
@@ -41,47 +60,207 @@ class LoginResult {
   }
 }
 
-abstract class AuthService {
-  Future<LoginResult> signIn({required String email, required String password});
+class PasswordResetRequestResult {
+  const PasswordResetRequestResult._({
+    required this.isSuccess,
+    this.message,
+    this.failure,
+  });
+
+  final bool isSuccess;
+  final String? message;
+  final LoginFailure? failure;
+
+  factory PasswordResetRequestResult.success({String? message}) {
+    return PasswordResetRequestResult._(isSuccess: true, message: message);
+  }
+
+  factory PasswordResetRequestResult.failure({
+    required LoginFailureType type,
+    required String message,
+  }) {
+    return PasswordResetRequestResult._(
+      isSuccess: false,
+      failure: LoginFailure(type: type, message: message),
+    );
+  }
 }
 
-class MockAuthService implements AuthService {
-  const MockAuthService({this.latency = const Duration(milliseconds: 650)});
+abstract class AuthService {
+  Future<LoginResult> signIn({required String email, required String password});
 
-  final Duration latency;
+  Future<PasswordResetRequestResult> requestPasswordReset({
+    required String email,
+  });
+}
 
-  // Keep mock accounts in one place so UI does not depend on hardcoded credentials.
-  static const Map<String, String> _mockAccounts = {
-    'daily.hn@4thitek.vn': '123456',
-    'duc123@gmail.com': '123456',
-  };
+class RemoteAuthService implements AuthService {
+  RemoteAuthService({
+    http.Client? client,
+    this.timeout = const Duration(seconds: 12),
+  }) : _client = client ?? http.Client();
+
+  final http.Client _client;
+  final Duration timeout;
 
   @override
   Future<LoginResult> signIn({
     required String email,
     required String password,
   }) async {
-    await Future.delayed(latency);
-
-    final normalizedEmail = email.trim().toLowerCase();
-    final expectedPassword = _mockAccounts[normalizedEmail];
-    if (expectedPassword == null) {
+    if (!DealerApiConfig.isConfigured) {
       return LoginResult.failure(
-        type: LoginFailureType.invalidCredentials,
-        message:
-            'Email v\u00e0 m\u1eadt kh\u1ea9u kh\u00f4ng \u0111\u00fang.',
+        type: LoginFailureType.network,
+        message: 'Chua cau hinh API_BASE_URL cho dealer app.',
       );
     }
-    if (expectedPassword != password) {
+    try {
+      final response = await _client
+          .post(
+            DealerApiConfig.authLoginUri,
+            headers: DealerApiConfig.jsonHeaders,
+            body: jsonEncode(<String, String>{
+              'username': email.trim().toLowerCase(),
+              'password': password,
+            }),
+          )
+          .timeout(timeout);
+
+      final payload = _decodeBody(response.body);
+      if (response.statusCode >= 400) {
+        return LoginResult.failure(
+          type: _mapFailureType(response.statusCode),
+          message: _extractErrorMessage(payload),
+        );
+      }
+
+      final data = _extractDataMap(payload);
+      final accessToken = data['accessToken']?.toString() ?? '';
+      final refreshToken = data['refreshToken']?.toString();
+      final userMap = data['user'] is Map<String, dynamic>
+          ? data['user'] as Map<String, dynamic>
+          : const <String, dynamic>{};
+      final username =
+          userMap['username']?.toString() ?? email.trim().toLowerCase();
+
+      if (accessToken.isEmpty) {
+        return LoginResult.failure(
+          type: LoginFailureType.unknown,
+          message: 'Khong the tao phien dang nhap.',
+        );
+      }
+
+      return LoginResult.success(
+        email: username,
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      );
+    } on TimeoutException {
       return LoginResult.failure(
-        type: LoginFailureType.invalidCredentials,
-        message:
-            'Email v\u00e0 m\u1eadt kh\u1ea9u kh\u00f4ng \u0111\u00fang.',
+        type: LoginFailureType.network,
+        message: 'Ket noi may chu qua thoi gian.',
+      );
+    } on Exception {
+      return LoginResult.failure(
+        type: LoginFailureType.network,
+        message: 'Khong the ket noi may chu.',
       );
     }
+  }
 
-    final mockToken =
-        'mock_${normalizedEmail.hashCode.abs()}_${DateTime.now().millisecondsSinceEpoch}';
-    return LoginResult.success(email: normalizedEmail, token: mockToken);
+  @override
+  Future<PasswordResetRequestResult> requestPasswordReset({
+    required String email,
+  }) async {
+    if (!DealerApiConfig.isConfigured) {
+      return PasswordResetRequestResult.failure(
+        type: LoginFailureType.network,
+        message: 'Chua cau hinh API_BASE_URL cho dealer app.',
+      );
+    }
+    try {
+      final response = await _client
+          .post(
+            Uri.parse(DealerApiConfig.resolveUrl('/api/auth/forgot-password')),
+            headers: DealerApiConfig.jsonHeaders,
+            body: jsonEncode(<String, String>{
+              'email': email.trim().toLowerCase(),
+            }),
+          )
+          .timeout(timeout);
+
+      final payload = _decodeBody(response.body);
+      if (response.statusCode >= 400) {
+        return PasswordResetRequestResult.failure(
+          type: _mapFailureType(response.statusCode),
+          message: _extractErrorMessage(payload),
+        );
+      }
+
+      return PasswordResetRequestResult.success(
+        message: _extractSuccessMessage(
+          payload,
+          'If the email exists in our system, a password reset link has been sent.',
+        ),
+      );
+    } on TimeoutException {
+      return PasswordResetRequestResult.failure(
+        type: LoginFailureType.network,
+        message: 'Ket noi may chu qua thoi gian.',
+      );
+    } on Exception {
+      return PasswordResetRequestResult.failure(
+        type: LoginFailureType.network,
+        message: 'Khong the ket noi may chu.',
+      );
+    }
+  }
+
+  Map<String, dynamic> _decodeBody(String body) {
+    if (body.trim().isEmpty) {
+      return const <String, dynamic>{};
+    }
+    final decoded = jsonDecode(body);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+    return const <String, dynamic>{};
+  }
+
+  Map<String, dynamic> _extractDataMap(Map<String, dynamic> payload) {
+    final raw = payload['data'];
+    if (raw is Map<String, dynamic>) {
+      return raw;
+    }
+    return const <String, dynamic>{};
+  }
+
+  String _extractErrorMessage(Map<String, dynamic> payload) {
+    final error = payload['error']?.toString();
+    if (error != null && error.trim().isNotEmpty) {
+      return error.trim();
+    }
+    return 'Yeu cau that bai.';
+  }
+
+  String _extractSuccessMessage(Map<String, dynamic> payload, String fallback) {
+    final data = payload['data']?.toString();
+    if (data != null && data.trim().isNotEmpty) {
+      return data.trim();
+    }
+    return fallback;
+  }
+
+  LoginFailureType _mapFailureType(int statusCode) {
+    if (statusCode == 400 || statusCode == 401) {
+      return LoginFailureType.invalidCredentials;
+    }
+    if (statusCode == 409) {
+      return LoginFailureType.conflict;
+    }
+    if (statusCode >= 500) {
+      return LoginFailureType.network;
+    }
+    return LoginFailureType.unknown;
   }
 }

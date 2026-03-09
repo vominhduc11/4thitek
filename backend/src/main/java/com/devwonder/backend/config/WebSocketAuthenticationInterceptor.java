@@ -4,7 +4,6 @@ import com.devwonder.backend.security.JWTUtils;
 import com.devwonder.backend.security.OurUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -29,7 +28,7 @@ public class WebSocketAuthenticationInterceptor implements ChannelInterceptor {
     private final OurUserDetailsService userDetailsService;
 
     @Override
-    public @Nullable Message<?> preSend(Message<?> message, MessageChannel channel) {
+    public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {

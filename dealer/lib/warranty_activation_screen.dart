@@ -862,9 +862,17 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     }
 
     setState(() => _isSubmitting = true);
-    warrantyController.addActivations(newRecords);
+    final success = await warrantyController.addActivations(newRecords);
 
     if (!mounted) {
+      return;
+    }
+
+    if (!success) {
+      setState(() => _isSubmitting = false);
+      _showSnackBar(
+        'Khong the dong bo kich hoat bao hanh. Vui long kiem tra lai.',
+      );
       return;
     }
 

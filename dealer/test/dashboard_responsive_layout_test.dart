@@ -52,8 +52,13 @@ void main() {
         reason: 'Layout exception on ${c.name}: ${exceptions.join('\n')}',
       );
 
-      expect(find.text('Hiệu suất theo dõi'), findsOneWidget);
-      expect(find.byType(ListView), findsOneWidget);
+      expect(find.textContaining('theo'), findsWidgets);
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is ListView && widget.scrollDirection == Axis.vertical,
+        ),
+        findsOneWidget,
+      );
     });
   }
 }

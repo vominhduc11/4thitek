@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
+import 'support_service.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/section_card.dart';
@@ -25,6 +25,7 @@ class _SupportScreenState extends State<SupportScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   final _ticketCardKey = GlobalKey();
+  late final SupportService _supportService;
 
   SupportCategory _category = SupportCategory.order;
   SupportPriority _priority = SupportPriority.normal;
@@ -39,15 +40,11 @@ class _SupportScreenState extends State<SupportScreen> {
   static const _subjectMax = 80;
   static const _messageMax = 500;
 
-  static const _ticketIdKey = 'support_last_ticket_id';
-  static const _ticketSubmittedAtKey = 'support_last_ticket_submitted_at';
-  static const _ticketCategoryKey = 'support_last_ticket_category';
-  static const _ticketPriorityKey = 'support_last_ticket_priority';
-
   @override
   void initState() {
     super.initState();
-    _restoreTicketState();
+    _supportService = SupportService();
+    _loadLatestTicket();
   }
 
   @override
@@ -55,62 +52,29 @@ class _SupportScreenState extends State<SupportScreen> {
     _subjectController.dispose();
     _messageController.dispose();
     _scrollController.dispose();
+    _supportService.close();
     super.dispose();
   }
 
-  Future<void> _restoreTicketState() async {
-    final prefs = await SharedPreferences.getInstance();
-    final id = prefs.getString(_ticketIdKey);
-    final submittedAtMillis = prefs.getInt(_ticketSubmittedAtKey);
-    final categoryIndex = prefs.getInt(_ticketCategoryKey);
-    final priorityIndex = prefs.getInt(_ticketPriorityKey);
-    if (!mounted ||
-        id == null ||
-        submittedAtMillis == null ||
-        categoryIndex == null ||
-        priorityIndex == null ||
-        categoryIndex < 0 ||
-        categoryIndex >= SupportCategory.values.length ||
-        priorityIndex < 0 ||
-        priorityIndex >= SupportPriority.values.length) {
-      return;
+  Future<void> _loadLatestTicket() async {
+    try {
+      final ticket = await _supportService.fetchLatestTicket();
+      if (!mounted || ticket == null) {
+        return;
+      }
+      _applyTicket(ticket);
+    } on SupportException {
+      // Keep the support form usable even if the latest-ticket read fails.
     }
+  }
+
+  void _applyTicket(DealerSupportTicketRecord ticket) {
     setState(() {
-      _lastTicketId = id;
-      _lastSubmittedAt = DateTime.fromMillisecondsSinceEpoch(submittedAtMillis);
-      _lastCategory = SupportCategory.values[categoryIndex];
-      _lastPriority = SupportPriority.values[priorityIndex];
+      _lastTicketId = ticket.ticketCode;
+      _lastSubmittedAt = ticket.createdAt;
+      _lastCategory = _parseCategory(ticket.category);
+      _lastPriority = _parsePriority(ticket.priority);
     });
-  }
-
-  Future<void> _saveTicketState() async {
-    final id = _lastTicketId;
-    final submittedAt = _lastSubmittedAt;
-    final category = _lastCategory;
-    final priority = _lastPriority;
-    if (id == null ||
-        submittedAt == null ||
-        category == null ||
-        priority == null) {
-      return;
-    }
-    final prefs = await SharedPreferences.getInstance();
-    await Future.wait<void>([
-      prefs.setString(_ticketIdKey, id),
-      prefs.setInt(_ticketSubmittedAtKey, submittedAt.millisecondsSinceEpoch),
-      prefs.setInt(_ticketCategoryKey, category.index),
-      prefs.setInt(_ticketPriorityKey, priority.index),
-    ]);
-  }
-
-  Future<void> _clearTicketState() async {
-    final prefs = await SharedPreferences.getInstance();
-    await Future.wait<void>([
-      prefs.remove(_ticketIdKey),
-      prefs.remove(_ticketSubmittedAtKey),
-      prefs.remove(_ticketCategoryKey),
-      prefs.remove(_ticketPriorityKey),
-    ]);
   }
 
   @override
@@ -239,14 +203,13 @@ class _SupportScreenState extends State<SupportScreen> {
                       isEnglish: isEnglish,
                     ),
                     isEnglish: isEnglish,
-                    onClear: () async {
+                    onClear: () {
                       setState(() {
                         _lastTicketId = null;
                         _lastSubmittedAt = null;
                         _lastCategory = null;
                         _lastPriority = null;
                       });
-                      await _clearTicketState();
                     },
                   ),
                 ),
@@ -504,25 +467,25 @@ class _SupportScreenState extends State<SupportScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 450));
-      final ticketId = _generateTicketId();
-      setState(() {
-        _lastTicketId = ticketId;
-        _lastSubmittedAt = DateTime.now();
-        _lastCategory = _category;
-        _lastPriority = _priority;
-      });
-      await _saveTicketState();
+      final ticket = await _supportService.submitTicket(
+        category: _toRemoteCategory(_category),
+        priority: _toRemotePriority(_priority),
+        subject: subject,
+        message: message,
+      );
+      _applyTicket(ticket);
       _showSnackBar(
         isEnglish
-            ? 'Request #$ticketId has been submitted (demo).'
-            : 'Yêu cầu #$ticketId đã được gửi (demo).',
+            ? 'Request #${ticket.ticketCode} has been submitted.'
+            : 'Yeu cau #${ticket.ticketCode} da duoc gui.',
       );
       _subjectController.clear();
       _messageController.clear();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollToTicketCard();
       });
+    } on SupportException catch (error) {
+      _showSnackBar(error.message);
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -530,10 +493,58 @@ class _SupportScreenState extends State<SupportScreen> {
     }
   }
 
-  String _generateTicketId() {
-    final now = DateTime.now().millisecondsSinceEpoch.toString();
-    final suffix = now.substring(now.length - 6);
-    return 'SPT-$suffix';
+  String _toRemoteCategory(SupportCategory category) {
+    switch (category) {
+      case SupportCategory.order:
+        return 'ORDER';
+      case SupportCategory.warranty:
+        return 'WARRANTY';
+      case SupportCategory.product:
+        return 'PRODUCT';
+      case SupportCategory.payment:
+        return 'PAYMENT';
+      case SupportCategory.other:
+        return 'OTHER';
+    }
+  }
+
+  String _toRemotePriority(SupportPriority priority) {
+    switch (priority) {
+      case SupportPriority.normal:
+        return 'NORMAL';
+      case SupportPriority.high:
+        return 'HIGH';
+      case SupportPriority.urgent:
+        return 'URGENT';
+    }
+  }
+
+  SupportCategory _parseCategory(String? raw) {
+    switch ((raw ?? '').trim().toUpperCase()) {
+      case 'ORDER':
+        return SupportCategory.order;
+      case 'WARRANTY':
+        return SupportCategory.warranty;
+      case 'PRODUCT':
+        return SupportCategory.product;
+      case 'PAYMENT':
+        return SupportCategory.payment;
+      case 'OTHER':
+      default:
+        return SupportCategory.other;
+    }
+  }
+
+  SupportPriority _parsePriority(String? raw) {
+    switch ((raw ?? '').trim().toUpperCase()) {
+      case 'HIGH':
+        return SupportPriority.high;
+      case 'URGENT':
+        return SupportPriority.urgent;
+      case 'NORMAL':
+      default:
+        return SupportPriority.normal;
+    }
   }
 
   String _categoryLabel(SupportCategory category, {required bool isEnglish}) {

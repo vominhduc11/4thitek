@@ -339,11 +339,21 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 backgroundColor: colors.errorContainer,
                 foregroundColor: colors.onErrorContainer,
               ),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(dialogContext).pop();
-                OrderScope.of(
+                final success = await OrderScope.of(
                   context,
                 ).updateOrderStatus(order.id, OrderStatus.cancelled);
+                if (!context.mounted || success) {
+                  return;
+                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Khong the cap nhat trang thai don hang. Vui long thu lai.',
+                    ),
+                  ),
+                );
               },
               child: const Text('Hủy đơn'),
             ),
@@ -457,6 +467,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final debtOrderCount = filteredOrders
         .where(
           (order) =>
+              order.paymentMethod == OrderPaymentMethod.debt &&
               order.outstandingAmount > 0 &&
               order.status != OrderStatus.cancelled,
         )
@@ -475,6 +486,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
       OrderPaymentStatus.unpaid,
       OrderPaymentStatus.paid,
       OrderPaymentStatus.debtRecorded,
+      OrderPaymentStatus.cancelled,
+      OrderPaymentStatus.failed,
     ];
     final hasSummaryData = pendingApprovalCount > 0 || debtOrderCount > 0;
     final hasActiveFilters =
@@ -895,10 +908,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () async {
+                    await orderController.load(forceRefresh: true);
                     _refreshOrders();
-                    await Future<void>.delayed(
-                      const Duration(milliseconds: 200),
-                    );
                   },
                   child: useGridLayout
                       ? PagedGridView<int, Order>(
@@ -1158,6 +1169,10 @@ Color _paymentStatusBackground(
 }) {
   if (isDark) {
     switch (status) {
+      case OrderPaymentStatus.cancelled:
+        return const Color(0xFF3B1F26);
+      case OrderPaymentStatus.failed:
+        return const Color(0xFF4C2A15);
       case OrderPaymentStatus.unpaid:
         return const Color(0xFF4A1E24);
       case OrderPaymentStatus.paid:
@@ -1167,6 +1182,10 @@ Color _paymentStatusBackground(
     }
   }
   switch (status) {
+    case OrderPaymentStatus.cancelled:
+      return const Color(0xFFFDE7EC);
+    case OrderPaymentStatus.failed:
+      return const Color(0xFFFFEDD5);
     case OrderPaymentStatus.unpaid:
       return const Color(0xFFFEECEE);
     case OrderPaymentStatus.paid:
@@ -1182,6 +1201,10 @@ Color _paymentStatusTextColor(
 }) {
   if (isDark) {
     switch (status) {
+      case OrderPaymentStatus.cancelled:
+        return const Color(0xFFFDA4AF);
+      case OrderPaymentStatus.failed:
+        return const Color(0xFFF6AD55);
       case OrderPaymentStatus.unpaid:
         return const Color(0xFFFDA4AF);
       case OrderPaymentStatus.paid:
@@ -1191,6 +1214,10 @@ Color _paymentStatusTextColor(
     }
   }
   switch (status) {
+    case OrderPaymentStatus.cancelled:
+      return const Color(0xFFB42318);
+    case OrderPaymentStatus.failed:
+      return const Color(0xFFB54708);
     case OrderPaymentStatus.unpaid:
       return const Color(0xFFB42318);
     case OrderPaymentStatus.paid:

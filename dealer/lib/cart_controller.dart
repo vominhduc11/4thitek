@@ -1,11 +1,43 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import 'api_config.dart';
+import 'auth_storage.dart';
+import 'dealer_auth_client.dart';
 import 'models.dart';
 
 class CartController extends ChangeNotifier {
+  CartController({
+    Product? Function(String productId)? productLookup,
+    AuthStorage? authStorage,
+    http.Client? client,
+  }) : _productLookup = productLookup {
+    _authStorage = authStorage ?? AuthStorage();
+    _client = DealerAuthClient(
+      authStorage: _authStorage,
+      inner: client ?? http.Client(),
+    );
+  }
+
   static const Duration _cartApiLatency = Duration(milliseconds: 700);
   static const int vatPercent = kVatPercent;
-  final Map<String, CartItem> _items = {};
+
+  final Product? Function(String productId)? _productLookup;
+  late final AuthStorage _authStorage;
+  late final http.Client _client;
+  final Map<String, CartItem> _items = <String, CartItem>{};
+
+  Future<void> load() async {
+    final loadedRemote = await _loadRemoteCart();
+    if (loadedRemote) {
+      return;
+    }
+    _items.clear();
+    notifyListeners();
+  }
 
   List<CartItem> get items {
     final list = _items.values.toList();
@@ -69,30 +101,22 @@ class CartController extends ChangeNotifier {
     return remainingStockFor(product) >= requested;
   }
 
-  bool add(Product product, {int? quantity}) {
+  Future<bool> add(Product product, {int? quantity}) async {
     final requested = quantity ?? suggestedAddQuantity(product);
     if (!canAdd(product, quantity: requested)) {
       return false;
     }
-
-    final current = _items[product.id];
-    if (current == null) {
-      _items[product.id] = CartItem(product: product, quantity: requested);
-    } else {
-      _items[product.id] = current.copyWith(
-        quantity: current.quantity + requested,
-      );
-    }
-    notifyListeners();
-    return true;
+    return setQuantity(product, quantityFor(product.id) + requested);
   }
 
   Future<bool> addWithApiSimulation(Product product, {int? quantity}) async {
-    await Future.delayed(_cartApiLatency);
+    if (!await _canUseRemoteApi()) {
+      await Future.delayed(_cartApiLatency);
+    }
     return add(product, quantity: quantity);
   }
 
-  bool increase(String productId) {
+  Future<bool> increase(String productId) async {
     final current = _items[productId];
     if (current == null) {
       return false;
@@ -101,37 +125,34 @@ class CartController extends ChangeNotifier {
     if (addQuantity <= 0) {
       return false;
     }
-    _items[productId] = current.copyWith(
-      quantity: current.quantity + addQuantity,
-    );
-    notifyListeners();
-    return true;
+    return setQuantity(current.product, current.quantity + addQuantity);
   }
 
-  void decrease(String productId) {
+  Future<bool> decrease(String productId) async {
     final current = _items[productId];
     if (current == null) {
-      return;
+      return false;
     }
-    final nextQty = current.quantity - 1;
-    if (nextQty <= 0) {
-      _items.remove(productId);
-    } else {
-      _items[productId] = current.copyWith(quantity: nextQty);
-    }
-    notifyListeners();
+    return setQuantity(current.product, current.quantity - 1);
   }
 
-  void remove(String productId) {
-    _items.remove(productId);
-    notifyListeners();
-  }
-
-  bool setQuantity(Product product, int quantity) {
-    if (quantity <= 0) {
-      _items.remove(product.id);
-      notifyListeners();
+  Future<bool> remove(String productId) async {
+    final current = _items[productId];
+    if (current == null) {
       return true;
+    }
+    return _commitChange(
+      applyLocal: () => _items.remove(productId),
+      remoteSync: () async {
+        await _removeRemoteCartItem(productId);
+        return null;
+      },
+    );
+  }
+
+  Future<bool> setQuantity(Product product, int quantity) async {
+    if (quantity <= 0) {
+      return remove(product.id);
     }
 
     final maxQty = product.stock;
@@ -140,14 +161,298 @@ class CartController extends ChangeNotifier {
     if (next > maxQty) next = maxQty;
     if (next < minQty) next = minQty;
 
-    _items[product.id] = CartItem(product: product, quantity: next);
-    notifyListeners();
-    return true;
+    return _commitChange(
+      applyLocal: () {
+        _items[product.id] = CartItem(product: product, quantity: next);
+      },
+      remoteSync: () => _upsertRemoteCartItem(product, next),
+    );
   }
 
-  void clear() {
-    _items.clear();
+  Future<bool> clear({
+    bool syncRemote = true,
+    bool rollbackOnFailure = true,
+  }) async {
+    if (_items.isEmpty) {
+      if (!syncRemote || !await _canUseRemoteApi()) {
+        return true;
+      }
+      try {
+        await _clearRemoteCart();
+        return true;
+      } catch (_) {
+        return !rollbackOnFailure;
+      }
+    }
+
+    return _commitChange(
+      applyLocal: _items.clear,
+      remoteSync: syncRemote
+          ? () async {
+              await _clearRemoteCart();
+              return null;
+            }
+          : null,
+      rollbackOnFailure: rollbackOnFailure,
+    );
+  }
+
+  Future<bool> _loadRemoteCart() async {
+    final token = await _readAccessToken();
+    if (token == null) {
+      return false;
+    }
+
+    try {
+      final response = await _client.get(
+        Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/cart')),
+        headers: _authorizedHeaders(token),
+      );
+      final payload = _decodeBody(response.body);
+      if (response.statusCode >= 400) {
+        throw Exception(_extractErrorMessage(payload));
+      }
+      final data = payload['data'];
+      if (data is! List) {
+        throw Exception('Invalid cart payload');
+      }
+
+      _items.clear();
+      for (final entry in data) {
+        if (entry is! Map<String, dynamic>) {
+          continue;
+        }
+        final item = _mapRemoteCartItem(entry);
+        if (item != null) {
+          _items[item.product.id] = item;
+        }
+      }
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> _commitChange({
+    required void Function() applyLocal,
+    Future<CartItem?> Function()? remoteSync,
+    bool rollbackOnFailure = true,
+  }) async {
+    final previous = Map<String, CartItem>.from(_items);
+    applyLocal();
     notifyListeners();
+
+    if (remoteSync == null) {
+      return true;
+    }
+    if (!await _canUseRemoteApi()) {
+      if (rollbackOnFailure) {
+        _items
+          ..clear()
+          ..addAll(previous);
+        notifyListeners();
+      }
+      return false;
+    }
+
+    try {
+      final remoteItem = await remoteSync();
+      if (remoteItem != null) {
+        _items[remoteItem.product.id] = remoteItem;
+        notifyListeners();
+      }
+      return true;
+    } catch (_) {
+      if (rollbackOnFailure) {
+        _items
+          ..clear()
+          ..addAll(previous);
+        notifyListeners();
+      }
+      return false;
+    }
+  }
+
+  Future<CartItem?> _upsertRemoteCartItem(Product product, int quantity) async {
+    final token = await _requireAccessToken();
+    final productId = int.tryParse(product.id);
+    if (productId == null) {
+      throw StateError('Invalid product id: ${product.id}');
+    }
+
+    final response = await _client.put(
+      Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/cart/items')),
+      headers: _authorizedJsonHeaders(token),
+      body: jsonEncode(<String, dynamic>{
+        'productId': productId,
+        'quantity': quantity,
+      }),
+    );
+
+    final payload = _decodeBody(response.body);
+    if (response.statusCode >= 400) {
+      throw Exception(_extractErrorMessage(payload));
+    }
+
+    final data = payload['data'];
+    if (data is Map<String, dynamic>) {
+      return _mapRemoteCartItem(data);
+    }
+    return CartItem(product: product, quantity: quantity);
+  }
+
+  Future<void> _removeRemoteCartItem(String productId) async {
+    final token = await _requireAccessToken();
+    final numericProductId = int.tryParse(productId);
+    if (numericProductId == null) {
+      throw StateError('Invalid product id: $productId');
+    }
+
+    final response = await _client.delete(
+      Uri.parse(
+        DealerApiConfig.resolveUrl('/api/dealer/cart/items/$numericProductId'),
+      ),
+      headers: _authorizedHeaders(token),
+    );
+    final payload = _decodeBody(response.body);
+    if (response.statusCode >= 400) {
+      throw Exception(_extractErrorMessage(payload));
+    }
+  }
+
+  Future<void> _clearRemoteCart() async {
+    final token = await _requireAccessToken();
+    final response = await _client.delete(
+      Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/cart')),
+      headers: _authorizedHeaders(token),
+    );
+    final payload = _decodeBody(response.body);
+    if (response.statusCode >= 400) {
+      throw Exception(_extractErrorMessage(payload));
+    }
+  }
+
+  Future<bool> _canUseRemoteApi() async {
+    return await _readAccessToken() != null;
+  }
+
+  Future<String?> _readAccessToken() async {
+    if (!DealerApiConfig.isConfigured) {
+      return null;
+    }
+    final token = await _authStorage.readAccessToken();
+    if (token == null || token.trim().isEmpty) {
+      return null;
+    }
+    return token.trim();
+  }
+
+  Future<String> _requireAccessToken() async {
+    final token = await _readAccessToken();
+    if (token == null) {
+      throw StateError('Unauthenticated request');
+    }
+    return token;
+  }
+
+  Map<String, dynamic> _decodeBody(String body) {
+    if (body.trim().isEmpty) {
+      return const <String, dynamic>{};
+    }
+    final decoded = jsonDecode(body);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+    return const <String, dynamic>{};
+  }
+
+  String _extractErrorMessage(Map<String, dynamic> payload) {
+    final error = payload['error']?.toString();
+    if (error != null && error.trim().isNotEmpty) {
+      return error.trim();
+    }
+    return 'Khong the dong bo gio hang.';
+  }
+
+  Map<String, String> _authorizedHeaders(String token) {
+    return <String, String>{
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
+
+  Map<String, String> _authorizedJsonHeaders(String token) {
+    return <String, String>{
+      ...DealerApiConfig.jsonHeaders,
+      'Authorization': 'Bearer $token',
+    };
+  }
+
+  CartItem? _mapRemoteCartItem(Map<String, dynamic> json) {
+    final productId = json['productId']?.toString();
+    final quantity = _parseInt(json['quantity'], fallback: 0);
+    if (productId == null || productId.isEmpty || quantity <= 0) {
+      return null;
+    }
+
+    final fallback = _findProductById(productId);
+    final imageUrl = _normalizeString(json['image']) ?? fallback?.imageUrl;
+    final price = _parsePrice(
+      json['priceSnapshot'] ?? json['retailPrice'],
+      fallback: fallback?.price ?? 0,
+    );
+    final product = Product(
+      id: productId,
+      name:
+          _normalizeString(json['productName']) ?? fallback?.name ?? 'Product',
+      sku: _normalizeString(json['productSku']) ?? fallback?.sku ?? productId,
+      shortDescription: fallback?.shortDescription ?? '',
+      price: price,
+      stock: fallback?.stock ?? quantity,
+      warrantyMonths: fallback?.warrantyMonths ?? 12,
+      imageUrl: imageUrl,
+      descriptions: fallback?.descriptions ?? const <ProductDescriptionItem>[],
+      videos: fallback?.videos ?? const <ProductVideoItem>[],
+      specifications:
+          fallback?.specifications ?? const <ProductSpecification>[],
+    );
+    return CartItem(product: product, quantity: quantity);
+  }
+
+  Product? _findProductById(String productId) {
+    return _productLookup?.call(productId);
+  }
+
+  int _parseInt(Object? value, {int fallback = 0}) {
+    if (value is int) {
+      return value;
+    }
+    if (value is double) {
+      return value.round();
+    }
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  int _parsePrice(Object? value, {int fallback = 0}) {
+    if (value is int) {
+      return value;
+    }
+    if (value is double) {
+      return value.round();
+    }
+    return double.tryParse(value?.toString() ?? '')?.round() ?? fallback;
+  }
+
+  String? _normalizeString(Object? value) {
+    final normalized = value?.toString().trim() ?? '';
+    return normalized.isEmpty ? null : normalized;
+  }
+
+  @override
+  void dispose() {
+    _client.close();
+    super.dispose();
   }
 }
 

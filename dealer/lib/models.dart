@@ -112,15 +112,15 @@ extension OrderStatusLabel on OrderStatus {
   String get label {
     switch (this) {
       case OrderStatus.pendingApproval:
-        return 'Chờ duyệt';
+        return 'Ch\u1EDD duy\u1EC7t';
       case OrderStatus.approved:
-        return 'Đã duyệt';
+        return '\u0110\u00E3 duy\u1EC7t';
       case OrderStatus.shipping:
-        return 'Đang giao';
+        return '\u0110ang giao';
       case OrderStatus.completed:
-        return 'Hoàn thành';
+        return 'Ho\u00E0n th\u00E0nh';
       case OrderStatus.cancelled:
-        return 'Đã hủy';
+        return '\u0110\u00E3 h\u1EE7y';
     }
   }
 }
@@ -131,24 +131,28 @@ extension OrderPaymentMethodLabel on OrderPaymentMethod {
   String get label {
     switch (this) {
       case OrderPaymentMethod.bankTransfer:
-        return 'Chuyển khoản ngân hàng';
+        return 'Chuy\u1EC3n kho\u1EA3n ng\u00E2n h\u00E0ng';
       case OrderPaymentMethod.debt:
-        return 'Ghi nhận công nợ';
+        return 'Ghi nh\u1EADn c\u00F4ng n\u1EE3';
     }
   }
 }
 
-enum OrderPaymentStatus { unpaid, paid, debtRecorded }
+enum OrderPaymentStatus { unpaid, paid, debtRecorded, cancelled, failed }
 
 extension OrderPaymentStatusLabel on OrderPaymentStatus {
   String get label {
     switch (this) {
+      case OrderPaymentStatus.cancelled:
+        return '\u0110\u00E3 h\u1EE7y';
+      case OrderPaymentStatus.failed:
+        return 'Th\u1EA5t b\u1EA1i';
       case OrderPaymentStatus.unpaid:
-        return 'Chưa thanh toán';
+        return 'Ch\u01B0a thanh to\u00E1n';
       case OrderPaymentStatus.paid:
-        return 'Đã thanh toán';
+        return '\u0110\u00E3 thanh to\u00E1n';
       case OrderPaymentStatus.debtRecorded:
-        return 'Ghi nhận công nợ';
+        return 'Ghi nh\u1EADn c\u00F4ng n\u1EE3';
     }
   }
 }
@@ -172,7 +176,7 @@ int bulkDiscountAmount({required int subtotal, required int discountPercent}) {
 
 const int kVatPercent = 10;
 
-/// Ngưỡng tồn kho thấp dùng chung cho product list filter và dashboard panel.
+/// Shared low-stock threshold for product list filters and dashboard panels.
 const int kLowStockThreshold = 10;
 
 class OrderLineItem {
@@ -291,4 +295,22 @@ class DebtPaymentRecord {
   final String channel;
   final String? note;
   final String? proofFileName;
+}
+
+enum NoticeType { system, promotion, order }
+
+class DistributorNotice {
+  const DistributorNotice({
+    required this.id,
+    required this.type,
+    required this.title,
+    required this.message,
+    required this.createdAt,
+  });
+
+  final String id;
+  final NoticeType type;
+  final String title;
+  final String message;
+  final DateTime createdAt;
 }

@@ -14,7 +14,6 @@ import com.devwonder.backend.util.PaginationUtils;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -79,7 +78,7 @@ public class CustomerController {
     @GetMapping("/warranties/{id}")
     public ResponseEntity<ApiResponse<CustomerWarrantyDetailResponse>> warrantyDetail(
             Authentication authentication,
-            @PathVariable("id") UUID id
+            @PathVariable("id") Long id
     ) {
         return ResponseEntity.ok(ApiResponse.success(customerPortalService.getWarrantyDetail(extractUsername(authentication), id)));
     }
@@ -105,9 +104,17 @@ public class CustomerController {
     @PatchMapping("/notifications/{id}/read")
     public ResponseEntity<ApiResponse<NotifyResponse>> markRead(
             Authentication authentication,
-            @PathVariable("id") UUID id
+            @PathVariable("id") Long id
     ) {
         return ResponseEntity.ok(ApiResponse.success(customerPortalService.markNotificationRead(extractUsername(authentication), id)));
+    }
+
+    @PatchMapping("/notifications/{id}/unread")
+    public ResponseEntity<ApiResponse<NotifyResponse>> markUnread(
+            Authentication authentication,
+            @PathVariable("id") Long id
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(customerPortalService.markNotificationUnread(extractUsername(authentication), id)));
     }
 
     @PatchMapping("/notifications/read-all")

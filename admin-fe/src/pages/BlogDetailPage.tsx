@@ -3,7 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAdminData, type BlogStatus } from '../context/AdminDataContext'
 import { useToast } from '../context/ToastContext'
 import { blogStatusLabel, blogStatusTone } from '../lib/adminLabels'
-import { formatDateTime, formatNumber } from '../lib/formatters'
+import { resolveBackendAssetUrl } from '../lib/backendApi'
+import { formatDateTime } from '../lib/formatters'
 import { EmptyState, GhostButton, PagePanel, StatusBadge } from '../components/ui-kit'
 
 const BLOG_STATUS_OPTIONS: BlogStatus[] = ['published', 'scheduled', 'draft']
@@ -45,15 +46,21 @@ function BlogDetailPage() {
         <article className="rounded-3xl border border-slate-200/70 bg-white/80 p-5">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{post.id}</p>
           <h2 className="mt-2 text-2xl font-semibold text-slate-900">{post.title}</h2>
-          <p className="mt-2 text-sm text-slate-500">
-            {post.category} · {post.author}
-          </p>
+          <p className="mt-2 text-sm text-slate-500">{post.category || '-'}</p>
+          {post.imageUrl ? (
+            <div className="mt-4 overflow-hidden rounded-3xl border border-slate-200">
+              <img
+                src={resolveBackendAssetUrl(post.imageUrl)}
+                alt={post.title}
+                className="h-72 w-full object-cover"
+              />
+            </div>
+          ) : null}
           <p className="mt-4 text-sm leading-6 text-slate-700">
             {post.excerpt || 'Chua co tom tat cho bai viet nay.'}
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
             <span>Cap nhat: {formatDateTime(post.updatedAt)}</span>
-            <span>Luot xem: {formatNumber(post.views)}</span>
           </div>
         </article>
 
@@ -62,13 +69,20 @@ function BlogDetailPage() {
           <select
             aria-label={`Post status ${post.id}`}
             className="mt-3 h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-            onChange={(event) => {
+            onChange={async (event) => {
               const next = event.target.value as BlogStatus
-              updatePostStatus(post.id, next)
-              notify(`Cap nhat ${post.id} -> ${blogStatusLabel[next]}`, {
-                title: 'Blogs',
-                variant: 'info',
-              })
+              try {
+                await updatePostStatus(post.id, next)
+                notify(`Cap nhat ${post.id} -> ${blogStatusLabel[next]}`, {
+                  title: 'Blogs',
+                  variant: 'info',
+                })
+              } catch (error) {
+                notify(error instanceof Error ? error.message : 'Khong the cap nhat bai viet', {
+                  title: 'Blogs',
+                  variant: 'error',
+                })
+              }
             }}
             value={post.status}
           >
@@ -81,16 +95,21 @@ function BlogDetailPage() {
 
           <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50/70 p-3">
             <p className="text-sm font-semibold text-rose-700">Xoa bai viet</p>
-            <p className="mt-1 text-xs text-rose-600">
-              Bai viet se bi xoa khoi he thong.
-            </p>
+            <p className="mt-1 text-xs text-rose-600">Bai viet se bi xoa khoi he thong.</p>
             <GhostButton
               className="mt-3 border-rose-200 text-rose-700 hover:border-rose-500 hover:text-rose-700"
               icon={<Trash2 className="h-4 w-4" />}
-              onClick={() => {
-                deletePost(post.id)
-                notify(`Da xoa bai ${post.id}`, { title: 'Blogs', variant: 'error' })
-                navigate('/blogs')
+              onClick={async () => {
+                try {
+                  await deletePost(post.id)
+                  notify(`Da xoa bai ${post.id}`, { title: 'Blogs', variant: 'error' })
+                  navigate('/blogs')
+                } catch (error) {
+                  notify(error instanceof Error ? error.message : 'Khong the xoa bai viet', {
+                    title: 'Blogs',
+                    variant: 'error',
+                  })
+                }
               }}
               type="button"
             >

@@ -13,6 +13,7 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import lombok.Getter;
@@ -49,15 +50,15 @@ public class Product {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "descriptions", columnDefinition = "jsonb")
-    private Map<String, Object> descriptions;
+    private List<Map<String, Object>> descriptions;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "videos", columnDefinition = "jsonb")
-    private Map<String, Object> videos;
+    private List<Map<String, Object>> videos;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "specifications", columnDefinition = "jsonb")
-    private Map<String, Object> specifications;
+    private List<Map<String, Object>> specifications;
 
     @Column(name = "retail_price")
     private BigDecimal retailPrice;
@@ -77,6 +78,9 @@ public class Product {
 
     @Column(name = "stock")
     private Integer stock;
+
+    @Column(name = "warranty_period")
+    private Integer warrantyPeriod;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

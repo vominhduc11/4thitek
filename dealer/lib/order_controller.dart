@@ -1,20 +1,65 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
-import 'mock_data.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import 'api_config.dart';
+import 'auth_storage.dart';
+import 'dealer_auth_client.dart';
 import 'models.dart';
 
 class OrderController extends ChangeNotifier {
   OrderController({
-    List<Order>? seedOrders,
-    List<DebtPaymentRecord>? seedPayments,
-  }) : _orders = List<Order>.from(seedOrders ?? _defaultSeedOrders()),
-       _paymentHistory = List<DebtPaymentRecord>.from(
-         seedPayments ?? _defaultSeedDebtPayments(),
-       );
+    Product? Function(String productId)? productLookup,
+    AuthStorage? authStorage,
+    http.Client? client,
+  }) : _orders = <Order>[],
+       _paymentHistory = <DebtPaymentRecord>[],
+       _productLookup = productLookup {
+    _authStorage = authStorage ?? AuthStorage();
+    _client = DealerAuthClient(
+      authStorage: _authStorage,
+      inner: client ?? http.Client(),
+    );
+  }
 
   final List<Order> _orders;
   final List<DebtPaymentRecord> _paymentHistory;
-  bool _isDisposed = false;
+  final Product? Function(String productId)? _productLookup;
+  late final AuthStorage _authStorage;
+  late final http.Client _client;
+  final Map<String, int> _remoteOrderIds = <String, int>{};
+  final Map<int, String> _remoteOrderCodes = <int, String>{};
+
+  Future<void> load({bool forceRefresh = false}) async {
+    final loadedRemote = await _loadRemoteOrdersAndPayments();
+    if (loadedRemote) {
+      return;
+    }
+    if (forceRefresh) {
+      _remoteOrderIds.clear();
+      _remoteOrderCodes.clear();
+      _orders.clear();
+      _paymentHistory.clear();
+      notifyListeners();
+    }
+  }
+
+  Future<void> refresh() async {
+    final loadedRemote = await _loadRemoteOrdersAndPayments();
+    if (!loadedRemote) {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      notifyListeners();
+    }
+  }
+
+  Future<void> clearSessionData() async {
+    _remoteOrderIds.clear();
+    _remoteOrderCodes.clear();
+    _orders.clear();
+    _paymentHistory.clear();
+    notifyListeners();
+  }
 
   List<Order> get orders {
     final list = List<Order>.from(_orders);
@@ -26,6 +71,7 @@ class OrderController extends ChangeNotifier {
     final list = orders
         .where(
           (order) =>
+              order.paymentMethod == OrderPaymentMethod.debt &&
               order.outstandingAmount > 0 &&
               order.status != OrderStatus.cancelled,
         )
@@ -36,7 +82,11 @@ class OrderController extends ChangeNotifier {
 
   int get totalOutstandingDebt {
     return _orders
-        .where((order) => order.status != OrderStatus.cancelled)
+        .where(
+          (order) =>
+              order.paymentMethod == OrderPaymentMethod.debt &&
+              order.status != OrderStatus.cancelled,
+        )
         .fold<int>(0, (sum, order) => sum + order.outstandingAmount);
   }
 
@@ -59,28 +109,69 @@ class OrderController extends ChangeNotifier {
     return null;
   }
 
-  void addOrder(Order order) {
-    _orders.insert(0, order);
-    notifyListeners();
+  int? remoteOrderIdForOrderCode(String orderCode) {
+    return _remoteOrderIds[orderCode];
   }
 
-  bool updateOrderStatus(String orderId, OrderStatus status) {
+  String? orderCodeForRemoteId(int remoteOrderId) {
+    return _remoteOrderCodes[remoteOrderId];
+  }
+
+  Future<Order> addOrder(Order order) async {
+    if (!await _canUseRemoteApi()) {
+      throw StateError('Backend API is not available.');
+    }
+    return _createRemoteOrder(order);
+  }
+
+  Future<bool> updateOrderStatus(String orderId, OrderStatus status) async {
     final index = _orders.indexWhere((order) => order.id == orderId);
     if (index < 0) {
       return false;
     }
-    _orders[index] = _orders[index].copyWith(status: status);
-    notifyListeners();
-    return true;
+
+    final remoteOrderId = _remoteOrderIds[orderId];
+    if (remoteOrderId != null && await _canUseRemoteApi()) {
+      try {
+        final response = await _client.patch(
+          Uri.parse(
+            DealerApiConfig.resolveUrl(
+              '/api/dealer/orders/$remoteOrderId/status',
+            ),
+          ),
+          headers: await _authorizedJsonHeaders(),
+          body: jsonEncode(<String, dynamic>{
+            'status': _toRemoteOrderStatus(status),
+          }),
+        );
+        final payload = _decodeBody(response.body);
+        if (response.statusCode >= 400) {
+          throw Exception(_extractErrorMessage(payload));
+        }
+        final data = payload['data'];
+        if (data is! Map<String, dynamic>) {
+          throw Exception('Invalid order payload');
+        }
+        final nextOrder = _mapRemoteOrder(data);
+        _replaceOrder(nextOrder);
+        notifyListeners();
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    return false;
   }
 
-  bool recordPayment({
+  Future<bool> recordPayment({
     required String orderId,
     required int amount,
     required String channel,
     String? note,
     String? proofFileName,
-  }) {
+    OrderPaymentMethod? method,
+  }) async {
     final index = _orders.indexWhere((order) => order.id == orderId);
     if (index < 0) {
       return false;
@@ -99,104 +190,413 @@ class OrderController extends ChangeNotifier {
       return false;
     }
 
-    // Prevent duplicate: same orderId + amount within the last 5 seconds
-    final now = DateTime.now();
-    final isDuplicate = _paymentHistory.any(
-      (record) =>
-          record.orderId == orderId &&
-          record.amount == safeAmount &&
-          now.difference(record.paidAt).inSeconds < 5,
-    );
-    if (isDuplicate) {
-      return false;
-    }
-
-    final newPaidAmount = current.paidAmount + safeAmount;
-    final newOutstanding = current.total - newPaidAmount;
-    final nextPaymentStatus = newOutstanding <= 0
-        ? OrderPaymentStatus.paid
-        : (current.paymentMethod == OrderPaymentMethod.debt
-              ? OrderPaymentStatus.debtRecorded
-              : OrderPaymentStatus.unpaid);
-
-    _orders[index] = current.copyWith(
-      paymentStatus: nextPaymentStatus,
-      paidAmount: newPaidAmount,
-    );
-
-    _paymentHistory.add(
-      DebtPaymentRecord(
-        id: _buildPaymentId(orderId),
-        orderId: orderId,
-        amount: safeAmount,
-        paidAt: DateTime.now(),
-        channel: channel,
-        note: note,
-        proofFileName: proofFileName,
-      ),
-    );
-    notifyListeners();
-    return true;
-  }
-
-  bool autoReconcileBankTransfer({
-    required String orderId,
-    String channel = 'Doi soat tu dong',
-  }) {
-    final index = _orders.indexWhere((order) => order.id == orderId);
-    if (index < 0) {
-      return false;
-    }
-
-    final current = _orders[index];
-    if (current.paymentMethod != OrderPaymentMethod.bankTransfer) {
-      return false;
-    }
-
-    final outstanding = current.outstandingAmount;
-    if (outstanding <= 0) {
-      return false;
-    }
-
-    _orders[index] = current.copyWith(
-      paymentStatus: OrderPaymentStatus.paid,
-      paidAmount: current.total,
-    );
-    _paymentHistory.add(
-      DebtPaymentRecord(
-        id: _buildPaymentId(orderId),
-        orderId: orderId,
-        amount: outstanding,
-        paidAt: DateTime.now(),
-        channel: channel,
-        note: 'Cap nhat tu giao dich chuyen khoan ngoai ung dung.',
-      ),
-    );
-    notifyListeners();
-    return true;
-  }
-
-  void scheduleAutoReconcileBankTransfer({
-    required String orderId,
-    Duration delay = const Duration(minutes: 1),
-  }) {
-    Future<void>.delayed(delay, () {
-      if (_isDisposed) {
-        return;
+    final remoteOrderId = _remoteOrderIds[orderId];
+    if (remoteOrderId != null && await _canUseRemoteApi()) {
+      try {
+        final response = await _client.post(
+          Uri.parse(
+            DealerApiConfig.resolveUrl(
+              '/api/dealer/orders/$remoteOrderId/payments',
+            ),
+          ),
+          headers: await _authorizedJsonHeaders(),
+          body: jsonEncode(<String, dynamic>{
+            'amount': safeAmount,
+            if (method != null) 'method': _toRemotePaymentMethod(method),
+            'channel': channel.trim(),
+            if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+            if (proofFileName != null && proofFileName.trim().isNotEmpty)
+              'proofFileName': proofFileName.trim(),
+          }),
+        );
+        final payload = _decodeBody(response.body);
+        if (response.statusCode >= 400) {
+          throw Exception(_extractErrorMessage(payload));
+        }
+        final paymentData = payload['data'];
+        final nextPayment = paymentData is Map<String, dynamic>
+            ? _mapRemotePayment(paymentData)
+            : null;
+        await _reloadRemoteOrder(remoteOrderId);
+        await _reloadRemotePaymentsForOrder(remoteOrderId);
+        if (nextPayment != null &&
+            !_paymentHistory.any((item) => item.id == nextPayment.id)) {
+          _paymentHistory.add(nextPayment);
+        }
+        notifyListeners();
+        return true;
+      } catch (_) {
+        return false;
       }
-      autoReconcileBankTransfer(orderId: orderId);
-    });
+    }
+
+    return false;
+  }
+
+  Future<bool> _loadRemoteOrdersAndPayments() async {
+    if (!await _canUseRemoteApi()) {
+      return false;
+    }
+
+    try {
+      final response = await _client.get(
+        Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/orders')),
+        headers: await _authorizedHeaders(),
+      );
+      final payload = _decodeBody(response.body);
+      if (response.statusCode >= 400) {
+        throw Exception(_extractErrorMessage(payload));
+      }
+      final data = payload['data'];
+      if (data is! List) {
+        throw Exception('Invalid orders payload');
+      }
+
+      final remoteOrders = <Order>[];
+      _remoteOrderIds.clear();
+      _remoteOrderCodes.clear();
+      for (final entry in data.whereType<Map<String, dynamic>>()) {
+        remoteOrders.add(_mapRemoteOrder(entry));
+      }
+
+      final paymentsByOrder = await Future.wait(
+        _remoteOrderIds.values.map(_fetchRemotePaymentsForOrder),
+      );
+
+      _orders
+        ..clear()
+        ..addAll(remoteOrders);
+      _paymentHistory
+        ..clear()
+        ..addAll(paymentsByOrder.expand((items) => items));
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<Order> _createRemoteOrder(Order order) async {
+    final response = await _client.post(
+      Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/orders')),
+      headers: await _authorizedJsonHeaders(),
+      body: jsonEncode(<String, dynamic>{
+        'paymentMethod': _toRemotePaymentMethod(order.paymentMethod),
+        'receiverName': order.receiverName,
+        'receiverAddress': order.receiverAddress,
+        'receiverPhone': order.receiverPhone,
+        'shippingFee': order.shippingFee,
+        if (order.note != null && order.note!.trim().isNotEmpty)
+          'note': order.note!.trim(),
+        'items': order.items
+            .map(
+              (item) => <String, dynamic>{
+                'productId': int.tryParse(item.product.id),
+                'quantity': item.quantity,
+                'unitPrice': item.product.price,
+              },
+            )
+            .where((item) => item['productId'] != null)
+            .toList(growable: false),
+      }),
+    );
+    final payload = _decodeBody(response.body);
+    if (response.statusCode >= 400) {
+      throw Exception(_extractErrorMessage(payload));
+    }
+    final data = payload['data'];
+    if (data is! Map<String, dynamic>) {
+      throw Exception('Invalid create order payload');
+    }
+    final remoteOrder = _mapRemoteOrder(data);
+    _replaceOrder(remoteOrder);
+    await _reloadRemotePaymentsForOrder(_remoteOrderIds[remoteOrder.id]!);
+    notifyListeners();
+    return remoteOrder;
+  }
+
+  Future<void> _reloadRemoteOrder(int remoteOrderId) async {
+    final response = await _client.get(
+      Uri.parse(
+        DealerApiConfig.resolveUrl('/api/dealer/orders/$remoteOrderId'),
+      ),
+      headers: await _authorizedHeaders(),
+    );
+    final payload = _decodeBody(response.body);
+    if (response.statusCode >= 400) {
+      throw Exception(_extractErrorMessage(payload));
+    }
+    final data = payload['data'];
+    if (data is! Map<String, dynamic>) {
+      throw Exception('Invalid order payload');
+    }
+    _replaceOrder(_mapRemoteOrder(data));
+  }
+
+  Future<List<DebtPaymentRecord>> _fetchRemotePaymentsForOrder(
+    int remoteOrderId,
+  ) async {
+    final response = await _client.get(
+      Uri.parse(
+        DealerApiConfig.resolveUrl(
+          '/api/dealer/orders/$remoteOrderId/payments',
+        ),
+      ),
+      headers: await _authorizedHeaders(),
+    );
+    final payload = _decodeBody(response.body);
+    if (response.statusCode >= 400) {
+      throw Exception(_extractErrorMessage(payload));
+    }
+    final data = payload['data'];
+    if (data is! List) {
+      return const <DebtPaymentRecord>[];
+    }
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map(_mapRemotePayment)
+        .toList(growable: false);
+  }
+
+  Future<void> _reloadRemotePaymentsForOrder(int remoteOrderId) async {
+    final orderCode = _remoteOrderCodes[remoteOrderId];
+    if (orderCode == null) {
+      return;
+    }
+    _paymentHistory.removeWhere((payment) => payment.orderId == orderCode);
+    _paymentHistory.addAll(await _fetchRemotePaymentsForOrder(remoteOrderId));
+  }
+
+  void _replaceOrder(Order nextOrder) {
+    final index = _orders.indexWhere((order) => order.id == nextOrder.id);
+    if (index >= 0) {
+      _orders[index] = nextOrder;
+    } else {
+      _orders.insert(0, nextOrder);
+    }
+  }
+
+  Order _mapRemoteOrder(Map<String, dynamic> json) {
+    final remoteId = _parseInt(json['id']);
+    final orderCode =
+        _normalizeString(json['orderCode']) ?? remoteId.toString();
+    _remoteOrderIds[orderCode] = remoteId;
+    _remoteOrderCodes[remoteId] = orderCode;
+
+    final items = (json['items'] as List<dynamic>? ?? const <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .map(_mapRemoteOrderItem)
+        .whereType<OrderLineItem>()
+        .toList(growable: false);
+
+    return Order(
+      id: orderCode,
+      createdAt:
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
+      status: _mapRemoteOrderStatus(json['status']?.toString()),
+      paymentMethod: _mapRemotePaymentMethod(json['paymentMethod']?.toString()),
+      paymentStatus: _mapRemotePaymentStatus(json['paymentStatus']?.toString()),
+      receiverName: _normalizeString(json['receiverName']) ?? '',
+      receiverAddress: _normalizeString(json['receiverAddress']) ?? '',
+      receiverPhone: _normalizeString(json['receiverPhone']) ?? '',
+      shippingFee: _parseInt(json['shippingFee']),
+      items: items,
+      paidAmount: _parsePrice(json['paidAmount']),
+      note: _normalizeString(json['note']),
+    );
+  }
+
+  OrderLineItem? _mapRemoteOrderItem(Map<String, dynamic> json) {
+    final productId = json['productId']?.toString();
+    final quantity = _parseInt(json['quantity']);
+    if (productId == null || productId.isEmpty || quantity <= 0) {
+      return null;
+    }
+    final fallback = _findProductById(productId);
+    final product = Product(
+      id: productId,
+      name:
+          _normalizeString(json['productName']) ?? fallback?.name ?? 'Product',
+      sku: _normalizeString(json['productSku']) ?? fallback?.sku ?? productId,
+      shortDescription: fallback?.shortDescription ?? '',
+      price: _parsePrice(json['unitPrice'], fallback: fallback?.price ?? 0),
+      stock: fallback?.stock ?? quantity,
+      warrantyMonths: fallback?.warrantyMonths ?? 12,
+      imageUrl: fallback?.imageUrl,
+      descriptions: fallback?.descriptions ?? const <ProductDescriptionItem>[],
+      videos: fallback?.videos ?? const <ProductVideoItem>[],
+      specifications:
+          fallback?.specifications ?? const <ProductSpecification>[],
+    );
+    return OrderLineItem(product: product, quantity: quantity);
+  }
+
+  DebtPaymentRecord _mapRemotePayment(Map<String, dynamic> json) {
+    final remoteOrderId = _parseInt(json['orderId']);
+    final orderCode =
+        _remoteOrderCodes[remoteOrderId] ?? remoteOrderId.toString();
+    return DebtPaymentRecord(
+      id: json['id']?.toString() ?? '',
+      orderId: orderCode,
+      amount: _parsePrice(json['amount']),
+      paidAt:
+          DateTime.tryParse(json['paidAt']?.toString() ?? '') ?? DateTime.now(),
+      channel: _normalizeString(json['channel']) ?? '',
+      note: _normalizeString(json['note']),
+      proofFileName: _normalizeString(json['proofFileName']),
+    );
+  }
+
+  OrderStatus _mapRemoteOrderStatus(String? raw) {
+    switch ((raw ?? '').trim().toUpperCase()) {
+      case 'CONFIRMED':
+        return OrderStatus.approved;
+      case 'SHIPPING':
+        return OrderStatus.shipping;
+      case 'COMPLETED':
+        return OrderStatus.completed;
+      case 'CANCELLED':
+        return OrderStatus.cancelled;
+      case 'PENDING':
+      default:
+        return OrderStatus.pendingApproval;
+    }
+  }
+
+  String _toRemoteOrderStatus(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.pendingApproval:
+        return 'PENDING';
+      case OrderStatus.approved:
+        return 'CONFIRMED';
+      case OrderStatus.shipping:
+        return 'SHIPPING';
+      case OrderStatus.completed:
+        return 'COMPLETED';
+      case OrderStatus.cancelled:
+        return 'CANCELLED';
+    }
+  }
+
+  OrderPaymentMethod _mapRemotePaymentMethod(String? raw) {
+    switch ((raw ?? '').trim().toUpperCase()) {
+      case 'DEBT':
+        return OrderPaymentMethod.debt;
+      case 'BANK_TRANSFER':
+      default:
+        return OrderPaymentMethod.bankTransfer;
+    }
+  }
+
+  String _toRemotePaymentMethod(OrderPaymentMethod method) {
+    switch (method) {
+      case OrderPaymentMethod.bankTransfer:
+        return 'BANK_TRANSFER';
+      case OrderPaymentMethod.debt:
+        return 'DEBT';
+    }
+  }
+
+  OrderPaymentStatus _mapRemotePaymentStatus(String? raw) {
+    switch ((raw ?? '').trim().toUpperCase()) {
+      case 'PAID':
+        return OrderPaymentStatus.paid;
+      case 'DEBT_RECORDED':
+        return OrderPaymentStatus.debtRecorded;
+      case 'CANCELLED':
+        return OrderPaymentStatus.cancelled;
+      case 'FAILED':
+        return OrderPaymentStatus.failed;
+      case 'PENDING':
+      default:
+        return OrderPaymentStatus.unpaid;
+    }
+  }
+
+  Future<bool> _canUseRemoteApi() async {
+    return await _readAccessToken() != null;
+  }
+
+  Future<String?> _readAccessToken() async {
+    if (!DealerApiConfig.isConfigured) {
+      return null;
+    }
+    final token = await _authStorage.readAccessToken();
+    if (token == null || token.trim().isEmpty) {
+      return null;
+    }
+    return token.trim();
+  }
+
+  Future<Map<String, String>> _authorizedHeaders() async {
+    final token = await _readAccessToken();
+    if (token == null) {
+      throw StateError('Unauthenticated request');
+    }
+    return <String, String>{
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
+
+  Future<Map<String, String>> _authorizedJsonHeaders() async {
+    final headers = await _authorizedHeaders();
+    return <String, String>{...headers, 'Content-Type': 'application/json'};
+  }
+
+  Map<String, dynamic> _decodeBody(String body) {
+    if (body.trim().isEmpty) {
+      return const <String, dynamic>{};
+    }
+    final decoded = jsonDecode(body);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+    return const <String, dynamic>{};
+  }
+
+  String _extractErrorMessage(Map<String, dynamic> payload) {
+    final error = payload['error']?.toString();
+    if (error != null && error.trim().isNotEmpty) {
+      return error.trim();
+    }
+    return 'Khong the dong bo don hang.';
+  }
+
+  Product? _findProductById(String id) {
+    return _productLookup?.call(id);
+  }
+
+  int _parseInt(Object? value, {int fallback = 0}) {
+    if (value is int) {
+      return value;
+    }
+    if (value is double) {
+      return value.round();
+    }
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  int _parsePrice(Object? value, {int fallback = 0}) {
+    if (value is int) {
+      return value;
+    }
+    if (value is double) {
+      return value.round();
+    }
+    return double.tryParse(value?.toString() ?? '')?.round() ?? fallback;
+  }
+
+  String? _normalizeString(Object? value) {
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? null : text;
   }
 
   @override
   void dispose() {
-    _isDisposed = true;
+    _client.close();
     super.dispose();
-  }
-
-  String _buildPaymentId(String orderId) {
-    final millis = DateTime.now().millisecondsSinceEpoch;
-    return 'PAY-$orderId-$millis';
   }
 }
 
@@ -212,140 +612,4 @@ class OrderScope extends InheritedNotifier<OrderController> {
     assert(scope != null, 'OrderScope not found in widget tree.');
     return scope!.notifier!;
   }
-}
-
-List<Order> _defaultSeedOrders() {
-  final sxWireless = _productById('2');
-  final proStudio = _productById('3');
-  final bassTitan = _productById('7');
-  final rgbKeyLite = _productById('11');
-  final webcamFlow4k = _productById('18');
-  final mouseX1Wireless = _productById('13');
-  final phantomX60 = _productById('19');
-  final cyclone71 = _productById('20');
-  final echoLite2 = _productById('21');
-  final vanguardMax = _productById('22');
-  final pulseAnc = _productById('23');
-  final titanWirelessX = _productById('24');
-  final aero50 = _productById('25');
-  final quantumStudio = _productById('26');
-  final orbitChatPro = _productById('27');
-
-  final order1 = Order(
-    id: 'SCS-240315',
-    createdAt: DateTime(2026, 2, 15, 10, 42),
-    status: OrderStatus.shipping,
-    paymentMethod: OrderPaymentMethod.bankTransfer,
-    paymentStatus: OrderPaymentStatus.unpaid,
-    receiverName: 'Dai ly SCS Ha Noi',
-    receiverAddress: 'Số 12, Trần Duy Hưng, Cầu Giấy, Hà Nội',
-    receiverPhone: '0909 123 456',
-    shippingFee: 0,
-    items: [
-      OrderLineItem(product: sxWireless, quantity: 6),
-      OrderLineItem(product: proStudio, quantity: 2),
-      OrderLineItem(product: bassTitan, quantity: 2),
-    ],
-    paidAmount: 0,
-  );
-
-  final order2Base = Order(
-    id: 'SCS-239902',
-    createdAt: DateTime(2026, 2, 12, 15, 10),
-    status: OrderStatus.completed,
-    paymentMethod: OrderPaymentMethod.bankTransfer,
-    paymentStatus: OrderPaymentStatus.paid,
-    receiverName: 'Dai ly SCS Ha Noi',
-    receiverAddress: 'Số 12, Trần Duy Hưng, Cầu Giấy, Hà Nội',
-    receiverPhone: '0909 123 456',
-    shippingFee: 0,
-    items: [
-      OrderLineItem(product: rgbKeyLite, quantity: 2),
-      OrderLineItem(product: webcamFlow4k, quantity: 2),
-    ],
-    paidAmount: 0,
-  );
-  final order2 = order2Base.copyWith(paidAmount: order2Base.total);
-
-  final order3 = Order(
-    id: 'SCS-239118',
-    createdAt: DateTime(2026, 2, 7, 9, 25),
-    status: OrderStatus.completed,
-    paymentMethod: OrderPaymentMethod.debt,
-    paymentStatus: OrderPaymentStatus.debtRecorded,
-    receiverName: 'Dai ly SCS Ha Noi',
-    receiverAddress: 'Số 12, Trần Duy Hưng, Cầu Giấy, Hà Nội',
-    receiverPhone: '0909 123 456',
-    shippingFee: 0,
-    items: [
-      OrderLineItem(product: sxWireless, quantity: 3),
-      OrderLineItem(product: mouseX1Wireless, quantity: 5),
-    ],
-    paidAmount: 3000000,
-  );
-
-  final order4 = Order(
-    id: 'SCS-240401',
-    createdAt: DateTime(2026, 2, 16, 8, 40),
-    status: OrderStatus.pendingApproval,
-    paymentMethod: OrderPaymentMethod.debt,
-    paymentStatus: OrderPaymentStatus.debtRecorded,
-    receiverName: 'Dai ly SCS Ha Noi',
-    receiverAddress: 'Số 12, Trần Duy Hưng, Cầu Giấy, Hà Nội',
-    receiverPhone: '0909 123 456',
-    shippingFee: 0,
-    items: [
-      OrderLineItem(product: webcamFlow4k, quantity: 1),
-      OrderLineItem(product: rgbKeyLite, quantity: 5),
-    ],
-    paidAmount: 0,
-  );
-
-  final order5Base = Order(
-    id: 'SCS-240221',
-    createdAt: DateTime(2026, 2, 21, 14, 20),
-    status: OrderStatus.completed,
-    paymentMethod: OrderPaymentMethod.bankTransfer,
-    paymentStatus: OrderPaymentStatus.paid,
-    receiverName: 'Dai ly SCS Ha Noi',
-    receiverAddress: 'Số 12, Trần Duy Hưng, Cầu Giấy, Hà Nội',
-    receiverPhone: '0909 123 456',
-    shippingFee: 0,
-    items: [
-      OrderLineItem(product: phantomX60, quantity: 2),
-      OrderLineItem(product: cyclone71, quantity: 3),
-      OrderLineItem(product: echoLite2, quantity: 4),
-      OrderLineItem(product: vanguardMax, quantity: 2),
-      OrderLineItem(product: pulseAnc, quantity: 3),
-      OrderLineItem(product: titanWirelessX, quantity: 2),
-      OrderLineItem(product: aero50, quantity: 5),
-      OrderLineItem(product: quantumStudio, quantity: 2),
-      OrderLineItem(product: orbitChatPro, quantity: 4),
-    ],
-    paidAmount: 0,
-  );
-  final order5 = order5Base.copyWith(paidAmount: order5Base.total);
-
-  return [order1, order2, order3, order4, order5];
-}
-
-List<DebtPaymentRecord> _defaultSeedDebtPayments() {
-  return [
-    DebtPaymentRecord(
-      id: 'PAY-SCS-239118-1',
-      orderId: 'SCS-239118',
-      amount: 3000000,
-      paidAt: DateTime(2026, 2, 8, 10, 15),
-      channel: 'Chuyen khoan',
-      note: 'Thanh toan dot 1',
-      proofFileName: 'bien-lai-dot-1.pdf',
-    ),
-  ];
-}
-
-Product _productById(String id) {
-  return mockProducts.firstWhere(
-    (product) => product.id == id,
-    orElse: () => mockProducts.first,
-  );
 }

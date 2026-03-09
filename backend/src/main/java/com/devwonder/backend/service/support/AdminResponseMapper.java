@@ -1,0 +1,195 @@
+package com.devwonder.backend.service.support;
+
+import com.devwonder.backend.dto.admin.AdminBlogResponse;
+import com.devwonder.backend.dto.admin.AdminDealerAccountResponse;
+import com.devwonder.backend.dto.admin.AdminDealerResponse;
+import com.devwonder.backend.dto.admin.AdminDiscountRuleResponse;
+import com.devwonder.backend.dto.admin.AdminOrderResponse;
+import com.devwonder.backend.dto.admin.AdminProductResponse;
+import com.devwonder.backend.dto.admin.AdminStaffUserResponse;
+import com.devwonder.backend.entity.Admin;
+import com.devwonder.backend.entity.Blog;
+import com.devwonder.backend.entity.BulkDiscount;
+import com.devwonder.backend.entity.CategoryBlog;
+import com.devwonder.backend.entity.Dealer;
+import com.devwonder.backend.entity.Order;
+import com.devwonder.backend.entity.Product;
+import com.devwonder.backend.entity.enums.CustomerStatus;
+import com.devwonder.backend.entity.enums.CustomerTier;
+import com.devwonder.backend.entity.enums.DiscountRuleStatus;
+import com.devwonder.backend.entity.enums.StaffUserStatus;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+
+public final class AdminResponseMapper {
+
+    private AdminResponseMapper() {
+    }
+
+    public static AdminProductResponse toProductResponse(Product product) {
+        return new AdminProductResponse(
+                product.getId(),
+                product.getSku(),
+                product.getName(),
+                product.getShortDescription(),
+                product.getImage(),
+                product.getDescriptions(),
+                product.getVideos(),
+                product.getSpecifications(),
+                product.getRetailPrice(),
+                product.getStock(),
+                product.getWarrantyPeriod(),
+                product.getShowOnHomepage(),
+                product.getIsFeatured(),
+                product.getIsDeleted(),
+                product.getPublishStatus(),
+                product.getCreatedAt(),
+                product.getUpdatedAt()
+        );
+    }
+
+    public static AdminOrderResponse toOrderResponse(Order order) {
+        Dealer dealer = order.getDealer();
+        return new AdminOrderResponse(
+                order.getId(),
+                order.getOrderCode(),
+                dealer == null ? null : dealer.getId(),
+                dealer == null ? null : firstNonBlank(dealer.getBusinessName(), dealer.getContactName(), dealer.getUsername()),
+                order.getStatus(),
+                order.getPaymentMethod(),
+                order.getPaymentStatus(),
+                order.getPaidAmount(),
+                order.getCreatedAt(),
+                order.getUpdatedAt(),
+                OrderPricingSupport.computeTotalAmount(order),
+                countOrderItems(order),
+                order.getReceiverAddress(),
+                order.getNote()
+        );
+    }
+
+    public static AdminDealerResponse toDealerResponse(Dealer dealer) {
+        return new AdminDealerResponse(
+                dealer.getId(),
+                dealer.getUsername(),
+                dealer.getBusinessName(),
+                dealer.getContactName(),
+                dealer.getPhone(),
+                dealer.getEmail(),
+                dealer.getCity(),
+                dealer.getCreatedAt()
+        );
+    }
+
+    public static AdminBlogResponse toBlogResponse(Blog blog) {
+        CategoryBlog categoryBlog = blog.getCategoryBlog();
+        return new AdminBlogResponse(
+                blog.getId(),
+                categoryBlog == null ? null : categoryBlog.getId(),
+                categoryBlog == null ? null : categoryBlog.getName(),
+                blog.getTitle(),
+                blog.getDescription(),
+                blog.getImage(),
+                blog.getIntroduction(),
+                blog.getStatus(),
+                blog.getShowOnHomepage(),
+                blog.getIsDeleted(),
+                blog.getCreatedAt(),
+                blog.getUpdatedAt()
+        );
+    }
+
+    public static AdminDealerAccountResponse toDealerAccountResponse(Dealer dealer) {
+        List<Order> visibleOrders = dealer.getOrders() == null
+                ? List.of()
+                : dealer.getOrders().stream().filter(AdminDashboardSupport::isVisibleOrder).toList();
+        Instant lastOrderAt = visibleOrders.stream()
+                .map(Order::getCreatedAt)
+                .filter(Objects::nonNull)
+                .max(Comparator.naturalOrder())
+                .orElse(dealer.getCreatedAt());
+        BigDecimal revenue = visibleOrders.stream()
+                .map(OrderPricingSupport::computeTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return new AdminDealerAccountResponse(
+                dealer.getId(),
+                firstNonBlank(dealer.getBusinessName(), dealer.getContactName(), dealer.getUsername()),
+                dealer.getCustomerTier() == null ? CustomerTier.GOLD : dealer.getCustomerTier(),
+                dealer.getCustomerStatus() == null ? CustomerStatus.ACTIVE : dealer.getCustomerStatus(),
+                visibleOrders.size(),
+                lastOrderAt,
+                revenue,
+                dealer.getEmail(),
+                dealer.getPhone()
+        );
+    }
+
+    public static AdminStaffUserResponse toStaffUserResponse(Admin admin) {
+        return new AdminStaffUserResponse(
+                admin.getId(),
+                firstNonBlank(admin.getDisplayName(), admin.getUsername()),
+                firstNonBlank(admin.getRoleTitle(), "Admin"),
+                admin.getUserStatus() == null ? StaffUserStatus.ACTIVE : admin.getUserStatus(),
+                admin.getUsername(),
+                admin.getEmail()
+        );
+    }
+
+    public static AdminDiscountRuleResponse toDiscountRuleResponse(BulkDiscount rule) {
+        return new AdminDiscountRuleResponse(
+                rule.getId(),
+                firstNonBlank(rule.getLabel(), "Rule " + rule.getId()),
+                firstNonBlank(rule.getRangeLabel(), buildRangeLabel(rule)),
+                rule.getDiscountPercent() == null ? BigDecimal.ZERO : rule.getDiscountPercent(),
+                rule.getStatus() == null ? DiscountRuleStatus.ACTIVE : rule.getStatus(),
+                rule.getUpdatedAt()
+        );
+    }
+
+    private static int countOrderItems(Order order) {
+        if (order == null || order.getOrderItems() == null) {
+            return 0;
+        }
+        return order.getOrderItems().stream().mapToInt(item -> safeInt(item.getQuantity())).sum();
+    }
+
+    private static int safeInt(Integer value) {
+        return value == null ? 0 : Math.max(value, 0);
+    }
+
+    private static String buildRangeLabel(BulkDiscount rule) {
+        Integer min = rule.getMinQuantity();
+        Integer max = rule.getMaxQuantity();
+        if (min == null && max == null) {
+            return "Theo cau hinh";
+        }
+        if (min != null && max != null) {
+            return min + " - " + max;
+        }
+        if (min != null) {
+            return ">=" + min;
+        }
+        return "<=" + max;
+    }
+
+    private static String firstNonBlank(String... values) {
+        for (String value : values) {
+            String normalized = normalize(value);
+            if (normalized != null) {
+                return normalized;
+            }
+        }
+        return "";
+    }
+
+    private static String normalize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+}

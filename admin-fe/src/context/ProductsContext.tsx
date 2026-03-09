@@ -1,18 +1,28 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState } from 'react'
-import { products as seedProducts } from '../data/products'
-import type { Product, PublishStatus } from '../data/products'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import type { Product, PublishStatus } from '../types/product'
 import productPlaceholder from '../assets/product-placeholder.svg'
+import { useAuth } from './AuthContext'
+import { useToast } from './ToastContext'
+import {
+  createAdminProduct,
+  deleteAdminProduct,
+  fetchAdminProducts,
+  type BackendProductResponse,
+  type BackendProductUpsertRequest,
+  updateAdminProduct,
+} from '../lib/adminApi'
+import { hasBackendApi } from '../lib/backendApi'
 
 type ProductsContextValue = {
   products: Product[]
-  archiveProduct: (sku: string) => void
-  restoreProduct: (sku: string) => void
-  publishProduct: (sku: string) => void
-  updateProduct: (sku: string, updates: Partial<Product>) => void
-  deleteProduct: (sku: string) => void
-  addProduct: (payload?: Partial<Product>) => void
-  togglePublishStatus: (sku: string) => void
+  archiveProduct: (sku: string) => Promise<void>
+  restoreProduct: (sku: string) => Promise<void>
+  publishProduct: (sku: string) => Promise<void>
+  updateProduct: (sku: string, updates: Partial<Product>) => Promise<void>
+  deleteProduct: (sku: string) => Promise<void>
+  addProduct: (payload?: Partial<Product>) => Promise<Product | undefined>
+  togglePublishStatus: (sku: string) => Promise<void>
 }
 
 const ProductsContext = createContext<ProductsContextValue | undefined>(undefined)
@@ -43,117 +53,237 @@ const normalizeProduct = (product: Product): Product => {
   }
 }
 
+const safeJsonStringify = (value: unknown, fallback: string) => {
+  try {
+    return JSON.stringify(value ?? JSON.parse(fallback))
+  } catch {
+    return fallback
+  }
+}
+
+const parseImageField = (value?: string) => {
+  if (!value) return undefined
+  try {
+    const parsed = JSON.parse(value) as unknown
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>
+    }
+  } catch {
+    // fall through
+  }
+  return { imageUrl: value }
+}
+
+const parseArrayField = (value?: string) => {
+  if (!value) return undefined
+  try {
+    const parsed = JSON.parse(value) as unknown
+    return Array.isArray(parsed)
+      ? parsed.filter(
+          (item): item is Record<string, unknown> =>
+            Boolean(item) && typeof item === 'object' && !Array.isArray(item),
+        )
+      : undefined
+  } catch {
+    return undefined
+  }
+}
+
+const mapResponseToProduct = (product: BackendProductResponse): Product =>
+  normalizeProduct({
+    id: String(product.id),
+    name: product.name || '',
+    sku: product.sku || `PRD-${product.id}`,
+    shortDescription: product.shortDescription || '',
+    status: 'Draft',
+    publishStatus: product.publishStatus === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT',
+    stock: Number(product.stock ?? 0),
+    retailPrice: Number(product.retailPrice ?? 0),
+    image:
+      product.image && Object.keys(product.image).length > 0
+        ? JSON.stringify(product.image)
+        : JSON.stringify({ imageUrl: productPlaceholder }),
+    descriptions: safeJsonStringify(product.descriptions ?? [], '[]'),
+    videos: safeJsonStringify(product.videos ?? [], '[]'),
+    specifications: safeJsonStringify(product.specifications ?? [], '[]'),
+    showOnHomepage: Boolean(product.showOnHomepage),
+    isFeatured: Boolean(product.isFeatured),
+    isDeleted: Boolean(product.isDeleted),
+    createdAt: product.createdAt || new Date().toISOString(),
+    updatedAt: product.updatedAt || product.createdAt || new Date().toISOString(),
+  })
+
+const toUpsertPayload = (payload: Partial<Product>): BackendProductUpsertRequest => {
+  const request: BackendProductUpsertRequest = {}
+
+  if ('sku' in payload && payload.sku !== undefined) {
+    request.sku = payload.sku.trim()
+  }
+  if ('name' in payload && payload.name !== undefined) {
+    request.name = payload.name.trim()
+  }
+  if ('shortDescription' in payload && payload.shortDescription !== undefined) {
+    request.shortDescription = payload.shortDescription.trim()
+  }
+  if ('image' in payload && payload.image !== undefined) {
+    const image = parseImageField(payload.image)
+    if (image) {
+      request.image = image
+    }
+  }
+  if ('descriptions' in payload && payload.descriptions !== undefined) {
+    request.descriptions = parseArrayField(payload.descriptions) ?? []
+  }
+  if ('videos' in payload && payload.videos !== undefined) {
+    request.videos = parseArrayField(payload.videos) ?? []
+  }
+  if ('specifications' in payload && payload.specifications !== undefined) {
+    request.specifications = parseArrayField(payload.specifications) ?? []
+  }
+  if ('retailPrice' in payload && payload.retailPrice !== undefined) {
+    request.retailPrice = Number(payload.retailPrice ?? 0)
+  }
+  if ('stock' in payload && payload.stock !== undefined) {
+    request.stock = Number(payload.stock ?? 0)
+  }
+  if ('showOnHomepage' in payload && payload.showOnHomepage !== undefined) {
+    request.showOnHomepage = payload.showOnHomepage
+  }
+  if ('isFeatured' in payload && payload.isFeatured !== undefined) {
+    request.isFeatured = payload.isFeatured
+  }
+  if ('isDeleted' in payload && payload.isDeleted !== undefined) {
+    request.isDeleted = payload.isDeleted
+  }
+  if ('publishStatus' in payload && payload.publishStatus !== undefined) {
+    request.publishStatus = payload.publishStatus
+  }
+
+  return request
+}
+
+const replaceProduct = (products: Product[], nextProduct: Product) =>
+  products.map((product) => (product.sku === nextProduct.sku ? nextProduct : product))
+
 export function ProductsProvider({ children }: { children: React.ReactNode }) {
-  const [products, setProducts] = useState<Product[]>(seedProducts.map(normalizeProduct))
+  const { accessToken } = useAuth()
+  const { notify } = useToast()
+  const [products, setProducts] = useState<Product[]>([])
 
-  const archiveProduct = (sku: string) => {
-    setProducts((prev) =>
-      prev.map((product) =>
-        product.sku === sku
-          ? normalizeProduct({
-              ...product,
-              isDeleted: true,
-              publishStatus: 'DRAFT',
-            })
-          : product,
-      ),
-    )
-  }
+  const useRemoteData = useMemo(() => hasBackendApi() && Boolean(accessToken), [accessToken])
 
-  const restoreProduct = (sku: string) => {
-    setProducts((prev) =>
-      prev.map((product) =>
-        product.sku === sku
-          ? normalizeProduct({
-              ...product,
-              isDeleted: false,
-              publishStatus: 'DRAFT',
-            })
-          : product,
-      ),
-    )
-  }
+  useEffect(() => {
+    if (!useRemoteData || !accessToken) {
+      const timer = window.setTimeout(() => {
+        setProducts([])
+      }, 0)
+      return () => window.clearTimeout(timer)
+    }
 
-  const publishProduct = (sku: string) => {
-    const updatedAt = new Date().toISOString()
+    let cancelled = false
 
-    setProducts((prev) =>
-      prev.map((product) => {
-        if (product.sku !== sku || product.isDeleted) {
-          return product
+    const loadProducts = async () => {
+      try {
+        const response = await fetchAdminProducts(accessToken)
+        if (!cancelled) {
+          setProducts(response.map(mapResponseToProduct))
         }
-        if (product.publishStatus === 'PUBLISHED') {
-          return product
+      } catch (error) {
+        if (!cancelled) {
+          notify(error instanceof Error ? error.message : 'Khong tai duoc danh sach san pham', {
+            title: 'Products',
+            variant: 'error',
+          })
         }
-        return normalizeProduct({
-          ...product,
-          publishStatus: 'PUBLISHED',
-          updatedAt,
-          isDeleted: false,
-        })
-      }),
-    )
+      }
+    }
+
+    void loadProducts()
+
+    return () => {
+      cancelled = true
+    }
+  }, [accessToken, notify, useRemoteData])
+
+  const archiveProduct = async (sku: string) => {
+    if (!useRemoteData || !accessToken) return
+
+    const target = products.find((product) => product.sku === sku)
+    if (!target) return
+
+    const updated = await updateAdminProduct(accessToken, Number(target.id), {
+      isDeleted: true,
+      publishStatus: 'DRAFT',
+    })
+    setProducts((prev) => replaceProduct(prev, mapResponseToProduct(updated)))
   }
 
-  const updateProduct = (sku: string, updates: Partial<Product>) => {
-    const nextUpdatedAt = updates.updatedAt || new Date().toISOString()
-    setProducts((prev) =>
-      prev.map((product) =>
-        product.sku === sku
-          ? normalizeProduct({ ...product, ...updates, updatedAt: nextUpdatedAt })
-          : product,
-      ),
-    )
+  const restoreProduct = async (sku: string) => {
+    if (!useRemoteData || !accessToken) return
+
+    const target = products.find((product) => product.sku === sku)
+    if (!target) return
+
+    const updated = await updateAdminProduct(accessToken, Number(target.id), {
+      isDeleted: false,
+      publishStatus: 'DRAFT',
+    })
+    setProducts((prev) => replaceProduct(prev, mapResponseToProduct(updated)))
   }
 
-  const deleteProduct = (sku: string) => {
+  const publishProduct = async (sku: string) => {
+    if (!useRemoteData || !accessToken) return
+
+    const target = products.find((product) => product.sku === sku)
+    if (!target) return
+
+    const updated = await updateAdminProduct(accessToken, Number(target.id), {
+      publishStatus: 'PUBLISHED',
+      isDeleted: false,
+    })
+    setProducts((prev) => replaceProduct(prev, mapResponseToProduct(updated)))
+  }
+
+  const updateProduct = async (sku: string, updates: Partial<Product>) => {
+    if (!useRemoteData || !accessToken) return
+
+    const target = products.find((product) => product.sku === sku)
+    if (!target) return
+
+    const updated = await updateAdminProduct(accessToken, Number(target.id), toUpsertPayload(updates))
+    setProducts((prev) => replaceProduct(prev, mapResponseToProduct(updated)))
+  }
+
+  const deleteProduct = async (sku: string) => {
+    if (!useRemoteData || !accessToken) return
+
+    const target = products.find((product) => product.sku === sku)
+    if (!target) return
+
+    await deleteAdminProduct(accessToken, Number(target.id))
     setProducts((prev) => prev.filter((product) => product.sku !== sku))
   }
 
-  const addProduct = (payload: Partial<Product> = {}) => {
-    const now = new Date()
-    const id = payload.id || String(Date.now())
-    const sku = payload.sku || `NEW-${id}`
-    const base: Product = {
-      id,
-      name: payload.name || `New Product ${products.length + 1}`,
-      sku,
-      shortDescription: payload.shortDescription || '',
-      status: 'Draft',
-      publishStatus: payload.publishStatus === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT',
-      stock: payload.stock ?? 0,
-      retailPrice: payload.retailPrice ?? 0,
-      image:
-        payload.image ||
-        JSON.stringify({
-          imageUrl: productPlaceholder,
-        }),
-      descriptions: payload.descriptions || '[]',
-      videos: payload.videos || '[]',
-      specifications: payload.specifications || '[]',
-      showOnHomepage: payload.showOnHomepage ?? false,
-      isFeatured: payload.isFeatured ?? false,
-      isDeleted: payload.isDeleted ?? false,
-      createdAt: payload.createdAt || now.toISOString(),
-      updatedAt: payload.updatedAt || now.toISOString(),
-    }
+  const addProduct = async (payload: Partial<Product> = {}) => {
+    if (!useRemoteData || !accessToken) return undefined
 
-    setProducts((prev) => [...prev, normalizeProduct(base)])
+    const created = await createAdminProduct(accessToken, toUpsertPayload(payload))
+    const normalized = mapResponseToProduct(created)
+    setProducts((prev) => [normalized, ...prev])
+    return normalized
   }
 
-  const togglePublishStatus = (sku: string) => {
-    setProducts((prev) =>
-      prev.map((product) => {
-        if (product.sku !== sku) return product
-        const nextStatus: PublishStatus =
-          product.publishStatus === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'
-        return normalizeProduct({
-          ...product,
-          publishStatus: nextStatus,
-          isDeleted: false
-        })
-      })
-    )
+  const togglePublishStatus = async (sku: string) => {
+    if (!useRemoteData || !accessToken) return
+
+    const target = products.find((product) => product.sku === sku)
+    if (!target) return
+
+    const updated = await updateAdminProduct(accessToken, Number(target.id), {
+      publishStatus: target.publishStatus === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED',
+      isDeleted: false,
+    })
+    setProducts((prev) => replaceProduct(prev, mapResponseToProduct(updated)))
   }
 
   const value = {
@@ -167,11 +297,7 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
     togglePublishStatus,
   }
 
-  return (
-    <ProductsContext.Provider value={value}>
-      {children}
-    </ProductsContext.Provider>
-  )
+  return <ProductsContext.Provider value={value}>{children}</ProductsContext.Provider>
 }
 
 export function useProducts() {

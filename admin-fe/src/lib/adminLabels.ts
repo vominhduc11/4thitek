@@ -1,7 +1,7 @@
 import type {
   BlogStatus,
-  CustomerStatus,
-  CustomerTier,
+  DealerStatus,
+  DealerTier,
   OrderStatus,
   RuleStatus,
   UserStatus,
@@ -24,6 +24,23 @@ export const orderStatusTone: Record<OrderStatus, BadgeTone> = {
   cancelled: 'danger',
 }
 
+export const getAllowedOrderStatuses = (current: OrderStatus): OrderStatus[] => {
+  switch (current) {
+    case 'pending':
+      return ['pending', 'packing', 'cancelled']
+    case 'packing':
+      return ['packing', 'delivering', 'cancelled']
+    case 'delivering':
+      return ['delivering', 'completed']
+    case 'completed':
+      return ['completed']
+    case 'cancelled':
+      return ['cancelled']
+    default:
+      return [current]
+  }
+}
+
 export const blogStatusLabel: Record<BlogStatus, string> = {
   published: 'Da dang',
   scheduled: 'Hen gio',
@@ -36,30 +53,36 @@ export const blogStatusTone: Record<BlogStatus, BadgeTone> = {
   draft: 'warning',
 }
 
-export const customerTierLabel: Record<CustomerTier, string> = {
+export const dealerTierLabel: Record<DealerTier, string> = {
   platinum: 'Bach kim',
   gold: 'Vang',
   silver: 'Bac',
   bronze: 'Dong',
 }
 
-export const customerTierTone: Record<CustomerTier, BadgeTone> = {
+export const dealerTierTone: Record<DealerTier, BadgeTone> = {
   platinum: 'info',
   gold: 'warning',
   silver: 'neutral',
   bronze: 'danger',
 }
 
-export const customerStatusLabel: Record<CustomerStatus, string> = {
-  active: 'Dang hoat dong',
-  under_review: 'Dang xem xet',
-  needs_attention: 'Can cham soc',
+export const dealerStatusLabel: Record<DealerStatus, string> = {
+  active: 'Da kich hoat',
+  under_review: 'Cho duyet ho so',
+  needs_attention: 'Can bo sung ho so',
 }
 
-export const customerStatusTone: Record<CustomerStatus, BadgeTone> = {
+export const dealerStatusTone: Record<DealerStatus, BadgeTone> = {
   active: 'success',
   under_review: 'info',
   needs_attention: 'warning',
+}
+
+export const dealerStatusDescription: Record<DealerStatus, string> = {
+  active: 'Dai ly da duoc phe duyet va co the dang nhap ung dung dealer.',
+  under_review: 'Ho so dang cho admin xac minh. Dai ly chua the dang nhap dealer app.',
+  needs_attention: 'Ho so can bo sung them thong tin truoc khi kich hoat tai khoan.',
 }
 
 export const userStatusLabel: Record<UserStatus, string> = {

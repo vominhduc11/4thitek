@@ -1,18 +1,19 @@
 import { Bell, Save, Shield } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAdminData } from '../context/AdminDataContext'
 import { useToast } from '../context/ToastContext'
-import { useSimulatedPageLoad } from '../hooks/useSimulatedPageLoad'
 import { LoadingRows, PagePanel, PrimaryButton } from '../components/ui-kit'
 
 function SettingsPage() {
-  const { settings, updateSettings } = useAdminData()
+  const { settings, isSettingsLoading, isSettingsSaving, updateSettings } = useAdminData()
   const { notify } = useToast()
-  const { isLoading } = useSimulatedPageLoad('settings-page')
-
   const [draft, setDraft] = useState(settings)
 
-  if (isLoading) {
+  useEffect(() => {
+    setDraft(settings)
+  }, [settings])
+
+  if (isSettingsLoading) {
     return (
       <PagePanel>
         <LoadingRows rows={4} />
@@ -30,14 +31,22 @@ function SettingsPage() {
           </p>
         </div>
         <PrimaryButton
+          disabled={isSettingsSaving}
           icon={<Save className="h-4 w-4" />}
-          onClick={() => {
-            updateSettings(draft)
-            notify('Da luu cai dat he thong', { title: 'Settings', variant: 'success' })
+          onClick={async () => {
+            try {
+              await updateSettings(draft)
+              notify('Da luu cai dat he thong', { title: 'Settings', variant: 'success' })
+            } catch (error) {
+              notify(error instanceof Error ? error.message : 'Khong luu duoc cai dat', {
+                title: 'Settings',
+                variant: 'error',
+              })
+            }
           }}
           type="button"
         >
-          Luu thay doi
+          {isSettingsSaving ? 'Dang luu...' : 'Luu thay doi'}
         </PrimaryButton>
       </div>
 

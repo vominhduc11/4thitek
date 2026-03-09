@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 
-import 'mock_data.dart';
 import 'models.dart';
 import 'order_controller.dart';
 import 'order_detail_screen.dart';
+import 'product_catalog_controller.dart';
 import 'product_detail_screen.dart';
 
 Future<void> showGlobalSearch(BuildContext context) async {
   final orders = List<Order>.from(OrderScope.of(context).orders);
+  final products = ProductCatalogScope.maybeOf(context)?.products ?? const <Product>[];
   await showSearch<void>(
     context: context,
     delegate: _GlobalSearchDelegate(
       launchContext: context,
-      products: mockProducts,
+      products: products,
       orders: orders,
     ),
   );

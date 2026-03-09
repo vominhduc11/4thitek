@@ -9,7 +9,6 @@ import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.NotifyRepository;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,12 +26,12 @@ public class NotificationService {
     private final WebSocketEventPublisher webSocketEventPublisher;
 
     @Transactional(readOnly = true)
-    public List<NotifyResponse> getByAccount(UUID accountId) {
+    public List<NotifyResponse> getByAccount(Long accountId) {
         return notifyRepository.findByAccountIdOrderByCreatedAtDesc(accountId).stream().map(this::toResponse).toList();
     }
 
     @Transactional(readOnly = true)
-    public Page<NotifyResponse> getByAccount(UUID accountId, Pageable pageable) {
+    public Page<NotifyResponse> getByAccount(Long accountId, Pageable pageable) {
         Pageable effectivePageable = withDefaultSort(pageable, "createdAt");
         return notifyRepository.findByAccountId(accountId, effectivePageable).map(this::toResponse);
     }
@@ -50,12 +49,12 @@ public class NotificationService {
         notify.setLink(request.link());
         notify.setIsRead(false);
         NotifyResponse created = toResponse(notifyRepository.save(notify));
-        webSocketEventPublisher.publishNotificationCreated(created);
+        webSocketEventPublisher.publishNotificationCreated(account.getUsername(), created);
         return created;
     }
 
     @Transactional
-    public NotifyResponse markRead(UUID notifyId) {
+    public NotifyResponse markRead(Long notifyId) {
         Notify notify = notifyRepository.findById(notifyId)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
         notify.setIsRead(true);
@@ -64,12 +63,21 @@ public class NotificationService {
     }
 
     @Transactional
-    public int markAllReadByAccount(UUID accountId) {
+    public NotifyResponse markUnread(Long notifyId) {
+        Notify notify = notifyRepository.findById(notifyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
+        notify.setIsRead(false);
+        notify.setReadAt(null);
+        return toResponse(notifyRepository.save(notify));
+    }
+
+    @Transactional
+    public int markAllReadByAccount(Long accountId) {
         return notifyRepository.markAllReadByAccountId(accountId, Instant.now());
     }
 
     @Transactional
-    public void delete(UUID notifyId) {
+    public void delete(Long notifyId) {
         notifyRepository.deleteById(notifyId);
     }
 

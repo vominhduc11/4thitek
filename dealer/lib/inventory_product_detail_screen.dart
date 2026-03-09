@@ -459,12 +459,17 @@ class _InventoryProductDetailScreenState
                           );
                         },
                         onCopy: () => _copySerial(record.serial),
-                        onToggleDefective: () {
+                        onToggleDefective: () async {
                           final next = status != 'defective';
-                          warrantyController.markSerialDefective(
-                            serial: record.serial,
-                            defective: next,
-                          );
+                          final error = await warrantyController
+                              .setSerialDefective(
+                                serial: record.serial,
+                                defective: next,
+                              );
+                          if (!mounted || error == null) {
+                            return;
+                          }
+                          _showSnackBar(error);
                         },
                       ),
                     );
@@ -873,7 +878,7 @@ class _SerialTile extends StatelessWidget {
   final String status;
   final VoidCallback onOpenOrder;
   final VoidCallback onCopy;
-  final VoidCallback onToggleDefective;
+  final Future<void> Function() onToggleDefective;
 
   @override
   Widget build(BuildContext context) {
@@ -965,12 +970,12 @@ class _SerialTile extends StatelessWidget {
                 minWidth: _detailMinTapTarget,
                 minHeight: _detailMinTapTarget,
               ),
-              onSelected: (value) {
+              onSelected: (value) async {
                 switch (value) {
                   case 'copy':
                     onCopy();
                   case 'defective':
-                    onToggleDefective();
+                    await onToggleDefective();
                 }
               },
               itemBuilder: (_) => [

@@ -2,18 +2,25 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import 'api_config.dart';
 import 'auth_service.dart';
 import 'auth_storage.dart';
 import 'breakpoints.dart';
+import 'cart_controller.dart';
 import 'forgot_password_screen.dart';
 import 'home_shell.dart';
-import 'register_screen.dart';
+import 'notification_controller.dart';
+import 'order_controller.dart';
+import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.initialErrorMessage});
+
+  final String? initialErrorMessage;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -45,13 +52,17 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _authService = const MockAuthService();
+    _authService = RemoteAuthService();
     _authStorage = AuthStorage();
     _emailController.addListener(_onFormInputChanged);
     _passwordController.addListener(_onFormInputChanged);
     _emailFocusNode.addListener(_onEmailFocusChanged);
     _passwordFocusNode.addListener(_onPasswordFocusChanged);
     _authErrorNotifier.addListener(_onAuthErrorChanged);
+    final initialErrorMessage = widget.initialErrorMessage?.trim();
+    if (initialErrorMessage != null && initialErrorMessage.isNotEmpty) {
+      _authErrorNotifier.value = initialErrorMessage;
+    }
     _loadRemembered();
   }
 
@@ -171,11 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 theme: theme,
                 isLoading: _isLoggingIn,
                 onRegister: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const RegisterScreen(),
-                    ),
-                  );
+                  unawaited(_openDealerRegistrationPage());
                 },
               ),
             ),
@@ -313,6 +320,7 @@ class _LoginScreenState extends State<LoginScreen> {
           case LoginFailureType.invalidCredentials:
           case LoginFailureType.invalidEmail:
           case LoginFailureType.invalidPassword:
+          case LoginFailureType.conflict:
             _handleInvalidCredentialFailure(
               type: LoginFailureType.invalidCredentials,
               message:
@@ -322,18 +330,20 @@ class _LoginScreenState extends State<LoginScreen> {
           case LoginFailureType.network:
             _clearCredentialFieldErrors();
             _authErrorNotifier.value =
+                result.failure?.message ??
                 'Kh\u00f4ng th\u1ec3 k\u1ebft n\u1ed1i m\u00e1y ch\u1ee7. Vui l\u00f2ng th\u1eed l\u1ea1i.';
             break;
           case LoginFailureType.unknown:
             _clearCredentialFieldErrors();
             _authErrorNotifier.value =
+                result.failure?.message ??
                 '\u0110\u0103ng nh\u1eadp th\u1ea5t b\u1ea1i. Vui l\u00f2ng th\u1eed l\u1ea1i.';
             break;
         }
         return;
       }
 
-      final token = result.token;
+      final token = result.accessToken;
       if (token == null || token.isEmpty) {
         _clearCredentialFieldErrors();
         _authErrorNotifier.value =
@@ -344,8 +354,25 @@ class _LoginScreenState extends State<LoginScreen> {
       await _authStorage.persistLogin(
         rememberMe: _rememberMe,
         email: result.email ?? email,
-        token: token,
+        accessToken: token,
+        refreshToken: result.refreshToken,
       );
+      if (!mounted) {
+        return;
+      }
+      await CartScope.of(context).load();
+      if (!mounted) {
+        return;
+      }
+      await OrderScope.of(context).load(forceRefresh: true);
+      if (!mounted) {
+        return;
+      }
+      await WarrantyScope.of(context).load(forceRefresh: true);
+      if (!mounted) {
+        return;
+      }
+      await NotificationScope.of(context).load(forceRefresh: true);
       _clearCredentialFieldErrors();
       if (!mounted) {
         return;
@@ -459,6 +486,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordShakeTickNotifier.value = _passwordShakeTickNotifier.value + 1;
         break;
       case LoginFailureType.invalidCredentials:
+      case LoginFailureType.conflict:
         _authErrorNotifier.value = message;
         _passwordFocusNode.requestFocus();
         break;
@@ -543,6 +571,23 @@ class _LoginScreenState extends State<LoginScreen> {
         extentOffset: safeEnd,
       );
     });
+  }
+
+  Future<void> _openDealerRegistrationPage() async {
+    final launched = await launchUrl(
+      DealerApiConfig.dealerRegistrationPageUri,
+      mode: LaunchMode.externalApplication,
+    );
+    if (!mounted || launched) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Kh\u00f4ng th\u1ec3 m\u1edf trang \u0111\u0103ng k\u00fd \u0111\u1ea1i l\u00fd tr\u00ean website.',
+        ),
+      ),
+    );
   }
 }
 
@@ -1378,7 +1423,7 @@ class _RegisterPrompt extends StatelessWidget {
               ),
               children: [
                 TextSpan(
-                  text: '\u0110\u0103ng k\u00fd \u0111\u1ea1i l\u00fd',
+                  text: '\u0110\u0103ng k\u00fd tr\u00ean website',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,

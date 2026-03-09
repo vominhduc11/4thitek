@@ -2,7 +2,7 @@ import { ArrowLeft } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAdminData, type OrderStatus } from '../context/AdminDataContext'
 import { useToast } from '../context/ToastContext'
-import { orderStatusLabel, orderStatusTone } from '../lib/adminLabels'
+import { getAllowedOrderStatuses, orderStatusLabel, orderStatusTone } from '../lib/adminLabels'
 import { formatCurrency, formatDateTime } from '../lib/formatters'
 import {
   EmptyState,
@@ -11,14 +11,6 @@ import {
   PrimaryButton,
   StatusBadge,
 } from '../components/ui-kit'
-
-const STATUS_OPTIONS: OrderStatus[] = [
-  'pending',
-  'packing',
-  'delivering',
-  'completed',
-  'cancelled',
-]
 
 function OrderDetailPage() {
   const { id = '' } = useParams()
@@ -71,7 +63,7 @@ function OrderDetailPage() {
           <p className="mt-2 text-sm text-slate-500">{formatDateTime(order.createdAt)}</p>
           <div className="mt-4 space-y-2 text-sm text-slate-700">
             <p>
-              <span className="font-semibold text-slate-900">Khach hang:</span> {order.customer}
+              <span className="font-semibold text-slate-900">Dai ly:</span> {order.dealer}
             </p>
             <p>
               <span className="font-semibold text-slate-900">So mat hang:</span> {order.items}
@@ -95,26 +87,41 @@ function OrderDetailPage() {
             <select
               aria-label={`Order status ${order.id}`}
               className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              onChange={(event) => {
+              onChange={async (event) => {
                 const next = event.target.value as OrderStatus
-                updateOrderStatus(order.id, next)
-                notify(`Don ${order.id} -> ${orderStatusLabel[next]}`, {
-                  title: 'Orders',
-                  variant: 'info',
-                })
+                try {
+                  await updateOrderStatus(order.id, next)
+                  notify(`Don ${order.id} -> ${orderStatusLabel[next]}`, {
+                    title: 'Orders',
+                    variant: 'info',
+                  })
+                } catch (error) {
+                  notify(error instanceof Error ? error.message : 'Khong cap nhat duoc don hang', {
+                    title: 'Orders',
+                    variant: 'error',
+                  })
+                }
               }}
               value={order.status}
             >
-              {STATUS_OPTIONS.map((status) => (
+              {getAllowedOrderStatuses(order.status).map((status) => (
                 <option key={status} value={status}>
                   {orderStatusLabel[status]}
                 </option>
               ))}
             </select>
             <PrimaryButton
-              onClick={() => {
-                updateOrderStatus(order.id, 'completed')
-                notify(`Don ${order.id} da hoan tat`, { title: 'Orders', variant: 'success' })
+              disabled={order.status !== 'delivering'}
+              onClick={async () => {
+                try {
+                  await updateOrderStatus(order.id, 'completed')
+                  notify(`Don ${order.id} da hoan tat`, { title: 'Orders', variant: 'success' })
+                } catch (error) {
+                  notify(error instanceof Error ? error.message : 'Khong cap nhat duoc don hang', {
+                    title: 'Orders',
+                    variant: 'error',
+                  })
+                }
               }}
               type="button"
             >
@@ -129,10 +136,17 @@ function OrderDetailPage() {
             </p>
             <GhostButton
               className="mt-3 border-rose-200 text-rose-700 hover:border-rose-500 hover:text-rose-700"
-              onClick={() => {
-                deleteOrder(order.id)
-                notify(`Da xoa ${order.id}`, { title: 'Orders', variant: 'error' })
-                navigate('/orders')
+              onClick={async () => {
+                try {
+                  await deleteOrder(order.id)
+                  notify(`Da xoa ${order.id}`, { title: 'Orders', variant: 'error' })
+                  navigate('/orders')
+                } catch (error) {
+                  notify(error instanceof Error ? error.message : 'Khong xoa duoc don hang', {
+                    title: 'Orders',
+                    variant: 'error',
+                  })
+                }
               }}
               type="button"
             >

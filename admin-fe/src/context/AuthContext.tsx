@@ -7,10 +7,14 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { buildApiUrl, hasBackendApi } from '../lib/backendApi'
 
 type AuthUser = {
   username: string
   role: string
+  accessToken?: string
+  accountType?: string
+  roles?: string[]
 }
 
 type LoginPayload = {
@@ -21,6 +25,7 @@ type LoginPayload = {
 
 type AuthContextValue = {
   user: AuthUser | null
+  accessToken: string | null
   isAuthenticated: boolean
   isLoggingIn: boolean
   login: (payload: LoginPayload) => Promise<{ ok: boolean; message?: string }>
@@ -38,9 +43,36 @@ const parseStoredUser = (): AuthUser | null => {
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<AuthUser>
     if (!parsed.username || !parsed.role) return null
-    return { username: parsed.username, role: parsed.role }
+    return {
+      username: parsed.username,
+      role: parsed.role,
+      accessToken: typeof parsed.accessToken === 'string' ? parsed.accessToken : undefined,
+      accountType: typeof parsed.accountType === 'string' ? parsed.accountType : undefined,
+      roles: Array.isArray(parsed.roles)
+        ? parsed.roles.filter((item): item is string => typeof item === 'string')
+        : undefined,
+    }
   } catch {
     return null
+  }
+}
+
+type ApiResponse<T> = {
+  success: boolean
+  data: T
+  error?: string | null
+}
+
+type AuthApiResponse = {
+  accessToken: string
+  refreshToken: string
+  tokenType: string
+  expiresIn: number
+  user: {
+    id: number
+    username: string
+    accountType: string
+    roles: string[]
   }
 }
 
@@ -61,28 +93,79 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setIsLoggingIn(true)
-    await new Promise((resolve) => {
-      window.setTimeout(resolve, 420)
-    })
-
-    const nextUser: AuthUser = {
-      username,
-      role: 'Admin',
-    }
-    setUser(nextUser)
-    setIsLoggingIn(false)
-
     try {
-      if (payload.remember) {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser))
-      } else {
-        window.localStorage.removeItem(STORAGE_KEY)
+      if (!hasBackendApi()) {
+        return {
+          ok: false,
+          message: 'Chua cau hinh VITE_API_BASE_URL',
+        }
       }
-    } catch {
-      // ignore storage errors
-    }
 
-    return { ok: true }
+      const response = await fetch(buildApiUrl('/auth/login'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username,
+          password,
+        }),
+      })
+
+      let payloadData: ApiResponse<AuthApiResponse> | null = null
+      try {
+        payloadData = (await response.json()) as ApiResponse<AuthApiResponse>
+      } catch {
+        payloadData = null
+      }
+
+      if (!response.ok || !payloadData?.success || !payloadData.data?.accessToken) {
+        return {
+          ok: false,
+          message: payloadData?.error || 'Dang nhap that bai',
+        }
+      }
+
+      const roles = Array.isArray(payloadData.data.user?.roles)
+        ? payloadData.data.user.roles
+        : []
+
+      if (!roles.includes('ADMIN')) {
+        return {
+          ok: false,
+          message: 'Tai khoan khong co quyen admin',
+        }
+      }
+
+      const nextUser: AuthUser = {
+        username: payloadData.data.user.username || username,
+        role: 'Admin',
+        accessToken: payloadData.data.accessToken,
+        accountType: payloadData.data.user.accountType,
+        roles,
+      }
+
+      setUser(nextUser)
+
+      try {
+        if (payload.remember) {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser))
+        } else {
+          window.localStorage.removeItem(STORAGE_KEY)
+        }
+      } catch {
+        // ignore storage errors
+      }
+
+      return { ok: true }
+    } catch {
+      return {
+        ok: false,
+        message: 'Khong ket noi duoc backend',
+      }
+    } finally {
+      setIsLoggingIn(false)
+    }
   }, [])
 
   const logout = useCallback(() => {
@@ -97,6 +180,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
+      accessToken: user?.accessToken ?? null,
       isAuthenticated: Boolean(user),
       isLoggingIn,
       login,

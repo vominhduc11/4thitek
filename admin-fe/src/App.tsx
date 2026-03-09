@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import RouteFallback from './components/RouteFallback'
 import { ProtectedRoute, PublicOnlyRoute } from './components/auth/RouteGuards'
 import { ProductsProvider } from './context/ProductsContext'
@@ -13,8 +13,8 @@ const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage'))
 const BlogsPage = lazy(() => import('./pages/BlogsPage'))
 const BlogDetailPage = lazy(() => import('./pages/BlogDetailPage'))
 const WholesaleDiscountsPage = lazy(() => import('./pages/WholesaleDiscountsPage'))
-const CustomersPage = lazy(() => import('./pages/CustomersPage'))
-const CustomerDetailPage = lazy(() => import('./pages/CustomerDetailPage'))
+const DealersPage = lazy(() => import('./pages/DealersPage'))
+const DealerDetailPage = lazy(() => import('./pages/DealerDetailPage'))
 const UsersPage = lazy(() => import('./pages/UsersPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
@@ -24,6 +24,13 @@ const renderLazyElement = (Component: LazyExoticComponent<ComponentType>) => (
     <Component />
   </Suspense>
 )
+
+function LegacyDealersRedirect() {
+  const location = useLocation()
+  const nextPath = location.pathname.replace(/^\/customers(?=\/|$)/, '/dealers')
+
+  return <Navigate to={`${nextPath}${location.search}${location.hash}`} replace />
+}
 
 function App() {
   return (
@@ -49,10 +56,12 @@ function App() {
               path="/discounts"
               element={renderLazyElement(WholesaleDiscountsPage)}
             />
-            <Route path="/customers" element={renderLazyElement(CustomersPage)} />
+            <Route path="/customers" element={<LegacyDealersRedirect />} />
+            <Route path="/customers/:id" element={<LegacyDealersRedirect />} />
+            <Route path="/dealers" element={renderLazyElement(DealersPage)} />
             <Route
-              path="/customers/:id"
-              element={renderLazyElement(CustomerDetailPage)}
+              path="/dealers/:id"
+              element={renderLazyElement(DealerDetailPage)}
             />
             <Route path="/users" element={renderLazyElement(UsersPage)} />
             <Route path="/settings" element={renderLazyElement(SettingsPage)} />

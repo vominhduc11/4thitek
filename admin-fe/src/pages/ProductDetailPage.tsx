@@ -13,29 +13,28 @@ import {
   X,
 } from 'lucide-react'
 import productPlaceholder from '../assets/product-placeholder.svg'
+import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductsContext'
 import { useLanguage } from '../context/LanguageContext'
-import type { Product } from '../data/products'
+import { useToast } from '../context/ToastContext'
+import type { Product } from '../types/product'
+import { resolveBackendAssetUrl } from '../lib/backendApi'
+import { storeFileReference } from '../lib/upload'
 
 const getImageUrl = (image: string) => {
   try {
     const parsed = JSON.parse(image) as { imageUrl?: string }
-    return parsed.imageUrl || image
+    return resolveBackendAssetUrl(parsed.imageUrl || image)
   } catch {
-    return image
+    return resolveBackendAssetUrl(image)
   }
 }
 
 const isLocalBlobUrl = (value?: string) =>
   Boolean(value && (value.startsWith('blob:') || value.startsWith('local-file:')))
 
-const readFileAsDataUrl = (file: File) =>
-  Promise.resolve(`local-file:${file.name}`)
-
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
-const MAX_VIDEO_BYTES = 10 * 1024 * 1024
-const EDIT_FILE_NOTICE = 'Chỉnh sửa chưa hỗ trợ tải tệp. Vui lòng dùng URL hoặc tạo mới.'
-const DISABLE_EDIT_FILE_UPLOAD = true
+const VIDEO_FILE_NOTICE = 'Tải tệp video chưa được hỗ trợ. Vui lòng dùng URL video.'
 
 type QuillEditorProps = {
   value: string
@@ -71,7 +70,9 @@ const QuillEditor = ({
   useEffect(() => {
     if (!containerRef.current || quillRef.current) return
 
-    const instance = new Quill(containerRef.current, {
+    const container = containerRef.current
+
+    const instance = new Quill(container, {
       theme: 'snow',
       modules,
       formats,
@@ -99,15 +100,14 @@ const QuillEditor = ({
     }
 
     return () => {
+      const toolbarContainer = toolbarRef.current
       instance.off('text-change', handleChange)
       quillRef.current = null
-      if (toolbarRef.current?.parentNode) {
-        toolbarRef.current.parentNode.removeChild(toolbarRef.current)
+      if (toolbarContainer?.parentNode) {
+        toolbarContainer.parentNode.removeChild(toolbarContainer)
       }
       toolbarRef.current = null
-      if (containerRef.current) {
-        containerRef.current.innerHTML = ''
-      }
+      container.innerHTML = ''
     }
   }, [formats, modules, placeholder, readOnly])
 
@@ -276,6 +276,8 @@ function ProductDetailPage() {
   const { sku } = useParams()
   const navigate = useNavigate()
   const { t } = useLanguage()
+  const { accessToken } = useAuth()
+  const { notify } = useToast()
   const {
     products,
     archiveProduct,
@@ -293,6 +295,13 @@ function ProductDetailPage() {
   const [descriptionVideoErrors, setDescriptionVideoErrors] = useState<Record<number, string>>({})
   const [productVideoErrors, setProductVideoErrors] = useState<Record<number, string>>({})
   const [actionMessage, setActionMessage] = useState('')
+
+  const uploadImageAsset = async (file: File) =>
+    storeFileReference({
+      file,
+      category: 'products',
+      accessToken,
+    })
 
   const productStatusLabelMap: Record<Product['status'], string> = {
     Active: 'Đang bán',
@@ -380,7 +389,7 @@ function ProductDetailPage() {
     setIsEditing(false)
   }
 
-  const handleSave = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     const nextStock = Number(draft.stock)
@@ -437,22 +446,29 @@ function ProductDetailPage() {
       }))
       .filter((video) => video.title || video.descriptions || video.url)
 
-    updateProduct(product.sku, {
-      name: draft.name.trim() || product.name,
-      publishStatus: draft.publishStatus,
-      stock: Number.isNaN(nextStock) ? product.stock : nextStock,
-      shortDescription: draft.shortDescription.trim(),
-      image: draft.image.trim() || productPlaceholder,
-      descriptions: JSON.stringify(cleanedDescriptions),
-      specifications: JSON.stringify(cleanedSpecifications),
-      videos: JSON.stringify(cleanedVideos),
-      updatedAt: new Date().toISOString(),
-    })
+    try {
+      await updateProduct(product.sku, {
+        name: draft.name.trim() || product.name,
+        publishStatus: draft.publishStatus,
+        stock: Number.isNaN(nextStock) ? product.stock : nextStock,
+        shortDescription: draft.shortDescription.trim(),
+        image: draft.image.trim() || productPlaceholder,
+        descriptions: JSON.stringify(cleanedDescriptions),
+        specifications: JSON.stringify(cleanedSpecifications),
+        videos: JSON.stringify(cleanedVideos),
+        updatedAt: new Date().toISOString(),
+      })
 
-    setIsEditing(false)
+      setIsEditing(false)
+    } catch (error) {
+      notify(error instanceof Error ? error.message : t('Khong the luu san pham'), {
+        title: 'Products',
+        variant: 'error',
+      })
+    }
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!product.isDeleted) {
       return
     }
@@ -460,19 +476,40 @@ function ProductDetailPage() {
       'Xóa vĩnh viễn sản phẩm này? Hành động không thể hoàn tác.',
     )
     if (confirmed) {
-      deleteProduct(product.sku)
-      navigate('/products')
+      try {
+        await deleteProduct(product.sku)
+        navigate('/products')
+      } catch (error) {
+        notify(error instanceof Error ? error.message : t('Khong the xoa san pham'), {
+          title: 'Products',
+          variant: 'error',
+        })
+      }
     }
   }
 
-  const handleArchiveToggle = () => {
+  const handleArchiveToggle = async () => {
     if (product.isDeleted) {
-      restoreProduct(product.sku)
-      setActionMessage(t('Đã khôi phục sản phẩm về bản nháp.'))
+      try {
+        await restoreProduct(product.sku)
+        setActionMessage(t('Da khoi phuc san pham ve ban nhap.'))
+      } catch (error) {
+        notify(error instanceof Error ? error.message : t('Khong the khoi phuc san pham'), {
+          title: 'Products',
+          variant: 'error',
+        })
+      }
       return
     }
-    archiveProduct(product.sku)
-    setActionMessage('')
+    try {
+      await archiveProduct(product.sku)
+      setActionMessage('')
+    } catch (error) {
+      notify(error instanceof Error ? error.message : t('Khong the an san pham'), {
+        title: 'Products',
+        variant: 'error',
+      })
+    }
   }
 
   const descriptionTypeOptions: Array<{ id: DescriptionItem['type']; label: string }> = [
@@ -558,24 +595,20 @@ function ProductDetailPage() {
 
   const handleDescriptionImageFile = async (index: number, file: File | null) => {
     if (!file) return
-    if (DISABLE_EDIT_FILE_UPLOAD) {
-      setActionMessage(t(EDIT_FILE_NOTICE))
-      return
-    }
     if (file.size > MAX_IMAGE_BYTES) {
       setDescriptionImageErrors((prev) => ({
         ...prev,
-        [index]: t('Ảnh tối đa 10MB'),
+        [index]: t('?nh t?i ?a 10MB'),
       }))
       return
     }
     try {
-      const url = await readFileAsDataUrl(file)
+      const stored = await uploadImageAsset(file)
       setDraft((prev) => {
         if (!prev) return prev
         const copy = [...prev.descriptions]
         const current = copy[index] ?? { type: 'image' as const }
-        copy[index] = { ...current, type: 'image', url }
+        copy[index] = { ...current, type: 'image', url: stored.url }
         return { ...prev, descriptions: copy }
       })
       setDescriptionImageErrors((prev) => {
@@ -590,23 +623,21 @@ function ProductDetailPage() {
 
   const handleDescriptionGalleryFiles = async (index: number, files: FileList | null) => {
     if (!files || files.length === 0) return
-    if (DISABLE_EDIT_FILE_UPLOAD) {
-      setActionMessage(t(EDIT_FILE_NOTICE))
-      return
-    }
     const fileList = Array.from(files)
     const oversized = fileList.find((file) => file.size > MAX_IMAGE_BYTES)
     if (oversized) {
       setDescriptionImageErrors((prev) => ({
         ...prev,
-        [index]: t('Ảnh tối đa 10MB'),
+        [index]: t('?nh t?i ?a 10MB'),
       }))
     }
     const validFiles = fileList.filter((file) => file.size <= MAX_IMAGE_BYTES)
     if (validFiles.length === 0) return
     try {
-      const urls = await Promise.all(validFiles.map(readFileAsDataUrl))
-      const newItems = urls.filter(Boolean).map((url) => ({ url }))
+      const storedItems = await Promise.all(
+        validFiles.map((candidate) => uploadImageAsset(candidate)),
+      )
+      const newItems = storedItems.filter((item) => item.url).map((item) => ({ url: item.url }))
       setDraft((prev) => {
         if (!prev) return prev
         const copy = [...prev.descriptions]
@@ -627,19 +658,15 @@ function ProductDetailPage() {
 
   const handleGalleryItemFile = async (index: number, itemIndex: number, file: File | null) => {
     if (!file) return
-    if (DISABLE_EDIT_FILE_UPLOAD) {
-      setActionMessage(t(EDIT_FILE_NOTICE))
-      return
-    }
     if (file.size > MAX_IMAGE_BYTES) {
       setDescriptionImageErrors((prev) => ({
         ...prev,
-        [index]: t('Ảnh tối đa 10MB'),
+        [index]: t('?nh t?i ?a 10MB'),
       }))
       return
     }
     try {
-      const url = await readFileAsDataUrl(file)
+      const stored = await uploadImageAsset(file)
       setDraft((prev) => {
         if (!prev) return prev
         const copy = [...prev.descriptions]
@@ -652,7 +679,7 @@ function ProductDetailPage() {
             : existing && typeof existing === 'object'
               ? existing
               : { url: '' }
-        nextGallery[itemIndex] = { ...existingItem, url }
+        nextGallery[itemIndex] = { ...existingItem, url: stored.url }
         copy[index] = { ...current, type: 'gallery', gallery: nextGallery }
         return { ...prev, descriptions: copy }
       })
@@ -668,65 +695,33 @@ function ProductDetailPage() {
 
   const handleDescriptionVideoFile = async (index: number, file: File | null) => {
     if (!file) return
-    if (DISABLE_EDIT_FILE_UPLOAD) {
-      setActionMessage(t(EDIT_FILE_NOTICE))
-      return
-    }
-    if (file.size > MAX_VIDEO_BYTES) {
-      setDescriptionVideoErrors((prev) => ({
-        ...prev,
-        [index]: t('Video tối đa 10MB'),
-      }))
-      return
-    }
-    try {
-      const url = await readFileAsDataUrl(file)
-      setDraft((prev) => {
-        if (!prev) return prev
-        const copy = [...prev.descriptions]
-        const current = copy[index] ?? { type: 'video' as const }
-        copy[index] = { ...current, type: 'video', url }
-        return { ...prev, descriptions: copy }
-      })
-      setDescriptionVideoErrors((prev) => {
-        const next = { ...prev }
-        delete next[index]
-        return next
-      })
-    } catch {
-      // ignore
-    }
+    void index
+    setActionMessage(t(VIDEO_FILE_NOTICE))
   }
 
   const handleProductVideoFile = async (index: number, file: File | null) => {
     if (!file) return
-    if (DISABLE_EDIT_FILE_UPLOAD) {
-      setActionMessage(t(EDIT_FILE_NOTICE))
-      return
-    }
-    if (file.size > MAX_VIDEO_BYTES) {
-      setProductVideoErrors((prev) => ({
-        ...prev,
-        [index]: t('Video tối đa 10MB'),
-      }))
+    void index
+    setActionMessage(t(VIDEO_FILE_NOTICE))
+  }
+
+  const handleMainImageFile = async (file: File | null) => {
+    if (!file) return
+    if (file.size > MAX_IMAGE_BYTES) {
+      notify(t('Anh toi da 10MB'), {
+        title: 'Products',
+        variant: 'error',
+      })
       return
     }
     try {
-      const url = await readFileAsDataUrl(file)
-      setDraft((prev) => {
-        if (!prev) return prev
-        const copy = [...prev.videos]
-        const current = copy[index] ?? { title: '', descriptions: '', url: '', type: 'tutorial' }
-        copy[index] = { ...current, url }
-        return { ...prev, videos: copy }
-      })
-      setProductVideoErrors((prev) => {
-        const next = { ...prev }
-        delete next[index]
-        return next
-      })
+      const stored = await uploadImageAsset(file)
+      setDraft((prev) => (prev ? { ...prev, image: stored.url } : prev))
     } catch {
-      // ignore
+      notify(t('Khong the tai anh san pham'), {
+        title: 'Products',
+        variant: 'error',
+      })
     }
   }
 
@@ -761,7 +756,7 @@ function ProductDetailPage() {
               </div>
             ) : (
               <img
-                src={imageUrl}
+                src={resolveBackendAssetUrl(imageUrl)}
                 alt={item.caption || t('Xem trước')}
                 className="h-48 w-full rounded-2xl border border-slate-200 object-cover"
               />
@@ -797,7 +792,7 @@ function ProductDetailPage() {
                   ) : (
                     <img
                       key={`desc-gallery-${index}-${galleryIndex}`}
-                      src={entry.url}
+                      src={resolveBackendAssetUrl(entry.url)}
                       alt={item.caption || t('Xem trước')}
                       className="h-32 w-full rounded-2xl border border-slate-200 object-cover"
                     />
@@ -936,7 +931,21 @@ function ProductDetailPage() {
                     : 'inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-slate-900 hover:shadow-[0_12px_24px_rgba(15,23,42,0.12)]'
                 }
                 type="button"
-                onClick={() => togglePublishStatus(product.sku)}
+                onClick={async () => {
+                  try {
+                    await togglePublishStatus(product.sku)
+                  } catch (error) {
+                    notify(
+                      error instanceof Error
+                        ? error.message
+                        : t('Khong the cap nhat trang thai xuat ban'),
+                      {
+                        title: 'Products',
+                        variant: 'error',
+                      },
+                    )
+                  }
+                }}
                 disabled={product.isDeleted}
               >
                 <CheckCircle className="h-4 w-4" />
@@ -1000,7 +1009,7 @@ function ProductDetailPage() {
             <img
               className="h-24 w-24 rounded-3xl border border-slate-200 bg-slate-50 object-cover"
               src={
-                draft.image.trim() ||
+                resolveBackendAssetUrl(draft.image.trim()) ||
                 getImageUrl(product.image) ||
                 productPlaceholder
               }
@@ -1119,7 +1128,7 @@ function ProductDetailPage() {
                 </div>
                 <div className="sm:col-span-2">
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    {t('Ảnh URL')}
+                    {t('?nh URL')}
                   </label>
                   <input
                     className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus:outline-none"
@@ -1128,6 +1137,22 @@ function ProductDetailPage() {
                       setDraft({ ...draft, image: event.target.value })
                     }
                   />
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={(event) =>
+                          handleMainImageFile(event.target.files?.[0] ?? null)
+                        }
+                      />
+                      {t('T?i ?nh')}
+                    </label>
+                    <p className="text-xs text-slate-500">
+                      {t('Ho?c nh?p URL th? c?ng')}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -1408,7 +1433,7 @@ function ProductDetailPage() {
                         ) : (
                           <div className="group relative overflow-hidden rounded-lg border border-slate-200 md:col-span-2">
                             <img
-                              src={item.url}
+                              src={resolveBackendAssetUrl(item.url)}
                               alt={t('Xem trước')}
                               className="h-40 w-full object-cover"
                             />
@@ -1540,7 +1565,7 @@ function ProductDetailPage() {
                                   ) : (
                                     <div className="group relative overflow-hidden rounded-lg border border-slate-200">
                                       <img
-                                        src={entry.url}
+                                        src={resolveBackendAssetUrl(entry.url)}
                                         alt={t('Xem trước')}
                                         className="h-24 w-full object-cover"
                                       />
@@ -1932,3 +1957,5 @@ function ProductDetailPage() {
 }
 
 export default ProductDetailPage
+
+

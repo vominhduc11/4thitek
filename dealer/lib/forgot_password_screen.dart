@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'auth_service.dart';
 import 'breakpoints.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
@@ -23,6 +24,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
   final _emailFocusNode = FocusNode();
   final _isFormValidNotifier = ValueNotifier<bool>(false);
+  final AuthService _authService = RemoteAuthService();
 
   bool _isSubmitting = false;
   bool _isSubmitted = false;
@@ -413,7 +415,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Liên kết có hiệu lực trong 24 giờ.',
+          'Lien ket co hieu luc trong 30 phut.',
           style: theme.textTheme.bodySmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -623,7 +625,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       }
     });
     try {
-      await Future.delayed(const Duration(seconds: 2));
+      final result = await _authService.requestPasswordReset(email: targetEmail);
+      if (!result.isSuccess) {
+        _showErrorSnackbar(
+          result.failure?.message ??
+              'Khong the gui lien ket luc nay. Vui long thu lai.',
+        );
+        return;
+      }
       if (!mounted) {
         return;
       }
@@ -634,7 +643,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _startResendCooldown();
       if (isResend) {
         _showSuccessSnackbar(
-          'Đã gửi lại liên kết đặt lại đến $_submittedEmail.',
+          result.message ?? 'Da gui lai lien ket dat lai den $_submittedEmail.',
         );
       }
     } on TimeoutException {

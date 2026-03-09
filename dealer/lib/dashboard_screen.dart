@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 
 import 'breakpoints.dart';
 import 'global_search.dart';
-import 'mock_data.dart';
 import 'models.dart';
 import 'notification_controller.dart';
 import 'order_controller.dart';
@@ -22,6 +21,9 @@ import 'widgets/fade_slide_in.dart';
 import 'widgets/skeleton_box.dart';
 import 'debt_tracking_screen.dart';
 import 'inventory_screen.dart';
+import 'product_catalog_controller.dart';
+
+part 'dashboard_screen_support.dart';
 
 const _lowStockAlertThreshold = kLowStockThreshold;
 const _mobileBreakpoint = AppBreakpoints.phone;
@@ -57,10 +59,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _loadMockDashboard();
+    _loadDashboardState();
   }
 
-  Future<void> _loadMockDashboard() async {
+  Future<void> _loadDashboardState() async {
     setState(() {
       _loadState = _DashboardLoadState.loading;
       _loadErrorMessage = null;
@@ -138,71 +140,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final orderController = OrderScope.of(context);
+    final catalogProducts =
+        ProductCatalogScope.maybeOf(context)?.products ?? const <Product>[];
     final warrantyCtrl =
         context.dependOnInheritedWidgetOfExactType<WarrantyScope>()?.notifier ??
         WarrantyController();
     final now = DateTime.now();
-    final periodAnchor = _normalizePeriodAnchor(_selectedPeriod);
-    final periodStart = _periodStart(periodAnchor);
-    final periodEndExclusive = _periodEndExclusive(periodAnchor, now);
-    final periodEndDate = periodEndExclusive.subtract(
-      const Duration(microseconds: 1),
-    );
-    final periodOrders = _filterOrdersByPeriod(
-      orderController.orders,
-      periodStart,
-      periodEndExclusive,
-    );
-    final monthlyRevenue = _buildMonthlyRevenue(
-      periodOrders,
-      year: periodAnchor.year,
-    );
-    final activationWindowDays = _timeFilter == _DashboardTimeFilter.month
-        ? 30
-        : 90;
-    final activationSeries = _buildActivationSeries(
-      days: activationWindowDays,
-      endDate: periodEndDate,
+    final snapshot = _buildDashboardSnapshot(
+      orders: orderController.orders,
       activations: warrantyCtrl.activations,
+      timeFilter: _timeFilter,
+      selectedPeriod: _selectedPeriod,
+      now: now,
     );
-    // Warranty donut card supports up to 90-day range toggles, so always
-    // provide the full 90-day dataset regardless of the period filter.
-    final warrantyActivationSeries = _buildActivationSeries(
-      days: 90,
-      endDate: periodEndDate,
-      activations: warrantyCtrl.activations,
-    );
-    final warrantyRanges = _timeFilter == _DashboardTimeFilter.month
-        ? const <int>[7, 30]
-        : const <int>[7, 30, 90];
-    final periodContextLabel = _periodContextLabel(periodAnchor);
-    final periodRevenue = periodOrders.fold<int>(
-      0,
-      (sum, order) => sum + order.total,
-    );
-    final periodOrderCount = periodOrders.length;
-    final periodCompletedOrderCount = periodOrders
-        .where((order) => order.status == OrderStatus.completed)
-        .length;
-    final periodOutstandingDebt = periodOrders.fold<int>(
-      0,
-      (sum, order) => sum + order.outstandingAmount,
-    );
+    final periodAnchor = snapshot.periodAnchor;
+    final periodOrders = snapshot.periodOrders;
+    final monthlyRevenue = snapshot.monthlyRevenue;
+    final activationWindowDays = snapshot.activationWindowDays;
+    final activationSeries = snapshot.activationSeries;
+    final warrantyActivationSeries = snapshot.warrantyActivationSeries;
+    final warrantyRanges = snapshot.warrantyRanges;
+    final periodContextLabel = snapshot.periodContextLabel;
+    final periodRevenue = snapshot.periodRevenue;
+    final periodOrderCount = snapshot.periodOrderCount;
+    final periodCompletedOrderCount = snapshot.periodCompletedOrderCount;
+    final periodOutstandingDebt = snapshot.periodOutstandingDebt;
     final unreadNotificationCount =
         context
             .dependOnInheritedWidgetOfExactType<NotificationScope>()
             ?.notifier
             ?.unreadCount ??
         0;
-    final periodUnitLabel = _timeFilter == _DashboardTimeFilter.month
-        ? 'tháng'
-        : 'quý';
+    final periodUnitLabel = snapshot.periodUnitLabel;
 
     final screenSize = MediaQuery.sizeOf(context);
     final screenWidth = screenSize.width;
     final isMobile = screenWidth < _mobileBreakpoint;
     final isNarrowAppBar = screenWidth < 430;
-    final canMoveNextPeriod = _canMoveToNextPeriod(
+    final canMoveNextPeriod = _dashboardCanMoveToNextPeriod(
       periodAnchor,
       _timeFilter,
       now,
@@ -218,7 +193,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         message:
             _loadErrorMessage ??
             'Không thể tải dữ liệu dashboard. Vui lòng thử lại.',
-        onRetry: _loadMockDashboard,
+        onRetry: _loadDashboardState,
         horizontalPadding: horizontalPadding,
       );
     } else {
@@ -296,7 +271,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: FadeSlideIn(
                       delay: const Duration(milliseconds: 125),
                       child: _LowStockPanel(
-                        products: _buildLowStockProducts(),
+                        products: _buildLowStockProducts(catalogProducts),
                         onOpenInventory: _openInventoryScreen,
                         onOpenLowStockInventory: _openLowStockInventoryScreen,
                       ),
@@ -400,7 +375,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: TextButton.icon(
                 onPressed: _openTimeFilterSheet,
                 icon: const Icon(Icons.calendar_month_outlined, size: 18),
-                label: Text(_periodCompactLabel(periodAnchor)),
+                label: Text(_periodCompactLabelFor(periodAnchor, _timeFilter)),
               ),
             ),
           if (!isNarrowAppBar)
@@ -431,7 +406,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 _HeaderSummaryChip(
                   icon: Icons.calendar_today_outlined,
-                  label: _periodContextLabel(periodAnchor),
+                  label: periodContextLabel,
                 ),
                 const SizedBox(width: 8),
                 _HeaderSummaryChip(
@@ -461,7 +436,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _moveToPreviousPeriod() {
     setState(() {
-      _selectedPeriod = _previousPeriodStartForFilter(
+      _selectedPeriod = _dashboardPreviousPeriodStartForFilter(
         _selectedPeriod,
         _timeFilter,
       );
@@ -470,333 +445,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _moveToNextPeriod() {
     final now = DateTime.now();
-    final periodAnchor = _normalizePeriodAnchor(_selectedPeriod);
-    if (!_canMoveToNextPeriod(periodAnchor, _timeFilter, now)) {
+    final periodAnchor = _dashboardNormalizePeriodAnchorForFilter(
+      _selectedPeriod,
+      _timeFilter,
+      now: now,
+    );
+    if (!_dashboardCanMoveToNextPeriod(periodAnchor, _timeFilter, now)) {
       return;
     }
     setState(() {
-      _selectedPeriod = _nextPeriodStartForFilter(periodAnchor, _timeFilter);
+      _selectedPeriod = _dashboardNextPeriodStartForFilter(
+        periodAnchor,
+        _timeFilter,
+      );
     });
   }
 
-  String _periodContextLabel(DateTime date) {
-    return _periodContextLabelFor(date, _timeFilter);
-  }
-
-  String _periodContextLabelFor(DateTime date, _DashboardTimeFilter filter) {
-    if (filter == _DashboardTimeFilter.month) {
-      return 'Tháng ${date.month}/${date.year}';
-    }
-    final quarter = ((date.month - 1) ~/ 3) + 1;
-    return 'Quý $quarter/${date.year}';
-  }
-
-  String _periodCompactLabel(DateTime date) {
-    if (_timeFilter == _DashboardTimeFilter.month) {
-      return 'T${date.month}/${date.year}';
-    }
-    final quarter = ((date.month - 1) ~/ 3) + 1;
-    return 'Q$quarter/${date.year}';
-  }
-
-  DateTime _periodStart(DateTime date) {
-    return _periodStartForFilter(date, _timeFilter);
-  }
-
-  DateTime _periodStartForFilter(DateTime date, _DashboardTimeFilter filter) {
-    if (filter == _DashboardTimeFilter.month) {
-      return DateTime(date.year, date.month, 1);
-    }
-    final quarterStartMonth = ((date.month - 1) ~/ 3) * 3 + 1;
-    return DateTime(date.year, quarterStartMonth, 1);
-  }
-
-  DateTime _nextPeriodStart(DateTime date) {
-    return _nextPeriodStartForFilter(date, _timeFilter);
-  }
-
-  DateTime _nextPeriodStartForFilter(
-    DateTime date,
-    _DashboardTimeFilter filter,
-  ) {
-    final periodStart = _periodStartForFilter(date, filter);
-    if (filter == _DashboardTimeFilter.month) {
-      return DateTime(periodStart.year, periodStart.month + 1, 1);
-    }
-    return DateTime(periodStart.year, periodStart.month + 3, 1);
-  }
-
-  DateTime _previousPeriodStartForFilter(
-    DateTime date,
-    _DashboardTimeFilter filter,
-  ) {
-    final periodStart = _periodStartForFilter(date, filter);
-    if (filter == _DashboardTimeFilter.month) {
-      return DateTime(periodStart.year, periodStart.month - 1, 1);
-    }
-    return DateTime(periodStart.year, periodStart.month - 3, 1);
-  }
-
-  DateTime _periodEndExclusive(DateTime date, DateTime now) {
-    final nextPeriodStart = _nextPeriodStart(date);
-    final nowExclusive = now.add(const Duration(microseconds: 1));
-    return nowExclusive.isBefore(nextPeriodStart)
-        ? nowExclusive
-        : nextPeriodStart;
-  }
-
-  DateTime _normalizePeriodAnchor(DateTime value) {
-    return _normalizePeriodAnchorForFilter(value, _timeFilter);
-  }
-
-  DateTime _normalizePeriodAnchorForFilter(
-    DateTime value,
-    _DashboardTimeFilter filter, {
-    DateTime? now,
-  }) {
-    final current = now ?? DateTime.now();
-    final safeValue = value.isAfter(current) ? current : value;
-    return _periodStartForFilter(safeValue, filter);
-  }
-
-  bool _canMoveToNextPeriod(
-    DateTime periodAnchor,
-    _DashboardTimeFilter filter,
-    DateTime now,
-  ) {
-    final nextStart = _nextPeriodStartForFilter(periodAnchor, filter);
-    final currentStart = _periodStartForFilter(now, filter);
-    return !nextStart.isAfter(currentStart);
-  }
-
   Future<void> _openTimeFilterSheet() async {
-    final now = DateTime.now();
-    var draftFilter = _timeFilter;
-    var draftPeriod = _normalizePeriodAnchorForFilter(
-      _selectedPeriod,
-      draftFilter,
-      now: now,
-    );
-
-    await showModalBottomSheet<void>(
+    final selection = await _showDashboardTimeFilterSheet(
       context: context,
-      showDragHandle: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            final isCurrentPeriod =
-                _periodStartForFilter(draftPeriod, draftFilter) ==
-                _periodStartForFilter(now, draftFilter);
-
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Lọc thời gian',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SegmentedButton<_DashboardTimeFilter>(
-                      showSelectedIcon: false,
-                      multiSelectionEnabled: false,
-                      segments: const [
-                        ButtonSegment<_DashboardTimeFilter>(
-                          value: _DashboardTimeFilter.month,
-                          label: Text('Theo tháng'),
-                        ),
-                        ButtonSegment<_DashboardTimeFilter>(
-                          value: _DashboardTimeFilter.quarter,
-                          label: Text('Theo quý'),
-                        ),
-                      ],
-                      selected: {draftFilter},
-                      onSelectionChanged: (selected) {
-                        if (selected.isEmpty) {
-                          return;
-                        }
-                        final nextFilter = selected.first;
-                        setSheetState(() {
-                          draftFilter = nextFilter;
-                          draftPeriod = _normalizePeriodAnchorForFilter(
-                            draftPeriod,
-                            draftFilter,
-                            now: now,
-                          );
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.outlineVariant,
-                        ),
-                      ),
-                      child: Text(
-                        _periodContextLabelFor(draftPeriod, draftFilter),
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              setSheetState(() {
-                                draftPeriod = _previousPeriodStartForFilter(
-                                  draftPeriod,
-                                  draftFilter,
-                                );
-                              });
-                            },
-                            icon: const Icon(Icons.chevron_left),
-                            label: const Text('Kỳ trước'),
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size(0, 44),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed:
-                                _canMoveToNextPeriod(
-                                  draftPeriod,
-                                  draftFilter,
-                                  now,
-                                )
-                                ? () {
-                                    setSheetState(() {
-                                      draftPeriod = _nextPeriodStartForFilter(
-                                        draftPeriod,
-                                        draftFilter,
-                                      );
-                                    });
-                                  }
-                                : null,
-                            icon: const Icon(Icons.chevron_right),
-                            label: const Text('Kỳ sau'),
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size(0, 44),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: draftPeriod.isAfter(now)
-                                ? now
-                                : draftPeriod,
-                            firstDate: DateTime(now.year - 5, 1, 1),
-                            lastDate: now,
-                            helpText: draftFilter == _DashboardTimeFilter.month
-                                ? 'Chọn tháng'
-                                : 'Chọn quý',
-                          );
-                          if (picked == null) {
-                            return;
-                          }
-                          setSheetState(() {
-                            draftPeriod = _normalizePeriodAnchorForFilter(
-                              picked,
-                              draftFilter,
-                              now: now,
-                            );
-                          });
-                        },
-                        icon: const Icon(Icons.event_outlined),
-                        label: const Text('Chọn từ lịch'),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(44),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        TextButton(
-                          onPressed: isCurrentPeriod
-                              ? null
-                              : () {
-                                  setSheetState(() {
-                                    draftPeriod =
-                                        _normalizePeriodAnchorForFilter(
-                                          now,
-                                          draftFilter,
-                                          now: now,
-                                        );
-                                  });
-                                },
-                          child: const Text('Về hiện tại'),
-                        ),
-                        const Spacer(),
-                        FilledButton(
-                          onPressed: () {
-                            Navigator.of(sheetContext).pop();
-                            setState(() {
-                              _timeFilter = draftFilter;
-                              _selectedPeriod = _normalizePeriodAnchorForFilter(
-                                draftPeriod,
-                                draftFilter,
-                                now: now,
-                              );
-                            });
-                          },
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size(96, 44),
-                          ),
-                          child: const Text('Áp dụng'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+      initialFilter: _timeFilter,
+      selectedPeriod: _selectedPeriod,
     );
+    if (!mounted || selection == null) {
+      return;
+    }
+    setState(() {
+      _timeFilter = selection.filter;
+      _selectedPeriod = selection.period;
+    });
   }
 
-  List<Order> _filterOrdersByPeriod(
-    List<Order> orders,
-    DateTime start,
-    DateTime endExclusive,
-  ) {
-    return orders.where((order) {
-      final createdAt = order.createdAt;
-      return !createdAt.isBefore(start) && createdAt.isBefore(endExclusive);
-    }).toList();
-  }
 }
 
 class _OverviewCard extends StatelessWidget {
@@ -1640,6 +1319,10 @@ String _formatRecentOrderMetaDate(DateTime value) {
 
 String _shortPaymentStatus(OrderPaymentStatus status) {
   switch (status) {
+    case OrderPaymentStatus.cancelled:
+      return 'Da huy';
+    case OrderPaymentStatus.failed:
+      return 'That bai';
     case OrderPaymentStatus.unpaid:
       return 'Ch\u01b0a thanh to\u00e1n';
     case OrderPaymentStatus.paid:
@@ -3123,9 +2806,9 @@ List<_CustomerStat> _buildTopCustomers(List<Order> orders) {
   return list;
 }
 
-List<Product> _buildLowStockProducts() {
+List<Product> _buildLowStockProducts(List<Product> catalogProducts) {
   final products =
-      mockProducts.where((p) => p.stock <= _lowStockAlertThreshold).toList()
+      catalogProducts.where((p) => p.stock <= _lowStockAlertThreshold).toList()
         ..sort((a, b) => a.stock.compareTo(b.stock));
   return products.take(5).toList();
 }

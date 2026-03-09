@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../file_reference.dart';
 import '../models.dart';
 import 'lazy_network_image.dart';
 
@@ -24,23 +25,25 @@ class ProductImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final imageUrl = product.imageUrl?.trim().isNotEmpty == true
-        ? product.imageUrl!.trim()
-        : _buildProductImageUrl(product.id);
+        ? resolveFileReference(product.imageUrl!.trim())
+        : null;
     return ClipRRect(
       borderRadius: borderRadius,
       child: Container(
         width: width,
         height: height,
         color: const Color(0xFFEFF3FB),
-        child: LazyNetworkImage(
-          url: imageUrl,
-          width: width,
-          height: height,
-          fit: fit,
-          filterQuality: FilterQuality.medium,
-          placeholderBuilder: (context) => _fallback(),
-          errorBuilder: (context, error, stackTrace) => _fallback(),
-        ),
+        child: imageUrl == null
+            ? _fallback()
+            : LazyNetworkImage(
+                url: imageUrl,
+                width: width,
+                height: height,
+                fit: fit,
+                filterQuality: FilterQuality.medium,
+                placeholderBuilder: (context) => _fallback(),
+                errorBuilder: (context, error, stackTrace) => _fallback(),
+              ),
       ),
     );
   }
@@ -54,8 +57,4 @@ class ProductImage extends StatelessWidget {
       ),
     );
   }
-}
-
-String _buildProductImageUrl(String productId) {
-  return 'https://picsum.photos/seed/dealer-$productId/800/800';
 }

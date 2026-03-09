@@ -1,48 +1,574 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:convert';
 
-import 'mock_data.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:stomp_dart_client/stomp_dart_client.dart';
+
+import 'api_config.dart';
+import 'auth_storage.dart';
+import 'dealer_auth_client.dart';
+import 'models.dart';
 
 class NotificationController extends ChangeNotifier {
-  final Set<String> _readIds = {};
+  NotificationController({
+    AuthStorage? authStorage,
+    http.Client? client,
+    Future<void> Function()? onOrderSignal,
+  }) : _notices = <DistributorNotice>[] {
+    _authStorage = authStorage ?? AuthStorage();
+    _client = DealerAuthClient(
+      authStorage: _authStorage,
+      inner: client ?? http.Client(),
+    );
+    _onOrderSignal = onOrderSignal;
+    _authStorage.sessionEvents.addListener(_handleSessionEvent);
+  }
+
+  static const Duration _reconnectDelay = Duration(seconds: 5);
+
+  late final AuthStorage _authStorage;
+  late final http.Client _client;
+  late final Future<void> Function()? _onOrderSignal;
+  final ValueNotifier<int> _incomingNoticeEventVersion = ValueNotifier<int>(0);
+  final List<DistributorNotice> _notices;
+  final Set<String> _readIds = <String>{};
+  final Map<String, int> _remoteNoticeIds = <String, int>{};
+  StompClient? _stompClient;
+  Timer? _reconnectTimer;
+  int _socketGeneration = 0;
+  int _handledSessionEventVersion = 0;
+  bool _maintainRealtimeConnection = false;
+  bool _realtimeConnecting = false;
+  bool _disposed = false;
+  String? _realtimeToken;
+  DistributorNotice? _latestIncomingNotice;
+  Future<void>? _orderSignalInFlight;
+
+  Future<void> load({bool forceRefresh = false}) async {
+    final loadedRemote = await _loadRemoteNotifications();
+    if (!loadedRemote && forceRefresh) {
+      _notices.clear();
+      _readIds.clear();
+      _remoteNoticeIds.clear();
+      notifyListeners();
+    }
+
+    await _syncRealtimeConnection();
+  }
 
   List<DistributorNotice> get notices =>
-      List<DistributorNotice>.unmodifiable(mockDistributorNotices);
+      List<DistributorNotice>.unmodifiable(_notices);
 
-  int get unreadCount {
-    final total = mockDistributorNotices.length;
-    final readCount = _readIds
-        .where((id) => mockDistributorNotices.any((n) => n.id == id))
-        .length;
-    return total - readCount;
+  ValueListenable<int> get incomingNoticeEvents => _incomingNoticeEventVersion;
+
+  int get incomingNoticeEventVersion => _incomingNoticeEventVersion.value;
+
+  DistributorNotice? get latestIncomingNotice => _latestIncomingNotice;
+
+  int get unreadCount => _notices.where((notice) => !isRead(notice.id)).length;
+
+  bool isRead(String id) {
+    return _readIds.contains(id);
   }
 
-  bool isRead(String id) => _readIds.contains(id);
-
-  void markRead(String id) {
-    if (_readIds.contains(id)) {
-      return;
+  Future<String?> markRead(String id) async {
+    if (!_containsNotice(id) || isRead(id)) {
+      return null;
     }
+
+    final remoteId = _remoteNoticeIds[id];
+    if (remoteId == null || !await _canUseRemoteApi()) {
+      return 'Khong the dong bo thong bao.';
+    }
+
+    final error = await _markRemoteRead(remoteId);
+    if (error != null) {
+      return error;
+    }
+
     _readIds.add(id);
     notifyListeners();
+    return null;
   }
 
-  void markUnread(String id) {
-    if (!_readIds.remove(id)) {
-      return;
+  Future<String?> markUnread(String id) async {
+    if (!_containsNotice(id) || !isRead(id)) {
+      return null;
     }
+
+    final remoteId = _remoteNoticeIds[id];
+    if (remoteId == null || !await _canUseRemoteApi()) {
+      return 'Khong the dong bo thong bao.';
+    }
+
+    final error = await _markRemoteUnread(remoteId);
+    if (error != null) {
+      return error;
+    }
+
+    _readIds.remove(id);
     notifyListeners();
+    return null;
   }
 
-  void markAllAsRead() {
-    final ids = notices.map((n) => n.id).toSet();
-    if (_readIds.containsAll(ids)) return;
-    _readIds.addAll(ids);
+  Future<String?> markAllAsRead() async {
+    if (_notices.isEmpty && _readIds.isEmpty) {
+      return null;
+    }
+
+    if (_remoteNoticeIds.isEmpty || !await _canUseRemoteApi()) {
+      return 'Khong the dong bo thong bao.';
+    }
+
+    final error = await _markAllRemoteRead();
+    if (error != null) {
+      return error;
+    }
+
+    _readIds
+      ..clear()
+      ..addAll(_notices.map((notice) => notice.id));
     notifyListeners();
+    return null;
   }
 
   Future<void> refresh() async {
-    await Future<void>.delayed(const Duration(milliseconds: 300));
+    final loadedRemote = await _loadRemoteNotifications();
+    if (!loadedRemote) {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      notifyListeners();
+    }
+    await _syncRealtimeConnection();
+  }
+
+  Future<void> clearSessionData() async {
+    _stopRealtimeConnection();
+    _notices.clear();
+    _readIds.clear();
+    _remoteNoticeIds.clear();
     notifyListeners();
+  }
+
+  Future<bool> _loadRemoteNotifications() async {
+    final token = await _readAccessToken();
+    if (token == null) {
+      return false;
+    }
+
+    try {
+      final response = await _client.get(
+        Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/notifications')),
+        headers: _authorizedHeaders(token),
+      );
+      final payload = _decodeBody(response.body);
+      if (response.statusCode >= 400) {
+        throw Exception(_extractErrorMessage(payload));
+      }
+
+      final data = payload['data'];
+      if (data is! List) {
+        throw Exception('Invalid notifications payload');
+      }
+
+      final remoteNotices = <DistributorNotice>[];
+      final remoteReadIds = <String>{};
+      _remoteNoticeIds.clear();
+      for (final entry in data.whereType<Map<String, dynamic>>()) {
+        final remoteId = _parseInt(entry['id']);
+        final noticeId = remoteId.toString();
+        _remoteNoticeIds[noticeId] = remoteId;
+        remoteNotices.add(
+          DistributorNotice(
+            id: noticeId,
+            type: _mapRemoteType(entry['type']?.toString()),
+            title: _normalizeString(entry['title']) ?? 'Thong bao',
+            message: _normalizeString(entry['content']) ?? '',
+            createdAt:
+                DateTime.tryParse(entry['createdAt']?.toString() ?? '') ??
+                DateTime.now(),
+          ),
+        );
+        if (_parseBool(entry['isRead'])) {
+          remoteReadIds.add(noticeId);
+        }
+      }
+
+      _notices
+        ..clear()
+        ..addAll(remoteNotices);
+      _readIds
+        ..clear()
+        ..addAll(remoteReadIds);
+      _trimReadIdsToKnownNotices();
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<String?> _markRemoteRead(int remoteId) async {
+    try {
+      final response = await _client.patch(
+        Uri.parse(
+          DealerApiConfig.resolveUrl(
+            '/api/dealer/notifications/$remoteId/read',
+          ),
+        ),
+        headers: await _authorizedJsonHeaders(),
+      );
+      final payload = _decodeBody(response.body);
+      if (response.statusCode >= 400) {
+        return _extractErrorMessage(payload);
+      }
+      return null;
+    } catch (_) {
+      return 'Khong the dong bo thong bao.';
+    }
+  }
+
+  Future<String?> _markRemoteUnread(int remoteId) async {
+    try {
+      final response = await _client.patch(
+        Uri.parse(
+          DealerApiConfig.resolveUrl(
+            '/api/dealer/notifications/$remoteId/unread',
+          ),
+        ),
+        headers: await _authorizedJsonHeaders(),
+      );
+      final payload = _decodeBody(response.body);
+      if (response.statusCode >= 400) {
+        return _extractErrorMessage(payload);
+      }
+      return null;
+    } catch (_) {
+      return 'Khong the dong bo thong bao.';
+    }
+  }
+
+  Future<String?> _markAllRemoteRead() async {
+    try {
+      final response = await _client.patch(
+        Uri.parse(
+          DealerApiConfig.resolveUrl('/api/dealer/notifications/read-all'),
+        ),
+        headers: await _authorizedJsonHeaders(),
+      );
+      final payload = _decodeBody(response.body);
+      if (response.statusCode >= 400) {
+        return _extractErrorMessage(payload);
+      }
+      return null;
+    } catch (_) {
+      return 'Khong the dong bo thong bao.';
+    }
+  }
+
+  void _trimReadIdsToKnownNotices() {
+    final knownIds = _notices.map((notice) => notice.id).toSet();
+    _readIds.removeWhere((id) => !knownIds.contains(id));
+  }
+
+  bool _containsNotice(String id) {
+    return _notices.any((notice) => notice.id == id);
+  }
+
+  void _handleSessionEvent() {
+    final currentVersion = _authStorage.sessionEventVersion;
+    if (currentVersion == _handledSessionEventVersion) {
+      return;
+    }
+    _handledSessionEventVersion = currentVersion;
+
+    switch (_authStorage.lastSessionEvent) {
+      case AuthSessionEventType.signedIn:
+        unawaited(_reloadAndReconnect());
+        break;
+      case AuthSessionEventType.loggedOut:
+      case AuthSessionEventType.expired:
+        unawaited(clearSessionData());
+        break;
+      case AuthSessionEventType.none:
+        break;
+    }
+  }
+
+  Future<void> _reloadAndReconnect() async {
+    await _loadRemoteNotifications();
+    await _syncRealtimeConnection(forceReconnect: true);
+  }
+
+  Future<void> _syncRealtimeConnection({bool forceReconnect = false}) async {
+    if (_disposed || !DealerApiConfig.isConfigured) {
+      _stopRealtimeConnection();
+      return;
+    }
+
+    final token = await _readAccessToken();
+    if (token == null) {
+      _stopRealtimeConnection();
+      return;
+    }
+
+    _maintainRealtimeConnection = true;
+    if (!forceReconnect &&
+        _stompClient != null &&
+        _stompClient!.isActive &&
+        (_stompClient!.connected || _realtimeConnecting) &&
+        _realtimeToken == token) {
+      return;
+    }
+
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    _realtimeConnecting = true;
+    _realtimeToken = token;
+
+    final previousClient = _stompClient;
+    final connectionId = ++_socketGeneration;
+    _stompClient = null;
+    previousClient?.deactivate();
+
+    late final StompClient nextClient;
+    nextClient = StompClient(
+      config: StompConfig.sockJS(
+        url: DealerApiConfig.webSocketEndpointUrl,
+        reconnectDelay: Duration.zero,
+        connectionTimeout: const Duration(seconds: 10),
+        heartbeatIncoming: const Duration(seconds: 15),
+        heartbeatOutgoing: const Duration(seconds: 15),
+        stompConnectHeaders: <String, String>{'Authorization': 'Bearer $token'},
+        webSocketConnectHeaders: <String, dynamic>{
+          'Authorization': 'Bearer $token',
+        },
+        onConnect: (_) {
+          if (_disposed || connectionId != _socketGeneration) {
+            nextClient.deactivate();
+            return;
+          }
+          _realtimeConnecting = false;
+          _stompClient = nextClient;
+          nextClient.subscribe(
+            destination: '/user/queue/notifications',
+            callback: (frame) => _handleRealtimeFrame(connectionId, frame),
+          );
+        },
+        onDisconnect: (_) => _handleRealtimeDisconnect(connectionId),
+        onStompError: (_) => _handleRealtimeDisconnect(connectionId),
+        onWebSocketError: (_) => _handleRealtimeDisconnect(connectionId),
+        onWebSocketDone: () => _handleRealtimeDisconnect(connectionId),
+      ),
+    );
+
+    _stompClient = nextClient;
+    nextClient.activate();
+  }
+
+  void _handleRealtimeDisconnect(int connectionId) {
+    if (_disposed || connectionId != _socketGeneration) {
+      return;
+    }
+
+    _realtimeConnecting = false;
+    _stompClient = null;
+    if (!_maintainRealtimeConnection) {
+      return;
+    }
+
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(_reconnectDelay, () {
+      _reconnectTimer = null;
+      if (_disposed || !_maintainRealtimeConnection) {
+        return;
+      }
+      unawaited(_reloadAndReconnect());
+    });
+  }
+
+  void _handleRealtimeFrame(int connectionId, StompFrame frame) {
+    if (_disposed || connectionId != _socketGeneration) {
+      return;
+    }
+
+    final payload = _decodeBody(frame.body ?? '');
+    final remoteId = _parseInt(payload['id'], fallback: -1);
+    if (remoteId <= 0) {
+      unawaited(_loadRemoteNotifications());
+      return;
+    }
+
+    final notice = DistributorNotice(
+      id: remoteId.toString(),
+      type: _mapRemoteType(payload['type']?.toString()),
+      title: _normalizeString(payload['title']) ?? 'Thong bao',
+      message: _normalizeString(payload['content']) ?? '',
+      createdAt:
+          DateTime.tryParse(payload['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
+    );
+
+    final existingIndex = _notices.indexWhere((entry) => entry.id == notice.id);
+    if (existingIndex >= 0) {
+      _notices[existingIndex] = notice;
+    } else {
+      _notices.add(notice);
+    }
+
+    _notices.sort((left, right) => right.createdAt.compareTo(left.createdAt));
+    _remoteNoticeIds[notice.id] = remoteId;
+    if (_parseBool(payload['isRead'])) {
+      _readIds.add(notice.id);
+    } else {
+      _readIds.remove(notice.id);
+    }
+    _trimReadIdsToKnownNotices();
+    notifyListeners();
+    _emitIncomingNotice(notice);
+    if (notice.type == NoticeType.order) {
+      unawaited(_emitOrderSignal());
+    }
+  }
+
+  void _stopRealtimeConnection() {
+    _maintainRealtimeConnection = false;
+    _realtimeConnecting = false;
+    _realtimeToken = null;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    _socketGeneration += 1;
+
+    final activeClient = _stompClient;
+    _stompClient = null;
+    activeClient?.deactivate();
+  }
+
+  Future<void> _emitOrderSignal() async {
+    final handler = _onOrderSignal;
+    if (handler == null) {
+      return;
+    }
+
+    final existing = _orderSignalInFlight;
+    if (existing != null) {
+      return existing;
+    }
+
+    final inFlight = handler();
+    _orderSignalInFlight = inFlight;
+    try {
+      await inFlight;
+    } catch (_) {
+      // Ignore realtime sync failures; manual refresh remains available.
+    } finally {
+      if (identical(_orderSignalInFlight, inFlight)) {
+        _orderSignalInFlight = null;
+      }
+    }
+  }
+
+  void _emitIncomingNotice(DistributorNotice notice) {
+    _latestIncomingNotice = notice;
+    _incomingNoticeEventVersion.value = _incomingNoticeEventVersion.value + 1;
+  }
+
+  Future<String?> _readAccessToken() async {
+    if (!DealerApiConfig.isConfigured) {
+      return null;
+    }
+    final token = await _authStorage.readAccessToken();
+    if (token == null || token.trim().isEmpty) {
+      return null;
+    }
+    return token.trim();
+  }
+
+  Future<bool> _canUseRemoteApi() async {
+    return await _readAccessToken() != null;
+  }
+
+  Map<String, String> _authorizedHeaders(String token) {
+    return <String, String>{
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
+
+  Future<Map<String, String>> _authorizedJsonHeaders() async {
+    final token = await _readAccessToken();
+    if (token == null) {
+      throw StateError('Unauthenticated request');
+    }
+    return <String, String>{
+      ..._authorizedHeaders(token),
+      'Content-Type': 'application/json',
+    };
+  }
+
+  Map<String, dynamic> _decodeBody(String body) {
+    if (body.trim().isEmpty) {
+      return const <String, dynamic>{};
+    }
+    final decoded = jsonDecode(body);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+    return const <String, dynamic>{};
+  }
+
+  String _extractErrorMessage(Map<String, dynamic> payload) {
+    final error = payload['error']?.toString();
+    if (error != null && error.trim().isNotEmpty) {
+      return error.trim();
+    }
+    return 'Khong the dong bo thong bao.';
+  }
+
+  NoticeType _mapRemoteType(String? raw) {
+    switch ((raw ?? '').trim().toUpperCase()) {
+      case 'ORDER':
+        return NoticeType.order;
+      case 'PROMOTION':
+        return NoticeType.promotion;
+      case 'WARRANTY':
+      case 'SYSTEM':
+      default:
+        return NoticeType.system;
+    }
+  }
+
+  int _parseInt(Object? value, {int fallback = 0}) {
+    if (value is int) {
+      return value;
+    }
+    if (value is double) {
+      return value.round();
+    }
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  bool _parseBool(Object? value) {
+    if (value is bool) {
+      return value;
+    }
+    return value?.toString().toLowerCase() == 'true';
+  }
+
+  String? _normalizeString(Object? value) {
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? null : text;
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _authStorage.sessionEvents.removeListener(_handleSessionEvent);
+    _stopRealtimeConnection();
+    _incomingNoticeEventVersion.dispose();
+    _client.close();
+    super.dispose();
   }
 }
 
