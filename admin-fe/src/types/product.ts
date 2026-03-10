@@ -9,6 +9,7 @@ export type Product = {
   publishStatus: PublishStatus
   stock: number
   retailPrice: number
+  warrantyPeriod: number | null
   image: string
   descriptions: string
   videos: string

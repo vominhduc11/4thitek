@@ -59,6 +59,7 @@ const createInitialNewProduct = () => ({
     type: 'unboxing' | 'tutorial'
   }[],
   retailPrice: '',
+  warrantyPeriod: '12',
   stock: '',
   publishStatus: 'DRAFT' as 'DRAFT' | 'PUBLISHED',
   isFeatured: false,
@@ -1045,20 +1046,7 @@ function ProductsPage() {
             onClick={() => {
               setActiveTab('basic')
               retailPriceCaretRef.current = null
-              setNewProduct({
-                name: '',
-                sku: '',
-                shortDescription: '',
-                descriptions: [],
-                specifications: [],
-                videos: [],
-                retailPrice: '',
-                stock: '',
-                publishStatus: 'DRAFT',
-                isFeatured: false,
-                showOnHomepage: false,
-                imageUrl: '',
-              })
+              setNewProduct(createInitialNewProduct())
               setSelectedImageName('')
               setImageError('')
               setDescriptionImageErrors({})
@@ -1244,6 +1232,28 @@ function ProductsPage() {
                           onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                         />
                         {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
+                      </label>
+                      <label className="text-sm text-slate-700">
+                        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                          {t('Thoi han bao hanh (thang)')}
+                        </span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="off"
+                          placeholder={t('Nhap so thang bao hanh')}
+                          className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          value={newProduct.warrantyPeriod}
+                          onChange={(e) =>
+                            setNewProduct({
+                              ...newProduct,
+                              warrantyPeriod: toDigitsOnly(e.target.value),
+                            })
+                          }
+                        />
+                        {errors.warrantyPeriod && (
+                          <p className="mt-1 text-xs text-red-500">{errors.warrantyPeriod}</p>
+                        )}
                       </label>
                       <label className="text-sm text-slate-700">
                         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">SKU *</span>
@@ -2084,6 +2094,14 @@ function ProductsPage() {
                     if (Number.isNaN(priceNum) || priceNum < 0) {
                       nextErrors.retailPrice = t('Giá phải là số không âm')
                     }
+                    const warrantyPeriodNum = Number(newProduct.warrantyPeriod)
+                    if (
+                      Number.isNaN(warrantyPeriodNum) ||
+                      warrantyPeriodNum <= 0 ||
+                      !Number.isInteger(warrantyPeriodNum)
+                    ) {
+                      nextErrors.warrantyPeriod = t('Thoi han bao hanh phai la so nguyen duong')
+                    }
                     const stockNum = Number(newProduct.stock || 0)
                     setErrors(nextErrors)
                     if (Object.keys(nextErrors).length) return
@@ -2099,6 +2117,7 @@ function ProductsPage() {
                           sku: newProduct.sku.trim(),
                           shortDescription: newProduct.shortDescription.trim(),
                           retailPrice: priceNum || 0,
+                          warrantyPeriod: warrantyPeriodNum,
                           stock: stockNum || 0,
                           publishStatus: newProduct.publishStatus,
                           isFeatured: newProduct.isFeatured,

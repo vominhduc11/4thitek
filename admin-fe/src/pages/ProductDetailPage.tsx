@@ -130,6 +130,8 @@ const QuillEditor = ({
 type ProductDraft = {
   name: string
   publishStatus: Product['publishStatus']
+  retailPrice: string
+  warrantyPeriod: string
   stock: string
   shortDescription: string
   image: string
@@ -169,6 +171,8 @@ type VideoDraftItem = {
 const buildDraft = (product: Product): ProductDraft => ({
   name: product.name,
   publishStatus: product.publishStatus,
+  retailPrice: String(product.retailPrice ?? 0),
+  warrantyPeriod: product.warrantyPeriod == null ? '' : String(product.warrantyPeriod),
   stock: String(product.stock),
   shortDescription: product.shortDescription,
   image: getImageUrl(product.image),
@@ -393,6 +397,26 @@ function ProductDetailPage() {
     event.preventDefault()
 
     const nextStock = Number(draft.stock)
+    const nextRetailPrice = Number(draft.retailPrice)
+    const nextWarrantyPeriod = Number(draft.warrantyPeriod)
+    if (Number.isNaN(nextRetailPrice) || nextRetailPrice < 0) {
+      notify('Retail price must be a non-negative number.', {
+        title: 'Products',
+        variant: 'error',
+      })
+      return
+    }
+    if (
+      Number.isNaN(nextWarrantyPeriod) ||
+      nextWarrantyPeriod <= 0 ||
+      !Number.isInteger(nextWarrantyPeriod)
+    ) {
+      notify('Warranty period must be a positive integer.', {
+        title: 'Products',
+        variant: 'error',
+      })
+      return
+    }
     const cleanedSpecifications = draft.specifications
       .map((spec) => ({
         label: String(spec.label || '').trim(),
@@ -450,6 +474,8 @@ function ProductDetailPage() {
       await updateProduct(product.sku, {
         name: draft.name.trim() || product.name,
         publishStatus: draft.publishStatus,
+        retailPrice: nextRetailPrice,
+        warrantyPeriod: nextWarrantyPeriod,
         stock: Number.isNaN(nextStock) ? product.stock : nextStock,
         shortDescription: draft.shortDescription.trim(),
         image: draft.image.trim() || productPlaceholder,
@@ -1096,6 +1122,20 @@ function ProductDetailPage() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    {t('Retail price')}
+                  </label>
+                  <input
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus:outline-none"
+                    type="number"
+                    min="0"
+                    value={draft.retailPrice}
+                    onChange={(event) =>
+                      setDraft({ ...draft, retailPrice: event.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                     {t('Tồn kho')}
                   </label>
                   <input
@@ -1105,6 +1145,21 @@ function ProductDetailPage() {
                     value={draft.stock}
                     onChange={(event) =>
                       setDraft({ ...draft, stock: event.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    {t('Warranty period (months)')}
+                  </label>
+                  <input
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus:outline-none"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={draft.warrantyPeriod}
+                    onChange={(event) =>
+                      setDraft({ ...draft, warrantyPeriod: event.target.value })
                     }
                   />
                 </div>

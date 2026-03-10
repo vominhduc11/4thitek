@@ -99,6 +99,8 @@ const mapResponseToProduct = (product: BackendProductResponse): Product =>
     publishStatus: product.publishStatus === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT',
     stock: Number(product.stock ?? 0),
     retailPrice: Number(product.retailPrice ?? 0),
+    warrantyPeriod:
+      product.warrantyPeriod == null ? null : Number(product.warrantyPeriod),
     image:
       product.image && Object.keys(product.image).length > 0
         ? JSON.stringify(product.image)
@@ -142,6 +144,13 @@ const toUpsertPayload = (payload: Partial<Product>): BackendProductUpsertRequest
   }
   if ('retailPrice' in payload && payload.retailPrice !== undefined) {
     request.retailPrice = Number(payload.retailPrice ?? 0)
+  }
+  if (
+    'warrantyPeriod' in payload &&
+    payload.warrantyPeriod !== undefined &&
+    payload.warrantyPeriod !== null
+  ) {
+    request.warrantyPeriod = Number(payload.warrantyPeriod)
   }
   if ('stock' in payload && payload.stock !== undefined) {
     request.stock = Number(payload.stock ?? 0)
