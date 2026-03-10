@@ -12,6 +12,8 @@ import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.DealerSupportTicketRepository;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +31,13 @@ public class DealerSupportTicketService {
         return dealerSupportTicketRepository.findTopByDealerIdOrderByCreatedAtDesc(dealer.getId())
                 .map(this::toResponse)
                 .orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<DealerSupportTicketResponse> getTickets(String username, Pageable pageable) {
+        Dealer dealer = requireDealerByUsername(username);
+        return dealerSupportTicketRepository.findByDealerIdOrderByCreatedAtDesc(dealer.getId(), pageable)
+                .map(this::toResponse);
     }
 
     @Transactional
@@ -78,8 +87,11 @@ public class DealerSupportTicketService {
                 ticket.getStatus(),
                 ticket.getSubject(),
                 ticket.getMessage(),
+                ticket.getAdminReply(),
                 ticket.getCreatedAt(),
-                ticket.getUpdatedAt()
+                ticket.getUpdatedAt(),
+                ticket.getResolvedAt(),
+                ticket.getClosedAt()
         );
     }
 }

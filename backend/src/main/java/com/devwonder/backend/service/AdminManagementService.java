@@ -26,7 +26,7 @@ import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.Role;
 import com.devwonder.backend.entity.enums.CustomerStatus;
-import com.devwonder.backend.entity.enums.CustomerTier;
+import com.devwonder.backend.entity.enums.DealerTier;
 import com.devwonder.backend.entity.enums.DiscountRuleStatus;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.StaffUserStatus;
@@ -225,7 +225,7 @@ public class AdminManagementService {
         dealer.setEmail(email);
         dealer.setPhone(phone);
         dealer.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD));
-        dealer.setCustomerTier(request.tier() == null ? CustomerTier.GOLD : request.tier());
+        dealer.setDealerTier(request.tier() == null ? DealerTier.GOLD : request.tier());
         dealer.setCustomerStatus(request.status() == null ? CustomerStatus.ACTIVE : request.status());
         dealer.setRoles(new HashSet<>(List.of(resolveRole("USER", "Dealer role"))));
         return AdminResponseMapper.toDealerAccountResponse(dealerRepository.save(dealer));

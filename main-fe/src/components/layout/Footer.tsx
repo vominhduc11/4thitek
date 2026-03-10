@@ -91,7 +91,7 @@ const Footer = () => {
                         <ul className="space-y-2">
                             <li>
                                 <Link
-                                    href="/reseller_infomation"
+                                    href="/become_our_reseller#dealer-network"
                                     className={`${typographyComponents.footer.link} hover:underline transition-colors`}
                                 >
                                     {t('footer.reseller.information')}

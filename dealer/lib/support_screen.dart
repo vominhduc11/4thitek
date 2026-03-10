@@ -8,6 +8,7 @@ import 'support_service.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/section_card.dart';
+import 'widgets/support_ticket_history.dart';
 
 enum SupportCategory { order, warranty, product, payment, other }
 
@@ -33,6 +34,11 @@ class _SupportScreenState extends State<SupportScreen> {
   DateTime? _lastSubmittedAt;
   SupportCategory? _lastCategory;
   SupportPriority? _lastPriority;
+  final List<DealerSupportTicketRecord> _ticketHistory = [];
+  int _ticketPage = 0;
+  bool _isHistoryLoading = false;
+  bool _isLoadingMoreTickets = false;
+  bool _hasMoreTickets = true;
   bool _isSubmitting = false;
 
   static const _hotline = '1900 1234';
@@ -45,6 +51,7 @@ class _SupportScreenState extends State<SupportScreen> {
     super.initState();
     _supportService = SupportService();
     _loadLatestTicket();
+    _loadTicketHistory();
   }
 
   @override
@@ -75,6 +82,48 @@ class _SupportScreenState extends State<SupportScreen> {
       _lastCategory = _parseCategory(ticket.category);
       _lastPriority = _parsePriority(ticket.priority);
     });
+  }
+
+  Future<void> _loadTicketHistory({bool loadMore = false}) async {
+    if (loadMore) {
+      if (_isLoadingMoreTickets || !_hasMoreTickets) {
+        return;
+      }
+      setState(() => _isLoadingMoreTickets = true);
+    } else {
+      setState(() => _isHistoryLoading = true);
+    }
+
+    try {
+      final pageToLoad = loadMore ? _ticketPage + 1 : 0;
+      final response = await _supportService.fetchTicketsPage(
+        page: pageToLoad,
+        size: 6,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        if (!loadMore) {
+          _ticketHistory
+            ..clear()
+            ..addAll(response.items);
+        } else {
+          _ticketHistory.addAll(response.items);
+        }
+        _ticketPage = response.page;
+        _hasMoreTickets = response.page + 1 < response.totalPages;
+      });
+    } on SupportException {
+      // Keep the main support flow usable even if history loading fails.
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isHistoryLoading = false;
+          _isLoadingMoreTickets = false;
+        });
+      }
+    }
   }
 
   @override
@@ -215,6 +264,21 @@ class _SupportScreenState extends State<SupportScreen> {
                 ),
               if (_lastTicketId != null && _lastSubmittedAt != null)
                 const SizedBox(height: 14),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 120),
+                child: SectionCard(
+                  title: isEnglish ? 'Recent requests' : 'Yeu cau gan day',
+                  child: SupportTicketHistory(
+                    isEnglish: isEnglish,
+                    items: _ticketHistory,
+                    isLoading: _isHistoryLoading,
+                    isLoadingMore: _isLoadingMoreTickets,
+                    hasMore: _hasMoreTickets,
+                    onLoadMore: () => _loadTicketHistory(loadMore: true),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
               FadeSlideIn(
                 delay: const Duration(milliseconds: 140),
                 child: SectionCard(
@@ -474,6 +538,7 @@ class _SupportScreenState extends State<SupportScreen> {
         message: message,
       );
       _applyTicket(ticket);
+      _loadTicketHistory();
       _showSnackBar(
         isEnglish
             ? 'Request #${ticket.ticketCode} has been submitted.'

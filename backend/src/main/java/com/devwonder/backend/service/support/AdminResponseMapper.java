@@ -15,7 +15,7 @@ import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.enums.CustomerStatus;
-import com.devwonder.backend.entity.enums.CustomerTier;
+import com.devwonder.backend.entity.enums.DealerTier;
 import com.devwonder.backend.entity.enums.DiscountRuleStatus;
 import com.devwonder.backend.entity.enums.StaffUserStatus;
 import java.math.BigDecimal;
@@ -117,7 +117,7 @@ public final class AdminResponseMapper {
         return new AdminDealerAccountResponse(
                 dealer.getId(),
                 firstNonBlank(dealer.getBusinessName(), dealer.getContactName(), dealer.getUsername()),
-                dealer.getCustomerTier() == null ? CustomerTier.GOLD : dealer.getCustomerTier(),
+                dealer.getDealerTier() == null ? DealerTier.GOLD : dealer.getDealerTier(),
                 dealer.getCustomerStatus() == null ? CustomerStatus.ACTIVE : dealer.getCustomerStatus(),
                 visibleOrders.size(),
                 lastOrderAt,

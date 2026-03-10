@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -35,6 +36,17 @@ public class PublicController {
     @GetMapping("/product/products")
     public ResponseEntity<ApiResponse<List<PublicProductSummaryResponse>>> products() {
         return ResponseEntity.ok(ApiResponse.success(publicApiService.getProducts()));
+    }
+
+    @GetMapping("/product/products/search")
+    public ResponseEntity<ApiResponse<List<PublicProductSummaryResponse>>> searchProducts(
+            @RequestParam(name = "query", required = false) String query,
+            @RequestParam(name = "minPrice", required = false) Double minPrice,
+            @RequestParam(name = "maxPrice", required = false) Double maxPrice
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                publicApiService.searchProducts(query, minPrice, maxPrice)
+        ));
     }
 
     @GetMapping("/product/{id}")

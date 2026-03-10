@@ -1,6 +1,6 @@
 package com.devwonder.backend.entity.enums;
 
-public enum CustomerTier {
+public enum DealerTier {
     PLATINUM,
     GOLD,
     SILVER,

@@ -15,6 +15,11 @@ const BlogDetailPage = lazy(() => import('./pages/BlogDetailPage'))
 const WholesaleDiscountsPage = lazy(() => import('./pages/WholesaleDiscountsPage'))
 const DealersPage = lazy(() => import('./pages/DealersPage'))
 const DealerDetailPage = lazy(() => import('./pages/DealerDetailPage'))
+const SupportTicketsPage = lazy(() => import('./pages/SupportTicketsPage'))
+const WarrantiesPage = lazy(() => import('./pages/WarrantiesPage'))
+const SerialsPage = lazy(() => import('./pages/SerialsPage'))
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
+const ReportsPage = lazy(() => import('./pages/ReportsPage'))
 const UsersPage = lazy(() => import('./pages/UsersPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
@@ -63,6 +68,20 @@ function App() {
               path="/dealers/:id"
               element={renderLazyElement(DealerDetailPage)}
             />
+            <Route
+              path="/support-tickets"
+              element={renderLazyElement(SupportTicketsPage)}
+            />
+            <Route
+              path="/warranties"
+              element={renderLazyElement(WarrantiesPage)}
+            />
+            <Route path="/serials" element={renderLazyElement(SerialsPage)} />
+            <Route
+              path="/notifications"
+              element={renderLazyElement(NotificationsPage)}
+            />
+            <Route path="/reports" element={renderLazyElement(ReportsPage)} />
             <Route path="/users" element={renderLazyElement(UsersPage)} />
             <Route path="/settings" element={renderLazyElement(SettingsPage)} />
           </Route>

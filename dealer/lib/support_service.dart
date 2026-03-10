@@ -15,8 +15,11 @@ class DealerSupportTicketRecord {
     required this.status,
     required this.subject,
     required this.message,
+    this.adminReply,
     required this.createdAt,
     required this.updatedAt,
+    this.resolvedAt,
+    this.closedAt,
   });
 
   final int id;
@@ -26,8 +29,27 @@ class DealerSupportTicketRecord {
   final String status;
   final String subject;
   final String message;
+  final String? adminReply;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? resolvedAt;
+  final DateTime? closedAt;
+}
+
+class DealerSupportTicketPage {
+  const DealerSupportTicketPage({
+    required this.items,
+    required this.page,
+    required this.size,
+    required this.totalPages,
+    required this.totalElements,
+  });
+
+  final List<DealerSupportTicketRecord> items;
+  final int page;
+  final int size;
+  final int totalPages;
+  final int totalElements;
 }
 
 class SupportService {
@@ -95,6 +117,39 @@ class SupportService {
     return _mapTicket(data);
   }
 
+  Future<DealerSupportTicketPage> fetchTicketsPage({
+    int page = 0,
+    int size = 10,
+  }) async {
+    final response = await _client.get(
+      Uri.parse(
+        DealerApiConfig.resolveUrl(
+          '/api/dealer/support-tickets/page?page=$page&size=$size',
+        ),
+      ),
+      headers: await _authorizedHeaders(),
+    );
+    final payload = _decodeBody(response.body);
+    if (response.statusCode >= 400) {
+      throw SupportException(_extractErrorMessage(payload));
+    }
+    final data = payload['data'];
+    if (data is! Map<String, dynamic>) {
+      throw const SupportException('Support ticket page payload is invalid.');
+    }
+    final items = (data['items'] as List<dynamic>? ?? const <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .map(_mapTicket)
+        .toList();
+    return DealerSupportTicketPage(
+      items: items,
+      page: _parseInt(data['page']),
+      size: _parseInt(data['size']),
+      totalPages: _parseInt(data['totalPages']),
+      totalElements: _parseInt(data['totalElements']),
+    );
+  }
+
   void close() {
     _client.close();
   }
@@ -156,13 +211,24 @@ class SupportService {
       status: json['status']?.toString() ?? 'OPEN',
       subject: json['subject']?.toString() ?? '',
       message: json['message']?.toString() ?? '',
+      adminReply: _parseOptionalString(json['adminReply']),
       createdAt:
           DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
           DateTime.now(),
       updatedAt:
           DateTime.tryParse(json['updatedAt']?.toString() ?? '') ??
           DateTime.now(),
+      resolvedAt: DateTime.tryParse(json['resolvedAt']?.toString() ?? ''),
+      closedAt: DateTime.tryParse(json['closedAt']?.toString() ?? ''),
     );
+  }
+
+  String? _parseOptionalString(Object? value) {
+    final normalized = value?.toString().trim();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+    return normalized;
   }
 
   int _parseInt(Object? value) {

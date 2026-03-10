@@ -27,4 +27,8 @@ public interface WarrantyRegistrationRepository extends JpaRepository<WarrantyRe
 
     @EntityGraph(attributePaths = {"productSerial", "productSerial.product", "customer", "order"})
     Optional<WarrantyRegistration> findByIdAndDealerId(Long id, Long dealerId);
+
+    @Override
+    @EntityGraph(attributePaths = {"productSerial", "productSerial.product", "customer", "dealer", "order"})
+    Page<WarrantyRegistration> findAll(Pageable pageable);
 }

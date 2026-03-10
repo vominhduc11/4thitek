@@ -46,6 +46,26 @@ type DescriptionItem = {
   gallery?: GalleryItem[]
 }
 
+const createInitialNewProduct = () => ({
+  name: '',
+  sku: '',
+  shortDescription: '',
+  descriptions: [] as DescriptionItem[],
+  specifications: [] as { label: string; value: string }[],
+  videos: [] as {
+    title: string
+    descriptions: string
+    url: string
+    type: 'unboxing' | 'tutorial'
+  }[],
+  retailPrice: '',
+  stock: '',
+  publishStatus: 'DRAFT' as 'DRAFT' | 'PUBLISHED',
+  isFeatured: false,
+  showOnHomepage: false,
+  imageUrl: '',
+})
+
 const getImageUrl = (image: string) => {
   try {
     const parsed = JSON.parse(image) as { imageUrl?: string }
@@ -219,25 +239,7 @@ function ProductsPage() {
   const [activeTab, setActiveTab] = useState<'basic' | 'description' | 'specs' | 'videos'>('basic')
   const [currentPage, setCurrentPage] = useState(0)
   const [actionMessage, setActionMessage] = useState('')
-  const [newProduct, setNewProduct] = useState({
-    name: '',
-    sku: '',
-    shortDescription: '',
-    descriptions: [] as DescriptionItem[],
-    specifications: [] as { label: string; value: string }[],
-    videos: [] as {
-      title: string
-      descriptions: string
-      url: string
-      type: 'unboxing' | 'tutorial'
-    }[],
-    retailPrice: '',
-    stock: '',
-    publishStatus: 'DRAFT' as 'DRAFT' | 'PUBLISHED',
-    isFeatured: false,
-    showOnHomepage: false,
-    imageUrl: '',
-  })
+  const [newProduct, setNewProduct] = useState(createInitialNewProduct)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const tabOrder = ['basic', 'description', 'specs', 'videos'] as const
 
@@ -608,6 +610,10 @@ function ProductsPage() {
     setDescriptionImageErrors({})
     setDescriptionVideoErrors({})
     setProductVideoErrors({})
+    setImageError('')
+    setSelectedImageName('')
+    setErrors({})
+    setNewProduct(createInitialNewProduct())
     setShowModal(false)
   }
 

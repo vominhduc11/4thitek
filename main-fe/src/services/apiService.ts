@@ -11,6 +11,15 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/constants/api';
 
 type Language = 'en' | 'vi';
 
+type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH';
+
+type RequestOptions = {
+    method?: RequestMethod;
+    token?: string;
+    body?: unknown;
+    params?: Record<string, string | number | boolean | null | undefined>;
+};
+
 type ProductSummaryPayload = {
     id: number;
     name: string;
@@ -57,6 +66,59 @@ type BlogDetailPayload = {
     showOnHomepage?: boolean;
 };
 
+export type CustomerProfilePayload = {
+    id: number;
+    fullName: string;
+    phone: string;
+    email: string;
+    avatarUrl?: string | null;
+    createdAt?: string | null;
+};
+
+export type CustomerProfileUpdatePayload = {
+    fullName: string;
+    phone: string;
+    email: string;
+};
+
+export type CustomerPasswordChangePayload = {
+    currentPassword: string;
+    newPassword: string;
+};
+
+export type CustomerWarrantySummaryPayload = {
+    id: number;
+    productName: string;
+    productImage: string;
+    serialNumber: string;
+    status: 'ACTIVE' | 'EXPIRED' | 'VOID';
+    warrantyStart?: string | null;
+    warrantyEnd?: string | null;
+    remainingDays: number;
+    dealerName?: string | null;
+};
+
+export type CustomerNotificationPayload = {
+    id: number;
+    accountId?: number | null;
+    title: string;
+    content: string;
+    isRead?: boolean | null;
+    type?: 'SYSTEM' | 'PROMOTION' | 'ORDER' | 'WARRANTY' | null;
+    link?: string | null;
+    readAt?: string | null;
+    createdAt?: string | null;
+};
+
+export type PagedPayload<T> = {
+    items: T[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    sortBy: string;
+};
+
 export interface ApiResponse<T> {
     data: T | null;
     success: boolean;
@@ -75,12 +137,33 @@ class ApiService {
         return JSON.stringify({ imageUrl: url });
     }
 
-    private async request<T>(path: string): Promise<ApiResponse<T>> {
-        const response = await fetch(`${API_BASE_URL}${path}`, {
-            method: 'GET',
+    private buildPath(path: string, params?: RequestOptions['params']): string {
+        if (!params) {
+            return path;
+        }
+
+        const searchParams = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+            if (value === undefined || value === null || value === '') {
+                return;
+            }
+            searchParams.set(key, String(value));
+        });
+
+        const serialized = searchParams.toString();
+        return serialized ? `${path}?${serialized}` : path;
+    }
+
+    private async request<T>(path: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
+        const { method = 'GET', token, body, params } = options;
+        const response = await fetch(`${API_BASE_URL}${this.buildPath(path, params)}`, {
+            method,
             headers: {
-                Accept: 'application/json'
+                Accept: 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                ...(body === undefined ? {} : { 'Content-Type': 'application/json' })
             },
+            body: body === undefined ? undefined : JSON.stringify(body),
             cache: 'no-store'
         });
 
@@ -285,18 +368,20 @@ class ApiService {
         return this.request<T>(API_ENDPOINTS.CONTENT.SECTION(section, lang));
     }
 
-    async searchProducts(query: string, limit: number = 10) {
-        const normalized = query.trim().toLowerCase();
-        if (!normalized) {
-            return { success: true, data: [] };
-        }
-        const response = await this.fetchProducts();
+    async searchProducts(
+        query: string,
+        limit: number = 10,
+        filters?: { minPrice?: number; maxPrice?: number }
+    ) {
+        const response = await this.request<ProductSummaryPayload[]>(API_ENDPOINTS.PRODUCT.PRODUCTS_SEARCH, {
+            params: {
+                query: query.trim() || undefined,
+                minPrice: filters?.minPrice,
+                maxPrice: filters?.maxPrice
+            }
+        });
         const results = (response.data ?? [])
-            .filter((product) =>
-                product.name.toLowerCase().includes(normalized) ||
-                (product.sku || '').toLowerCase().includes(normalized) ||
-                product.shortDescription.toLowerCase().includes(normalized)
-            )
+            .map((product) => this.toProductListItem(product))
             .slice(0, limit);
         return { success: true, data: results };
     }
@@ -333,6 +418,61 @@ class ApiService {
     async healthCheck(): Promise<boolean> {
         const response = await this.request<{ status: string }>(API_ENDPOINTS.HEALTH);
         return response.data?.status === 'ok';
+    }
+
+    async fetchCustomerProfile(token: string) {
+        return this.request<CustomerProfilePayload>('/customer/profile', { token });
+    }
+
+    async updateCustomerProfile(token: string, body: CustomerProfileUpdatePayload) {
+        return this.request<CustomerProfilePayload>('/customer/profile', {
+            method: 'PUT',
+            token,
+            body
+        });
+    }
+
+    async changeCustomerPassword(token: string, body: CustomerPasswordChangePayload) {
+        return this.request<{ status: string }>('/customer/password', {
+            method: 'PATCH',
+            token,
+            body
+        });
+    }
+
+    async fetchCustomerWarrantiesPaged(token: string, params?: { page?: number; size?: number }) {
+        return this.request<PagedPayload<CustomerWarrantySummaryPayload>>('/customer/warranties/page', {
+            token,
+            params
+        });
+    }
+
+    async fetchCustomerNotificationsPaged(token: string, params?: { page?: number; size?: number }) {
+        return this.request<PagedPayload<CustomerNotificationPayload>>('/customer/notifications/page', {
+            token,
+            params
+        });
+    }
+
+    async markCustomerNotificationRead(token: string, id: number) {
+        return this.request<CustomerNotificationPayload>(`/customer/notifications/${id}/read`, {
+            method: 'PATCH',
+            token
+        });
+    }
+
+    async markCustomerNotificationUnread(token: string, id: number) {
+        return this.request<CustomerNotificationPayload>(`/customer/notifications/${id}/unread`, {
+            method: 'PATCH',
+            token
+        });
+    }
+
+    async markAllCustomerNotificationsRead(token: string) {
+        return this.request<{ status: string; updatedCount: number }>('/customer/notifications/read-all', {
+            method: 'PATCH',
+            token
+        });
     }
 }
 

@@ -15,6 +15,7 @@ import debounce from 'lodash.debounce';
 import { ultraWideSpacing } from '@/styles/typography';
 import { API_BASE_URL } from '@/constants/api';
 import { usePublicContent } from '@/hooks/usePublicContent';
+import DealerNetworkSection from '@/components/reseller/DealerNetworkSection';
 import type { ResellerLocationsContent } from '@/types/content';
 
 interface FormData {
@@ -738,6 +739,12 @@ export default function BecomeOurReseller() {
                             </CardContent>
                         </Card>
                     </motion.div>
+                </div>
+            </section>
+
+            <section className="ml-0 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20">
+                <div className="mx-auto max-w-6xl">
+                    <DealerNetworkSection />
                 </div>
             </section>
         </div>

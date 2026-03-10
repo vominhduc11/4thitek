@@ -9,24 +9,43 @@ import com.devwonder.backend.dto.admin.AdminDealerAccountUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminDealerResponse;
 import com.devwonder.backend.dto.admin.AdminDiscountRuleResponse;
 import com.devwonder.backend.dto.admin.AdminDiscountRuleUpsertRequest;
+import com.devwonder.backend.dto.admin.AdminNotificationDispatchResponse;
+import com.devwonder.backend.dto.admin.AdminNotificationResponse;
 import com.devwonder.backend.dto.admin.AdminOrderResponse;
 import com.devwonder.backend.dto.admin.AdminProductResponse;
 import com.devwonder.backend.dto.admin.AdminProductUpsertRequest;
+import com.devwonder.backend.dto.admin.AdminReportExportResponse;
+import com.devwonder.backend.dto.admin.AdminReportExportType;
+import com.devwonder.backend.dto.admin.AdminReportFormat;
 import com.devwonder.backend.dto.admin.AdminSettingsResponse;
+import com.devwonder.backend.dto.admin.AdminSerialImportRequest;
+import com.devwonder.backend.dto.admin.AdminSerialResponse;
 import com.devwonder.backend.dto.admin.AdminStaffUserResponse;
 import com.devwonder.backend.dto.admin.AdminStaffUserUpsertRequest;
+import com.devwonder.backend.dto.admin.AdminSupportTicketResponse;
+import com.devwonder.backend.dto.admin.AdminWarrantyResponse;
+import com.devwonder.backend.dto.admin.CreateAdminNotificationRequest;
+import com.devwonder.backend.dto.admin.UpdateAdminSerialStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminDealerAccountStatusRequest;
+import com.devwonder.backend.dto.admin.UpdateAdminSupportTicketRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminSettingsRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminDiscountRuleStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminStaffUserStatusRequest;
+import com.devwonder.backend.dto.admin.UpdateAdminWarrantyStatusRequest;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
+import com.devwonder.backend.dto.pagination.PagedResponse;
 import com.devwonder.backend.service.AdminManagementService;
+import com.devwonder.backend.service.AdminOperationsService;
+import com.devwonder.backend.service.AdminReportingService;
 import com.devwonder.backend.service.AdminSettingsService;
+import com.devwonder.backend.util.PaginationUtils;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,6 +55,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -44,6 +64,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminController {
 
     private final AdminManagementService adminManagementService;
+    private final AdminOperationsService adminOperationsService;
+    private final AdminReportingService adminReportingService;
     private final AdminSettingsService adminSettingsService;
 
     @GetMapping("/products")
@@ -99,6 +121,100 @@ public class AdminController {
     @GetMapping("/serials")
     public ResponseEntity<ApiResponse<List<DealerProductSerialResponse>>> serials() {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.getSerials()));
+    }
+
+    @GetMapping("/support-tickets")
+    public ResponseEntity<ApiResponse<PagedResponse<AdminSupportTicketResponse>>> supportTickets(
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sortBy", required = false) String sortBy,
+            @RequestParam(name = "sortDir", required = false) String sortDir
+    ) {
+        Pageable pageable = PaginationUtils.toPageable(page, size, sortBy, sortDir, "createdAt");
+        Page<AdminSupportTicketResponse> result = adminOperationsService.getSupportTickets(pageable);
+        return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "createdAt")));
+    }
+
+    @PatchMapping("/support-tickets/{id}")
+    public ResponseEntity<ApiResponse<AdminSupportTicketResponse>> updateSupportTicket(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody UpdateAdminSupportTicketRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(adminOperationsService.updateSupportTicket(id, request)));
+    }
+
+    @GetMapping("/warranties")
+    public ResponseEntity<ApiResponse<PagedResponse<AdminWarrantyResponse>>> warranties(
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sortBy", required = false) String sortBy,
+            @RequestParam(name = "sortDir", required = false) String sortDir
+    ) {
+        Pageable pageable = PaginationUtils.toPageable(page, size, sortBy, sortDir, "createdAt");
+        Page<AdminWarrantyResponse> result = adminOperationsService.getWarranties(pageable);
+        return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "createdAt")));
+    }
+
+    @PatchMapping("/warranties/{id}/status")
+    public ResponseEntity<ApiResponse<AdminWarrantyResponse>> updateWarrantyStatus(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody UpdateAdminWarrantyStatusRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(adminOperationsService.updateWarrantyStatus(id, request)));
+    }
+
+    @GetMapping("/serials/page")
+    public ResponseEntity<ApiResponse<PagedResponse<AdminSerialResponse>>> serialsPaged(
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sortBy", required = false) String sortBy,
+            @RequestParam(name = "sortDir", required = false) String sortDir
+    ) {
+        Pageable pageable = PaginationUtils.toPageable(page, size, sortBy, sortDir, "importedAt");
+        Page<AdminSerialResponse> result = adminOperationsService.getSerials(pageable);
+        return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "importedAt")));
+    }
+
+    @PostMapping("/serials/import")
+    public ResponseEntity<ApiResponse<List<AdminSerialResponse>>> importSerials(
+            @Valid @RequestBody AdminSerialImportRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(adminOperationsService.importSerials(request)));
+    }
+
+    @PatchMapping("/serials/{id}/status")
+    public ResponseEntity<ApiResponse<AdminSerialResponse>> updateSerialStatus(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody UpdateAdminSerialStatusRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(adminOperationsService.updateSerialStatus(id, request)));
+    }
+
+    @GetMapping("/notifications/page")
+    public ResponseEntity<ApiResponse<PagedResponse<AdminNotificationResponse>>> notifications(
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sortBy", required = false) String sortBy,
+            @RequestParam(name = "sortDir", required = false) String sortDir
+    ) {
+        Pageable pageable = PaginationUtils.toPageable(page, size, sortBy, sortDir, "createdAt");
+        Page<AdminNotificationResponse> result = adminOperationsService.getNotifications(pageable);
+        return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "createdAt")));
+    }
+
+    @PostMapping("/notifications")
+    public ResponseEntity<ApiResponse<AdminNotificationDispatchResponse>> createNotification(
+            @Valid @RequestBody CreateAdminNotificationRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(adminOperationsService.createNotification(request)));
+    }
+
+    @GetMapping("/reports/export")
+    public ResponseEntity<ApiResponse<AdminReportExportResponse>> exportReport(
+            @RequestParam("type") AdminReportExportType type,
+            @RequestParam("format") AdminReportFormat format
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(adminReportingService.export(type, format)));
     }
 
     @GetMapping("/blogs")

@@ -57,6 +57,15 @@ public class DealerSupportTicket {
     @Column(name = "message", nullable = false, columnDefinition = "text")
     private String message;
 
+    @Column(name = "admin_reply", columnDefinition = "text")
+    private String adminReply;
+
+    @Column(name = "resolved_at")
+    private Instant resolvedAt;
+
+    @Column(name = "closed_at")
+    private Instant closedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;

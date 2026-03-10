@@ -14,11 +14,18 @@ import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { parseImageUrl } from '@/utils/media';
 import { useLanguage } from '@/context/LanguageContext';
 
+type ApiProductListItem = ApiProduct & {
+    price?: number;
+};
+
 function ProductsPageContent() {
     const [products, setProducts] = useState<SimpleProduct[]>([]);
     const [loading, setLoading] = useState(true);
     const [errorKey, setErrorKey] = useState<string | null>(null);
-    const { t } = useLanguage();
+    const [searchQuery, setSearchQuery] = useState('');
+    const [minPrice, setMinPrice] = useState('');
+    const [maxPrice, setMaxPrice] = useState('');
+    const { t, language } = useLanguage();
     const { retry, retryCount, isRetrying, canRetry } = useRetry({
         maxAttempts: 3,
         delayMs: 1500,
@@ -26,7 +33,7 @@ function ProductsPageContent() {
     });
 
     // Convert API product to SimpleProduct type
-    const convertApiProductToProduct = useCallback((apiProduct: ApiProduct): SimpleProduct | null => {
+    const convertApiProductToProduct = useCallback((apiProduct: ApiProductListItem): SimpleProduct | null => {
         const productId = apiProduct.id?.toString().trim();
         if (!productId) {
             return null;
@@ -38,6 +45,7 @@ function ProductsPageContent() {
             shortDescription: apiProduct.shortDescription,
             description: apiProduct.shortDescription,
             image: parseImageUrl(apiProduct.image),
+            price: apiProduct.price,
         };
     }, []);
 
@@ -45,7 +53,21 @@ function ProductsPageContent() {
         const fetchProducts = async () => {
             try {
                 setLoading(true);
-                const response = await apiService.fetchProducts();
+                const normalizedQuery = searchQuery.trim();
+                const parsedMinPrice = minPrice.trim() ? Number(minPrice) : undefined;
+                const parsedMaxPrice = maxPrice.trim() ? Number(maxPrice) : undefined;
+                const safeMinPrice = parsedMinPrice !== undefined && Number.isFinite(parsedMinPrice) ? parsedMinPrice : undefined;
+                const safeMaxPrice = parsedMaxPrice !== undefined && Number.isFinite(parsedMaxPrice) ? parsedMaxPrice : undefined;
+                const hasFilters =
+                    normalizedQuery.length > 0 ||
+                    safeMinPrice !== undefined ||
+                    safeMaxPrice !== undefined;
+                const response = hasFilters
+                    ? await apiService.searchProducts(normalizedQuery, 100, {
+                          minPrice: safeMinPrice,
+                          maxPrice: safeMaxPrice
+                      })
+                    : await apiService.fetchProducts();
 
                 if (response.success && response.data) {
                     const convertedProducts = response.data
@@ -65,7 +87,7 @@ function ProductsPageContent() {
         };
 
         fetchProducts();
-    }, [convertApiProductToProduct]);
+    }, [convertApiProductToProduct, maxPrice, minPrice, searchQuery]);
 
     if (loading) {
         return (
@@ -166,6 +188,65 @@ function ProductsPageContent() {
 
             {/* Header Section */}
             <ProductsSimpleHeader totalProducts={products.length} />
+
+            <section className="bg-[#0c131d] text-white pb-6">
+                <div className="ml-0 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 flex justify-center">
+                    <div className="w-full max-w-6xl rounded-[28px] border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,8,23,0.22)] backdrop-blur md:p-6">
+                        <div className="grid gap-4 lg:grid-cols-[1.6fr_0.8fr_0.8fr_auto]">
+                            <label className="block">
+                                <span className="mb-2 block text-xs uppercase tracking-[0.22em] text-slate-400">
+                                    {t('common.search')}
+                                </span>
+                                <input
+                                    value={searchQuery}
+                                    onChange={(event) => setSearchQuery(event.target.value)}
+                                    placeholder={t('search.placeholder')}
+                                    className="w-full rounded-2xl border border-white/10 bg-[#0c131d] px-4 py-3 text-white outline-none transition focus:border-cyan-400"
+                                />
+                            </label>
+                            <label className="block">
+                                <span className="mb-2 block text-xs uppercase tracking-[0.22em] text-slate-400">
+                                    {language === 'vi' ? 'Gia tu' : 'Price from'}
+                                </span>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={minPrice}
+                                    onChange={(event) => setMinPrice(event.target.value)}
+                                    placeholder="0"
+                                    className="w-full rounded-2xl border border-white/10 bg-[#0c131d] px-4 py-3 text-white outline-none transition focus:border-cyan-400"
+                                />
+                            </label>
+                            <label className="block">
+                                <span className="mb-2 block text-xs uppercase tracking-[0.22em] text-slate-400">
+                                    {language === 'vi' ? 'Gia den' : 'Price to'}
+                                </span>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={maxPrice}
+                                    onChange={(event) => setMaxPrice(event.target.value)}
+                                    placeholder="0"
+                                    className="w-full rounded-2xl border border-white/10 bg-[#0c131d] px-4 py-3 text-white outline-none transition focus:border-cyan-400"
+                                />
+                            </label>
+                            <div className="flex items-end">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSearchQuery('');
+                                        setMinPrice('');
+                                        setMaxPrice('');
+                                    }}
+                                    className="w-full rounded-full border border-white/10 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-cyan-400 hover:text-cyan-200"
+                                >
+                                    {language === 'vi' ? 'Xoa bo loc' : 'Clear filters'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             {/* Main Content */}
             <main className="ml-0 sm:ml-20 px-0 sm:px-0 md:px-1 lg:px-2 xl:px-4 2xl:px-6 py-8 flex justify-center">

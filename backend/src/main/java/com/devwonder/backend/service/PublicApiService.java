@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -47,6 +48,24 @@ public class PublicApiService {
     public List<PublicProductSummaryResponse> getProducts() {
         return productRepository.findByIsDeletedFalseAndPublishStatusOrderByNameAsc(PublishStatus.PUBLISHED)
                 .stream()
+                .map(this::toSummary)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<PublicProductSummaryResponse> searchProducts(
+            String query,
+            Double minPrice,
+            Double maxPrice
+    ) {
+        String normalizedQuery = normalize(query);
+
+        return productRepository.findByIsDeletedFalseAndPublishStatusOrderByNameAsc(PublishStatus.PUBLISHED)
+                .stream()
+                .filter(product -> matchesQuery(product, normalizedQuery))
+                .filter(product -> matchesMinPrice(product, minPrice))
+                .filter(product -> matchesMaxPrice(product, maxPrice))
+                .sorted(Comparator.comparing(Product::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                 .map(this::toSummary)
                 .toList();
     }
@@ -185,5 +204,45 @@ public class PublicApiService {
         } catch (JsonProcessingException ex) {
             return null;
         }
+    }
+
+    private boolean matchesQuery(Product product, String normalizedQuery) {
+        if (normalizedQuery == null) {
+            return true;
+        }
+        return containsIgnoreCase(product.getName(), normalizedQuery)
+                || containsIgnoreCase(product.getSku(), normalizedQuery)
+                || containsIgnoreCase(product.getShortDescription(), normalizedQuery);
+    }
+
+    private boolean matchesMinPrice(Product product, Double minPrice) {
+        if (minPrice == null) {
+            return true;
+        }
+        double effectivePrice = product.getRetailPrice() == null ? 0D : product.getRetailPrice().doubleValue();
+        return effectivePrice >= minPrice;
+    }
+
+    private boolean matchesMaxPrice(Product product, Double maxPrice) {
+        if (maxPrice == null) {
+            return true;
+        }
+        double effectivePrice = product.getRetailPrice() == null ? 0D : product.getRetailPrice().doubleValue();
+        return effectivePrice <= maxPrice;
+    }
+
+    private boolean containsIgnoreCase(String source, String term) {
+        if (term == null) {
+            return true;
+        }
+        return source != null && source.toLowerCase().contains(term.toLowerCase());
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

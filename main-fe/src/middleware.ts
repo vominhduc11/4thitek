@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
     // Check authentication status
 
     // Các route yêu cầu xác thực
-    const protectedRoutes = ['/warranty-management'];
+    const protectedRoutes = ['/warranty-management', '/account'];
 
     // Kiểm tra xem URL hiện tại có thuộc route được bảo vệ không
     const isProtectedRoute = protectedRoutes.some((route) => request.nextUrl.pathname.startsWith(route));
@@ -24,5 +24,5 @@ export function middleware(request: NextRequest) {
 
 // Chỉ áp dụng middleware cho các route cụ thể
 export const config = {
-    matcher: ['/warranty-management/:path*']
+    matcher: ['/warranty-management/:path*', '/account/:path*']
 };

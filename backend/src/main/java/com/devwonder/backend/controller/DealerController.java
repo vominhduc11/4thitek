@@ -282,6 +282,20 @@ public class DealerController {
         return ResponseEntity.ok(ApiResponse.success(dealerSupportTicketService.getLatestTicket(extractUsername(authentication))));
     }
 
+    @GetMapping("/support-tickets/page")
+    public ResponseEntity<ApiResponse<PagedResponse<DealerSupportTicketResponse>>> supportTicketsPaged(
+            Authentication authentication,
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sortBy", required = false) String sortBy,
+            @RequestParam(name = "sortDir", required = false) String sortDir
+    ) {
+        Pageable pageable = PaginationUtils.toPageable(page, size, sortBy, sortDir, "createdAt");
+        Page<DealerSupportTicketResponse> result =
+                dealerSupportTicketService.getTickets(extractUsername(authentication), pageable);
+        return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "createdAt")));
+    }
+
     @PostMapping("/support-tickets")
     public ResponseEntity<ApiResponse<DealerSupportTicketResponse>> createSupportTicket(
             Authentication authentication,
