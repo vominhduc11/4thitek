@@ -1,5 +1,6 @@
 import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import RouteErrorBoundary from './components/RouteErrorBoundary'
 import RouteFallback from './components/RouteFallback'
 import { ProtectedRoute, PublicOnlyRoute, SuperAdminRoute } from './components/auth/RouteGuards'
 import { ProductsProvider } from './context/ProductsContext'
@@ -26,9 +27,11 @@ const LoginPage = lazy(() => import('./pages/LoginPage'))
 const ChangePasswordPage = lazy(() => import('./pages/ChangePasswordPage'))
 
 const renderLazyElement = (Component: LazyExoticComponent<ComponentType>) => (
-  <Suspense fallback={<RouteFallback />}>
-    <Component />
-  </Suspense>
+  <RouteErrorBoundary>
+    <Suspense fallback={<RouteFallback />}>
+      <Component />
+    </Suspense>
+  </RouteErrorBoundary>
 )
 
 function LegacyDealersRedirect() {

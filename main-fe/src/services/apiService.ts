@@ -18,6 +18,8 @@ type RequestOptions = {
     token?: string;
     body?: unknown;
     params?: Record<string, string | number | boolean | null | undefined>;
+    cache?: RequestCache;
+    revalidate?: number;
 };
 
 type ProductSummaryPayload = {
@@ -155,8 +157,9 @@ class ApiService {
     }
 
     private async request<T>(path: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
-        const { method = 'GET', token, body, params } = options;
-        const response = await fetch(`${API_BASE_URL}${this.buildPath(path, params)}`, {
+        const { method = 'GET', token, body, params, cache, revalidate } = options;
+        const isPublicGet = method === 'GET' && !token && body === undefined;
+        const requestInit: RequestInit & { next?: { revalidate: number } } = {
             method,
             headers: {
                 Accept: 'application/json',
@@ -164,8 +167,13 @@ class ApiService {
                 ...(body === undefined ? {} : { 'Content-Type': 'application/json' })
             },
             body: body === undefined ? undefined : JSON.stringify(body),
-            cache: 'no-store'
-        });
+            cache: cache ?? (isPublicGet ? 'force-cache' : 'no-store')
+        };
+        if (typeof window === 'undefined' && isPublicGet && revalidate !== undefined) {
+            requestInit.next = { revalidate };
+        }
+
+        const response = await fetch(`${API_BASE_URL}${this.buildPath(path, params)}`, requestInit);
 
         let payload: ApiResponse<T> | null = null;
         try {
@@ -208,7 +216,9 @@ class ApiService {
     }
 
     async fetchHomepageProducts(): Promise<ApiResponse<ProductListResponse['data']>> {
-        const response = await this.request<ProductSummaryPayload[]>(API_ENDPOINTS.PRODUCT.PRODUCTS_HOMEPAGE);
+        const response = await this.request<ProductSummaryPayload[]>(API_ENDPOINTS.PRODUCT.PRODUCTS_HOMEPAGE, {
+            revalidate: 3600
+        });
         return {
             success: true,
             data: (response.data ?? []).map((product) => this.toProductListItem(product))
@@ -216,7 +226,9 @@ class ApiService {
     }
 
     async fetchProducts(): Promise<ApiResponse<ProductListResponse['data']>> {
-        const response = await this.request<ProductSummaryPayload[]>(API_ENDPOINTS.PRODUCT.PRODUCTS);
+        const response = await this.request<ProductSummaryPayload[]>(API_ENDPOINTS.PRODUCT.PRODUCTS, {
+            revalidate: 3600
+        });
         return {
             success: true,
             data: (response.data ?? []).map((product) => this.toProductListItem(product))
@@ -224,7 +236,9 @@ class ApiService {
     }
 
     async fetchProductById(id: string): Promise<ApiResponse<ProductDetailResponse['data']>> {
-        const response = await this.request<ProductDetailPayload>(API_ENDPOINTS.PRODUCT.PRODUCT_BY_ID(id));
+        const response = await this.request<ProductDetailPayload>(API_ENDPOINTS.PRODUCT.PRODUCT_BY_ID(id), {
+            revalidate: 3600
+        });
         if (!response.data) {
             return { success: false, data: null, error: 'Product not found' };
         }
@@ -263,7 +277,9 @@ class ApiService {
     }
 
     async fetchHomepageBlogs(): Promise<ApiResponse<BlogListResponse['data']>> {
-        const response = await this.request<BlogSummaryPayload[]>(API_ENDPOINTS.BLOG.BLOGS_HOMEPAGE);
+        const response = await this.request<BlogSummaryPayload[]>(API_ENDPOINTS.BLOG.BLOGS_HOMEPAGE, {
+            revalidate: 1800
+        });
         return {
             success: true,
             data: (response.data ?? []).map((blog) => this.toBlogListItem(blog))
@@ -272,7 +288,9 @@ class ApiService {
 
     async fetchBlogs(fields?: string): Promise<ApiResponse<BlogListResponse['data']>> {
         void fields;
-        const response = await this.request<BlogSummaryPayload[]>(API_ENDPOINTS.BLOG.BLOGS);
+        const response = await this.request<BlogSummaryPayload[]>(API_ENDPOINTS.BLOG.BLOGS, {
+            revalidate: 1800
+        });
         return {
             success: true,
             data: (response.data ?? []).map((blog) => this.toBlogListItem(blog))
@@ -280,7 +298,9 @@ class ApiService {
     }
 
     async fetchBlogCategories(): Promise<ApiResponse<BlogCategory[]>> {
-        const response = await this.request<Array<{ id: number; name: string }>>(API_ENDPOINTS.BLOG.CATEGORIES);
+        const response = await this.request<Array<{ id: number; name: string }>>(API_ENDPOINTS.BLOG.CATEGORIES, {
+            revalidate: 1800
+        });
         return {
             success: true,
             data: (response.data ?? []).map((category) => ({
@@ -292,7 +312,10 @@ class ApiService {
 
     async fetchBlogsByCategory(categoryId: string, fields?: string): Promise<ApiResponse<unknown[]>> {
         void fields;
-        const response = await this.request<BlogSummaryPayload[]>(API_ENDPOINTS.BLOG.CATEGORY_BLOGS(Number(categoryId)));
+        const response = await this.request<BlogSummaryPayload[]>(
+            API_ENDPOINTS.BLOG.CATEGORY_BLOGS(Number(categoryId)),
+            { revalidate: 1800 }
+        );
         return {
             success: true,
             data: (response.data ?? []).map((blog) => this.toBlogListItem(blog))
@@ -301,7 +324,10 @@ class ApiService {
 
     async fetchRelatedBlogs(blogId: string, limit: number = 4, fields?: string): Promise<ApiResponse<unknown[]>> {
         void fields;
-        const response = await this.request<BlogSummaryPayload[]>(`${API_ENDPOINTS.BLOG.BLOGS_RELATED(blogId)}?limit=${limit}`);
+        const response = await this.request<BlogSummaryPayload[]>(
+            `${API_ENDPOINTS.BLOG.BLOGS_RELATED(blogId)}?limit=${limit}`,
+            { revalidate: 1800 }
+        );
         return {
             success: true,
             data: (response.data ?? []).map((blog) => this.toBlogListItem(blog))
@@ -309,7 +335,9 @@ class ApiService {
     }
 
     async fetchBlogById(id: string): Promise<ApiResponse<BlogDetailResponse['data']>> {
-        const response = await this.request<BlogDetailPayload>(API_ENDPOINTS.BLOG.BLOG_BY_ID(id));
+        const response = await this.request<BlogDetailPayload>(API_ENDPOINTS.BLOG.BLOG_BY_ID(id), {
+            revalidate: 1800
+        });
         if (!response.data) {
             return { success: false, data: null, error: 'Blog not found' };
         }
@@ -339,7 +367,9 @@ class ApiService {
             district: string;
             phone: string;
             email: string;
-        }> }>(API_ENDPOINTS.USER.DEALERS);
+        }> }>(API_ENDPOINTS.USER.DEALERS, {
+            revalidate: 3600
+        });
     }
 
     async fetchDealers(): Promise<ApiResponse<unknown>> {
@@ -347,7 +377,9 @@ class ApiService {
     }
 
     async checkWarranty(serialNumber: string): Promise<ApiResponse<WarrantyCheckData>> {
-        const response = await this.request<WarrantyCheckData>(API_ENDPOINTS.WARRANTY.CHECK(serialNumber));
+        const response = await this.request<WarrantyCheckData>(API_ENDPOINTS.WARRANTY.CHECK(serialNumber), {
+            cache: 'no-store'
+        });
         if (!response.data?.productSerial) {
             return response;
         }
@@ -365,7 +397,9 @@ class ApiService {
     }
 
     async fetchContentSection<T>(section: string, lang: string = this.language): Promise<ApiResponse<T>> {
-        return this.request<T>(API_ENDPOINTS.CONTENT.SECTION(section, lang));
+        return this.request<T>(API_ENDPOINTS.CONTENT.SECTION(section, lang), {
+            revalidate: 86400
+        });
     }
 
     async searchProducts(
@@ -374,6 +408,7 @@ class ApiService {
         filters?: { minPrice?: number; maxPrice?: number }
     ) {
         const response = await this.request<ProductSummaryPayload[]>(API_ENDPOINTS.PRODUCT.PRODUCTS_SEARCH, {
+            cache: 'no-store',
             params: {
                 query: query.trim() || undefined,
                 minPrice: filters?.minPrice,
@@ -387,7 +422,10 @@ class ApiService {
     }
 
     async searchBlogs(query: string, limit: number = 10) {
-        const response = await this.request<BlogSummaryPayload[]>(`${API_ENDPOINTS.BLOG.BLOGS_SEARCH}?query=${encodeURIComponent(query)}`);
+        const response = await this.request<BlogSummaryPayload[]>(
+            `${API_ENDPOINTS.BLOG.BLOGS_SEARCH}?query=${encodeURIComponent(query)}`,
+            { cache: 'no-store' }
+        );
         return {
             success: true,
             data: (response.data ?? []).slice(0, limit).map((blog) => ({

@@ -165,6 +165,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
             ariaHideApp={false} // Tắt ariaHideApp để tránh lỗi
             shouldCloseOnOverlayClick={true}
             shouldCloseOnEsc={true}
+            shouldReturnFocusAfterClose={true}
             closeTimeoutMS={300}
         >
             <div className="relative">

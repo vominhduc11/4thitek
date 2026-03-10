@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/customer")
+@RequestMapping({"/api/customer", "/api/v1/customer"})
 @RequiredArgsConstructor
 public class CustomerController {
 

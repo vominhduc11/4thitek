@@ -3,6 +3,7 @@ package com.devwonder.backend.service;
 import com.devwonder.backend.dto.blog.PublicBlogCategoryResponse;
 import com.devwonder.backend.dto.blog.PublicBlogDetailResponse;
 import com.devwonder.backend.dto.blog.PublicBlogSummaryResponse;
+import com.devwonder.backend.config.CacheNames;
 import com.devwonder.backend.entity.Blog;
 import com.devwonder.backend.entity.CategoryBlog;
 import com.devwonder.backend.entity.enums.BlogStatus;
@@ -11,6 +12,7 @@ import com.devwonder.backend.repository.BlogRepository;
 import com.devwonder.backend.repository.CategoryBlogRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,7 @@ public class PublicBlogService {
     private final CategoryBlogRepository categoryBlogRepository;
 
     @Transactional(readOnly = true)
+    @Cacheable(CacheNames.PUBLIC_HOMEPAGE_BLOGS)
     public List<PublicBlogSummaryResponse> getHomepageBlogs() {
         return blogRepository.findTop6ByIsDeletedFalseAndShowOnHomepageTrueAndStatusOrderByCreatedAtDesc(BlogStatus.PUBLISHED).stream()
                 .map(this::toSummary)
@@ -29,6 +32,7 @@ public class PublicBlogService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(CacheNames.PUBLIC_BLOGS)
     public List<PublicBlogSummaryResponse> getBlogs() {
         return blogRepository.findByIsDeletedFalseAndStatusOrderByCreatedAtDesc(BlogStatus.PUBLISHED).stream()
                 .map(this::toSummary)
@@ -36,6 +40,7 @@ public class PublicBlogService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.PUBLIC_BLOGS, key = "'search:' + (#query == null ? '' : #query)")
     public List<PublicBlogSummaryResponse> searchBlogs(String query) {
         if (query == null || query.isBlank()) {
             return getBlogs();
@@ -46,6 +51,7 @@ public class PublicBlogService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.PUBLIC_BLOG_BY_ID, key = "#id")
     public PublicBlogDetailResponse getBlog(Long id) {
         Blog blog = blogRepository.findByIdAndIsDeletedFalseAndStatus(id, BlogStatus.PUBLISHED)
                 .orElseThrow(() -> new ResourceNotFoundException("Blog not found"));
@@ -53,6 +59,7 @@ public class PublicBlogService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.PUBLIC_BLOG_RELATED, key = "#id + ':' + #limit")
     public List<PublicBlogSummaryResponse> getRelatedBlogs(Long id, int limit) {
         Blog blog = blogRepository.findByIdAndIsDeletedFalseAndStatus(id, BlogStatus.PUBLISHED)
                 .orElseThrow(() -> new ResourceNotFoundException("Blog not found"));
@@ -70,6 +77,7 @@ public class PublicBlogService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(CacheNames.PUBLIC_BLOG_CATEGORIES)
     public List<PublicBlogCategoryResponse> getCategories() {
         return categoryBlogRepository.findAll().stream()
                 .map(category -> new PublicBlogCategoryResponse(category.getId(), category.getName()))
@@ -77,6 +85,7 @@ public class PublicBlogService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.PUBLIC_BLOGS_BY_CATEGORY, key = "#categoryId")
     public List<PublicBlogSummaryResponse> getBlogsByCategory(Long categoryId) {
         categoryBlogRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));

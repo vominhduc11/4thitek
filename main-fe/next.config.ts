@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 
 const trimTrailingSlash = (value: string) => value.replace(/\/$/, '');
+const stripApiSuffix = (value: string) => trimTrailingSlash(value).replace(/\/api(?:\/v1)?$/i, '');
 
 const isPlaceholderHost = (value: string) => {
     if (!value || value.startsWith('/')) {
@@ -23,10 +24,18 @@ const normalizeConfiguredApiBaseUrl = (value?: string | null) => {
     return trimTrailingSlash(trimmed);
 };
 
-const internalApiBaseUrl =
-    normalizeConfiguredApiBaseUrl(process.env.INTERNAL_API_BASE_URL) ||
-    normalizeConfiguredApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL) ||
-    'https://api.4thitek.vn/api';
+const normalizeConfiguredApiOrigin = (value?: string | null) => {
+    const normalized = normalizeConfiguredApiBaseUrl(value);
+    if (!normalized || normalized.startsWith('/')) {
+        return '';
+    }
+    return stripApiSuffix(normalized);
+};
+
+const internalApiOrigin =
+    normalizeConfiguredApiOrigin(process.env.INTERNAL_API_BASE_URL) ||
+    normalizeConfiguredApiOrigin(process.env.NEXT_PUBLIC_API_BASE_URL) ||
+    'https://api.4thitek.vn';
 
 const nextConfig: NextConfig = {
     /* config options here */
@@ -69,8 +78,12 @@ const nextConfig: NextConfig = {
     async rewrites() {
         return [
             {
+                source: '/api/v1/:path*',
+                destination: `${internalApiOrigin}/api/v1/:path*`
+            },
+            {
                 source: '/api/:path*',
-                destination: `${internalApiBaseUrl}/:path*`
+                destination: `${internalApiOrigin}/api/:path*`
             }
         ];
     }

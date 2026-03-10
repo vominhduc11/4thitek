@@ -31,12 +31,12 @@ function OrdersPage() {
   const { t } = useLanguage()
   const { notify } = useToast()
   const navigate = useNavigate()
-  const { orders, deleteOrder, updateOrderStatus } = useAdminData()
-  const { isLoading, reload } = useSimulatedPageLoad('orders-page')
+  const { orders, ordersState, deleteOrder, updateOrderStatus, reloadResource } = useAdminData()
+  const { isLoading } = useSimulatedPageLoad('orders-page')
 
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all')
-  const [error, setError] = useState<string | null>(null)
+  const [localError, setLocalError] = useState<string | null>(null)
 
   const normalizedQuery = query.trim().toLowerCase()
 
@@ -59,7 +59,7 @@ function OrdersPage() {
     return { pending, delivering }
   }, [orders])
 
-  if (isLoading) {
+  if (isLoading || ordersState.status === 'loading' || ordersState.status === 'idle') {
     return (
       <PagePanel>
         <LoadingRows rows={6} />
@@ -67,15 +67,15 @@ function OrdersPage() {
     )
   }
 
-  if (error) {
+  if (localError || ordersState.status === 'error') {
     return (
       <PagePanel>
         <ErrorState
-          title="Không thể tải dữ liệu"
-          message={error}
+          title="Khong the tai du lieu"
+          message={localError || ordersState.error || 'Khong tai duoc don hang'}
           onRetry={() => {
-            setError(null)
-            reload()
+            setLocalError(null)
+            void reloadResource('orders')
           }}
         />
       </PagePanel>
@@ -86,10 +86,8 @@ function OrdersPage() {
     <PagePanel>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">{t('Đơn hàng')}</h3>
-          <p className="text-sm text-slate-500">
-            Theo doi xu ly don va uu tien giao hang.
-          </p>
+          <h3 className="text-lg font-semibold text-slate-900">{t('Don hang')}</h3>
+          <p className="text-sm text-slate-500">Theo doi xu ly don va uu tien giao hang.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <SearchInput
@@ -118,14 +116,14 @@ function OrdersPage() {
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <StatCard label="Tong don" value={orders.length} tone="neutral" />
         <StatCard label="Cho xu ly" value={stats.pending} tone="warning" />
-        <StatCard label="Đang giao" value={stats.delivering} tone="info" />
+        <StatCard label="Dang giao" value={stats.delivering} tone="info" />
       </div>
 
       <div className="mt-6">
         {filteredOrders.length === 0 ? (
           <EmptyState
             icon={Package}
-            title="Không có đơn hàng"
+            title="Khong co don hang"
             message="Thu doi bo loc hoac tao don moi."
           />
         ) : (
@@ -134,7 +132,7 @@ function OrdersPage() {
               <thead>
                 <tr className="text-left text-xs uppercase tracking-[0.2em] text-slate-400">
                   <th className="px-3 py-2 font-semibold">Ma don</th>
-                  <th className="px-3 py-2 font-semibold">Đại lý</th>
+                  <th className="px-3 py-2 font-semibold">Dai ly</th>
                   <th className="px-3 py-2 font-semibold">Tong</th>
                   <th className="px-3 py-2 font-semibold">Trang thai</th>
                   <th className="px-3 py-2 font-semibold">Thao tac</th>
@@ -180,7 +178,7 @@ function OrdersPage() {
                               notify(
                                 updateError instanceof Error
                                   ? updateError.message
-                                  : 'Không cập nhật được đơn hàng',
+                                  : 'Khong cap nhat duoc don hang',
                                 {
                                   title: 'Orders',
                                   variant: 'error',
@@ -190,13 +188,11 @@ function OrdersPage() {
                           }}
                           value={order.status}
                         >
-                          {getAllowedOrderStatuses(order.status).map(
-                            (option) => (
-                              <option key={`${order.id}-${option}`} value={option}>
-                                {orderStatusLabel[option]}
-                              </option>
-                            ),
-                          )}
+                          {getAllowedOrderStatuses(order.status).map((option) => (
+                            <option key={`${order.id}-${option}`} value={option}>
+                              {orderStatusLabel[option]}
+                            </option>
+                          ))}
                         </select>
                         <GhostButton
                           className="h-9 min-w-0 px-3"
@@ -209,7 +205,7 @@ function OrdersPage() {
                               notify(
                                 deleteError instanceof Error
                                   ? deleteError.message
-                                  : 'Không xóa được đơn hàng',
+                                  : 'Khong xoa duoc don hang',
                                 {
                                   title: 'Orders',
                                   variant: 'error',

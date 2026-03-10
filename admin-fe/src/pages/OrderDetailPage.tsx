@@ -7,7 +7,9 @@ import { getAllowedOrderStatuses, orderStatusLabel, orderStatusTone } from '../l
 import { formatCurrency, formatDateTime } from '../lib/formatters'
 import {
   EmptyState,
+  ErrorState,
   GhostButton,
+  LoadingRows,
   PagePanel,
   PrimaryButton,
   StatusBadge,
@@ -18,7 +20,8 @@ function OrderDetailPage() {
   const decodedId = decodeURIComponent(id)
   const navigate = useNavigate()
   const { notify } = useToast()
-  const { orders, updateOrderStatus, recordOrderPayment, deleteOrder } = useAdminData()
+  const { orders, ordersState, updateOrderStatus, recordOrderPayment, deleteOrder, reloadResource } =
+    useAdminData()
   const [paymentAmount, setPaymentAmount] = useState('')
   const [transactionCode, setTransactionCode] = useState('')
   const [paymentNote, setPaymentNote] = useState('')
@@ -26,17 +29,39 @@ function OrderDetailPage() {
   const order = orders.find((item) => item.id === decodedId)
 
   useEffect(() => {
-    if (!order) return
+    if (!order) {
+      return
+    }
     setPaymentAmount(order.outstandingAmount > 0 ? String(order.outstandingAmount) : '')
     setTransactionCode('')
     setPaymentNote('')
   }, [order?.id, order?.outstandingAmount])
 
+  if (ordersState.status === 'loading' || ordersState.status === 'idle') {
+    return (
+      <PagePanel>
+        <LoadingRows rows={4} />
+      </PagePanel>
+    )
+  }
+
+  if (ordersState.status === 'error') {
+    return (
+      <PagePanel>
+        <ErrorState
+          title="Khong the tai don hang"
+          message={ordersState.error || 'Khong tai duoc chi tiet don hang'}
+          onRetry={() => void reloadResource('orders')}
+        />
+      </PagePanel>
+    )
+  }
+
   if (!order) {
     return (
       <PagePanel>
         <EmptyState
-          title="Không tìm thấy đơn hàng"
+          title="Khong tim thay don hang"
           message={`Don ${decodedId} khong ton tai hoac da bi xoa.`}
         />
         <div className="mt-4">
@@ -53,17 +78,17 @@ function OrderDetailPage() {
   }
 
   const paymentMethodLabel =
-    order.paymentMethod === 'debt' ? 'Công nợ' : 'Chuyển khoản ngân hàng'
+    order.paymentMethod === 'debt' ? 'Cong no' : 'Chuyen khoan ngan hang'
   const paymentStatusLabel =
     order.paymentStatus === 'paid'
-      ? 'Đã thanh toán'
+      ? 'Da thanh toan'
       : order.paymentStatus === 'debt_recorded'
-        ? 'Ghi nhận công nợ'
+        ? 'Ghi nhan cong no'
         : order.paymentStatus === 'cancelled'
-          ? 'Đã hủy'
+          ? 'Da huy'
           : order.paymentStatus === 'failed'
-            ? 'Thất bại'
-            : 'Chưa thanh toán'
+            ? 'That bai'
+            : 'Chua thanh toan'
 
   return (
     <PagePanel>
@@ -73,11 +98,9 @@ function OrderDetailPage() {
           to="/orders"
         >
           <ArrowLeft className="h-4 w-4" />
-          Về đơn hàng
+          Ve don hang
         </Link>
-        <StatusBadge tone={orderStatusTone[order.status]}>
-          {orderStatusLabel[order.status]}
-        </StatusBadge>
+        <StatusBadge tone={orderStatusTone[order.status]}>{orderStatusLabel[order.status]}</StatusBadge>
       </div>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
@@ -87,7 +110,7 @@ function OrderDetailPage() {
           <p className="mt-2 text-sm text-slate-500">{formatDateTime(order.createdAt)}</p>
           <div className="mt-4 space-y-2 text-sm text-slate-700">
             <p>
-              <span className="font-semibold text-slate-900">Đại lý:</span> {order.dealer}
+              <span className="font-semibold text-slate-900">Dai ly:</span> {order.dealer}
             </p>
             <p>
               <span className="font-semibold text-slate-900">So mat hang:</span> {order.items}
@@ -97,22 +120,22 @@ function OrderDetailPage() {
               {formatCurrency(order.total)}
             </p>
             <p>
-              <span className="font-semibold text-slate-900">Thanh toán:</span>{' '}
+              <span className="font-semibold text-slate-900">Thanh toan:</span>{' '}
               {paymentMethodLabel} • {paymentStatusLabel}
             </p>
             <p>
-              <span className="font-semibold text-slate-900">Đã thu:</span>{' '}
+              <span className="font-semibold text-slate-900">Da thu:</span>{' '}
               {formatCurrency(order.paidAmount)}
             </p>
             <p>
-              <span className="font-semibold text-slate-900">Còn lại:</span>{' '}
+              <span className="font-semibold text-slate-900">Con lai:</span>{' '}
               {formatCurrency(order.outstandingAmount)}
             </p>
             <p>
               <span className="font-semibold text-slate-900">Dia chi:</span> {order.address}
             </p>
             <p>
-              <span className="font-semibold text-slate-900">Ghi chú:</span> {order.note}
+              <span className="font-semibold text-slate-900">Ghi chu:</span> {order.note}
             </p>
           </div>
         </div>
@@ -132,7 +155,7 @@ function OrderDetailPage() {
                     variant: 'info',
                   })
                 } catch (error) {
-                  notify(error instanceof Error ? error.message : 'Không cập nhật được đơn hàng', {
+                  notify(error instanceof Error ? error.message : 'Khong cap nhat duoc don hang', {
                     title: 'Orders',
                     variant: 'error',
                   })
@@ -153,7 +176,7 @@ function OrderDetailPage() {
                   await updateOrderStatus(order.id, 'completed')
                   notify(`Don ${order.id} da hoan tat`, { title: 'Orders', variant: 'success' })
                 } catch (error) {
-                  notify(error instanceof Error ? error.message : 'Không cập nhật được đơn hàng', {
+                  notify(error instanceof Error ? error.message : 'Khong cap nhat duoc don hang', {
                     title: 'Orders',
                     variant: 'error',
                   })
@@ -167,29 +190,29 @@ function OrderDetailPage() {
 
           {order.outstandingAmount > 0 ? (
             <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
-              <p className="text-sm font-semibold text-emerald-800">Ghi nhận thanh toán thủ công</p>
+              <p className="text-sm font-semibold text-emerald-800">Ghi nhan thanh toan thu cong</p>
               <p className="mt-1 text-xs text-emerald-700">
-                Dùng khi cần xác nhận tiền đã nhận ngoài webhook tự động.
+                Dung khi can xac nhan tien da nhan ngoai webhook tu dong.
               </p>
               <div className="mt-3 grid gap-3">
                 <input
                   className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                   min="1"
                   onChange={(event) => setPaymentAmount(event.target.value)}
-                  placeholder="Số tiền"
+                  placeholder="So tien"
                   type="number"
                   value={paymentAmount}
                 />
                 <input
                   className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                   onChange={(event) => setTransactionCode(event.target.value)}
-                  placeholder="Mã giao dịch (tuỳ chọn)"
+                  placeholder="Ma giao dich (tuy chon)"
                   value={transactionCode}
                 />
                 <textarea
                   className="min-h-24 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                   onChange={(event) => setPaymentNote(event.target.value)}
-                  placeholder="Ghi chú nội bộ"
+                  placeholder="Ghi chu noi bo"
                   value={paymentNote}
                 />
               </div>
@@ -198,12 +221,13 @@ function OrderDetailPage() {
                   onClick={async () => {
                     const amount = Number(paymentAmount)
                     if (Number.isNaN(amount) || amount <= 0) {
-                      notify('Số tiền thanh toán không hợp lệ', {
+                      notify('So tien thanh toan khong hop le', {
                         title: 'Orders',
                         variant: 'error',
                       })
                       return
                     }
+
                     try {
                       await recordOrderPayment(order.id, {
                         amount,
@@ -215,13 +239,13 @@ function OrderDetailPage() {
                         transactionCode: transactionCode.trim() || undefined,
                         note: paymentNote.trim() || undefined,
                       })
-                      notify(`Đã ghi nhận thanh toán cho đơn ${order.id}`, {
+                      notify(`Da ghi nhan thanh toan cho don ${order.id}`, {
                         title: 'Orders',
                         variant: 'success',
                       })
                     } catch (error) {
                       notify(
-                        error instanceof Error ? error.message : 'Không ghi nhận được thanh toán',
+                        error instanceof Error ? error.message : 'Khong ghi nhan duoc thanh toan',
                         {
                           title: 'Orders',
                           variant: 'error',
@@ -231,17 +255,15 @@ function OrderDetailPage() {
                   }}
                   type="button"
                 >
-                  Ghi nhận thanh toán
+                  Ghi nhan thanh toan
                 </PrimaryButton>
               </div>
             </div>
           ) : null}
 
           <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50/70 p-3">
-            <p className="text-sm font-semibold text-rose-700">Xóa đơn hàng</p>
-            <p className="mt-1 text-xs text-rose-600">
-              Hanh dong nay se xoa don khoi danh sach.
-            </p>
+            <p className="text-sm font-semibold text-rose-700">Xoa don hang</p>
+            <p className="mt-1 text-xs text-rose-600">Hanh dong nay se xoa don khoi danh sach.</p>
             <GhostButton
               className="mt-3 border-rose-200 text-rose-700 hover:border-rose-500 hover:text-rose-700"
               onClick={async () => {
@@ -250,7 +272,7 @@ function OrderDetailPage() {
                   notify(`Da xoa ${order.id}`, { title: 'Orders', variant: 'error' })
                   navigate('/orders')
                 } catch (error) {
-                  notify(error instanceof Error ? error.message : 'Không xóa được đơn hàng', {
+                  notify(error instanceof Error ? error.message : 'Khong xoa duoc don hang', {
                     title: 'Orders',
                     variant: 'error',
                   })

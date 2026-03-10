@@ -1,5 +1,16 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { useToast } from './ToastContext'
 import {
@@ -9,19 +20,19 @@ import {
   createAdminUser,
   deleteAdminBlog,
   deleteAdminOrder,
-  fetchAdminDealerAccounts,
-  fetchAdminSettings,
   fetchAdminBlogs,
+  fetchAdminDealerAccounts,
   fetchAdminDiscountRules,
   fetchAdminOrders,
+  fetchAdminSettings,
   fetchAdminUsers,
   recordAdminOrderPayment,
   updateAdminBlog,
   updateAdminDealerAccount,
   updateAdminDealerAccountStatus,
   updateAdminDiscountRuleStatus,
-  updateAdminSettings,
   updateAdminOrderStatus,
+  updateAdminSettings,
   updateAdminUserStatus,
 } from '../lib/adminApi'
 import {
@@ -69,8 +80,23 @@ export type {
   UserStatus,
 } from './adminDataTypes'
 
+export type AdminResourceKey =
+  | 'orders'
+  | 'posts'
+  | 'dealers'
+  | 'users'
+  | 'discountRules'
+  | 'settings'
+
+export type AdminResourceState = {
+  status: 'idle' | 'loading' | 'success' | 'error'
+  error: string | null
+  lastLoadedAt: number | null
+}
+
 type AdminDataContextValue = {
   orders: Order[]
+  ordersState: AdminResourceState
   updateOrderStatus: (id: string, status: OrderStatus) => Promise<void>
   recordOrderPayment: (
     id: string,
@@ -85,12 +111,14 @@ type AdminDataContextValue = {
   ) => Promise<void>
   deleteOrder: (id: string) => Promise<void>
   posts: BlogPost[]
+  postsState: AdminResourceState
   addPost: (
     payload: Pick<BlogPost, 'title' | 'category' | 'excerpt' | 'status' | 'imageUrl'>,
   ) => Promise<BlogPost>
   updatePostStatus: (id: string, status: BlogStatus) => Promise<void>
   deletePost: (id: string) => Promise<void>
   dealers: Dealer[]
+  dealersState: AdminResourceState
   addDealer: (
     payload: Pick<Dealer, 'name' | 'tier' | 'email' | 'phone'> &
       Partial<Pick<Dealer, 'revenue' | 'orders' | 'creditLimit'>>,
@@ -101,105 +129,295 @@ type AdminDataContextValue = {
   ) => Promise<void>
   updateDealerStatus: (id: string, status: DealerStatus) => Promise<void>
   users: StaffUser[]
+  usersState: AdminResourceState
   addUser: (payload: Pick<StaffUser, 'name' | 'role'>) => Promise<StaffUser>
   updateUserStatus: (id: string, status: UserStatus) => Promise<void>
   discountRules: DiscountRule[]
+  discountRulesState: AdminResourceState
   addDiscountRule: (
     payload: Pick<DiscountRule, 'label' | 'range' | 'percent' | 'status'>,
   ) => Promise<DiscountRule>
   updateDiscountRuleStatus: (id: string, status: RuleStatus) => Promise<void>
   settings: AppSettings
+  settingsState: AdminResourceState
   isSettingsLoading: boolean
   isSettingsSaving: boolean
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>
+  reloadResource: (resource: AdminResourceKey) => Promise<void>
 }
 
 const AdminDataContext = createContext<AdminDataContextValue | null>(null)
 
+const createInitialResourceState = (): Record<AdminResourceKey, AdminResourceState> => ({
+  orders: { status: 'idle', error: null, lastLoadedAt: null },
+  posts: { status: 'idle', error: null, lastLoadedAt: null },
+  dealers: { status: 'idle', error: null, lastLoadedAt: null },
+  users: { status: 'idle', error: null, lastLoadedAt: null },
+  discountRules: { status: 'idle', error: null, lastLoadedAt: null },
+  settings: { status: 'idle', error: null, lastLoadedAt: null },
+})
+
+const resourceQueryKeys: Record<AdminResourceKey, readonly string[]> = {
+  orders: ['admin', 'orders'],
+  posts: ['admin', 'posts'],
+  dealers: ['admin', 'dealers'],
+  users: ['admin', 'users'],
+  discountRules: ['admin', 'discountRules'],
+  settings: ['admin', 'settings'],
+}
+
+export const getRequiredResources = (
+  pathname: string,
+  canManageUsers: boolean,
+): AdminResourceKey[] => {
+  if (pathname === '/' || pathname.startsWith('/products')) {
+    return []
+  }
+  if (pathname.startsWith('/orders')) {
+    return ['orders']
+  }
+  if (pathname.startsWith('/blogs')) {
+    return ['posts']
+  }
+  if (pathname.startsWith('/dealers') || pathname.startsWith('/customers')) {
+    return ['dealers']
+  }
+  if (pathname.startsWith('/users')) {
+    return canManageUsers ? ['users'] : []
+  }
+  if (pathname.startsWith('/discounts')) {
+    return ['discountRules']
+  }
+  if (pathname.startsWith('/settings')) {
+    return ['settings']
+  }
+  return []
+}
+
 export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
+  const queryClient = useQueryClient()
   const { accessToken, hasRole } = useAuth()
   const { notify } = useToast()
+  const location = useLocation()
+  const canManageUsers = hasRole('SUPER_ADMIN')
   const [orders, setOrders] = useState<Order[]>([])
   const [posts, setPosts] = useState<BlogPost[]>([])
   const [dealers, setDealers] = useState<Dealer[]>([])
   const [users, setUsers] = useState<StaffUser[]>([])
   const [discountRules, setDiscountRules] = useState<DiscountRule[]>([])
   const [settings, setSettings] = useState<AppSettings>(initialSettings)
-  const [isSettingsLoading, setIsSettingsLoading] = useState(false)
+  const [resourceStates, setResourceStates] = useState<Record<AdminResourceKey, AdminResourceState>>(
+    createInitialResourceState,
+  )
   const [isSettingsSaving, setIsSettingsSaving] = useState(false)
-  const canManageUsers = hasRole('SUPER_ADMIN')
+  const resourceStatesRef = useRef(resourceStates)
+  const requestVersionRef = useRef(0)
 
   useEffect(() => {
-    if (!accessToken) {
-      const timer = window.setTimeout(() => {
-        setOrders([])
-        setPosts([])
-        setDealers([])
-        setUsers([])
-        setDiscountRules([])
-        setSettings(initialSettings)
-        setIsSettingsLoading(false)
-        setIsSettingsSaving(false)
-      }, 0)
-      return () => window.clearTimeout(timer)
+    resourceStatesRef.current = resourceStates
+  }, [resourceStates])
+
+  useEffect(() => {
+    requestVersionRef.current += 1
+  }, [accessToken])
+
+  const setResourceState = useCallback(
+    (resource: AdminResourceKey, patch: Partial<AdminResourceState>) => {
+      setResourceStates((previous) => ({
+        ...previous,
+        [resource]: {
+          ...previous[resource],
+          ...patch,
+        },
+      }))
+    },
+    [],
+  )
+
+  useEffect(() => {
+    if (accessToken) {
+      return
     }
 
-    let cancelled = false
+    const timer = window.setTimeout(() => {
+      setOrders([])
+      setPosts([])
+      setDealers([])
+      setUsers([])
+      setDiscountRules([])
+      setSettings(initialSettings)
+      setIsSettingsSaving(false)
+      setResourceStates(createInitialResourceState())
+    }, 0)
 
-    const loadAll = async () => {
-      setIsSettingsLoading(true)
-      try {
-        const [orderData, blogData, dealerData, userData, discountData, settingsData] = await Promise.all([
-          fetchAdminOrders(accessToken),
-          fetchAdminBlogs(accessToken),
-          fetchAdminDealerAccounts(accessToken),
-          canManageUsers
-            ? fetchAdminUsers(accessToken)
-            : Promise.resolve([] as Awaited<ReturnType<typeof fetchAdminUsers>>),
-          fetchAdminDiscountRules(accessToken),
-          fetchAdminSettings(accessToken),
-        ])
-
-        if (cancelled) return
-
-        setOrders(orderData.map(mapOrder))
-        setPosts(blogData.filter((item) => !item.isDeleted).map(mapBlog))
-        setDealers(dealerData.map(mapDealer))
-        setUsers(userData.map(mapUser))
-        setDiscountRules(discountData.map(mapDiscountRule))
-        setSettings(mapBackendSettings(settingsData))
-      } catch (error) {
-        if (!cancelled) {
-          notify(error instanceof Error ? error.message : 'Không tải được dữ liệu admin', {
-            title: 'Admin',
-            variant: 'error',
-          })
-        }
-      } finally {
-        if (!cancelled) {
-          setIsSettingsLoading(false)
-        }
-      }
-    }
-
-    void loadAll()
-
-    return () => {
-      cancelled = true
-    }
-  }, [accessToken, canManageUsers, notify])
+    return () => window.clearTimeout(timer)
+  }, [accessToken])
 
   const requireToken = () => {
     if (!accessToken) {
       throw new Error('Admin session is not available')
     }
+
     return accessToken
   }
+
+  const loadResource = useCallback(
+    async (resource: AdminResourceKey, options?: { force?: boolean; notifyOnError?: boolean }) => {
+      const token = accessToken
+      if (!token) {
+        return
+      }
+
+      if (resource === 'users' && !canManageUsers) {
+        setUsers([])
+        setResourceState('users', {
+          status: 'success',
+          error: null,
+          lastLoadedAt: Date.now(),
+        })
+        return
+      }
+
+      const currentState = resourceStatesRef.current[resource]
+      if (!options?.force && (currentState.status === 'loading' || currentState.status === 'success')) {
+        return
+      }
+
+      const requestVersion = requestVersionRef.current
+      setResourceState(resource, { status: 'loading', error: null })
+
+      try {
+        if (options?.force) {
+          await queryClient.invalidateQueries({ queryKey: resourceQueryKeys[resource] })
+        }
+
+        if (resource === 'orders') {
+          const orderData = await queryClient.fetchQuery({
+            queryKey: [...resourceQueryKeys.orders, token],
+            queryFn: async () => {
+              const response = await fetchAdminOrders(token)
+              return response.map(mapOrder)
+            },
+          })
+          if (requestVersionRef.current !== requestVersion) {
+            return
+          }
+          setOrders(orderData)
+        } else if (resource === 'posts') {
+          const blogData = await queryClient.fetchQuery({
+            queryKey: [...resourceQueryKeys.posts, token],
+            queryFn: async () => {
+              const response = await fetchAdminBlogs(token)
+              return response.filter((item) => !item.isDeleted).map(mapBlog)
+            },
+          })
+          if (requestVersionRef.current !== requestVersion) {
+            return
+          }
+          setPosts(blogData)
+        } else if (resource === 'dealers') {
+          const dealerData = await queryClient.fetchQuery({
+            queryKey: [...resourceQueryKeys.dealers, token],
+            queryFn: async () => {
+              const response = await fetchAdminDealerAccounts(token)
+              return response.map(mapDealer)
+            },
+          })
+          if (requestVersionRef.current !== requestVersion) {
+            return
+          }
+          setDealers(dealerData)
+        } else if (resource === 'users') {
+          const userData = await queryClient.fetchQuery({
+            queryKey: [...resourceQueryKeys.users, token],
+            queryFn: async () => {
+              const response = await fetchAdminUsers(token)
+              return response.map(mapUser)
+            },
+          })
+          if (requestVersionRef.current !== requestVersion) {
+            return
+          }
+          setUsers(userData)
+        } else if (resource === 'discountRules') {
+          const discountData = await queryClient.fetchQuery({
+            queryKey: [...resourceQueryKeys.discountRules, token],
+            queryFn: async () => {
+              const response = await fetchAdminDiscountRules(token)
+              return response.map(mapDiscountRule)
+            },
+          })
+          if (requestVersionRef.current !== requestVersion) {
+            return
+          }
+          setDiscountRules(discountData)
+        } else if (resource === 'settings') {
+          const settingsData = await queryClient.fetchQuery({
+            queryKey: [...resourceQueryKeys.settings, token],
+            queryFn: async () => mapBackendSettings(await fetchAdminSettings(token)),
+          })
+          if (requestVersionRef.current !== requestVersion) {
+            return
+          }
+          setSettings(settingsData)
+        }
+
+        setResourceState(resource, {
+          status: 'success',
+          error: null,
+          lastLoadedAt: Date.now(),
+        })
+      } catch (error) {
+        if (requestVersionRef.current !== requestVersion) {
+          return
+        }
+
+        const message = error instanceof Error ? error.message : 'Khong tai duoc du lieu admin'
+        setResourceState(resource, {
+          status: 'error',
+          error: message,
+        })
+
+        if (options?.notifyOnError !== false) {
+          notify(message, {
+            title: 'Admin',
+            variant: 'error',
+          })
+        }
+      }
+    },
+    [accessToken, canManageUsers, notify, queryClient, setResourceState],
+  )
+
+  const requiredResources = useMemo(
+    () => getRequiredResources(location.pathname, canManageUsers),
+    [canManageUsers, location.pathname],
+  )
+
+  useEffect(() => {
+    if (!accessToken) {
+      return
+    }
+
+    requiredResources.forEach((resource) => {
+      void loadResource(resource, {
+        notifyOnError: resourceStatesRef.current[resource].status !== 'error',
+      })
+    })
+  }, [accessToken, loadResource, requiredResources])
+
+  const reloadResource: AdminDataContextValue['reloadResource'] = useCallback(
+    async (resource) => {
+      await loadResource(resource, { force: true, notifyOnError: true })
+    },
+    [loadResource],
+  )
 
   const updateOrderStatus: AdminDataContextValue['updateOrderStatus'] = async (id, status) => {
     const token = requireToken()
     const updated = await updateAdminOrderStatus(token, Number(id), toBackendOrderStatus(status))
-    setOrders((prev) => prev.map((item) => (item.id === id ? mapOrder(updated) : item)))
+    setOrders((previous) => previous.map((item) => (item.id === id ? mapOrder(updated) : item)))
+    await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.orders })
   }
 
   const recordOrderPayment: AdminDataContextValue['recordOrderPayment'] = async (id, payload) => {
@@ -212,13 +430,15 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       note: payload.note,
       paidAt: payload.paidAt,
     })
-    setOrders((prev) => prev.map((item) => (item.id === id ? mapOrder(updated) : item)))
+    setOrders((previous) => previous.map((item) => (item.id === id ? mapOrder(updated) : item)))
+    await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.orders })
   }
 
   const deleteOrder: AdminDataContextValue['deleteOrder'] = async (id) => {
     const token = requireToken()
     await deleteAdminOrder(token, Number(id))
-    setOrders((prev) => prev.filter((item) => item.id !== id))
+    setOrders((previous) => previous.filter((item) => item.id !== id))
+    await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.orders })
   }
 
   const addPost: AdminDataContextValue['addPost'] = async (payload) => {
@@ -234,14 +454,17 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       }),
     )
     const nextPost = mapBlog(created)
-    setPosts((prev) => [nextPost, ...prev])
+    setPosts((previous) => [nextPost, ...previous])
+    await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.posts })
     return nextPost
   }
 
   const updatePostStatus: AdminDataContextValue['updatePostStatus'] = async (id, status) => {
     const token = requireToken()
     const current = posts.find((item) => item.id === id)
-    if (!current) return
+    if (!current) {
+      return
+    }
 
     const updated = await updateAdminBlog(
       token,
@@ -252,13 +475,15 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       }),
     )
     const nextPost = mapBlog(updated)
-    setPosts((prev) => prev.map((item) => (item.id === id ? nextPost : item)))
+    setPosts((previous) => previous.map((item) => (item.id === id ? nextPost : item)))
+    await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.posts })
   }
 
   const deletePost: AdminDataContextValue['deletePost'] = async (id) => {
     const token = requireToken()
     await deleteAdminBlog(token, Number(id))
-    setPosts((prev) => prev.filter((item) => item.id !== id))
+    setPosts((previous) => previous.filter((item) => item.id !== id))
+    await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.posts })
   }
 
   const addDealer: AdminDataContextValue['addDealer'] = async (payload) => {
@@ -273,7 +498,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       status: 'ACTIVE',
     })
     const nextDealer = mapDealer(created)
-    setDealers((prev) => [nextDealer, ...prev])
+    setDealers((previous) => [nextDealer, ...previous])
+    await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.dealers })
     return nextDealer
   }
 
@@ -284,13 +510,16 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       Number(id),
       toBackendDealerAccountStatus(status),
     )
-    setDealers((prev) => prev.map((item) => (item.id === id ? mapDealer(updated) : item)))
+    setDealers((previous) => previous.map((item) => (item.id === id ? mapDealer(updated) : item)))
+    await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.dealers })
   }
 
   const updateDealer: AdminDataContextValue['updateDealer'] = async (id, payload) => {
     const token = requireToken()
     const current = dealers.find((item) => item.id === id)
-    if (!current) return
+    if (!current) {
+      return
+    }
 
     const updated = await updateAdminDealerAccount(token, Number(id), {
       name: payload.name.trim(),
@@ -300,7 +529,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       phone: payload.phone.trim(),
       creditLimit: payload.creditLimit,
     })
-    setDealers((prev) => prev.map((item) => (item.id === id ? mapDealer(updated) : item)))
+    setDealers((previous) => previous.map((item) => (item.id === id ? mapDealer(updated) : item)))
+    await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.dealers })
   }
 
   const addUser: AdminDataContextValue['addUser'] = async (payload) => {
@@ -311,14 +541,16 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       status: 'PENDING',
     })
     const nextUser = mapUser(created)
-    setUsers((prev) => [nextUser, ...prev])
+    setUsers((previous) => [nextUser, ...previous])
+    await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.users })
     return nextUser
   }
 
   const updateUserStatus: AdminDataContextValue['updateUserStatus'] = async (id, status) => {
     const token = requireToken()
     const updated = await updateAdminUserStatus(token, Number(id), toBackendUserStatus(status))
-    setUsers((prev) => prev.map((item) => (item.id === id ? mapUser(updated) : item)))
+    setUsers((previous) => previous.map((item) => (item.id === id ? mapUser(updated) : item)))
+    await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.users })
   }
 
   const addDiscountRule: AdminDataContextValue['addDiscountRule'] = async (payload) => {
@@ -330,7 +562,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       status: toBackendRuleStatus(payload.status),
     })
     const nextRule = mapDiscountRule(created)
-    setDiscountRules((prev) => [nextRule, ...prev])
+    setDiscountRules((previous) => [nextRule, ...previous])
+    await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.discountRules })
     return nextRule
   }
 
@@ -340,7 +573,10 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     const token = requireToken()
     const updated = await updateAdminDiscountRuleStatus(token, Number(id), toBackendRuleStatus(status))
-    setDiscountRules((prev) => prev.map((item) => (item.id === id ? mapDiscountRule(updated) : item)))
+    setDiscountRules((previous) =>
+      previous.map((item) => (item.id === id ? mapDiscountRule(updated) : item)),
+    )
+    await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.discountRules })
   }
 
   const updateSettings: AdminDataContextValue['updateSettings'] = async (patch) => {
@@ -349,6 +585,12 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const updated = await updateAdminSettings(token, patch)
       setSettings(mapBackendSettings(updated))
+      await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.settings })
+      setResourceState('settings', {
+        status: 'success',
+        error: null,
+        lastLoadedAt: Date.now(),
+      })
     } finally {
       setIsSettingsSaving(false)
     }
@@ -356,27 +598,34 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
 
   const value: AdminDataContextValue = {
     orders,
+    ordersState: resourceStates.orders,
     updateOrderStatus,
     recordOrderPayment,
     deleteOrder,
     posts,
+    postsState: resourceStates.posts,
     addPost,
     updatePostStatus,
     deletePost,
     dealers,
+    dealersState: resourceStates.dealers,
     addDealer,
     updateDealer,
     updateDealerStatus,
     users,
+    usersState: resourceStates.users,
     addUser,
     updateUserStatus,
     discountRules,
+    discountRulesState: resourceStates.discountRules,
     addDiscountRule,
     updateDiscountRuleStatus,
     settings,
-    isSettingsLoading,
+    settingsState: resourceStates.settings,
+    isSettingsLoading: resourceStates.settings.status === 'loading',
     isSettingsSaving,
     updateSettings,
+    reloadResource,
   }
 
   return <AdminDataContext.Provider value={value}>{children}</AdminDataContext.Provider>

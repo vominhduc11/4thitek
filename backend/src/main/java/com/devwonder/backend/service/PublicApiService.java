@@ -6,6 +6,7 @@ import com.devwonder.backend.dto.publicapi.PublicProductSummaryResponse;
 import com.devwonder.backend.dto.publicapi.WarrantyLookupCustomerResponse;
 import com.devwonder.backend.dto.publicapi.WarrantyLookupProductSerialResponse;
 import com.devwonder.backend.dto.publicapi.WarrantyLookupResponse;
+import com.devwonder.backend.config.CacheNames;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
@@ -24,6 +25,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +39,7 @@ public class PublicApiService {
     private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
+    @Cacheable(CacheNames.PUBLIC_HOMEPAGE_PRODUCTS)
     public List<PublicProductSummaryResponse> getHomepageProducts() {
         return productRepository.findTop6ByIsDeletedFalseAndShowOnHomepageTrueAndPublishStatusOrderByUpdatedAtDesc(PublishStatus.PUBLISHED)
                 .stream()
@@ -45,6 +48,7 @@ public class PublicApiService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(CacheNames.PUBLIC_PRODUCTS)
     public List<PublicProductSummaryResponse> getProducts() {
         return productRepository.findByIsDeletedFalseAndPublishStatusOrderByNameAsc(PublishStatus.PUBLISHED)
                 .stream()
@@ -53,6 +57,7 @@ public class PublicApiService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.PUBLIC_PRODUCTS, key = "'search:' + (#query == null ? '' : #query) + ':' + (#minPrice == null ? '' : #minPrice) + ':' + (#maxPrice == null ? '' : #maxPrice)")
     public List<PublicProductSummaryResponse> searchProducts(
             String query,
             Double minPrice,
@@ -71,6 +76,7 @@ public class PublicApiService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.PUBLIC_PRODUCT_BY_ID, key = "#id")
     public PublicProductDetailResponse getProduct(Long id) {
         Product product = productRepository.findByIdAndIsDeletedFalseAndPublishStatus(id, PublishStatus.PUBLISHED)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
@@ -78,6 +84,7 @@ public class PublicApiService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(CacheNames.PUBLIC_DEALERS)
     public List<PublicDealerResponse> getDealers() {
         return dealerRepository.findAll().stream()
                 .map(this::toDealer)
@@ -85,6 +92,7 @@ public class PublicApiService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.PUBLIC_WARRANTY_LOOKUP, key = "#serial")
     public WarrantyLookupResponse lookupWarranty(String serial) {
         WarrantyRegistration registration = warrantyRegistrationRepository.findByProductSerialSerialIgnoreCase(serial)
                 .orElseThrow(() -> new ResourceNotFoundException("Warranty not found"));

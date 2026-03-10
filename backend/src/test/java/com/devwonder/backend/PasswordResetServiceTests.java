@@ -2,6 +2,7 @@ package com.devwonder.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -67,7 +68,7 @@ class PasswordResetServiceTests {
         assertThat(message).contains("password reset link");
         assertThat(tokens).hasSize(1);
         assertThat(tokens.get(0).getAccount().getId()).isEqualTo(account.getId());
-        verify(javaMailSender).send(any(MimeMessage.class));
+        verify(javaMailSender, timeout(1_000)).send(any(MimeMessage.class));
     }
 
     @Test

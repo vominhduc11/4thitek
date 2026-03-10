@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
+import { createBaseMetadata } from '@/lib/seo';
 
 type Language = 'en' | 'vi';
 
@@ -9,19 +10,21 @@ const getLanguageFromCookies = async (): Promise<Language> => {
     return value === 'en' ? 'en' : 'vi';
 };
 
-const metadataByLanguage: Record<Language, Metadata> = {
-    vi: {
-        title: '4thitek | Chính Sách Quyền Riêng Tư',
-        description: 'Chính sách quyền riêng tư của 4thitek. Tìm hiểu cách chúng tôi thu thập, sử dụng và bảo vệ dữ liệu của bạn.'
-    },
-    en: {
-        title: '4thitek | Privacy Policy',
-        description: '4thitek privacy policy. Learn how we collect, use, and protect your data.'
-    }
-};
-
 export async function generateMetadata(): Promise<Metadata> {
-    return metadataByLanguage[await getLanguageFromCookies()];
+    const language = await getLanguageFromCookies();
+    return language === 'vi'
+        ? createBaseMetadata({
+            locale: 'vi',
+            path: '/privacy-policy',
+            title: '4ThiTek | Chính sách quyền riêng tư',
+            description: 'Tìm hiểu cách 4ThiTek thu thập, sử dụng và bảo vệ dữ liệu của bạn.'
+        })
+        : createBaseMetadata({
+            locale: 'en',
+            path: '/privacy-policy',
+            title: '4ThiTek | Privacy Policy',
+            description: 'Learn how 4ThiTek collects, uses, and protects your data.'
+        });
 }
 
 export default function PrivacyPolicyLayout({ children }: { children: React.ReactNode }) {

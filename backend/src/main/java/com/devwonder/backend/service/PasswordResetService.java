@@ -27,6 +27,7 @@ public class PasswordResetService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final MailService mailService;
+    private final AsyncMailService asyncMailService;
 
     @Value("${app.password-reset.base-url:}")
     private String resetBaseUrl;
@@ -56,7 +57,7 @@ public class PasswordResetService {
             token.setExpiresAt(Instant.now().plus(expirationMinutes, ChronoUnit.MINUTES));
             PasswordResetToken savedToken = passwordResetTokenRepository.save(token);
 
-            mailService.sendText(
+            asyncMailService.sendText(
                     account.getEmail(),
                     "4ThiTek password reset",
                     buildResetEmail(savedToken.getToken())

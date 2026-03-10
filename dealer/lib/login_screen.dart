@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'api_config.dart';
@@ -10,7 +11,6 @@ import 'auth_storage.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'forgot_password_screen.dart';
-import 'home_shell.dart';
 import 'notification_controller.dart';
 import 'order_controller.dart';
 import 'warranty_controller.dart';
@@ -378,9 +378,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const DealerHomeShell()),
-      );
+      context.go('/home');
     } on TimeoutException {
       _clearCredentialFieldErrors();
       _authErrorNotifier.value =

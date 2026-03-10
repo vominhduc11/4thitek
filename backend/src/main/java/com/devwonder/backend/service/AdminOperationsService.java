@@ -10,6 +10,7 @@ import com.devwonder.backend.dto.admin.CreateAdminNotificationRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminSerialStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminSupportTicketRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminWarrantyStatusRequest;
+import com.devwonder.backend.config.CacheNames;
 import com.devwonder.backend.dto.notify.CreateNotifyRequest;
 import com.devwonder.backend.entity.Account;
 import com.devwonder.backend.entity.Customer;
@@ -48,6 +49,7 @@ import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -70,6 +72,7 @@ public class AdminOperationsService {
     private final NotifyRepository notifyRepository;
     private final AccountRepository accountRepository;
     private final MailService mailService;
+    private final AsyncMailService asyncMailService;
 
     @Transactional(readOnly = true)
     public Page<AdminSupportTicketResponse> getSupportTickets(Pageable pageable) {
@@ -120,6 +123,7 @@ public class AdminOperationsService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.PUBLIC_WARRANTY_LOOKUP, allEntries = true)
     public AdminWarrantyResponse updateWarrantyStatus(Long id, UpdateAdminWarrantyStatusRequest request) {
         WarrantyRegistration registration = warrantyRegistrationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Warranty registration not found"));
@@ -153,6 +157,7 @@ public class AdminOperationsService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.PUBLIC_WARRANTY_LOOKUP, allEntries = true)
     public List<AdminSerialResponse> importSerials(AdminSerialImportRequest request) {
         Product product = productRepository.findById(request.productId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
@@ -196,6 +201,7 @@ public class AdminOperationsService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.PUBLIC_WARRANTY_LOOKUP, allEntries = true)
     public AdminSerialResponse updateSerialStatus(Long id, UpdateAdminSerialStatusRequest request) {
         ProductSerial productSerial = productSerialRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Serial not found"));
@@ -428,7 +434,7 @@ public class AdminOperationsService {
         }
 
         try {
-            mailService.sendText(
+            asyncMailService.sendText(
                     recipient,
                     buildSupportTicketEmailSubject(ticket),
                     buildSupportTicketEmailBody(dealer, ticket, statusChanged, replyChanged)

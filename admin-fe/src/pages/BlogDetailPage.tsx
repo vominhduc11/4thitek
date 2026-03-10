@@ -5,7 +5,7 @@ import { useToast } from '../context/ToastContext'
 import { blogStatusLabel, blogStatusTone } from '../lib/adminLabels'
 import { resolveBackendAssetUrl } from '../lib/backendApi'
 import { formatDateTime } from '../lib/formatters'
-import { EmptyState, GhostButton, PagePanel, StatusBadge } from '../components/ui-kit'
+import { EmptyState, ErrorState, GhostButton, LoadingRows, PagePanel, StatusBadge } from '../components/ui-kit'
 
 const BLOG_STATUS_OPTIONS: BlogStatus[] = ['published', 'scheduled', 'draft']
 
@@ -14,15 +14,35 @@ function BlogDetailPage() {
   const postId = decodeURIComponent(id)
   const navigate = useNavigate()
   const { notify } = useToast()
-  const { posts, updatePostStatus, deletePost } = useAdminData()
+  const { posts, postsState, updatePostStatus, deletePost, reloadResource } = useAdminData()
   const post = posts.find((item) => item.id === postId)
+
+  if (postsState.status === 'loading' || postsState.status === 'idle') {
+    return (
+      <PagePanel>
+        <LoadingRows rows={4} />
+      </PagePanel>
+    )
+  }
+
+  if (postsState.status === 'error') {
+    return (
+      <PagePanel>
+        <ErrorState
+          title="Khong the tai bai viet"
+          message={postsState.error || 'Khong tai duoc bai viet'}
+          onRetry={() => void reloadResource('posts')}
+        />
+      </PagePanel>
+    )
+  }
 
   if (!post) {
     return (
       <PagePanel>
         <EmptyState
           icon={FileText}
-          title="Không tìm thấy bài viết"
+          title="Khong tim thay bai viet"
           message={`Bai ${postId} khong ton tai hoac da bi xoa.`}
         />
       </PagePanel>
@@ -78,7 +98,7 @@ function BlogDetailPage() {
                   variant: 'info',
                 })
               } catch (error) {
-                notify(error instanceof Error ? error.message : 'Không thể cập nhật bài viết', {
+                notify(error instanceof Error ? error.message : 'Khong the cap nhat bai viet', {
                   title: 'Blogs',
                   variant: 'error',
                 })
@@ -105,7 +125,7 @@ function BlogDetailPage() {
                   notify(`Da xoa bai ${post.id}`, { title: 'Blogs', variant: 'error' })
                   navigate('/blogs')
                 } catch (error) {
-                  notify(error instanceof Error ? error.message : 'Không thể xóa bài viết', {
+                  notify(error instanceof Error ? error.message : 'Khong the xoa bai viet', {
                     title: 'Blogs',
                     variant: 'error',
                   })

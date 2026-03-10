@@ -28,11 +28,18 @@ public class JWTUtils {
     public JWTUtils(
             @Value("${jwt.secret}") String secretString,
             @Value("${jwt.access-token-expiration-ms:1800000}") long accessTokenExpirationMs,
-            @Value("${jwt.refresh-token-expiration-ms:604800000}") long refreshTokenExpirationMs
+            @Value("${jwt.refresh-token-expiration-ms:604800000}") long refreshTokenExpirationMs,
+            @Value("${app.security.require-strong-jwt-secret:true}") boolean requireStrongSecret
     ) {
         String normalizedSecret = secretString == null ? "" : secretString.trim();
         if (normalizedSecret.isEmpty()) {
             throw new IllegalStateException("Missing JWT secret. Set environment variable JWT_SECRET.");
+        }
+
+        if (requireStrongSecret && normalizedSecret.getBytes(StandardCharsets.UTF_8).length < MIN_HMAC_KEY_BYTES) {
+            throw new IllegalStateException(
+                    "JWT secret must be at least " + MIN_HMAC_KEY_BYTES + " bytes when app.security.require-strong-jwt-secret=true."
+            );
         }
 
         byte[] keyBytes = deriveKeyBytes(normalizedSecret);

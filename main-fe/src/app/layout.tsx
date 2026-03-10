@@ -1,13 +1,18 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { Be_Vietnam_Pro, IBM_Plex_Mono } from 'next/font/google';
-import './globals.css';
+import Analytics from '@/components/analytics/Analytics';
 import ClientLayout from '@/components/layout/ClientLayout';
+import JsonLd from '@/components/seo/JsonLd';
 import { AuthProvider } from '@/context/AuthContext';
+import { LanguageProvider } from '@/context/LanguageContext';
 import { LoginModalProvider } from '@/context/LoginModalContext';
 import { SearchModalProvider } from '@/context/SearchModalContext';
-import { LanguageProvider } from '@/context/LanguageContext';
+import { createBaseMetadata, organizationJsonLd, websiteJsonLd } from '@/lib/seo';
+import { SITE_NAME } from '@/lib/site';
+import './globals.css';
 
+type Language = 'en' | 'vi';
 
 const beVietnamPro = Be_Vietnam_Pro({
     subsets: ['latin', 'vietnamese'],
@@ -23,8 +28,6 @@ const ibmPlexMono = IBM_Plex_Mono({
     display: 'swap'
 });
 
-type Language = 'en' | 'vi';
-
 const getLanguageFromCookies = async (): Promise<Language> => {
     const cookieStore = await cookies();
     const value = cookieStore.get('language')?.value;
@@ -32,54 +35,29 @@ const getLanguageFromCookies = async (): Promise<Language> => {
 };
 
 const metadataByLanguage: Record<Language, Metadata> = {
-    vi: {
+    vi: createBaseMetadata({
+        locale: 'vi',
+        path: '/',
         title: '4ThiTek - Tai nghe SCS chính hãng',
-        description: 'Website chính thức của 4ThiTek - Nhà phân phối tai nghe SCS chính hãng tại Việt Nam. Xem sản phẩm, kiểm tra bảo hành và đăng ký trở thành đại lý.',
-        keywords: '4thitek, tai nghe scs, scs headphones, tai nghe chính hãng, phân phối tai nghe, đăng ký đại lý, kiểm tra bảo hành',
-        authors: [{ name: '4ThiTek' }],
-        openGraph: {
-            title: '4ThiTek - Tai nghe SCS chính hãng',
-            description: 'Nhà phân phối tai nghe SCS chính hãng tại Việt Nam',
-            type: 'website',
-            locale: 'vi_VN',
-            url: 'https://4thitek.vn',
-            siteName: '4ThiTek'
-        },
-        twitter: {
-            card: 'summary_large_image',
-            title: '4ThiTek - Tai nghe SCS chính hãng',
-            description: 'Nhà phân phối tai nghe SCS chính hãng tại Việt Nam'
-        },
-        icons: {
-            icon: [{ url: '/logo.png', sizes: '32x32', type: 'image/png' }]
-        }
-    },
-    en: {
+        description: 'Website chính thức của 4ThiTek tại Việt Nam. Xem sản phẩm, kiểm tra bảo hành và đăng ký trở thành đại lý.'
+    }),
+    en: createBaseMetadata({
+        locale: 'en',
+        path: '/',
         title: '4ThiTek - Official SCS Headphones',
-        description: 'Official 4ThiTek website - distributor of SCS headphones in Vietnam. Explore products, check warranty, and apply to become a dealer.',
-        keywords: '4thitek, scs headphones, official headphones, distributor, warranty check, reseller signup',
-        authors: [{ name: '4ThiTek' }],
-        openGraph: {
-            title: '4ThiTek - Official SCS Headphones',
-            description: 'Official 4ThiTek website - distributor of SCS headphones in Vietnam.',
-            type: 'website',
-            locale: 'en_US',
-            url: 'https://4thitek.vn',
-            siteName: '4ThiTek'
-        },
-        twitter: {
-            card: 'summary_large_image',
-            title: '4ThiTek - Official SCS Headphones',
-            description: 'Official 4ThiTek website - distributor of SCS headphones in Vietnam.'
-        },
-        icons: {
-            icon: [{ url: '/logo.png', sizes: '32x32', type: 'image/png' }]
-        }
-    }
+        description: 'Official 4ThiTek website in Vietnam. Explore products, check warranty, and apply to become a dealer.'
+    })
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-    return metadataByLanguage[await getLanguageFromCookies()];
+    return {
+        ...metadataByLanguage[await getLanguageFromCookies()],
+        applicationName: SITE_NAME,
+        authors: [{ name: SITE_NAME }],
+        icons: {
+            icon: [{ url: '/logo.png', sizes: '32x32', type: 'image/png' }]
+        }
+    };
 }
 
 export default async function RootLayout({
@@ -88,9 +66,22 @@ export default async function RootLayout({
     children: React.ReactNode;
 }>) {
     const language = await getLanguageFromCookies();
+
     return (
         <html lang={language}>
-            <body id="__next" className={`${beVietnamPro.variable} ${ibmPlexMono.variable} antialiased`} suppressHydrationWarning={true}>
+            <body
+                id="__next"
+                className={`${beVietnamPro.variable} ${ibmPlexMono.variable} antialiased`}
+                suppressHydrationWarning={true}
+            >
+                <a
+                    href="#main-content"
+                    className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[1200] focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-black"
+                >
+                    Skip to main content
+                </a>
+                <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
+                <Analytics />
                 <LanguageProvider initialLanguage={language}>
                     <AuthProvider>
                         <LoginModalProvider>

@@ -11,21 +11,16 @@ import {
   dealerTierTone,
 } from '../lib/adminLabels'
 import { formatCurrency, formatDateTime } from '../lib/formatters'
-import { EmptyState, PagePanel, StatusBadge } from '../components/ui-kit'
+import { EmptyState, ErrorState, LoadingRows, PagePanel, StatusBadge } from '../components/ui-kit'
 
-const DEALER_STATUS_OPTIONS: DealerStatus[] = [
-  'active',
-  'under_review',
-  'needs_attention',
-]
-
+const DEALER_STATUS_OPTIONS: DealerStatus[] = ['active', 'under_review', 'needs_attention']
 const DEALER_TIERS: DealerTier[] = ['platinum', 'gold', 'silver', 'bronze']
 
 function DealerDetailPage() {
   const { id = '' } = useParams()
   const dealerId = decodeURIComponent(id)
   const { notify } = useToast()
-  const { dealers, updateDealer, updateDealerStatus } = useAdminData()
+  const { dealers, dealersState, updateDealer, updateDealerStatus, reloadResource } = useAdminData()
   const dealer = dealers.find((item) => item.id === dealerId)
   const [form, setForm] = useState({
     name: '',
@@ -37,7 +32,9 @@ function DealerDetailPage() {
   const [isSavingProfile, setIsSavingProfile] = useState(false)
 
   useEffect(() => {
-    if (!dealer) return
+    if (!dealer) {
+      return
+    }
     setForm({
       name: dealer.name,
       tier: dealer.tier,
@@ -45,14 +42,34 @@ function DealerDetailPage() {
       phone: dealer.phone,
       creditLimit: dealer.creditLimit > 0 ? String(dealer.creditLimit) : '',
     })
-  }, [dealer?.id, dealer?.name, dealer?.tier, dealer?.email, dealer?.phone, dealer?.creditLimit])
+  }, [dealer?.creditLimit, dealer?.email, dealer?.id, dealer?.name, dealer?.phone, dealer?.tier])
+
+  if (dealersState.status === 'loading' || dealersState.status === 'idle') {
+    return (
+      <PagePanel>
+        <LoadingRows rows={4} />
+      </PagePanel>
+    )
+  }
+
+  if (dealersState.status === 'error') {
+    return (
+      <PagePanel>
+        <ErrorState
+          title="Khong the tai dai ly"
+          message={dealersState.error || 'Khong tai duoc dai ly'}
+          onRetry={() => void reloadResource('dealers')}
+        />
+      </PagePanel>
+    )
+  }
 
   if (!dealer) {
     return (
       <PagePanel>
         <EmptyState
-          title="Không tìm thấy đại lý"
-          message={`Đại lý ${dealerId} không tồn tại.`}
+          title="Khong tim thay dai ly"
+          message={`Dai ly ${dealerId} khong ton tai.`}
         />
       </PagePanel>
     )
@@ -91,12 +108,8 @@ function DealerDetailPage() {
           Ve dai ly
         </Link>
         <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge tone={dealerTierTone[dealer.tier]}>
-            {dealerTierLabel[dealer.tier]}
-          </StatusBadge>
-          <StatusBadge tone={dealerStatusTone[dealer.status]}>
-            {dealerStatusLabel[dealer.status]}
-          </StatusBadge>
+          <StatusBadge tone={dealerTierTone[dealer.tier]}>{dealerTierLabel[dealer.tier]}</StatusBadge>
+          <StatusBadge tone={dealerStatusTone[dealer.status]}>{dealerStatusLabel[dealer.status]}</StatusBadge>
         </div>
       </div>
 
@@ -127,9 +140,7 @@ function DealerDetailPage() {
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
               <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Doanh thu</p>
-              <p className="mt-1 font-semibold text-[var(--accent)]">
-                {formatCurrency(dealer.revenue)}
-              </p>
+              <p className="mt-1 font-semibold text-[var(--accent)]">{formatCurrency(dealer.revenue)}</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
               <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Han muc cong no</p>
@@ -157,7 +168,7 @@ function DealerDetailPage() {
                   variant: 'info',
                 })
               } catch (error) {
-                notify(error instanceof Error ? error.message : 'Không cập nhật được trạng thái đại lý', {
+                notify(error instanceof Error ? error.message : 'Khong cap nhat duoc trang thai dai ly', {
                   title: 'Dealers',
                   variant: 'error',
                 })
@@ -171,23 +182,23 @@ function DealerDetailPage() {
               </option>
             ))}
           </select>
-          <p className="mt-3 text-xs text-slate-500">
-            {dealerStatusDescription[dealer.status]}
-          </p>
+          <p className="mt-3 text-xs text-slate-500">{dealerStatusDescription[dealer.status]}</p>
 
           <div className="mt-6 border-t border-slate-200 pt-5">
             <p className="text-sm font-semibold text-slate-900">Cap nhat thong tin dealer</p>
             <div className="mt-3 grid gap-3">
               <input
                 className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                onChange={(event) => setForm((previous) => ({ ...previous, name: event.target.value }))}
                 placeholder="Ten dai ly"
                 value={form.name}
               />
               <select
                 aria-label="Dealer tier"
                 className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                onChange={(event) => setForm((prev) => ({ ...prev, tier: event.target.value as DealerTier }))}
+                onChange={(event) =>
+                  setForm((previous) => ({ ...previous, tier: event.target.value as DealerTier }))
+                }
                 value={form.tier}
               >
                 {DEALER_TIERS.map((tier) => (
@@ -198,20 +209,22 @@ function DealerDetailPage() {
               </select>
               <input
                 className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
+                onChange={(event) => setForm((previous) => ({ ...previous, email: event.target.value }))}
                 placeholder="Email"
                 type="email"
                 value={form.email}
               />
               <input
                 className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
+                onChange={(event) => setForm((previous) => ({ ...previous, phone: event.target.value }))}
                 placeholder="So dien thoai"
                 value={form.phone}
               />
               <input
                 className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                onChange={(event) => setForm((prev) => ({ ...prev, creditLimit: event.target.value }))}
+                onChange={(event) =>
+                  setForm((previous) => ({ ...previous, creditLimit: event.target.value }))
+                }
                 placeholder="Han muc cong no (VND)"
                 type="number"
                 value={form.creditLimit}
@@ -230,11 +243,9 @@ function DealerDetailPage() {
           <div className="mt-6 rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-3 text-sm text-slate-700">
             <div className="flex items-center gap-2 font-semibold text-slate-900">
               <Phone className="h-4 w-4" />
-              Liên hệ nhanh
+              Lien he nhanh
             </div>
-            <p className="mt-2 text-xs text-slate-500">
-              Email: {dealer.email}
-            </p>
+            <p className="mt-2 text-xs text-slate-500">Email: {dealer.email}</p>
             <p className="text-xs text-slate-500">Hotline: {dealer.phone}</p>
           </div>
         </div>

@@ -222,6 +222,9 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: -20, opacity: 0 }}
                         transition={{ duration: 0.2 }}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="search-modal-title"
                         onAnimationComplete={() => completeAnimation('search-modal-open')}
                     >
                         <div className="bg-[#0c131d] border-b border-gray-700/30 shadow-2xl backdrop-blur-sm">
@@ -229,8 +232,15 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                             <div className="px-6 py-4 border-b border-gray-700/30">
                                 <div className="flex items-center gap-4">
                                     <div className="flex-1 relative">
+                                        <label htmlFor="site-search-input" className="sr-only">
+                                            {t('search.placeholder')}
+                                        </label>
+                                        <h2 id="search-modal-title" className="sr-only">
+                                            {t('search.placeholder')}
+                                        </h2>
                                         <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                                         <input
+                                            id="site-search-input"
                                             ref={inputRef}
                                             type="text"
                                             placeholder={t('search.placeholder')}

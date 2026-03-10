@@ -825,7 +825,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     }
 
     if (!_emailPattern.hasMatch(customerEmail)) {
-      _showSnackBar('Vui lĂ²ng nháº­p email há»£p lá»‡.');
+      _showSnackBar('Vui long nhap email hop le.');
       return;
     }
 

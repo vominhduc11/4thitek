@@ -7,6 +7,7 @@ import { formatDateTime } from '../lib/formatters'
 import { useSimulatedPageLoad } from '../hooks/useSimulatedPageLoad'
 import {
   EmptyState,
+  ErrorState,
   LoadingRows,
   PagePanel,
   PrimaryButton,
@@ -24,7 +25,8 @@ const RULE_STATUS_OPTIONS: Array<{ value: 'all' | RuleStatus; label: string }> =
 
 function WholesaleDiscountsPage() {
   const { notify } = useToast()
-  const { discountRules, addDiscountRule, updateDiscountRuleStatus } = useAdminData()
+  const { discountRules, discountRulesState, addDiscountRule, updateDiscountRuleStatus, reloadResource } =
+    useAdminData()
   const { isLoading } = useSimulatedPageLoad('discounts-page')
 
   const [query, setQuery] = useState('')
@@ -55,10 +57,7 @@ function WholesaleDiscountsPage() {
   const stats = useMemo(() => {
     const active = discountRules.filter((item) => item.status === 'active').length
     const pending = discountRules.filter((item) => item.status === 'pending').length
-    const highest = discountRules.reduce(
-      (max, item) => Math.max(max, item.percent),
-      0,
-    )
+    const highest = discountRules.reduce((max, item) => Math.max(max, item.percent), 0)
     return { active, pending, highest }
   }, [discountRules])
 
@@ -66,7 +65,7 @@ function WholesaleDiscountsPage() {
     setError('')
     const percent = Number(form.percent)
     if (!form.label.trim() || !form.range.trim() || Number.isNaN(percent) || percent <= 0) {
-      setError('Vui lòng nhập đầy đủ quy tắc, ngưỡng và phần trăm')
+      setError('Vui long nhap day du quy tac, nguong va phan tram')
       return
     }
     try {
@@ -80,14 +79,26 @@ function WholesaleDiscountsPage() {
       setShowForm(false)
       setForm({ label: '', range: '', percent: '', status: 'draft' })
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Không tạo được quy tắc')
+      setError(saveError instanceof Error ? saveError.message : 'Khong tao duoc quy tac')
     }
   }
 
-  if (isLoading) {
+  if (isLoading || discountRulesState.status === 'loading' || discountRulesState.status === 'idle') {
     return (
       <PagePanel>
         <LoadingRows rows={5} />
+      </PagePanel>
+    )
+  }
+
+  if (discountRulesState.status === 'error') {
+    return (
+      <PagePanel>
+        <ErrorState
+          title="Khong the tai quy tac chiet khau"
+          message={discountRulesState.error || 'Khong tai duoc quy tac'}
+          onRetry={() => void reloadResource('discountRules')}
+        />
       </PagePanel>
     )
   }
@@ -133,7 +144,7 @@ function WholesaleDiscountsPage() {
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <StatCard icon={CheckCircle2} label="Đang hoạt động" value={stats.active} tone="success" />
+        <StatCard icon={CheckCircle2} label="Dang hoat dong" value={stats.active} tone="success" />
         <StatCard icon={Clock3} label="Cho phe duyet" value={stats.pending} tone="warning" />
         <StatCard icon={Tag} label="Muc cao nhat" value={`${stats.highest}%`} tone="info" />
       </div>
@@ -144,19 +155,19 @@ function WholesaleDiscountsPage() {
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <input
               className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              onChange={(event) => setForm((prev) => ({ ...prev, label: event.target.value }))}
+              onChange={(event) => setForm((previous) => ({ ...previous, label: event.target.value }))}
               placeholder="Ten quy tac"
               value={form.label}
             />
             <input
               className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              onChange={(event) => setForm((prev) => ({ ...prev, range: event.target.value }))}
-              placeholder="Nguong ap dung (vd: 100 - 200 trieu)"
+              onChange={(event) => setForm((previous) => ({ ...previous, range: event.target.value }))}
+              placeholder="Nguong ap dung"
               value={form.range}
             />
             <input
               className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              onChange={(event) => setForm((prev) => ({ ...prev, percent: event.target.value }))}
+              onChange={(event) => setForm((previous) => ({ ...previous, percent: event.target.value }))}
               placeholder="Ty le (%)"
               type="number"
               value={form.percent}
@@ -165,7 +176,7 @@ function WholesaleDiscountsPage() {
               aria-label="Rule status"
               className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               onChange={(event) =>
-                setForm((prev) => ({ ...prev, status: event.target.value as RuleStatus }))
+                setForm((previous) => ({ ...previous, status: event.target.value as RuleStatus }))
               }
               value={form.status}
             >
@@ -196,8 +207,8 @@ function WholesaleDiscountsPage() {
         {filteredRules.length === 0 ? (
           <EmptyState
             icon={Tag}
-            title="Không có quy tắc"
-            message="Thử đổi bộ lọc hoặc thêm quy tắc mới."
+            title="Khong co quy tac"
+            message="Thu doi bo loc hoac them quy tac moi."
           />
         ) : (
           <div className="overflow-x-auto">
@@ -214,26 +225,19 @@ function WholesaleDiscountsPage() {
               </thead>
               <tbody>
                 {filteredRules.map((rule) => (
-                  <tr
-                    className="rounded-2xl bg-white/80 text-sm text-slate-700 shadow-sm"
-                    key={rule.id}
-                  >
+                  <tr className="rounded-2xl bg-white/80 text-sm text-slate-700 shadow-sm" key={rule.id}>
                     <td className="rounded-l-2xl px-3 py-3">
                       <p className="font-semibold text-slate-900">{rule.label}</p>
                       <p className="text-xs text-slate-500">{rule.id}</p>
                     </td>
                     <td className="px-3 py-3">{rule.range}</td>
-                    <td className="px-3 py-3 font-semibold text-[var(--accent)]">
-                      {rule.percent}%
-                    </td>
+                    <td className="px-3 py-3 font-semibold text-[var(--accent)]">{rule.percent}%</td>
                     <td className="px-3 py-3">
                       <StatusBadge tone={ruleStatusTone[rule.status]}>
                         {ruleStatusLabel[rule.status]}
                       </StatusBadge>
                     </td>
-                    <td className="px-3 py-3 text-xs text-slate-500">
-                      {formatDateTime(rule.updatedAt)}
-                    </td>
+                    <td className="px-3 py-3 text-xs text-slate-500">{formatDateTime(rule.updatedAt)}</td>
                     <td className="rounded-r-2xl px-3 py-3">
                       <select
                         aria-label={`Rule status ${rule.id}`}
@@ -247,7 +251,7 @@ function WholesaleDiscountsPage() {
                               variant: 'info',
                             })
                           } catch (error) {
-                            notify(error instanceof Error ? error.message : 'Không cập nhật được quy tắc', {
+                            notify(error instanceof Error ? error.message : 'Khong cap nhat duoc quy tac', {
                               title: 'Discounts',
                               variant: 'error',
                             })
@@ -255,13 +259,11 @@ function WholesaleDiscountsPage() {
                         }}
                         value={rule.status}
                       >
-                        {RULE_STATUS_OPTIONS.filter((option) => option.value !== 'all').map(
-                          (option) => (
-                            <option key={`${rule.id}-${option.value}`} value={option.value}>
-                              {option.label}
-                            </option>
-                          ),
-                        )}
+                        {RULE_STATUS_OPTIONS.filter((option) => option.value !== 'all').map((option) => (
+                          <option key={`${rule.id}-${option.value}`} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
                       </select>
                     </td>
                   </tr>

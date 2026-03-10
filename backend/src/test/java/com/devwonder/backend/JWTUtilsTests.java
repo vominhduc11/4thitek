@@ -13,7 +13,7 @@ class JWTUtilsTests {
 
     @Test
     void shortJwtSecretIsDerivedIntoAValidSigningKey() {
-        JWTUtils jwtUtils = new JWTUtils("short-secret", 1_800_000L, 6_048_000L);
+        JWTUtils jwtUtils = new JWTUtils("short-secret", 1_800_000L, 6_048_000L, false);
         UserDetails user = User.withUsername("tester").password("ignored").authorities("ROLE_USER").build();
 
         String accessToken = jwtUtils.generateToken(user);
@@ -26,8 +26,15 @@ class JWTUtilsTests {
 
     @Test
     void blankJwtSecretStillFailsFast() {
-        assertThatThrownBy(() -> new JWTUtils("   ", 1_800_000L, 6_048_000L))
+        assertThatThrownBy(() -> new JWTUtils("   ", 1_800_000L, 6_048_000L, true))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Missing JWT secret. Set environment variable JWT_SECRET.");
+    }
+
+    @Test
+    void shortJwtSecretFailsFastWhenStrongSecretsAreRequired() {
+        assertThatThrownBy(() -> new JWTUtils("short-secret", 1_800_000L, 6_048_000L, true))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("JWT secret must be at least");
     }
 }

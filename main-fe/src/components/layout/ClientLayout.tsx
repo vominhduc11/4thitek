@@ -18,7 +18,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             <Sidebar onMenuClick={() => setIsDrawerOpen(true)} />
             <SideDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
             <SearchModal isOpen={isSearchOpen} onClose={closeSearch} />
-            {children}
+            <div id="main-content" tabIndex={-1}>
+                {children}
+            </div>
+            <div aria-live="polite" aria-atomic="true" className="sr-only" />
             <Footer />
         </>
     );

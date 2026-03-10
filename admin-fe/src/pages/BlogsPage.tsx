@@ -11,6 +11,7 @@ import { storeFileReference } from '../lib/upload'
 import { useSimulatedPageLoad } from '../hooks/useSimulatedPageLoad'
 import {
   EmptyState,
+  ErrorState,
   LoadingRows,
   PagePanel,
   PrimaryButton,
@@ -30,7 +31,7 @@ function BlogsPage() {
   const navigate = useNavigate()
   const { notify } = useToast()
   const { accessToken } = useAuth()
-  const { posts, addPost, updatePostStatus, deletePost } = useAdminData()
+  const { posts, postsState, addPost, updatePostStatus, deletePost, reloadResource } = useAdminData()
   const { isLoading } = useSimulatedPageLoad('blogs-page')
 
   const [search, setSearch] = useState('')
@@ -48,7 +49,9 @@ function BlogsPage() {
   })
 
   const handleImageChange = async (file: File | null) => {
-    if (!file) return
+    if (!file) {
+      return
+    }
     setIsUploadingImage(true)
     try {
       const stored = await storeFileReference({
@@ -56,13 +59,13 @@ function BlogsPage() {
         category: 'blogs',
         accessToken,
       })
-      setForm((prev) => ({
-        ...prev,
+      setForm((previous) => ({
+        ...previous,
         imageUrl: stored.url,
         imageName: file.name,
       }))
     } catch {
-      setCreateError('Không thể tải ảnh bài viết')
+      setCreateError('Khong the tai anh bai viet')
     } finally {
       setIsUploadingImage(false)
     }
@@ -92,9 +95,10 @@ function BlogsPage() {
   const handleCreate = async () => {
     setCreateError('')
     if (!form.title.trim() || !form.category.trim()) {
-      setCreateError('Vui lòng nhập đầy đủ tiêu đề và danh mục')
+      setCreateError('Vui long nhap day du tieu de va danh muc')
       return
     }
+
     try {
       const created = await addPost({
         title: form.title,
@@ -114,14 +118,26 @@ function BlogsPage() {
         imageName: '',
       })
     } catch (error) {
-      setCreateError(error instanceof Error ? error.message : 'Không thể tạo bài viết')
+      setCreateError(error instanceof Error ? error.message : 'Khong the tao bai viet')
     }
   }
 
-  if (isLoading) {
+  if (isLoading || postsState.status === 'loading' || postsState.status === 'idle') {
     return (
       <PagePanel>
         <LoadingRows rows={6} />
+      </PagePanel>
+    )
+  }
+
+  if (postsState.status === 'error') {
+    return (
+      <PagePanel>
+        <ErrorState
+          title="Khong the tai bai viet"
+          message={postsState.error || 'Khong tai duoc bai viet'}
+          onRetry={() => void reloadResource('posts')}
+        />
       </PagePanel>
     )
   }
@@ -131,9 +147,7 @@ function BlogsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold text-slate-900">Bai viet</h3>
-          <p className="text-sm text-slate-500">
-            Quan ly bai viet, lich dang va thong tin SEO.
-          </p>
+          <p className="text-sm text-slate-500">Quan ly bai viet, lich dang va thong tin SEO.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <SearchInput
@@ -168,13 +182,7 @@ function BlogsPage() {
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <StatCard icon={FileText} label="Tong bai viet" value={posts.length} tone="neutral" />
-        <StatCard
-          icon={Tag}
-          label="Da dang"
-          value={stats.published}
-          tone="success"
-          hint="Đang hoạt động"
-        />
+        <StatCard icon={Tag} label="Da dang" value={stats.published} tone="success" hint="Dang hoat dong" />
         <StatCard
           icon={Clock3}
           label="Cho lich / ban nhap"
@@ -190,14 +198,14 @@ function BlogsPage() {
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <input
               className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] md:col-span-2"
-              onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
+              onChange={(event) => setForm((previous) => ({ ...previous, title: event.target.value }))}
               placeholder="Tieu de bai viet"
               value={form.title}
             />
             <input
               className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               onChange={(event) =>
-                setForm((prev) => ({ ...prev, category: event.target.value }))
+                setForm((previous) => ({ ...previous, category: event.target.value }))
               }
               placeholder="Danh muc"
               value={form.category}
@@ -205,7 +213,7 @@ function BlogsPage() {
             <textarea
               className="min-h-24 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] md:col-span-2"
               onChange={(event) =>
-                setForm((prev) => ({ ...prev, excerpt: event.target.value }))
+                setForm((previous) => ({ ...previous, excerpt: event.target.value }))
               }
               placeholder="Mo ta ngan"
               value={form.excerpt}
@@ -219,7 +227,7 @@ function BlogsPage() {
                   className="sr-only"
                   onChange={(event) => handleImageChange(event.target.files?.[0] ?? null)}
                 />
-                {isUploadingImage ? 'Đang tải ảnh...' : form.imageName || 'Tải ảnh bài viết'}
+                {isUploadingImage ? 'Dang tai anh...' : form.imageName || 'Tai anh bai viet'}
               </label>
               {form.imageUrl ? (
                 <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -235,7 +243,7 @@ function BlogsPage() {
               aria-label="Create post status"
               className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               onChange={(event) =>
-                setForm((prev) => ({ ...prev, status: event.target.value as BlogStatus }))
+                setForm((previous) => ({ ...previous, status: event.target.value as BlogStatus }))
               }
               value={form.status}
             >
@@ -266,7 +274,7 @@ function BlogsPage() {
         {filteredPosts.length === 0 ? (
           <EmptyState
             icon={FileText}
-            title="Không có bài viết"
+            title="Khong co bai viet"
             message="Thu doi bo loc hoac tao bai viet moi."
           />
         ) : (
@@ -314,9 +322,7 @@ function BlogsPage() {
                         {blogStatusLabel[post.status]}
                       </StatusBadge>
                     </td>
-                    <td className="px-3 py-3 text-xs text-slate-500">
-                      {formatDateTime(post.updatedAt)}
-                    </td>
+                    <td className="px-3 py-3 text-xs text-slate-500">{formatDateTime(post.updatedAt)}</td>
                     <td className="rounded-r-2xl px-3 py-3">
                       <div
                         className="flex flex-wrap items-center gap-2"
@@ -335,7 +341,7 @@ function BlogsPage() {
                               })
                             } catch (error) {
                               notify(
-                                error instanceof Error ? error.message : 'Không thể cập nhật bài viết',
+                                error instanceof Error ? error.message : 'Khong the cap nhat bai viet',
                                 {
                                   title: 'Blogs',
                                   variant: 'error',
@@ -345,13 +351,11 @@ function BlogsPage() {
                           }}
                           value={post.status}
                         >
-                          {BLOG_STATUS_OPTIONS.filter((item) => item.value !== 'all').map(
-                            (item) => (
-                              <option key={`${post.id}-${item.value}`} value={item.value}>
-                                {item.label}
-                              </option>
-                            ),
-                          )}
+                          {BLOG_STATUS_OPTIONS.filter((item) => item.value !== 'all').map((item) => (
+                            <option key={`${post.id}-${item.value}`} value={item.value}>
+                              {item.label}
+                            </option>
+                          ))}
                         </select>
                         <button
                           aria-label={`Delete ${post.id}`}
@@ -365,7 +369,7 @@ function BlogsPage() {
                               })
                             } catch (error) {
                               notify(
-                                error instanceof Error ? error.message : 'Không thể xóa bài viết',
+                                error instanceof Error ? error.message : 'Khong the xoa bai viet',
                                 {
                                   title: 'Blogs',
                                   variant: 'error',

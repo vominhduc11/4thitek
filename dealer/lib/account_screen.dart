@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import 'account_settings_screen.dart';
 import 'app_preferences_screen.dart';
@@ -9,9 +10,7 @@ import 'cart_controller.dart';
 import 'dealer_profile_storage.dart';
 import 'file_reference.dart';
 import 'global_search.dart';
-import 'login_screen.dart';
 import 'notification_controller.dart';
-import 'notifications_screen.dart';
 import 'order_controller.dart';
 import 'support_screen.dart';
 import 'warranty_controller.dart';
@@ -169,10 +168,7 @@ class _AccountScreenState extends State<AccountScreen> {
       }
 
       shouldResetLoading = false;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-        (route) => false,
-      );
+      context.go('/login');
     } finally {
       if (mounted && shouldResetLoading) {
         setState(() => _isLoggingOut = false);
@@ -474,9 +470,7 @@ class _AccountScreenState extends State<AccountScreen> {
           NotificationIconButton(
             count: NotificationScope.of(context).unreadCount,
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-              );
+              context.push('/notifications');
             },
           ),
         ],

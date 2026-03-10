@@ -1,0 +1,16 @@
+{
+  "@@locale": "en",
+  "appTitle": "4thitek Dealer Hub",
+  "viewAction": "View",
+  "sessionExpiredMessage": "Your session has expired. Please sign in again.",
+  "welcomeTitle": "Welcome to 4thitek Dealer Hub",
+  "welcomeStepProducts": "1. Create orders quickly from the Products tab.",
+  "welcomeStepOrders": "2. Track debt and status in the Orders tab.",
+  "welcomeStepSearch": "3. Use global search to find orders and products instantly.",
+  "getStarted": "Get started",
+  "tabProducts": "Products",
+  "tabOrders": "Orders",
+  "tabOverview": "Overview",
+  "tabInventory": "Inventory",
+  "tabAccount": "Account"
+}

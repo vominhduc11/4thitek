@@ -4,6 +4,14 @@ const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value)
 
 const ensureLeadingSlash = (value: string) => (value.startsWith('/') ? value : `/${value}`)
 
+declare global {
+  interface Window {
+    __APP_CONFIG__?: {
+      apiBaseUrl?: string
+    }
+  }
+}
+
 const isPlaceholderHost = (value: string) => {
   if (!value || value.startsWith('/')) {
     return false
@@ -17,10 +25,18 @@ const isPlaceholderHost = (value: string) => {
   }
 }
 
+const readRuntimeApiBaseUrl = () => {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+
+  return window.__APP_CONFIG__?.apiBaseUrl?.trim() ?? ''
+}
+
 const rawApiBaseUrl = (() => {
-  const trimmed = (import.meta.env.VITE_API_BASE_URL ?? '').trim()
+  const trimmed = readRuntimeApiBaseUrl() || (import.meta.env.VITE_API_BASE_URL ?? '').trim()
   if (!trimmed || isPlaceholderHost(trimmed)) {
-    return '/api'
+    return '/api/v1'
   }
   return trimmed
 })()
@@ -30,13 +46,13 @@ const normalizeApiBaseUrl = (value: string) => {
 
   const trimmed = trimTrailingSlash(value)
   if (!trimmed) return ''
-  if (trimmed.endsWith('/api')) {
+  if (trimmed.endsWith('/api') || trimmed.endsWith('/api/v1')) {
     return trimmed
   }
-  return `${trimmed}/api`
+  return `${trimmed}/api/v1`
 }
 
-const stripApiSuffix = (value: string) => value.replace(/\/api$/i, '')
+const stripApiSuffix = (value: string) => value.replace(/\/api(?:\/v1)?$/i, '')
 
 export const hasBackendApi = () => normalizeApiBaseUrl(rawApiBaseUrl).length > 0
 
@@ -53,7 +69,12 @@ export const buildApiUrl = (path: string) => {
   }
 
   const normalizedPath = ensureLeadingSlash(path)
-  if (normalizedPath === '/api' || normalizedPath.startsWith('/api/')) {
+  if (
+    normalizedPath === '/api' ||
+    normalizedPath.startsWith('/api/') ||
+    normalizedPath === '/api/v1' ||
+    normalizedPath.startsWith('/api/v1/')
+  ) {
     return `${stripApiSuffix(apiBaseUrl)}${normalizedPath}`
   }
 

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -88,7 +89,7 @@ class AdminSupportTicketNotificationTests {
         assertThat(notifications.get(0).getType()).isEqualTo(NotifyType.SYSTEM);
         assertThat(notifications.get(0).getTitle()).contains("yêu cầu hỗ trợ");
         assertThat(notifications.get(0).getContent()).contains("SPT-TEST-1");
-        verify(javaMailSender).send(any(MimeMessage.class));
+        verify(javaMailSender, timeout(1_000)).send(any(MimeMessage.class));
     }
 
     @Test

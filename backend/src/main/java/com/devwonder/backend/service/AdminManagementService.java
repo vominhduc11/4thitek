@@ -21,6 +21,7 @@ import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
 import com.devwonder.backend.dto.realtime.DealerOrderStatusEvent;
+import com.devwonder.backend.config.CacheNames;
 import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.Blog;
 import com.devwonder.backend.entity.BulkDiscount;
@@ -62,6 +63,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -107,6 +109,11 @@ public class AdminManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = {
+            CacheNames.PUBLIC_PRODUCTS,
+            CacheNames.PUBLIC_HOMEPAGE_PRODUCTS,
+            CacheNames.PUBLIC_PRODUCT_BY_ID
+    }, allEntries = true)
     public AdminProductResponse createProduct(AdminProductUpsertRequest request) {
         Product product = new Product();
         adminWriteSupport.applyProduct(product, request, true);
@@ -114,6 +121,11 @@ public class AdminManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = {
+            CacheNames.PUBLIC_PRODUCTS,
+            CacheNames.PUBLIC_HOMEPAGE_PRODUCTS,
+            CacheNames.PUBLIC_PRODUCT_BY_ID
+    }, allEntries = true)
     public AdminProductResponse updateProduct(Long id, AdminProductUpsertRequest request) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
@@ -122,6 +134,11 @@ public class AdminManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = {
+            CacheNames.PUBLIC_PRODUCTS,
+            CacheNames.PUBLIC_HOMEPAGE_PRODUCTS,
+            CacheNames.PUBLIC_PRODUCT_BY_ID
+    }, allEntries = true)
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
@@ -198,6 +215,14 @@ public class AdminManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = {
+            CacheNames.PUBLIC_BLOGS,
+            CacheNames.PUBLIC_HOMEPAGE_BLOGS,
+            CacheNames.PUBLIC_BLOG_BY_ID,
+            CacheNames.PUBLIC_BLOG_RELATED,
+            CacheNames.PUBLIC_BLOG_CATEGORIES,
+            CacheNames.PUBLIC_BLOGS_BY_CATEGORY
+    }, allEntries = true)
     public AdminBlogResponse createBlog(AdminBlogUpsertRequest request) {
         Blog blog = new Blog();
         adminWriteSupport.applyBlog(blog, request, true);
@@ -205,6 +230,14 @@ public class AdminManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = {
+            CacheNames.PUBLIC_BLOGS,
+            CacheNames.PUBLIC_HOMEPAGE_BLOGS,
+            CacheNames.PUBLIC_BLOG_BY_ID,
+            CacheNames.PUBLIC_BLOG_RELATED,
+            CacheNames.PUBLIC_BLOG_CATEGORIES,
+            CacheNames.PUBLIC_BLOGS_BY_CATEGORY
+    }, allEntries = true)
     public AdminBlogResponse updateBlog(Long id, AdminBlogUpsertRequest request) {
         Blog blog = blogRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Blog not found"));
@@ -213,6 +246,14 @@ public class AdminManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = {
+            CacheNames.PUBLIC_BLOGS,
+            CacheNames.PUBLIC_HOMEPAGE_BLOGS,
+            CacheNames.PUBLIC_BLOG_BY_ID,
+            CacheNames.PUBLIC_BLOG_RELATED,
+            CacheNames.PUBLIC_BLOG_CATEGORIES,
+            CacheNames.PUBLIC_BLOGS_BY_CATEGORY
+    }, allEntries = true)
     public void deleteBlog(Long id) {
         Blog blog = blogRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Blog not found"));
@@ -237,6 +278,7 @@ public class AdminManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.PUBLIC_DEALERS, allEntries = true)
     public AdminDealerAccountResponse createDealerAccount(AdminDealerAccountUpsertRequest request) {
         String email = requireNonBlank(request.email(), "email");
         String phone = requireNonBlank(request.phone(), "phone");
@@ -267,6 +309,7 @@ public class AdminManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.PUBLIC_DEALERS, allEntries = true)
     public AdminDealerAccountResponse updateDealerAccount(Long id, AdminDealerAccountUpsertRequest request) {
         Dealer dealer = dealerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Dealer account not found"));
@@ -298,6 +341,7 @@ public class AdminManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.PUBLIC_DEALERS, allEntries = true)
     public AdminDealerAccountResponse updateDealerAccountStatus(
             Long id,
             UpdateAdminDealerAccountStatusRequest request

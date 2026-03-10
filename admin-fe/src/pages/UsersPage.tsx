@@ -6,6 +6,7 @@ import { userStatusLabel, userStatusTone } from '../lib/adminLabels'
 import { useSimulatedPageLoad } from '../hooks/useSimulatedPageLoad'
 import {
   EmptyState,
+  ErrorState,
   LoadingRows,
   PagePanel,
   PrimaryButton,
@@ -18,7 +19,7 @@ const USER_STATUS_OPTIONS: UserStatus[] = ['active', 'pending']
 
 function UsersPage() {
   const { notify } = useToast()
-  const { users, addUser, updateUserStatus } = useAdminData()
+  const { users, usersState, addUser, updateUserStatus, reloadResource } = useAdminData()
   const { isLoading } = useSimulatedPageLoad('users-page')
 
   const [query, setQuery] = useState('')
@@ -55,7 +56,7 @@ function UsersPage() {
   const handleInvite = async () => {
     setError('')
     if (!form.name.trim() || !form.role.trim()) {
-      setError('Vui lòng nhập tên và vai trò')
+      setError('Vui long nhap ten va vai tro')
       return
     }
 
@@ -65,14 +66,26 @@ function UsersPage() {
       setShowInvite(false)
       setForm({ name: '', role: '' })
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Không tạo được tài khoản')
+      setError(saveError instanceof Error ? saveError.message : 'Khong tao duoc tai khoan')
     }
   }
 
-  if (isLoading) {
+  if (isLoading || usersState.status === 'loading' || usersState.status === 'idle') {
     return (
       <PagePanel>
         <LoadingRows rows={5} />
+      </PagePanel>
+    )
+  }
+
+  if (usersState.status === 'error') {
+    return (
+      <PagePanel>
+        <ErrorState
+          title="Khong the tai nhan su"
+          message={usersState.error || 'Khong tai duoc nhan su'}
+          onRetry={() => void reloadResource('users')}
+        />
       </PagePanel>
     )
   }
@@ -82,9 +95,7 @@ function UsersPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold text-slate-900">Quan tri</h3>
-          <p className="text-sm text-slate-500">
-            Quan ly nhan su va phan quyen truy cap he thong.
-          </p>
+          <p className="text-sm text-slate-500">Quan ly nhan su va phan quyen truy cap he thong.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <SearchInput
@@ -107,7 +118,7 @@ function UsersPage() {
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <StatCard icon={Users} label="Tong nhan su" value={users.length} />
-        <StatCard icon={ShieldCheck} label="Đang hoạt động" value={stats.active} tone="success" />
+        <StatCard icon={ShieldCheck} label="Dang hoat dong" value={stats.active} tone="success" />
         <StatCard label="Cho duyet" value={stats.pending} tone="info" />
       </div>
 
@@ -117,13 +128,13 @@ function UsersPage() {
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <input
               className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+              onChange={(event) => setForm((previous) => ({ ...previous, name: event.target.value }))}
               placeholder="Ho va ten"
               value={form.name}
             />
             <input
               className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              onChange={(event) => setForm((prev) => ({ ...prev, role: event.target.value }))}
+              onChange={(event) => setForm((previous) => ({ ...previous, role: event.target.value }))}
               placeholder="Vai tro"
               value={form.role}
             />
@@ -148,7 +159,7 @@ function UsersPage() {
         {filteredUsers.length === 0 ? (
           <EmptyState
             icon={Users}
-            title="Không có nhân sự"
+            title="Khong co nhan su"
             message="Thu tim tu khoa khac hoac moi thanh vien moi."
           />
         ) : (
@@ -186,7 +197,7 @@ function UsersPage() {
                             variant: 'info',
                           })
                         } catch (error) {
-                          notify(error instanceof Error ? error.message : 'Không cập nhật được tài khoản', {
+                          notify(error instanceof Error ? error.message : 'Khong cap nhat duoc tai khoan', {
                             title: 'Users',
                             variant: 'error',
                           })

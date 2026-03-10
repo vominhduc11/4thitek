@@ -14,6 +14,54 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      sh -c "redis-server --appendonly yes --requirepass \"$${REDIS_PASSWORD}\""
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/live >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio-init:
+    image: minio/mc:latest
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >
+        mc alias set local http://minio:9000 "${MINIO_ROOT_USER}" "${MINIO_ROOT_PASSWORD}" &&
+        mc mb --ignore-existing local/${MINIO_BUCKET} &&
+        mc anonymous set download local/${MINIO_BUCKET}
+
   backend:
     build:
       context: ./backend
@@ -22,13 +70,28 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     environment:
       SERVER_PORT: 8080
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-app_db}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-app}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:-10}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:-2}
+      SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT: ${SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT:-600000}
+      SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT: ${SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT:-30000}
+      SPRING_DATASOURCE_HIKARI_MAX_LIFETIME: ${SPRING_DATASOURCE_HIKARI_MAX_LIFETIME:-1800000}
       SPRING_H2_CONSOLE_ENABLED: "false"
+      SPRING_FLYWAY_ENABLED: ${SPRING_FLYWAY_ENABLED:-true}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-validate}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SPRING_DATA_REDIS_DATABASE: ${SPRING_DATA_REDIS_DATABASE:-0}
       JWT_SECRET: ${JWT_SECRET}
       APP_SEED_DEMO_DATA: ${APP_SEED_DEMO_DATA:-false}
       APP_BOOTSTRAP_SUPER_ADMIN_ENABLED: ${APP_BOOTSTRAP_SUPER_ADMIN_ENABLED:-true}
@@ -38,6 +101,27 @@ services:
       APP_CORS_ALLOWED_ORIGIN_PATTERNS: ${APP_CORS_ALLOWED_ORIGIN_PATTERNS}
       UPLOAD_DIR: /app/uploads
       UPLOAD_BASE_URL: ${UPLOAD_BASE_URL:-/uploads}
+      APP_STORAGE_PROVIDER: ${APP_STORAGE_PROVIDER:-s3}
+      APP_STORAGE_S3_BUCKET: ${MINIO_BUCKET}
+      APP_STORAGE_S3_ENDPOINT: ${APP_STORAGE_S3_ENDPOINT:-http://minio:9000}
+      APP_STORAGE_S3_REGION: ${APP_STORAGE_S3_REGION:-ap-southeast-1}
+      APP_STORAGE_S3_ACCESS_KEY: ${MINIO_ROOT_USER}
+      APP_STORAGE_S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      APP_STORAGE_S3_PATH_STYLE_ACCESS: ${APP_STORAGE_S3_PATH_STYLE_ACCESS:-true}
+      APP_STORAGE_S3_PUBLIC_BASE_URL: ${APP_STORAGE_S3_PUBLIC_BASE_URL}
+      APP_SECURITY_REQUIRE_STRONG_JWT_SECRET: ${APP_SECURITY_REQUIRE_STRONG_JWT_SECRET:-true}
+      APP_CACHE_PUBLIC_TTL_MINUTES: ${APP_CACHE_PUBLIC_TTL_MINUTES:-30}
+      APP_RATE_LIMIT_ENABLED: ${APP_RATE_LIMIT_ENABLED:-true}
+      APP_RATE_LIMIT_AUTH_REQUESTS: ${APP_RATE_LIMIT_AUTH_REQUESTS:-10}
+      APP_RATE_LIMIT_AUTH_WINDOW_SECONDS: ${APP_RATE_LIMIT_AUTH_WINDOW_SECONDS:-60}
+      APP_RATE_LIMIT_PASSWORD_RESET_REQUESTS: ${APP_RATE_LIMIT_PASSWORD_RESET_REQUESTS:-5}
+      APP_RATE_LIMIT_PASSWORD_RESET_WINDOW_SECONDS: ${APP_RATE_LIMIT_PASSWORD_RESET_WINDOW_SECONDS:-300}
+      APP_RATE_LIMIT_WARRANTY_LOOKUP_REQUESTS: ${APP_RATE_LIMIT_WARRANTY_LOOKUP_REQUESTS:-30}
+      APP_RATE_LIMIT_WARRANTY_LOOKUP_WINDOW_SECONDS: ${APP_RATE_LIMIT_WARRANTY_LOOKUP_WINDOW_SECONDS:-60}
+      APP_RATE_LIMIT_UPLOAD_REQUESTS: ${APP_RATE_LIMIT_UPLOAD_REQUESTS:-20}
+      APP_RATE_LIMIT_UPLOAD_WINDOW_SECONDS: ${APP_RATE_LIMIT_UPLOAD_WINDOW_SECONDS:-60}
+      APP_RATE_LIMIT_WEBHOOK_REQUESTS: ${APP_RATE_LIMIT_WEBHOOK_REQUESTS:-120}
+      APP_RATE_LIMIT_WEBHOOK_WINDOW_SECONDS: ${APP_RATE_LIMIT_WEBHOOK_WINDOW_SECONDS:-60}
       APP_MAIL_ENABLED: ${APP_MAIL_ENABLED:-false}
       APP_MAIL_FROM: ${APP_MAIL_FROM:-}
       APP_MAIL_FROM_NAME: ${APP_MAIL_FROM_NAME:-4ThiTek}
@@ -71,7 +155,7 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
-        INTERNAL_API_BASE_URL: ${INTERNAL_API_BASE_URL:-http://backend:8080/api}
+        INTERNAL_API_BASE_URL: ${INTERNAL_API_BASE_URL:-http://backend:8080}
     restart: unless-stopped
     depends_on:
       backend:
@@ -89,6 +173,8 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    environment:
+      API_BASE_URL: ${API_BASE_URL:-/api/v1}
     ports:
       - "${ADMIN_FE_PORT:-4173}:80"
 
@@ -109,4 +195,6 @@ services:
 
 volumes:
   pgdata:
+  redis-data:
+  minio-data:
   upload-data:

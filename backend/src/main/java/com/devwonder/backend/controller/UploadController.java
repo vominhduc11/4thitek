@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/upload")
+@RequestMapping({"/api/upload", "/api/v1/upload"})
 @RequiredArgsConstructor
 public class UploadController {
 
@@ -53,6 +53,9 @@ public class UploadController {
     }
 
     private String buildPublicUrl(String relativePath) {
+        if (relativePath.startsWith("http://") || relativePath.startsWith("https://")) {
+            return relativePath;
+        }
         String baseUrl = uploadBaseUrl == null ? "/uploads" : uploadBaseUrl.trim();
         if (baseUrl.isEmpty()) {
             baseUrl = "/uploads";

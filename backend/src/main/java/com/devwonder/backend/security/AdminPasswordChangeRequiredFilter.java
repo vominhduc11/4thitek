@@ -21,6 +21,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class AdminPasswordChangeRequiredFilter extends OncePerRequestFilter {
 
     private static final String CHANGE_PASSWORD_PATH = "/api/admin/password";
+    private static final String VERSIONED_CHANGE_PASSWORD_PATH = "/api/v1/admin/password";
     private static final String LEGACY_CHANGE_PASSWORD_PATH = "/admin/password";
 
     private final ObjectMapper objectMapper;
@@ -58,8 +59,10 @@ public class AdminPasswordChangeRequiredFilter extends OncePerRequestFilter {
             return false;
         }
         return requestUri.startsWith("/api/auth/")
+                || requestUri.startsWith("/api/v1/auth/")
                 || requestUri.startsWith("/auth/")
                 || CHANGE_PASSWORD_PATH.equals(requestUri)
+                || VERSIONED_CHANGE_PASSWORD_PATH.equals(requestUri)
                 || LEGACY_CHANGE_PASSWORD_PATH.equals(requestUri);
     }
 }

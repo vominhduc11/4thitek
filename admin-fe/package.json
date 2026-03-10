@@ -7,9 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "vitest",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.21",
     "chart.js": "^4.4.2",
     "lucide-react": "^0.468.0",
     "quill": "^2.0.3",
@@ -35,6 +37,7 @@
     "tailwindcss": "^4.1.18",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "vitest": "^4.0.18"
   }
 }

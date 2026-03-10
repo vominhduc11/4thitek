@@ -2,6 +2,7 @@
 
 // Base URLs
 const trimTrailingSlash = (value: string) => value.replace(/\/$/, '');
+const stripApiSuffix = (value: string) => trimTrailingSlash(value).replace(/\/api(?:\/v1)?$/i, '');
 
 const isPlaceholderHost = (value: string) => {
     if (!value || value.startsWith('/')) {
@@ -21,15 +22,22 @@ const normalizeConfiguredApiBaseUrl = (value?: string | null) => {
     if (!trimmed || isPlaceholderHost(trimmed)) {
         return '';
     }
-    return trimTrailingSlash(trimmed);
+    const normalized = trimTrailingSlash(trimmed);
+    if (normalized.startsWith('/')) {
+        return normalized;
+    }
+    if (/\/api(?:\/v1)?$/i.test(normalized)) {
+        return normalized;
+    }
+    return `${stripApiSuffix(normalized)}/api/v1`;
 };
 
 const publicApiBaseUrl =
-    normalizeConfiguredApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL) || '/api';
+    normalizeConfiguredApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL) || '/api/v1';
 const internalApiBaseUrl =
     normalizeConfiguredApiBaseUrl(process.env.INTERNAL_API_BASE_URL) ||
     normalizeConfiguredApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL) ||
-    'https://api.4thitek.vn/api';
+    'https://api.4thitek.vn/api/v1';
 
 export const API_BASE_URL = typeof window === 'undefined' ? internalApiBaseUrl : publicApiBaseUrl;
 

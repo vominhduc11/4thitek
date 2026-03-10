@@ -3,21 +3,20 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'app_router.dart';
 import 'app_settings_controller.dart';
 import 'auth_storage.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'dealer_profile_storage.dart';
-import 'home_shell.dart';
-import 'login_screen.dart';
 import 'notification_controller.dart';
-import 'notifications_screen.dart';
 import 'order_controller.dart';
 import 'product_catalog_controller.dart';
+import 'l10n/app_localizations.dart';
 import 'warranty_controller.dart';
-import 'widgets/brand_identity.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,6 +49,7 @@ class _DealerAppState extends State<DealerApp> {
   late final NotificationController _notificationController;
   late final AuthStorage _authStorage;
   late final Future<bool> _startupFuture;
+  late final GoRouter _router;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey =
       GlobalKey<ScaffoldMessengerState>();
@@ -87,6 +87,10 @@ class _DealerAppState extends State<DealerApp> {
       _handleIncomingNoticeEvent,
     );
     _startupFuture = _bootstrap();
+    _router = buildDealerRouter(
+      navigatorKey: _navigatorKey,
+      startupFuture: _startupFuture,
+    );
   }
 
   Future<bool> _bootstrap() async {
@@ -99,6 +103,14 @@ class _DealerAppState extends State<DealerApp> {
       _notificationController.load(),
     ]);
     return _authStorage.shouldAutoLogin();
+  }
+
+  AppLocalizations? _localizationsOrNull() {
+    final currentContext = _navigatorKey.currentContext;
+    if (currentContext == null) {
+      return null;
+    }
+    return AppLocalizations.of(currentContext);
   }
 
   @override
@@ -145,6 +157,7 @@ class _DealerAppState extends State<DealerApp> {
       return;
     }
 
+    final l10n = _localizationsOrNull();
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -153,7 +166,7 @@ class _DealerAppState extends State<DealerApp> {
           content: Text(notice.title),
           duration: const Duration(seconds: 4),
           action: SnackBarAction(
-            label: 'Xem',
+            label: l10n?.viewAction ?? 'Xem',
             onPressed: _openNotificationsCenter,
           ),
         ),
@@ -175,37 +188,22 @@ class _DealerAppState extends State<DealerApp> {
         return;
       }
 
-      final navigator = _navigatorKey.currentState;
-      if (navigator == null) {
-        return;
-      }
-
       final sessionMessage = _authStorage.lastSessionEventMessage?.trim();
+      final l10n = _localizationsOrNull();
+      final message =
+          sessionMessage != null && sessionMessage.isNotEmpty
+              ? sessionMessage
+              : (l10n?.sessionExpiredMessage ??
+                    'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
 
-      navigator.pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (context) => LoginScreen(
-            initialErrorMessage:
-                sessionMessage != null && sessionMessage.isNotEmpty
-                ? sessionMessage
-                : 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
-          ),
-        ),
-        (route) => false,
-      );
+      _router.go('/login?error=${Uri.encodeComponent(message)}');
     } finally {
       _isHandlingExpiredSession = false;
     }
   }
 
   void _openNotificationsCenter() {
-    final navigator = _navigatorKey.currentState;
-    if (navigator == null) {
-      return;
-    }
-    navigator.push(
-      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-    );
+    _router.push('/notifications');
   }
 
   @override
@@ -225,36 +223,25 @@ class _DealerAppState extends State<DealerApp> {
                 child: AnimatedBuilder(
                   animation: _appSettingsController,
                   builder: (context, _) {
-                    return MaterialApp(
-                      navigatorKey: _navigatorKey,
+                    return MaterialApp.router(
+                      routerConfig: _router,
                       scaffoldMessengerKey: _scaffoldMessengerKey,
                       debugShowCheckedModeBanner: false,
                       title: '4thitek Dealer Hub',
+                      onGenerateTitle: (context) =>
+                          AppLocalizations.of(context)?.appTitle ??
+                          '4thitek Dealer Hub',
                       theme: _buildLightTheme(),
                       darkTheme: _buildDarkTheme(),
                       themeMode: _appSettingsController.themeMode,
                       locale: _appSettingsController.locale,
                       localizationsDelegates: const [
+                        AppLocalizations.delegate,
                         GlobalMaterialLocalizations.delegate,
                         GlobalWidgetsLocalizations.delegate,
                         GlobalCupertinoLocalizations.delegate,
                       ],
-                      supportedLocales: const [Locale('vi'), Locale('en')],
-                      home: FutureBuilder<bool>(
-                        future: _startupFuture,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState !=
-                              ConnectionState.done) {
-                            return const _LaunchScreen();
-                          }
-
-                          final shouldAutoLogin = snapshot.data ?? false;
-                          if (shouldAutoLogin) {
-                            return const DealerHomeShell();
-                          }
-                          return const LoginScreen();
-                        },
-                      ),
+                      supportedLocales: AppLocalizations.supportedLocales,
                     );
                   },
                 ),
@@ -398,32 +385,6 @@ class _DealerAppState extends State<DealerApp> {
       ),
       checkboxTheme: CheckboxThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-      ),
-    );
-  }
-}
-
-class _LaunchScreen extends StatelessWidget {
-  const _LaunchScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            BrandLogoIcon(size: 88),
-            SizedBox(height: 14),
-            BrandLogoWordmark(height: 34),
-            SizedBox(height: 22),
-            SizedBox(
-              width: 30,
-              height: 30,
-              child: CircularProgressIndicator(strokeWidth: 2.8),
-            ),
-          ],
-        ),
       ),
     );
   }

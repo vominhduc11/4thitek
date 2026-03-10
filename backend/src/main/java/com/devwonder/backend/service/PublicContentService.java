@@ -1,5 +1,6 @@
 package com.devwonder.backend.service;
 
+import com.devwonder.backend.config.CacheNames;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +34,7 @@ public class PublicContentService {
         }
     }
 
+    @Cacheable(cacheNames = CacheNames.PUBLIC_CONTENT, key = "#section + ':' + #language")
     public Map<String, Object> getSection(String section, String language) {
         Map<String, Object> sectionContent = asMap(siteContent.get(section));
         if (sectionContent.isEmpty()) {

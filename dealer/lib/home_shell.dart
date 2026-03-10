@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'account_screen.dart';
-import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'dashboard_screen.dart';
 import 'inventory_screen.dart';
+import 'l10n/app_localizations.dart';
 import 'orders_screen.dart';
 import 'product_list_screen.dart';
 import 'widgets/brand_identity.dart';
@@ -45,27 +45,28 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
       return;
     }
 
+    final l10n = AppLocalizations.of(context)!;
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Chào mừng đến 4thitek Dealer Hub'),
-          content: const Column(
+          title: Text(l10n.welcomeTitle),
+          content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('1. Tạo đơn nhanh trong tab Sản phẩm.'),
-              SizedBox(height: 6),
-              Text('2. Theo dõi công nợ và trạng thái trong tab Đơn hàng.'),
-              SizedBox(height: 6),
-              Text('3. Dùng tìm kiếm toàn cục để tra đơn/sản phẩm tức thì.'),
+              Text(l10n.welcomeStepProducts),
+              const SizedBox(height: 6),
+              Text(l10n.welcomeStepOrders),
+              const SizedBox(height: 6),
+              Text(l10n.welcomeStepSearch),
             ],
           ),
           actions: [
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Bắt đầu'),
+              child: Text(l10n.getStarted),
             ),
           ],
         );
@@ -75,16 +76,16 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
     await prefs.setBool(_onboardingSeenKey, true);
   }
 
-  List<_TabItem> _buildTabs(bool isEnglish) {
+  List<_TabItem> _buildTabs(AppLocalizations l10n) {
     return [
       _TabItem(
-        label: isEnglish ? 'Products' : 'Sản phẩm',
+        label: l10n.tabProducts,
         icon: Icons.storefront_outlined,
         activeIcon: Icons.storefront,
         widget: const ProductListScreen(key: PageStorageKey('tab-products')),
       ),
       _TabItem(
-        label: isEnglish ? 'Orders' : 'Đơn hàng',
+        label: l10n.tabOrders,
         icon: Icons.receipt_long_outlined,
         activeIcon: Icons.receipt_long,
         widget: OrdersScreen(
@@ -93,7 +94,7 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
         ),
       ),
       _TabItem(
-        label: isEnglish ? 'Overview' : 'Tổng quan',
+        label: l10n.tabOverview,
         icon: Icons.dashboard_outlined,
         activeIcon: Icons.dashboard,
         widget: DashboardScreen(
@@ -102,13 +103,13 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
         ),
       ),
       _TabItem(
-        label: isEnglish ? 'Inventory' : 'Kho',
+        label: l10n.tabInventory,
         icon: Icons.inventory_2_outlined,
         activeIcon: Icons.inventory_2,
         widget: const InventoryScreen(key: PageStorageKey('tab-inventory')),
       ),
       _TabItem(
-        label: isEnglish ? 'Account' : 'Tài khoản',
+        label: l10n.tabAccount,
         icon: Icons.person_outline,
         activeIcon: Icons.person,
         widget: const AccountScreen(key: PageStorageKey('tab-account')),
@@ -118,12 +119,9 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    final appSettings = AppSettingsScope.of(context);
-    final isEnglish = appSettings.locale.languageCode == 'en';
-    final tabs = _buildTabs(isEnglish);
-    final safeIndex = _currentIndex >= tabs.length
-        ? tabs.length - 1
-        : _currentIndex;
+    final l10n = AppLocalizations.of(context)!;
+    final tabs = _buildTabs(l10n);
+    final safeIndex = _currentIndex >= tabs.length ? tabs.length - 1 : _currentIndex;
     final shellBody = PageStorage(
       bucket: _pageStorageBucket,
       child: IndexedStack(
@@ -135,8 +133,7 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth >= AppBreakpoints.desktop;
-        final useExtendedRail =
-            constraints.maxWidth >= AppBreakpoints.railExtended;
+        final useExtendedRail = constraints.maxWidth >= AppBreakpoints.railExtended;
         if (isDesktop) {
           return Scaffold(
             body: Row(

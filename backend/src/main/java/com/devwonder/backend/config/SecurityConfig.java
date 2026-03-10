@@ -47,33 +47,47 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/admin/users", "/admin/users/**", "/api/admin/users", "/api/admin/users/**")
+                        .requestMatchers(
+                                "/admin/users",
+                                "/admin/users/**",
+                                "/api/admin/users",
+                                "/api/admin/users/**",
+                                "/api/v1/admin/users",
+                                "/api/v1/admin/users/**"
+                        )
                         .hasAuthority("SUPER_ADMIN")
                         .requestMatchers(
                                 "/auth/**",
                                 "/api/auth/**",
+                                "/api/v1/auth/**",
                                 "/public/**",
                                 "/uploads/**",
                                 "/api/content/**",
+                                "/api/v1/content/**",
                                 "/api/blog/**",
+                                "/api/v1/blog/**",
                                 "/api/product/**",
+                                "/api/v1/product/**",
                                 "/api/warranty/check/**",
+                                "/api/v1/warranty/check/**",
                                 "/api/webhooks/sepay",
+                                "/api/v1/webhooks/sepay",
                                 "/api/health",
+                                "/api/v1/health",
                                 "/actuator/health",
                                 "/ws/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register-customer").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/user/dealer").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/user/dealer/page").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/user/dealer").permitAll()
-                        .requestMatchers("/api/upload/**").authenticated()
-                        .requestMatchers("/admin/**", "/api/admin/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers("/api/customer/**").hasAnyAuthority("CUSTOMER", "ADMIN", "SUPER_ADMIN")
-                        .requestMatchers("/user/**", "/api/dealer/**").hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register-customer", "/api/v1/auth/register-customer").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/user/dealer", "/api/v1/user/dealer").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/user/dealer/page", "/api/v1/user/dealer/page").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/user/dealer", "/api/v1/user/dealer").permitAll()
+                        .requestMatchers("/api/upload/**", "/api/v1/upload/**").authenticated()
+                        .requestMatchers("/admin/**", "/api/admin/**", "/api/v1/admin/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/customer/**", "/api/v1/customer/**").hasAnyAuthority("CUSTOMER", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/user/**", "/api/dealer/**", "/api/v1/dealer/**").hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
                         .requestMatchers("/adminuser/**").hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
                         .anyRequest().authenticated())
                 .sessionManagement(manager -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

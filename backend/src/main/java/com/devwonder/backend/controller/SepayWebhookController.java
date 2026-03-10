@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/webhooks/sepay")
+@RequestMapping({"/api/webhooks/sepay", "/api/v1/webhooks/sepay"})
 @RequiredArgsConstructor
 public class SepayWebhookController {
 
