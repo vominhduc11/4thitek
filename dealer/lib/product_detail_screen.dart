@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinbox/flutter_spinbox.dart';
 import 'package:chewie/chewie.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
 import 'breakpoints.dart';
@@ -1345,6 +1346,16 @@ class _InlineVideoPlayer extends StatefulWidget {
   State<_InlineVideoPlayer> createState() => _InlineVideoPlayerState();
 }
 
+bool _isYouTubeVideoUrl(String rawUrl) {
+  final resolved = resolveFileReference(rawUrl).trim();
+  final uri = Uri.tryParse(resolved);
+  if (uri == null) {
+    return false;
+  }
+  final host = uri.host.toLowerCase();
+  return host.contains('youtube.com') || host.contains('youtu.be');
+}
+
 class _InlineVideoPlayerState extends State<_InlineVideoPlayer> {
   static const Duration _videoInitTimeout = Duration(seconds: 12);
 
@@ -1481,6 +1492,10 @@ class _InlineVideoPlayerState extends State<_InlineVideoPlayer> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isYouTubeVideoUrl(widget.url)) {
+      return _VideoExternalLink(url: widget.url);
+    }
+
     final videoController = _videoController;
     final chewieController = _chewieController;
 
@@ -1524,6 +1539,75 @@ class _InlineVideoPlayerState extends State<_InlineVideoPlayer> {
       child: AspectRatio(
         aspectRatio: aspect,
         child: Chewie(controller: chewieController),
+      ),
+    );
+  }
+}
+
+class _VideoExternalLink extends StatelessWidget {
+  const _VideoExternalLink({required this.url});
+
+  final String url;
+
+  Future<void> _open(BuildContext context) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final resolved = resolveFileReference(url).trim();
+    final uri = Uri.tryParse(resolved);
+    if (uri == null) {
+      messenger?.showSnackBar(
+        const SnackBar(content: Text('Link video khong hop le.')),
+      );
+      return;
+    }
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched) {
+      messenger?.showSnackBar(
+        const SnackBar(content: Text('Khong the mo video luc nay.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final isYouTube = _isYouTubeVideoUrl(url);
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                isYouTube ? Icons.smart_display_outlined : Icons.open_in_new,
+                size: 18,
+                color: colors.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  isYouTube
+                      ? 'Video YouTube se mo ben ngoai ung dung.'
+                      : 'Video nay se mo ben ngoai ung dung.',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () => _open(context),
+            icon: const Icon(Icons.open_in_new, size: 16),
+            label: Text(isYouTube ? 'Mo tren YouTube' : 'Mo video'),
+          ),
+        ],
       ),
     );
   }

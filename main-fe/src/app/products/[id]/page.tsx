@@ -67,6 +67,15 @@ const toProductId = (value: string | number | null | undefined): string | null =
 const normalizeTextArray = (value: unknown): string[] =>
     Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 
+const pickString = (...values: unknown[]) => {
+    for (const value of values) {
+        if (typeof value !== 'string') continue;
+        const trimmed = value.trim();
+        if (trimmed) return trimmed;
+    }
+    return '';
+};
+
 const normalizeProductSpecifications = (value: unknown): ProductSpecification => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         return { ...EMPTY_PRODUCT_SPECIFICATIONS };
@@ -87,6 +96,30 @@ const normalizeProductSpecifications = (value: unknown): ProductSpecification =>
         compatibility: normalizeTextArray(raw.compatibility)
     };
 };
+
+const normalizeProductVideos = (value: string | unknown[], fallbackTitle: string): ProductVideo[] =>
+    parseJsonArray<unknown>(value, []).reduce<ProductVideo[]>((acc, entry, index) => {
+        if (!entry || typeof entry !== 'object') return acc;
+        const video = entry as {
+            title?: unknown;
+            description?: unknown;
+            descriptions?: unknown;
+            url?: unknown;
+            videoUrl?: unknown;
+        };
+        const title = pickString(video.title) || fallbackTitle;
+        const description = pickString(video.description, video.descriptions);
+        const url = pickString(video.url, video.videoUrl);
+        if (!title && !description && !url) return acc;
+        acc.push({
+            id: `video-${index}`,
+            title,
+            description,
+            url,
+            type: 'unknown'
+        });
+        return acc;
+    }, []);
 
 const buildProductRecord = ({
     id,
@@ -195,7 +228,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 setDescriptions(parsedDescriptions);
 
                 // Parse videos JSON
-                const videos = parseJsonArray(productData.videos || '[]');
+                const videos = normalizeProductVideos(productData.videos || '[]', t('products.detail.media.videoTitle'));
 
                 // Parse specifications JSON - API returns array format
                 let specifications: unknown = {};
@@ -250,13 +283,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                         .filter((d) => (d as { type: string }).type === 'description')
                         .map((d) => (d as { text: string }).text),
                     specifications,
-                    videos: videos.map((v, index) => ({
-                        id: `video-${index}`,
-                        title: (v as { title: string }).title || t('products.detail.media.videoTitle'),
-                        description: (v as { description?: string }).description || '',
-                        url: (v as { videoUrl: string }).videoUrl || '',
-                        type: 'unknown'
-                    })) as ProductVideo[]
+                    videos
                 });
 
                 setCurrentProduct(transformedProduct);
@@ -405,11 +432,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             ease: 'easeOut'
                         }}
                     >
-                        <ProductVideos productName={currentProduct?.name} videos={currentProduct?.videos?.map(v => ({
-                            title: v.title,
-                            videoUrl: v.url,
-                            description: v.description
-                        })) || []} />
+                        <ProductVideos productName={currentProduct?.name} videos={currentProduct?.videos || []} />
                     </motion.div>
                 );
             case 'specifications':
@@ -487,7 +510,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                         const productData = response.data as ApiProductData;
                         const featuredImage = parseImageUrl(productData.image, '');
                         const parsedDescriptions = parseJsonArray(productData.descriptions || '[]');
-                        const parsedVideos = parseJsonArray(productData.videos || '[]');
+                        const parsedVideos = normalizeProductVideos(productData.videos || '[]', t('products.detail.media.videoTitle'));
                         const normalizedProductId = toProductId(productData.id) ?? productId;
                         let specifications: unknown = {};
                         let specsArray: { label: string; value: string }[] = [];
@@ -541,13 +564,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                 .filter((d) => (d as { type: string }).type === 'description')
                                 .map((d) => (d as { text: string }).text),
                             specifications,
-                            videos: parsedVideos.map((v, index) => ({
-                                id: `video-${index}`,
-                                title: (v as { title: string }).title || t('products.detail.media.videoTitle'),
-                                description: (v as { description?: string }).description || '',
-                                url: (v as { videoUrl: string }).videoUrl || '',
-                                type: 'unknown'
-                            })) as ProductVideo[]
+                            videos: parsedVideos
                         });
                         setCurrentProduct(transformedProduct);
                         setErrorKey(null);

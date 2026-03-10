@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react'
 import productPlaceholder from '../assets/product-placeholder.svg'
+import { ProductVideoPreview } from '../components/ProductVideoPreview'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductsContext'
 import { useLanguage } from '../context/LanguageContext'
@@ -300,6 +301,8 @@ function ProductDetailPage() {
   const [productVideoErrors, setProductVideoErrors] = useState<Record<number, string>>({})
   const [actionMessage, setActionMessage] = useState('')
 
+  void descriptionVideoErrors
+  void productVideoErrors
   const uploadImageAsset = async (file: File) =>
     storeFileReference({
       file,
@@ -731,6 +734,8 @@ function ProductDetailPage() {
     setActionMessage(t(VIDEO_FILE_NOTICE))
   }
 
+  void handleDescriptionVideoFile
+  void handleProductVideoFile
   const handleMainImageFile = async (file: File | null) => {
     if (!file) return
     if (file.size > MAX_IMAGE_BYTES) {
@@ -1671,20 +1676,19 @@ function ProductDetailPage() {
                   )}
                   {item.type === 'video' && (
                     <div className="grid gap-2 md:grid-cols-[1.4fr_1fr]">
-                      <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
-                        <input
-                          type="file"
-                          accept="video/*"
-                          className="sr-only"
-                          onChange={(event) =>
-                            handleDescriptionVideoFile(index, event.target.files?.[0] ?? null)
-                          }
-                        />
-                        {t('Chọn video')}
-                      </label>
                       <input
                         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t('Nhập chú thích')}
+                        placeholder={t('Nh?p URL video YouTube ho?c file video c?ng khai')}
+                        value={item.url ?? ''}
+                        onChange={(event) => {
+                          const nextDescriptions = [...draft.descriptions]
+                          nextDescriptions[index] = { ...nextDescriptions[index], url: event.target.value }
+                          setDraft({ ...draft, descriptions: nextDescriptions })
+                        }}
+                      />
+                      <input
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                        placeholder={t('Nh?p ch? th?ch')}
                         value={item.caption ?? ''}
                         onChange={(event) => {
                           const nextDescriptions = [...draft.descriptions]
@@ -1692,57 +1696,21 @@ function ProductDetailPage() {
                           setDraft({ ...draft, descriptions: nextDescriptions })
                         }}
                       />
-                      {descriptionVideoErrors[index] && (
-                        <p className="text-xs text-rose-500">{descriptionVideoErrors[index]}</p>
-                      )}
                       {item.url && (
-                        isLocalBlobUrl(item.url) ? (
-                          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700 md:col-span-2">
-                            <p className="font-semibold">{t('Đã chọn tệp video cục bộ.')}</p>
-                            <p className="mt-1 text-[11px] text-amber-600">{t('Xem trước sẽ hiển thị sau khi lưu.')}</p>
-                            <button
-                              type="button"
-                              className="mt-2 inline-flex text-[11px] font-semibold text-rose-600"
-                              onClick={() => {
-                                const nextDescriptions = [...draft.descriptions]
-                                nextDescriptions[index] = { ...nextDescriptions[index], url: '' }
-                                setDraft({ ...draft, descriptions: nextDescriptions })
-                                setDescriptionVideoErrors((prev) => {
-                                  const next = { ...prev }
-                                  delete next[index]
-                                  return next
-                                })
-                              }}
-                            >
-                              {t('Xóa video')}
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="group relative overflow-hidden rounded-lg border border-slate-200 md:col-span-2">
-                            <video
-                              src={item.url}
-                              controls
-                              preload="metadata"
-                              className="h-44 w-full object-cover"
-                            />
-                            <button
-                              type="button"
-                              className="absolute right-2 top-2 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[10px] font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100"
-                              onClick={() => {
-                                const nextDescriptions = [...draft.descriptions]
-                                nextDescriptions[index] = { ...nextDescriptions[index], url: '' }
-                                setDraft({ ...draft, descriptions: nextDescriptions })
-                                setDescriptionVideoErrors((prev) => {
-                                  const next = { ...prev }
-                                  delete next[index]
-                                  return next
-                                })
-                              }}
-                            >
-                              {t('Xóa video')}
-                            </button>
-                          </div>
-                        )
+                        <div className="group relative overflow-hidden rounded-lg border border-slate-200 md:col-span-2">
+                          <ProductVideoPreview url={item.url} title={item.caption ?? item.text} />
+                          <button
+                            type="button"
+                            className="absolute right-2 top-2 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[10px] font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100"
+                            onClick={() => {
+                              const nextDescriptions = [...draft.descriptions]
+                              nextDescriptions[index] = { ...nextDescriptions[index], url: '' }
+                              setDraft({ ...draft, descriptions: nextDescriptions })
+                            }}
+                          >
+                            {t('X?a video')}
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
@@ -1835,67 +1803,32 @@ function ProductDetailPage() {
               draft.videos.map((video, index) => (
                 <div
                   key={`video-${index}`}
-                  className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-white p-3"
-                >
-                  <div className="grid gap-2">
-                    <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
-                      <input
-                        type="file"
-                        accept="video/*"
-                        className="sr-only"
-                        onChange={(event) =>
-                          handleProductVideoFile(index, event.target.files?.[0] ?? null)
-                        }
-                      />
-                      {t('Chọn video')}
-                    </label>
-                  </div>
-                  {productVideoErrors[index] && (
-                    <p className="text-xs text-rose-500">{productVideoErrors[index]}</p>
-                  )}
+                  className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-white p-3">
+                  <input
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    placeholder={t('Nh?p URL video YouTube ho?c file video c?ng khai')}
+                    value={video.url}
+                    onChange={(event) => {
+                      const nextVideos = [...draft.videos]
+                      nextVideos[index] = { ...nextVideos[index], url: event.target.value }
+                      setDraft({ ...draft, videos: nextVideos })
+                    }}
+                  />
                   {video.url && (
-                    isLocalBlobUrl(video.url) ? (
-                      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
-                        <p className="font-semibold">{t('Đã chọn tệp video cục bộ.')}</p>
-                        <p className="mt-1 text-[11px] text-amber-600">{t('Xem trước sẽ hiển thị sau khi lưu.')}</p>
-                        <button
-                          type="button"
-                          className="mt-2 inline-flex text-[11px] font-semibold text-rose-600"
-                          onClick={() => {
-                            const nextVideos = [...draft.videos]
-                            nextVideos[index] = { ...nextVideos[index], url: '' }
-                            setDraft({ ...draft, videos: nextVideos })
-                            setProductVideoErrors((prev) => {
-                              const next = { ...prev }
-                              delete next[index]
-                              return next
-                            })
-                          }}
-                        >
-                          {t('Xóa video')}
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="group relative overflow-hidden rounded-lg border border-slate-200">
-                        <video src={video.url} controls preload="metadata" className="h-44 w-full object-cover" />
-                        <button
-                          type="button"
-                          className="absolute right-2 top-2 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[10px] font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100"
-                          onClick={() => {
-                            const nextVideos = [...draft.videos]
-                            nextVideos[index] = { ...nextVideos[index], url: '' }
-                            setDraft({ ...draft, videos: nextVideos })
-                            setProductVideoErrors((prev) => {
-                              const next = { ...prev }
-                              delete next[index]
-                              return next
-                            })
-                          }}
-                        >
-                          {t('Xóa video')}
-                        </button>
-                      </div>
-                    )
+                    <div className="group relative overflow-hidden rounded-lg border border-slate-200">
+                      <ProductVideoPreview url={video.url} title={video.title} />
+                      <button
+                        type="button"
+                        className="absolute right-2 top-2 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[10px] font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100"
+                        onClick={() => {
+                          const nextVideos = [...draft.videos]
+                          nextVideos[index] = { ...nextVideos[index], url: '' }
+                          setDraft({ ...draft, videos: nextVideos })
+                        }}
+                      >
+                        {t('X?a video')}
+                      </button>
+                    </div>
                   )}
                   <input
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"

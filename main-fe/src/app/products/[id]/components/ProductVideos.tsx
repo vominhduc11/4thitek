@@ -8,53 +8,18 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import { useLanguage } from '@/context/LanguageContext';
-
-interface VideoItem {
-    title: string;
-    videoUrl: string;
-    description?: string;
-}
+import type { ProductVideo } from '@/types/product';
+import ResponsiveVideo from '@/components/shared/ResponsiveVideo';
 
 interface ProductVideosProps {
     productName?: string;
-    videos?: VideoItem[];
+    videos?: ProductVideo[];
 }
 
 export default function ProductVideos({ productName, videos = [] }: ProductVideosProps) {
     const { t } = useLanguage();
     const secondaryVideos = useMemo(() => videos.slice(1), [videos]);
-    // Helper function to extract YouTube video ID from URL
-    const getYouTubeVideoId = (url: string): string | null => {
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
-    };
 
-    // Helper function to get YouTube embed URL
-    const getYouTubeEmbedUrl = (url: string): string => {
-        console.log('Processing video URL:', url);
-
-        // Return empty string if no URL provided
-        if (!url || !url.trim()) {
-            console.log('Empty URL provided');
-            return '';
-        }
-
-        // If already an embed URL, return as is
-        if (url.includes('/embed/')) {
-            console.log('Already embed URL, returning:', url);
-            return url;
-        }
-
-        const videoId = getYouTubeVideoId(url);
-        if (videoId) {
-            const embedUrl = `https://www.youtube.com/embed/${videoId}`;
-            console.log('Generated embed URL:', embedUrl);
-            return embedUrl;
-        }
-        console.log('Not a YouTube URL, returning original:', url);
-        return url; // Return original URL if not YouTube
-    };
     if (videos.length === 0) {
         return (
             <section id="product-details" className="relative z-[60] min-h-screen">
@@ -75,8 +40,7 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
         );
     }
 
-    const videoList = videos;
-    const secondaryList = secondaryVideos;
+    const featuredVideo = videos[0];
 
     return (
         <section id="product-details" className="relative z-[60] min-h-screen">
@@ -85,21 +49,17 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                     {t('products.videos.title')}
                 </h2>
 
-                {/* Featured Video */}
-                {(videoList.length > 0) && (
+                {featuredVideo && (
                     <div className="mb-8 md:mb-12">
                         <div className="bg-gray-900/50 rounded-2xl overflow-hidden border border-gray-700/50">
                             <div className="aspect-video bg-gray-800 relative group">
-                                {videoList[0]?.videoUrl && videoList[0].videoUrl.trim() ? (
-                                    <iframe
+                                {featuredVideo.url.trim() ? (
+                                    <ResponsiveVideo
+                                        url={featuredVideo.url}
+                                        title={featuredVideo.title}
                                         className="w-full h-full"
-                                        src={getYouTubeEmbedUrl(videoList[0].videoUrl)}
-                                        title={videoList[0].title}
-                                        frameBorder="0"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                        allowFullScreen
-                                        onError={() => console.error('Failed to load video:', videoList[0].videoUrl)}
-                                    ></iframe>
+                                        videoClassName="w-full h-full object-cover"
+                                    />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center">
                                         <p className="text-gray-400 text-center">{t('products.videos.noVideo')}</p>
@@ -108,21 +68,20 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                             </div>
                             <div className="p-4 md:p-6">
                                 <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-2xl 2xl:text-2xl 3xl:text-4xl 4xl:text-5xl font-bold text-white mb-2">
-                                    {videoList[0]?.title || t('products.videos.featuredTitle').replace('{name}', productName || '')}
+                                    {featuredVideo.title || t('products.videos.featuredTitle').replace('{name}', productName || '')}
                                 </h3>
                                 <p className="text-gray-400 text-sm sm:text-base md:text-lg lg:text-xl xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">
-                                    {videoList[0]?.description || t('products.videos.featuredDescription')}
+                                    {featuredVideo.description || t('products.videos.featuredDescription')}
                                 </p>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Video Carousel/Grid */}
-                {secondaryList.length > 0 && (
-                    secondaryList.length <= 3 ? (
+                {secondaryVideos.length > 0 && (
+                    secondaryVideos.length <= 3 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-12">
-                            {secondaryList.map((video, index) => (
+                            {secondaryVideos.map((video, index) => (
                                 <motion.div
                                     key={index}
                                     initial={{ opacity: 0, y: 30 }}
@@ -131,24 +90,21 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                                     className="bg-gray-900/50 rounded-lg overflow-hidden border border-gray-700/30 hover:border-blue-400/50 transition-all duration-300 group cursor-pointer"
                                 >
                                     <div className="aspect-video bg-gray-800 relative">
-                                        {video.videoUrl && video.videoUrl.trim() ? (
-                                            <iframe
-                                                className="w-full h-full"
-                                                src={getYouTubeEmbedUrl(video.videoUrl)}
+                                        {video.url.trim() ? (
+                                            <ResponsiveVideo
+                                                url={video.url}
                                                 title={video.title}
-                                                frameBorder="0"
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                                allowFullScreen
-                                                onError={() => console.error('Failed to load video:', video.videoUrl)}
-                                            ></iframe>
+                                                className="w-full h-full"
+                                                videoClassName="w-full h-full object-cover"
+                                            />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center">
                                                 <p className="text-gray-400 text-center text-sm">{t('products.videos.unavailable')}</p>
                                             </div>
                                         )}
-                                        {('duration' in video) && (
+                                        {video.duration && (
                                             <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl px-2 py-1 rounded pointer-events-none">
-                                                {(video as { duration?: string }).duration}
+                                                {video.duration}
                                             </div>
                                         )}
                                     </div>
@@ -171,33 +127,30 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                                 slidesPerView={1}
                                 breakpoints={{
                                     640: { slidesPerView: 2 },
-                                    1024: { slidesPerView: 3 },
+                                    1024: { slidesPerView: 3 }
                                 }}
                                 navigation
                                 pagination={{ clickable: true }}
                             >
-                                {secondaryList.map((video, index) => (
+                                {secondaryVideos.map((video, index) => (
                                     <SwiperSlide key={index}>
                                         <div className="bg-gray-900/50 rounded-lg overflow-hidden border border-gray-700/30 hover:border-blue-400/50 transition-all duration-300 h-full flex flex-col">
                                             <div className="aspect-video bg-gray-800 relative">
-                                                {video.videoUrl && video.videoUrl.trim() ? (
-                                                    <iframe
-                                                        className="w-full h-full"
-                                                        src={getYouTubeEmbedUrl(video.videoUrl)}
+                                                {video.url.trim() ? (
+                                                    <ResponsiveVideo
+                                                        url={video.url}
                                                         title={video.title}
-                                                        frameBorder="0"
-                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                                        allowFullScreen
-                                                        onError={() => console.error('Failed to load video:', video.videoUrl)}
-                                                    ></iframe>
+                                                        className="w-full h-full"
+                                                        videoClassName="w-full h-full object-cover"
+                                                    />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center">
                                                         <p className="text-gray-400 text-center text-sm">{t('products.videos.unavailable')}</p>
                                                     </div>
                                                 )}
-                                                {('duration' in video) && (
+                                                {video.duration && (
                                                     <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl px-2 py-1 rounded pointer-events-none">
-                                                        {(video as { duration?: string }).duration}
+                                                        {video.duration}
                                                     </div>
                                                 )}
                                             </div>
@@ -216,7 +169,6 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                         </div>
                     )
                 )}
-
             </div>
         </section>
     );

@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { sanitizeHtml } from '@/utils/sanitize';
-import LazyIframe from '@/components/shared/LazyIframe';
+import ResponsiveVideo from '@/components/shared/ResponsiveVideo';
 import { useLanguage } from '@/context/LanguageContext';
 
 // Unused interface - commented out to fix linting
@@ -28,6 +28,33 @@ interface ProductDetailsProps {
     content?: ContentItem[];
     descriptions?: unknown[];
 }
+
+const pickString = (...values: unknown[]) => {
+    for (const value of values) {
+        if (typeof value !== 'string') continue;
+        const trimmed = value.trim();
+        if (trimmed) return trimmed;
+    }
+    return '';
+};
+
+const normalizeGalleryUrls = (item: Record<string, unknown>) => {
+    const source = item.gallery ?? item.images ?? item.urls;
+    if (!Array.isArray(source)) {
+        return [] as string[];
+    }
+    return source
+        .map((entry) => {
+            if (typeof entry === 'string') {
+                return entry.trim();
+            }
+            if (entry && typeof entry === 'object') {
+                return pickString((entry as { url?: unknown }).url);
+            }
+            return '';
+        })
+        .filter(Boolean);
+};
 
 export default function ProductDetails({ description, content, descriptions }: ProductDetailsProps) {
     const { t } = useLanguage();
@@ -122,14 +149,11 @@ export default function ProductDetails({ description, content, descriptions }: P
                 return (
                     <div key={index} className="w-full">
                         {item.videoUrl ? (
-                            <LazyIframe
-                                src={item.videoUrl.includes('youtube.com') || item.videoUrl.includes('youtu.be')
-                                    ? `https://www.youtube.com/embed/${item.videoUrl.includes('watch?v=')
-                                        ? item.videoUrl.split('watch?v=')[1].split('&')[0]
-                                        : item.videoUrl.split('/').pop()}`
-                                    : item.videoUrl}
+                            <ResponsiveVideo
+                                url={item.videoUrl}
                                 title={item.videoTitle || item.content || t('products.detail.media.videoTitle')}
                                 className="w-full aspect-video bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50"
+                                videoClassName="w-full aspect-video bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 object-cover"
                             />
                         ) : (
                             <div className="w-full aspect-video bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 flex items-center justify-center bg-gray-800">
@@ -158,6 +182,9 @@ export default function ProductDetails({ description, content, descriptions }: P
     // Render descriptions from API
     const renderApiDescription = (item: unknown, index: number) => {
         const typedItem = item as { type: string; text?: string; [key: string]: unknown };
+        const mediaUrl = pickString(typedItem.url, typedItem.imageUrl, typedItem.link);
+        const videoUrl = pickString(typedItem.url, typedItem.videoUrl);
+        const galleryUrls = normalizeGalleryUrls(typedItem);
         switch (typedItem.type) {
             case 'title':
                 return (
@@ -178,9 +205,9 @@ export default function ProductDetails({ description, content, descriptions }: P
                 return (
                     <div key={index} className="w-full">
                         <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 aspect-[2/1] overflow-hidden">
-                            {(typedItem.imageUrl as string) || (typedItem.link as string) ? (
+                            {mediaUrl ? (
                                 <Image
-                                    src={(typedItem.imageUrl as string) || (typedItem.link as string)}
+                                    src={mediaUrl}
                                     alt={t('products.detail.media.detailImageAlt')}
                                     width={1200}
                                     height={400}
@@ -201,15 +228,16 @@ export default function ProductDetails({ description, content, descriptions }: P
                         )}
                     </div>
                 );
+            case 'gallery':
             case 'images':
                 return (
                     <div key={index} className="w-full">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {(typedItem.images as Array<{ url: string; public_id: string }>)?.map((img, imgIndex) => (
+                            {galleryUrls.map((url, imgIndex) => (
                                 <div key={imgIndex} className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 aspect-square overflow-hidden">
-                                    {img.url ? (
+                                    {url ? (
                                         <Image
-                                            src={img.url}
+                                            src={url}
                                             alt={t('products.detail.media.detailImageAltIndexed').replace('{index}', String(imgIndex + 1))}
                                             width={400}
                                             height={400}
@@ -235,25 +263,22 @@ export default function ProductDetails({ description, content, descriptions }: P
             case 'video':
                 return (
                     <div key={index} className="w-full">
-                        {(typedItem.videoUrl as string) ? (
-                            <LazyIframe
-                                src={(typedItem.videoUrl as string).includes('youtube.com') || (typedItem.videoUrl as string).includes('youtu.be')
-                                    ? `https://www.youtube.com/embed/${(typedItem.videoUrl as string).includes('watch?v=')
-                                        ? (typedItem.videoUrl as string).split('watch?v=')[1].split('&')[0]
-                                        : (typedItem.videoUrl as string).split('/').pop()}`
-                                    : (typedItem.videoUrl as string)}
-                                title={typedItem.text || t('products.detail.media.videoTitle')}
+                        {videoUrl ? (
+                            <ResponsiveVideo
+                                url={videoUrl}
+                                title={pickString(typedItem.text, typedItem.title) || t('products.detail.media.videoTitle')}
                                 className="w-full aspect-video bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50"
+                                videoClassName="w-full aspect-video bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 object-cover"
                             />
                         ) : (
                             <div className="w-full aspect-video bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl border border-gray-700/50 flex items-center justify-center bg-gray-800">
                                 <p className="text-gray-400 text-center">{t('products.detail.media.videoUnavailable')}</p>
                             </div>
                         )}
-                        {typedItem.text && (
+                        {pickString(typedItem.text, typedItem.title) && (
                             <div className="mt-4">
                                 <h4 className="text-lg md:text-xl lg:text-2xl xl:text-3xl 2xl:text-3xl 3xl:text-5xl 4xl:text-6xl font-semibold text-white mb-2">
-                                    {typedItem.text}
+                                    {pickString(typedItem.text, typedItem.title)}
                                 </h4>
                             </div>
                         )}

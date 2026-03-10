@@ -20,6 +20,7 @@ import {
   X,
 } from 'lucide-react'
 import Modal, { type Styles } from 'react-modal'
+import { ProductVideoPreview } from '../components/ProductVideoPreview'
 import { LoadingRows } from '../components/ui-kit'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductsContext'
@@ -237,6 +238,8 @@ function ProductsPage() {
   const [descriptionImageErrors, setDescriptionImageErrors] = useState<Record<number, string>>({})
   const [descriptionVideoErrors, setDescriptionVideoErrors] = useState<Record<number, string>>({})
   const [productVideoErrors, setProductVideoErrors] = useState<Record<number, string>>({})
+  void descriptionVideoErrors
+  void productVideoErrors
   const [activeTab, setActiveTab] = useState<'basic' | 'description' | 'specs' | 'videos'>('basic')
   const [currentPage, setCurrentPage] = useState(0)
   const [actionMessage, setActionMessage] = useState('')
@@ -571,6 +574,8 @@ function ProductsPage() {
       [index]: t('Tải tệp video chưa được hỗ trợ. Vui lòng dùng URL video.'),
     }))
   }
+  void handleDescriptionVideoFile
+  void handleProductVideoFile
 
   const removeDescriptionItem = (index: number) => {
     setNewProduct((prev) => ({
@@ -1746,20 +1751,19 @@ function ProductsPage() {
                       )}
                       {d.type === 'video' && (
                         <div className="grid gap-2 md:grid-cols-[1.4fr_1fr]">
-                          <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
-                            <input
-                              type="file"
-                              accept="video/*"
-                              className="sr-only"
-                              onChange={(e) =>
-                                handleDescriptionVideoFile(idx, e.target.files?.[0] ?? null)
-                              }
-                            />
-                            {t('Chọn video')}
-                          </label>
                           <input
                             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                            placeholder={t('Nhập chú thích')}
+                            placeholder={t('Nh?p URL video YouTube ho?c file video c?ng khai')}
+                            value={d.url ?? ''}
+                            onChange={(e) => {
+                              const copy = [...newProduct.descriptions]
+                              copy[idx] = { ...copy[idx], url: e.target.value }
+                              setNewProduct({ ...newProduct, descriptions: copy })
+                            }}
+                          />
+                          <input
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                            placeholder={t('Nh?p ch? th?ch')}
                             value={d.caption ?? ''}
                             onChange={(e) => {
                               const copy = [...newProduct.descriptions]
@@ -1767,16 +1771,9 @@ function ProductsPage() {
                               setNewProduct({ ...newProduct, descriptions: copy })
                             }}
                           />
-                          {descriptionVideoErrors[idx] && (
-                            <p className="text-xs text-rose-500">{descriptionVideoErrors[idx]}</p>
-                          )}
                           {d.url && (
                             <div className="group relative overflow-hidden rounded-lg border border-slate-200 md:col-span-2">
-                              <video
-                                src={d.url}
-                                controls
-                                className="h-44 w-full object-cover"
-                              />
+                              <ProductVideoPreview url={d.url} title={d.caption} />
                               <button
                                 type="button"
                                 className="absolute right-2 top-2 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[10px] font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100"
@@ -1784,14 +1781,9 @@ function ProductsPage() {
                                   const copy = [...newProduct.descriptions]
                                   copy[idx] = { ...copy[idx], url: '' }
                                   setNewProduct({ ...newProduct, descriptions: copy })
-                                  setDescriptionVideoErrors((prev) => {
-                                    const next = { ...prev }
-                                    delete next[idx]
-                                    return next
-                                  })
                                 }}
                               >
-                                {t('Xóa video')}
+                                {t('X?a video')}
                               </button>
                             </div>
                           )}
@@ -1974,25 +1966,19 @@ function ProductsPage() {
                 ) : (
                   newProduct.videos.map((v, idx) => (
                     <div key={idx} className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-white p-3">
-                      <div className="grid gap-2">
-                        <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
-                          <input
-                            type="file"
-                            accept="video/*"
-                            className="sr-only"
-                            onChange={(e) =>
-                              handleProductVideoFile(idx, e.target.files?.[0] ?? null)
-                            }
-                          />
-                          {t('Chọn video')}
-                        </label>
-                      </div>
-                      {productVideoErrors[idx] && (
-                        <p className="text-xs text-rose-500">{productVideoErrors[idx]}</p>
-                      )}
+                      <input
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                        placeholder={t('Nh?p URL video YouTube ho?c file video c?ng khai')}
+                        value={v.url}
+                        onChange={(e) => {
+                          const copy = [...newProduct.videos]
+                          copy[idx] = { ...copy[idx], url: e.target.value }
+                          setNewProduct({ ...newProduct, videos: copy })
+                        }}
+                      />
                       {v.url && (
                         <div className="group relative overflow-hidden rounded-lg border border-slate-200">
-                          <video src={v.url} controls className="h-44 w-full object-cover" />
+                          <ProductVideoPreview url={v.url} title={v.title} />
                           <button
                             type="button"
                             className="absolute right-2 top-2 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[10px] font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100"
@@ -2000,14 +1986,9 @@ function ProductsPage() {
                               const copy = [...newProduct.videos]
                               copy[idx] = { ...copy[idx], url: '' }
                               setNewProduct({ ...newProduct, videos: copy })
-                              setProductVideoErrors((prev) => {
-                                const next = { ...prev }
-                                delete next[idx]
-                                return next
-                              })
                             }}
                           >
-                            {t('Xóa video')}
+                            {t('X?a video')}
                           </button>
                         </div>
                       )}
