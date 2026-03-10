@@ -13,6 +13,7 @@ import 'widgets/fade_slide_in.dart';
 const double _serialSectionGap = 18;
 const double _serialItemGap = 16;
 const double _serialMinTapTarget = 44;
+final RegExp _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
 enum _SerialAssignResult { assigned, duplicate, invalid, full }
 
@@ -35,6 +36,7 @@ class WarrantyActivationScreen extends StatefulWidget {
 
 class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   final _customerNameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -71,6 +73,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
       }
     }
     _customerNameController.dispose();
+    _emailController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
     _scrollController.dispose();
@@ -240,6 +243,18 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Tên khách hàng',
                           prefixIcon: Icon(Icons.person_outline),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        enabled: !isFullyActivated,
+                        decoration: const InputDecoration(
+                          labelText: 'Email khách hàng',
+                          prefixIcon: Icon(Icons.alternate_email_outlined),
+                          helperText:
+                              'Dùng để tạo tài khoản khách hàng và gửi thông tin bảo hành.',
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -798,13 +813,19 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   Future<void> _handleSubmit(Order order) async {
     final warrantyController = WarrantyScope.of(context);
     final customerName = _customerNameController.text.trim();
+    final customerEmail = _emailController.text.trim();
     final customerPhone = _phoneController.text.trim();
     final customerAddress = _addressController.text.trim();
 
     if (customerName.isEmpty ||
-        customerPhone.isEmpty ||
-        customerAddress.isEmpty) {
+        customerEmail.isEmpty ||
+        customerPhone.isEmpty) {
       _showSnackBar('Vui lòng nhập đầy đủ thông tin khách hàng.');
+      return;
+    }
+
+    if (!_emailPattern.hasMatch(customerEmail)) {
+      _showSnackBar('Vui lĂ²ng nháº­p email há»£p lá»‡.');
       return;
     }
 
@@ -847,6 +868,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
             productSku: item.product.sku,
             serial: normalized,
             customerName: customerName,
+            customerEmail: customerEmail,
             customerPhone: customerPhone,
             customerAddress: customerAddress,
             warrantyMonths: item.product.warrantyMonths,

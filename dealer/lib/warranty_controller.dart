@@ -18,6 +18,7 @@ class WarrantyActivationRecord {
     required this.productSku,
     required this.serial,
     required this.customerName,
+    required this.customerEmail,
     required this.customerPhone,
     required this.customerAddress,
     required this.warrantyMonths,
@@ -30,6 +31,7 @@ class WarrantyActivationRecord {
   final String productSku;
   final String serial;
   final String customerName;
+  final String customerEmail;
   final String customerPhone;
   final String customerAddress;
   final int warrantyMonths;
@@ -887,15 +889,19 @@ class WarrantyController extends ChangeNotifier {
           productId,
       serial: serial,
       customerName: _resolveCustomerField(
-        cached?.customerName,
+        _normalizeString(json['customerName']) ?? cached?.customerName,
         order?.receiverName,
       ),
+      customerEmail: _resolveCustomerField(
+        _normalizeString(json['customerEmail']) ?? cached?.customerEmail,
+        '',
+      ),
       customerPhone: _resolveCustomerField(
-        cached?.customerPhone,
+        _normalizeString(json['customerPhone']) ?? cached?.customerPhone,
         order?.receiverPhone,
       ),
       customerAddress: _resolveCustomerField(
-        cached?.customerAddress,
+        _normalizeString(json['customerAddress']) ?? cached?.customerAddress,
         order?.receiverAddress,
       ),
       warrantyMonths:
@@ -928,6 +934,10 @@ class WarrantyController extends ChangeNotifier {
         ...?remoteOrderId == null
             ? null
             : <String, dynamic>{'orderId': remoteOrderId},
+        'customerName': record.customerName,
+        'customerEmail': record.customerEmail,
+        'customerPhone': record.customerPhone,
+        'customerAddress': record.customerAddress,
         'warrantyStart': record.activatedAt.toUtc().toIso8601String(),
         'warrantyEnd': record.expiresAt.toUtc().toIso8601String(),
         'status': 'ACTIVE',
@@ -1259,6 +1269,7 @@ Map<String, dynamic> _activationToJson(WarrantyActivationRecord record) {
     'productSku': record.productSku,
     'serial': record.serial,
     'customerName': record.customerName,
+    'customerEmail': record.customerEmail,
     'customerPhone': record.customerPhone,
     'customerAddress': record.customerAddress,
     'warrantyMonths': record.warrantyMonths,
@@ -1278,4 +1289,3 @@ Map<String, dynamic> _serialToJson(ImportedSerialRecord record) {
     'warehouseName': record.warehouseName,
   };
 }
-

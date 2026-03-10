@@ -3,32 +3,40 @@ package com.devwonder.backend.service;
 import com.devwonder.backend.dto.notify.CreateNotifyRequest;
 import com.devwonder.backend.dto.warranty.CreateWarrantyRegistrationRequest;
 import com.devwonder.backend.dto.warranty.WarrantyRegistrationResponse;
+import com.devwonder.backend.entity.Account;
 import com.devwonder.backend.entity.Customer;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
+import com.devwonder.backend.entity.Role;
 import com.devwonder.backend.entity.WarrantyRegistration;
 import com.devwonder.backend.entity.enums.NotifyType;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.entity.enums.WarrantyStatus;
+import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ConflictException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
+import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.CustomerRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
+import com.devwonder.backend.repository.RoleRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,12 +44,20 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class DealerWarrantyManagementService {
 
+    private static final String TEMP_PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#$%";
+    private static final int TEMP_PASSWORD_LENGTH = 12;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     private final WarrantyRegistrationRepository warrantyRegistrationRepository;
     private final ProductSerialRepository productSerialRepository;
     private final DealerRepository dealerRepository;
     private final CustomerRepository customerRepository;
+    private final AccountRepository accountRepository;
     private final OrderRepository orderRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
     private final NotificationService notificationService;
+    private final WarrantyMailService warrantyMailService;
 
     @Transactional(readOnly = true)
     public List<WarrantyRegistrationResponse> list(Long dealerId) {
@@ -89,8 +105,10 @@ public class DealerWarrantyManagementService {
         }
 
         WarrantyRegistration registration = new WarrantyRegistration();
-        apply(registration, request, productSerial, true);
-        return toResponse(warrantyRegistrationRepository.save(registration));
+        WarrantyApplyResult applyResult = apply(registration, request, productSerial, true);
+        WarrantyRegistration saved = warrantyRegistrationRepository.save(registration);
+        sendWarrantyEmailIfNeeded(saved, applyResult);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -106,8 +124,10 @@ public class DealerWarrantyManagementService {
                     throw new ConflictException("Warranty registration already exists for this serial");
                 });
 
-        apply(registration, request, productSerial, false);
-        return toResponse(warrantyRegistrationRepository.save(registration));
+        WarrantyApplyResult applyResult = apply(registration, request, productSerial, false);
+        WarrantyRegistration saved = warrantyRegistrationRepository.save(registration);
+        sendWarrantyEmailIfNeeded(saved, applyResult);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -117,7 +137,7 @@ public class DealerWarrantyManagementService {
         warrantyRegistrationRepository.delete(registration);
     }
 
-    private void apply(
+    private WarrantyApplyResult apply(
             WarrantyRegistration registration,
             CreateWarrantyRegistrationRequest request,
             ProductSerial productSerial,
@@ -129,15 +149,32 @@ public class DealerWarrantyManagementService {
         registration.setProductSerial(productSerial);
 
         Dealer dealer = resolveDealer(request, productSerial);
-        Customer customer = resolveCustomer(request, productSerial);
+        ResolvedCustomer resolvedCustomer = resolveCustomer(request, productSerial);
+        Customer customer = resolvedCustomer.customer();
         Order order = resolveOrder(request.orderId());
 
         registration.setDealer(dealer);
         registration.setCustomer(customer);
         registration.setOrder(order);
-        registration.setCustomerName(customer == null ? registration.getCustomerName() : customer.getFullName());
-        registration.setCustomerEmail(customer == null ? registration.getCustomerEmail() : customer.getEmail());
-        registration.setCustomerPhone(customer == null ? registration.getCustomerPhone() : customer.getPhone());
+        registration.setCustomerName(firstNonBlank(
+                request.customerName(),
+                customer == null ? null : customer.getFullName(),
+                registration.getCustomerName()
+        ));
+        registration.setCustomerEmail(firstNonBlank(
+                request.customerEmail(),
+                customer == null ? null : customer.getEmail(),
+                registration.getCustomerEmail()
+        ));
+        registration.setCustomerPhone(firstNonBlank(
+                request.customerPhone(),
+                customer == null ? null : customer.getPhone(),
+                registration.getCustomerPhone()
+        ));
+        registration.setCustomerAddress(firstNonBlank(
+                request.customerAddress(),
+                registration.getCustomerAddress()
+        ));
 
         Instant warrantyStart = resolveWarrantyStart(request.warrantyStart(), registration.getWarrantyStart(), creating);
         registration.setWarrantyStart(warrantyStart);
@@ -159,6 +196,11 @@ public class DealerWarrantyManagementService {
         productSerialRepository.save(productSerial);
 
         createWarrantyNotifications(registration, customer, dealer, creating, previousStatus, previousWarrantyEnd);
+        return new WarrantyApplyResult(
+                dealer,
+                resolvedCustomer,
+                status == WarrantyStatus.ACTIVE && (creating || previousStatus != WarrantyStatus.ACTIVE)
+        );
     }
 
     private Dealer resolveDealer(CreateWarrantyRegistrationRequest request, ProductSerial productSerial) {
@@ -174,17 +216,24 @@ public class DealerWarrantyManagementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Dealer not found"));
     }
 
-    private Customer resolveCustomer(CreateWarrantyRegistrationRequest request, ProductSerial productSerial) {
+    private ResolvedCustomer resolveCustomer(CreateWarrantyRegistrationRequest request, ProductSerial productSerial) {
         Long customerId = request.customerId();
-        if (customerId == null && productSerial.getCustomer() != null) {
-            customerId = productSerial.getCustomer().getId();
+        if (customerId != null) {
+            Long finalCustomerId = customerId;
+            Customer customer = customerRepository.findById(finalCustomerId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+            return new ResolvedCustomer(customer, false, null);
         }
-        if (customerId == null) {
-            return null;
+
+        String customerEmail = normalize(request.customerEmail());
+        if (customerEmail != null) {
+            return findOrCreateCustomer(request, customerEmail);
         }
-        Long finalCustomerId = customerId;
-        return customerRepository.findById(finalCustomerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+
+        if (productSerial.getCustomer() != null) {
+            return new ResolvedCustomer(productSerial.getCustomer(), false, null);
+        }
+        return new ResolvedCustomer(null, false, null);
     }
 
     private Order resolveOrder(Long orderId) {
@@ -225,6 +274,10 @@ public class DealerWarrantyManagementService {
                 registration.getDealer() == null ? null : registration.getDealer().getId(),
                 registration.getCustomer() == null ? null : registration.getCustomer().getId(),
                 registration.getOrder() == null ? null : registration.getOrder().getId(),
+                registration.getCustomerName(),
+                registration.getCustomerEmail(),
+                registration.getCustomerPhone(),
+                registration.getCustomerAddress(),
                 registration.getWarrantyStart(),
                 registration.getWarrantyEnd(),
                 registration.getStatus(),
@@ -312,5 +365,108 @@ public class DealerWarrantyManagementService {
         String serial = productSerial.getSerial() == null ? "UNKNOWN" : productSerial.getSerial().replaceAll("[^A-Za-z0-9]", "");
         String suffix = serial.length() <= 8 ? serial : serial.substring(serial.length() - 8);
         return "WAR-" + suffix.toUpperCase();
+    }
+
+    private ResolvedCustomer findOrCreateCustomer(CreateWarrantyRegistrationRequest request, String customerEmail) {
+        return customerRepository.findByEmailIgnoreCase(customerEmail)
+                .or(() -> customerRepository.findByUsername(customerEmail))
+                .map(customer -> new ResolvedCustomer(customer, false, null))
+                .orElseGet(() -> createCustomerForWarranty(request, customerEmail));
+    }
+
+    private ResolvedCustomer createCustomerForWarranty(
+            CreateWarrantyRegistrationRequest request,
+            String customerEmail
+    ) {
+        Account existingByEmail = accountRepository.findByEmailIgnoreCase(customerEmail).orElse(null);
+        if (existingByEmail != null && !(existingByEmail instanceof Customer)) {
+            throw new ConflictException("Customer email already belongs to another account");
+        }
+
+        Account existingByUsername = accountRepository.findByUsername(customerEmail).orElse(null);
+        if (existingByUsername != null && !(existingByUsername instanceof Customer)) {
+            throw new ConflictException("Customer email already belongs to another account");
+        }
+
+        String customerPhone = normalize(request.customerPhone());
+        if (customerPhone != null) {
+            customerRepository.findByPhone(customerPhone).ifPresent(existing -> {
+                throw new ConflictException("Customer phone already exists");
+            });
+        }
+
+        String generatedPassword = generateTemporaryPassword();
+        Customer customer = new Customer();
+        customer.setUsername(customerEmail);
+        customer.setEmail(customerEmail);
+        customer.setPassword(passwordEncoder.encode(generatedPassword));
+        customer.setFullName(firstNonBlank(request.customerName(), customerEmail));
+        customer.setPhone(customerPhone);
+        customer.setRoles(new HashSet<>(List.of(resolveRole("CUSTOMER", "Default customer role"))));
+        Customer savedCustomer = customerRepository.save(customer);
+        return new ResolvedCustomer(savedCustomer, true, generatedPassword);
+    }
+
+    private void sendWarrantyEmailIfNeeded(WarrantyRegistration registration, WarrantyApplyResult applyResult) {
+        if (registration == null || applyResult == null || !applyResult.shouldSendActivationEmail()) {
+            return;
+        }
+        Customer customer = applyResult.customerResolution().customer();
+        if (customer == null) {
+            return;
+        }
+        warrantyMailService.sendWarrantyActivatedEmail(
+                customer,
+                applyResult.dealer(),
+                registration.getProductSerial(),
+                registration,
+                applyResult.customerResolution().generatedPassword()
+        );
+    }
+
+    private Role resolveRole(String name, String description) {
+        return roleRepository.findByName(name).orElseGet(() -> {
+            Role role = new Role();
+            role.setName(name);
+            role.setDescription(description);
+            return roleRepository.save(role);
+        });
+    }
+
+    private String generateTemporaryPassword() {
+        StringBuilder builder = new StringBuilder(TEMP_PASSWORD_LENGTH);
+        for (int i = 0; i < TEMP_PASSWORD_LENGTH; i++) {
+            int index = SECURE_RANDOM.nextInt(TEMP_PASSWORD_CHARS.length());
+            builder.append(TEMP_PASSWORD_CHARS.charAt(index));
+        }
+        return builder.toString();
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            String normalized = normalize(value);
+            if (normalized != null) {
+                return normalized;
+            }
+        }
+        return null;
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private record ResolvedCustomer(Customer customer, boolean created, String generatedPassword) {
+    }
+
+    private record WarrantyApplyResult(
+            Dealer dealer,
+            ResolvedCustomer customerResolution,
+            boolean shouldSendActivationEmail
+    ) {
     }
 }

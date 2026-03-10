@@ -19,6 +19,10 @@ public final class DealerRequestSupport {
                 dealerId,
                 request.customerId(),
                 request.orderId(),
+                request.customerName(),
+                request.customerEmail(),
+                request.customerPhone(),
+                request.customerAddress(),
                 request.warrantyStart(),
                 request.warrantyEnd(),
                 request.status()
