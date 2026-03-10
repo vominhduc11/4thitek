@@ -33,6 +33,7 @@ class CartScreen extends StatelessWidget {
     final totalAfterDiscount = cart.totalAfterDiscount;
     final vatAmount = cart.vatAmount;
     final total = cart.total;
+    final nextDiscountTarget = cart.nextDiscountTarget;
     final isTablet = AppBreakpoints.isTablet(context);
     final isLandscapePhone =
         MediaQuery.orientationOf(context) == Orientation.landscape && !isTablet;
@@ -161,26 +162,18 @@ class CartScreen extends StatelessWidget {
         ),
       ]);
 
-      if (cart.totalItems < 10) {
+      if (nextDiscountTarget != null &&
+          nextDiscountTarget.targetQuantity > cart.totalItems) {
         rows.addAll([
           const SizedBox(height: 6),
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              texts.buyMoreHint(target: 10, current: cart.totalItems),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colors.onSurfaceVariant,
+              texts.buyMoreHint(
+                targetQuantity: nextDiscountTarget.targetQuantity,
+                targetPercent: nextDiscountTarget.percent,
+                current: cart.totalItems,
               ),
-            ),
-          ),
-        ]);
-      } else if (cart.totalItems < 20) {
-        rows.addAll([
-          const SizedBox(height: 6),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              texts.buyMoreHint(target: 20, current: cart.totalItems),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colors.onSurfaceVariant,
               ),
@@ -721,10 +714,15 @@ class _CartTexts {
       ? 'Product is temporarily unavailable'
       : 'Sản phẩm tạm ngưng phân phối';
 
-  String buyMoreHint({required int target, required int current}) {
-    final remaining = target - current;
+  String buyMoreHint({
+    required int targetQuantity,
+    required int targetPercent,
+    required int current,
+  }) {
+    final remaining = targetQuantity - current;
+    final target = targetPercent;
     if (isEnglish) {
-      return 'Buy $remaining more products to get $target% off.';
+      return 'Buy $remaining more products to get $targetPercent% off.';
     }
     return 'Mua thêm $remaining sản phẩm để giảm $target%.';
   }

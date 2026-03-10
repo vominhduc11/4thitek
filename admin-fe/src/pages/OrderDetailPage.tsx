@@ -1,4 +1,5 @@
 import { ArrowLeft } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAdminData, type OrderStatus } from '../context/AdminDataContext'
 import { useToast } from '../context/ToastContext'
@@ -17,9 +18,19 @@ function OrderDetailPage() {
   const decodedId = decodeURIComponent(id)
   const navigate = useNavigate()
   const { notify } = useToast()
-  const { orders, updateOrderStatus, deleteOrder } = useAdminData()
+  const { orders, updateOrderStatus, recordOrderPayment, deleteOrder } = useAdminData()
+  const [paymentAmount, setPaymentAmount] = useState('')
+  const [transactionCode, setTransactionCode] = useState('')
+  const [paymentNote, setPaymentNote] = useState('')
 
   const order = orders.find((item) => item.id === decodedId)
+
+  useEffect(() => {
+    if (!order) return
+    setPaymentAmount(order.outstandingAmount > 0 ? String(order.outstandingAmount) : '')
+    setTransactionCode('')
+    setPaymentNote('')
+  }, [order?.id, order?.outstandingAmount])
 
   if (!order) {
     return (
@@ -40,6 +51,19 @@ function OrderDetailPage() {
       </PagePanel>
     )
   }
+
+  const paymentMethodLabel =
+    order.paymentMethod === 'debt' ? 'Công nợ' : 'Chuyển khoản ngân hàng'
+  const paymentStatusLabel =
+    order.paymentStatus === 'paid'
+      ? 'Đã thanh toán'
+      : order.paymentStatus === 'debt_recorded'
+        ? 'Ghi nhận công nợ'
+        : order.paymentStatus === 'cancelled'
+          ? 'Đã hủy'
+          : order.paymentStatus === 'failed'
+            ? 'Thất bại'
+            : 'Chưa thanh toán'
 
   return (
     <PagePanel>
@@ -71,6 +95,18 @@ function OrderDetailPage() {
             <p>
               <span className="font-semibold text-slate-900">Tong tien:</span>{' '}
               {formatCurrency(order.total)}
+            </p>
+            <p>
+              <span className="font-semibold text-slate-900">Thanh toán:</span>{' '}
+              {paymentMethodLabel} • {paymentStatusLabel}
+            </p>
+            <p>
+              <span className="font-semibold text-slate-900">Đã thu:</span>{' '}
+              {formatCurrency(order.paidAmount)}
+            </p>
+            <p>
+              <span className="font-semibold text-slate-900">Còn lại:</span>{' '}
+              {formatCurrency(order.outstandingAmount)}
             </p>
             <p>
               <span className="font-semibold text-slate-900">Dia chi:</span> {order.address}
@@ -128,6 +164,78 @@ function OrderDetailPage() {
               Hoan tat nhanh
             </PrimaryButton>
           </div>
+
+          {order.outstandingAmount > 0 ? (
+            <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
+              <p className="text-sm font-semibold text-emerald-800">Ghi nhận thanh toán thủ công</p>
+              <p className="mt-1 text-xs text-emerald-700">
+                Dùng khi cần xác nhận tiền đã nhận ngoài webhook tự động.
+              </p>
+              <div className="mt-3 grid gap-3">
+                <input
+                  className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  min="1"
+                  onChange={(event) => setPaymentAmount(event.target.value)}
+                  placeholder="Số tiền"
+                  type="number"
+                  value={paymentAmount}
+                />
+                <input
+                  className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  onChange={(event) => setTransactionCode(event.target.value)}
+                  placeholder="Mã giao dịch (tuỳ chọn)"
+                  value={transactionCode}
+                />
+                <textarea
+                  className="min-h-24 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  onChange={(event) => setPaymentNote(event.target.value)}
+                  placeholder="Ghi chú nội bộ"
+                  value={paymentNote}
+                />
+              </div>
+              <div className="mt-3">
+                <PrimaryButton
+                  onClick={async () => {
+                    const amount = Number(paymentAmount)
+                    if (Number.isNaN(amount) || amount <= 0) {
+                      notify('Số tiền thanh toán không hợp lệ', {
+                        title: 'Orders',
+                        variant: 'error',
+                      })
+                      return
+                    }
+                    try {
+                      await recordOrderPayment(order.id, {
+                        amount,
+                        method: order.paymentMethod,
+                        channel:
+                          order.paymentMethod === 'bank_transfer'
+                            ? 'Admin manual bank transfer confirmation'
+                            : 'Admin manual payment confirmation',
+                        transactionCode: transactionCode.trim() || undefined,
+                        note: paymentNote.trim() || undefined,
+                      })
+                      notify(`Đã ghi nhận thanh toán cho đơn ${order.id}`, {
+                        title: 'Orders',
+                        variant: 'success',
+                      })
+                    } catch (error) {
+                      notify(
+                        error instanceof Error ? error.message : 'Không ghi nhận được thanh toán',
+                        {
+                          title: 'Orders',
+                          variant: 'error',
+                        },
+                      )
+                    }
+                  }}
+                  type="button"
+                >
+                  Ghi nhận thanh toán
+                </PrimaryButton>
+              </div>
+            </div>
+          ) : null}
 
           <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50/70 p-3">
             <p className="text-sm font-semibold text-rose-700">Xóa đơn hàng</p>

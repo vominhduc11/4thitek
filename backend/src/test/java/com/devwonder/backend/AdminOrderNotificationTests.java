@@ -1,6 +1,10 @@
 package com.devwonder.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
 import com.devwonder.backend.entity.Dealer;
@@ -11,18 +15,27 @@ import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
 import com.devwonder.backend.repository.DealerRepository;
+import com.devwonder.backend.repository.DealerSupportTicketRepository;
 import com.devwonder.backend.repository.NotifyRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.service.AdminManagementService;
 import com.devwonder.backend.service.DealerPortalService;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Properties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "app.mail.enabled=true",
+        "app.mail.from=test@4thitek.local"
+})
 class AdminOrderNotificationTests {
 
     @Autowired
@@ -40,11 +53,25 @@ class AdminOrderNotificationTests {
     @Autowired
     private DealerPortalService dealerPortalService;
 
+    @Autowired
+    private DealerSupportTicketRepository dealerSupportTicketRepository;
+
+    @MockBean
+    private org.springframework.mail.javamail.JavaMailSender javaMailSender;
+
+    @MockBean
+    private SimpMessagingTemplate messagingTemplate;
+
     @BeforeEach
     void setUp() {
         notifyRepository.deleteAll();
+        dealerSupportTicketRepository.deleteAll();
         orderRepository.deleteAll();
         dealerRepository.deleteAll();
+        reset(javaMailSender, messagingTemplate);
+        when(javaMailSender.createMimeMessage()).thenReturn(
+                new MimeMessage(Session.getInstance(new Properties()))
+        );
     }
 
     @Test
@@ -60,9 +87,15 @@ class AdminOrderNotificationTests {
         List<Notify> notifications = notifyRepository.findByAccountIdOrderByCreatedAtDesc(dealer.getId());
         assertThat(notifications).hasSize(1);
         assertThat(notifications.get(0).getType()).isEqualTo(NotifyType.ORDER);
-        assertThat(notifications.get(0).getTitle()).contains("xac nhan");
+        assertThat(notifications.get(0).getTitle()).contains("xác nhận");
         assertThat(notifications.get(0).getContent()).contains("SCS-1-ORDER");
         assertThat(notifications.get(0).getLink()).isEqualTo("/orders/SCS-1-ORDER");
+        verify(javaMailSender).send(any(MimeMessage.class));
+        verify(messagingTemplate).convertAndSendToUser(
+                org.mockito.ArgumentMatchers.eq("dealer-order@example.com"),
+                org.mockito.ArgumentMatchers.eq("/queue/order-status"),
+                any()
+        );
     }
 
     @Test
@@ -90,7 +123,7 @@ class AdminOrderNotificationTests {
         List<Notify> notifications = notifyRepository.findByAccountIdOrderByCreatedAtDesc(dealer.getId());
         assertThat(notifications).hasSize(1);
         assertThat(notifications.get(0).getType()).isEqualTo(NotifyType.ORDER);
-        assertThat(notifications.get(0).getTitle()).contains("go khoi");
+        assertThat(notifications.get(0).getTitle()).contains("gỡ khỏi");
         assertThat(notifications.get(0).getLink()).isEqualTo("/orders");
     }
 

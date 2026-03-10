@@ -355,6 +355,10 @@ class NotificationController extends ChangeNotifier {
             destination: '/user/queue/notifications',
             callback: (frame) => _handleRealtimeFrame(connectionId, frame),
           );
+          nextClient.subscribe(
+            destination: '/user/queue/order-status',
+            callback: (frame) => _handleOrderStatusFrame(connectionId, frame),
+          );
         },
         onDisconnect: (_) => _handleRealtimeDisconnect(connectionId),
         onStompError: (_) => _handleRealtimeDisconnect(connectionId),
@@ -430,6 +434,20 @@ class NotificationController extends ChangeNotifier {
     if (notice.type == NoticeType.order) {
       unawaited(_emitOrderSignal());
     }
+  }
+
+  void _handleOrderStatusFrame(int connectionId, StompFrame frame) {
+    if (_disposed || connectionId != _socketGeneration) {
+      return;
+    }
+
+    final payload = _decodeBody(frame.body ?? '');
+    if (payload.isEmpty) {
+      unawaited(_emitOrderSignal());
+      return;
+    }
+
+    unawaited(_emitOrderSignal());
   }
 
   void _stopRealtimeConnection() {

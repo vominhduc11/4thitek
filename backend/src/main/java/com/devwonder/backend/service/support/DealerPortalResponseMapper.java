@@ -5,6 +5,7 @@ import com.devwonder.backend.dto.dealer.DealerOrderItemResponse;
 import com.devwonder.backend.dto.dealer.DealerOrderResponse;
 import com.devwonder.backend.dto.dealer.DealerPaymentResponse;
 import com.devwonder.backend.dto.dealer.DealerProfileResponse;
+import com.devwonder.backend.entity.BulkDiscount;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.DealerCartItem;
 import com.devwonder.backend.entity.Order;
@@ -37,17 +38,22 @@ public final class DealerPortalResponseMapper {
                 dealer.getEmail(),
                 dealer.getAvatarUrl(),
                 dealer.getSalesPolicy(),
+                dealer.getCreditLimit(),
                 dealer.getCreatedAt(),
                 dealer.getUpdatedAt()
         );
     }
 
     public static DealerOrderResponse toOrderResponse(Order order) {
+        return toOrderResponse(order, List.of());
+    }
+
+    public static DealerOrderResponse toOrderResponse(Order order, List<BulkDiscount> rules) {
         List<DealerOrderItemResponse> items = order.getOrderItems() == null
                 ? List.of()
                 : order.getOrderItems().stream().map(DealerPortalResponseMapper::toOrderItemResponse).toList();
         BigDecimal subtotal = OrderPricingSupport.computeSubtotal(order);
-        int discountPercent = OrderPricingSupport.computeDiscountPercent(order);
+        int discountPercent = OrderPricingSupport.computeDiscountPercent(order, rules);
         BigDecimal discountAmount = OrderPricingSupport.computeDiscountAmount(subtotal, discountPercent);
         BigDecimal vatAmount = OrderPricingSupport.computeVatAmount(subtotal.subtract(discountAmount));
         int shippingFee = DealerOrderSupport.safeShippingFee(order.getShippingFee());

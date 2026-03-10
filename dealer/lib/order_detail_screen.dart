@@ -480,7 +480,7 @@ class OrderDetailScreen extends StatelessWidget {
     final canCancel =
         order.status == OrderStatus.pendingApproval ||
         order.status == OrderStatus.approved;
-    final canMarkReceived = order.status == OrderStatus.shipping;
+    final canMarkReceived = false;
     final stickyActionBar = _buildStickyActionBar(
       context: context,
       order: order,

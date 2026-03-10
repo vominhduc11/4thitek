@@ -49,6 +49,10 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
             return;
         }
 
+        if (isUserQueueDestination(destination, "/queue/order-status")) {
+            return;
+        }
+
         if (isUserQueueDestination(destination, "/queue/login-confirmed")) {
             return;
         }

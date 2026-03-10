@@ -46,6 +46,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -54,6 +56,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class AdminOperationsService {
+
+    private static final Logger log = LoggerFactory.getLogger(AdminOperationsService.class);
 
     private final DealerSupportTicketRepository dealerSupportTicketRepository;
     private final WarrantyRegistrationRepository warrantyRegistrationRepository;
@@ -65,6 +69,7 @@ public class AdminOperationsService {
     private final NotificationService notificationService;
     private final NotifyRepository notifyRepository;
     private final AccountRepository accountRepository;
+    private final MailService mailService;
 
     @Transactional(readOnly = true)
     public Page<AdminSupportTicketResponse> getSupportTickets(Pageable pageable) {
@@ -76,6 +81,9 @@ public class AdminOperationsService {
     public AdminSupportTicketResponse updateSupportTicket(Long id, UpdateAdminSupportTicketRequest request) {
         DealerSupportTicket ticket = dealerSupportTicketRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Support ticket not found"));
+
+        DealerSupportTicketStatus previousStatus = ticket.getStatus();
+        String previousReply = normalize(ticket.getAdminReply());
 
         ticket.setStatus(request.status());
         String normalizedReply = normalize(request.adminReply());
@@ -91,14 +99,17 @@ public class AdminOperationsService {
 
         DealerSupportTicket saved = dealerSupportTicketRepository.save(ticket);
         Dealer dealer = saved.getDealer();
-        if (dealer != null) {
+        boolean statusChanged = previousStatus != saved.getStatus();
+        boolean replyChanged = normalizedReply != null && !normalizedReply.equals(previousReply);
+        if (dealer != null && (statusChanged || replyChanged)) {
             notificationService.create(new CreateNotifyRequest(
                     dealer.getId(),
-                    "Cap nhat yeu cau ho tro",
-                    "Yeu cau " + saved.getTicketCode() + " da duoc cap nhat sang trang thai " + saved.getStatus().name() + ".",
+                    "Cập nhật yêu cầu hỗ trợ",
+                    buildSupportTicketNotificationContent(saved, statusChanged, replyChanged),
                     NotifyType.SYSTEM,
                     "/dealer/support"
             ));
+            sendSupportTicketEmailIfPossible(dealer, saved, statusChanged, replyChanged);
         }
         return toSupportTicketResponse(saved);
     }
@@ -385,6 +396,98 @@ public class AdminOperationsService {
                 warrantyEnd.atZone(ZoneOffset.UTC).toLocalDate()
         );
         return Math.max(0L, days);
+    }
+
+    private String buildSupportTicketNotificationContent(
+            DealerSupportTicket ticket,
+            boolean statusChanged,
+            boolean replyChanged
+    ) {
+        String ticketCode = safeValue(ticket.getTicketCode(), "#" + ticket.getId());
+        if (statusChanged && replyChanged) {
+            return "Yêu cầu " + ticketCode + " đã được cập nhật sang trạng thái "
+                    + buildSupportTicketStatusLabel(ticket.getStatus())
+                    + " và có phản hồi mới từ admin.";
+        }
+        if (replyChanged) {
+            return "Yêu cầu " + ticketCode + " có phản hồi mới từ admin.";
+        }
+        return "Yêu cầu " + ticketCode + " đã được cập nhật sang trạng thái "
+                + buildSupportTicketStatusLabel(ticket.getStatus()) + ".";
+    }
+
+    private void sendSupportTicketEmailIfPossible(
+            Dealer dealer,
+            DealerSupportTicket ticket,
+            boolean statusChanged,
+            boolean replyChanged
+    ) {
+        String recipient = normalize(dealer.getEmail());
+        if (recipient == null || !mailService.isEnabled()) {
+            return;
+        }
+
+        try {
+            mailService.sendText(
+                    recipient,
+                    buildSupportTicketEmailSubject(ticket),
+                    buildSupportTicketEmailBody(dealer, ticket, statusChanged, replyChanged)
+            );
+        } catch (RuntimeException ex) {
+            log.warn("Could not send support ticket email to {}", recipient, ex);
+        }
+    }
+
+    private String buildSupportTicketEmailSubject(DealerSupportTicket ticket) {
+        String ticketCode = safeValue(ticket.getTicketCode(), "#" + ticket.getId());
+        return "4ThiTek cập nhật yêu cầu hỗ trợ " + ticketCode;
+    }
+
+    private String buildSupportTicketEmailBody(
+            Dealer dealer,
+            DealerSupportTicket ticket,
+            boolean statusChanged,
+            boolean replyChanged
+    ) {
+        String greetingName = firstNonBlank(
+                dealer.getContactName(),
+                dealer.getBusinessName(),
+                dealer.getUsername(),
+                dealer.getEmail()
+        );
+        String ticketCode = safeValue(ticket.getTicketCode(), "#" + ticket.getId());
+        StringBuilder body = new StringBuilder()
+                .append("Xin chào ").append(greetingName).append(",\n\n")
+                .append("Yêu cầu hỗ trợ ").append(ticketCode).append(" vừa được admin cập nhật.\n")
+                .append("Chủ đề: ").append(safeValue(ticket.getSubject(), "Không có tiêu đề")).append(".\n")
+                .append("Trạng thái hiện tại: ").append(buildSupportTicketStatusLabel(ticket.getStatus())).append(".\n");
+
+        if (replyChanged && normalize(ticket.getAdminReply()) != null) {
+            body.append("\nPhản hồi từ admin:\n")
+                    .append(ticket.getAdminReply())
+                    .append("\n");
+        } else if (statusChanged) {
+            body.append("\n")
+                    .append(buildSupportTicketNotificationContent(ticket, true, false))
+                    .append("\n");
+        }
+
+        body.append("\nVui lòng mở ứng dụng Dealer để xem chi tiết thêm.\n\n")
+                .append("Trân trọng,\n")
+                .append("4ThiTek");
+        return body.toString();
+    }
+
+    private String buildSupportTicketStatusLabel(DealerSupportTicketStatus status) {
+        if (status == null) {
+            return "Đang cập nhật";
+        }
+        return switch (status) {
+            case OPEN -> "Mở";
+            case IN_PROGRESS -> "Đang xử lý";
+            case RESOLVED -> "Đã giải quyết";
+            case CLOSED -> "Đã đóng";
+        };
     }
 
     private String normalize(String value) {

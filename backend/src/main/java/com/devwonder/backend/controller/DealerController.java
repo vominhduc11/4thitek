@@ -6,6 +6,7 @@ import com.devwonder.backend.dto.dealer.CreateDealerSerialBatchRequest;
 import com.devwonder.backend.dto.dealer.CreateDealerSupportTicketRequest;
 import com.devwonder.backend.dto.dealer.DealerBankTransferInstructionResponse;
 import com.devwonder.backend.dto.dealer.DealerCartItemResponse;
+import com.devwonder.backend.dto.dealer.DealerDiscountRuleResponse;
 import com.devwonder.backend.dto.dealer.DealerOrderResponse;
 import com.devwonder.backend.dto.dealer.DealerPaymentResponse;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
@@ -59,6 +60,11 @@ public class DealerController {
     @GetMapping("/profile")
     public ResponseEntity<ApiResponse<DealerProfileResponse>> profile(Authentication authentication) {
         return ResponseEntity.ok(ApiResponse.success(dealerPortalService.getProfile(extractUsername(authentication))));
+    }
+
+    @GetMapping("/discount-rules")
+    public ResponseEntity<ApiResponse<List<DealerDiscountRuleResponse>>> discountRules(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success(dealerPortalService.getDiscountRules(extractUsername(authentication))));
     }
 
     @GetMapping("/payment-instructions")

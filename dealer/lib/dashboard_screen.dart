@@ -21,7 +21,6 @@ import 'widgets/fade_slide_in.dart';
 import 'widgets/skeleton_box.dart';
 import 'debt_tracking_screen.dart';
 import 'inventory_screen.dart';
-import 'product_catalog_controller.dart';
 
 part 'dashboard_screen_support.dart';
 
@@ -140,11 +139,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final orderController = OrderScope.of(context);
-    final catalogProducts =
-        ProductCatalogScope.maybeOf(context)?.products ?? const <Product>[];
     final warrantyCtrl =
         context.dependOnInheritedWidgetOfExactType<WarrantyScope>()?.notifier ??
         WarrantyController();
+    final lowStockProducts = _buildLowStockProducts(
+      orderController: orderController,
+      warrantyController: warrantyCtrl,
+    );
     final now = DateTime.now();
     final snapshot = _buildDashboardSnapshot(
       orders: orderController.orders,
@@ -164,7 +165,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final periodRevenue = snapshot.periodRevenue;
     final periodOrderCount = snapshot.periodOrderCount;
     final periodCompletedOrderCount = snapshot.periodCompletedOrderCount;
-    final periodOutstandingDebt = snapshot.periodOutstandingDebt;
+    final totalOutstandingDebt = snapshot.totalOutstandingDebt;
     final unreadNotificationCount =
         context
             .dependOnInheritedWidgetOfExactType<NotificationScope>()
@@ -207,7 +208,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           FadeSlideIn(
             child: _OverviewCard(
-              totalDebt: periodOutstandingDebt,
+              totalDebt: totalOutstandingDebt,
               periodRevenue: periodRevenue,
               periodOrders: periodOrderCount,
               periodCompletedOrders: periodCompletedOrderCount,
@@ -261,7 +262,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: FadeSlideIn(
                       delay: const Duration(milliseconds: 120),
                       child: _AgingDebtCard(
-                        buckets: _buildDebtBuckets(periodOutstandingDebt),
+                        buckets: _buildDebtBuckets(totalOutstandingDebt),
                         onViewAll: _openDebtTracking,
                       ),
                     ),
@@ -271,7 +272,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: FadeSlideIn(
                       delay: const Duration(milliseconds: 125),
                       child: _LowStockPanel(
-                        products: _buildLowStockProducts(catalogProducts),
+                        products: lowStockProducts,
                         onOpenInventory: _openInventoryScreen,
                         onOpenLowStockInventory: _openLowStockInventoryScreen,
                       ),
@@ -1333,16 +1334,18 @@ String _shortPaymentStatus(OrderPaymentStatus status) {
 }
 
 class _LowStockCard extends StatelessWidget {
-  const _LowStockCard({required this.product});
+  const _LowStockCard({required this.item});
 
-  final Product product;
+  final _DashboardLowStockItem item;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final shortage = math.max(0, _lowStockAlertThreshold - product.stock);
-    final isCritical = product.stock <= 3;
+    final product = item.product;
+    final availableQuantity = item.availableQuantity;
+    final shortage = math.max(0, _lowStockAlertThreshold - availableQuantity);
+    final isCritical = availableQuantity <= 3;
     final accentColor = isCritical
         ? const Color(0xFFDC2626)
         : const Color(0xFFD97706);
@@ -1350,11 +1353,11 @@ class _LowStockCard extends StatelessWidget {
         ? colorScheme.errorContainer
         : colorScheme.tertiaryContainer;
     final borderColor = isCritical ? colorScheme.error : colorScheme.tertiary;
-    final ratio = (product.stock / _lowStockAlertThreshold)
+    final ratio = (availableQuantity / _lowStockAlertThreshold)
         .clamp(0.0, 1.0)
         .toDouble();
     const minimumTarget = 1;
-    final shortageToMinimum = math.max(0, minimumTarget - product.stock);
+    final shortageToMinimum = math.max(0, minimumTarget - availableQuantity);
     final statusLabel = shortage > 0
         ? 'Thiếu $shortage so với ngưỡng $_lowStockAlertThreshold'
         : 'Chạm ngưỡng cảnh báo';
@@ -1431,7 +1434,7 @@ class _LowStockCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '${product.stock}/$_lowStockAlertThreshold',
+                      '$availableQuantity/$_lowStockAlertThreshold',
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: accentColor,
                         fontWeight: FontWeight.w900,
@@ -1533,7 +1536,7 @@ class _LowStockPanel extends StatelessWidget {
     required this.onOpenLowStockInventory,
   });
 
-  final List<Product> products;
+  final List<_DashboardLowStockItem> products;
   final VoidCallback onOpenInventory;
   final VoidCallback onOpenLowStockInventory;
 
@@ -1658,12 +1661,12 @@ class _LowStockPanel extends StatelessWidget {
             else
               ...products.asMap().entries.map((entry) {
                 final index = entry.key;
-                final product = entry.value;
+                final item = entry.value;
                 return Padding(
                   padding: EdgeInsets.only(
                     bottom: index == products.length - 1 ? 0 : 8,
                   ),
-                  child: _LowStockCard(product: product),
+                  child: _LowStockCard(item: item),
                 );
               }),
             if (hasAlerts) ...[
@@ -2804,13 +2807,6 @@ List<_CustomerStat> _buildTopCustomers(List<Order> orders) {
       return b.lastOrder.compareTo(a.lastOrder);
     });
   return list;
-}
-
-List<Product> _buildLowStockProducts(List<Product> catalogProducts) {
-  final products =
-      catalogProducts.where((p) => p.stock <= _lowStockAlertThreshold).toList()
-        ..sort((a, b) => a.stock.compareTo(b.stock));
-  return products.take(5).toList();
 }
 
 List<_DebtBucket> _buildDebtBuckets(int totalOutstandingDebt) {

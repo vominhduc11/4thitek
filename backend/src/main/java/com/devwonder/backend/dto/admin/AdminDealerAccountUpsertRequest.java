@@ -9,6 +9,7 @@ public record AdminDealerAccountUpsertRequest(
         DealerTier tier,
         CustomerStatus status,
         BigDecimal revenue,
+        BigDecimal creditLimit,
         String email,
         String phone
 ) {

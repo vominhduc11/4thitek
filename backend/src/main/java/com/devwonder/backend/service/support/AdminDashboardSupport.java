@@ -50,17 +50,20 @@ public final class AdminDashboardSupport {
         List<Dealer> availableDealers = safeList(dealers);
         List<Admin> availableAdmins = safeList(admins);
         List<Blog> availableBlogs = safeList(blogs);
-        List<BulkDiscount> availableRules = safeList(rules);
+        List<BulkDiscount> availableRules = safeList(rules).stream()
+                .filter(rule -> rule != null && rule.getStatus() == DiscountRuleStatus.ACTIVE)
+                .toList();
 
         Instant now = Instant.now();
         BigDecimal revenue = activeOrders.stream()
-                .map(OrderPricingSupport::computeTotalAmount)
+                .map(order -> OrderPricingSupport.computeTotalAmount(order, availableRules))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal current30 = revenueBetween(activeOrders, now.minusSeconds(60L * 60 * 24 * 30), now);
+        BigDecimal current30 = revenueBetween(activeOrders, now.minusSeconds(60L * 60 * 24 * 30), now, availableRules);
         BigDecimal previous30 = revenueBetween(
                 activeOrders,
                 now.minusSeconds(60L * 60 * 24 * 60),
-                now.minusSeconds(60L * 60 * 24 * 30)
+                now.minusSeconds(60L * 60 * 24 * 30),
+                availableRules
         );
 
         long pendingOrders = activeOrders.stream().filter(order -> order.getStatus() == OrderStatus.PENDING).count();
@@ -95,7 +98,7 @@ public final class AdminDashboardSupport {
                 orderStatus,
                 buildTopProducts(activeOrders),
                 buildSystemItems(availableDealers, availableAdmins, availableProducts, availableBlogs, availableRules),
-                buildTrend(activeOrders)
+                buildTrend(activeOrders, availableRules)
         );
     }
 
@@ -184,7 +187,7 @@ public final class AdminDashboardSupport {
         return List.copyOf(items);
     }
 
-    private static AdminDashboardResponse.Trend buildTrend(List<Order> orders) {
+    private static AdminDashboardResponse.Trend buildTrend(List<Order> orders, List<BulkDiscount> rules) {
         LinkedHashMap<YearMonth, BigDecimal> buckets = new LinkedHashMap<>();
         YearMonth currentMonth = YearMonth.now(APP_ZONE);
         for (int i = 5; i >= 0; i--) {
@@ -196,7 +199,7 @@ public final class AdminDashboardSupport {
             }
             YearMonth bucket = YearMonth.from(order.getCreatedAt().atZone(APP_ZONE));
             if (buckets.containsKey(bucket)) {
-                buckets.put(bucket, buckets.get(bucket).add(OrderPricingSupport.computeTotalAmount(order)));
+                buckets.put(bucket, buckets.get(bucket).add(OrderPricingSupport.computeTotalAmount(order, rules)));
             }
         }
         List<AdminDashboardResponse.TrendPoint> points = buckets.entrySet().stream()
@@ -212,12 +215,17 @@ public final class AdminDashboardSupport {
         );
     }
 
-    private static BigDecimal revenueBetween(List<Order> orders, Instant startInclusive, Instant endExclusive) {
+    private static BigDecimal revenueBetween(
+            List<Order> orders,
+            Instant startInclusive,
+            Instant endExclusive,
+            List<BulkDiscount> rules
+    ) {
         return orders.stream()
                 .filter(order -> order.getCreatedAt() != null)
                 .filter(order -> !order.getCreatedAt().isBefore(startInclusive))
                 .filter(order -> order.getCreatedAt().isBefore(endExclusive))
-                .map(OrderPricingSupport::computeTotalAmount)
+                .map(order -> OrderPricingSupport.computeTotalAmount(order, rules))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 

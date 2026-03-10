@@ -15,7 +15,9 @@ import {
   fetchAdminDiscountRules,
   fetchAdminOrders,
   fetchAdminUsers,
+  recordAdminOrderPayment,
   updateAdminBlog,
+  updateAdminDealerAccount,
   updateAdminDealerAccountStatus,
   updateAdminDiscountRuleStatus,
   updateAdminSettings,
@@ -32,6 +34,7 @@ import {
   toBackendDealerAccountStatus,
   toBackendDealerAccountTier,
   toBackendOrderStatus,
+  toBackendPaymentMethod,
   toBackendRuleStatus,
   toBackendUserStatus,
   toBlogUpsertRequest,
@@ -69,6 +72,17 @@ export type {
 type AdminDataContextValue = {
   orders: Order[]
   updateOrderStatus: (id: string, status: OrderStatus) => Promise<void>
+  recordOrderPayment: (
+    id: string,
+    payload: {
+      amount: number
+      method?: 'bank_transfer' | 'debt'
+      channel?: string
+      transactionCode?: string
+      note?: string
+      paidAt?: string
+    },
+  ) => Promise<void>
   deleteOrder: (id: string) => Promise<void>
   posts: BlogPost[]
   addPost: (
@@ -79,8 +93,12 @@ type AdminDataContextValue = {
   dealers: Dealer[]
   addDealer: (
     payload: Pick<Dealer, 'name' | 'tier' | 'email' | 'phone'> &
-      Partial<Pick<Dealer, 'revenue' | 'orders'>>,
+      Partial<Pick<Dealer, 'revenue' | 'orders' | 'creditLimit'>>,
   ) => Promise<Dealer>
+  updateDealer: (
+    id: string,
+    payload: Pick<Dealer, 'name' | 'tier' | 'email' | 'phone' | 'creditLimit'>,
+  ) => Promise<void>
   updateDealerStatus: (id: string, status: DealerStatus) => Promise<void>
   users: StaffUser[]
   addUser: (payload: Pick<StaffUser, 'name' | 'role'>) => Promise<StaffUser>
@@ -181,6 +199,19 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     setOrders((prev) => prev.map((item) => (item.id === id ? mapOrder(updated) : item)))
   }
 
+  const recordOrderPayment: AdminDataContextValue['recordOrderPayment'] = async (id, payload) => {
+    const token = requireToken()
+    const updated = await recordAdminOrderPayment(token, Number(id), {
+      amount: payload.amount,
+      method: payload.method ? toBackendPaymentMethod(payload.method) : undefined,
+      channel: payload.channel,
+      transactionCode: payload.transactionCode,
+      note: payload.note,
+      paidAt: payload.paidAt,
+    })
+    setOrders((prev) => prev.map((item) => (item.id === id ? mapOrder(updated) : item)))
+  }
+
   const deleteOrder: AdminDataContextValue['deleteOrder'] = async (id) => {
     const token = requireToken()
     await deleteAdminOrder(token, Number(id))
@@ -235,6 +266,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       email: payload.email.trim(),
       phone: payload.phone.trim(),
       revenue: payload.revenue,
+      creditLimit: payload.creditLimit,
       status: 'ACTIVE',
     })
     const nextDealer = mapDealer(created)
@@ -249,6 +281,22 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       Number(id),
       toBackendDealerAccountStatus(status),
     )
+    setDealers((prev) => prev.map((item) => (item.id === id ? mapDealer(updated) : item)))
+  }
+
+  const updateDealer: AdminDataContextValue['updateDealer'] = async (id, payload) => {
+    const token = requireToken()
+    const current = dealers.find((item) => item.id === id)
+    if (!current) return
+
+    const updated = await updateAdminDealerAccount(token, Number(id), {
+      name: payload.name.trim(),
+      tier: toBackendDealerAccountTier(payload.tier),
+      status: toBackendDealerAccountStatus(current.status),
+      email: payload.email.trim(),
+      phone: payload.phone.trim(),
+      creditLimit: payload.creditLimit,
+    })
     setDealers((prev) => prev.map((item) => (item.id === id ? mapDealer(updated) : item)))
   }
 
@@ -306,6 +354,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   const value: AdminDataContextValue = {
     orders,
     updateOrderStatus,
+    recordOrderPayment,
     deleteOrder,
     posts,
     addPost,
@@ -313,6 +362,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     deletePost,
     dealers,
     addDealer,
+    updateDealer,
     updateDealerStatus,
     users,
     addUser,

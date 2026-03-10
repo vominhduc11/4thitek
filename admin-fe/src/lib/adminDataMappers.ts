@@ -10,6 +10,8 @@ import type {
   BackendDiscountRuleStatus,
   BackendOrderResponse,
   BackendOrderStatus,
+  BackendPaymentMethod,
+  BackendPaymentStatus,
   BackendStaffUserResponse,
   BackendStaffUserStatus,
 } from './adminApi'
@@ -23,6 +25,8 @@ import type {
   DiscountRule,
   Order,
   OrderStatus,
+  PaymentMethod,
+  PaymentStatus,
   RuleStatus,
   StaffUser,
   UserStatus,
@@ -56,6 +60,27 @@ export const toBackendOrderStatus = (status: OrderStatus): BackendOrderStatus =>
       return 'CANCELLED'
     default:
       return 'PENDING'
+  }
+}
+
+export const mapBackendPaymentMethod = (method?: BackendPaymentMethod | null): PaymentMethod =>
+  method === 'DEBT' ? 'debt' : 'bank_transfer'
+
+export const toBackendPaymentMethod = (method: PaymentMethod): BackendPaymentMethod =>
+  method === 'debt' ? 'DEBT' : 'BANK_TRANSFER'
+
+export const mapBackendPaymentStatus = (status?: BackendPaymentStatus | null): PaymentStatus => {
+  switch (status) {
+    case 'PAID':
+      return 'paid'
+    case 'DEBT_RECORDED':
+      return 'debt_recorded'
+    case 'CANCELLED':
+      return 'cancelled'
+    case 'FAILED':
+      return 'failed'
+    default:
+      return 'pending'
   }
 }
 
@@ -177,6 +202,10 @@ export const mapOrder = (order: BackendOrderResponse): Order => ({
   dealer: order.dealerName || '',
   total: Number(order.totalAmount ?? 0),
   status: mapBackendOrderStatus(order.status),
+  paymentMethod: mapBackendPaymentMethod(order.paymentMethod),
+  paymentStatus: mapBackendPaymentStatus(order.paymentStatus),
+  paidAmount: Number(order.paidAmount ?? 0),
+  outstandingAmount: Math.max(0, Number(order.totalAmount ?? 0) - Number(order.paidAmount ?? 0)),
   items: Number(order.itemCount ?? 0),
   address: order.address || '',
   note: order.note || '',
@@ -203,6 +232,7 @@ export const mapDealer = (dealer: BackendDealerAccountResponse): Dealer => ({
   orders: Number(dealer.orders ?? 0),
   lastOrderAt: dealer.lastOrderAt || '',
   revenue: Number(dealer.revenue ?? 0),
+  creditLimit: Number(dealer.creditLimit ?? 0),
   email: dealer.email || '',
   phone: dealer.phone || '',
 })

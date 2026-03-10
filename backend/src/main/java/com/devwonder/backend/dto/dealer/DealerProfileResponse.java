@@ -1,5 +1,6 @@
 package com.devwonder.backend.dto.dealer;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 public record DealerProfileResponse(
@@ -16,6 +17,7 @@ public record DealerProfileResponse(
         String email,
         String avatarUrl,
         String salesPolicy,
+        BigDecimal creditLimit,
         Instant createdAt,
         Instant updatedAt
 ) {

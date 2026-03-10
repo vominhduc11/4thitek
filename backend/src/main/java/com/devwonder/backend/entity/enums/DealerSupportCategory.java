@@ -5,5 +5,6 @@ public enum DealerSupportCategory {
     WARRANTY,
     PRODUCT,
     PAYMENT,
+    RETURN,
     OTHER
 }

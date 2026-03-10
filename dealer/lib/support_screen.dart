@@ -10,7 +10,7 @@ import 'widgets/fade_slide_in.dart';
 import 'widgets/section_card.dart';
 import 'widgets/support_ticket_history.dart';
 
-enum SupportCategory { order, warranty, product, payment, other }
+enum SupportCategory { order, warranty, product, payment, returnOrder, other }
 
 enum SupportPriority { normal, high, urgent }
 
@@ -568,6 +568,8 @@ class _SupportScreenState extends State<SupportScreen> {
         return 'PRODUCT';
       case SupportCategory.payment:
         return 'PAYMENT';
+      case SupportCategory.returnOrder:
+        return 'RETURN';
       case SupportCategory.other:
         return 'OTHER';
     }
@@ -594,6 +596,8 @@ class _SupportScreenState extends State<SupportScreen> {
         return SupportCategory.product;
       case 'PAYMENT':
         return SupportCategory.payment;
+      case 'RETURN':
+        return SupportCategory.returnOrder;
       case 'OTHER':
       default:
         return SupportCategory.other;
@@ -623,6 +627,8 @@ class _SupportScreenState extends State<SupportScreen> {
           return 'Product';
         case SupportCategory.payment:
           return 'Payment';
+        case SupportCategory.returnOrder:
+          return 'Return';
         case SupportCategory.other:
           return 'Other';
       }
@@ -636,6 +642,8 @@ class _SupportScreenState extends State<SupportScreen> {
         return 'Sản phẩm';
       case SupportCategory.payment:
         return 'Thanh toán';
+      case SupportCategory.returnOrder:
+        return 'Đổi trả hàng';
       case SupportCategory.other:
         return 'Khác';
     }

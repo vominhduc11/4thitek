@@ -1,4 +1,6 @@
 export type OrderStatus = 'packing' | 'pending' | 'delivering' | 'completed' | 'cancelled'
+export type PaymentMethod = 'bank_transfer' | 'debt'
+export type PaymentStatus = 'pending' | 'paid' | 'debt_recorded' | 'cancelled' | 'failed'
 export type BlogStatus = 'published' | 'scheduled' | 'draft'
 export type DealerTier = 'platinum' | 'gold' | 'silver' | 'bronze'
 export type DealerStatus = 'active' | 'under_review' | 'needs_attention'
@@ -10,6 +12,10 @@ export type Order = {
   dealer: string
   total: number
   status: OrderStatus
+  paymentMethod: PaymentMethod
+  paymentStatus: PaymentStatus
+  paidAmount: number
+  outstandingAmount: number
   items: number
   address: string
   note: string
@@ -36,6 +42,7 @@ export type Dealer = {
   orders: number
   lastOrderAt: string
   revenue: number
+  creditLimit: number
   email: string
   phone: string
 }

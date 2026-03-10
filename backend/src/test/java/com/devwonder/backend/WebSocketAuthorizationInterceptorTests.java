@@ -32,6 +32,10 @@ class WebSocketAuthorizationInterceptorTests {
         )).doesNotThrowAnyException();
 
         assertThatCode(() -> interceptor.preSend(
+                message(StompCommand.SUBSCRIBE, "/user/queue/order-status", user), null
+        )).doesNotThrowAnyException();
+
+        assertThatCode(() -> interceptor.preSend(
                 message(StompCommand.SUBSCRIBE, "/user/queue/login-confirmed", user), null
         )).doesNotThrowAnyException();
     }

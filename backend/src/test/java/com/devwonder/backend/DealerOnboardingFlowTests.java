@@ -16,7 +16,9 @@ import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.exception.UnauthorizedException;
 import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.DealerRepository;
+import com.devwonder.backend.repository.DealerSupportTicketRepository;
 import com.devwonder.backend.repository.NotifyRepository;
+import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.service.AdminManagementService;
 import com.devwonder.backend.service.AuthService;
 import jakarta.mail.Session;
@@ -51,12 +53,20 @@ class DealerOnboardingFlowTests {
     @Autowired
     private NotifyRepository notifyRepository;
 
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private DealerSupportTicketRepository dealerSupportTicketRepository;
+
     @MockBean
     private JavaMailSender javaMailSender;
 
     @BeforeEach
     void setUp() {
         notifyRepository.deleteAll();
+        dealerSupportTicketRepository.deleteAll();
+        orderRepository.deleteAll();
         dealerRepository.deleteAll();
         accountRepository.deleteAll();
         when(javaMailSender.createMimeMessage()).thenReturn(
@@ -116,7 +126,7 @@ class DealerOnboardingFlowTests {
                 "123456"
         )))
                 .isInstanceOf(UnauthorizedException.class)
-                .hasMessageContaining("cho duyet");
+                .hasMessageContaining("chờ duyệt");
 
         reset(javaMailSender);
         when(javaMailSender.createMimeMessage()).thenReturn(
@@ -130,7 +140,7 @@ class DealerOnboardingFlowTests {
 
         List<Notify> notices = notifyRepository.findByAccountIdOrderByCreatedAtDesc(dealer.getId());
         assertThat(notices).hasSize(1);
-        assertThat(notices.get(0).getTitle()).contains("kich hoat");
+        assertThat(notices.get(0).getTitle()).contains("kích hoạt");
         verify(javaMailSender).send(any(MimeMessage.class));
 
         assertThat(authService.login(new LoginRequest(

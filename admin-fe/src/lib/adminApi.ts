@@ -18,6 +18,8 @@ export type BackendPagedResponse<T> = {
 export type BackendPublishStatus = 'DRAFT' | 'PUBLISHED'
 export type BackendBlogStatus = 'DRAFT' | 'SCHEDULED' | 'PUBLISHED'
 export type BackendOrderStatus = 'PENDING' | 'CONFIRMED' | 'SHIPPING' | 'COMPLETED' | 'CANCELLED'
+export type BackendPaymentMethod = 'BANK_TRANSFER' | 'DEBT'
+export type BackendPaymentStatus = 'PENDING' | 'PAID' | 'DEBT_RECORDED' | 'CANCELLED' | 'FAILED'
 export type BackendDealerAccountTier = 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE'
 export type BackendDealerAccountStatus = 'ACTIVE' | 'UNDER_REVIEW' | 'NEEDS_ATTENTION'
 export type BackendStaffUserStatus = 'ACTIVE' | 'PENDING'
@@ -26,7 +28,7 @@ export type BackendWarrantyStatus = 'ACTIVE' | 'EXPIRED' | 'VOID'
 export type BackendProductSerialStatus = 'AVAILABLE' | 'DEFECTIVE' | 'SOLD' | 'WARRANTY' | 'RETURNED'
 export type BackendNotifyType = 'SYSTEM' | 'PROMOTION' | 'ORDER' | 'WARRANTY'
 export type BackendSupportPriority = 'NORMAL' | 'HIGH' | 'URGENT'
-export type BackendSupportCategory = 'ORDER' | 'WARRANTY' | 'PRODUCT' | 'PAYMENT' | 'OTHER'
+export type BackendSupportCategory = 'ORDER' | 'WARRANTY' | 'PRODUCT' | 'PAYMENT' | 'RETURN' | 'OTHER'
 export type BackendSupportTicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'
 export type BackendReportExportType = 'ORDERS' | 'REVENUE' | 'WARRANTIES' | 'SERIALS'
 export type BackendReportFormat = 'XLSX' | 'PDF'
@@ -106,6 +108,8 @@ export type BackendOrderResponse = {
   dealerId?: number | null
   dealerName?: string | null
   status?: BackendOrderStatus | null
+  paymentMethod?: BackendPaymentMethod | null
+  paymentStatus?: BackendPaymentStatus | null
   paidAmount?: number | string | null
   totalAmount?: number | string | null
   itemCount?: number | null
@@ -123,6 +127,7 @@ export type BackendDealerAccountResponse = {
   orders?: number | null
   lastOrderAt?: string | null
   revenue?: number | string | null
+  creditLimit?: number | string | null
   email?: string | null
   phone?: string | null
 }
@@ -132,6 +137,7 @@ export type BackendDealerAccountUpsertRequest = {
   tier?: BackendDealerAccountTier
   status?: BackendDealerAccountStatus
   revenue?: number
+  creditLimit?: number
   email: string
   phone: string
 }
@@ -464,6 +470,25 @@ export const updateAdminOrderStatus = (
     body: { status },
   })
 
+export const recordAdminOrderPayment = (
+  token: string,
+  id: number,
+  body: {
+    amount: number
+    method?: BackendPaymentMethod
+    channel?: string
+    transactionCode?: string
+    note?: string
+    paidAt?: string
+  },
+) =>
+  authorizedJsonRequest<BackendOrderResponse>({
+    path: `/admin/orders/${id}/payments`,
+    token,
+    method: 'POST',
+    body,
+  })
+
 export const deleteAdminOrder = (token: string, id: number) =>
   authorizedJsonRequest<{ status: string }>({
     path: `/admin/orders/${id}`,
@@ -485,6 +510,18 @@ export const createAdminDealerAccount = (
     path: '/admin/dealers/accounts',
     token,
     method: 'POST',
+    body,
+  })
+
+export const updateAdminDealerAccount = (
+  token: string,
+  id: number,
+  body: BackendDealerAccountUpsertRequest,
+) =>
+  authorizedJsonRequest<BackendDealerAccountResponse>({
+    path: `/admin/dealers/accounts/${id}`,
+    token,
+    method: 'PUT',
     body,
   })
 

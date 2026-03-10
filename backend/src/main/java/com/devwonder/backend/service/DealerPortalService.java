@@ -3,6 +3,7 @@ package com.devwonder.backend.service;
 import com.devwonder.backend.dto.dealer.CreateDealerOrderRequest;
 import com.devwonder.backend.dto.dealer.CreateDealerSerialBatchRequest;
 import com.devwonder.backend.dto.dealer.DealerCartItemResponse;
+import com.devwonder.backend.dto.dealer.DealerDiscountRuleResponse;
 import com.devwonder.backend.dto.dealer.DealerOrderResponse;
 import com.devwonder.backend.dto.dealer.DealerPaymentResponse;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
@@ -16,7 +17,10 @@ import com.devwonder.backend.dto.notify.NotifyResponse;
 import com.devwonder.backend.dto.warranty.CreateWarrantyRegistrationRequest;
 import com.devwonder.backend.dto.warranty.WarrantyRegistrationResponse;
 import com.devwonder.backend.entity.Dealer;
+import com.devwonder.backend.entity.BulkDiscount;
 import com.devwonder.backend.entity.Order;
+import com.devwonder.backend.entity.enums.DiscountRuleStatus;
+import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.service.support.DealerAccountSupport;
 import com.devwonder.backend.service.support.DealerCartSupport;
@@ -40,6 +44,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DealerPortalService {
 
     private final OrderRepository orderRepository;
+    private final BulkDiscountRepository bulkDiscountRepository;
     private final DealerAccountSupport dealerAccountSupport;
     private final DealerPortalLookupSupport dealerPortalLookupSupport;
     private final DealerProfileWriteSupport dealerProfileWriteSupport;
@@ -55,6 +60,40 @@ public class DealerPortalService {
         return DealerPortalResponseMapper.toProfile(dealerPortalLookupSupport.requireDealerByUsername(username));
     }
 
+    @Transactional(readOnly = true)
+    public List<DealerDiscountRuleResponse> getDiscountRules(String username) {
+        dealerPortalLookupSupport.requireDealerByUsername(username);
+        return bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE).stream()
+                .sorted(
+                        java.util.Comparator
+                                .comparing(
+                                        (BulkDiscount rule) -> rule.getProduct() != null && rule.getProduct().getId() != null
+                                )
+                                .reversed()
+                                .thenComparing(
+                                        (BulkDiscount rule) -> rule.getMinQuantity() == null ? 0 : rule.getMinQuantity(),
+                                        java.util.Comparator.reverseOrder()
+                                )
+                                .thenComparing(
+                                        (BulkDiscount rule) -> rule.getDiscountPercent() == null
+                                                ? java.math.BigDecimal.ZERO
+                                                : rule.getDiscountPercent(),
+                                        java.util.Comparator.reverseOrder()
+                                )
+                                .thenComparing(BulkDiscount::getUpdatedAt, java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder()))
+                )
+                .map(rule -> new DealerDiscountRuleResponse(
+                        rule.getProduct() == null ? null : rule.getProduct().getId(),
+                        rule.getMinQuantity(),
+                        rule.getMaxQuantity(),
+                        rule.getDiscountPercent() == null
+                                ? 0
+                                : rule.getDiscountPercent().setScale(0, java.math.RoundingMode.HALF_UP).intValue(),
+                        rule.getRangeLabel()
+                ))
+                .toList();
+    }
+
     @Transactional
     public DealerProfileResponse updateProfile(String username, UpdateDealerProfileRequest request) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
@@ -65,22 +104,28 @@ public class DealerPortalService {
     @Transactional(readOnly = true)
     public List<DealerOrderResponse> getOrders(String username) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
+        var activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
         return orderRepository.findVisibleByDealerIdOrderByCreatedAtDesc(dealer.getId()).stream()
-                .map(DealerPortalResponseMapper::toOrderResponse)
+                .map(order -> DealerPortalResponseMapper.toOrderResponse(order, activeDiscountRules))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public Page<DealerOrderResponse> getOrders(String username, Pageable pageable) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
-        return orderRepository.findVisibleByDealerId(dealer.getId(), pageable).map(DealerPortalResponseMapper::toOrderResponse);
+        var activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
+        return orderRepository.findVisibleByDealerId(dealer.getId(), pageable)
+                .map(order -> DealerPortalResponseMapper.toOrderResponse(order, activeDiscountRules));
     }
 
     @Transactional(readOnly = true)
     public DealerOrderResponse getOrder(String username, Long orderId) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         Order order = dealerPortalLookupSupport.requireDealerOrder(dealer.getId(), orderId);
-        return DealerPortalResponseMapper.toOrderResponse(order);
+        return DealerPortalResponseMapper.toOrderResponse(
+                order,
+                bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE)
+        );
     }
 
     @Transactional

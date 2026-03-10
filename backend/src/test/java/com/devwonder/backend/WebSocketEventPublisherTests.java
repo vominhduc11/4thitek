@@ -33,6 +33,15 @@ class WebSocketEventPublisherTests {
     }
 
     @Test
+    void publishesOrderStatusToPerUserQueue() {
+        Object payload = new Object();
+
+        publisher.publishOrderStatusChanged("dealer@example.com", payload);
+
+        verify(messagingTemplate).convertAndSendToUser("dealer@example.com", "/queue/order-status", payload);
+    }
+
+    @Test
     void publishesLoginConfirmedToPerUserQueue() {
         Object payload = new Object();
 

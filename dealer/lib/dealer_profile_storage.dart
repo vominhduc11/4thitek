@@ -14,6 +14,7 @@ const String _profilePhoneKey = 'dealer_profile_phone';
 const String _profileShippingAddressKey = 'dealer_profile_shipping_address';
 const String _profilePolicyKey = 'dealer_profile_policy';
 const String _profileAvatarUrlKey = 'dealer_profile_avatar_url';
+const String _profileCreditLimitKey = 'dealer_profile_credit_limit';
 
 final AuthStorage _authStorage = AuthStorage();
 final http.Client _authClient = DealerAuthClient(authStorage: _authStorage);
@@ -26,6 +27,7 @@ class DealerProfile {
     required this.phone,
     required this.shippingAddress,
     required this.salesPolicy,
+    this.creditLimit = 0,
     this.avatarUrl,
   });
 
@@ -35,6 +37,7 @@ class DealerProfile {
   final String phone;
   final String shippingAddress;
   final String salesPolicy;
+  final int creditLimit;
   final String? avatarUrl;
 
   DealerProfile copyWith({
@@ -44,6 +47,7 @@ class DealerProfile {
     String? phone,
     String? shippingAddress,
     String? salesPolicy,
+    int? creditLimit,
     String? avatarUrl,
   }) {
     return DealerProfile(
@@ -53,6 +57,7 @@ class DealerProfile {
       phone: phone ?? this.phone,
       shippingAddress: shippingAddress ?? this.shippingAddress,
       salesPolicy: salesPolicy ?? this.salesPolicy,
+      creditLimit: creditLimit ?? this.creditLimit,
       avatarUrl: avatarUrl ?? this.avatarUrl,
     );
   }
@@ -64,6 +69,7 @@ class DealerProfile {
     phone: '',
     shippingAddress: '',
     salesPolicy: '',
+    creditLimit: 0,
     avatarUrl: null,
   );
 }
@@ -179,6 +185,7 @@ Future<void> clearDealerProfileCache() async {
     prefs.remove(_profileShippingAddressKey),
     prefs.remove(_profilePolicyKey),
     prefs.remove(_profileAvatarUrlKey),
+    prefs.remove(_profileCreditLimitKey),
   ]);
 }
 
@@ -191,6 +198,7 @@ Future<void> _saveLocalDealerProfile(DealerProfile profile) async {
     prefs.setString(_profilePhoneKey, profile.phone),
     prefs.setString(_profileShippingAddressKey, profile.shippingAddress),
     prefs.setString(_profilePolicyKey, profile.salesPolicy),
+    prefs.setInt(_profileCreditLimitKey, profile.creditLimit),
     if ((profile.avatarUrl ?? '').trim().isNotEmpty)
       prefs.setString(_profileAvatarUrlKey, profile.avatarUrl!.trim())
     else
@@ -222,6 +230,7 @@ DealerProfile _mapRemoteProfile(
         ? fallback.shippingAddress
         : shippingAddress,
     salesPolicy: _normalizeString(json['salesPolicy']) ?? fallback.salesPolicy,
+    creditLimit: _normalizeInt(json['creditLimit']) ?? fallback.creditLimit,
     avatarUrl: hasAvatarField ? avatarUrl : fallback.avatarUrl,
   );
 }
@@ -297,4 +306,18 @@ String _extractErrorMessage(
 String? _normalizeString(Object? value) {
   final text = value?.toString().trim() ?? '';
   return text.isEmpty ? null : text;
+}
+
+int? _normalizeInt(Object? value) {
+  if (value == null) {
+    return null;
+  }
+  if (value is num) {
+    return value.round();
+  }
+  final normalized = value.toString().trim();
+  if (normalized.isEmpty) {
+    return null;
+  }
+  return num.tryParse(normalized)?.round();
 }

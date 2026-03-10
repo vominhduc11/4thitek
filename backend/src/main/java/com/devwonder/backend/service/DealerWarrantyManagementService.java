@@ -20,6 +20,7 @@ import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
@@ -212,7 +213,7 @@ public class DealerWarrantyManagementService {
         int warrantyMonths = product == null || product.getWarrantyPeriod() == null || product.getWarrantyPeriod() <= 0
                 ? 12
                 : product.getWarrantyPeriod();
-        return warrantyStart.plus((long) warrantyMonths * 30L, ChronoUnit.DAYS);
+        return warrantyStart.atZone(ZoneOffset.UTC).plusMonths(warrantyMonths).toInstant();
     }
 
     private WarrantyRegistrationResponse toResponse(WarrantyRegistration registration) {

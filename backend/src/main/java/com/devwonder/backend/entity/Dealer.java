@@ -9,6 +9,7 @@ import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.DealerTier;
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
 import lombok.Getter;
@@ -55,6 +56,9 @@ public class Dealer extends Account {
 
     @Column(name = "sales_policy", length = 4000)
     private String salesPolicy;
+
+    @Column(name = "credit_limit")
+    private BigDecimal creditLimit;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "customer_tier")

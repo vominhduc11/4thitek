@@ -4,18 +4,9 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { apiService } from '@/services/apiService';
 import { useLanguage } from '@/context/LanguageContext';
-import ResellerSearch from '@/app/reseller_infomation/components/ResellerSearch';
-import ResellerResults from '@/app/reseller_infomation/components/ResellerResults';
-
-type Reseller = {
-    id: string | number;
-    name: string;
-    address: string;
-    city: string;
-    district: string;
-    phone: string;
-    email: string;
-};
+import ResellerResults from './ResellerResults';
+import ResellerSearch from './ResellerSearch';
+import type { Reseller, ResellerSearchFilters } from './types';
 
 type ApiDealer = {
     accountId?: number;
@@ -86,7 +77,7 @@ const extractDealersArray = (payload: unknown): ApiDealer[] | null => {
 
 export default function DealerNetworkSection() {
     const { t } = useLanguage();
-    const [searchFilters, setSearchFilters] = useState({
+    const [searchFilters, setSearchFilters] = useState<ResellerSearchFilters>({
         city: '',
         district: '',
         address: ''

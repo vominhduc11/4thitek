@@ -52,6 +52,10 @@ public final class AdminResponseMapper {
     }
 
     public static AdminOrderResponse toOrderResponse(Order order) {
+        return toOrderResponse(order, List.of());
+    }
+
+    public static AdminOrderResponse toOrderResponse(Order order, List<BulkDiscount> rules) {
         Dealer dealer = order.getDealer();
         return new AdminOrderResponse(
                 order.getId(),
@@ -64,7 +68,7 @@ public final class AdminResponseMapper {
                 order.getPaidAmount(),
                 order.getCreatedAt(),
                 order.getUpdatedAt(),
-                OrderPricingSupport.computeTotalAmount(order),
+                OrderPricingSupport.computeTotalAmount(order, rules),
                 countOrderItems(order),
                 order.getReceiverAddress(),
                 order.getNote()
@@ -103,6 +107,10 @@ public final class AdminResponseMapper {
     }
 
     public static AdminDealerAccountResponse toDealerAccountResponse(Dealer dealer) {
+        return toDealerAccountResponse(dealer, List.of());
+    }
+
+    public static AdminDealerAccountResponse toDealerAccountResponse(Dealer dealer, List<BulkDiscount> rules) {
         List<Order> visibleOrders = dealer.getOrders() == null
                 ? List.of()
                 : dealer.getOrders().stream().filter(AdminDashboardSupport::isVisibleOrder).toList();
@@ -112,7 +120,7 @@ public final class AdminResponseMapper {
                 .max(Comparator.naturalOrder())
                 .orElse(dealer.getCreatedAt());
         BigDecimal revenue = visibleOrders.stream()
-                .map(OrderPricingSupport::computeTotalAmount)
+                .map(order -> OrderPricingSupport.computeTotalAmount(order, rules))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         return new AdminDealerAccountResponse(
                 dealer.getId(),
@@ -122,6 +130,7 @@ public final class AdminResponseMapper {
                 visibleOrders.size(),
                 lastOrderAt,
                 revenue,
+                dealer.getCreditLimit(),
                 dealer.getEmail(),
                 dealer.getPhone()
         );

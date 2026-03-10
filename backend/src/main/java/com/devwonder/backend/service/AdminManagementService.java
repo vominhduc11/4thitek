@@ -16,8 +16,10 @@ import com.devwonder.backend.dto.admin.AdminStaffUserUpsertRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminDealerAccountStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminDiscountRuleStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminStaffUserStatusRequest;
+import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
+import com.devwonder.backend.dto.realtime.DealerOrderStatusEvent;
 import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.Blog;
 import com.devwonder.backend.entity.BulkDiscount;
@@ -48,15 +50,18 @@ import com.devwonder.backend.service.support.AdminIdentitySupport;
 import com.devwonder.backend.service.support.AdminOrderNotificationSupport;
 import com.devwonder.backend.service.support.AdminResponseMapper;
 import com.devwonder.backend.service.support.AdminWriteSupport;
+import com.devwonder.backend.service.support.DealerPaymentSupport;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import com.devwonder.backend.service.support.OrderStatusTransitionPolicy;
 import com.devwonder.backend.service.support.ProductSerialResponseMapper;
 import java.math.BigDecimal;
+import java.security.SecureRandom;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,7 +70,10 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AdminManagementService {
 
-    private static final String DEFAULT_PASSWORD = "123456";
+    private static final String DEFAULT_ADMIN_PASSWORD = "123456";
+    private static final String TEMP_PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#$%";
+    private static final int TEMP_PASSWORD_LENGTH = 12;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
@@ -78,10 +86,16 @@ public class AdminManagementService {
     private final RoleRepository roleRepository;
     private final AccountRepository accountRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MailService mailService;
     private final DealerAccountLifecycleService dealerAccountLifecycleService;
     private final AdminWriteSupport adminWriteSupport;
     private final AdminIdentitySupport adminIdentitySupport;
     private final AdminOrderNotificationSupport adminOrderNotificationSupport;
+    private final DealerPaymentSupport dealerPaymentSupport;
+    private final WebSocketEventPublisher webSocketEventPublisher;
+
+    @Value("${sepay.enabled:false}")
+    private boolean sepayEnabled;
 
     @Transactional(readOnly = true)
     public List<AdminProductResponse> getProducts() {
@@ -116,10 +130,11 @@ public class AdminManagementService {
 
     @Transactional(readOnly = true)
     public List<AdminOrderResponse> getOrders() {
+        List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         return orderRepository.findAll().stream()
                 .filter(AdminDashboardSupport::isVisibleOrder)
                 .sorted(Comparator.comparing(Order::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
-                .map(AdminResponseMapper::toOrderResponse)
+                .map(order -> AdminResponseMapper.toOrderResponse(order, activeDiscountRules))
                 .toList();
     }
 
@@ -130,10 +145,12 @@ public class AdminManagementService {
         OrderStatus previousStatus = order.getStatus();
         OrderStatusTransitionPolicy.assertAdminTransitionAllowed(previousStatus, request.status());
         order.setStatus(request.status());
-        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order));
+        List<BulkDiscount> activeDiscountRules = activeDiscountRules();
+        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
         Order saved = orderRepository.save(order);
         adminOrderNotificationSupport.notifyStatusChange(saved, previousStatus);
-        return AdminResponseMapper.toOrderResponse(saved);
+        publishOrderStatusRealtime(saved, previousStatus);
+        return AdminResponseMapper.toOrderResponse(saved, activeDiscountRules);
     }
 
     @Transactional
@@ -146,6 +163,17 @@ public class AdminManagementService {
         if (wasVisible) {
             adminOrderNotificationSupport.notifyDeletion(saved);
         }
+    }
+
+    @Transactional
+    public AdminOrderResponse recordOrderPayment(Long id, RecordPaymentRequest request) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+        dealerPaymentSupport.recordAdminPayment(order, request, sepayEnabled);
+        return AdminResponseMapper.toOrderResponse(
+                orderRepository.findById(id).orElseThrow(),
+                activeDiscountRules()
+        );
     }
 
     @Transactional(readOnly = true)
@@ -200,9 +228,10 @@ public class AdminManagementService {
 
     @Transactional(readOnly = true)
     public List<AdminDealerAccountResponse> getDealerAccounts() {
+        List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         return dealerRepository.findAll().stream()
                 .sorted(Comparator.comparing(Dealer::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
-                .map(AdminResponseMapper::toDealerAccountResponse)
+                .map(dealer -> AdminResponseMapper.toDealerAccountResponse(dealer, activeDiscountRules))
                 .toList();
     }
 
@@ -218,16 +247,52 @@ public class AdminManagementService {
         }
 
         Dealer dealer = new Dealer();
+        ensureDealerProvisioningEmailAvailable(email);
+        String temporaryPassword = generateTemporaryPassword();
         String name = requireNonBlank(request.name(), "name");
         dealer.setBusinessName(name);
         dealer.setContactName(name);
         dealer.setUsername(email);
         dealer.setEmail(email);
         dealer.setPhone(phone);
-        dealer.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD));
+        dealer.setPassword(passwordEncoder.encode(temporaryPassword));
         dealer.setDealerTier(request.tier() == null ? DealerTier.GOLD : request.tier());
         dealer.setCustomerStatus(request.status() == null ? CustomerStatus.ACTIVE : request.status());
+        dealer.setCreditLimit(requireNonNegativeAmount(request.creditLimit(), "creditLimit"));
         dealer.setRoles(new HashSet<>(List.of(resolveRole("USER", "Dealer role"))));
+        Dealer savedDealer = dealerRepository.save(dealer);
+        sendDealerProvisioningEmail(savedDealer, temporaryPassword);
+        return AdminResponseMapper.toDealerAccountResponse(savedDealer, activeDiscountRules());
+    }
+
+    @Transactional
+    public AdminDealerAccountResponse updateDealerAccount(Long id, AdminDealerAccountUpsertRequest request) {
+        Dealer dealer = dealerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Dealer account not found"));
+        String email = requireNonBlank(request.email(), "email");
+        String phone = requireNonBlank(request.phone(), "phone");
+        String name = requireNonBlank(request.name(), "name");
+        accountRepository.findByEmail(email)
+                .filter(existing -> !existing.getId().equals(id))
+                .ifPresent(existing -> {
+                    throw new ConflictException("Email already exists");
+                });
+        if (dealerRepository.existsByPhoneAndIdNot(phone, id)) {
+            throw new ConflictException("Phone already exists");
+        }
+
+        dealer.setBusinessName(name);
+        dealer.setContactName(name);
+        dealer.setUsername(email);
+        dealer.setEmail(email);
+        dealer.setPhone(phone);
+        if (request.tier() != null) {
+            dealer.setDealerTier(request.tier());
+        }
+        if (request.status() != null) {
+            dealer.setCustomerStatus(request.status());
+        }
+        dealer.setCreditLimit(requireNonNegativeAmount(request.creditLimit(), "creditLimit"));
         return AdminResponseMapper.toDealerAccountResponse(dealerRepository.save(dealer));
     }
 
@@ -262,7 +327,7 @@ public class AdminManagementService {
         Admin admin = new Admin();
         admin.setUsername(identity.username());
         admin.setEmail(identity.email());
-        admin.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD));
+        admin.setPassword(passwordEncoder.encode(DEFAULT_ADMIN_PASSWORD));
         admin.setDisplayName(name);
         admin.setRoleTitle(roleTitle);
         admin.setUserStatus(request.status() == null ? StaffUserStatus.PENDING : request.status());
@@ -290,7 +355,7 @@ public class AdminManagementService {
     public AdminDiscountRuleResponse createDiscountRule(AdminDiscountRuleUpsertRequest request) {
         BulkDiscount rule = new BulkDiscount();
         rule.setLabel(requireNonBlank(request.label(), "label"));
-        rule.setRangeLabel(requireNonBlank(request.range(), "range"));
+        applyDiscountRuleRange(rule, requireNonBlank(request.range(), "range"));
         rule.setDiscountPercent(adminWriteSupport.requirePositivePercent(request.percent()));
         rule.setStatus(request.status() == null ? DiscountRuleStatus.DRAFT : request.status());
         return AdminResponseMapper.toDiscountRuleResponse(bulkDiscountRepository.save(rule));
@@ -339,5 +404,99 @@ public class AdminManagementService {
             throw new BadRequestException(fieldName + " must not be blank");
         }
         return normalized;
+    }
+
+    private BigDecimal requireNonNegativeAmount(BigDecimal value, String fieldName) {
+        if (value == null) {
+            return null;
+        }
+        if (value.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BadRequestException(fieldName + " must not be negative");
+        }
+        return value;
+    }
+
+    private List<BulkDiscount> activeDiscountRules() {
+        return bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
+    }
+
+    private void applyDiscountRuleRange(BulkDiscount rule, String rangeLabel) {
+        rule.setRangeLabel(rangeLabel);
+        OrderPricingSupport.QuantityRange range = OrderPricingSupport.parseRange(rangeLabel);
+        rule.setMinQuantity(range == null ? null : range.min());
+        rule.setMaxQuantity(range == null ? null : range.max());
+    }
+
+    private void ensureDealerProvisioningEmailAvailable(String email) {
+        if (!mailService.isEnabled()) {
+            throw new BadRequestException("Email service must be configured to provision dealer accounts");
+        }
+        if (normalize(email) == null) {
+            throw new BadRequestException("email must not be blank");
+        }
+    }
+
+    private String generateTemporaryPassword() {
+        StringBuilder builder = new StringBuilder(TEMP_PASSWORD_LENGTH);
+        for (int i = 0; i < TEMP_PASSWORD_LENGTH; i++) {
+            int index = SECURE_RANDOM.nextInt(TEMP_PASSWORD_CHARS.length());
+            builder.append(TEMP_PASSWORD_CHARS.charAt(index));
+        }
+        return builder.toString();
+    }
+
+    private void sendDealerProvisioningEmail(Dealer dealer, String temporaryPassword) {
+        String email = normalize(dealer.getEmail());
+        if (email == null) {
+            throw new BadRequestException("Dealer email is required to send initial password");
+        }
+        String dealerName = firstNonBlank(dealer.getBusinessName(), dealer.getContactName(), dealer.getUsername(), "đại lý");
+        String username = firstNonBlank(dealer.getUsername(), email);
+        String subject = "Tài khoản đại lý 4ThiTek đã được tạo";
+        String body = """
+                Xin chào %s,
+
+                Tài khoản đại lý 4ThiTek của bạn đã được tạo bởi quản trị viên.
+
+                Tên đăng nhập: %s
+                Mật khẩu tạm thời: %s
+
+                Vui lòng đăng nhập và đổi mật khẩu ngay sau lần đăng nhập đầu tiên.
+                """.formatted(dealerName, username, temporaryPassword);
+        mailService.sendText(email, subject, body.trim());
+    }
+
+    private void publishOrderStatusRealtime(Order order, OrderStatus previousStatus) {
+        Dealer dealer = order.getDealer();
+        if (dealer == null || order.getStatus() == null || order.getStatus() == previousStatus) {
+            return;
+        }
+
+        String username = firstNonBlank(dealer.getUsername(), dealer.getEmail());
+        if (username == null) {
+            return;
+        }
+
+        webSocketEventPublisher.publishOrderStatusChanged(
+                username,
+                new DealerOrderStatusEvent(
+                        order.getId(),
+                        firstNonBlank(order.getOrderCode(), String.valueOf(order.getId())),
+                        previousStatus,
+                        order.getStatus(),
+                        order.getPaymentStatus(),
+                        order.getUpdatedAt()
+                )
+        );
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            String normalized = normalize(value);
+            if (normalized != null) {
+                return normalized;
+            }
+        }
+        return null;
     }
 }

@@ -84,15 +84,15 @@ public class DealerAccountLifecycleService {
     private String notificationTitle(CustomerStatus status) {
         return switch (status) {
             case ACTIVE -> "Tài khoản đại lý đã được kích hoạt";
-            case UNDER_REVIEW -> "Ho so dai ly dang duoc xem xet";
-            case NEEDS_ATTENTION -> "Ho so dai ly can bo sung";
+            case UNDER_REVIEW -> "Hồ sơ đại lý đang được xem xét";
+            case NEEDS_ATTENTION -> "Hồ sơ đại lý cần bổ sung";
         };
     }
 
     private String notificationContent(CustomerStatus status) {
         return switch (status) {
             case ACTIVE -> "Hồ sơ đại lý của bạn đã được phê duyệt. Bạn có thể đăng nhập ứng dụng Dealer bằng tài khoản đã đăng ký.";
-            case UNDER_REVIEW -> "Ho so dai ly cua ban dang duoc 4ThiTek xem xet. Chung toi se gui email khi co cap nhat moi.";
+            case UNDER_REVIEW -> "Hồ sơ đại lý của bạn đang được 4ThiTek xem xét. Chúng tôi sẽ gửi email khi có cập nhật mới.";
             case NEEDS_ATTENTION -> "Hồ sơ đại lý của bạn cần bổ sung thông tin trước khi kích hoạt. Vui lòng kiểm tra email để biết chi tiết.";
         };
     }
@@ -120,8 +120,8 @@ public class DealerAccountLifecycleService {
             case UNDER_REVIEW -> """
                     Xin chào %s,
 
-                    Ho so dai ly cua ban dang duoc 4ThiTek xem xet.
-                    Chung toi se gui email tiep theo ngay khi co ket qua xu ly.
+                    Hồ sơ đại lý của bạn đang được 4ThiTek xem xét.
+                    Chúng tôi sẽ gửi email tiếp theo ngay khi có kết quả xử lý.
 
                     Trân trọng,
                     4ThiTek
@@ -163,6 +163,6 @@ public class DealerAccountLifecycleService {
         if (StringUtils.hasText(dealer.getEmail())) {
             return dealer.getEmail().trim();
         }
-        return "doi tac";
+        return "đối tác";
     }
 }

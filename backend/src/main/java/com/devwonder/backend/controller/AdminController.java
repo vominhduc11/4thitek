@@ -32,6 +32,7 @@ import com.devwonder.backend.dto.admin.UpdateAdminSettingsRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminDiscountRuleStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminStaffUserStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminWarrantyStatusRequest;
+import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
 import com.devwonder.backend.dto.pagination.PagedResponse;
@@ -105,6 +106,14 @@ public class AdminController {
             @Valid @RequestBody UpdateDealerOrderStatusRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.updateOrderStatus(id, request)));
+    }
+
+    @PostMapping("/orders/{id}/payments")
+    public ResponseEntity<ApiResponse<AdminOrderResponse>> recordOrderPayment(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody RecordPaymentRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(adminManagementService.recordOrderPayment(id, request)));
     }
 
     @DeleteMapping("/orders/{id}")
@@ -258,6 +267,14 @@ public class AdminController {
             @Valid @RequestBody AdminDealerAccountUpsertRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.createDealerAccount(request)));
+    }
+
+    @PutMapping({"/customers/{id}", "/dealers/accounts/{id}"})
+    public ResponseEntity<ApiResponse<AdminDealerAccountResponse>> updateDealerAccount(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody AdminDealerAccountUpsertRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(adminManagementService.updateDealerAccount(id, request)));
     }
 
     @PatchMapping({"/customers/{id}/status", "/dealers/accounts/{id}/status"})

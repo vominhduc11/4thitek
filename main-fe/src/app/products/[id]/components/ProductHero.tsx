@@ -78,7 +78,7 @@ export default function ProductHero({
     const router = useRouter();
 
     const handleFindRetailer = () => {
-        router.push('/reseller_infomation');
+        router.push('/become_our_reseller#dealer-network');
     };
 
     // Create smooth sticky breadcrumb for md+ breakpoints

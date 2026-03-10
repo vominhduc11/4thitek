@@ -15,6 +15,10 @@ public class WebSocketEventPublisher {
         messagingTemplate.convertAndSendToUser(username, "/queue/notifications", payload);
     }
 
+    public void publishOrderStatusChanged(String username, Object payload) {
+        messagingTemplate.convertAndSendToUser(username, "/queue/order-status", payload);
+    }
+
     public void publishLoginConfirmed(String username, Object payload) {
         messagingTemplate.convertAndSendToUser(username, "/queue/login-confirmed", payload);
     }

@@ -6,6 +6,7 @@ import com.devwonder.backend.dto.webhook.SepayWebhookRequest;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.OrderItem;
 import com.devwonder.backend.entity.Payment;
+import com.devwonder.backend.entity.enums.DiscountRuleStatus;
 import com.devwonder.backend.entity.enums.NotifyType;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
@@ -15,6 +16,7 @@ import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.exception.UnauthorizedException;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.PaymentRepository;
+import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -41,6 +43,7 @@ public class SepayService {
 
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
+    private final BulkDiscountRepository bulkDiscountRepository;
     private final NotificationService notificationService;
 
     @Value("${sepay.enabled:false}")
@@ -103,7 +106,8 @@ public class SepayService {
         if (order.getStatus() == OrderStatus.CANCELLED) {
             return WebhookResult.ignored("order_cancelled", orderCode, null, "Cancelled order cannot receive payment");
         }
-        if (zeroIfNull(order.getPaidAmount()).compareTo(OrderPricingSupport.computeTotalAmount(order)) >= 0) {
+        var activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
+        if (zeroIfNull(order.getPaidAmount()).compareTo(OrderPricingSupport.computeTotalAmount(order, activeDiscountRules)) >= 0) {
             return WebhookResult.duplicate("already_paid", orderCode, null, "Order is already fully paid");
         }
 
@@ -124,7 +128,7 @@ public class SepayService {
         Payment savedPayment = paymentRepository.save(payment);
 
         order.setPaidAmount(zeroIfNull(order.getPaidAmount()).add(payment.getAmount()));
-        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order));
+        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
         orderRepository.save(order);
 
         if (order.getDealer() != null) {

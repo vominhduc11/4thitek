@@ -106,6 +106,43 @@ class CartItem {
   }
 }
 
+class BulkDiscountRule {
+  const BulkDiscountRule({
+    required this.percent,
+    this.productId,
+    this.minQuantity,
+    this.maxQuantity,
+    this.rangeLabel,
+  });
+
+  final int percent;
+  final String? productId;
+  final int? minQuantity;
+  final int? maxQuantity;
+  final String? rangeLabel;
+
+  bool appliesToCart(Iterable<CartItem> items) {
+    final stats = _buildBulkDiscountStats(
+      items.map((item) => (productId: item.product.id, quantity: item.quantity)),
+    );
+    return _matchesBulkDiscountRule(this, stats);
+  }
+}
+
+class BulkDiscountTarget {
+  const BulkDiscountTarget({
+    required this.targetQuantity,
+    required this.percent,
+    this.productId,
+    this.rangeLabel,
+  });
+
+  final int targetQuantity;
+  final int percent;
+  final String? productId;
+  final String? rangeLabel;
+}
+
 enum OrderStatus { pendingApproval, approved, shipping, completed, cancelled }
 
 extension OrderStatusLabel on OrderStatus {
@@ -157,14 +194,54 @@ extension OrderPaymentStatusLabel on OrderPaymentStatus {
   }
 }
 
-int bulkDiscountPercentForItems(int totalItems) {
-  if (totalItems >= 20) {
-    return 20;
+int bulkDiscountPercentForCart({
+  required Iterable<CartItem> items,
+  required List<BulkDiscountRule> rules,
+}) {
+  final stats = _buildBulkDiscountStats(
+    items.map((item) => (productId: item.product.id, quantity: item.quantity)),
+  );
+  return _resolveBulkDiscountPercent(stats, rules);
+}
+
+BulkDiscountTarget? nextBulkDiscountTargetForCart({
+  required Iterable<CartItem> items,
+  required List<BulkDiscountRule> rules,
+}) {
+  final stats = _buildBulkDiscountStats(
+    items.map((item) => (productId: item.product.id, quantity: item.quantity)),
+  );
+  if (stats.totalItems <= 0 || rules.isEmpty) {
+    return null;
   }
-  if (totalItems >= 10) {
-    return 10;
+
+  final candidates = rules.where((rule) {
+    final minQuantity = rule.minQuantity;
+    if (minQuantity == null || minQuantity <= stats.totalItems) {
+      return false;
+    }
+    if (rule.productId == null) {
+      return true;
+    }
+    return stats.singleProductId != null && stats.singleProductId == rule.productId;
+  }).toList()
+    ..sort((a, b) {
+      final minCompare = (a.minQuantity ?? 0).compareTo(b.minQuantity ?? 0);
+      if (minCompare != 0) return minCompare;
+      return (a.percent).compareTo(b.percent);
+    });
+
+  if (candidates.isEmpty) {
+    return null;
   }
-  return 0;
+
+  final nextRule = candidates.first;
+  return BulkDiscountTarget(
+    targetQuantity: nextRule.minQuantity ?? stats.totalItems,
+    percent: nextRule.percent,
+    productId: nextRule.productId,
+    rangeLabel: nextRule.rangeLabel,
+  );
 }
 
 int bulkDiscountAmount({required int subtotal, required int discountPercent}) {
@@ -202,6 +279,12 @@ class Order {
     required this.items,
     this.paidAmount = 0,
     this.note,
+    this.subtotalOverride,
+    this.discountPercentOverride,
+    this.discountAmountOverride,
+    this.vatPercentOverride,
+    this.vatAmountOverride,
+    this.totalAmountOverride,
   });
 
   final String id;
@@ -216,29 +299,40 @@ class Order {
   final List<OrderLineItem> items;
   final int paidAmount;
   final String? note;
+  final int? subtotalOverride;
+  final int? discountPercentOverride;
+  final int? discountAmountOverride;
+  final int? vatPercentOverride;
+  final int? vatAmountOverride;
+  final int? totalAmountOverride;
 
   int get totalItems {
     return items.fold<int>(0, (sum, item) => sum + item.quantity);
   }
 
   int get subtotal {
+    if (subtotalOverride != null) {
+      return subtotalOverride!;
+    }
     return items.fold<int>(0, (sum, item) => sum + item.total);
   }
 
-  int get discountPercent => bulkDiscountPercentForItems(totalItems);
+  int get discountPercent => discountPercentOverride ?? 0;
 
   int get discountAmount =>
+      discountAmountOverride ??
       bulkDiscountAmount(subtotal: subtotal, discountPercent: discountPercent);
 
   int get totalAfterDiscount => subtotal - discountAmount;
 
-  int get vatPercent => kVatPercent;
+  int get vatPercent => vatPercentOverride ?? kVatPercent;
 
-  int get vatAmount => (totalAfterDiscount * vatPercent / 100).round();
+  int get vatAmount =>
+      vatAmountOverride ?? (totalAfterDiscount * vatPercent / 100).round();
 
   int get totalBeforeShipping => totalAfterDiscount + vatAmount;
 
-  int get total => totalBeforeShipping + shippingFee;
+  int get total => totalAmountOverride ?? (totalBeforeShipping + shippingFee);
 
   int get outstandingAmount {
     final outstanding = total - paidAmount;
@@ -259,6 +353,12 @@ class Order {
     List<OrderLineItem>? items,
     int? paidAmount,
     String? note,
+    int? subtotalOverride,
+    int? discountPercentOverride,
+    int? discountAmountOverride,
+    int? vatPercentOverride,
+    int? vatAmountOverride,
+    int? totalAmountOverride,
   }) {
     return Order(
       id: id,
@@ -273,6 +373,14 @@ class Order {
       items: items ?? this.items,
       paidAmount: paidAmount ?? this.paidAmount,
       note: note ?? this.note,
+      subtotalOverride: subtotalOverride ?? this.subtotalOverride,
+      discountPercentOverride:
+          discountPercentOverride ?? this.discountPercentOverride,
+      discountAmountOverride:
+          discountAmountOverride ?? this.discountAmountOverride,
+      vatPercentOverride: vatPercentOverride ?? this.vatPercentOverride,
+      vatAmountOverride: vatAmountOverride ?? this.vatAmountOverride,
+      totalAmountOverride: totalAmountOverride ?? this.totalAmountOverride,
     );
   }
 }
@@ -313,4 +421,63 @@ class DistributorNotice {
   final String title;
   final String message;
   final DateTime createdAt;
+}
+
+typedef _BulkDiscountLine = ({String productId, int quantity});
+
+class _BulkDiscountStats {
+  const _BulkDiscountStats({
+    required this.totalItems,
+    required this.singleProductId,
+  });
+
+  final int totalItems;
+  final String? singleProductId;
+}
+
+_BulkDiscountStats _buildBulkDiscountStats(Iterable<_BulkDiscountLine> lines) {
+  final productIds = <String>{};
+  var totalItems = 0;
+  for (final line in lines) {
+    final safeQuantity = line.quantity < 0 ? 0 : line.quantity;
+    totalItems += safeQuantity;
+    if (line.productId.trim().isNotEmpty && safeQuantity > 0) {
+      productIds.add(line.productId);
+    }
+  }
+  return _BulkDiscountStats(
+    totalItems: totalItems,
+    singleProductId: productIds.length == 1 ? productIds.first : null,
+  );
+}
+
+int _resolveBulkDiscountPercent(
+  _BulkDiscountStats stats,
+  List<BulkDiscountRule> rules,
+) {
+  if (stats.totalItems <= 0 || rules.isEmpty) {
+    return 0;
+  }
+  for (final rule in rules) {
+    if (_matchesBulkDiscountRule(rule, stats)) {
+      return rule.percent < 0 ? 0 : rule.percent;
+    }
+  }
+  return 0;
+}
+
+bool _matchesBulkDiscountRule(BulkDiscountRule rule, _BulkDiscountStats stats) {
+  if (stats.totalItems <= 0) {
+    return false;
+  }
+  if (rule.minQuantity != null && stats.totalItems < rule.minQuantity!) {
+    return false;
+  }
+  if (rule.maxQuantity != null && stats.totalItems > rule.maxQuantity!) {
+    return false;
+  }
+  if (rule.productId == null) {
+    return true;
+  }
+  return stats.singleProductId != null && stats.singleProductId == rule.productId;
 }

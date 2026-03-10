@@ -4,18 +4,33 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
+import com.devwonder.backend.dto.dealer.CreateDealerOrderItemRequest;
+import com.devwonder.backend.dto.dealer.CreateDealerOrderRequest;
+import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
+import com.devwonder.backend.entity.Admin;
+import com.devwonder.backend.entity.BulkDiscount;
 import com.devwonder.backend.entity.Dealer;
+import com.devwonder.backend.entity.Notify;
 import com.devwonder.backend.entity.Order;
+import com.devwonder.backend.entity.Product;
+import com.devwonder.backend.entity.enums.DiscountRuleStatus;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
+import com.devwonder.backend.entity.enums.StaffUserStatus;
+import com.devwonder.backend.repository.AdminRepository;
+import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.repository.DealerRepository;
+import com.devwonder.backend.repository.DealerSupportTicketRepository;
 import com.devwonder.backend.repository.NotifyRepository;
 import com.devwonder.backend.repository.OrderRepository;
+import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.service.AdminManagementService;
 import com.devwonder.backend.service.DealerPortalService;
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,12 +52,28 @@ class OrderWorkflowLogicTests {
     private OrderRepository orderRepository;
 
     @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private BulkDiscountRepository bulkDiscountRepository;
+
+    @Autowired
+    private AdminRepository adminRepository;
+
+    @Autowired
     private NotifyRepository notifyRepository;
+
+    @Autowired
+    private DealerSupportTicketRepository dealerSupportTicketRepository;
 
     @BeforeEach
     void setUp() {
         notifyRepository.deleteAll();
+        dealerSupportTicketRepository.deleteAll();
         orderRepository.deleteAll();
+        bulkDiscountRepository.deleteAll();
+        productRepository.deleteAll();
+        adminRepository.deleteAll();
         dealerRepository.deleteAll();
     }
 
@@ -72,6 +103,19 @@ class OrderWorkflowLogicTests {
     }
 
     @Test
+    void dealerCannotMarkShippingOrderCompleted() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-complete@example.com"));
+        Order order = orderRepository.save(createOrder(dealer, OrderStatus.SHIPPING, "WF-DEALER-2"));
+
+        assertThatThrownBy(() -> dealerPortalService.updateOrderStatus(
+                dealer.getUsername(),
+                order.getId(),
+                new UpdateDealerOrderStatusRequest(OrderStatus.COMPLETED)
+        )).isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("SHIPPING -> COMPLETED");
+    }
+
+    @Test
     void adminCancellationRecomputesPaymentStatus() {
         Dealer dealer = dealerRepository.save(createDealer("admin-cancel@example.com"));
         Order order = orderRepository.save(createOrder(dealer, OrderStatus.PENDING, "WF-CANCEL-1"));
@@ -84,6 +128,136 @@ class OrderWorkflowLogicTests {
         assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.CANCELLED);
         assertThat(orderRepository.findById(order.getId()).orElseThrow().getPaymentStatus())
                 .isEqualTo(PaymentStatus.CANCELLED);
+    }
+
+    @Test
+    void dealerCannotCreateDebtOrderBeyondCreditLimit() {
+        Dealer dealer = createDealer("credit-limit@example.com");
+        dealer.setCreditLimit(BigDecimal.valueOf(100_000));
+        Dealer savedDealer = dealerRepository.save(dealer);
+        Product product = productRepository.save(createProduct("SKU-CREDIT-1", BigDecimal.valueOf(100_000)));
+
+        CreateDealerOrderRequest request = new CreateDealerOrderRequest(
+                PaymentMethod.DEBT,
+                "Dealer receiver",
+                "123 Credit Street",
+                "0900000000",
+                0,
+                "Debt order should exceed limit",
+                List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
+        );
+
+        assertThatThrownBy(() -> dealerPortalService.createOrder(savedDealer.getUsername(), request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Credit limit exceeded");
+    }
+
+    @Test
+    void discountPercentUsesActiveBulkDiscountRuleRange() {
+        Dealer dealer = dealerRepository.save(createDealer("discount-rule@example.com"));
+        Product product = productRepository.save(createProduct("SKU-DISCOUNT-1", BigDecimal.valueOf(100_000)));
+        bulkDiscountRepository.save(createBulkDiscount("3 - 5", BigDecimal.valueOf(15)));
+
+        var response = dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.DEBT,
+                        "Dealer receiver",
+                        "123 Discount Street",
+                        "0900000000",
+                        0,
+                        "Discount should use active rule",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 3, product.getRetailPrice()))
+                )
+        );
+
+        assertThat(response.discountPercent()).isEqualTo(15);
+        assertThat(response.discountAmount()).isEqualByComparingTo("45000");
+    }
+
+    @Test
+    void dealerCannotCreateOrderBeyondAvailableStock() {
+        Dealer dealer = dealerRepository.save(createDealer("stock-check@example.com"));
+        Product product = productRepository.save(createProduct("SKU-STOCK-1", BigDecimal.valueOf(100_000), 5));
+
+        assertThatThrownBy(() -> dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer receiver",
+                        "123 Stock Street",
+                        "0900000000",
+                        0,
+                        "Should fail because stock is low",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 6, product.getRetailPrice()))
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Insufficient stock");
+    }
+
+    @Test
+    void adminCanRecordBankTransferPaymentWhenSepayIsDisabled() {
+        Dealer dealer = dealerRepository.save(createDealer("manual-bank-payment@example.com"));
+        Product product = productRepository.save(createProduct("SKU-BANK-1", BigDecimal.valueOf(100_000)));
+        var createdOrder = dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer receiver",
+                        "123 Payment Street",
+                        "0900000000",
+                        0,
+                        "Admin should confirm payment manually",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
+                )
+        );
+
+        var updatedOrder = adminManagementService.recordOrderPayment(
+                createdOrder.id(),
+                new RecordPaymentRequest(
+                        createdOrder.totalAmount(),
+                        PaymentMethod.BANK_TRANSFER,
+                        "Admin manual confirmation",
+                        "MANUAL-TX-001",
+                        "Recorded because SePay is disabled",
+                        null,
+                        Instant.parse("2026-03-10T02:00:00Z")
+                )
+        );
+
+        assertThat(updatedOrder.paymentStatus()).isEqualTo(PaymentStatus.PAID);
+        assertThat(updatedOrder.paidAmount()).isEqualByComparingTo(createdOrder.totalAmount());
+    }
+
+    @Test
+    void dealerCancellationCreatesNotificationForActiveAdmins() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-cancel@example.com"));
+        Admin admin = adminRepository.save(createAdmin("ops.admin@example.com"));
+        Product product = productRepository.save(createProduct("SKU-CANCEL-1", BigDecimal.valueOf(100_000)));
+        var createdOrder = dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.DEBT,
+                        "Dealer receiver",
+                        "123 Cancel Street",
+                        "0900000000",
+                        0,
+                        "Dealer may cancel this order",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
+                )
+        );
+
+        dealerPortalService.updateOrderStatus(
+                dealer.getUsername(),
+                createdOrder.id(),
+                new UpdateDealerOrderStatusRequest(OrderStatus.CANCELLED)
+        );
+
+        List<Notify> notifications = notifyRepository.findByAccountIdOrderByCreatedAtDesc(admin.getId());
+        assertThat(notifications).hasSize(1);
+        assertThat(notifications.get(0).getContent()).contains("hủy đơn");
+        assertThat(notifications.get(0).getLink()).isEqualTo("/orders/" + createdOrder.id());
     }
 
     private Dealer createDealer(String username) {
@@ -105,5 +279,40 @@ class OrderWorkflowLogicTests {
         order.setPaidAmount(BigDecimal.ZERO);
         order.setIsDeleted(false);
         return order;
+    }
+
+    private Product createProduct(String sku, BigDecimal retailPrice) {
+        return createProduct(sku, retailPrice, 100);
+    }
+
+    private Product createProduct(String sku, BigDecimal retailPrice, int stock) {
+        Product product = new Product();
+        product.setSku(sku);
+        product.setName("Product " + sku);
+        product.setShortDescription("Test product");
+        product.setRetailPrice(retailPrice);
+        product.setStock(stock);
+        product.setIsDeleted(false);
+        return product;
+    }
+
+    private BulkDiscount createBulkDiscount(String rangeLabel, BigDecimal percent) {
+        BulkDiscount discount = new BulkDiscount();
+        discount.setLabel("Rule " + rangeLabel);
+        discount.setRangeLabel(rangeLabel);
+        discount.setDiscountPercent(percent);
+        discount.setStatus(DiscountRuleStatus.ACTIVE);
+        return discount;
+    }
+
+    private Admin createAdmin(String username) {
+        Admin admin = new Admin();
+        admin.setUsername(username);
+        admin.setEmail(username);
+        admin.setPassword("encoded-password");
+        admin.setDisplayName("Admin " + username);
+        admin.setRoleTitle("Ops");
+        admin.setUserStatus(StaffUserStatus.ACTIVE);
+        return admin;
     }
 }

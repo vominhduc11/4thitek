@@ -33,7 +33,7 @@ public final class OrderStatusTransitionPolicy {
         }
         return switch (current) {
             case PENDING, CONFIRMED -> next == OrderStatus.CANCELLED;
-            case SHIPPING -> next == OrderStatus.COMPLETED;
+            case SHIPPING -> false;
             case COMPLETED, CANCELLED -> false;
         };
     }

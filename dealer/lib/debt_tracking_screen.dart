@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
+import 'dealer_profile_storage.dart';
 import 'models.dart';
 import 'order_controller.dart';
 import 'order_detail_screen.dart';
@@ -20,8 +21,31 @@ class DebtTrackingScreen extends StatefulWidget {
 }
 
 class _DebtTrackingScreenState extends State<DebtTrackingScreen> {
+  DealerProfile _profile = DealerProfile.defaults;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final profile = await loadDealerProfile();
+      if (!mounted) {
+        return;
+      }
+      setState(() => _profile = profile);
+    } on DealerProfileStorageException {
+      // Keep debt tracking usable even if profile metadata is temporarily unavailable.
+    }
+  }
+
   Future<void> _handleRefresh() async {
-    await OrderScope.of(context).load(forceRefresh: true);
+    await Future.wait<void>([
+      OrderScope.of(context).load(forceRefresh: true),
+      _loadProfile(),
+    ]);
     if (!mounted) {
       return;
     }
@@ -60,6 +84,7 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen> {
                   child: _DebtSummaryCard(
                     totalOutstandingDebt: orderController.totalOutstandingDebt,
                     debtOrderCount: debtOrders.length,
+                    creditLimit: _profile.creditLimit,
                     texts: texts,
                   ),
                 ),
@@ -138,11 +163,13 @@ class _DebtSummaryCard extends StatelessWidget {
   const _DebtSummaryCard({
     required this.totalOutstandingDebt,
     required this.debtOrderCount,
+    required this.creditLimit,
     required this.texts,
   });
 
   final int totalOutstandingDebt;
   final int debtOrderCount;
+  final int creditLimit;
   final _DebtTexts texts;
 
   @override
@@ -194,6 +221,17 @@ class _DebtSummaryCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     texts.outstandingOrdersLabel(debtOrderCount),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.account_balance_wallet_outlined, size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${texts.creditLimitLabel}: ${texts.creditLimitValue(creditLimit)}',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -1150,6 +1188,16 @@ class _DebtTexts {
       : 'Không thể ghi nhận thanh toán. Vui lòng kiểm tra lại dữ liệu.';
   String get largePaymentConfirmTitle =>
       isEnglish ? 'Confirm large payment' : 'Xác nhận khoản thanh toán lớn';
+
+  String get creditLimitLabel =>
+      isEnglish ? 'Credit limit' : 'Hạn mức công nợ';
+
+  String creditLimitValue(int amount) {
+    if (amount <= 0) {
+      return isEnglish ? 'Not set' : 'Chưa cài đặt';
+    }
+    return formatVnd(amount);
+  }
 
   String summarySemantics({required String amount, required int orderCount}) {
     if (isEnglish) {

@@ -404,6 +404,12 @@ class OrderController extends ChangeNotifier {
       items: items,
       paidAmount: _parsePrice(json['paidAmount']),
       note: _normalizeString(json['note']),
+      subtotalOverride: _parsePrice(json['subtotal']),
+      discountPercentOverride: _parseInt(json['discountPercent']),
+      discountAmountOverride: _parsePrice(json['discountAmount']),
+      vatPercentOverride: _parseInt(json['vatPercent'], fallback: kVatPercent),
+      vatAmountOverride: _parsePrice(json['vatAmount']),
+      totalAmountOverride: _parsePrice(json['totalAmount']),
     );
   }
 

@@ -13,7 +13,7 @@ class _DashboardSnapshot {
     required this.periodRevenue,
     required this.periodOrderCount,
     required this.periodCompletedOrderCount,
-    required this.periodOutstandingDebt,
+    required this.totalOutstandingDebt,
     required this.periodUnitLabel,
   });
 
@@ -28,7 +28,7 @@ class _DashboardSnapshot {
   final int periodRevenue;
   final int periodOrderCount;
   final int periodCompletedOrderCount;
-  final int periodOutstandingDebt;
+  final int totalOutstandingDebt;
   final String periodUnitLabel;
 }
 
@@ -98,13 +98,119 @@ _DashboardSnapshot _buildDashboardSnapshot({
     periodCompletedOrderCount: periodOrders
         .where((order) => order.status == OrderStatus.completed)
         .length,
-    periodOutstandingDebt: periodOrders.fold<int>(
-      0,
-      (sum, order) => sum + order.outstandingAmount,
-    ),
+    totalOutstandingDebt: _calculateTotalOutstandingDebt(orders),
     periodUnitLabel:
         timeFilter == _DashboardTimeFilter.month ? 'th\u00E1ng' : 'qu\u00FD',
   );
+}
+
+int _calculateTotalOutstandingDebt(List<Order> orders) {
+  return orders.fold<int>(0, (sum, order) => sum + order.outstandingAmount);
+}
+
+class _DashboardLowStockItem {
+  const _DashboardLowStockItem({
+    required this.product,
+    required this.availableQuantity,
+  });
+
+  final Product product;
+  final int availableQuantity;
+}
+
+List<_DashboardLowStockItem> _buildLowStockProducts({
+  required OrderController orderController,
+  required WarrantyController warrantyController,
+}) {
+  final completedOrders = orderController.orders
+      .where((order) => order.status == OrderStatus.completed)
+      .toList(growable: false);
+
+  final map = <String, _DashboardInventoryAccumulator>{};
+  for (final order in completedOrders) {
+    for (final item in order.items) {
+      final current =
+          map[item.product.id] ??
+          _DashboardInventoryAccumulator(
+            product: item.product,
+            importedQuantity: 0,
+            orderIds: <String>{},
+            serials: <String>{},
+          );
+      current.importedQuantity += item.quantity;
+      current.orderIds.add(order.id);
+      map[item.product.id] = current;
+    }
+  }
+
+  final activatedSet = warrantyController.activations
+      .map((record) => warrantyController.normalizeSerial(record.serial))
+      .toSet();
+
+  for (final record in warrantyController.importedSerials) {
+    final current = map[record.productId];
+    if (current == null || !current.orderIds.contains(record.orderId)) {
+      continue;
+    }
+
+    final normalized = warrantyController.normalizeSerial(record.serial);
+    final isNewSerial = current.serials.add(normalized);
+    if (!isNewSerial) {
+      continue;
+    }
+
+    if (warrantyController.isDefectiveSerial(normalized)) {
+      current.serialDefective += 1;
+      continue;
+    }
+    if (activatedSet.contains(normalized)) {
+      current.serialSold += 1;
+      continue;
+    }
+    current.serialAvailable += 1;
+  }
+
+  final products = map.values
+      .map((entry) {
+        final trackedSerialCount = entry.serials.length;
+        final pendingWithoutSerial = entry.importedQuantity - trackedSerialCount;
+        final availableFromPending = pendingWithoutSerial > 0
+            ? pendingWithoutSerial
+            : 0;
+
+        return _DashboardLowStockItem(
+          product: entry.product,
+          availableQuantity: entry.serialAvailable + availableFromPending,
+        );
+      })
+      .where((item) => item.availableQuantity <= _lowStockAlertThreshold)
+      .toList(growable: false)
+    ..sort((a, b) {
+      final quantityCompare = a.availableQuantity.compareTo(b.availableQuantity);
+      if (quantityCompare != 0) {
+        return quantityCompare;
+      }
+      return a.product.name.toLowerCase().compareTo(b.product.name.toLowerCase());
+    });
+
+  return products.take(5).toList(growable: false);
+}
+
+class _DashboardInventoryAccumulator {
+  _DashboardInventoryAccumulator({
+    required this.product,
+    required this.importedQuantity,
+    required this.orderIds,
+    required this.serials,
+  });
+
+  final Product product;
+  int importedQuantity;
+  final Set<String> orderIds;
+  final Set<String> serials;
+  int serialAvailable = 0;
+  int serialSold = 0;
+  int serialDefective = 0;
 }
 
 String _periodCompactLabelFor(DateTime date, _DashboardTimeFilter filter) {

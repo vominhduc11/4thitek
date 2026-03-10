@@ -29,8 +29,10 @@ class CartController extends ChangeNotifier {
   late final AuthStorage _authStorage;
   late final http.Client _client;
   final Map<String, CartItem> _items = <String, CartItem>{};
+  List<BulkDiscountRule> _discountRules = const <BulkDiscountRule>[];
 
   Future<void> load() async {
+    await _loadRemoteDiscountRules();
     final loadedRemote = await _loadRemoteCart();
     if (loadedRemote) {
       return;
@@ -58,7 +60,13 @@ class CartController extends ChangeNotifier {
     );
   }
 
-  int get discountPercent => bulkDiscountPercentForItems(totalItems);
+  List<BulkDiscountRule> get discountRules => List<BulkDiscountRule>.unmodifiable(_discountRules);
+
+  BulkDiscountTarget? get nextDiscountTarget =>
+      nextBulkDiscountTargetForCart(items: _items.values, rules: _discountRules);
+
+  int get discountPercent =>
+      bulkDiscountPercentForCart(items: _items.values, rules: _discountRules);
 
   int get discountAmount =>
       bulkDiscountAmount(subtotal: subtotal, discountPercent: discountPercent);
@@ -230,6 +238,39 @@ class CartController extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> _loadRemoteDiscountRules() async {
+    final token = await _readAccessToken();
+    if (token == null) {
+      _discountRules = const <BulkDiscountRule>[];
+      return false;
+    }
+
+    try {
+      final response = await _client.get(
+        Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/discount-rules')),
+        headers: _authorizedHeaders(token),
+      );
+      final payload = _decodeBody(response.body);
+      if (response.statusCode >= 400) {
+        throw Exception(_extractErrorMessage(payload));
+      }
+      final data = payload['data'];
+      if (data is! List) {
+        throw Exception('Invalid discount rules payload');
+      }
+      _discountRules = data
+          .whereType<Map<String, dynamic>>()
+          .map(_mapDiscountRule)
+          .toList(growable: false);
+      notifyListeners();
+      return true;
+    } catch (_) {
+      _discountRules = const <BulkDiscountRule>[];
+      notifyListeners();
       return false;
     }
   }
@@ -420,6 +461,16 @@ class CartController extends ChangeNotifier {
     return CartItem(product: product, quantity: quantity);
   }
 
+  BulkDiscountRule _mapDiscountRule(Map<String, dynamic> json) {
+    return BulkDiscountRule(
+      productId: _normalizeString(json['productId']),
+      minQuantity: _parseNullableInt(json['minQuantity']),
+      maxQuantity: _parseNullableInt(json['maxQuantity']),
+      percent: _parseInt(json['percent']),
+      rangeLabel: _normalizeString(json['rangeLabel']),
+    );
+  }
+
   Product? _findProductById(String productId) {
     return _productLookup?.call(productId);
   }
@@ -432,6 +483,19 @@ class CartController extends ChangeNotifier {
       return value.round();
     }
     return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  int? _parseNullableInt(Object? value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is int) {
+      return value;
+    }
+    if (value is double) {
+      return value.round();
+    }
+    return int.tryParse(value.toString());
   }
 
   int _parsePrice(Object? value, {int fallback = 0}) {

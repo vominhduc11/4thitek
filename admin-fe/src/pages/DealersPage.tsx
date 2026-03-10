@@ -51,6 +51,7 @@ function DealersPage() {
     email: '',
     phone: '',
     revenue: '',
+    creditLimit: '',
   })
 
   const normalizedQuery = query.trim().toLowerCase()
@@ -79,6 +80,7 @@ function DealersPage() {
   const handleCreate = async () => {
     setFormError('')
     const revenue = Number(form.revenue || 0)
+    const creditLimit = Number(form.creditLimit || 0)
     if (!form.name.trim() || !form.email.trim() || !form.phone.trim()) {
       setFormError('Vui lòng nhập đầy đủ tên, email và số điện thoại')
       return
@@ -90,6 +92,7 @@ function DealersPage() {
         email: form.email,
         phone: form.phone,
         revenue: Number.isNaN(revenue) ? 0 : revenue,
+        creditLimit: Number.isNaN(creditLimit) ? 0 : creditLimit,
         orders: 0,
       })
 
@@ -101,6 +104,7 @@ function DealersPage() {
         email: '',
         phone: '',
         revenue: '',
+        creditLimit: '',
       })
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Không tạo được đại lý')
@@ -213,6 +217,15 @@ function DealersPage() {
               type="number"
               value={form.revenue}
             />
+            <input
+              className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] md:col-span-2"
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, creditLimit: event.target.value }))
+              }
+              placeholder="Han muc cong no (VND)"
+              type="number"
+              value={form.creditLimit}
+            />
           </div>
           {formError ? <p className="mt-2 text-sm text-rose-600">{formError}</p> : null}
           <div className="mt-4 flex flex-wrap gap-2">
@@ -247,6 +260,7 @@ function DealersPage() {
                   <th className="px-3 py-2 font-semibold">Trang thai</th>
                   <th className="px-3 py-2 font-semibold">Don hang</th>
                   <th className="px-3 py-2 font-semibold">Doanh thu</th>
+                  <th className="px-3 py-2 font-semibold">Han muc</th>
                   <th className="px-3 py-2 font-semibold">Thao tac</th>
                 </tr>
               </thead>
@@ -286,6 +300,9 @@ function DealersPage() {
                     </td>
                     <td className="px-3 py-3 font-semibold text-[var(--accent)]">
                       {formatCurrency(dealer.revenue)}
+                    </td>
+                    <td className="px-3 py-3 font-semibold text-slate-700">
+                      {dealer.creditLimit > 0 ? formatCurrency(dealer.creditLimit) : 'Chua dat'}
                     </td>
                     <td
                       className="rounded-r-2xl px-3 py-3"
