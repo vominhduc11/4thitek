@@ -9,5 +9,5 @@ public record PublicProductSummaryResponse(
         double price,
         int stock,
         int warrantyMonths
-) {
+) implements java.io.Serializable {
 }

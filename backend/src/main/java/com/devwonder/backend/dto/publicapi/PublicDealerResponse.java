@@ -9,5 +9,5 @@ public record PublicDealerResponse(
         String district,
         String phone,
         String email
-) {
+) implements java.io.Serializable {
 }

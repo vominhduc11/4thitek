@@ -13,5 +13,5 @@ public record PublicProductDetailResponse(
         String descriptions,
         int stock,
         int warrantyMonths
-) {
+) implements java.io.Serializable {
 }

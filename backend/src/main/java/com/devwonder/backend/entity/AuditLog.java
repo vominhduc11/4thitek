@@ -10,6 +10,8 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "audit_logs")
@@ -48,6 +50,7 @@ public class AuditLog {
     @Column(name = "ip_address", length = 128)
     private String ipAddress;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private String payload;
 

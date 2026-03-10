@@ -5,5 +5,5 @@ public record WarrantyLookupCustomerResponse(
         String phone,
         String email,
         String address
-) {
+) implements java.io.Serializable {
 }

@@ -7,5 +7,5 @@ public record WarrantyLookupProductSerialResponse(
         String productSku,
         String status,
         String image
-) {
+) implements java.io.Serializable {
 }

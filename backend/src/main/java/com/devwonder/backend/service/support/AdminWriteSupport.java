@@ -70,6 +70,8 @@ public class AdminWriteSupport {
         }
         if (request.isDeleted() != null) {
             product.setIsDeleted(request.isDeleted());
+        } else if (creating) {
+            product.setIsDeleted(false);
         }
         if (request.publishStatus() != null) {
             product.setPublishStatus(request.publishStatus());

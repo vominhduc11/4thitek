@@ -12,5 +12,5 @@ public record PublicBlogDetailResponse(
         Instant updatedAt,
         String introduction,
         boolean showOnHomepage
-) {
+) implements java.io.Serializable {
 }

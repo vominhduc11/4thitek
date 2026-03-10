@@ -9,5 +9,5 @@ public record PublicBlogSummaryResponse(
         String image,
         String category,
         Instant createdAt
-) {
+) implements java.io.Serializable {
 }

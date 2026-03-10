@@ -15,5 +15,5 @@ public record WarrantyLookupResponse(
         Instant createdAt,
         WarrantyLookupCustomerResponse customer,
         WarrantyLookupProductSerialResponse productSerial
-) {
+) implements java.io.Serializable {
 }
