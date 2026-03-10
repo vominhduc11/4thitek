@@ -8,6 +8,7 @@ import com.devwonder.backend.dto.auth.RegisterCustomerRequest;
 import com.devwonder.backend.dto.auth.RegisterDealerRequest;
 import com.devwonder.backend.dto.auth.RegisterDealerResponse;
 import com.devwonder.backend.entity.Account;
+import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.Customer;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Role;
@@ -163,7 +164,8 @@ public class AuthService {
                 account.getId(),
                 account.getUsername(),
                 account.getClass().getSimpleName().toUpperCase(),
-                account.getRoles().stream().map(Role::getName).collect(java.util.stream.Collectors.toSet())
+                account.getRoles().stream().map(Role::getName).collect(java.util.stream.Collectors.toSet()),
+                account instanceof Admin admin && Boolean.TRUE.equals(admin.getRequireLoginEmailConfirmation())
         );
         return new AuthResponse(accessToken, refreshToken, "Bearer", accessTokenExpirationMs, user);
     }

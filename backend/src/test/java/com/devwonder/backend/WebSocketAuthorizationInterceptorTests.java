@@ -50,9 +50,14 @@ class WebSocketAuthorizationInterceptorTests {
     }
 
     @Test
-    void allowsOnlyAdminToSubscribeDealerRegistrationTopic() {
+    void allowsOnlyAdminOrSuperAdminToSubscribeDealerRegistrationTopic() {
         assertThatCode(() -> interceptor.preSend(
                 message(StompCommand.SUBSCRIBE, "/topic/dealer-registrations", authenticatedUser("admin", "ADMIN")),
+                null
+        )).doesNotThrowAnyException();
+
+        assertThatCode(() -> interceptor.preSend(
+                message(StompCommand.SUBSCRIBE, "/topic/dealer-registrations", authenticatedUser("owner", "SUPER_ADMIN")),
                 null
         )).doesNotThrowAnyException();
 
@@ -61,7 +66,7 @@ class WebSocketAuthorizationInterceptorTests {
                 null
         ))
                 .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("Only ADMIN");
+                .hasMessageContaining("Only ADMIN or SUPER_ADMIN");
     }
 
     @Test

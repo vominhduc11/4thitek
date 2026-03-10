@@ -1,6 +1,7 @@
 package com.devwonder.backend.config;
 
 import com.devwonder.backend.security.JWTAuthFilter;
+import com.devwonder.backend.security.AdminPasswordChangeRequiredFilter;
 import com.devwonder.backend.security.OurUserDetailsService;
 import java.util.Arrays;
 import java.util.List;
@@ -34,6 +35,9 @@ public class SecurityConfig {
     @Autowired
     private JWTAuthFilter jwtAuthFilter;
 
+    @Autowired
+    private AdminPasswordChangeRequiredFilter adminPasswordChangeRequiredFilter;
+
     @Value("${app.cors.allowed-origin-patterns:}")
     private String allowedOriginPatterns;
 
@@ -43,6 +47,8 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(request -> request
+                        .requestMatchers("/admin/users", "/admin/users/**", "/api/admin/users", "/api/admin/users/**")
+                        .hasAuthority("SUPER_ADMIN")
                         .requestMatchers(
                                 "/auth/**",
                                 "/api/auth/**",
@@ -65,14 +71,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/user/dealer/page").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/user/dealer").permitAll()
                         .requestMatchers("/api/upload/**").authenticated()
-                        .requestMatchers("/admin/**", "/api/admin/**").hasAnyAuthority("ADMIN")
-                        .requestMatchers("/api/customer/**").hasAnyAuthority("CUSTOMER", "ADMIN")
-                        .requestMatchers("/user/**", "/api/dealer/**").hasAnyAuthority("USER", "ADMIN")
-                        .requestMatchers("/adminuser/**").hasAnyAuthority("USER", "ADMIN")
+                        .requestMatchers("/admin/**", "/api/admin/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/customer/**").hasAnyAuthority("CUSTOMER", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/user/**", "/api/dealer/**").hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/adminuser/**").hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
                         .anyRequest().authenticated())
                 .sessionManagement(manager -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authenticationProvider(daoAuthenticationProvider()).addFilterBefore(
-                        jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .authenticationProvider(daoAuthenticationProvider())
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(adminPasswordChangeRequiredFilter, JWTAuthFilter.class);
         return httpSecurity.build();
     }
 

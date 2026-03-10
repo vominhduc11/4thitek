@@ -15,6 +15,7 @@ type AuthUser = {
   accessToken?: string
   accountType?: string
   roles?: string[]
+  requiresPasswordChange?: boolean
 }
 
 type LoginPayload = {
@@ -28,8 +29,11 @@ type AuthContextValue = {
   accessToken: string | null
   isAuthenticated: boolean
   isLoggingIn: boolean
+  requiresPasswordChange: boolean
   login: (payload: LoginPayload) => Promise<{ ok: boolean; message?: string }>
   logout: () => void
+  hasRole: (role: string) => boolean
+  completePasswordChange: () => void
 }
 
 const STORAGE_KEY = 'admin_auth_user'
@@ -51,6 +55,10 @@ const parseStoredUser = (): AuthUser | null => {
       roles: Array.isArray(parsed.roles)
         ? parsed.roles.filter((item): item is string => typeof item === 'string')
         : undefined,
+      requiresPasswordChange:
+        typeof parsed.requiresPasswordChange === 'boolean'
+          ? parsed.requiresPasswordChange
+          : undefined,
     }
   } catch {
     return null
@@ -73,6 +81,7 @@ type AuthApiResponse = {
     username: string
     accountType: string
     roles: string[]
+    requirePasswordChange?: boolean
   }
 }
 
@@ -130,7 +139,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         ? payloadData.data.user.roles
         : []
 
-      if (!roles.includes('ADMIN')) {
+      if (!roles.includes('ADMIN') && !roles.includes('SUPER_ADMIN')) {
         return {
           ok: false,
           message: 'Tài khoản không có quyền admin',
@@ -139,10 +148,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const nextUser: AuthUser = {
         username: payloadData.data.user.username || username,
-        role: 'Admin',
+        role: roles.includes('SUPER_ADMIN') ? 'Super Admin' : 'Admin',
         accessToken: payloadData.data.accessToken,
         accountType: payloadData.data.user.accountType,
         roles,
+        requiresPasswordChange: Boolean(payloadData.data.user.requirePasswordChange),
       }
 
       setUser(nextUser)
@@ -177,16 +187,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [])
 
+  const hasRole = useCallback(
+    (role: string) => Boolean(user?.roles?.includes(role)),
+    [user?.roles],
+  )
+
+  const completePasswordChange = useCallback(() => {
+    setUser((current) => {
+      if (!current) {
+        return current
+      }
+      const nextUser = { ...current, requiresPasswordChange: false }
+      try {
+        if (window.localStorage.getItem(STORAGE_KEY)) {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser))
+        }
+      } catch {
+        // ignore storage errors
+      }
+      return nextUser
+    })
+  }, [])
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       accessToken: user?.accessToken ?? null,
       isAuthenticated: Boolean(user),
       isLoggingIn,
+      requiresPasswordChange: Boolean(user?.requiresPasswordChange),
       login,
       logout,
+      hasRole,
+      completePasswordChange,
     }),
-    [isLoggingIn, login, logout, user],
+    [completePasswordChange, hasRole, isLoggingIn, login, logout, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

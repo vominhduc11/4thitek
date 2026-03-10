@@ -48,7 +48,7 @@ const ALERTS = [
 
 function AppLayout() {
   const { t } = useLanguage()
-  const { user, logout } = useAuth()
+  const { user, logout, hasRole } = useAuth()
   const { notify } = useToast()
   const navigate = useNavigate()
   const location = useLocation()
@@ -79,8 +79,8 @@ function AppLayout() {
   const alertsRef = useRef<HTMLDivElement | null>(null)
   const accountRef = useRef<HTMLDivElement | null>(null)
 
-  const navItems: NavItem[] = useMemo(
-    () => [
+  const navItems: NavItem[] = useMemo(() => {
+    const items: NavItem[] = [
       { to: '/', label: t('Tổng quan'), icon: LayoutDashboard },
       { to: '/products', label: t('Sản phẩm'), icon: Package },
       { to: '/orders', label: t('Đơn hàng'), icon: ShoppingCart },
@@ -92,11 +92,15 @@ function AppLayout() {
       { to: '/blogs', label: t('Bài viết'), icon: FileText },
       { to: '/discounts', label: t('Chiết khấu sỉ'), icon: Percent },
       { to: '/dealers', label: t('Đại lý'), icon: UserCircle },
-      { to: '/users', label: t('Quản trị'), icon: Users },
       { to: '/settings', label: t('Cài đặt'), icon: Settings },
-    ],
-    [t],
-  )
+    ]
+
+    if (hasRole('SUPER_ADMIN')) {
+      items.splice(items.length - 1, 0, { to: '/users', label: t('Quản trị'), icon: Users })
+    }
+
+    return items
+  }, [hasRole, t])
 
   useEffect(() => {
     if (typeof document === 'undefined') {

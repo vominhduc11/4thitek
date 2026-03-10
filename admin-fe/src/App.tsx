@@ -1,7 +1,7 @@
 import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import RouteFallback from './components/RouteFallback'
-import { ProtectedRoute, PublicOnlyRoute } from './components/auth/RouteGuards'
+import { ProtectedRoute, PublicOnlyRoute, SuperAdminRoute } from './components/auth/RouteGuards'
 import { ProductsProvider } from './context/ProductsContext'
 import AppLayout from './layouts/AppLayout'
 
@@ -23,6 +23,7 @@ const ReportsPage = lazy(() => import('./pages/ReportsPage'))
 const UsersPage = lazy(() => import('./pages/UsersPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
+const ChangePasswordPage = lazy(() => import('./pages/ChangePasswordPage'))
 
 const renderLazyElement = (Component: LazyExoticComponent<ComponentType>) => (
   <Suspense fallback={<RouteFallback />}>
@@ -46,6 +47,7 @@ function App() {
         </Route>
 
         <Route element={<ProtectedRoute />}>
+          <Route path="/change-password" element={renderLazyElement(ChangePasswordPage)} />
           <Route element={<AppLayout />}>
             <Route index element={renderLazyElement(DashboardPage)} />
             <Route path="/products" element={renderLazyElement(ProductsPage)} />
@@ -82,7 +84,9 @@ function App() {
               element={renderLazyElement(NotificationsPage)}
             />
             <Route path="/reports" element={renderLazyElement(ReportsPage)} />
-            <Route path="/users" element={renderLazyElement(UsersPage)} />
+            <Route element={<SuperAdminRoute />}>
+              <Route path="/users" element={renderLazyElement(UsersPage)} />
+            </Route>
             <Route path="/settings" element={renderLazyElement(SettingsPage)} />
           </Route>
         </Route>

@@ -117,7 +117,7 @@ type AdminDataContextValue = {
 const AdminDataContext = createContext<AdminDataContextValue | null>(null)
 
 export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
-  const { accessToken } = useAuth()
+  const { accessToken, hasRole } = useAuth()
   const { notify } = useToast()
   const [orders, setOrders] = useState<Order[]>([])
   const [posts, setPosts] = useState<BlogPost[]>([])
@@ -127,6 +127,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   const [settings, setSettings] = useState<AppSettings>(initialSettings)
   const [isSettingsLoading, setIsSettingsLoading] = useState(false)
   const [isSettingsSaving, setIsSettingsSaving] = useState(false)
+  const canManageUsers = hasRole('SUPER_ADMIN')
 
   useEffect(() => {
     if (!accessToken) {
@@ -152,7 +153,9 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
           fetchAdminOrders(accessToken),
           fetchAdminBlogs(accessToken),
           fetchAdminDealerAccounts(accessToken),
-          fetchAdminUsers(accessToken),
+          canManageUsers
+            ? fetchAdminUsers(accessToken)
+            : Promise.resolve([] as Awaited<ReturnType<typeof fetchAdminUsers>>),
           fetchAdminDiscountRules(accessToken),
           fetchAdminSettings(accessToken),
         ])
@@ -184,7 +187,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       cancelled = true
     }
-  }, [accessToken, notify])
+  }, [accessToken, canManageUsers, notify])
 
   const requireToken = () => {
     if (!accessToken) {

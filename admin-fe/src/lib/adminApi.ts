@@ -335,6 +335,11 @@ export type BackendAdminSettingsUpdateRequest = {
   inventoryAlerts?: boolean
 }
 
+export type BackendChangePasswordRequest = {
+  currentPassword: string
+  newPassword: string
+}
+
 const defaultErrorMessage = 'Request failed'
 
 const buildQueryString = (params?: Record<string, string | number | null | undefined>) => {
@@ -612,6 +617,17 @@ export const updateAdminSettings = (
     path: '/admin/settings',
     token,
     method: 'PUT',
+    body,
+  })
+
+export const changeAdminPassword = (
+  token: string,
+  body: BackendChangePasswordRequest,
+) =>
+  authorizedJsonRequest<{ status: string }>({
+    path: '/admin/password',
+    token,
+    method: 'PATCH',
     body,
   })
 

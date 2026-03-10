@@ -32,10 +32,12 @@ import com.devwonder.backend.dto.admin.UpdateAdminSettingsRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminDiscountRuleStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminStaffUserStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminWarrantyStatusRequest;
+import com.devwonder.backend.dto.customer.ChangePasswordRequest;
 import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
 import com.devwonder.backend.dto.pagination.PagedResponse;
+import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.service.AdminManagementService;
 import com.devwonder.backend.service.AdminOperationsService;
 import com.devwonder.backend.service.AdminReportingService;
@@ -48,6 +50,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -335,10 +338,26 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(adminSettingsService.getSettings()));
     }
 
+    @PatchMapping("/password")
+    public ResponseEntity<ApiResponse<Map<String, String>>> changePassword(
+            Authentication authentication,
+            @Valid @RequestBody ChangePasswordRequest request
+    ) {
+        adminManagementService.changePassword(extractUsername(authentication), request);
+        return ResponseEntity.ok(ApiResponse.success(Map.of("status", "updated")));
+    }
+
     @PutMapping("/settings")
     public ResponseEntity<ApiResponse<AdminSettingsResponse>> updateSettings(
             @RequestBody UpdateAdminSettingsRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(adminSettingsService.updateSettings(request)));
+    }
+
+    private String extractUsername(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
+            throw new BadRequestException("Unauthenticated request");
+        }
+        return authentication.getName();
     }
 }

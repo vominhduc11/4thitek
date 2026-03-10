@@ -16,6 +16,7 @@ import com.devwonder.backend.dto.admin.AdminStaffUserUpsertRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminDealerAccountStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminDiscountRuleStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminStaffUserStatusRequest;
+import com.devwonder.backend.dto.customer.ChangePasswordRequest;
 import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
@@ -334,6 +335,18 @@ public class AdminManagementService {
         admin.setRequireLoginEmailConfirmation(Boolean.TRUE);
         admin.setRoles(new HashSet<>(List.of(resolveRole("ADMIN", "Admin role"))));
         return AdminResponseMapper.toStaffUserResponse(adminRepository.save(admin));
+    }
+
+    @Transactional
+    public void changePassword(String username, ChangePasswordRequest request) {
+        Admin admin = adminRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Admin account not found"));
+        if (!passwordEncoder.matches(request.currentPassword(), admin.getPassword())) {
+            throw new BadRequestException("Current password is incorrect");
+        }
+        admin.setPassword(passwordEncoder.encode(request.newPassword()));
+        admin.setRequireLoginEmailConfirmation(Boolean.FALSE);
+        adminRepository.save(admin);
     }
 
     @Transactional

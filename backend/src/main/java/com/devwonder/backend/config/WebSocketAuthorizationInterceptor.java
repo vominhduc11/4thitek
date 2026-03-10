@@ -43,7 +43,8 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
         String destination = accessor.getDestination();
         Authentication authentication = requireAuthenticated(accessor);
         boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(granted -> "ADMIN".equalsIgnoreCase(granted.getAuthority()));
+                .anyMatch(granted -> "ADMIN".equalsIgnoreCase(granted.getAuthority())
+                        || "SUPER_ADMIN".equalsIgnoreCase(granted.getAuthority()));
 
         if (isUserQueueDestination(destination, "/queue/notifications")) {
             return;
@@ -59,7 +60,7 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
 
         if ("/topic/dealer-registrations".equals(destination)) {
             if (!isAdmin) {
-                throw new AccessDeniedException("Access denied: Only ADMIN can subscribe to dealer registrations");
+                throw new AccessDeniedException("Access denied: Only ADMIN or SUPER_ADMIN can subscribe to dealer registrations");
             }
             return;
         }
