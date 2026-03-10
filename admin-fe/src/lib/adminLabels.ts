@@ -9,11 +9,11 @@ import type {
 import type { BadgeTone } from '../components/ui-kit'
 
 export const orderStatusLabel: Record<OrderStatus, string> = {
-  packing: 'Dong goi',
-  pending: 'Cho xu ly',
+  packing: 'Đóng gói',
+  pending: 'Chờ xử lý',
   delivering: 'Đang giao',
-  completed: 'Hoan tat',
-  cancelled: 'Huy',
+  completed: 'Hoàn tất',
+  cancelled: 'Hủy',
 }
 
 export const orderStatusTone: Record<OrderStatus, BadgeTone> = {
@@ -42,9 +42,9 @@ export const getAllowedOrderStatuses = (current: OrderStatus): OrderStatus[] => 
 }
 
 export const blogStatusLabel: Record<BlogStatus, string> = {
-  published: 'Da dang',
-  scheduled: 'Hen gio',
-  draft: 'Ban nhap',
+  published: 'Đã đăng',
+  scheduled: 'Hẹn giờ',
+  draft: 'Bản nháp',
 }
 
 export const blogStatusTone: Record<BlogStatus, BadgeTone> = {
@@ -54,10 +54,10 @@ export const blogStatusTone: Record<BlogStatus, BadgeTone> = {
 }
 
 export const dealerTierLabel: Record<DealerTier, string> = {
-  platinum: 'Bach kim',
-  gold: 'Vang',
-  silver: 'Bac',
-  bronze: 'Dong',
+  platinum: 'Bạch kim',
+  gold: 'Vàng',
+  silver: 'Bạc',
+  bronze: 'Đồng',
 }
 
 export const dealerTierTone: Record<DealerTier, BadgeTone> = {
@@ -81,13 +81,13 @@ export const dealerStatusTone: Record<DealerStatus, BadgeTone> = {
 
 export const dealerStatusDescription: Record<DealerStatus, string> = {
   active: 'Đại lý đã được phê duyệt và có thể đăng nhập ứng dụng dealer.',
-  under_review: 'Hồ sơ đang chờ admin xác minh. Đại lý chưa thể đăng nhập dealer app.',
-  needs_attention: 'Hồ sơ cần bổ sung thêm thông tin trước khi kích hoạt tài khoản.',
+  under_review: 'Hồ sơ đang chờ admin xác minh trước khi kích hoạt.',
+  needs_attention: 'Hồ sơ cần bổ sung thêm thông tin trước khi duyệt.',
 }
 
 export const userStatusLabel: Record<UserStatus, string> = {
   active: 'Đang hoạt động',
-  pending: 'Cho duyet',
+  pending: 'Chờ duyệt',
 }
 
 export const userStatusTone: Record<UserStatus, BadgeTone> = {
@@ -97,8 +97,8 @@ export const userStatusTone: Record<UserStatus, BadgeTone> = {
 
 export const ruleStatusLabel: Record<RuleStatus, string> = {
   active: 'Đang hoạt động',
-  pending: 'Cho duyet',
-  draft: 'Ban nhap',
+  pending: 'Chờ duyệt',
+  draft: 'Bản nháp',
 }
 
 export const ruleStatusTone: Record<RuleStatus, BadgeTone> = {

@@ -1,5 +1,9 @@
 FROM maven:3.9.8-eclipse-temurin-17 AS builder
 
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV MAVEN_OPTS="-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8"
+
 WORKDIR /app
 
 COPY pom.xml ./
@@ -9,6 +13,10 @@ COPY src ./src
 RUN mvn -B -DskipTests package
 
 FROM eclipse-temurin:17-jre-alpine AS runner
+
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8"
 
 WORKDIR /app
 

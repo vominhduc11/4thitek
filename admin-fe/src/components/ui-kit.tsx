@@ -1,4 +1,5 @@
 import { Search, type LucideIcon } from 'lucide-react'
+import ReactPaginate from 'react-paginate'
 import type {
   ButtonHTMLAttributes,
   ChangeEventHandler,
@@ -14,16 +15,35 @@ export const panelClass =
   'rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]'
 
 export const softCardClass =
-  'rounded-3xl border border-slate-200/70 bg-white/80 p-4 shadow-sm backdrop-blur'
+  'rounded-3xl border border-[var(--border)] bg-[var(--surface-ghost)] p-4 shadow-sm backdrop-blur'
 
 export const ghostButtonClass =
-  'btn-stable inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--accent)] hover:text-slate-900 hover:shadow-[0_12px_26px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2'
+  'btn-stable inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--ink)] shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--accent)] hover:text-[var(--ink)] hover:shadow-[0_12px_26px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60'
 
 export const primaryButtonClass =
-  'btn-stable inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2'
+  'btn-stable inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60'
 
 export const inputClass =
-  'h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1'
+  'h-11 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--ink)] shadow-sm transition placeholder:text-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1'
+
+export const cardTitleClass = 'text-lg font-semibold text-[var(--ink)]'
+export const bodyTextClass = 'text-sm text-[var(--muted)]'
+export const labelClass = 'text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]'
+export const tableCardClass =
+  'rounded-3xl border border-[var(--border)] bg-[var(--surface-ghost)] p-4 shadow-sm backdrop-blur'
+export const tableRowClass =
+  'cursor-pointer rounded-2xl bg-[var(--surface-ghost)] text-sm text-[var(--ink)] shadow-sm transition hover:bg-[var(--accent-soft)]/40'
+export const tableHeadClass = 'text-left text-xs uppercase tracking-[0.2em] text-[var(--muted)]'
+export const tableMetaClass = 'text-xs text-[var(--muted)]'
+export const tableValueClass = 'font-semibold text-[var(--ink)]'
+export const tableActionSelectClass =
+  'h-9 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-2 text-xs font-semibold text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]'
+export const formCardClass = 'rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)] p-5'
+export const textareaClass =
+  'min-h-[130px] w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-sm text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]'
+export const selectClass = inputClass
+export const destructiveButtonClass =
+  'btn-stable inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-300/70 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-500 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60'
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   icon?: ReactNode
@@ -48,6 +68,18 @@ export const PrimaryButton = ({
   ...props
 }: ButtonProps) => (
   <button className={cx(primaryButtonClass, className)} {...props}>
+    {icon}
+    {children}
+  </button>
+)
+
+export const DestructiveButton = ({
+  className,
+  children,
+  icon,
+  ...props
+}: ButtonProps) => (
+  <button className={cx(destructiveButtonClass, className)} {...props}>
     {icon}
     {children}
   </button>
@@ -126,11 +158,11 @@ export const StatCard = ({
 }: StatCardProps) => (
   <div className={softCardClass}>
     <div className="flex items-center justify-between">
-      <span className="text-xs uppercase tracking-[0.2em] text-slate-400">{label}</span>
+      <span className={labelClass}>{label}</span>
       {Icon && <Icon className={cx('h-4 w-4', statToneClass[tone])} />}
     </div>
-    <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
-    {hint && <p className="text-xs text-slate-500">{hint}</p>}
+    <p className="mt-2 text-2xl font-semibold text-[var(--ink)]">{value}</p>
+    {hint && <p className={tableMetaClass}>{hint}</p>}
   </div>
 )
 
@@ -147,7 +179,7 @@ const badgeToneClass: Record<BadgeTone, string> = {
   success: 'bg-emerald-500/15 text-emerald-700',
   warning: 'bg-amber-500/15 text-amber-700',
   info: 'bg-[var(--accent-cool-soft)] text-[var(--accent-cool)]',
-  neutral: 'bg-slate-200/70 text-slate-700',
+  neutral: 'bg-slate-200/70 text-[var(--ink)]',
   danger: 'bg-rose-500/15 text-rose-700',
 }
 
@@ -172,10 +204,10 @@ type EmptyStateProps = {
 }
 
 export const EmptyState = ({ title, message, icon: Icon, action }: EmptyStateProps) => (
-  <div className="rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] px-6 py-10 text-center text-sm text-slate-500">
-    {Icon ? <Icon className="mx-auto h-10 w-10 text-slate-400" /> : null}
-    <p className="mt-4 text-base font-semibold text-slate-900">{title}</p>
-    <p className="mt-2 text-xs text-slate-500">{message}</p>
+  <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)] px-6 py-10 text-center text-sm text-[var(--muted)]">
+    {Icon ? <Icon className="mx-auto h-10 w-10 text-[var(--muted)]" /> : null}
+    <p className="mt-4 text-base font-semibold text-[var(--ink)]">{title}</p>
+    <p className="mt-2 text-xs text-[var(--muted)]">{message}</p>
     {action ? <div className="mt-4">{action}</div> : null}
   </div>
 )
@@ -197,8 +229,8 @@ export const ErrorState = ({
     className="rounded-3xl border border-rose-200 bg-rose-50/80 px-6 py-10 text-center"
     role="alert"
   >
-    <p className="text-base font-semibold text-rose-700">{title}</p>
-    <p className="mt-2 text-sm text-rose-600">{message}</p>
+      <p className="text-base font-semibold text-rose-700">{title}</p>
+      <p className="mt-2 text-sm text-rose-600">{message}</p>
     {onRetry ? (
       <button
         className="mt-4 inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
@@ -225,3 +257,64 @@ export const LoadingRows = ({ rows = 4 }: LoadingRowsProps) => (
     ))}
   </div>
 )
+
+type PaginationNavProps = {
+  page: number
+  totalPages: number
+  totalItems?: number
+  pageSize?: number
+  onPageChange: (page: number) => void
+  previousLabel: string
+  nextLabel: string
+}
+
+export const PaginationNav = ({
+  page,
+  totalPages,
+  totalItems,
+  pageSize,
+  onPageChange,
+  previousLabel,
+  nextLabel,
+}: PaginationNavProps) => {
+  const hasPages = totalPages > 1
+  const safeTotalPages = Math.max(totalPages, 1)
+  const start = totalItems != null && pageSize != null ? page * pageSize + 1 : null
+  const end =
+    totalItems != null && pageSize != null
+      ? Math.min(totalItems, (page + 1) * pageSize)
+      : null
+
+  if (!hasPages && totalItems == null) {
+    return null
+  }
+
+  return (
+    <div className="mt-6 flex flex-col gap-3 text-sm text-[var(--muted)] md:flex-row md:items-center md:justify-between">
+      <span>
+        {totalItems != null && start != null && end != null
+          ? `${start}-${end} / ${totalItems}`
+          : `${page + 1} / ${safeTotalPages}`}
+      </span>
+      {hasPages ? (
+        <ReactPaginate
+          breakLabel="..."
+          nextLabel={nextLabel}
+          onPageChange={(selectedItem) => onPageChange(selectedItem.selected)}
+          pageRangeDisplayed={2}
+          marginPagesDisplayed={1}
+          pageCount={totalPages}
+          previousLabel={previousLabel}
+          forcePage={page}
+          containerClassName="flex flex-wrap items-center gap-1 text-sm"
+          pageLinkClassName="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          previousLinkClassName="flex h-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          nextLinkClassName="flex h-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          breakLinkClassName="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)]"
+          activeLinkClassName="border-[var(--accent)] bg-[var(--accent)] text-white"
+          disabledLinkClassName="cursor-not-allowed border-[var(--border)] text-[var(--muted)] opacity-50"
+        />
+      ) : null}
+    </div>
+  )
+}

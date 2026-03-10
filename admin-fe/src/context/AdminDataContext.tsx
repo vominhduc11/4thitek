@@ -394,6 +394,14 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     [canManageUsers, location.pathname],
   )
 
+  const shellResources = useMemo<AdminResourceKey[]>(
+    () =>
+      canManageUsers
+        ? ['orders', 'posts', 'dealers', 'discountRules', 'users']
+        : ['orders', 'posts', 'dealers', 'discountRules'],
+    [canManageUsers],
+  )
+
   useEffect(() => {
     if (!accessToken) {
       return
@@ -405,6 +413,16 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       })
     })
   }, [accessToken, loadResource, requiredResources])
+
+  useEffect(() => {
+    if (!accessToken) {
+      return
+    }
+
+    shellResources.forEach((resource) => {
+      void loadResource(resource, { notifyOnError: false })
+    })
+  }, [accessToken, loadResource, shellResources])
 
   const reloadResource: AdminDataContextValue['reloadResource'] = useCallback(
     async (resource) => {

@@ -1240,13 +1240,13 @@ function ProductsPage() {
                       </label>
                       <label className="text-sm text-slate-700">
                         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                          {t('Thoi han bao hanh (thang)')}
+                          {t('Th\u1eddi h\u1ea1n b\u1ea3o h\u00e0nh (th\u00e1ng)')}
                         </span>
                         <input
                           type="text"
                           inputMode="numeric"
                           autoComplete="off"
-                          placeholder={t('Nhap so thang bao hanh')}
+                          placeholder={t('Nh\u1eadp s\u1ed1 th\u00e1ng b\u1ea3o h\u00e0nh')}
                           className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
                           value={newProduct.warrantyPeriod}
                           onChange={(e) =>
@@ -1753,7 +1753,7 @@ function ProductsPage() {
                         <div className="grid gap-2 md:grid-cols-[1.4fr_1fr]">
                           <input
                             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                            placeholder={t('Nh?p URL video YouTube ho?c file video c?ng khai')}
+                            placeholder={t('Nh\u1eadp URL video YouTube ho\u1eb7c file video c\u00f4ng khai')}
                             value={d.url ?? ''}
                             onChange={(e) => {
                               const copy = [...newProduct.descriptions]
@@ -1763,7 +1763,7 @@ function ProductsPage() {
                           />
                           <input
                             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                            placeholder={t('Nh?p ch? th?ch')}
+                            placeholder={t('Nh\u1eadp ch\u00fa th\u00edch')}
                             value={d.caption ?? ''}
                             onChange={(e) => {
                               const copy = [...newProduct.descriptions]
@@ -1783,7 +1783,7 @@ function ProductsPage() {
                                   setNewProduct({ ...newProduct, descriptions: copy })
                                 }}
                               >
-                                {t('X?a video')}
+                                {t('X\u00f3a video')}
                               </button>
                             </div>
                           )}
@@ -1968,7 +1968,7 @@ function ProductsPage() {
                     <div key={idx} className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-white p-3">
                       <input
                         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t('Nh?p URL video YouTube ho?c file video c?ng khai')}
+                        placeholder={t('Nh\u1eadp URL video YouTube ho\u1eb7c file video c\u00f4ng khai')}
                         value={v.url}
                         onChange={(e) => {
                           const copy = [...newProduct.videos]
@@ -1988,7 +1988,7 @@ function ProductsPage() {
                               setNewProduct({ ...newProduct, videos: copy })
                             }}
                           >
-                            {t('X?a video')}
+                            {t('X\u00f3a video')}
                           </button>
                         </div>
                       )}
@@ -2081,7 +2081,9 @@ function ProductsPage() {
                       warrantyPeriodNum <= 0 ||
                       !Number.isInteger(warrantyPeriodNum)
                     ) {
-                      nextErrors.warrantyPeriod = t('Thoi han bao hanh phai la so nguyen duong')
+                      nextErrors.warrantyPeriod = t(
+                        'Th\u1eddi h\u1ea1n b\u1ea3o h\u00e0nh ph\u1ea3i l\u00e0 s\u1ed1 nguy\u00ean d\u01b0\u01a1ng',
+                      )
                     }
                     const stockNum = Number(newProduct.stock || 0)
                     setErrors(nextErrors)

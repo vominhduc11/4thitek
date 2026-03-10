@@ -35,7 +35,8 @@ const isLocalBlobUrl = (value?: string) =>
   Boolean(value && (value.startsWith('blob:') || value.startsWith('local-file:')))
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
-const VIDEO_FILE_NOTICE = 'Tải tệp video chưa được hỗ trợ. Vui lòng dùng URL video.'
+const VIDEO_FILE_NOTICE =
+  'T\u1ea3i t\u1ec7p video ch\u01b0a \u0111\u01b0\u1ee3c h\u1ed7 tr\u1ee3. Vui l\u00f2ng d\u00f9ng URL video.'
 
 type QuillEditorProps = {
   value: string
@@ -403,7 +404,7 @@ function ProductDetailPage() {
     const nextRetailPrice = Number(draft.retailPrice)
     const nextWarrantyPeriod = Number(draft.warrantyPeriod)
     if (Number.isNaN(nextRetailPrice) || nextRetailPrice < 0) {
-      notify('Retail price must be a non-negative number.', {
+      notify(t('Gi\u00e1 b\u00e1n l\u1ebb ph\u1ea3i l\u00e0 s\u1ed1 kh\u00f4ng \u00e2m'), {
         title: 'Products',
         variant: 'error',
       })
@@ -414,10 +415,13 @@ function ProductDetailPage() {
       nextWarrantyPeriod <= 0 ||
       !Number.isInteger(nextWarrantyPeriod)
     ) {
-      notify('Warranty period must be a positive integer.', {
-        title: 'Products',
-        variant: 'error',
-      })
+      notify(
+        t('Th\u1eddi h\u1ea1n b\u1ea3o h\u00e0nh ph\u1ea3i l\u00e0 s\u1ed1 nguy\u00ean d\u01b0\u01a1ng'),
+        {
+          title: 'Products',
+          variant: 'error',
+        },
+      )
       return
     }
     const cleanedSpecifications = draft.specifications
@@ -627,7 +631,7 @@ function ProductDetailPage() {
     if (file.size > MAX_IMAGE_BYTES) {
       setDescriptionImageErrors((prev) => ({
         ...prev,
-        [index]: t('?nh t?i ?a 10MB'),
+        [index]: t('\u1ea2nh t\u1ed1i \u0111a 10MB'),
       }))
       return
     }
@@ -657,7 +661,7 @@ function ProductDetailPage() {
     if (oversized) {
       setDescriptionImageErrors((prev) => ({
         ...prev,
-        [index]: t('?nh t?i ?a 10MB'),
+        [index]: t('\u1ea2nh t\u1ed1i \u0111a 10MB'),
       }))
     }
     const validFiles = fileList.filter((file) => file.size <= MAX_IMAGE_BYTES)
@@ -690,7 +694,7 @@ function ProductDetailPage() {
     if (file.size > MAX_IMAGE_BYTES) {
       setDescriptionImageErrors((prev) => ({
         ...prev,
-        [index]: t('?nh t?i ?a 10MB'),
+        [index]: t('\u1ea2nh t\u1ed1i \u0111a 10MB'),
       }))
       return
     }
@@ -1188,7 +1192,7 @@ function ProductDetailPage() {
                 </div>
                 <div className="sm:col-span-2">
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    {t('?nh URL')}
+                    {t('\u1ea2nh URL')}
                   </label>
                   <input
                     className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus:outline-none"
@@ -1207,10 +1211,10 @@ function ProductDetailPage() {
                           handleMainImageFile(event.target.files?.[0] ?? null)
                         }
                       />
-                      {t('T?i ?nh')}
+                      {t('T\u1ea3i \u1ea3nh')}
                     </label>
                     <p className="text-xs text-slate-500">
-                      {t('Ho?c nh?p URL th? c?ng')}
+                      {t('Ho\u1eb7c nh\u1eadp URL th\u1ee7 c\u00f4ng')}
                     </p>
                   </div>
                 </div>
@@ -1678,7 +1682,7 @@ function ProductDetailPage() {
                     <div className="grid gap-2 md:grid-cols-[1.4fr_1fr]">
                       <input
                         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t('Nh?p URL video YouTube ho?c file video c?ng khai')}
+                        placeholder={t('Nh\u1eadp URL video YouTube ho\u1eb7c file video c\u00f4ng khai')}
                         value={item.url ?? ''}
                         onChange={(event) => {
                           const nextDescriptions = [...draft.descriptions]
@@ -1688,7 +1692,7 @@ function ProductDetailPage() {
                       />
                       <input
                         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t('Nh?p ch? th?ch')}
+                        placeholder={t('Nh\u1eadp ch\u00fa th\u00edch')}
                         value={item.caption ?? ''}
                         onChange={(event) => {
                           const nextDescriptions = [...draft.descriptions]
@@ -1708,7 +1712,7 @@ function ProductDetailPage() {
                               setDraft({ ...draft, descriptions: nextDescriptions })
                             }}
                           >
-                            {t('X?a video')}
+                            {t('X\u00f3a video')}
                           </button>
                         </div>
                       )}
@@ -1806,7 +1810,7 @@ function ProductDetailPage() {
                   className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-white p-3">
                   <input
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                    placeholder={t('Nh?p URL video YouTube ho?c file video c?ng khai')}
+                    placeholder={t('Nh\u1eadp URL video YouTube ho\u1eb7c file video c\u00f4ng khai')}
                     value={video.url}
                     onChange={(event) => {
                       const nextVideos = [...draft.videos]
@@ -1826,7 +1830,7 @@ function ProductDetailPage() {
                           setDraft({ ...draft, videos: nextVideos })
                         }}
                       >
-                        {t('X?a video')}
+                        {t('X\u00f3a video')}
                       </button>
                     </div>
                   )}

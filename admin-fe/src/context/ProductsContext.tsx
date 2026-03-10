@@ -16,6 +16,8 @@ import { hasBackendApi } from '../lib/backendApi'
 
 type ProductsContextValue = {
   products: Product[]
+  isLoading: boolean
+  error: string | null
   archiveProduct: (sku: string) => Promise<void>
   restoreProduct: (sku: string) => Promise<void>
   publishProduct: (sku: string) => Promise<void>
@@ -99,8 +101,7 @@ const mapResponseToProduct = (product: BackendProductResponse): Product =>
     publishStatus: product.publishStatus === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT',
     stock: Number(product.stock ?? 0),
     retailPrice: Number(product.retailPrice ?? 0),
-    warrantyPeriod:
-      product.warrantyPeriod == null ? null : Number(product.warrantyPeriod),
+    warrantyPeriod: product.warrantyPeriod == null ? null : Number(product.warrantyPeriod),
     image:
       product.image && Object.keys(product.image).length > 0
         ? JSON.stringify(product.image)
@@ -178,6 +179,8 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
   const { accessToken } = useAuth()
   const { notify } = useToast()
   const [products, setProducts] = useState<Product[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const useRemoteData = useMemo(() => hasBackendApi() && Boolean(accessToken), [accessToken])
 
@@ -185,6 +188,8 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
     if (!useRemoteData || !accessToken) {
       const timer = window.setTimeout(() => {
         setProducts([])
+        setError(null)
+        setIsLoading(false)
       }, 0)
       return () => window.clearTimeout(timer)
     }
@@ -193,16 +198,27 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
 
     const loadProducts = async () => {
       try {
+        if (!cancelled) {
+          setIsLoading(true)
+          setError(null)
+        }
         const response = await fetchAdminProducts(accessToken)
         if (!cancelled) {
           setProducts(response.map(mapResponseToProduct))
         }
-      } catch (error) {
+      } catch (loadError) {
         if (!cancelled) {
-          notify(error instanceof Error ? error.message : 'Không tải được danh sách sản phẩm', {
+          const message =
+            loadError instanceof Error ? loadError.message : 'Khong tai duoc danh sach san pham'
+          setError(message)
+          notify(message, {
             title: 'Products',
             variant: 'error',
           })
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
         }
       }
     }
@@ -297,6 +313,8 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
 
   const value = {
     products,
+    isLoading,
+    error,
     archiveProduct,
     restoreProduct,
     publishProduct,

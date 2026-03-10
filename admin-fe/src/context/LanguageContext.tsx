@@ -280,6 +280,8 @@ const translations: Record<Language, TranslationMap> = {
       'Editing does not support file uploads yet. Please use a URL or create a new product.',
     'PNG/JPG, t\u1ed1i \u0111a 10MB': 'PNG/JPG, up to 10MB',
     '\u1ea2nh t\u1ed1i \u0111a 10MB': 'Image size up to 10MB',
+    'T\u1ea3i \u1ea3nh': 'Upload image',
+    'Ho\u1eb7c nh\u1eadp URL th\u1ee7 c\u00f4ng': 'Or enter a URL manually',
     'Xem trước': 'Preview',
     'Tiêu đề': 'Title',
     'Dùng mẫu': 'Use template',
@@ -312,15 +314,26 @@ const translations: Record<Language, TranslationMap> = {
     'Trình diễn': 'Demo',
     'URL video': 'Video URL',
     'URL ảnh thu nhỏ': 'Thumbnail URL',
+    'Nh\u1eadp URL video YouTube ho\u1eb7c file video c\u00f4ng khai':
+      'Enter a YouTube video URL or a public video file',
+    'Nh\u1eadp ch\u00fa th\u00edch': 'Enter a caption',
     'Xóa video': 'Delete video',
     'Chọn video': 'Select video',
     'Video tối đa 10MB': 'Video size up to 10MB',
+    'T\u1ea3i t\u1ec7p video ch\u01b0a \u0111\u01b0\u1ee3c h\u1ed7 tr\u1ee3. Vui l\u00f2ng d\u00f9ng URL video.':
+      'Video file uploads are not supported yet. Please use a video URL.',
     '+ Thêm video': '+ Add video',
     'Vui lòng nhập tên sản phẩm': 'Please enter product name',
     'Vui lòng nhập SKU': 'Please enter SKU',
     'SKU đã tồn tại': 'SKU already exists',
     'Giá phải là số không âm': 'Price must be a non-negative number',
+    'Gi\u00e1 b\u00e1n l\u1ebb ph\u1ea3i l\u00e0 s\u1ed1 kh\u00f4ng \u00e2m':
+      'Retail price must be a non-negative number',
     'Tồn kho phải là số không âm': 'Stock must be a non-negative number',
+    'Th\u1eddi h\u1ea1n b\u1ea3o h\u00e0nh (th\u00e1ng)': 'Warranty period (months)',
+    'Nh\u1eadp s\u1ed1 th\u00e1ng b\u1ea3o h\u00e0nh': 'Enter warranty months',
+    'Th\u1eddi h\u1ea1n b\u1ea3o h\u00e0nh ph\u1ea3i l\u00e0 s\u1ed1 nguy\u00ean d\u01b0\u01a1ng':
+      'Warranty period must be a positive integer',
     'Tạo': 'Create',
     'Không tìm thấy sản phẩm': 'Product not found',
     'SKU {sku} không tồn tại hoặc đã bị xóa.':

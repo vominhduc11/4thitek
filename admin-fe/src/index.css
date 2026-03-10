@@ -14,6 +14,7 @@
     --surface-ghost: rgba(255, 255, 255, 0.8);
     --surface-glass: rgba(255, 255, 255, 0.95);
     --surface-strong: #0f172a;
+    --surface-tint: rgba(255, 255, 255, 0.72);
     --border: #e2e8f0;
     --ink: #0f172a;
     --muted: #64748b;
@@ -35,6 +36,7 @@
     --surface-ghost: rgba(15, 23, 42, 0.82);
     --surface-glass: rgba(15, 23, 42, 0.92);
     --surface-strong: #e2e8f0;
+    --surface-tint: rgba(15, 23, 42, 0.72);
     --border: #1f2937;
     --ink: #e2e8f0;
     --muted: #94a3b8;
@@ -311,14 +313,26 @@
   }
 
   .btn-stable {
-    min-width: 120px;
+    min-width: 0;
     justify-content: center;
     white-space: nowrap;
   }
 
   .btn-stable-sm {
-    min-width: 104px;
+    min-width: 0;
     justify-content: center;
     white-space: nowrap;
+  }
+}
+
+@media (min-width: 640px) {
+  @layer utilities {
+    .btn-stable {
+      min-width: 120px;
+    }
+
+    .btn-stable-sm {
+      min-width: 104px;
+    }
   }
 }

@@ -1,0 +1,371 @@
+import { LifeBuoy, MessageSquareMore, RefreshCw } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  fetchAdminSupportTickets,
+  updateAdminSupportTicket,
+  type BackendSupportTicketResponse,
+  type BackendSupportTicketStatus,
+} from '../lib/adminApi'
+import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
+import { useToast } from '../context/ToastContext'
+import { formatDateTime } from '../lib/formatters'
+import {
+  EmptyState,
+  ErrorState,
+  GhostButton,
+  LoadingRows,
+  PagePanel,
+  PaginationNav,
+  PrimaryButton,
+  SearchInput,
+  StatCard,
+  StatusBadge,
+  bodyTextClass,
+  cardTitleClass,
+  inputClass,
+  softCardClass,
+  tableMetaClass,
+  textareaClass,
+} from '../components/ui-kit'
+
+const STATUS_OPTIONS: BackendSupportTicketStatus[] = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']
+
+const statusTone = {
+  OPEN: 'warning',
+  IN_PROGRESS: 'info',
+  RESOLVED: 'success',
+  CLOSED: 'neutral',
+} as const
+
+const priorityTone = {
+  NORMAL: 'neutral',
+  HIGH: 'warning',
+  URGENT: 'danger',
+} as const
+
+const copyByLanguage = {
+  vi: {
+    title: 'Hỗ trợ',
+    description: 'Theo dõi ticket từ đại lý, điều phối trạng thái và phản hồi trực tiếp trong admin.',
+    searchLabel: 'Tìm ticket',
+    searchPlaceholder: 'Tìm mã ticket, đại lý, chủ đề...',
+    status: 'Trạng thái',
+    all: 'Tất cả',
+    open: 'Đang mở',
+    processing: 'Đang xử lý',
+    resolved: 'Đã xử lý',
+    selected: 'Ticket đang chọn',
+    timeline: 'Dòng thời gian',
+    reply: 'Phản hồi admin',
+    save: 'Lưu cập nhật',
+    created: 'Tạo lúc',
+    updated: 'Cập nhật',
+    closed: 'Đóng',
+    next: 'Tiếp',
+    previous: 'Trước',
+    emptyTitle: 'Không có ticket phù hợp',
+    emptyMessage: 'Thử thay đổi bộ lọc hoặc tải lại dữ liệu.',
+    loadTitle: 'Không tải được ticket',
+    loadFallback: 'Danh sách ticket chưa thể tải.',
+    reload: 'Tải lại',
+  },
+  en: {
+    title: 'Support',
+    description: 'Review dealer tickets, manage status, and reply directly from the admin app.',
+    searchLabel: 'Search tickets',
+    searchPlaceholder: 'Search code, dealer, or subject...',
+    status: 'Status',
+    all: 'All',
+    open: 'Open',
+    processing: 'In progress',
+    resolved: 'Resolved',
+    selected: 'Selected ticket',
+    timeline: 'Timeline',
+    reply: 'Admin reply',
+    save: 'Save update',
+    created: 'Created',
+    updated: 'Updated',
+    closed: 'Closed',
+    next: 'Next',
+    previous: 'Previous',
+    emptyTitle: 'No matching tickets',
+    emptyMessage: 'Try another filter or reload the data.',
+    loadTitle: 'Unable to load tickets',
+    loadFallback: 'The ticket list could not be loaded.',
+    reload: 'Reload',
+  },
+} as const
+
+function SupportTicketsPageRevamp() {
+  const { language } = useLanguage()
+  const copy = copyByLanguage[language]
+  const { accessToken } = useAuth()
+  const { notify } = useToast()
+  const [tickets, setTickets] = useState<BackendSupportTicketResponse[]>([])
+  const [page, setPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalItems, setTotalItems] = useState(0)
+  const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'ALL' | BackendSupportTicketStatus>('ALL')
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [replyDraft, setReplyDraft] = useState('')
+  const [statusDraft, setStatusDraft] = useState<BackendSupportTicketStatus>('OPEN')
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const loadTickets = async (nextPage = page) => {
+    if (!accessToken) return
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await fetchAdminSupportTickets(accessToken, { page: nextPage, size: 25 })
+      setTickets(response.items)
+      setPage(response.page)
+      setTotalPages(response.totalPages)
+      setTotalItems(response.totalElements)
+      if (response.items.length > 0) {
+        setSelectedId((current) => response.items.find((item) => item.id === current)?.id ?? response.items[0].id)
+      } else {
+        setSelectedId(null)
+      }
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : copy.loadFallback)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadTickets(page)
+  }, [accessToken, page])
+
+  const filteredTickets = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase()
+    return tickets.filter((ticket) => {
+      const matchesStatus = statusFilter === 'ALL' ? true : ticket.status === statusFilter
+      const haystack = [ticket.ticketCode, ticket.dealerName, ticket.subject, ticket.message]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery))
+    })
+  }, [query, statusFilter, tickets])
+
+  const selectedTicket =
+    filteredTickets.find((ticket) => ticket.id === selectedId) ??
+    tickets.find((ticket) => ticket.id === selectedId) ??
+    null
+
+  useEffect(() => {
+    if (!selectedTicket) return
+    setReplyDraft(selectedTicket.adminReply ?? '')
+    setStatusDraft(selectedTicket.status ?? 'OPEN')
+  }, [selectedTicket?.id])
+
+  const stats = useMemo(
+    () => ({
+      open: tickets.filter((ticket) => ticket.status === 'OPEN').length,
+      progress: tickets.filter((ticket) => ticket.status === 'IN_PROGRESS').length,
+      resolved: tickets.filter((ticket) => ticket.status === 'RESOLVED').length,
+    }),
+    [tickets],
+  )
+
+  const handleSave = async () => {
+    if (!accessToken || !selectedTicket) return
+    setIsSaving(true)
+    try {
+      const updated = await updateAdminSupportTicket(accessToken, selectedTicket.id, {
+        status: statusDraft,
+        adminReply: replyDraft.trim() || undefined,
+      })
+      setTickets((current) => current.map((ticket) => (ticket.id === updated.id ? updated : ticket)))
+    } catch (saveError) {
+      notify(saveError instanceof Error ? saveError.message : copy.loadFallback, {
+        title: copy.title,
+        variant: 'error',
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <PagePanel>
+        <LoadingRows rows={6} />
+      </PagePanel>
+    )
+  }
+
+  if (error) {
+    return (
+      <PagePanel>
+        <ErrorState title={copy.loadTitle} message={error} onRetry={() => void loadTickets(page)} />
+      </PagePanel>
+    )
+  }
+
+  return (
+    <PagePanel>
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div>
+          <h3 className={cardTitleClass}>{copy.title}</h3>
+          <p className={bodyTextClass}>{copy.description}</p>
+        </div>
+        <div className="flex w-full flex-col gap-3 sm:flex-row xl:w-auto">
+          <SearchInput
+            id="support-search"
+            label={copy.searchLabel}
+            placeholder={copy.searchPlaceholder}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            className="w-full sm:w-80"
+          />
+          <select
+            aria-label={copy.status}
+            className={`${inputClass} w-full sm:w-auto`}
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as 'ALL' | BackendSupportTicketStatus)}
+          >
+            <option value="ALL">{copy.all}</option>
+            {STATUS_OPTIONS.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+          <GhostButton icon={<RefreshCw className="h-4 w-4" />} onClick={() => void loadTickets(page)} type="button">
+            {copy.reload}
+          </GhostButton>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <StatCard icon={LifeBuoy} label={copy.open} value={stats.open} tone="warning" />
+        <StatCard icon={MessageSquareMore} label={copy.processing} value={stats.progress} tone="info" />
+        <StatCard icon={LifeBuoy} label={copy.resolved} value={stats.resolved} tone="success" />
+      </div>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-[1.2fr_0.95fr]">
+        <div className="space-y-3">
+          {filteredTickets.length === 0 ? (
+            <EmptyState icon={LifeBuoy} title={copy.emptyTitle} message={copy.emptyMessage} />
+          ) : (
+            filteredTickets.map((ticket) => {
+              const active = ticket.id === selectedTicket?.id
+              return (
+                <button
+                  key={ticket.id}
+                  type="button"
+                  className={[
+                    softCardClass,
+                    'w-full text-left transition',
+                    active ? 'border-[var(--accent)] ring-2 ring-[var(--accent-soft)]' : 'hover:border-[var(--accent)]',
+                  ].join(' ')}
+                  onClick={() => setSelectedId(ticket.id)}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--ink)]">
+                        {ticket.ticketCode ?? `#${ticket.id}`} · {ticket.subject ?? '-'}
+                      </p>
+                      <p className={tableMetaClass}>
+                        {ticket.dealerName ?? '-'} · {formatDateTime(ticket.createdAt ?? new Date().toISOString())}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusBadge tone={priorityTone[ticket.priority ?? 'NORMAL'] ?? 'neutral'}>
+                        {ticket.priority ?? 'NORMAL'}
+                      </StatusBadge>
+                      <StatusBadge tone={statusTone[ticket.status ?? 'OPEN']}>
+                        {ticket.status ?? 'OPEN'}
+                      </StatusBadge>
+                    </div>
+                  </div>
+                  <p className="mt-3 line-clamp-2 text-sm text-[var(--ink)]">{ticket.message ?? '-'}</p>
+                </button>
+              )
+            })
+          )}
+          <PaginationNav
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={25}
+            onPageChange={setPage}
+            previousLabel={copy.previous}
+            nextLabel={copy.next}
+          />
+        </div>
+
+        <div className={softCardClass}>
+          {selectedTicket ? (
+            <div className="space-y-4">
+              <div>
+                <p className={tableMetaClass}>{copy.selected}</p>
+                <h4 className="mt-2 text-lg font-semibold text-[var(--ink)]">
+                  {selectedTicket.ticketCode ?? `#${selectedTicket.id}`}
+                </h4>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  {selectedTicket.dealerName ?? '-'} · {selectedTicket.category ?? 'OTHER'}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--ink)]">
+                {selectedTicket.message ?? '-'}
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="text-sm text-[var(--ink)]">
+                  <span className={tableMetaClass}>{copy.status}</span>
+                  <select
+                    className={`${inputClass} mt-2 w-full`}
+                    value={statusDraft}
+                    onChange={(event) => setStatusDraft(event.target.value as BackendSupportTicketStatus)}
+                  >
+                    {STATUS_OPTIONS.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="text-sm text-[var(--ink)]">
+                  <span className={tableMetaClass}>{copy.timeline}</span>
+                  <div className="mt-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-xs text-[var(--muted)]">
+                    <p>{copy.created}: {formatDateTime(selectedTicket.createdAt ?? new Date().toISOString())}</p>
+                    <p>{copy.updated}: {formatDateTime(selectedTicket.updatedAt ?? selectedTicket.createdAt ?? new Date().toISOString())}</p>
+                    <p>{copy.resolved}: {selectedTicket.resolvedAt ? formatDateTime(selectedTicket.resolvedAt) : '-'}</p>
+                    <p>{copy.closed}: {selectedTicket.closedAt ? formatDateTime(selectedTicket.closedAt) : '-'}</p>
+                  </div>
+                </div>
+              </div>
+
+              <label className="block text-sm text-[var(--ink)]">
+                <span className={tableMetaClass}>{copy.reply}</span>
+                <textarea
+                  className={`${textareaClass} mt-2 min-h-[180px]`}
+                  value={replyDraft}
+                  onChange={(event) => setReplyDraft(event.target.value)}
+                />
+              </label>
+
+              <div className="flex justify-end">
+                <PrimaryButton disabled={isSaving} onClick={() => void handleSave()} type="button">
+                  {isSaving ? `${copy.save}...` : copy.save}
+                </PrimaryButton>
+              </div>
+            </div>
+          ) : (
+            <EmptyState icon={MessageSquareMore} title={copy.emptyTitle} message={copy.emptyMessage} />
+          )}
+        </div>
+      </div>
+    </PagePanel>
+  )
+}
+
+export default SupportTicketsPageRevamp
