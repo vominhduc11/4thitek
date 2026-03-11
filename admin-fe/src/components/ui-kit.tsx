@@ -47,6 +47,23 @@ export const destructiveButtonClass =
 export const fieldErrorClass = 'mt-2 text-sm font-medium text-rose-600'
 export const fieldHintClass = 'mt-2 text-sm text-[var(--muted)]'
 
+type FieldErrorMessageProps = {
+  children: ReactNode
+  id?: string
+  className?: string
+}
+
+export const FieldErrorMessage = ({ children, id, className }: FieldErrorMessageProps) => (
+  <p
+    aria-live="polite"
+    className={cx(fieldErrorClass, className)}
+    id={id}
+    role="status"
+  >
+    {children}
+  </p>
+)
+
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   icon?: ReactNode
 }

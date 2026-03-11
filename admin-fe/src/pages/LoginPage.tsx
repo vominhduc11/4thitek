@@ -1,8 +1,9 @@
-import { Lock, User } from 'lucide-react'
+import { Eye, EyeOff, Lock, User } from 'lucide-react'
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import logoCard from '../assets/images/logo.png'
 import LanguageSwitcher from '../components/LanguageSwitcher'
+import { FieldErrorMessage } from '../components/ui-kit'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
@@ -23,6 +24,7 @@ function LoginPage() {
   const [remember, setRemember] = useState(true)
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<{ username?: string; password?: string }>({})
+  const [showPassword, setShowPassword] = useState(false)
 
   const target = ((location.state as LocationState | null)?.from || '/') as string
 
@@ -104,6 +106,7 @@ function LoginPage() {
                 type="text"
                 placeholder={t('Nhập tên đăng nhập')}
                 autoComplete="username"
+                disabled={isLoggingIn}
                 value={username}
                 onChange={(event) => {
                   const nextValue = event.target.value
@@ -113,9 +116,9 @@ function LoginPage() {
               />
             </div>
             {fieldErrors.username ? (
-              <p className="mt-2 text-sm font-medium text-rose-600" id="login-username-error">
+              <FieldErrorMessage id="login-username-error">
                 {fieldErrors.username}
-              </p>
+              </FieldErrorMessage>
             ) : null}
           </div>
 
@@ -129,12 +132,13 @@ function LoginPage() {
                 id="password"
                 aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
                 aria-invalid={Boolean(fieldErrors.password)}
-                className={`w-full rounded-2xl border bg-slate-50 px-10 py-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 ${
+                className={`w-full rounded-2xl border bg-slate-50 px-10 py-3 pr-12 text-sm text-slate-900 placeholder:text-slate-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 ${
                   fieldErrors.password ? 'border-rose-300' : 'border-slate-200'
                 }`}
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 placeholder={t('Nhập mật khẩu')}
                 autoComplete="current-password"
+                disabled={isLoggingIn}
                 value={password}
                 onChange={(event) => {
                   const nextValue = event.target.value
@@ -142,11 +146,20 @@ function LoginPage() {
                   setFieldErrors(validateFields(username, nextValue))
                 }}
               />
+              <button
+                aria-label={showPassword ? t('Ẩn mật khẩu') : t('Hiển thị mật khẩu')}
+                className="absolute right-3 top-1/2 inline-flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
+                disabled={isLoggingIn}
+                onClick={() => setShowPassword((current) => !current)}
+                type="button"
+              >
+                {showPassword ? <EyeOff aria-hidden="true" className="h-4 w-4" /> : <Eye aria-hidden="true" className="h-4 w-4" />}
+              </button>
             </div>
             {fieldErrors.password ? (
-              <p className="mt-2 text-sm font-medium text-rose-600" id="login-password-error">
+              <FieldErrorMessage id="login-password-error">
                 {fieldErrors.password}
-              </p>
+              </FieldErrorMessage>
             ) : null}
           </div>
 
@@ -155,12 +168,13 @@ function LoginPage() {
               className="h-4 w-4 accent-[var(--accent)]"
               type="checkbox"
               checked={remember}
+              disabled={isLoggingIn}
               onChange={(event) => setRemember(event.target.checked)}
             />
             <span>{t('Ghi nhớ đăng nhập')}</span>
           </label>
 
-          {error ? <p className="text-sm font-medium text-rose-600">{error}</p> : null}
+          {error ? <FieldErrorMessage>{error}</FieldErrorMessage> : null}
 
           <button
             className="w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70"

@@ -26,6 +26,9 @@ export const RichTextEditor = ({
   const toolbarRef = useRef<HTMLElement | null>(null)
   const onChangeRef = useRef(onChange)
   const valueRef = useRef(value)
+  const modulesRef = useRef(modules)
+  const formatsRef = useRef(formats)
+  const placeholderRef = useRef(placeholder)
 
   useEffect(() => {
     onChangeRef.current = onChange
@@ -41,9 +44,9 @@ export const RichTextEditor = ({
     const container = containerRef.current
     const instance = new Quill(container, {
       theme: 'snow',
-      modules,
-      formats,
-      placeholder,
+      modules: modulesRef.current,
+      formats: formatsRef.current,
+      placeholder: placeholderRef.current,
       readOnly,
     })
 
@@ -58,7 +61,7 @@ export const RichTextEditor = ({
       }
     }
 
-    instance.root.setAttribute('aria-label', ariaLabel ?? placeholder ?? 'Rich text editor')
+    instance.root.setAttribute('aria-label', ariaLabel ?? placeholderRef.current ?? 'Rich text editor')
     instance.root.setAttribute('aria-multiline', 'true')
     instance.on('text-change', handleChange)
 
@@ -78,7 +81,22 @@ export const RichTextEditor = ({
       toolbarRef.current = null
       container.innerHTML = ''
     }
-  }, [ariaLabel, formats, modules, placeholder, readOnly])
+  }, [])
+
+  useEffect(() => {
+    const instance = quillRef.current
+    if (!instance) return
+
+    instance.enable(!readOnly)
+  }, [readOnly])
+
+  useEffect(() => {
+    const root = quillRef.current?.root
+    if (!root) return
+
+    root.setAttribute('aria-label', ariaLabel ?? placeholder ?? 'Rich text editor')
+    root.setAttribute('aria-multiline', 'true')
+  }, [ariaLabel, placeholder])
 
   useEffect(() => {
     const instance = quillRef.current

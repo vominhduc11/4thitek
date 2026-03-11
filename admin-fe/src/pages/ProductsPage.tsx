@@ -67,13 +67,23 @@ const createInitialNewProduct = () => ({
   imageUrl: '',
 })
 
+const imageUrlCache = new Map<string, string>()
+
 const getImageUrl = (image: string) => {
+  const cached = imageUrlCache.get(image)
+  if (cached) {
+    return cached
+  }
+
+  let resolved = ''
   try {
     const parsed = JSON.parse(image) as { imageUrl?: string }
-    return resolveBackendAssetUrl(parsed.imageUrl || image)
+    resolved = resolveBackendAssetUrl(parsed.imageUrl || image)
   } catch {
-    return resolveBackendAssetUrl(image)
+    resolved = resolveBackendAssetUrl(image)
   }
+  imageUrlCache.set(image, resolved)
+  return resolved
 }
 
 const formatPriceVND = (value: number | string) => {
@@ -704,18 +714,22 @@ function ProductsPage() {
               <div className="flex items-center gap-1">
                 {product.isFeatured && (
                   <span
+                    aria-label={t('Nổi bật')}
                     className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/15 text-amber-700"
+                    role="img"
                     title={t('Nổi bật')}
                   >
-                    <Star className="h-3 w-3" />
+                    <Star aria-hidden="true" className="h-3 w-3" />
                   </span>
                 )}
                 {product.showOnHomepage && (
                   <span
+                    aria-label={t('Trang chủ')}
                     className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/15 text-blue-700"
+                    role="img"
                     title={t('Trang chủ')}
                   >
-                    <Home className="h-3 w-3" />
+                    <Home aria-hidden="true" className="h-3 w-3" />
                   </span>
                 )}
               </div>

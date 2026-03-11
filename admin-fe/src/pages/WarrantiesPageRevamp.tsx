@@ -216,7 +216,7 @@ function WarrantiesPageRevamp() {
               </option>
             ))}
           </select>
-          <GhostButton icon={<RefreshCw className="h-4 w-4" />} onClick={() => void loadData(page)} type="button">
+          <GhostButton aria-label={copy.reload} icon={<RefreshCw className="h-4 w-4" />} onClick={() => void loadData(page)} type="button">
             {copy.reload}
           </GhostButton>
         </div>
@@ -270,7 +270,7 @@ function WarrantiesPageRevamp() {
                   </p>
                   <select
                     aria-label={`${copy.status} ${item.id}`}
-                    className={`${inputClass} mt-4 w-full`}
+                    className={`mt-4 w-full ${tableActionSelectClass}`}
                     value={item.status ?? 'ACTIVE'}
                     onChange={async (event) => {
                       const next = event.target.value as BackendWarrantyStatus

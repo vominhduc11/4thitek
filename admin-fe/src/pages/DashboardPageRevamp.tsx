@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Package, ShoppingCart, TrendingUp } from 'lucide-react'
 import {
   ArcElement,
@@ -93,6 +93,11 @@ function DashboardPageRevamp() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [themeTokens, setThemeTokens] = useState(getThemeTokens)
+  const copyRef = useRef(copy)
+
+  useEffect(() => {
+    copyRef.current = copy
+  }, [copy])
 
   useEffect(() => {
     const updateThemeTokens = () => setThemeTokens(getThemeTokens())
@@ -111,7 +116,7 @@ function DashboardPageRevamp() {
     if (!accessToken) {
       setDashboard(null)
       setLoading(false)
-      setError(copy.loadTitle)
+      setError(copyRef.current.loadTitle)
       return
     }
 
@@ -127,9 +132,9 @@ function DashboardPageRevamp() {
         }
       } catch (loadError) {
         if (!cancelled) {
-          const message = loadError instanceof Error ? loadError.message : copy.loadTitle
+          const message = loadError instanceof Error ? loadError.message : copyRef.current.loadTitle
           setError(message)
-          notify(message, { title: copy.title, variant: 'error' })
+          notify(message, { title: copyRef.current.title, variant: 'error' })
         }
       } finally {
         if (!cancelled) {
@@ -143,7 +148,7 @@ function DashboardPageRevamp() {
     return () => {
       cancelled = true
     }
-  }, [accessToken, copy.loadTitle, copy.title, notify])
+  }, [accessToken, notify])
 
   const orderStatusChart = useMemo<ChartData<'doughnut'>>(
     () => ({

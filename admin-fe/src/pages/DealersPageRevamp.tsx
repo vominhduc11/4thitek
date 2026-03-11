@@ -16,6 +16,7 @@ import {
   formCardClass,
   inputClass,
   labelClass,
+  tableActionSelectClass,
   tableCardClass,
   tableHeadClass,
   tableMetaClass,
@@ -410,7 +411,7 @@ function DealersPageRevamp() {
                   <p className={`${tableMetaClass} mt-3`}>{dealerStatusDescription[dealer.status]}</p>
                   <select
                     aria-label={`${copy.status} ${dealer.id}`}
-                    className={`${inputClass} mt-4 w-full`}
+                    className={`mt-4 w-full ${tableActionSelectClass}`}
                     onChange={async (event) => {
                       const next = event.target.value as DealerStatus
                       if (next === dealer.status) {
@@ -506,7 +507,7 @@ function DealersPageRevamp() {
                       >
                         <select
                           aria-label={`${copy.status} ${dealer.id}`}
-                          className={`${inputClass} min-h-11 w-full`}
+                          className={`w-full ${tableActionSelectClass}`}
                           onChange={async (event) => {
                             const next = event.target.value as DealerStatus
                             if (next === dealer.status) {

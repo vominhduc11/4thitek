@@ -13,6 +13,7 @@ import {
 import productPlaceholder from '../assets/product-placeholder.svg'
 import { ProductVideoPreview } from '../components/ProductVideoPreview'
 import { RichTextEditor } from '../components/RichTextEditor'
+import { FieldErrorMessage } from '../components/ui-kit'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductsContext'
 import { useLanguage } from '../context/LanguageContext'
@@ -23,17 +24,26 @@ import { resolveBackendAssetUrl } from '../lib/backendApi'
 import { storeFileReference } from '../lib/upload'
 
 const getImageUrl = (image: string) => {
+  const cached = imageUrlCache.get(image)
+  if (cached) {
+    return cached
+  }
+
+  let resolved = ''
   try {
     const parsed = JSON.parse(image) as { imageUrl?: string }
-    return resolveBackendAssetUrl(parsed.imageUrl || image)
+    resolved = resolveBackendAssetUrl(parsed.imageUrl || image)
   } catch {
-    return resolveBackendAssetUrl(image)
+    resolved = resolveBackendAssetUrl(image)
   }
+  imageUrlCache.set(image, resolved)
+  return resolved
 }
 
 const isLocalBlobUrl = (value?: string) =>
   Boolean(value && (value.startsWith('blob:') || value.startsWith('local-file:')))
 
+const imageUrlCache = new Map<string, string>()
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 const VIDEO_FILE_NOTICE =
   'T\u1ea3i t\u1ec7p video ch\u01b0a \u0111\u01b0\u1ee3c h\u1ed7 tr\u1ee3. Vui l\u00f2ng d\u00f9ng URL video.'
@@ -1093,9 +1103,9 @@ function ProductDetailPage() {
                     }
                   />
                   {draftErrors.name ? (
-                    <p className="mt-2 text-sm font-medium text-rose-600" id="product-detail-name-error">
+                    <FieldErrorMessage id="product-detail-name-error">
                       {draftErrors.name}
-                    </p>
+                    </FieldErrorMessage>
                   ) : null}
                 </div>
                 <div>
@@ -1116,9 +1126,9 @@ function ProductDetailPage() {
                     }
                   />
                   {draftErrors.retailPrice ? (
-                    <p className="mt-2 text-sm font-medium text-rose-600" id="product-detail-price-error">
+                    <FieldErrorMessage id="product-detail-price-error">
                       {draftErrors.retailPrice}
-                    </p>
+                    </FieldErrorMessage>
                   ) : null}
                 </div>
                 <div>
@@ -1139,9 +1149,9 @@ function ProductDetailPage() {
                     }
                   />
                   {draftErrors.stock ? (
-                    <p className="mt-2 text-sm font-medium text-rose-600" id="product-detail-stock-error">
+                    <FieldErrorMessage id="product-detail-stock-error">
                       {draftErrors.stock}
-                    </p>
+                    </FieldErrorMessage>
                   ) : null}
                 </div>
                 <div>
@@ -1163,9 +1173,9 @@ function ProductDetailPage() {
                     }
                   />
                   {draftErrors.warrantyPeriod ? (
-                    <p className="mt-2 text-sm font-medium text-rose-600" id="product-detail-warranty-error">
+                    <FieldErrorMessage id="product-detail-warranty-error">
                       {draftErrors.warrantyPeriod}
-                    </p>
+                    </FieldErrorMessage>
                   ) : null}
                 </div>
                 <div>

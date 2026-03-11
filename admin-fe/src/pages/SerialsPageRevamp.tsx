@@ -305,10 +305,10 @@ function SerialsPageRevamp() {
               </option>
             ))}
           </select>
-          <GhostButton icon={<RefreshCw className="h-4 w-4" />} onClick={() => void loadData(page)} type="button">
+          <GhostButton aria-label={copy.reload} icon={<RefreshCw className="h-4 w-4" />} onClick={() => void loadData(page)} type="button">
             {copy.reload}
           </GhostButton>
-          <PrimaryButton icon={<Upload className="h-4 w-4" />} onClick={() => setShowImport((current) => !current)} type="button">
+          <PrimaryButton aria-label={copy.import} icon={<Upload className="h-4 w-4" />} onClick={() => setShowImport((current) => !current)} type="button">
             {copy.import}
           </PrimaryButton>
         </div>
@@ -452,7 +452,7 @@ function SerialsPageRevamp() {
                   </div>
                   <select
                     aria-label={`${copy.status} ${item.id}`}
-                    className={`${inputClass} mt-4 w-full`}
+                    className={`mt-4 w-full ${tableActionSelectClass}`}
                     value={item.status ?? 'AVAILABLE'}
                     onChange={async (event) => {
                       const next = event.target.value as BackendProductSerialStatus

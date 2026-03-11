@@ -1,13 +1,15 @@
 import { ArrowLeft } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAdminData, type OrderStatus } from '../context/AdminDataContext'
+import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { getAllowedOrderStatuses, orderStatusLabel, orderStatusTone } from '../lib/adminLabels'
 import { formatCurrency, formatDateTime } from '../lib/formatters'
 import {
   EmptyState,
   ErrorState,
+  FieldErrorMessage,
   GhostButton,
   LoadingRows,
   PagePanel,
@@ -23,6 +25,7 @@ function OrderDetailPage() {
   const { id = '' } = useParams()
   const decodedId = decodeURIComponent(id)
   const navigate = useNavigate()
+  const { t } = useLanguage()
   const { notify } = useToast()
   const { confirm, confirmDialog } = useConfirmDialog()
   const { orders, ordersState, updateOrderStatus, recordOrderPayment, deleteOrder, reloadResource } =
@@ -33,16 +36,31 @@ function OrderDetailPage() {
   const [paymentError, setPaymentError] = useState('')
 
   const order = orders.find((item) => item.id === decodedId)
+  const initialPaymentAmount = useMemo(
+    () => (order && order.outstandingAmount > 0 ? String(order.outstandingAmount) : ''),
+    [order?.outstandingAmount],
+  )
+  const isPaymentDirty = useMemo(
+    () =>
+      Boolean(
+        order &&
+          order.outstandingAmount > 0 &&
+          (paymentAmount !== initialPaymentAmount ||
+            transactionCode.trim() !== '' ||
+            paymentNote.trim() !== ''),
+      ),
+    [initialPaymentAmount, order, paymentAmount, paymentNote, transactionCode],
+  )
 
   useEffect(() => {
     if (!order) {
       return
     }
-    setPaymentAmount(order.outstandingAmount > 0 ? String(order.outstandingAmount) : '')
+    setPaymentAmount(initialPaymentAmount)
     setTransactionCode('')
     setPaymentNote('')
     setPaymentError('')
-  }, [order?.id, order?.outstandingAmount])
+  }, [initialPaymentAmount, order?.id])
 
   if (ordersState.status === 'loading' || ordersState.status === 'idle') {
     return (
@@ -56,8 +74,8 @@ function OrderDetailPage() {
     return (
       <PagePanel>
         <ErrorState
-          title="Khong the tai don hang"
-          message={ordersState.error || 'Khong tai duoc chi tiet don hang'}
+          title={t('Không thể tải đơn hàng')}
+          message={ordersState.error || t('Không tải được chi tiết đơn hàng')}
           onRetry={() => void reloadResource('orders')}
         />
       </PagePanel>
@@ -68,8 +86,8 @@ function OrderDetailPage() {
     return (
       <PagePanel>
         <EmptyState
-          title="Khong tim thay don hang"
-          message={`Don ${decodedId} khong ton tai hoac da bi xoa.`}
+          title={t('Không tìm thấy đơn hàng')}
+          message={t('Đơn {id} không tồn tại hoặc đã bị xóa.', { id: decodedId })}
         />
         <div className="mt-4">
           <GhostButton
@@ -77,7 +95,7 @@ function OrderDetailPage() {
             onClick={() => navigate('/orders')}
             type="button"
           >
-            Ve danh sach
+            {t('Về danh sách')}
           </GhostButton>
         </div>
       </PagePanel>
@@ -85,17 +103,17 @@ function OrderDetailPage() {
   }
 
   const paymentMethodLabel =
-    order.paymentMethod === 'debt' ? 'Cong no' : 'Chuyen khoan ngan hang'
+    order.paymentMethod === 'debt' ? t('Công nợ') : t('Chuyển khoản ngân hàng')
   const paymentStatusLabel =
     order.paymentStatus === 'paid'
-      ? 'Da thanh toan'
+      ? t('Đã thanh toán')
       : order.paymentStatus === 'debt_recorded'
-        ? 'Ghi nhan cong no'
+        ? t('Ghi nhận công nợ')
         : order.paymentStatus === 'cancelled'
-          ? 'Da huy'
+          ? t('Đã hủy')
           : order.paymentStatus === 'failed'
-            ? 'That bai'
-            : 'Chua thanh toan'
+            ? t('Thất bại')
+            : t('Chưa thanh toán')
 
   return (
     <PagePanel>
@@ -105,53 +123,53 @@ function OrderDetailPage() {
           to="/orders"
         >
           <ArrowLeft className="h-4 w-4" />
-          Ve don hang
+          {t('Về đơn hàng')}
         </Link>
         <StatusBadge tone={orderStatusTone[order.status]}>{orderStatusLabel[order.status]}</StatusBadge>
       </div>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
         <div className="rounded-3xl border border-slate-200/70 bg-white/80 p-5">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Don hang</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('Đơn hàng')}</p>
           <h3 className="mt-2 text-2xl font-semibold text-slate-900">#{order.id}</h3>
           <p className="mt-2 text-sm text-slate-500">{formatDateTime(order.createdAt)}</p>
           <div className="mt-4 space-y-2 text-sm text-slate-700">
             <p>
-              <span className="font-semibold text-slate-900">Dai ly:</span> {order.dealer}
+              <span className="font-semibold text-slate-900">{t('Đại lý')}:</span> {order.dealer}
             </p>
             <p>
-              <span className="font-semibold text-slate-900">So mat hang:</span> {order.items}
+              <span className="font-semibold text-slate-900">{t('Số mặt hàng')}:</span> {order.items}
             </p>
             <p>
-              <span className="font-semibold text-slate-900">Tong tien:</span>{' '}
+              <span className="font-semibold text-slate-900">{t('Tổng tiền')}:</span>{' '}
               {formatCurrency(order.total)}
             </p>
             <p>
-              <span className="font-semibold text-slate-900">Thanh toan:</span>{' '}
-              {paymentMethodLabel} • {paymentStatusLabel}
+              <span className="font-semibold text-slate-900">{t('Thanh toán')}:</span>{' '}
+              {paymentMethodLabel} | {paymentStatusLabel}
             </p>
             <p>
-              <span className="font-semibold text-slate-900">Da thu:</span>{' '}
+              <span className="font-semibold text-slate-900">{t('Đã thu')}:</span>{' '}
               {formatCurrency(order.paidAmount)}
             </p>
             <p>
-              <span className="font-semibold text-slate-900">Con lai:</span>{' '}
+              <span className="font-semibold text-slate-900">{t('Còn lại')}:</span>{' '}
               {formatCurrency(order.outstandingAmount)}
             </p>
             <p>
-              <span className="font-semibold text-slate-900">Dia chi:</span> {order.address}
+              <span className="font-semibold text-slate-900">{t('Địa chỉ')}:</span> {order.address}
             </p>
             <p>
-              <span className="font-semibold text-slate-900">Ghi chu:</span> {order.note}
+              <span className="font-semibold text-slate-900">{t('Ghi chú')}:</span> {order.note}
             </p>
           </div>
         </div>
 
         <div className="rounded-3xl border border-slate-200/70 bg-white/80 p-5">
-          <p className="text-sm font-semibold text-slate-900">Cap nhat trang thai</p>
+          <p className="text-sm font-semibold text-slate-900">{t('Cập nhật trạng thái')}</p>
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <select
-              aria-label={`Order status ${order.id}`}
+              aria-label={t('Trạng thái đơn {id}', { id: order.id })}
               className={`${inputClass} bg-white text-slate-700`}
               onChange={async (event) => {
                 const next = event.target.value as OrderStatus
@@ -160,8 +178,10 @@ function OrderDetailPage() {
                 }
 
                 const approved = await confirm({
-                  title: 'Xac nhan doi trang thai',
-                  message: `Chuyen don nay sang "${orderStatusLabel[next]}"?`,
+                  title: t('Xác nhận đổi trạng thái'),
+                  message: t('Chuyển đơn này sang "{status}"?', {
+                    status: orderStatusLabel[next],
+                  }),
                   tone: next === 'cancelled' ? 'danger' : 'warning',
                   confirmLabel: orderStatusLabel[next],
                 })
@@ -173,13 +193,13 @@ function OrderDetailPage() {
 
                 try {
                   await updateOrderStatus(order.id, next)
-                  notify(`Don ${order.id} -> ${orderStatusLabel[next]}`, {
-                    title: 'Orders',
+                  notify(t('Đơn {id} -> {status}', { id: order.id, status: orderStatusLabel[next] }), {
+                    title: t('Đơn hàng'),
                     variant: 'info',
                   })
                 } catch (error) {
-                  notify(error instanceof Error ? error.message : 'Khong cap nhat duoc don hang', {
-                    title: 'Orders',
+                  notify(error instanceof Error ? error.message : t('Không cập nhật được đơn hàng'), {
+                    title: t('Đơn hàng'),
                     variant: 'error',
                   })
                 }
@@ -196,10 +216,10 @@ function OrderDetailPage() {
               disabled={order.status !== 'delivering'}
               onClick={async () => {
                 const approved = await confirm({
-                  title: 'Xac nhan hoan tat don',
-                  message: `Danh dau don ${order.id} da hoan tat?`,
+                  title: t('Xác nhận hoàn tất đơn'),
+                  message: t('Đánh dấu đơn {id} đã hoàn tất?', { id: order.id }),
                   tone: 'info',
-                  confirmLabel: 'Hoan tat',
+                  confirmLabel: t('Hoàn tất'),
                 })
                 if (!approved) {
                   return
@@ -207,29 +227,43 @@ function OrderDetailPage() {
 
                 try {
                   await updateOrderStatus(order.id, 'completed')
-                  notify(`Don ${order.id} da hoan tat`, { title: 'Orders', variant: 'success' })
+                  notify(t('Đơn {id} đã hoàn tất', { id: order.id }), {
+                    title: t('Đơn hàng'),
+                    variant: 'success',
+                  })
                 } catch (error) {
-                  notify(error instanceof Error ? error.message : 'Khong cap nhat duoc don hang', {
-                    title: 'Orders',
+                  notify(error instanceof Error ? error.message : t('Không cập nhật được đơn hàng'), {
+                    title: t('Đơn hàng'),
                     variant: 'error',
                   })
                 }
               }}
               type="button"
             >
-              Hoan tat nhanh
+              {t('Hoàn tất nhanh')}
             </PrimaryButton>
           </div>
 
+          {order.outstandingAmount > 0 && isPaymentDirty ? (
+            <div
+              className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800"
+              role="status"
+            >
+              {t('Có thay đổi chưa lưu trong biểu mẫu thanh toán.')}
+            </div>
+          ) : null}
+
           {order.outstandingAmount > 0 ? (
             <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
-              <p className="text-sm font-semibold text-emerald-800">Ghi nhan thanh toan thu cong</p>
+              <p className="text-sm font-semibold text-emerald-800">
+                {t('Ghi nhận thanh toán thủ công')}
+              </p>
               <p className="mt-1 text-xs text-emerald-700">
-                Dung khi can xac nhan tien da nhan ngoai webhook tu dong.
+                {t('Dùng khi cần xác nhận tiền đã nhận ngoài webhook tự động.')}
               </p>
               <div className="mt-3 grid gap-3">
                 <label className="space-y-2">
-                  <span className={labelClass}>So tien</span>
+                  <span className={labelClass}>{t('Số tiền')}</span>
                   <input
                     aria-describedby={paymentError ? 'order-payment-amount-error' : undefined}
                     aria-invalid={Boolean(paymentError)}
@@ -241,20 +275,20 @@ function OrderDetailPage() {
                       setPaymentError(
                         !event.target.value.trim() || (!Number.isNaN(nextAmount) && nextAmount > 0)
                           ? ''
-                          : 'So tien thanh toan khong hop le',
+                          : t('Số tiền thanh toán không hợp lệ'),
                       )
                     }}
                     type="number"
                     value={paymentAmount}
                   />
                   {paymentError ? (
-                    <p className={fieldErrorClass} id="order-payment-amount-error">
+                    <FieldErrorMessage className={fieldErrorClass} id="order-payment-amount-error">
                       {paymentError}
-                    </p>
+                    </FieldErrorMessage>
                   ) : null}
                 </label>
                 <label className="space-y-2">
-                  <span className={labelClass}>Ma giao dich</span>
+                  <span className={labelClass}>{t('Mã giao dịch')}</span>
                   <input
                     className={`${inputClass} bg-white text-slate-700`}
                     onChange={(event) => setTransactionCode(event.target.value)}
@@ -262,7 +296,7 @@ function OrderDetailPage() {
                   />
                 </label>
                 <label className="space-y-2">
-                  <span className={labelClass}>Ghi chu noi bo</span>
+                  <span className={labelClass}>{t('Ghi chú nội bộ')}</span>
                   <textarea
                     className="min-h-24 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                     onChange={(event) => setPaymentNote(event.target.value)}
@@ -270,12 +304,12 @@ function OrderDetailPage() {
                   />
                 </label>
               </div>
-              <div className="mt-3">
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                 <PrimaryButton
                   onClick={async () => {
                     const amount = Number(paymentAmount)
                     if (Number.isNaN(amount) || amount <= 0) {
-                      setPaymentError('So tien thanh toan khong hop le')
+                      setPaymentError(t('Số tiền thanh toán không hợp lệ'))
                       return
                     }
 
@@ -290,16 +324,16 @@ function OrderDetailPage() {
                         transactionCode: transactionCode.trim() || undefined,
                         note: paymentNote.trim() || undefined,
                       })
-                      notify(`Da ghi nhan thanh toan cho don ${order.id}`, {
-                        title: 'Orders',
+                      notify(t('Đã ghi nhận thanh toán cho đơn {id}', { id: order.id }), {
+                        title: t('Đơn hàng'),
                         variant: 'success',
                       })
                       setPaymentError('')
                     } catch (error) {
                       notify(
-                        error instanceof Error ? error.message : 'Khong ghi nhan duoc thanh toan',
+                        error instanceof Error ? error.message : t('Không ghi nhận được thanh toán'),
                         {
-                          title: 'Orders',
+                          title: t('Đơn hàng'),
                           variant: 'error',
                         },
                       )
@@ -307,23 +341,38 @@ function OrderDetailPage() {
                   }}
                   type="button"
                 >
-                  Ghi nhan thanh toan
+                  {t('Ghi nhận thanh toán')}
                 </PrimaryButton>
+                {isPaymentDirty ? (
+                  <GhostButton
+                    onClick={() => {
+                      setPaymentAmount(initialPaymentAmount)
+                      setTransactionCode('')
+                      setPaymentNote('')
+                      setPaymentError('')
+                    }}
+                    type="button"
+                  >
+                    {t('Hoàn tác')}
+                  </GhostButton>
+                ) : null}
               </div>
             </div>
           ) : null}
 
           <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50/70 p-3">
-            <p className="text-sm font-semibold text-rose-700">Xoa don hang</p>
-            <p className="mt-1 text-xs text-rose-600">Hanh dong nay se xoa don khoi danh sach.</p>
+            <p className="text-sm font-semibold text-rose-700">{t('Xóa đơn hàng')}</p>
+            <p className="mt-1 text-xs text-rose-600">
+              {t('Hành động này sẽ xóa đơn khỏi danh sách.')}
+            </p>
             <GhostButton
               className="mt-3 border-rose-200 text-rose-700 hover:border-rose-500 hover:text-rose-700"
               onClick={async () => {
                 const approved = await confirm({
-                  title: 'Xoa don hang',
-                  message: 'Hanh dong nay se xoa don khoi danh sach.',
+                  title: t('Xóa đơn hàng'),
+                  message: t('Hành động này sẽ xóa đơn khỏi danh sách.'),
                   tone: 'danger',
-                  confirmLabel: 'Xoa don',
+                  confirmLabel: t('Xóa đơn'),
                 })
                 if (!approved) {
                   return
@@ -331,18 +380,21 @@ function OrderDetailPage() {
 
                 try {
                   await deleteOrder(order.id)
-                  notify(`Da xoa ${order.id}`, { title: 'Orders', variant: 'error' })
+                  notify(t('Đã xóa {id}', { id: order.id }), {
+                    title: t('Đơn hàng'),
+                    variant: 'error',
+                  })
                   navigate('/orders')
                 } catch (error) {
-                  notify(error instanceof Error ? error.message : 'Khong xoa duoc don hang', {
-                    title: 'Orders',
+                  notify(error instanceof Error ? error.message : t('Không xóa được đơn hàng'), {
+                    title: t('Đơn hàng'),
                     variant: 'error',
                   })
                 }
               }}
               type="button"
             >
-              Xoa don
+              {t('Xóa đơn')}
             </GhostButton>
           </div>
         </div>

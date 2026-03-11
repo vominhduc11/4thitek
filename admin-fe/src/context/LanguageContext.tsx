@@ -50,6 +50,8 @@ const translations: Record<Language, TranslationMap> = {
     'Nhập tên đăng nhập': 'Enter username',
     'Mật khẩu': 'Password',
     'Nhập mật khẩu': 'Enter password',
+    'Hiển thị mật khẩu': 'Show password',
+    'Ẩn mật khẩu': 'Hide password',
     'Ghi nhớ đăng nhập': 'Remember me',
     'Bảo mật qua email': 'Email verification',
     'Đăng nhập': 'Sign in',

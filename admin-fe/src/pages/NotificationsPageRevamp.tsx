@@ -14,6 +14,7 @@ import { formatDateTime } from '../lib/formatters'
 import {
   EmptyState,
   ErrorState,
+  FieldErrorMessage,
   GhostButton,
   LoadingRows,
   PagePanel,
@@ -311,7 +312,7 @@ function NotificationsPageRevamp() {
             onChange={(event) => setQuery(event.target.value)}
             className={toolbarSearchClass}
           />
-          <GhostButton icon={<RefreshCw className="h-4 w-4" />} onClick={() => void loadData(page)} type="button">
+          <GhostButton aria-label={copy.reload} icon={<RefreshCw className="h-4 w-4" />} onClick={() => void loadData(page)} type="button">
             {copy.reload}
           </GhostButton>
         </div>
@@ -372,9 +373,9 @@ function NotificationsPageRevamp() {
               onChange={(event) => updateFormField('title', event.target.value)}
             />
             {formErrors.title ? (
-              <p className={fieldErrorClass} id="notification-title-error">
+              <FieldErrorMessage className={fieldErrorClass} id="notification-title-error">
                 {formErrors.title}
-              </p>
+              </FieldErrorMessage>
             ) : null}
           </label>
           <label className="space-y-2 md:col-span-2">
@@ -388,9 +389,9 @@ function NotificationsPageRevamp() {
               onChange={(event) => updateFormField('content', event.target.value)}
             />
             {formErrors.content ? (
-              <p className={fieldErrorClass} id="notification-content-error">
+              <FieldErrorMessage className={fieldErrorClass} id="notification-content-error">
                 {formErrors.content}
-              </p>
+              </FieldErrorMessage>
             ) : null}
           </label>
           <label className="space-y-2">
@@ -413,9 +414,9 @@ function NotificationsPageRevamp() {
                 onChange={(event) => updateFormField('accountIdsText', event.target.value)}
               />
               {formErrors.accountIdsText ? (
-                <p className={fieldErrorClass} id="notification-account-ids-error">
+                <FieldErrorMessage className={fieldErrorClass} id="notification-account-ids-error">
                   {formErrors.accountIdsText}
-                </p>
+                </FieldErrorMessage>
               ) : null}
             </label>
           ) : null}
@@ -424,7 +425,7 @@ function NotificationsPageRevamp() {
           {form.title.length}/{TITLE_MAX} · {form.content.length}/{CONTENT_MAX}
         </p>
         <div className="mt-4">
-          <PrimaryButton disabled={isSending} icon={<Send className="h-4 w-4" />} onClick={() => void handleSend()} type="button">
+          <PrimaryButton aria-label={copy.send} disabled={isSending} icon={<Send className="h-4 w-4" />} onClick={() => void handleSend()} type="button">
             {isSending ? `${copy.send}...` : copy.send}
           </PrimaryButton>
         </div>

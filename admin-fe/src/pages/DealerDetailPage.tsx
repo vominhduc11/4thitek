@@ -2,6 +2,7 @@ import { ArrowLeft, Phone, UserCircle } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAdminData, type DealerStatus, type DealerTier } from '../context/AdminDataContext'
+import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import {
   dealerStatusDescription,
@@ -14,6 +15,7 @@ import { formatCurrency, formatDateTime } from '../lib/formatters'
 import {
   EmptyState,
   ErrorState,
+  FieldErrorMessage,
   GhostButton,
   LoadingRows,
   PagePanel,
@@ -31,6 +33,7 @@ const DEALER_TIERS: DealerTier[] = ['platinum', 'gold', 'silver', 'bronze']
 function DealerDetailPage() {
   const { id = '' } = useParams()
   const dealerId = decodeURIComponent(id)
+  const { t } = useLanguage()
   const { notify } = useToast()
   const { dealers, dealersState, updateDealer, updateDealerStatus, reloadResource } = useAdminData()
   const { confirm, confirmDialog } = useConfirmDialog()
@@ -61,26 +64,26 @@ function DealerDetailPage() {
     const errors: Partial<Record<'name' | 'email' | 'phone' | 'creditLimit', string>> = {}
 
     if (!value.name.trim()) {
-      errors.name = 'Vui long nhap ten dai ly.'
+      errors.name = t('Vui lòng nhập tên đại lý.')
     }
 
     if (!value.email.trim()) {
-      errors.email = 'Vui long nhap email.'
+      errors.email = t('Vui lòng nhập email.')
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.email.trim())) {
-      errors.email = 'Email khong hop le.'
+      errors.email = t('Email không hợp lệ.')
     }
 
     const phoneDigits = value.phone.replace(/\D/g, '')
     if (!value.phone.trim()) {
-      errors.phone = 'Vui long nhap so dien thoai.'
+      errors.phone = t('Vui lòng nhập số điện thoại.')
     } else if (phoneDigits.length < 8 || phoneDigits.length > 15) {
-      errors.phone = 'So dien thoai khong hop le.'
+      errors.phone = t('Số điện thoại không hợp lệ.')
     }
 
     if (value.creditLimit.trim()) {
       const nextCreditLimit = Number(value.creditLimit)
       if (Number.isNaN(nextCreditLimit) || nextCreditLimit < 0) {
-        errors.creditLimit = 'Han muc cong no phai la so khong am.'
+        errors.creditLimit = t('Hạn mức công nợ phải là số không âm.')
       }
     }
 
@@ -120,8 +123,8 @@ function DealerDetailPage() {
     return (
       <PagePanel>
         <ErrorState
-          title="Khong the tai dai ly"
-          message={dealersState.error || 'Khong tai duoc dai ly'}
+          title={t('Không thể tải đại lý')}
+          message={dealersState.error || t('Không tải được đại lý')}
           onRetry={() => void reloadResource('dealers')}
         />
       </PagePanel>
@@ -132,8 +135,8 @@ function DealerDetailPage() {
     return (
       <PagePanel>
         <EmptyState
-          title="Khong tim thay dai ly"
-          message={`Dai ly ${dealerId} khong ton tai.`}
+          title={t('Không tìm thấy đại lý')}
+          message={t('Đại lý {id} không tồn tại.', { id: dealerId })}
         />
       </PagePanel>
     )
@@ -157,10 +160,10 @@ function DealerDetailPage() {
         creditLimit,
       })
       setFormErrors({})
-      notify(`Da cap nhat ${dealer.id}`, { title: 'Dealers', variant: 'success' })
+      notify(t('Đã cập nhật {id}', { id: dealer.id }), { title: t('Đại lý'), variant: 'success' })
     } catch (error) {
-      notify(error instanceof Error ? error.message : 'Khong cap nhat duoc dai ly', {
-        title: 'Dealers',
+      notify(error instanceof Error ? error.message : t('Không cập nhật được đại lý'), {
+        title: t('Đại lý'),
         variant: 'error',
       })
     } finally {
@@ -176,7 +179,7 @@ function DealerDetailPage() {
           to="/dealers"
         >
           <ArrowLeft className="h-4 w-4" />
-          Ve dai ly
+          {t('Về đại lý')}
         </Link>
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge tone={dealerTierTone[dealer.tier]}>{dealerTierLabel[dealer.tier]}</StatusBadge>
@@ -185,8 +188,11 @@ function DealerDetailPage() {
       </div>
 
       {isDirty ? (
-        <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800" role="status">
-          Co thay doi chua luu trong ho so dai ly.
+        <div
+          className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800"
+          role="status"
+        >
+          {t('Có thay đổi chưa lưu trong hồ sơ đại lý.')}
         </div>
       ) : null}
 
@@ -212,29 +218,31 @@ function DealerDetailPage() {
               <p className="mt-1 font-semibold text-slate-900">{dealer.phone}</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Don hang</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('Đơn hàng')}</p>
               <p className="mt-1 font-semibold text-slate-900">{dealer.orders}</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Doanh thu</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('Doanh thu')}</p>
               <p className="mt-1 font-semibold text-[var(--accent)]">{formatCurrency(dealer.revenue)}</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Han muc cong no</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                {t('Hạn mức công nợ')}
+              </p>
               <p className="mt-1 font-semibold text-slate-900">
-                {dealer.creditLimit > 0 ? formatCurrency(dealer.creditLimit) : 'Chua dat'}
+                {dealer.creditLimit > 0 ? formatCurrency(dealer.creditLimit) : t('Chưa đặt')}
               </p>
             </div>
           </div>
           <p className="mt-3 text-xs text-slate-500">
-            Lan mua gan nhat: {formatDateTime(dealer.lastOrderAt)}
+            {t('Lần mua gần nhất')}: {formatDateTime(dealer.lastOrderAt)}
           </p>
         </div>
 
         <div className="rounded-3xl border border-slate-200/70 bg-white/80 p-5">
-          <p className="text-sm font-semibold text-slate-900">Cap nhat trang thai ho so</p>
+          <p className="text-sm font-semibold text-slate-900">{t('Cập nhật trạng thái hồ sơ')}</p>
           <select
-            aria-label={`Dealer status ${dealer.id}`}
+            aria-label={t('Trạng thái đại lý {id}', { id: dealer.id })}
             className={`${inputClass} mt-3 w-full bg-white text-slate-700`}
             onChange={async (event) => {
               const next = event.target.value as DealerStatus
@@ -243,8 +251,10 @@ function DealerDetailPage() {
               }
 
               const approved = await confirm({
-                title: 'Xac nhan doi trang thai',
-                message: `Chuyen dai ly nay sang trang thai "${dealerStatusLabel[next]}"?`,
+                title: t('Xác nhận đổi trạng thái'),
+                message: t('Chuyển đại lý này sang trạng thái "{status}"?', {
+                  status: dealerStatusLabel[next],
+                }),
                 tone: next === 'needs_attention' ? 'warning' : 'info',
                 confirmLabel: dealerStatusLabel[next],
               })
@@ -256,15 +266,18 @@ function DealerDetailPage() {
 
               try {
                 await updateDealerStatus(dealer.id, next)
-                notify(`Cap nhat ${dealer.id} -> ${dealerStatusLabel[next]}`, {
-                  title: 'Dealers',
+                notify(t('Cập nhật {id} -> {status}', { id: dealer.id, status: dealerStatusLabel[next] }), {
+                  title: t('Đại lý'),
                   variant: 'info',
                 })
               } catch (error) {
-                notify(error instanceof Error ? error.message : 'Khong cap nhat duoc trang thai dai ly', {
-                  title: 'Dealers',
-                  variant: 'error',
-                })
+                notify(
+                  error instanceof Error ? error.message : t('Không cập nhật được trạng thái đại lý'),
+                  {
+                    title: t('Đại lý'),
+                    variant: 'error',
+                  },
+                )
               }
             }}
             value={dealer.status}
@@ -278,10 +291,10 @@ function DealerDetailPage() {
           <p className="mt-3 text-xs text-slate-500">{dealerStatusDescription[dealer.status]}</p>
 
           <div className="mt-6 border-t border-slate-200 pt-5">
-            <p className="text-sm font-semibold text-slate-900">Cap nhat thong tin dealer</p>
+            <p className="text-sm font-semibold text-slate-900">{t('Cập nhật thông tin đại lý')}</p>
             <div className="mt-3 grid gap-3">
               <label className="space-y-2">
-                <span className={labelClass}>Ten dai ly</span>
+                <span className={labelClass}>{t('Tên đại lý')}</span>
                 <input
                   aria-describedby={formErrors.name ? 'dealer-name-error' : undefined}
                   aria-invalid={Boolean(formErrors.name)}
@@ -290,15 +303,15 @@ function DealerDetailPage() {
                   value={form.name}
                 />
                 {formErrors.name ? (
-                  <p className={fieldErrorClass} id="dealer-name-error">
+                  <FieldErrorMessage className={fieldErrorClass} id="dealer-name-error">
                     {formErrors.name}
-                  </p>
+                  </FieldErrorMessage>
                 ) : null}
               </label>
               <label className="space-y-2">
-                <span className={labelClass}>Hang dealer</span>
+                <span className={labelClass}>{t('Hạng đại lý')}</span>
                 <select
-                  aria-label="Dealer tier"
+                  aria-label={t('Hạng đại lý')}
                   className={`${inputClass} bg-white text-slate-700`}
                   onChange={(event) => updateFormField('tier', event.target.value as DealerTier)}
                   value={form.tier}
@@ -321,13 +334,13 @@ function DealerDetailPage() {
                   value={form.email}
                 />
                 {formErrors.email ? (
-                  <p className={fieldErrorClass} id="dealer-email-error">
+                  <FieldErrorMessage className={fieldErrorClass} id="dealer-email-error">
                     {formErrors.email}
-                  </p>
+                  </FieldErrorMessage>
                 ) : null}
               </label>
               <label className="space-y-2">
-                <span className={labelClass}>So dien thoai</span>
+                <span className={labelClass}>{t('Số điện thoại')}</span>
                 <input
                   aria-describedby={formErrors.phone ? 'dealer-phone-error' : undefined}
                   aria-invalid={Boolean(formErrors.phone)}
@@ -336,13 +349,13 @@ function DealerDetailPage() {
                   value={form.phone}
                 />
                 {formErrors.phone ? (
-                  <p className={fieldErrorClass} id="dealer-phone-error">
+                  <FieldErrorMessage className={fieldErrorClass} id="dealer-phone-error">
                     {formErrors.phone}
-                  </p>
+                  </FieldErrorMessage>
                 ) : null}
               </label>
               <label className="space-y-2">
-                <span className={labelClass}>Han muc cong no (VND)</span>
+                <span className={labelClass}>{t('Hạn mức công nợ (VND)')}</span>
                 <input
                   aria-describedby={formErrors.creditLimit ? 'dealer-credit-error' : undefined}
                   aria-invalid={Boolean(formErrors.creditLimit)}
@@ -352,9 +365,9 @@ function DealerDetailPage() {
                   value={form.creditLimit}
                 />
                 {formErrors.creditLimit ? (
-                  <p className={fieldErrorClass} id="dealer-credit-error">
+                  <FieldErrorMessage className={fieldErrorClass} id="dealer-credit-error">
                     {formErrors.creditLimit}
-                  </p>
+                  </FieldErrorMessage>
                 ) : null}
               </label>
             </div>
@@ -364,7 +377,7 @@ function DealerDetailPage() {
                 onClick={() => void handleSaveProfile()}
                 type="button"
               >
-                {isSavingProfile ? 'Dang luu...' : 'Luu thong tin'}
+                {isSavingProfile ? t('Đang lưu...') : t('Lưu thông tin')}
               </PrimaryButton>
               {isDirty ? (
                 <GhostButton
@@ -380,7 +393,7 @@ function DealerDetailPage() {
                   }}
                   type="button"
                 >
-                  Hoan tac
+                  {t('Hoàn tác')}
                 </GhostButton>
               ) : null}
             </div>
@@ -389,10 +402,10 @@ function DealerDetailPage() {
           <div className="mt-6 rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-3 text-sm text-slate-700">
             <div className="flex items-center gap-2 font-semibold text-slate-900">
               <Phone className="h-4 w-4" />
-              Lien he nhanh
+              {t('Liên hệ nhanh')}
             </div>
             <p className="mt-2 text-xs text-slate-500">Email: {dealer.email}</p>
-            <p className="text-xs text-slate-500">Hotline: {dealer.phone}</p>
+            <p className="text-xs text-slate-500">{t('Hotline')}: {dealer.phone}</p>
           </div>
         </div>
       </div>

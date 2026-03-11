@@ -25,6 +25,7 @@ import {
   cardTitleClass,
   inputClass,
   softCardClass,
+  tableActionSelectClass,
   tableMetaClass,
   textareaClass,
 } from '../components/ui-kit'
@@ -237,7 +238,7 @@ function SupportTicketsPageRevamp() {
               </option>
             ))}
           </select>
-          <GhostButton icon={<RefreshCw className="h-4 w-4" />} onClick={() => void loadTickets(page)} type="button">
+          <GhostButton aria-label={copy.reload} icon={<RefreshCw className="h-4 w-4" />} onClick={() => void loadTickets(page)} type="button">
             {copy.reload}
           </GhostButton>
         </div>
@@ -322,7 +323,7 @@ function SupportTicketsPageRevamp() {
                 <label className="text-sm text-[var(--ink)]">
                   <span className={tableMetaClass}>{copy.status}</span>
                   <select
-                    className={`${inputClass} mt-2 w-full`}
+                    className={`mt-2 w-full ${tableActionSelectClass}`}
                     value={statusDraft}
                     onChange={(event) => setStatusDraft(event.target.value as BackendSupportTicketStatus)}
                   >

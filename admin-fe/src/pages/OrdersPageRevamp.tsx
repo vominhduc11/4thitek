@@ -270,7 +270,7 @@ function OrdersPageRevamp() {
                   <div className="mt-4 grid gap-2">
                     <select
                       aria-label={`${copy.status} ${order.id}`}
-                      className={`${inputClass} w-full`}
+                      className={`w-full ${tableActionSelectClass}`}
                       onChange={(event) =>
                         void handleStatusChange(
                           order.id,

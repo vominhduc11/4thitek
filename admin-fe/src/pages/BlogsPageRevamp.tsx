@@ -5,6 +5,7 @@ import {
   DestructiveButton,
   EmptyState,
   ErrorState,
+  FieldErrorMessage,
   GhostButton,
   LoadingRows,
   PagePanel,
@@ -339,6 +340,7 @@ function BlogsPageRevamp() {
             ))}
           </select>
           <PrimaryButton
+            aria-label={showCreate ? copy.hideComposer : copy.newPost}
             className="w-full sm:w-auto"
             icon={<Plus className="h-4 w-4" />}
             onClick={() => setShowCreate((value) => !value)}
@@ -449,7 +451,7 @@ function BlogsPageRevamp() {
               ) : null}
             </div>
           </div>
-          {createError ? <p className="text-sm font-medium text-rose-600">{createError}</p> : null}
+          {createError ? <FieldErrorMessage>{createError}</FieldErrorMessage> : null}
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
             <GhostButton className="w-full sm:w-auto" onClick={closeComposer} type="button">
               {copy.cancel}
