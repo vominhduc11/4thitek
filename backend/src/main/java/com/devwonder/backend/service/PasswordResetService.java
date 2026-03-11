@@ -5,6 +5,7 @@ import com.devwonder.backend.entity.PasswordResetToken;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.PasswordResetTokenRepository;
+import com.devwonder.backend.service.support.AccountValidationSupport;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
@@ -94,9 +95,7 @@ public class PasswordResetService {
         }
 
         String newPassword = normalizePassword(rawNewPassword);
-        if (newPassword == null || newPassword.length() < 6) {
-            throw new BadRequestException("newPassword must be at least 6 characters");
-        }
+        AccountValidationSupport.assertStrongPassword(newPassword, "newPassword");
 
         Account account = storedToken.getAccount();
         account.setPassword(passwordEncoder.encode(newPassword));
@@ -131,11 +130,7 @@ public class PasswordResetService {
     }
 
     private String normalizeEmail(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim().toLowerCase();
-        return trimmed.isEmpty() ? null : trimmed;
+        return AccountValidationSupport.normalizeEmail(value);
     }
 
     private String normalizeToken(String value) {
@@ -147,10 +142,6 @@ public class PasswordResetService {
     }
 
     private String normalizePassword(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
+        return AccountValidationSupport.normalize(value);
     }
 }

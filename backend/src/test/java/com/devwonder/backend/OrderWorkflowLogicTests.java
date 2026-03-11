@@ -197,6 +197,68 @@ class OrderWorkflowLogicTests {
     }
 
     @Test
+    void creatingOrderReservesStockAndCancellingOrderRestoresIt() {
+        Dealer dealer = dealerRepository.save(createDealer("stock-reserve@example.com"));
+        Product product = productRepository.save(createProduct("SKU-STOCK-2", BigDecimal.valueOf(100_000), 5));
+
+        var createdOrder = dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer receiver",
+                        "123 Reserve Street",
+                        "0900000000",
+                        0,
+                        "Reserve stock",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 3, product.getRetailPrice()))
+                )
+        );
+
+        assertThat(productRepository.findById(product.getId()).orElseThrow().getStock()).isEqualTo(2);
+
+        dealerPortalService.updateOrderStatus(
+                dealer.getUsername(),
+                createdOrder.id(),
+                new UpdateDealerOrderStatusRequest(OrderStatus.CANCELLED)
+        );
+
+        assertThat(productRepository.findById(product.getId()).orElseThrow().getStock()).isEqualTo(5);
+    }
+
+    @Test
+    void mixedOrderAppliesProductSpecificDiscountPerMatchingLine() {
+        Dealer dealer = dealerRepository.save(createDealer("mixed-discount@example.com"));
+        Product discountedProduct = productRepository.save(createProduct("SKU-MIX-1", BigDecimal.valueOf(100_000)));
+        Product regularProduct = productRepository.save(createProduct("SKU-MIX-2", BigDecimal.valueOf(50_000)));
+
+        BulkDiscount productRule = createBulkDiscount(">=1", BigDecimal.valueOf(20));
+        productRule.setProduct(discountedProduct);
+        bulkDiscountRepository.save(productRule);
+        bulkDiscountRepository.save(createBulkDiscount(">=2", BigDecimal.valueOf(10)));
+
+        var response = dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer receiver",
+                        "456 Mixed Street",
+                        "0900000000",
+                        0,
+                        "Mixed product discount",
+                        List.of(
+                                new CreateDealerOrderItemRequest(discountedProduct.getId(), 1, discountedProduct.getRetailPrice()),
+                                new CreateDealerOrderItemRequest(regularProduct.getId(), 1, regularProduct.getRetailPrice())
+                        )
+                )
+        );
+
+        assertThat(response.subtotal()).isEqualByComparingTo("150000");
+        assertThat(response.discountAmount()).isEqualByComparingTo("25000");
+        assertThat(response.discountPercent()).isEqualTo(17);
+        assertThat(response.totalAmount()).isEqualByComparingTo("137500");
+    }
+
+    @Test
     void adminCanRecordBankTransferPaymentWhenSepayIsDisabled() {
         Dealer dealer = dealerRepository.save(createDealer("manual-bank-payment@example.com"));
         Product product = productRepository.save(createProduct("SKU-BANK-1", BigDecimal.valueOf(100_000)));

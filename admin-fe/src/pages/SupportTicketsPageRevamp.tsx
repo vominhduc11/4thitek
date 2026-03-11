@@ -210,19 +210,19 @@ function SupportTicketsPageRevamp() {
 
   return (
     <PagePanel>
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h3 className={cardTitleClass}>{copy.title}</h3>
           <p className={bodyTextClass}>{copy.description}</p>
         </div>
-        <div className="flex w-full flex-col gap-3 sm:flex-row xl:w-auto">
+        <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
           <SearchInput
             id="support-search"
             label={copy.searchLabel}
             placeholder={copy.searchPlaceholder}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="w-full sm:w-80"
+            className="w-full sm:max-w-sm lg:w-72 xl:w-80"
           />
           <select
             aria-label={copy.status}
@@ -249,7 +249,7 @@ function SupportTicketsPageRevamp() {
         <StatCard icon={LifeBuoy} label={copy.resolved} value={stats.resolved} tone="success" />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.2fr_0.95fr]">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.95fr)] xl:grid-cols-[1.2fr_0.95fr]">
         <div className="space-y-3">
           {filteredTickets.length === 0 ? (
             <EmptyState icon={LifeBuoy} title={copy.emptyTitle} message={copy.emptyMessage} />

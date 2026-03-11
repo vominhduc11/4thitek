@@ -6,6 +6,7 @@ import com.devwonder.backend.entity.enums.PaymentMethod;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.concurrent.ThreadLocalRandom;
 
 public final class DealerOrderSupport {
 
@@ -40,6 +41,7 @@ public final class DealerOrderSupport {
     }
 
     public static String buildOrderCode(Long dealerId) {
-        return "SCS-" + dealerId + "-" + Instant.now().toEpochMilli();
+        return "SCS-" + dealerId + "-" + Instant.now().toEpochMilli()
+                + "-" + ThreadLocalRandom.current().nextInt(100000, 1_000_000);
     }
 }

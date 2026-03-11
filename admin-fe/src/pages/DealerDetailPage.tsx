@@ -1,5 +1,5 @@
 import { ArrowLeft, Phone, UserCircle } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAdminData, type DealerStatus, type DealerTier } from '../context/AdminDataContext'
 import { useToast } from '../context/ToastContext'
@@ -11,7 +11,19 @@ import {
   dealerTierTone,
 } from '../lib/adminLabels'
 import { formatCurrency, formatDateTime } from '../lib/formatters'
-import { EmptyState, ErrorState, LoadingRows, PagePanel, StatusBadge } from '../components/ui-kit'
+import {
+  EmptyState,
+  ErrorState,
+  GhostButton,
+  LoadingRows,
+  PagePanel,
+  PrimaryButton,
+  StatusBadge,
+  fieldErrorClass,
+  inputClass,
+  labelClass,
+} from '../components/ui-kit'
+import { useConfirmDialog } from '../hooks/useConfirmDialog'
 
 const DEALER_STATUS_OPTIONS: DealerStatus[] = ['active', 'under_review', 'needs_attention']
 const DEALER_TIERS: DealerTier[] = ['platinum', 'gold', 'silver', 'bronze']
@@ -21,6 +33,7 @@ function DealerDetailPage() {
   const dealerId = decodeURIComponent(id)
   const { notify } = useToast()
   const { dealers, dealersState, updateDealer, updateDealerStatus, reloadResource } = useAdminData()
+  const { confirm, confirmDialog } = useConfirmDialog()
   const dealer = dealers.find((item) => item.id === dealerId)
   const [form, setForm] = useState({
     name: '',
@@ -29,7 +42,58 @@ function DealerDetailPage() {
     phone: '',
     creditLimit: '',
   })
+  const [formErrors, setFormErrors] = useState<Partial<Record<'name' | 'email' | 'phone' | 'creditLimit', string>>>({})
   const [isSavingProfile, setIsSavingProfile] = useState(false)
+  const isDirty = useMemo(
+    () =>
+      Boolean(
+        dealer &&
+          (form.name !== dealer.name ||
+            form.tier !== dealer.tier ||
+            form.email !== dealer.email ||
+            form.phone !== dealer.phone ||
+            form.creditLimit !== (dealer.creditLimit > 0 ? String(dealer.creditLimit) : '')),
+      ),
+    [dealer, form],
+  )
+
+  const validateForm = (value: typeof form) => {
+    const errors: Partial<Record<'name' | 'email' | 'phone' | 'creditLimit', string>> = {}
+
+    if (!value.name.trim()) {
+      errors.name = 'Vui long nhap ten dai ly.'
+    }
+
+    if (!value.email.trim()) {
+      errors.email = 'Vui long nhap email.'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.email.trim())) {
+      errors.email = 'Email khong hop le.'
+    }
+
+    const phoneDigits = value.phone.replace(/\D/g, '')
+    if (!value.phone.trim()) {
+      errors.phone = 'Vui long nhap so dien thoai.'
+    } else if (phoneDigits.length < 8 || phoneDigits.length > 15) {
+      errors.phone = 'So dien thoai khong hop le.'
+    }
+
+    if (value.creditLimit.trim()) {
+      const nextCreditLimit = Number(value.creditLimit)
+      if (Number.isNaN(nextCreditLimit) || nextCreditLimit < 0) {
+        errors.creditLimit = 'Han muc cong no phai la so khong am.'
+      }
+    }
+
+    return errors
+  }
+
+  const updateFormField = <K extends keyof typeof form>(field: K, nextValue: (typeof form)[K]) => {
+    setForm((previous) => {
+      const next = { ...previous, [field]: nextValue }
+      setFormErrors(validateForm(next))
+      return next
+    })
+  }
 
   useEffect(() => {
     if (!dealer) {
@@ -76,16 +140,23 @@ function DealerDetailPage() {
   }
 
   const handleSaveProfile = async () => {
-    const creditLimit = Number(form.creditLimit || 0)
+    const nextErrors = validateForm(form)
+    setFormErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) {
+      return
+    }
+
+    const creditLimit = form.creditLimit.trim() ? Number(form.creditLimit) : 0
     setIsSavingProfile(true)
     try {
       await updateDealer(dealer.id, {
-        name: form.name,
+        name: form.name.trim(),
         tier: form.tier,
-        email: form.email,
-        phone: form.phone,
-        creditLimit: Number.isNaN(creditLimit) ? 0 : creditLimit,
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        creditLimit,
       })
+      setFormErrors({})
       notify(`Da cap nhat ${dealer.id}`, { title: 'Dealers', variant: 'success' })
     } catch (error) {
       notify(error instanceof Error ? error.message : 'Khong cap nhat duoc dai ly', {
@@ -113,7 +184,13 @@ function DealerDetailPage() {
         </div>
       </div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[1.3fr_1fr]">
+      {isDirty ? (
+        <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800" role="status">
+          Co thay doi chua luu trong ho so dai ly.
+        </div>
+      ) : null}
+
+      <div className="mt-5 grid gap-4 md:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.95fr)] xl:grid-cols-[1.3fr_1fr]">
         <div className="rounded-3xl border border-slate-200/70 bg-white/80 p-5">
           <div className="flex items-center gap-3">
             <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent-strong)]">
@@ -158,9 +235,25 @@ function DealerDetailPage() {
           <p className="text-sm font-semibold text-slate-900">Cap nhat trang thai ho so</p>
           <select
             aria-label={`Dealer status ${dealer.id}`}
-            className="mt-3 h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className={`${inputClass} mt-3 w-full bg-white text-slate-700`}
             onChange={async (event) => {
               const next = event.target.value as DealerStatus
+              if (next === dealer.status) {
+                return
+              }
+
+              const approved = await confirm({
+                title: 'Xac nhan doi trang thai',
+                message: `Chuyen dai ly nay sang trang thai "${dealerStatusLabel[next]}"?`,
+                tone: next === 'needs_attention' ? 'warning' : 'info',
+                confirmLabel: dealerStatusLabel[next],
+              })
+
+              if (!approved) {
+                event.currentTarget.value = dealer.status
+                return
+              }
+
               try {
                 await updateDealerStatus(dealer.id, next)
                 notify(`Cap nhat ${dealer.id} -> ${dealerStatusLabel[next]}`, {
@@ -187,57 +280,110 @@ function DealerDetailPage() {
           <div className="mt-6 border-t border-slate-200 pt-5">
             <p className="text-sm font-semibold text-slate-900">Cap nhat thong tin dealer</p>
             <div className="mt-3 grid gap-3">
-              <input
-                className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                onChange={(event) => setForm((previous) => ({ ...previous, name: event.target.value }))}
-                placeholder="Ten dai ly"
-                value={form.name}
-              />
-              <select
-                aria-label="Dealer tier"
-                className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                onChange={(event) =>
-                  setForm((previous) => ({ ...previous, tier: event.target.value as DealerTier }))
-                }
-                value={form.tier}
-              >
-                {DEALER_TIERS.map((tier) => (
-                  <option key={tier} value={tier}>
-                    {dealerTierLabel[tier]}
-                  </option>
-                ))}
-              </select>
-              <input
-                className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                onChange={(event) => setForm((previous) => ({ ...previous, email: event.target.value }))}
-                placeholder="Email"
-                type="email"
-                value={form.email}
-              />
-              <input
-                className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                onChange={(event) => setForm((previous) => ({ ...previous, phone: event.target.value }))}
-                placeholder="So dien thoai"
-                value={form.phone}
-              />
-              <input
-                className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                onChange={(event) =>
-                  setForm((previous) => ({ ...previous, creditLimit: event.target.value }))
-                }
-                placeholder="Han muc cong no (VND)"
-                type="number"
-                value={form.creditLimit}
-              />
+              <label className="space-y-2">
+                <span className={labelClass}>Ten dai ly</span>
+                <input
+                  aria-describedby={formErrors.name ? 'dealer-name-error' : undefined}
+                  aria-invalid={Boolean(formErrors.name)}
+                  className={`${inputClass} bg-white text-slate-700 ${formErrors.name ? 'border-rose-300' : ''}`}
+                  onChange={(event) => updateFormField('name', event.target.value)}
+                  value={form.name}
+                />
+                {formErrors.name ? (
+                  <p className={fieldErrorClass} id="dealer-name-error">
+                    {formErrors.name}
+                  </p>
+                ) : null}
+              </label>
+              <label className="space-y-2">
+                <span className={labelClass}>Hang dealer</span>
+                <select
+                  aria-label="Dealer tier"
+                  className={`${inputClass} bg-white text-slate-700`}
+                  onChange={(event) => updateFormField('tier', event.target.value as DealerTier)}
+                  value={form.tier}
+                >
+                  {DEALER_TIERS.map((tier) => (
+                    <option key={tier} value={tier}>
+                      {dealerTierLabel[tier]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-2">
+                <span className={labelClass}>Email</span>
+                <input
+                  aria-describedby={formErrors.email ? 'dealer-email-error' : undefined}
+                  aria-invalid={Boolean(formErrors.email)}
+                  className={`${inputClass} bg-white text-slate-700 ${formErrors.email ? 'border-rose-300' : ''}`}
+                  onChange={(event) => updateFormField('email', event.target.value)}
+                  type="email"
+                  value={form.email}
+                />
+                {formErrors.email ? (
+                  <p className={fieldErrorClass} id="dealer-email-error">
+                    {formErrors.email}
+                  </p>
+                ) : null}
+              </label>
+              <label className="space-y-2">
+                <span className={labelClass}>So dien thoai</span>
+                <input
+                  aria-describedby={formErrors.phone ? 'dealer-phone-error' : undefined}
+                  aria-invalid={Boolean(formErrors.phone)}
+                  className={`${inputClass} bg-white text-slate-700 ${formErrors.phone ? 'border-rose-300' : ''}`}
+                  onChange={(event) => updateFormField('phone', event.target.value)}
+                  value={form.phone}
+                />
+                {formErrors.phone ? (
+                  <p className={fieldErrorClass} id="dealer-phone-error">
+                    {formErrors.phone}
+                  </p>
+                ) : null}
+              </label>
+              <label className="space-y-2">
+                <span className={labelClass}>Han muc cong no (VND)</span>
+                <input
+                  aria-describedby={formErrors.creditLimit ? 'dealer-credit-error' : undefined}
+                  aria-invalid={Boolean(formErrors.creditLimit)}
+                  className={`${inputClass} bg-white text-slate-700 ${formErrors.creditLimit ? 'border-rose-300' : ''}`}
+                  onChange={(event) => updateFormField('creditLimit', event.target.value)}
+                  type="number"
+                  value={form.creditLimit}
+                />
+                {formErrors.creditLimit ? (
+                  <p className={fieldErrorClass} id="dealer-credit-error">
+                    {formErrors.creditLimit}
+                  </p>
+                ) : null}
+              </label>
             </div>
-            <button
-              className="btn-stable mt-4 inline-flex items-center justify-center rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)]"
-              disabled={isSavingProfile}
-              onClick={() => void handleSaveProfile()}
-              type="button"
-            >
-              {isSavingProfile ? 'Dang luu...' : 'Luu thong tin'}
-            </button>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <PrimaryButton
+                disabled={isSavingProfile || !isDirty}
+                onClick={() => void handleSaveProfile()}
+                type="button"
+              >
+                {isSavingProfile ? 'Dang luu...' : 'Luu thong tin'}
+              </PrimaryButton>
+              {isDirty ? (
+                <GhostButton
+                  onClick={() => {
+                    setForm({
+                      name: dealer.name,
+                      tier: dealer.tier,
+                      email: dealer.email,
+                      phone: dealer.phone,
+                      creditLimit: dealer.creditLimit > 0 ? String(dealer.creditLimit) : '',
+                    })
+                    setFormErrors({})
+                  }}
+                  type="button"
+                >
+                  Hoan tac
+                </GhostButton>
+              ) : null}
+            </div>
           </div>
 
           <div className="mt-6 rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-3 text-sm text-slate-700">
@@ -250,6 +396,7 @@ function DealerDetailPage() {
           </div>
         </div>
       </div>
+      {confirmDialog}
     </PagePanel>
   )
 }

@@ -86,7 +86,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/user/dealer", "/api/v1/user/dealer").permitAll()
                         .requestMatchers("/api/upload/**", "/api/v1/upload/**").authenticated()
                         .requestMatchers("/admin/**", "/api/admin/**", "/api/v1/admin/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers("/api/customer/**", "/api/v1/customer/**").hasAnyAuthority("CUSTOMER", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/customer/**", "/api/v1/customer/**").hasAuthority("CUSTOMER")
                         .requestMatchers("/user/**", "/api/dealer/**", "/api/v1/dealer/**").hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
                         .requestMatchers("/adminuser/**").hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
                         .anyRequest().authenticated())

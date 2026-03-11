@@ -12,7 +12,7 @@ import {
   type ChartOptions,
 } from 'chart.js'
 import { Bar, Doughnut } from 'react-chartjs-2'
-import { EmptyState, ErrorState, LoadingRows, PagePanel, StatCard, StatusBadge, softCardClass } from '../components/ui-kit'
+import { EmptyState, ErrorState, PagePanel, StatCard, StatusBadge, softCardClass } from '../components/ui-kit'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
@@ -20,6 +20,7 @@ import { fetchAdminDashboard, type BackendDashboardResponse } from '../lib/admin
 import { formatCurrency, formatNumber } from '../lib/formatters'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
+const ADMIN_THEME_EVENT = 'admin-theme-change'
 
 const copyByLanguage = {
   vi: {
@@ -96,9 +97,14 @@ function DashboardPageRevamp() {
   useEffect(() => {
     const updateThemeTokens = () => setThemeTokens(getThemeTokens())
     updateThemeTokens()
-    const observer = new MutationObserver(updateThemeTokens)
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-    return () => observer.disconnect()
+
+    window.addEventListener(ADMIN_THEME_EVENT, updateThemeTokens)
+    window.addEventListener('storage', updateThemeTokens)
+
+    return () => {
+      window.removeEventListener(ADMIN_THEME_EVENT, updateThemeTokens)
+      window.removeEventListener('storage', updateThemeTokens)
+    }
   }, [])
 
   useEffect(() => {
@@ -215,7 +221,25 @@ function DashboardPageRevamp() {
   if (loading) {
     return (
       <PagePanel>
-        <LoadingRows rows={6} />
+        <div aria-busy="true" aria-live="polite" className="space-y-6" role="status">
+          <span className="sr-only">Loading dashboard</span>
+          <div className="grid gap-4 md:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={`dashboard-stat-skeleton-${index}`}
+                className={`${softCardClass} h-28 animate-pulse bg-[var(--surface-muted)]`}
+              />
+            ))}
+          </div>
+          <div className="grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
+            <div className={`${softCardClass} h-80 animate-pulse bg-[var(--surface-muted)]`} />
+            <div className={`${softCardClass} h-80 animate-pulse bg-[var(--surface-muted)]`} />
+          </div>
+          <div className="grid gap-6 xl:grid-cols-2">
+            <div className={`${softCardClass} h-72 animate-pulse bg-[var(--surface-muted)]`} />
+            <div className={`${softCardClass} h-72 animate-pulse bg-[var(--surface-muted)]`} />
+          </div>
+        </div>
       </PagePanel>
     )
   }
@@ -298,7 +322,13 @@ function DashboardPageRevamp() {
               {dashboard.orderStatus.map((item, index) => (
                 <div key={`${item.label}-${index}`} className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: themeTokens.palette[index % themeTokens.palette.length] }} />
+                    <span
+                      aria-hidden="true"
+                      className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold text-white"
+                      style={{ backgroundColor: themeTokens.palette[index % themeTokens.palette.length] }}
+                    >
+                      {item.label.slice(0, 1).toUpperCase()}
+                    </span>
                     <span className="font-medium text-[var(--ink)]">{item.label}</span>
                   </div>
                   <span className="font-semibold text-[var(--ink)]">{formatNumber(item.value)}</span>

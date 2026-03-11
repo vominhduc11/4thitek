@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 public interface WarrantyRegistrationRepository extends JpaRepository<WarrantyRegistration, Long> {
     Optional<WarrantyRegistration> findByProductSerialSerialIgnoreCase(String serial);
     Optional<WarrantyRegistration> findByProductSerialId(Long productSerialId);
+    boolean existsByWarrantyCodeIgnoreCase(String warrantyCode);
     List<WarrantyRegistration> findByDealerIdOrderByCreatedAtDesc(Long dealerId);
     Page<WarrantyRegistration> findByDealerId(Long dealerId, Pageable pageable);
 

@@ -137,13 +137,18 @@ public final class AdminResponseMapper {
     }
 
     public static AdminStaffUserResponse toStaffUserResponse(Admin admin) {
+        return toStaffUserResponse(admin, null);
+    }
+
+    public static AdminStaffUserResponse toStaffUserResponse(Admin admin, String temporaryPassword) {
         return new AdminStaffUserResponse(
                 admin.getId(),
                 firstNonBlank(admin.getDisplayName(), admin.getUsername()),
                 firstNonBlank(admin.getRoleTitle(), "Admin"),
                 admin.getUserStatus() == null ? StaffUserStatus.ACTIVE : admin.getUserStatus(),
                 admin.getUsername(),
-                admin.getEmail()
+                admin.getEmail(),
+                temporaryPassword
         );
     }
 

@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { Link } from 'react-router-dom'
-import ReactPaginate from 'react-paginate'
-import Quill from 'quill'
-import 'quill/dist/quill.snow.css'
 import {
   Archive,
   CheckCircle,
@@ -21,11 +18,13 @@ import {
 } from 'lucide-react'
 import Modal, { type Styles } from 'react-modal'
 import { ProductVideoPreview } from '../components/ProductVideoPreview'
-import { LoadingRows } from '../components/ui-kit'
+import { RichTextEditor } from '../components/RichTextEditor'
+import { LoadingRows, PaginationNav } from '../components/ui-kit'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductsContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
+import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import type { Product } from '../types/product'
 import { useSimulatedPageLoad } from '../hooks/useSimulatedPageLoad'
 import { resolveBackendAssetUrl } from '../lib/backendApi'
@@ -112,101 +111,11 @@ const modalStyles: Styles = {
   },
 }
 
-type QuillEditorProps = {
-  value: string
-  onChange: (value: string) => void
-  modules?: Record<string, unknown>
-  formats?: string[]
-  placeholder?: string
-  readOnly?: boolean
-}
-
-const QuillEditor = ({
-  value,
-  onChange,
-  modules,
-  formats,
-  placeholder,
-  readOnly,
-}: QuillEditorProps) => {
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const quillRef = useRef<Quill | null>(null)
-  const toolbarRef = useRef<HTMLElement | null>(null)
-  const onChangeRef = useRef(onChange)
-  const valueRef = useRef(value)
-
-  useEffect(() => {
-    onChangeRef.current = onChange
-  }, [onChange])
-
-  useEffect(() => {
-    valueRef.current = value
-  }, [value])
-
-  useEffect(() => {
-    if (!containerRef.current || quillRef.current) return
-
-    const container = containerRef.current
-
-    const instance = new Quill(container, {
-      theme: 'snow',
-      modules,
-      formats,
-      placeholder,
-      readOnly,
-    })
-
-    quillRef.current = instance
-    const toolbarModule = instance.getModule('toolbar') as { container?: HTMLElement } | null
-    toolbarRef.current = toolbarModule?.container ?? null
-
-    const handleChange = () => {
-      const html = instance.root.innerHTML
-      if (html !== valueRef.current) {
-        onChangeRef.current(html)
-      }
-    }
-
-    instance.on('text-change', handleChange)
-
-    if (valueRef.current) {
-      instance.clipboard.dangerouslyPasteHTML(valueRef.current, 'silent')
-    } else {
-      instance.setText('', 'silent')
-    }
-
-    return () => {
-      const toolbarContainer = toolbarRef.current
-      instance.off('text-change', handleChange)
-      quillRef.current = null
-      if (toolbarContainer?.parentNode) {
-        toolbarContainer.parentNode.removeChild(toolbarContainer)
-      }
-      toolbarRef.current = null
-      container.innerHTML = ''
-    }
-  }, [formats, modules, placeholder, readOnly])
-
-  useEffect(() => {
-    const instance = quillRef.current
-    if (!instance) return
-    const currentHtml = instance.root.innerHTML
-    if (value !== currentHtml) {
-      const selection = instance.getSelection()
-      instance.clipboard.dangerouslyPasteHTML(value || '', 'silent')
-      if (selection) {
-        instance.setSelection(selection)
-      }
-    }
-  }, [value])
-
-  return <div ref={containerRef} />
-}
-
 function ProductsPage() {
   const { t } = useLanguage()
   const { notify } = useToast()
   const { accessToken } = useAuth()
+  const { confirm, confirmDialog } = useConfirmDialog()
   const { isLoading } = useSimulatedPageLoad('products-page')
   const {
     products,
@@ -247,93 +156,92 @@ function ProductsPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const tabOrder = ['basic', 'description', 'specs', 'videos'] as const
 
-  const activeProducts = useMemo(
-    () => products.filter((product) => !product.isDeleted && product.status === 'Active'),
-    [products],
-  )
-
-  const lowStockProducts = useMemo(
-    () => products.filter((product) => !product.isDeleted && product.stock > 0 && product.stock < 20),
-    [products],
-  )
-
-  const draftProducts = useMemo(
-    () => products.filter((product) => !product.isDeleted && product.status === 'Draft'),
-    [products],
-  )
-
   const normalizedSearch = useMemo(() => searchTerm.trim().toLowerCase(), [searchTerm])
-  const baseFilteredProducts = useMemo(
-    () =>
-      products.filter((product) => {
-        const matchesSearch =
-          !normalizedSearch ||
-          product.name.toLowerCase().includes(normalizedSearch) ||
-          product.sku.toLowerCase().includes(normalizedSearch)
+  const {
+    activeProducts,
+    lowStockProducts,
+    draftProducts,
+    visibleProducts,
+    filterCounts,
+  } = useMemo(() => {
+    const activeProductsList = products.filter((product) => !product.isDeleted && product.status === 'Active')
+    const lowStockProductsList = products.filter(
+      (product) => !product.isDeleted && product.stock > 0 && product.stock < 20,
+    )
+    const draftProductsList = products.filter((product) => !product.isDeleted && product.status === 'Draft')
 
-        const matchesFeatured =
-          filterFeatured === 'all'
-            ? true
-            : filterFeatured === 'featured'
-              ? !!product.isFeatured
-              : !product.isFeatured
+    const filteredProducts = products.filter((product) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        product.name.toLowerCase().includes(normalizedSearch) ||
+        product.sku.toLowerCase().includes(normalizedSearch)
 
-        const matchesHomepage =
-          filterHomepage === 'all'
-            ? true
-            : filterHomepage === 'homepage'
-              ? !!product.showOnHomepage
-              : !product.showOnHomepage
+      const matchesFeatured =
+        filterFeatured === 'all'
+          ? true
+          : filterFeatured === 'featured'
+            ? !!product.isFeatured
+            : !product.isFeatured
 
-        return matchesSearch && matchesFeatured && matchesHomepage
-      }),
-    [products, normalizedSearch, filterFeatured, filterHomepage],
-  )
+      const matchesHomepage =
+        filterHomepage === 'all'
+          ? true
+          : filterHomepage === 'homepage'
+            ? !!product.showOnHomepage
+            : !product.showOnHomepage
 
-  const filterCounts = useMemo(
-    () =>
-      baseFilteredProducts.reduce(
-        (acc, product) => {
-          if (product.isDeleted) {
-            acc.deleted += 1
-            return acc
-          }
+      return matchesSearch && matchesFeatured && matchesHomepage
+    })
 
-          acc.all += 1
-          if (product.status === 'Active') acc.active += 1
-          if (product.status === 'Draft') acc.draft += 1
-          if (product.stock === 0) acc.outOfStock += 1
-          if (product.stock > 0 && product.stock < 20) acc.lowStock += 1
+    const counts = filteredProducts.reduce(
+      (acc, product) => {
+        if (product.isDeleted) {
+          acc.deleted += 1
           return acc
-        },
-        {
-          all: 0,
-          active: 0,
-          lowStock: 0,
-          outOfStock: 0,
-          draft: 0,
-          deleted: 0,
-        },
-      ),
-    [baseFilteredProducts],
-  )
+        }
 
-  const visibleProducts = useMemo(() => baseFilteredProducts.filter((product) => {
-    switch (filter) {
-      case 'active':
-        return !product.isDeleted && product.status === 'Active'
-      case 'lowStock':
-        return !product.isDeleted && product.stock > 0 && product.stock < 20
-      case 'outOfStock':
-        return !product.isDeleted && product.stock === 0
-      case 'draft':
-        return !product.isDeleted && product.status === 'Draft'
-      case 'deleted':
-        return product.isDeleted
-      default:
-        return !product.isDeleted
+        acc.all += 1
+        if (product.status === 'Active') acc.active += 1
+        if (product.status === 'Draft') acc.draft += 1
+        if (product.stock === 0) acc.outOfStock += 1
+        if (product.stock > 0 && product.stock < 20) acc.lowStock += 1
+        return acc
+      },
+      {
+        all: 0,
+        active: 0,
+        lowStock: 0,
+        outOfStock: 0,
+        draft: 0,
+        deleted: 0,
+      },
+    )
+
+    const filteredByTab = filteredProducts.filter((product) => {
+      switch (filter) {
+        case 'active':
+          return !product.isDeleted && product.status === 'Active'
+        case 'lowStock':
+          return !product.isDeleted && product.stock > 0 && product.stock < 20
+        case 'outOfStock':
+          return !product.isDeleted && product.stock === 0
+        case 'draft':
+          return !product.isDeleted && product.status === 'Draft'
+        case 'deleted':
+          return product.isDeleted
+        default:
+          return !product.isDeleted
+      }
+    })
+
+    return {
+      activeProducts: activeProductsList,
+      lowStockProducts: lowStockProductsList,
+      draftProducts: draftProductsList,
+      visibleProducts: filteredByTab,
+      filterCounts: counts,
     }
-  }), [baseFilteredProducts, filter])
+  }, [filter, filterFeatured, filterHomepage, normalizedSearch, products])
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -371,7 +279,7 @@ function ProductsPage() {
   const panelClass =
     'rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]'
   const primaryButtonClass =
-    'btn-stable inline-flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0'
+    'btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0'
   const filterBaseClass =
     'inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition whitespace-nowrap'
 
@@ -667,7 +575,13 @@ function ProductsPage() {
   }
 
   const handleDelete = useCallback(async (sku: string) => {
-    if (!window.confirm(t("Xóa vĩnh viễn sản phẩm này?"))) {
+    const approved = await confirm({
+      title: t('Xóa vĩnh viễn sản phẩm'),
+      message: t('Xóa vĩnh viễn sản phẩm này?'),
+      tone: 'danger',
+      confirmLabel: t('Xóa'),
+    })
+    if (!approved) {
       return
     }
     try {
@@ -679,7 +593,7 @@ function ProductsPage() {
         variant: 'error',
       })
     }
-  }, [deleteProduct, notify, t])
+  }, [confirm, deleteProduct, notify, t])
 
   const handleArchiveToggle = useCallback(async (product: Product) => {
     if (product.isDeleted) {
@@ -694,8 +608,13 @@ function ProductsPage() {
       }
       return
     }
-    const confirmed = window.confirm(t("Ẩn sản phẩm này khỏi danh mục?"))
-    if (!confirmed) {
+    const approved = await confirm({
+      title: t('Ẩn sản phẩm'),
+      message: t('Ẩn sản phẩm này khỏi danh mục?'),
+      tone: 'warning',
+      confirmLabel: t('Ẩn sản phẩm'),
+    })
+    if (!approved) {
       return
     }
     try {
@@ -707,15 +626,20 @@ function ProductsPage() {
         variant: 'error',
       })
     }
-  }, [archiveProduct, notify, restoreProduct, t])
+  }, [archiveProduct, confirm, notify, restoreProduct, t])
 
   const handlePublishToggle = useCallback(async (product: Product) => {
     if (product.isDeleted) {
       return
     }
     if (product.publishStatus === "PUBLISHED") {
-      const confirmed = window.confirm(t("Hủy xuất bản sản phẩm này?"))
-      if (!confirmed) {
+      const approved = await confirm({
+        title: t('Hủy xuất bản'),
+        message: t('Hủy xuất bản sản phẩm này?'),
+        tone: 'warning',
+        confirmLabel: t('Hủy xuất bản'),
+      })
+      if (!approved) {
         return
       }
     }
@@ -732,7 +656,7 @@ function ProductsPage() {
         variant: 'error',
       })
     }
-  }, [notify, t, togglePublishStatus])
+  }, [confirm, notify, t, togglePublishStatus])
 
   const filters = useMemo(() => ([
     { value: 'all', label: 'Tất cả', count: filterCounts.all },
@@ -833,7 +757,7 @@ function ProductsPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2 md:justify-end">
           <Link
-            className="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-[var(--accent)] hover:text-slate-900 hover:shadow-[0_12px_24px_rgba(15,23,42,0.12)]"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-[var(--accent)] hover:text-slate-900 hover:shadow-[0_12px_24px_rgba(15,23,42,0.12)]"
             to={`/products/${product.sku}`}
             aria-label={t('Chi tiết')}
             title={t('Chi tiết')}
@@ -843,8 +767,8 @@ function ProductsPage() {
           <button
             className={
               product.publishStatus === 'DRAFT' && !product.isDeleted
-                ? 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-[var(--accent-soft)] bg-[var(--accent-soft)] text-[var(--accent-strong)] transition hover:border-[var(--accent)]'
-                : 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:border-[var(--accent)] hover:text-[var(--accent)]'
+                ? 'inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-[var(--accent-soft)] bg-[var(--accent-soft)] text-[var(--accent-strong)] transition hover:border-[var(--accent)]'
+                : 'inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:border-[var(--accent)] hover:text-[var(--accent)]'
             }
             type="button"
             onClick={() => handlePublishToggle(product)}
@@ -865,8 +789,8 @@ function ProductsPage() {
           <button
             className={
               product.isDeleted
-                ? 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-emerald-200 text-emerald-700 transition hover:border-emerald-400'
-                : 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-amber-200 text-amber-700 transition hover:border-amber-400'
+                ? 'inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-emerald-200 text-emerald-700 transition hover:border-emerald-400'
+                : 'inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-amber-200 text-amber-700 transition hover:border-amber-400'
             }
             type="button"
             onClick={() => handleArchiveToggle(product)}
@@ -890,8 +814,8 @@ function ProductsPage() {
           <button
             className={
               product.isDeleted
-                ? 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-rose-200 text-rose-700 transition hover:border-rose-400'
-                : 'inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 text-slate-400'
+                ? 'inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-rose-200 text-rose-700 transition hover:border-rose-400'
+                : 'inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-400'
             }
             type="button"
             onClick={() => handleDelete(product.sku)}
@@ -933,7 +857,7 @@ function ProductsPage() {
           <label className="relative flex-1 min-w-[220px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
-              className="h-11 w-full max-w-sm rounded-2xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-700 shadow-sm transition focus:outline-none"
+              className="h-11 w-full max-w-sm rounded-2xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-700 shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
               placeholder={t('Tìm tên, SKU...')}
               aria-label={t('Tìm tên, SKU...')}
               type="search"
@@ -942,7 +866,7 @@ function ProductsPage() {
             />
           </label>
           <button
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
             type="button"
             onClick={() => setShowAdvancedFilters((prev) => !prev)}
           >
@@ -950,7 +874,7 @@ function ProductsPage() {
             {showAdvancedFilters ? t('\u1ea8n b\u1ed9 l\u1ecdc') : t('B\u1ed9 l\u1ecdc n\u00e2ng cao')}
           </button>
           <button
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
             type="button"
             onClick={resetFilters}
           >
@@ -1008,7 +932,7 @@ function ProductsPage() {
             })}
           </div>
           <button
-            className="btn-stable ml-auto inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            className="btn-stable ml-auto inline-flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
             type="button"
             onClick={() => {
               const header = [
@@ -1115,25 +1039,15 @@ function ProductsPage() {
         {listContent}
       </div>
       {pageCount > 1 && (
-        <div className="mt-6 flex justify-center">
-          <ReactPaginate
-            breakLabel="..."
-            nextLabel={t('Tiếp')}
-            onPageChange={(selectedItem) => setCurrentPage(selectedItem.selected)}
-            pageRangeDisplayed={2}
-            marginPagesDisplayed={1}
-            pageCount={pageCount}
-            previousLabel={t('Trước')}
-            forcePage={currentPage}
-            containerClassName="flex items-center gap-1 text-sm"
-            pageLinkClassName="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-            previousLinkClassName="flex h-9 items-center justify-center rounded-xl border border-slate-200 px-3 text-slate-600 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-            nextLinkClassName="flex h-9 items-center justify-center rounded-xl border border-slate-200 px-3 text-slate-600 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-            breakLinkClassName="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400"
-            activeLinkClassName="border-[var(--accent)] bg-[var(--accent)] text-white"
-            disabledLinkClassName="cursor-not-allowed border-slate-200 text-slate-300"
-          />
-        </div>
+        <PaginationNav
+          page={currentPage}
+          totalPages={pageCount}
+          totalItems={visibleProducts.length}
+          pageSize={ITEMS_PER_PAGE}
+          onPageChange={setCurrentPage}
+          previousLabel={t('Trước')}
+          nextLabel={t('Tiếp')}
+        />
       )}
 
       <Modal
@@ -1445,7 +1359,7 @@ function ProductsPage() {
                         <button
                           type="button"
                           onClick={handleClearImage}
-                          className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[11px] font-semibold text-rose-600 shadow-sm opacity-0 transition hover:border-rose-300 hover:text-rose-700 focus-visible:opacity-100 group-hover:opacity-100"
+                          className="absolute right-2 top-2 inline-flex min-h-11 items-center gap-1 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 shadow-sm opacity-100 transition hover:border-rose-300 hover:text-rose-700 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
                         >
                           <X className="h-3 w-3" />
                           {t('\u0058\u00f3a \u1ea3nh')}
@@ -1544,20 +1458,24 @@ function ProductsPage() {
                         </button>
                       </div>
                       {d.type === 'title' && (
-                        <input
-                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                          value={d.text ?? ''}
-                          onChange={(e) => {
-                            const copy = [...newProduct.descriptions]
-                            copy[idx] = { ...copy[idx], text: e.target.value }
-                            setNewProduct({ ...newProduct, descriptions: copy })
-                          }}
-                          placeholder={t('Nhập tiêu đề')}
-                        />
+                        <label className="block">
+                          <span className="sr-only">{t('Tiêu đề mô tả')}</span>
+                          <input
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                            value={d.text ?? ''}
+                            onChange={(e) => {
+                              const copy = [...newProduct.descriptions]
+                              copy[idx] = { ...copy[idx], text: e.target.value }
+                              setNewProduct({ ...newProduct, descriptions: copy })
+                            }}
+                            placeholder={t('Nhập tiêu đề')}
+                          />
+                        </label>
                       )}
                       {d.type === 'description' && (
                         <div className="richtext-editor">
-                          <QuillEditor
+                          <RichTextEditor
+                            ariaLabel={t('Trình soạn thảo mô tả chi tiết')}
                             value={d.text ?? ''}
                             modules={descriptionEditorModules}
                             formats={descriptionEditorFormats}
@@ -1583,16 +1501,19 @@ function ProductsPage() {
                             />
                             {t('Chọn ảnh')}
                           </label>
-                          <input
-                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                            placeholder={t('Nhập chú thích')}
-                            value={d.caption ?? ''}
-                            onChange={(e) => {
-                              const copy = [...newProduct.descriptions]
-                              copy[idx] = { ...copy[idx], caption: e.target.value }
-                              setNewProduct({ ...newProduct, descriptions: copy })
-                            }}
-                          />
+                          <label className="block">
+                            <span className="sr-only">{t('Chú thích hình ảnh')}</span>
+                            <input
+                              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                              placeholder={t('Nhập chú thích')}
+                              value={d.caption ?? ''}
+                              onChange={(e) => {
+                                const copy = [...newProduct.descriptions]
+                                copy[idx] = { ...copy[idx], caption: e.target.value }
+                                setNewProduct({ ...newProduct, descriptions: copy })
+                              }}
+                            />
+                          </label>
                           {descriptionImageErrors[idx] && (
                             <p className="text-xs text-rose-500">{descriptionImageErrors[idx]}</p>
                           )}
@@ -1605,7 +1526,7 @@ function ProductsPage() {
                               />
                               <button
                                 type="button"
-                                className="absolute right-2 top-2 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[10px] font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100"
+                                className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
                                 onClick={() => {
                                   const copy = [...newProduct.descriptions]
                                   copy[idx] = { ...copy[idx], url: '' }
@@ -1638,7 +1559,7 @@ function ProductsPage() {
                             </label>
                             <button
                               type="button"
-                              className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                              className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
                               onClick={() => {
                                 const copy = [...newProduct.descriptions]
                                 const current = { ...copy[idx] }
@@ -1690,7 +1611,7 @@ function ProductsPage() {
                           )}
                           {(d.gallery ?? []).map((item, itemIdx) => (
                             <div key={itemIdx} className="rounded-lg border border-slate-200 bg-white p-3">
-                              <div className="grid gap-3 md:grid-cols-[180px_1fr] md:items-start">
+                              <div className="grid gap-3 lg:grid-cols-[180px_1fr] lg:items-start">
                                 <div className="space-y-2">
                                   <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
                                     <input
@@ -1712,7 +1633,7 @@ function ProductsPage() {
                                       />
                                       <button
                                         type="button"
-                                        className="absolute right-2 top-2 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[10px] font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100"
+                                        className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
                                         onClick={() => {
                                           const copy = [...newProduct.descriptions]
                                           const current = { ...copy[idx] }
@@ -1776,7 +1697,7 @@ function ProductsPage() {
                               <ProductVideoPreview url={d.url} title={d.caption} />
                               <button
                                 type="button"
-                                className="absolute right-2 top-2 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[10px] font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100"
+                                className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
                                 onClick={() => {
                                   const copy = [...newProduct.descriptions]
                                   copy[idx] = { ...copy[idx], url: '' }
@@ -1861,26 +1782,32 @@ function ProductsPage() {
                 ) : (
                   newProduct.specifications.map((s, idx) => (
                     <div key={idx} className="grid gap-2 md:grid-cols-[1fr_1fr_auto] md:items-center">
-                      <input
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t('Nhập nhãn')}
-                        value={s.label}
-                        onChange={(e) => {
-                          const copy = [...newProduct.specifications]
-                          copy[idx] = { ...copy[idx], label: e.target.value }
-                          setNewProduct({ ...newProduct, specifications: copy })
-                        }}
-                      />
-                      <input
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t('Nhập giá trị')}
-                        value={s.value}
-                        onChange={(e) => {
-                          const copy = [...newProduct.specifications]
-                          copy[idx] = { ...copy[idx], value: e.target.value }
-                          setNewProduct({ ...newProduct, specifications: copy })
-                        }}
-                      />
+                      <label className="block">
+                        <span className="sr-only">{t('Nhãn thông số')}</span>
+                        <input
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                          placeholder={t('Nhập nhãn')}
+                          value={s.label}
+                          onChange={(e) => {
+                            const copy = [...newProduct.specifications]
+                            copy[idx] = { ...copy[idx], label: e.target.value }
+                            setNewProduct({ ...newProduct, specifications: copy })
+                          }}
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="sr-only">{t('Giá trị thông số')}</span>
+                        <input
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                          placeholder={t('Nhập giá trị')}
+                          value={s.value}
+                          onChange={(e) => {
+                            const copy = [...newProduct.specifications]
+                            copy[idx] = { ...copy[idx], value: e.target.value }
+                            setNewProduct({ ...newProduct, specifications: copy })
+                          }}
+                        />
+                      </label>
                       <button
                         type="button"
                         className="justify-self-end text-xs text-red-500 md:justify-self-auto"
@@ -1966,22 +1893,25 @@ function ProductsPage() {
                 ) : (
                   newProduct.videos.map((v, idx) => (
                     <div key={idx} className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-white p-3">
-                      <input
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t('Nh\u1eadp URL video YouTube ho\u1eb7c file video c\u00f4ng khai')}
-                        value={v.url}
-                        onChange={(e) => {
-                          const copy = [...newProduct.videos]
-                          copy[idx] = { ...copy[idx], url: e.target.value }
-                          setNewProduct({ ...newProduct, videos: copy })
-                        }}
-                      />
+                      <label className="block">
+                        <span className="sr-only">{t('URL video')}</span>
+                        <input
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                          placeholder={t('Nh\u1eadp URL video YouTube ho\u1eb7c file video c\u00f4ng khai')}
+                          value={v.url}
+                          onChange={(e) => {
+                            const copy = [...newProduct.videos]
+                            copy[idx] = { ...copy[idx], url: e.target.value }
+                            setNewProduct({ ...newProduct, videos: copy })
+                          }}
+                        />
+                      </label>
                       {v.url && (
                         <div className="group relative overflow-hidden rounded-lg border border-slate-200">
                           <ProductVideoPreview url={v.url} title={v.title} />
                           <button
                             type="button"
-                            className="absolute right-2 top-2 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[10px] font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100"
+                            className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
                             onClick={() => {
                               const copy = [...newProduct.videos]
                               copy[idx] = { ...copy[idx], url: '' }
@@ -1992,27 +1922,33 @@ function ProductsPage() {
                           </button>
                         </div>
                       )}
-                      <input
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t('Nhập tiêu đề')}
-                        value={v.title}
-                        onChange={(e) => {
-                          const copy = [...newProduct.videos]
-                          copy[idx] = { ...copy[idx], title: e.target.value }
-                          setNewProduct({ ...newProduct, videos: copy })
-                        }}
-                      />
-                      <textarea
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t('Nhập mô tả')}
-                        rows={2}
-                        value={v.descriptions}
-                        onChange={(e) => {
-                          const copy = [...newProduct.videos]
-                          copy[idx] = { ...copy[idx], descriptions: e.target.value }
-                          setNewProduct({ ...newProduct, videos: copy })
-                        }}
-                      />
+                      <label className="block">
+                        <span className="sr-only">{t('Tiêu đề video')}</span>
+                        <input
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                          placeholder={t('Nhập tiêu đề')}
+                          value={v.title}
+                          onChange={(e) => {
+                            const copy = [...newProduct.videos]
+                            copy[idx] = { ...copy[idx], title: e.target.value }
+                            setNewProduct({ ...newProduct, videos: copy })
+                          }}
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="sr-only">{t('Mô tả video')}</span>
+                        <textarea
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                          placeholder={t('Nhập mô tả')}
+                          rows={2}
+                          value={v.descriptions}
+                          onChange={(e) => {
+                            const copy = [...newProduct.videos]
+                            copy[idx] = { ...copy[idx], descriptions: e.target.value }
+                            setNewProduct({ ...newProduct, videos: copy })
+                          }}
+                        />
+                      </label>
                       <button
                         type="button"
                         className="self-end text-xs text-red-500"
@@ -2128,6 +2064,7 @@ function ProductsPage() {
             </div>
         </div>
       </Modal>
+      {confirmDialog}
     </section>
   )
 }

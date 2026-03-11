@@ -5,13 +5,11 @@ import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.Payment;
-import com.devwonder.backend.entity.enums.DiscountRuleStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ConflictException;
-import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.PaymentRepository;
 import java.math.BigDecimal;
@@ -27,7 +25,6 @@ public class DealerPaymentSupport {
 
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
-    private final BulkDiscountRepository bulkDiscountRepository;
     private final DealerOrderNotificationSupport dealerOrderNotificationSupport;
 
     public List<DealerPaymentResponse> getPayments(Long orderId) {
@@ -36,22 +33,33 @@ public class DealerPaymentSupport {
                 .toList();
     }
 
-    public DealerPaymentResponse recordPayment(Dealer dealer, Order order, RecordPaymentRequest request) {
-        return recordPaymentInternal(dealer, order, request, false);
+    public DealerPaymentResponse recordPayment(
+            Dealer dealer,
+            Order order,
+            RecordPaymentRequest request,
+            List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
+    ) {
+        return recordPaymentInternal(dealer, order, request, false, activeDiscountRules);
     }
 
-    public DealerPaymentResponse recordAdminPayment(Order order, RecordPaymentRequest request, boolean sepayEnabled) {
+    public DealerPaymentResponse recordAdminPayment(
+            Order order,
+            RecordPaymentRequest request,
+            boolean sepayEnabled,
+            List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
+    ) {
         if (order.getPaymentMethod() == PaymentMethod.BANK_TRANSFER && sepayEnabled) {
             throw new BadRequestException("Bank transfer payments are confirmed by SePay webhook");
         }
-        return recordPaymentInternal(order.getDealer(), order, request, true);
+        return recordPaymentInternal(order.getDealer(), order, request, true, activeDiscountRules);
     }
 
     private DealerPaymentResponse recordPaymentInternal(
             Dealer dealer,
             Order order,
             RecordPaymentRequest request,
-            boolean allowManualBankTransfer
+            boolean allowManualBankTransfer,
+            List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
     ) {
         if (order.getPaymentMethod() == PaymentMethod.BANK_TRANSFER) {
             if (!allowManualBankTransfer) {
@@ -85,15 +93,11 @@ public class DealerPaymentSupport {
 
         Payment savedPayment = paymentRepository.save(payment);
         order.setPaidAmount(DealerOrderSupport.zeroIfNull(order.getPaidAmount()).add(amount));
-        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules()));
+        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
         orderRepository.save(order);
         if (dealer != null) {
             dealerOrderNotificationSupport.notifyPaymentRecorded(dealer, order, amount);
         }
         return DealerPortalResponseMapper.toPaymentResponse(savedPayment);
-    }
-
-    private List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules() {
-        return bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
     }
 }

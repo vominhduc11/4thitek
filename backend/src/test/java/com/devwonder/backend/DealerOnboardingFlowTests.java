@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.devwonder.backend.dto.admin.UpdateAdminDealerAccountStatusRequest;
 import com.devwonder.backend.dto.auth.LoginRequest;
+import com.devwonder.backend.dto.auth.RefreshTokenRequest;
 import com.devwonder.backend.dto.auth.RegisterDealerRequest;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Notify;
@@ -19,8 +20,10 @@ import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.DealerSupportTicketRepository;
 import com.devwonder.backend.repository.NotifyRepository;
 import com.devwonder.backend.repository.OrderRepository;
+import com.devwonder.backend.security.JWTUtils;
 import com.devwonder.backend.service.AdminManagementService;
 import com.devwonder.backend.service.AuthService;
+import java.util.HashMap;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import java.util.List;
@@ -43,6 +46,9 @@ class DealerOnboardingFlowTests {
 
     @Autowired
     private AdminManagementService adminManagementService;
+
+    @Autowired
+    private JWTUtils jwtUtils;
 
     @Autowired
     private DealerRepository dealerRepository;
@@ -82,7 +88,7 @@ class DealerOnboardingFlowTests {
     void registerDealerCreatesUnderReviewAccountAndSendsReceiptEmail() {
         authService.registerDealer(new RegisterDealerRequest(
                 "dealer.test@example.com",
-                "123456",
+                "DealerPass#123",
                 "Dealer Test",
                 "Dealer Contact",
                 "123456789",
@@ -106,7 +112,7 @@ class DealerOnboardingFlowTests {
     void dealerCannotLoginUntilActivatedAndReceivesStatusNotification() {
         authService.registerDealer(new RegisterDealerRequest(
                 "dealer.active@example.com",
-                "123456",
+                "DealerPass#123",
                 "Dealer Active",
                 "Dealer Contact",
                 "987654321",
@@ -123,7 +129,7 @@ class DealerOnboardingFlowTests {
 
         assertThatThrownBy(() -> authService.login(new LoginRequest(
                 "dealer.active@example.com",
-                "123456"
+                "DealerPass#123"
         )))
                 .isInstanceOf(UnauthorizedException.class)
                 .hasMessageContaining("chờ duyệt");
@@ -145,7 +151,32 @@ class DealerOnboardingFlowTests {
 
         assertThat(authService.login(new LoginRequest(
                 "dealer.active@example.com",
-                "123456"
+                "DealerPass#123"
         )).accessToken()).isNotBlank();
+    }
+
+    @Test
+    void inactiveDealerCannotRefreshToken() {
+        authService.registerDealer(new RegisterDealerRequest(
+                "dealer.refresh@example.com",
+                "DealerPass#123",
+                "Dealer Refresh",
+                "Dealer Contact",
+                "1122334455",
+                "0912345680",
+                "dealer.refresh@example.com",
+                "789 Tran Hung Dao",
+                null,
+                "District 5",
+                "Ho Chi Minh City",
+                "Vietnam",
+                null
+        ));
+        Dealer dealer = dealerRepository.findByUsername("dealer.refresh@example.com").orElseThrow();
+        String refreshToken = jwtUtils.generateRefreshToken(new HashMap<>(), dealer);
+
+        assertThatThrownBy(() -> authService.refreshToken(new RefreshTokenRequest(refreshToken)))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessageContaining("Account is not active");
     }
 }

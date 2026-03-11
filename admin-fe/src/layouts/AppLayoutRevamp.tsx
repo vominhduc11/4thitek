@@ -27,7 +27,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import logoMark from '../assets/images/logo-4t.png'
 import LanguageSwitcher from '../components/LanguageSwitcher'
@@ -37,6 +37,7 @@ import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useProducts } from '../context/ProductsContext'
 import { useToast } from '../context/ToastContext'
+import { useDebouncedValue } from '../hooks/useDebouncedValue'
 
 type NavGroupId = 'overview' | 'commerce' | 'service' | 'system'
 
@@ -55,6 +56,10 @@ type SearchResult = {
   icon: LucideIcon
 }
 
+type SearchIndexItem = SearchResult & {
+  searchText: string
+}
+
 type AlertItem = {
   id: string
   title: string
@@ -64,6 +69,8 @@ type AlertItem = {
 }
 
 const ALERT_READ_STORAGE_KEY = 'admin_alert_read_ids'
+const SEARCH_RESULT_LIMIT = 8
+const ADMIN_THEME_EVENT = 'admin-theme-change'
 
 const copyByLanguage = {
   vi: {
@@ -79,6 +86,10 @@ const copyByLanguage = {
     searchPlaceholder: 'Tìm đơn hàng, SKU, đại lý, bài viết...',
     searchEmpty: 'Không tìm thấy kết quả phù hợp',
     searchHint: 'Kết quả tìm kiếm nhanh',
+    searchResultsLabel: 'Danh sách kết quả tìm kiếm',
+    searchSelectionHint: 'Dùng phím mũi tên để duyệt, Enter để mở.',
+    searchViewAll: 'Xem tất cả {count} kết quả',
+    searchCollapse: 'Thu gọn kết quả',
     alerts: 'Cảnh báo',
     alertsEmpty: 'Không có cảnh báo cần theo dõi.',
     markAllRead: 'Đánh dấu đã đọc',
@@ -89,6 +100,8 @@ const copyByLanguage = {
     dark: 'Tối',
     online: 'Hệ thống đang trực tuyến',
     noRole: 'Quản trị viên',
+    openNavigation: 'Mở menu điều hướng',
+    closeNavigation: 'Đóng menu điều hướng',
     groups: {
       overview: 'Điều hành',
       commerce: 'Bán hàng',
@@ -138,6 +151,10 @@ const copyByLanguage = {
     searchPlaceholder: 'Search orders, SKUs, dealers, or posts...',
     searchEmpty: 'No matching results',
     searchHint: 'Quick search results',
+    searchResultsLabel: 'Search results list',
+    searchSelectionHint: 'Use arrow keys to browse and Enter to open.',
+    searchViewAll: 'View all {count} results',
+    searchCollapse: 'Collapse results',
     alerts: 'Alerts',
     alertsEmpty: 'No alerts need attention.',
     markAllRead: 'Mark all as read',
@@ -148,6 +165,8 @@ const copyByLanguage = {
     dark: 'Dark',
     online: 'System online',
     noRole: 'Administrator',
+    openNavigation: 'Open navigation menu',
+    closeNavigation: 'Close navigation menu',
     groups: {
       overview: 'Overview',
       commerce: 'Commerce',
@@ -256,6 +275,8 @@ function AppLayoutRevamp() {
   const [isAccountOpen, setIsAccountOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [globalQuery, setGlobalQuery] = useState('')
+  const [showAllSearchResults, setShowAllSearchResults] = useState(false)
+  const [activeSearchIndex, setActiveSearchIndex] = useState(-1)
   const [openGroups, setOpenGroups] = useState<Record<NavGroupId, boolean>>({
     overview: true,
     commerce: true,
@@ -267,6 +288,11 @@ function AppLayoutRevamp() {
   const alertsRef = useRef<HTMLDivElement | null>(null)
   const accountRef = useRef<HTMLDivElement | null>(null)
   const searchRef = useRef<HTMLFormElement | null>(null)
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const debouncedGlobalQuery = useDebouncedValue(globalQuery, 180)
+  const deferredGlobalQuery = useDeferredValue(debouncedGlobalQuery)
+  const mobileNavigationId = 'admin-mobile-navigation'
+  const searchListboxId = 'admin-global-search-results'
 
   const navItems = useMemo<NavItem[]>(() => {
     const items: NavItem[] = [
@@ -381,97 +407,150 @@ function AppLayoutRevamp() {
     [alerts, readAlertIds],
   )
 
-  const searchResults = useMemo<SearchResult[]>(() => {
-    const normalizedQuery = globalQuery.trim().toLowerCase()
-    if (!normalizedQuery) {
-      return []
+  const searchIndex = useMemo<SearchIndexItem[]>(() => {
+    const results: SearchIndexItem[] = []
+    const pushSearchItem = (item: SearchResult, ...searchTokens: string[]) => {
+      results.push({
+        ...item,
+        searchText: `${item.title} ${item.meta} ${searchTokens.join(' ')}`.trim().toLowerCase(),
+      })
     }
 
-    const results: SearchResult[] = []
-
     navItems.forEach((item) => {
-      results.push({
-        id: `nav-${item.to}`,
-        title: item.label,
-        meta: copy.groups[item.group],
-        to: item.to,
-        icon: item.icon,
-      })
+      pushSearchItem(
+        {
+          id: `nav-${item.to}`,
+          title: item.label,
+          meta: copy.groups[item.group],
+          to: item.to,
+          icon: item.icon,
+        },
+        item.label,
+        copy.groups[item.group],
+      )
     })
 
     orders.forEach((item) => {
-      results.push({
-        id: `order-${item.id}`,
-        title: `${copy.order} #${item.id}`,
-        meta: item.dealer,
-        to: `/orders/${encodeURIComponent(item.id)}`,
-        icon: ShoppingCart,
-      })
+      pushSearchItem(
+        {
+          id: `order-${item.id}`,
+          title: `${copy.order} #${item.id}`,
+          meta: item.dealer,
+          to: `/orders/${encodeURIComponent(item.id)}`,
+          icon: ShoppingCart,
+        },
+        item.id,
+        item.dealer,
+        item.address,
+      )
     })
 
     products.forEach((item) => {
       if (item.isDeleted) {
         return
       }
-      results.push({
-        id: `product-${item.sku}`,
-        title: item.name,
-        meta: `${copy.product} · ${item.sku}`,
-        to: `/products/${encodeURIComponent(item.sku)}`,
-        icon: Package,
-      })
+
+      pushSearchItem(
+        {
+          id: `product-${item.sku}`,
+          title: item.name,
+          meta: `${copy.product} · ${item.sku}`,
+          to: `/products/${encodeURIComponent(item.sku)}`,
+          icon: Package,
+        },
+        item.name,
+        item.sku,
+        item.shortDescription,
+      )
     })
 
     dealers.forEach((item) => {
-      results.push({
-        id: `dealer-${item.id}`,
-        title: item.name,
-        meta: `${copy.dealer} · ${item.email}`,
-        to: `/dealers/${encodeURIComponent(item.id)}`,
-        icon: UserCircle,
-      })
+      pushSearchItem(
+        {
+          id: `dealer-${item.id}`,
+          title: item.name,
+          meta: `${copy.dealer} · ${item.email}`,
+          to: `/dealers/${encodeURIComponent(item.id)}`,
+          icon: UserCircle,
+        },
+        item.id,
+        item.name,
+        item.email,
+        item.phone,
+      )
     })
 
     posts.forEach((item) => {
-      results.push({
-        id: `post-${item.id}`,
-        title: item.title,
-        meta: `${copy.post} · ${item.category || '-'}`,
-        to: `/blogs/${encodeURIComponent(item.id)}`,
-        icon: BookOpenText,
-      })
+      pushSearchItem(
+        {
+          id: `post-${item.id}`,
+          title: item.title,
+          meta: `${copy.post} · ${item.category || '-'}`,
+          to: `/blogs/${encodeURIComponent(item.id)}`,
+          icon: BookOpenText,
+        },
+        item.id,
+        item.title,
+        item.category,
+        item.excerpt,
+      )
     })
 
     discountRules.forEach((item) => {
-      results.push({
-        id: `discount-${item.id}`,
-        title: item.label,
-        meta: `${copy.discount} · ${item.range}`,
-        to: '/discounts',
-        icon: Percent,
-      })
+      pushSearchItem(
+        {
+          id: `discount-${item.id}`,
+          title: item.label,
+          meta: `${copy.discount} · ${item.range}`,
+          to: '/discounts',
+          icon: Percent,
+        },
+        item.id,
+        item.label,
+        item.range,
+      )
     })
 
     users.forEach((item) => {
-      results.push({
-        id: `user-${item.id}`,
-        title: item.name,
-        meta: `${copy.user} · ${item.role}`,
-        to: '/users',
-        icon: Users,
-      })
+      pushSearchItem(
+        {
+          id: `user-${item.id}`,
+          title: item.name,
+          meta: `${copy.user} · ${item.role}`,
+          to: '/users',
+          icon: Users,
+        },
+        item.id,
+        item.name,
+        item.role,
+      )
     })
 
     return results
-      .filter((item) => `${item.title} ${item.meta}`.toLowerCase().includes(normalizedQuery))
-      .slice(0, 8)
-  }, [copy, dealers, discountRules, globalQuery, navItems, orders, posts, products, users])
+  }, [copy, dealers, discountRules, navItems, orders, posts, products, users])
+
+  const searchResults = useMemo<SearchResult[]>(() => {
+    const normalizedQuery = deferredGlobalQuery.trim().toLowerCase()
+    if (!normalizedQuery) {
+      return []
+    }
+
+    return searchIndex
+      .filter((item) => item.searchText.includes(normalizedQuery))
+      .map(({ searchText: _searchText, ...item }) => item)
+  }, [deferredGlobalQuery, searchIndex])
+
+  const visibleSearchResults = useMemo(
+    () => (showAllSearchResults ? searchResults : searchResults.slice(0, SEARCH_RESULT_LIMIT)),
+    [searchResults, showAllSearchResults],
+  )
 
   useEffect(() => {
     if (typeof document === 'undefined') {
       return
     }
     document.documentElement.classList.toggle('dark', theme === 'dark')
+    window.dispatchEvent(new Event(ADMIN_THEME_EVENT))
   }, [theme])
 
   useEffect(() => {
@@ -486,7 +565,20 @@ function AppLayoutRevamp() {
     setIsAlertsOpen(false)
     setIsAccountOpen(false)
     setIsSearchOpen(false)
+    setShowAllSearchResults(false)
+    setActiveSearchIndex(-1)
   }, [location.pathname])
+
+  useEffect(() => {
+    setShowAllSearchResults(false)
+    setActiveSearchIndex(searchResults.length > 0 ? 0 : -1)
+  }, [deferredGlobalQuery, searchResults.length])
+
+  useEffect(() => {
+    if (!isSearchOpen) {
+      setActiveSearchIndex(-1)
+    }
+  }, [isSearchOpen])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -524,6 +616,8 @@ function AppLayoutRevamp() {
     navigate(to)
     setGlobalQuery('')
     setIsSearchOpen(false)
+    setShowAllSearchResults(false)
+    setActiveSearchIndex(-1)
   }
 
   const markAlertRead = (id: string) => {
@@ -541,15 +635,58 @@ function AppLayoutRevamp() {
       notify(copy.searchEmpty, { title: copy.workspace, variant: 'info' })
       return
     }
-    handleNavigate(searchResults[0].to)
+    const nextTarget =
+      activeSearchIndex >= 0 ? visibleSearchResults[activeSearchIndex]?.to : searchResults[0]?.to
+    if (nextTarget) {
+      handleNavigate(nextTarget)
+    }
+  }
+
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!searchResults.length) {
+      if (event.key === 'Escape') {
+        setIsSearchOpen(false)
+      }
+      return
+    }
+
+    const maxIndex = visibleSearchResults.length - 1
+    if (maxIndex < 0) {
+      return
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      setIsSearchOpen(true)
+      setActiveSearchIndex((current) => (current >= maxIndex ? 0 : current + 1))
+      return
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      setIsSearchOpen(true)
+      setActiveSearchIndex((current) => (current <= 0 ? maxIndex : current - 1))
+      return
+    }
+
+    if (event.key === 'Enter' && activeSearchIndex >= 0 && visibleSearchResults[activeSearchIndex]) {
+      event.preventDefault()
+      handleNavigate(visibleSearchResults[activeSearchIndex].to)
+      return
+    }
+
+    if (event.key === 'Escape') {
+      setIsSearchOpen(false)
+    }
   }
 
   const renderSidebar = (mobile = false) => (
     <aside
+      id={mobile ? mobileNavigationId : undefined}
       className={
         mobile
           ? 'flex h-full min-h-0 flex-col gap-6 border-r border-white/10 bg-[linear-gradient(180deg,#0f172a,#111827_60%,#0b1120)] px-5 py-6 text-slate-100'
-          : 'hidden min-h-0 flex-col gap-6 border-r border-white/10 bg-[linear-gradient(180deg,#0f172a,#111827_60%,#0b1120)] px-5 py-6 text-slate-100 lg:flex lg:w-[308px] lg:shrink-0'
+          : 'hidden min-h-0 flex-col gap-6 border-r border-white/10 bg-[linear-gradient(180deg,#0f172a,#111827_60%,#0b1120)] px-5 py-6 text-slate-100 lg:flex lg:w-72 lg:shrink-0 xl:w-[308px]'
       }
     >
       <div className="flex items-center gap-3">
@@ -662,7 +799,7 @@ function AppLayoutRevamp() {
 
         <div className="flex min-h-screen flex-1 flex-col lg:h-full lg:min-h-0">
           <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface-tint)] backdrop-blur-xl">
-            <div className="mx-auto flex max-w-[1320px] flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+            <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
@@ -676,7 +813,9 @@ function AppLayoutRevamp() {
                   </p>
                 </div>
                 <button
-                  aria-label="Toggle navigation menu"
+                  aria-controls={mobileNavigationId}
+                  aria-expanded={isSidebarOpen}
+                  aria-label={copy.openNavigation}
                   className={`${ghostButtonClass} h-11 w-11 px-0 lg:hidden`}
                   onClick={() => setIsSidebarOpen(true)}
                   type="button"
@@ -685,14 +824,23 @@ function AppLayoutRevamp() {
                 </button>
               </div>
 
-              <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <form
                   ref={searchRef}
-                  className="relative w-full xl:max-w-xl"
+                  className="relative w-full lg:max-w-xl"
                   onSubmit={handleGlobalSearch}
                 >
                   <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
                   <input
+                    ref={searchInputRef}
+                    aria-activedescendant={
+                      activeSearchIndex >= 0
+                        ? `global-search-option-${activeSearchIndex}`
+                        : undefined
+                    }
+                    aria-autocomplete="list"
+                    aria-controls={searchListboxId}
+                    aria-expanded={isSearchOpen && visibleSearchResults.length > 0}
                     aria-label={copy.searchPlaceholder}
                     className={`${inputClass} w-full pl-10 pr-4`}
                     onChange={(event) => {
@@ -700,23 +848,56 @@ function AppLayoutRevamp() {
                       setIsSearchOpen(true)
                     }}
                     onFocus={() => setIsSearchOpen(true)}
+                    onKeyDown={handleSearchKeyDown}
                     placeholder={copy.searchPlaceholder}
+                    role="combobox"
                     value={globalQuery}
                   />
                   {isSearchOpen && globalQuery.trim() ? (
                     <div className="absolute left-0 right-0 z-30 mt-2 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
-                      <p className="px-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
-                        {copy.searchHint}
+                      <div className="flex items-start justify-between gap-3 px-2">
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
+                          {copy.searchHint}
+                        </p>
+                        {searchResults.length > SEARCH_RESULT_LIMIT ? (
+                          <button
+                            className="text-xs font-semibold text-[var(--accent)]"
+                            onClick={() => setShowAllSearchResults((current) => !current)}
+                            type="button"
+                          >
+                            {showAllSearchResults
+                              ? copy.searchCollapse
+                              : interpolate(copy.searchViewAll, { count: searchResults.length })}
+                          </button>
+                        ) : null}
+                      </div>
+                      <p className="px-2 pt-1 text-xs text-[var(--muted)]">
+                        {copy.searchSelectionHint}
                       </p>
                       {searchResults.length > 0 ? (
-                        <ul className="mt-2 space-y-1">
-                          {searchResults.map((result) => {
+                        <ul
+                          aria-label={copy.searchResultsLabel}
+                          className="mt-2 space-y-1"
+                          id={searchListboxId}
+                          role="listbox"
+                        >
+                          {visibleSearchResults.map((result, index) => {
                             const Icon = result.icon
+                            const isActive = index === activeSearchIndex
                             return (
                               <li key={result.id}>
                                 <button
-                                  className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition hover:bg-[var(--surface-muted)]"
+                                  aria-selected={isActive}
+                                  className={[
+                                    'flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition',
+                                    isActive
+                                      ? 'bg-[var(--surface-muted)] ring-2 ring-[var(--accent-soft)]'
+                                      : 'hover:bg-[var(--surface-muted)]',
+                                  ].join(' ')}
+                                  id={`global-search-option-${index}`}
                                   onClick={() => handleNavigate(result.to)}
+                                  onMouseEnter={() => setActiveSearchIndex(index)}
+                                  role="option"
                                   type="button"
                                 >
                                   <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
@@ -901,7 +1082,7 @@ function AppLayoutRevamp() {
           </header>
 
           <main className="app-scroll flex-1 px-4 pb-12 pt-6 sm:px-6 md:px-8 lg:min-h-0 lg:overflow-y-auto">
-            <div className="mx-auto w-full max-w-[1240px]">
+            <div className="mx-auto w-full max-w-screen-2xl">
               <Outlet />
             </div>
           </main>
@@ -917,13 +1098,13 @@ function AppLayoutRevamp() {
       />
 
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-[304px] transform transition duration-300 ease-out lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 w-[min(86vw,304px)] transform transition duration-300 ease-out lg:hidden ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="flex h-full flex-col">
           <button
-            aria-label="Close navigation menu"
+            aria-label={copy.closeNavigation}
             className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white"
             onClick={() => setIsSidebarOpen(false)}
             type="button"

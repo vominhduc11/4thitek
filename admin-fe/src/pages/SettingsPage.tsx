@@ -1,8 +1,8 @@
 import { Bell, Save, Shield } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAdminData } from '../context/AdminDataContext'
 import { useToast } from '../context/ToastContext'
-import { ErrorState, LoadingRows, PagePanel, PrimaryButton } from '../components/ui-kit'
+import { ErrorState, GhostButton, LoadingRows, PagePanel, PrimaryButton, inputClass } from '../components/ui-kit'
 
 function SettingsPage() {
   const {
@@ -15,6 +15,7 @@ function SettingsPage() {
   } = useAdminData()
   const { notify } = useToast()
   const [draft, setDraft] = useState(settings)
+  const isDirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(settings), [draft, settings])
 
   useEffect(() => {
     setDraft(settings)
@@ -50,7 +51,7 @@ function SettingsPage() {
           </p>
         </div>
         <PrimaryButton
-          disabled={isSettingsSaving}
+          disabled={isSettingsSaving || !isDirty}
           icon={<Save className="h-4 w-4" />}
           onClick={async () => {
             try {
@@ -67,7 +68,18 @@ function SettingsPage() {
         >
           {isSettingsSaving ? 'Dang luu...' : 'Luu thay doi'}
         </PrimaryButton>
+        {isDirty ? (
+          <GhostButton onClick={() => setDraft(settings)} type="button">
+            Hoan tac thay doi
+          </GhostButton>
+        ) : null}
       </div>
+
+      {isDirty ? (
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800" role="status">
+          Ban co thay doi chua luu trong cai dat he thong.
+        </div>
+      ) : null}
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <section className="rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] p-5">
@@ -101,7 +113,7 @@ function SettingsPage() {
               </div>
               <select
                 aria-label="Session timeout"
-                className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                className={`${inputClass} min-h-11 bg-white text-slate-700`}
                 onChange={(event) =>
                   setDraft((previous) => ({
                     ...previous,

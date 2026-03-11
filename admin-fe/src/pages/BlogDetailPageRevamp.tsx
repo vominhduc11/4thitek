@@ -143,7 +143,7 @@ function BlogDetailPageRevamp() {
         <StatusBadge tone={blogStatusTone[post.status]}>{statusLabels[post.status]}</StatusBadge>
       </div>
 
-      <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_360px]">
+      <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.9fr)] xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,360px)]">
         <article className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
           <p className={labelClass}>{post.id}</p>
           <h2 className="mt-2 text-2xl font-semibold text-[var(--ink)]">{post.title}</h2>
@@ -153,7 +153,7 @@ function BlogDetailPageRevamp() {
               <img
                 src={resolveBackendAssetUrl(post.imageUrl)}
                 alt={post.title}
-                className="h-80 w-full object-cover"
+                className="aspect-[16/9] w-full object-cover"
               />
             </div>
           ) : null}

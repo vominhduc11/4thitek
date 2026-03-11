@@ -16,19 +16,23 @@ import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ConflictException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
+import com.devwonder.backend.exception.UnauthorizedException;
 import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.CustomerRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.RoleRepository;
 import com.devwonder.backend.security.JWTUtils;
+import com.devwonder.backend.service.support.AccountValidationSupport;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -56,9 +60,17 @@ public class AuthService {
             throw new BadCredentialsException("Invalid credentials");
         }
 
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(identity, request.password())
-        );
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(identity, request.password())
+            );
+        } catch (DisabledException ex) {
+            Account disabledAccount = accountRepository.findByUsernameOrEmail(identity, identity).orElse(null);
+            if (disabledAccount instanceof Dealer) {
+                dealerAccountLifecycleService.assertDealerPortalAccess(disabledAccount);
+            }
+            throw new UnauthorizedException("Account is not active");
+        }
 
         Account account = accountRepository.findByUsernameOrEmail(identity, identity)
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
@@ -72,17 +84,24 @@ public class AuthService {
     }
 
     public AuthResponse refreshToken(RefreshTokenRequest request) {
-        if (jwtUtils.isTokenExpired(request.refreshToken())) {
-            throw new BadRequestException("Refresh token expired");
+        try {
+            if (jwtUtils.isTokenExpired(request.refreshToken())) {
+                throw new BadRequestException("Refresh token expired");
+            }
+
+            String username = jwtUtils.extractUsername(request.refreshToken());
+            Account account = accountRepository.findByUsernameOrEmail(username, username)
+                    .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
+            if (!account.isEnabled()) {
+                throw new UnauthorizedException("Account is not active");
+            }
+            dealerAccountLifecycleService.assertDealerPortalAccess(account);
+
+            String accessToken = jwtUtils.generateToken(account);
+            return buildAuthResponse(account, accessToken, request.refreshToken());
+        } catch (JwtException | IllegalArgumentException ex) {
+            throw new BadRequestException("Refresh token is invalid");
         }
-
-        String username = jwtUtils.extractUsername(request.refreshToken());
-        Account account = accountRepository.findByUsernameOrEmail(username, username)
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
-        dealerAccountLifecycleService.assertDealerPortalAccess(account);
-
-        String accessToken = jwtUtils.generateToken(account);
-        return buildAuthResponse(account, accessToken, request.refreshToken());
     }
 
     public RegisterDealerResponse registerDealer(RegisterDealerRequest request) {
@@ -93,6 +112,12 @@ public class AuthService {
         if (accountRepository.existsByUsername(username)) {
             throw new ConflictException("Username already exists");
         }
+        AccountValidationSupport.assertStrongPassword(request.password(), "password");
+
+        String normalizedEmail = AccountValidationSupport.normalizeEmail(request.email());
+        if (normalizedEmail != null && accountRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+            throw new ConflictException("Email already exists");
+        }
 
         String normalizedTaxCode = normalize(request.taxCode());
         if (normalizedTaxCode != null && dealerRepository.findByTaxCode(normalizedTaxCode).isPresent()) {
@@ -101,7 +126,7 @@ public class AuthService {
 
         Dealer dealer = new Dealer();
         dealer.setUsername(username);
-        dealer.setEmail(normalize(request.email()));
+        dealer.setEmail(normalizedEmail);
         dealer.setPassword(passwordEncoder.encode(request.password()));
         dealer.setBusinessName(normalize(request.businessName()));
         dealer.setContactName(normalize(request.contactName()));
@@ -131,16 +156,17 @@ public class AuthService {
         if (accountRepository.existsByUsername(username)) {
             throw new ConflictException("Username already exists");
         }
+        AccountValidationSupport.assertStrongPassword(request.password(), "password");
 
         String normalizedPhone = normalize(request.phone());
-        if (normalizedPhone == null) {
-            throw new BadRequestException("phone is required");
-        }
-        if (!normalizedPhone.matches("^0\\d{9}$")) {
-            throw new BadRequestException("phone must be a valid 10-digit Vietnam number");
-        }
+        AccountValidationSupport.assertVietnamPhone(normalizedPhone, "phone");
         if (customerRepository.existsByPhone(normalizedPhone)) {
             throw new ConflictException("Phone already exists");
+        }
+
+        String normalizedEmail = AccountValidationSupport.normalizeEmail(request.email());
+        if (normalizedEmail != null && accountRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+            throw new ConflictException("Email already exists");
         }
 
         Customer customer = new Customer();
@@ -148,7 +174,7 @@ public class AuthService {
         customer.setPassword(passwordEncoder.encode(request.password()));
         customer.setFullName(normalize(request.fullName()));
         customer.setPhone(normalizedPhone);
-        customer.setEmail(normalize(request.email()));
+        customer.setEmail(normalizedEmail);
         customer.setRoles(new HashSet<>(Set.of(resolveRole("CUSTOMER", "Default customer role"))));
 
         Customer saved = customerRepository.save(customer);
@@ -181,10 +207,6 @@ public class AuthService {
     }
 
     private String normalize(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
+        return AccountValidationSupport.normalize(value);
     }
 }

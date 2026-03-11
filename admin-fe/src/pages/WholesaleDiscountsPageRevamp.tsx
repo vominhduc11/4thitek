@@ -9,6 +9,7 @@ import { formatDateTime } from '../lib/formatters'
 import {
   EmptyState,
   ErrorState,
+  GhostButton,
   LoadingRows,
   PagePanel,
   PrimaryButton,
@@ -19,6 +20,8 @@ import {
   cardTitleClass,
   formCardClass,
   inputClass,
+  labelClass,
+  tableActionSelectClass,
   tableCardClass,
   tableHeadClass,
   tableMetaClass,
@@ -104,6 +107,7 @@ function WholesaleDiscountsPageRevamp() {
     percent: '',
     status: 'draft' as RuleStatus,
   })
+  const toolbarSearchClass = 'w-full sm:max-w-sm lg:w-72 xl:w-80'
 
   const normalizedQuery = query.trim().toLowerCase()
   const filteredRules = useMemo(
@@ -169,23 +173,23 @@ function WholesaleDiscountsPageRevamp() {
 
   return (
     <PagePanel>
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h3 className={cardTitleClass}>{copy.title}</h3>
           <p className={bodyTextClass}>{copy.description}</p>
         </div>
-        <div className="flex w-full flex-col gap-3 sm:flex-row xl:w-auto">
+        <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
           <SearchInput
             id="discounts-search"
             label={copy.searchLabel}
             placeholder={copy.searchPlaceholder}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="w-full sm:w-80"
+            className={toolbarSearchClass}
           />
           <select
             aria-label={copy.status}
-            className={`${inputClass} w-full sm:w-auto`}
+            className={`${inputClass} w-full sm:max-w-[14rem] lg:w-56`}
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value as 'all' | RuleStatus)}
           >
@@ -211,52 +215,61 @@ function WholesaleDiscountsPageRevamp() {
         <div className={`${formCardClass} mt-6`}>
           <p className="text-sm font-semibold text-[var(--ink)]">{copy.createTitle}</p>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <input
-              className={inputClass}
-              placeholder={copy.label}
-              value={form.label}
-              onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))}
-            />
-            <input
-              className={inputClass}
-              placeholder={copy.range}
-              value={form.range}
-              onChange={(event) => setForm((current) => ({ ...current, range: event.target.value }))}
-            />
-            <input
-              className={inputClass}
-              min="0"
-              max="100"
-              type="number"
-              placeholder={copy.percent}
-              value={form.percent}
-              onChange={(event) => setForm((current) => ({ ...current, percent: event.target.value }))}
-            />
-            <select
-              aria-label={copy.status}
-              className={inputClass}
-              value={form.status}
-              onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as RuleStatus }))}
-            >
-              {RULE_STATUS_OPTIONS.filter((option) => option.value !== 'all').map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <label className="space-y-2">
+              <span className={labelClass}>{copy.label}</span>
+              <input
+                className={inputClass}
+                value={form.label}
+                onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))}
+              />
+            </label>
+            <label className="space-y-2">
+              <span className={labelClass}>{copy.range}</span>
+              <input
+                className={inputClass}
+                value={form.range}
+                onChange={(event) => setForm((current) => ({ ...current, range: event.target.value }))}
+              />
+            </label>
+            <label className="space-y-2">
+              <span className={labelClass}>{copy.percent}</span>
+              <input
+                className={inputClass}
+                min="0"
+                max="100"
+                type="number"
+                value={form.percent}
+                onChange={(event) => setForm((current) => ({ ...current, percent: event.target.value }))}
+              />
+            </label>
+            <label className="space-y-2">
+              <span className={labelClass}>{copy.status}</span>
+              <select
+                aria-label={copy.status}
+                className={inputClass}
+                value={form.status}
+                onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as RuleStatus }))}
+              >
+                {RULE_STATUS_OPTIONS.filter((option) => option.value !== 'all').map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
           {formError ? <p className="mt-2 text-sm text-rose-600">{formError}</p> : null}
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <PrimaryButton className="w-full sm:w-auto" onClick={() => void handleCreateRule()} type="button">
               {copy.save}
             </PrimaryButton>
-            <PrimaryButton
-              className="w-full bg-slate-900 shadow-[0_16px_30px_rgba(15,23,42,0.22)] hover:bg-slate-800 sm:w-auto"
+            <GhostButton
+              className="w-full sm:w-auto"
               onClick={() => setShowForm(false)}
               type="button"
             >
               {copy.cancel}
-            </PrimaryButton>
+            </GhostButton>
           </div>
         </div>
       ) : null}
@@ -355,7 +368,7 @@ function WholesaleDiscountsPageRevamp() {
                       <td className="rounded-r-2xl px-3 py-3">
                         <select
                           aria-label={`${copy.status} ${rule.id}`}
-                          className="h-9 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-2 text-xs font-semibold text-[var(--ink)]"
+                          className={tableActionSelectClass}
                           value={rule.status}
                           onChange={async (event) => {
                             const next = event.target.value as RuleStatus

@@ -6,6 +6,7 @@ import com.devwonder.backend.entity.enums.StaffUserStatus;
 import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.AdminRepository;
 import com.devwonder.backend.repository.RoleRepository;
+import com.devwonder.backend.service.support.AccountValidationSupport;
 import java.util.HashSet;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +57,7 @@ public class BootstrapSuperAdminInitializer implements ApplicationRunner {
             log.warn("Skipping SUPER_ADMIN bootstrap because app.bootstrap-super-admin.email/password are not configured.");
             return;
         }
+        AccountValidationSupport.assertStrongPassword(password, "app.bootstrap-super-admin.password");
         if (accountRepository.existsByUsername(email) || accountRepository.findByEmailIgnoreCase(email).isPresent()) {
             throw new IllegalStateException("Cannot bootstrap SUPER_ADMIN because username/email already exists: " + email);
         }

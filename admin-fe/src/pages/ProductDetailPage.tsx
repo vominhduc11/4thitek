@@ -1,7 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import Quill from 'quill'
-import 'quill/dist/quill.snow.css'
 import {
   Archive,
   ArrowLeft,
@@ -14,10 +12,12 @@ import {
 } from 'lucide-react'
 import productPlaceholder from '../assets/product-placeholder.svg'
 import { ProductVideoPreview } from '../components/ProductVideoPreview'
+import { RichTextEditor } from '../components/RichTextEditor'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductsContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
+import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import type { Product } from '../types/product'
 import { resolveBackendAssetUrl } from '../lib/backendApi'
 import { storeFileReference } from '../lib/upload'
@@ -37,97 +37,6 @@ const isLocalBlobUrl = (value?: string) =>
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 const VIDEO_FILE_NOTICE =
   'T\u1ea3i t\u1ec7p video ch\u01b0a \u0111\u01b0\u1ee3c h\u1ed7 tr\u1ee3. Vui l\u00f2ng d\u00f9ng URL video.'
-
-type QuillEditorProps = {
-  value: string
-  onChange: (value: string) => void
-  modules?: Record<string, unknown>
-  formats?: string[]
-  placeholder?: string
-  readOnly?: boolean
-}
-
-const QuillEditor = ({
-  value,
-  onChange,
-  modules,
-  formats,
-  placeholder,
-  readOnly,
-}: QuillEditorProps) => {
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const quillRef = useRef<Quill | null>(null)
-  const toolbarRef = useRef<HTMLElement | null>(null)
-  const onChangeRef = useRef(onChange)
-  const valueRef = useRef(value)
-
-  useEffect(() => {
-    onChangeRef.current = onChange
-  }, [onChange])
-
-  useEffect(() => {
-    valueRef.current = value
-  }, [value])
-
-  useEffect(() => {
-    if (!containerRef.current || quillRef.current) return
-
-    const container = containerRef.current
-
-    const instance = new Quill(container, {
-      theme: 'snow',
-      modules,
-      formats,
-      placeholder,
-      readOnly,
-    })
-
-    quillRef.current = instance
-    const toolbarModule = instance.getModule('toolbar') as { container?: HTMLElement } | null
-    toolbarRef.current = toolbarModule?.container ?? null
-
-    const handleChange = () => {
-      const html = instance.root.innerHTML
-      if (html !== valueRef.current) {
-        onChangeRef.current(html)
-      }
-    }
-
-    instance.on('text-change', handleChange)
-
-    if (valueRef.current) {
-      instance.clipboard.dangerouslyPasteHTML(valueRef.current, 'silent')
-    } else {
-      instance.setText('', 'silent')
-    }
-
-    return () => {
-      const toolbarContainer = toolbarRef.current
-      instance.off('text-change', handleChange)
-      quillRef.current = null
-      if (toolbarContainer?.parentNode) {
-        toolbarContainer.parentNode.removeChild(toolbarContainer)
-      }
-      toolbarRef.current = null
-      container.innerHTML = ''
-    }
-  }, [formats, modules, placeholder, readOnly])
-
-  useEffect(() => {
-    const instance = quillRef.current
-    if (!instance) return
-    const currentHtml = instance.root.innerHTML
-    if (value !== currentHtml) {
-      const selection = instance.getSelection()
-      instance.clipboard.dangerouslyPasteHTML(value || '', 'silent')
-      if (selection) {
-        instance.setSelection(selection)
-      }
-    }
-  }, [value])
-
-  return <div ref={containerRef} />
-}
 
 type ProductDraft = {
   name: string
@@ -284,6 +193,7 @@ function ProductDetailPage() {
   const { t } = useLanguage()
   const { accessToken } = useAuth()
   const { notify } = useToast()
+  const { confirm, confirmDialog } = useConfirmDialog()
   const {
     products,
     archiveProduct,
@@ -321,6 +231,37 @@ function ProductDetailPage() {
     PUBLISHED: 'Đã xuất bản',
     DRAFT: 'Bản nháp',
   }
+
+  const validateDraft = (value: ProductDraft) => {
+    const errors: Record<string, string> = {}
+    const retailPrice = Number(value.retailPrice)
+    const stock = Number(value.stock)
+    const warrantyPeriod = Number(value.warrantyPeriod)
+
+    if (!value.name.trim()) {
+      errors.name = t('Vui lòng nhập tên sản phẩm')
+    }
+    if (Number.isNaN(retailPrice) || retailPrice < 0) {
+      errors.retailPrice = t('Giá bán lẻ phải là số không âm')
+    }
+    if (Number.isNaN(stock) || stock < 0 || !Number.isInteger(stock)) {
+      errors.stock = t('Tồn kho phải là số nguyên không âm')
+    }
+    if (Number.isNaN(warrantyPeriod) || warrantyPeriod <= 0 || !Number.isInteger(warrantyPeriod)) {
+      errors.warrantyPeriod = t('Thời hạn bảo hành phải là số nguyên dương')
+    }
+
+    return errors
+  }
+
+  const draftErrors = useMemo(() => (draft ? validateDraft(draft) : {}), [draft, t])
+  const isDirty = useMemo(() => {
+    if (!draft || !product) {
+      return false
+    }
+
+    return JSON.stringify(draft) !== JSON.stringify(buildDraft(product))
+  }, [draft, product])
 
   useEffect(() => {
     if (product && !isEditing) {
@@ -400,30 +341,17 @@ function ProductDetailPage() {
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    const nextStock = Number(draft.stock)
-    const nextRetailPrice = Number(draft.retailPrice)
-    const nextWarrantyPeriod = Number(draft.warrantyPeriod)
-    if (Number.isNaN(nextRetailPrice) || nextRetailPrice < 0) {
-      notify(t('Gi\u00e1 b\u00e1n l\u1ebb ph\u1ea3i l\u00e0 s\u1ed1 kh\u00f4ng \u00e2m'), {
+    if (Object.keys(draftErrors).length > 0) {
+      notify(t('Vui lòng kiểm tra lại các trường bắt buộc'), {
         title: 'Products',
         variant: 'error',
       })
       return
     }
-    if (
-      Number.isNaN(nextWarrantyPeriod) ||
-      nextWarrantyPeriod <= 0 ||
-      !Number.isInteger(nextWarrantyPeriod)
-    ) {
-      notify(
-        t('Th\u1eddi h\u1ea1n b\u1ea3o h\u00e0nh ph\u1ea3i l\u00e0 s\u1ed1 nguy\u00ean d\u01b0\u01a1ng'),
-        {
-          title: 'Products',
-          variant: 'error',
-        },
-      )
-      return
-    }
+
+    const nextStock = Number(draft.stock)
+    const nextRetailPrice = Number(draft.retailPrice)
+    const nextWarrantyPeriod = Number(draft.warrantyPeriod)
     const cleanedSpecifications = draft.specifications
       .map((spec) => ({
         label: String(spec.label || '').trim(),
@@ -505,9 +433,12 @@ function ProductDetailPage() {
     if (!product.isDeleted) {
       return
     }
-    const confirmed = window.confirm(
-      'Xóa vĩnh viễn sản phẩm này? Hành động không thể hoàn tác.',
-    )
+    const confirmed = await confirm({
+      title: t('Xóa vĩnh viễn sản phẩm'),
+      message: t('Xóa vĩnh viễn sản phẩm này? Hành động không thể hoàn tác.'),
+      tone: 'danger',
+      confirmLabel: t('Xóa'),
+    })
     if (confirmed) {
       try {
         await deleteProduct(product.sku)
@@ -534,6 +465,17 @@ function ProductDetailPage() {
       }
       return
     }
+
+    const confirmed = await confirm({
+      title: t('Ẩn sản phẩm'),
+      message: t('Ẩn sản phẩm này khỏi danh mục hiện hành?'),
+      tone: 'warning',
+      confirmLabel: t('Ẩn sản phẩm'),
+    })
+    if (!confirmed) {
+      return
+    }
+
     try {
       await archiveProduct(product.sku)
       setActionMessage('')
@@ -929,9 +871,9 @@ function ProductDetailPage() {
               </span>
             </div>
           </div>
-          <div className="flex flex-wrap gap-3">
-            {isEditing ? (
-              <>
+        <div className="flex flex-wrap gap-3">
+          {isEditing ? (
+            <>
                 <button
                   className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-slate-900 hover:shadow-[0_12px_24px_rgba(15,23,42,0.12)]"
                   type="button"
@@ -942,6 +884,7 @@ function ProductDetailPage() {
                 </button>
                 <button
                   className="inline-flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0"
+                  disabled={!isDirty}
                   type="submit"
                   form="product-edit-form"
                 >
@@ -967,6 +910,18 @@ function ProductDetailPage() {
                 }
                 type="button"
                 onClick={async () => {
+                  if (product.publishStatus === 'PUBLISHED') {
+                    const approved = await confirm({
+                      title: t('Hủy xuất bản'),
+                      message: t('Hủy xuất bản sản phẩm này?'),
+                      tone: 'warning',
+                      confirmLabel: t('Hủy xuất bản'),
+                    })
+                    if (!approved) {
+                      return
+                    }
+                  }
+
                   try {
                     await togglePublishStatus(product.sku)
                   } catch (error) {
@@ -1036,6 +991,11 @@ function ProductDetailPage() {
             {actionMessage}
           </div>
         )}
+        {isEditing && isDirty ? (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800" role="status">
+            {t('Bạn có thay đổi chưa lưu trong sản phẩm này.')}
+          </div>
+        ) : null}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
@@ -1122,19 +1082,32 @@ function ProductDetailPage() {
                     {t('Tên sản phẩm')}
                   </label>
                   <input
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus:outline-none"
+                    aria-describedby={draftErrors.name ? 'product-detail-name-error' : undefined}
+                    aria-invalid={Boolean(draftErrors.name)}
+                    className={`mt-2 w-full rounded-2xl border bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 ${
+                      draftErrors.name ? 'border-rose-300' : 'border-slate-200'
+                    }`}
                     value={draft.name}
                     onChange={(event) =>
                       setDraft({ ...draft, name: event.target.value })
                     }
                   />
+                  {draftErrors.name ? (
+                    <p className="mt-2 text-sm font-medium text-rose-600" id="product-detail-name-error">
+                      {draftErrors.name}
+                    </p>
+                  ) : null}
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                     {t('Retail price')}
                   </label>
                   <input
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus:outline-none"
+                    aria-describedby={draftErrors.retailPrice ? 'product-detail-price-error' : undefined}
+                    aria-invalid={Boolean(draftErrors.retailPrice)}
+                    className={`mt-2 w-full rounded-2xl border bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 ${
+                      draftErrors.retailPrice ? 'border-rose-300' : 'border-slate-200'
+                    }`}
                     type="number"
                     min="0"
                     value={draft.retailPrice}
@@ -1142,13 +1115,22 @@ function ProductDetailPage() {
                       setDraft({ ...draft, retailPrice: event.target.value })
                     }
                   />
+                  {draftErrors.retailPrice ? (
+                    <p className="mt-2 text-sm font-medium text-rose-600" id="product-detail-price-error">
+                      {draftErrors.retailPrice}
+                    </p>
+                  ) : null}
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                     {t('Tồn kho')}
                   </label>
                   <input
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus:outline-none"
+                    aria-describedby={draftErrors.stock ? 'product-detail-stock-error' : undefined}
+                    aria-invalid={Boolean(draftErrors.stock)}
+                    className={`mt-2 w-full rounded-2xl border bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 ${
+                      draftErrors.stock ? 'border-rose-300' : 'border-slate-200'
+                    }`}
                     type="number"
                     min="0"
                     value={draft.stock}
@@ -1156,13 +1138,22 @@ function ProductDetailPage() {
                       setDraft({ ...draft, stock: event.target.value })
                     }
                   />
+                  {draftErrors.stock ? (
+                    <p className="mt-2 text-sm font-medium text-rose-600" id="product-detail-stock-error">
+                      {draftErrors.stock}
+                    </p>
+                  ) : null}
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                     {t('Warranty period (months)')}
                   </label>
                   <input
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus:outline-none"
+                    aria-describedby={draftErrors.warrantyPeriod ? 'product-detail-warranty-error' : undefined}
+                    aria-invalid={Boolean(draftErrors.warrantyPeriod)}
+                    className={`mt-2 w-full rounded-2xl border bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 ${
+                      draftErrors.warrantyPeriod ? 'border-rose-300' : 'border-slate-200'
+                    }`}
                     type="number"
                     min="1"
                     step="1"
@@ -1171,13 +1162,18 @@ function ProductDetailPage() {
                       setDraft({ ...draft, warrantyPeriod: event.target.value })
                     }
                   />
+                  {draftErrors.warrantyPeriod ? (
+                    <p className="mt-2 text-sm font-medium text-rose-600" id="product-detail-warranty-error">
+                      {draftErrors.warrantyPeriod}
+                    </p>
+                  ) : null}
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                     {t('Xuất bản')}
                   </label>
                   <select
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:bg-[var(--surface)] focus:outline-none"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
                     value={draft.publishStatus}
                     onChange={(event) =>
                       setDraft({
@@ -1195,7 +1191,7 @@ function ProductDetailPage() {
                     {t('\u1ea2nh URL')}
                   </label>
                   <input
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus:outline-none"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
                     value={draft.image}
                     onChange={(event) =>
                       setDraft({ ...draft, image: event.target.value })
@@ -1225,7 +1221,7 @@ function ProductDetailPage() {
                   {t('Mô tả ngắn')}
                 </label>
                 <textarea
-                  className="mt-2 min-h-[110px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus:outline-none"
+                  className="mt-2 min-h-[110px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
                   value={draft.shortDescription}
                   onChange={(event) =>
                     setDraft({ ...draft, shortDescription: event.target.value })
@@ -1273,26 +1269,32 @@ function ProductDetailPage() {
                   key={`spec-${index}`}
                   className="grid gap-2 md:grid-cols-[1fr_1fr_auto] md:items-center"
                 >
-                  <input
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                    placeholder={t('Nhãn')}
-                    value={spec.label}
-                    onChange={(event) => {
-                      const next = [...draft.specifications]
-                      next[index] = { ...next[index], label: event.target.value }
-                      setDraft({ ...draft, specifications: next })
-                    }}
-                  />
-                  <input
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                    placeholder={t('Giá trị')}
-                    value={spec.value}
-                    onChange={(event) => {
-                      const next = [...draft.specifications]
-                      next[index] = { ...next[index], value: event.target.value }
-                      setDraft({ ...draft, specifications: next })
-                    }}
-                  />
+                  <label className="block">
+                    <span className="sr-only">{t('Nhãn thông số')}</span>
+                    <input
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                      placeholder={t('Nhãn')}
+                      value={spec.label}
+                      onChange={(event) => {
+                        const next = [...draft.specifications]
+                        next[index] = { ...next[index], label: event.target.value }
+                        setDraft({ ...draft, specifications: next })
+                      }}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="sr-only">{t('Giá trị thông số')}</span>
+                    <input
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                      placeholder={t('Giá trị')}
+                      value={spec.value}
+                      onChange={(event) => {
+                        const next = [...draft.specifications]
+                        next[index] = { ...next[index], value: event.target.value }
+                        setDraft({ ...draft, specifications: next })
+                      }}
+                    />
+                  </label>
                   <button
                     type="button"
                     className="justify-self-end text-xs text-red-500 md:justify-self-auto"
@@ -1420,20 +1422,24 @@ function ProductDetailPage() {
                     </button>
                   </div>
                   {item.type === 'title' && (
-                    <input
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                      value={item.text ?? ''}
-                      onChange={(event) => {
-                        const nextDescriptions = [...draft.descriptions]
-                        nextDescriptions[index] = { ...nextDescriptions[index], text: event.target.value }
-                        setDraft({ ...draft, descriptions: nextDescriptions })
-                      }}
-                      placeholder={t('Nhập tiêu đề')}
-                    />
+                    <label className="block">
+                      <span className="sr-only">{t('Tiêu đề mô tả')}</span>
+                      <input
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                        value={item.text ?? ''}
+                        onChange={(event) => {
+                          const nextDescriptions = [...draft.descriptions]
+                          nextDescriptions[index] = { ...nextDescriptions[index], text: event.target.value }
+                          setDraft({ ...draft, descriptions: nextDescriptions })
+                        }}
+                        placeholder={t('Nhập tiêu đề')}
+                      />
+                    </label>
                   )}
                   {item.type === 'description' && (
                     <div className="richtext-editor">
-                      <QuillEditor
+                      <RichTextEditor
+                        ariaLabel={t('Trình soạn thảo mô tả chi tiết')}
                         value={item.text ?? ''}
                         modules={descriptionEditorModules}
                         formats={descriptionEditorFormats}
@@ -1459,16 +1465,19 @@ function ProductDetailPage() {
                         />
                         {t('Chọn ảnh')}
                       </label>
-                      <input
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t('Nhập chú thích')}
-                        value={item.caption ?? ''}
-                        onChange={(event) => {
-                          const nextDescriptions = [...draft.descriptions]
-                          nextDescriptions[index] = { ...nextDescriptions[index], caption: event.target.value }
-                          setDraft({ ...draft, descriptions: nextDescriptions })
-                        }}
-                      />
+                      <label className="block">
+                        <span className="sr-only">{t('Chú thích hình ảnh')}</span>
+                        <input
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                          placeholder={t('Nhập chú thích')}
+                          value={item.caption ?? ''}
+                          onChange={(event) => {
+                            const nextDescriptions = [...draft.descriptions]
+                            nextDescriptions[index] = { ...nextDescriptions[index], caption: event.target.value }
+                            setDraft({ ...draft, descriptions: nextDescriptions })
+                          }}
+                        />
+                      </label>
                       {descriptionImageErrors[index] && (
                         <p className="text-xs text-rose-500">{descriptionImageErrors[index]}</p>
                       )}
@@ -1503,7 +1512,7 @@ function ProductDetailPage() {
                             />
                             <button
                               type="button"
-                              className="absolute right-2 top-2 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[10px] font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100"
+                              className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
                               onClick={() => {
                                 const nextDescriptions = [...draft.descriptions]
                                 nextDescriptions[index] = { ...nextDescriptions[index], url: '' }
@@ -1537,7 +1546,7 @@ function ProductDetailPage() {
                         </label>
                         <button
                           type="button"
-                          className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                          className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
                           onClick={() => {
                             const nextDescriptions = [...draft.descriptions]
                             const current = { ...nextDescriptions[index] }
@@ -1589,9 +1598,9 @@ function ProductDetailPage() {
                       ) : (
                         (item.gallery ?? []).map((entry, entryIndex) => (
                           <div key={entryIndex} className="rounded-lg border border-slate-200 bg-white p-3">
-                            <div className="grid gap-3 md:grid-cols-[180px_1fr] md:items-start">
+                            <div className="grid gap-3 lg:grid-cols-[180px_1fr] lg:items-start">
                               <div className="space-y-2">
-                                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
+                                <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
                                   <input
                                     type="file"
                                     accept="image/*"
@@ -1635,7 +1644,7 @@ function ProductDetailPage() {
                                       />
                                       <button
                                         type="button"
-                                        className="absolute right-2 top-2 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[10px] font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100"
+                                        className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
                                         onClick={() => {
                                           const nextDescriptions = [...draft.descriptions]
                                           const current = { ...nextDescriptions[index] }
@@ -1680,32 +1689,38 @@ function ProductDetailPage() {
                   )}
                   {item.type === 'video' && (
                     <div className="grid gap-2 md:grid-cols-[1.4fr_1fr]">
-                      <input
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t('Nh\u1eadp URL video YouTube ho\u1eb7c file video c\u00f4ng khai')}
-                        value={item.url ?? ''}
-                        onChange={(event) => {
-                          const nextDescriptions = [...draft.descriptions]
-                          nextDescriptions[index] = { ...nextDescriptions[index], url: event.target.value }
-                          setDraft({ ...draft, descriptions: nextDescriptions })
-                        }}
-                      />
-                      <input
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder={t('Nh\u1eadp ch\u00fa th\u00edch')}
-                        value={item.caption ?? ''}
-                        onChange={(event) => {
-                          const nextDescriptions = [...draft.descriptions]
-                          nextDescriptions[index] = { ...nextDescriptions[index], caption: event.target.value }
-                          setDraft({ ...draft, descriptions: nextDescriptions })
-                        }}
-                      />
+                      <label className="block">
+                        <span className="sr-only">{t('URL video')}</span>
+                        <input
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                          placeholder={t('Nh\u1eadp URL video YouTube ho\u1eb7c file video c\u00f4ng khai')}
+                          value={item.url ?? ''}
+                          onChange={(event) => {
+                            const nextDescriptions = [...draft.descriptions]
+                            nextDescriptions[index] = { ...nextDescriptions[index], url: event.target.value }
+                            setDraft({ ...draft, descriptions: nextDescriptions })
+                          }}
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="sr-only">{t('Chú thích video')}</span>
+                        <input
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                          placeholder={t('Nh\u1eadp ch\u00fa th\u00edch')}
+                          value={item.caption ?? ''}
+                          onChange={(event) => {
+                            const nextDescriptions = [...draft.descriptions]
+                            nextDescriptions[index] = { ...nextDescriptions[index], caption: event.target.value }
+                            setDraft({ ...draft, descriptions: nextDescriptions })
+                          }}
+                        />
+                      </label>
                       {item.url && (
                         <div className="group relative overflow-hidden rounded-lg border border-slate-200 md:col-span-2">
                           <ProductVideoPreview url={item.url} title={item.caption ?? item.text} />
                           <button
                             type="button"
-                            className="absolute right-2 top-2 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[10px] font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100"
+                            className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
                             onClick={() => {
                               const nextDescriptions = [...draft.descriptions]
                               nextDescriptions[index] = { ...nextDescriptions[index], url: '' }
@@ -1808,22 +1823,25 @@ function ProductDetailPage() {
                 <div
                   key={`video-${index}`}
                   className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-white p-3">
-                  <input
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                    placeholder={t('Nh\u1eadp URL video YouTube ho\u1eb7c file video c\u00f4ng khai')}
-                    value={video.url}
-                    onChange={(event) => {
-                      const nextVideos = [...draft.videos]
-                      nextVideos[index] = { ...nextVideos[index], url: event.target.value }
-                      setDraft({ ...draft, videos: nextVideos })
-                    }}
-                  />
+                  <label className="block">
+                    <span className="sr-only">{t('URL video')}</span>
+                    <input
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                      placeholder={t('Nh\u1eadp URL video YouTube ho\u1eb7c file video c\u00f4ng khai')}
+                      value={video.url}
+                      onChange={(event) => {
+                        const nextVideos = [...draft.videos]
+                        nextVideos[index] = { ...nextVideos[index], url: event.target.value }
+                        setDraft({ ...draft, videos: nextVideos })
+                      }}
+                    />
+                  </label>
                   {video.url && (
                     <div className="group relative overflow-hidden rounded-lg border border-slate-200">
                       <ProductVideoPreview url={video.url} title={video.title} />
                       <button
                         type="button"
-                        className="absolute right-2 top-2 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-2 py-1 text-[10px] font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100"
+                        className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
                         onClick={() => {
                           const nextVideos = [...draft.videos]
                           nextVideos[index] = { ...nextVideos[index], url: '' }
@@ -1834,27 +1852,33 @@ function ProductDetailPage() {
                       </button>
                     </div>
                   )}
-                  <input
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                    placeholder={t('Nhập tiêu đề')}
-                    value={video.title}
-                    onChange={(event) => {
-                      const nextVideos = [...draft.videos]
-                      nextVideos[index] = { ...nextVideos[index], title: event.target.value }
-                      setDraft({ ...draft, videos: nextVideos })
-                    }}
-                  />
-                  <textarea
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                    placeholder={t('Nhập mô tả')}
-                    rows={2}
-                    value={video.descriptions}
-                    onChange={(event) => {
-                      const nextVideos = [...draft.videos]
-                      nextVideos[index] = { ...nextVideos[index], descriptions: event.target.value }
-                      setDraft({ ...draft, videos: nextVideos })
-                    }}
-                  />
+                  <label className="block">
+                    <span className="sr-only">{t('Tiêu đề video')}</span>
+                    <input
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                      placeholder={t('Nhập tiêu đề')}
+                      value={video.title}
+                      onChange={(event) => {
+                        const nextVideos = [...draft.videos]
+                        nextVideos[index] = { ...nextVideos[index], title: event.target.value }
+                        setDraft({ ...draft, videos: nextVideos })
+                      }}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="sr-only">{t('Mô tả video')}</span>
+                    <textarea
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                      placeholder={t('Nhập mô tả')}
+                      rows={2}
+                      value={video.descriptions}
+                      onChange={(event) => {
+                        const nextVideos = [...draft.videos]
+                        nextVideos[index] = { ...nextVideos[index], descriptions: event.target.value }
+                        setDraft({ ...draft, videos: nextVideos })
+                      }}
+                    />
+                  </label>
                   <button
                     type="button"
                     className="self-end text-xs text-red-500"
@@ -1944,6 +1968,7 @@ function ProductDetailPage() {
           </>
         )}
       </div>
+      {confirmDialog}
     </section>
   )
 }

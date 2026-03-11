@@ -28,6 +28,8 @@ import {
   cardTitleClass,
   formCardClass,
   inputClass,
+  labelClass,
+  tableActionSelectClass,
   tableCardClass,
   tableHeadClass,
   tableMetaClass,
@@ -276,19 +278,19 @@ function SerialsPageRevamp() {
 
   return (
     <PagePanel>
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h3 className={cardTitleClass}>{copy.title}</h3>
           <p className={bodyTextClass}>{copy.description}</p>
         </div>
-        <div className="flex w-full flex-col gap-3 sm:flex-row xl:w-auto">
+        <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
           <SearchInput
             id="serials-search"
             label={copy.searchLabel}
             placeholder={copy.searchPlaceholder}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="w-full sm:w-80"
+            className="w-full sm:max-w-sm lg:w-72 xl:w-80"
           />
           <select
             aria-label={copy.status}
@@ -322,67 +324,85 @@ function SerialsPageRevamp() {
         <div className={`${formCardClass} mt-6`}>
           <p className="text-sm font-semibold text-[var(--ink)]">{copy.importTitle}</p>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <select
-              className={`${inputClass} md:col-span-2`}
-              value={form.productId}
-              onChange={(event) => setForm((current) => ({ ...current, productId: event.target.value }))}
-            >
-              <option value="">{copy.product}</option>
-              {products.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.name} - {product.sku}
-                </option>
-              ))}
-            </select>
-            <select
-              className={inputClass}
-              value={form.status}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, status: event.target.value as BackendProductSerialStatus }))
-              }
-            >
-              {SERIAL_STATUS_OPTIONS.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-            <input
-              className={inputClass}
-              placeholder={copy.warehouseId}
-              value={form.warehouseId}
-              onChange={(event) => setForm((current) => ({ ...current, warehouseId: event.target.value }))}
-            />
-            <input
-              className={inputClass}
-              placeholder={copy.warehouseName}
-              value={form.warehouseName}
-              onChange={(event) => setForm((current) => ({ ...current, warehouseName: event.target.value }))}
-            />
-            <input
-              className={inputClass}
-              placeholder={copy.dealerId}
-              value={form.dealerId}
-              onChange={(event) => setForm((current) => ({ ...current, dealerId: event.target.value }))}
-            />
-            <input
-              className={inputClass}
-              placeholder={copy.customerId}
-              value={form.customerId}
-              onChange={(event) => setForm((current) => ({ ...current, customerId: event.target.value }))}
-            />
-            <input
-              className={inputClass}
-              placeholder={copy.orderId}
-              value={form.orderId}
-              onChange={(event) => setForm((current) => ({ ...current, orderId: event.target.value }))}
-            />
-            <textarea
-              className={`${textareaClass} md:col-span-2`}
-              placeholder={copy.serialList}
-              value={form.serials}
-              onChange={(event) => setForm((current) => ({ ...current, serials: event.target.value }))}
-            />
+            <label className="space-y-2 md:col-span-2">
+              <span className={labelClass}>{copy.product}</span>
+              <select
+                className={inputClass}
+                value={form.productId}
+                onChange={(event) => setForm((current) => ({ ...current, productId: event.target.value }))}
+              >
+                <option value="">{copy.product}</option>
+                {products.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.name} - {product.sku}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-2">
+              <span className={labelClass}>{copy.status}</span>
+              <select
+                className={inputClass}
+                value={form.status}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, status: event.target.value as BackendProductSerialStatus }))
+                }
+              >
+                {SERIAL_STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-2">
+              <span className={labelClass}>{copy.warehouseId}</span>
+              <input
+                className={inputClass}
+                value={form.warehouseId}
+                onChange={(event) => setForm((current) => ({ ...current, warehouseId: event.target.value }))}
+              />
+            </label>
+            <label className="space-y-2">
+              <span className={labelClass}>{copy.warehouseName}</span>
+              <input
+                className={inputClass}
+                value={form.warehouseName}
+                onChange={(event) => setForm((current) => ({ ...current, warehouseName: event.target.value }))}
+              />
+            </label>
+            <label className="space-y-2">
+              <span className={labelClass}>{copy.dealerId}</span>
+              <input
+                className={inputClass}
+                value={form.dealerId}
+                onChange={(event) => setForm((current) => ({ ...current, dealerId: event.target.value }))}
+              />
+            </label>
+            <label className="space-y-2">
+              <span className={labelClass}>{copy.customerId}</span>
+              <input
+                className={inputClass}
+                value={form.customerId}
+                onChange={(event) => setForm((current) => ({ ...current, customerId: event.target.value }))}
+              />
+            </label>
+            <label className="space-y-2">
+              <span className={labelClass}>{copy.orderId}</span>
+              <input
+                className={inputClass}
+                value={form.orderId}
+                onChange={(event) => setForm((current) => ({ ...current, orderId: event.target.value }))}
+              />
+            </label>
+            <label className="space-y-2 md:col-span-2">
+              <span className={labelClass}>{copy.serialList}</span>
+              <textarea
+                className={textareaClass}
+                value={form.serials}
+                onChange={(event) => setForm((current) => ({ ...current, serials: event.target.value }))}
+              />
+            </label>
           </div>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <PrimaryButton className="w-full sm:w-auto" disabled={isImporting} onClick={() => void handleImport()} type="button">
@@ -505,7 +525,7 @@ function SerialsPageRevamp() {
                         </StatusBadge>
                         <select
                           aria-label={`${copy.status} ${item.id}`}
-                          className="mt-2 h-9 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-2 text-xs font-semibold text-[var(--ink)]"
+                          className={`mt-2 w-full ${tableActionSelectClass}`}
                           value={item.status ?? 'AVAILABLE'}
                           onChange={async (event) => {
                             const next = event.target.value as BackendProductSerialStatus

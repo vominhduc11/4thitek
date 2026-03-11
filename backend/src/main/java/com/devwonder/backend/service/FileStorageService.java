@@ -17,6 +17,7 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -40,6 +41,7 @@ public class FileStorageService implements DisposableBean {
     private final String bucket;
     private final String publicBaseUrl;
     private final S3Client s3Client;
+    private final long maxFileSizeBytes;
 
     public FileStorageService(
             @Value("${app.upload.dir:./uploads}") String dir,
@@ -51,7 +53,8 @@ public class FileStorageService implements DisposableBean {
             @Value("${app.storage.s3.access-key:}") String accessKey,
             @Value("${app.storage.s3.secret-key:}") String secretKey,
             @Value("${app.storage.s3.path-style-access:true}") boolean pathStyleAccess,
-            @Value("${app.storage.s3.public-base-url:}") String publicBaseUrl
+            @Value("${app.storage.s3.public-base-url:}") String publicBaseUrl,
+            @Value("${app.upload.max-file-size:${spring.servlet.multipart.max-file-size:10MB}}") DataSize maxFileSize
     ) {
         this.uploadDir = Paths.get(dir).toAbsolutePath().normalize();
         this.allowedExtensions = Arrays.stream(extensions.split(","))
@@ -62,6 +65,7 @@ public class FileStorageService implements DisposableBean {
         this.provider = normalizeProvider(provider);
         this.bucket = normalize(bucket);
         this.publicBaseUrl = normalize(publicBaseUrl);
+        this.maxFileSizeBytes = maxFileSize == null ? DataSize.ofMegabytes(10).toBytes() : maxFileSize.toBytes();
 
         if (LOCAL_PROVIDER.equals(this.provider)) {
             try {
@@ -96,6 +100,9 @@ public class FileStorageService implements DisposableBean {
     public String store(MultipartFile file, String subfolder) {
         if (file == null || file.isEmpty()) {
             throw new BadRequestException("file is required");
+        }
+        if (file.getSize() > maxFileSizeBytes) {
+            throw new BadRequestException("Uploaded file exceeds the configured size limit");
         }
 
         String extension = extractExtension(file.getOriginalFilename());

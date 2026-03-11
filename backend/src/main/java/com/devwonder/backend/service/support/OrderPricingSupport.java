@@ -11,9 +11,11 @@ import java.math.RoundingMode;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -37,23 +39,7 @@ public final class OrderPricingSupport {
     }
 
     public static int computeDiscountPercent(Order order, List<BulkDiscount> rules) {
-        if (order == null || order.getOrderItems() == null) {
-            return 0;
-        }
-        int totalItems = order.getOrderItems().stream()
-                .mapToInt(item -> item.getQuantity() == null ? 0 : item.getQuantity())
-                .sum();
-        if (totalItems <= 0) {
-            return 0;
-        }
-        return safeRules(rules).stream()
-                .filter(rule -> matchesOrder(rule, order, totalItems))
-                .sorted(ruleComparator())
-                .map(BulkDiscount::getDiscountPercent)
-                .filter(percent -> percent != null && percent.compareTo(BigDecimal.ZERO) > 0)
-                .mapToInt(OrderPricingSupport::normalizePercent)
-                .findFirst()
-                .orElse(0);
+        return computePricing(order, rules).discountPercent();
     }
 
     public static BigDecimal computeDiscountAmount(BigDecimal subtotal, int discountPercent) {
@@ -73,11 +59,7 @@ public final class OrderPricingSupport {
     }
 
     public static BigDecimal computeTotalAmount(Order order, List<BulkDiscount> rules) {
-        BigDecimal subtotal = computeSubtotal(order);
-        BigDecimal discountAmount = computeDiscountAmount(subtotal, computeDiscountPercent(order, rules));
-        return subtotal.subtract(discountAmount)
-                .add(computeVatAmount(subtotal.subtract(discountAmount)))
-                .add(BigDecimal.valueOf(safeShippingFee(order == null ? null : order.getShippingFee())));
+        return computePricing(order, rules).totalAmount();
     }
 
     public static PaymentStatus resolvePaymentStatus(Order order, List<BulkDiscount> rules) {
@@ -85,7 +67,7 @@ public final class OrderPricingSupport {
         if (order != null && order.getStatus() == OrderStatus.CANCELLED && paidAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return PaymentStatus.CANCELLED;
         }
-        BigDecimal totalAmount = computeTotalAmount(order, rules);
+        BigDecimal totalAmount = computePricing(order, rules).totalAmount();
         if (paidAmount.compareTo(totalAmount) >= 0 && totalAmount.compareTo(BigDecimal.ZERO) > 0) {
             return PaymentStatus.PAID;
         }
@@ -93,6 +75,50 @@ public final class OrderPricingSupport {
             return PaymentStatus.DEBT_RECORDED;
         }
         return PaymentStatus.PENDING;
+    }
+
+    public static PricingBreakdown computePricing(Order order, List<BulkDiscount> rules) {
+        BigDecimal subtotal = computeSubtotal(order);
+        if (subtotal.compareTo(BigDecimal.ZERO) <= 0) {
+            BigDecimal totalAmount = BigDecimal.valueOf(safeShippingFee(order == null ? null : order.getShippingFee()));
+            return new PricingBreakdown(BigDecimal.ZERO, 0, BigDecimal.ZERO, BigDecimal.ZERO, totalAmount);
+        }
+
+        OrderMetrics metrics = collectMetrics(order);
+        BulkDiscount globalRule = resolveGlobalRule(metrics.totalItems(), safeRules(rules));
+        Map<Long, BulkDiscount> productRules = resolveProductRules(metrics.productQuantities(), safeRules(rules));
+
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        if (order != null && order.getOrderItems() != null) {
+            for (OrderItem item : order.getOrderItems()) {
+                if (item == null || item.getProduct() == null || item.getProduct().getId() == null) {
+                    continue;
+                }
+                int quantity = safeQuantity(item.getQuantity());
+                if (quantity <= 0) {
+                    continue;
+                }
+                BigDecimal lineSubtotal = zeroIfNull(item.getUnitPrice()).multiply(BigDecimal.valueOf(quantity));
+                BulkDiscount appliedRule = productRules.getOrDefault(item.getProduct().getId(), globalRule);
+                int percent = appliedRule == null ? 0 : normalizePercent(appliedRule.getDiscountPercent());
+                if (percent <= 0) {
+                    continue;
+                }
+                discountAmount = discountAmount.add(computeDiscountAmount(lineSubtotal, percent));
+            }
+        }
+
+        int effectiveDiscountPercent = subtotal.compareTo(BigDecimal.ZERO) <= 0
+                ? 0
+                : discountAmount.multiply(BigDecimal.valueOf(100))
+                .divide(subtotal, 0, RoundingMode.HALF_UP)
+                .intValue();
+        BigDecimal totalAfterDiscount = subtotal.subtract(discountAmount);
+        BigDecimal vatAmount = computeVatAmount(totalAfterDiscount);
+        BigDecimal totalAmount = totalAfterDiscount
+                .add(vatAmount)
+                .add(BigDecimal.valueOf(safeShippingFee(order == null ? null : order.getShippingFee())));
+        return new PricingBreakdown(subtotal, effectiveDiscountPercent, discountAmount, vatAmount, totalAmount);
     }
 
     private static PaymentMethod defaultPaymentMethod(Order order) {
@@ -117,6 +143,57 @@ public final class OrderPricingSupport {
 
         Set<Long> orderProductIds = orderedProductIds(order);
         return orderProductIds.size() == 1 && orderProductIds.contains(ruleProductId);
+    }
+
+    private static BulkDiscount resolveGlobalRule(int totalItems, List<BulkDiscount> rules) {
+        if (totalItems <= 0) {
+            return null;
+        }
+        return rules.stream()
+                .filter(rule -> rule.getProduct() == null || rule.getProduct().getId() == null)
+                .filter(rule -> matchesQuantity(rule, totalItems))
+                .sorted(ruleComparator())
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static Map<Long, BulkDiscount> resolveProductRules(Map<Long, Integer> productQuantities, List<BulkDiscount> rules) {
+        Map<Long, BulkDiscount> productRules = new HashMap<>();
+        for (Map.Entry<Long, Integer> entry : productQuantities.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null || entry.getValue() <= 0) {
+                continue;
+            }
+            rules.stream()
+                    .filter(rule -> rule != null
+                            && rule.getProduct() != null
+                            && entry.getKey().equals(rule.getProduct().getId()))
+                    .filter(rule -> matchesQuantity(rule, entry.getValue()))
+                    .sorted(ruleComparator())
+                    .findFirst()
+                    .ifPresent(rule -> productRules.put(entry.getKey(), rule));
+        }
+        return productRules;
+    }
+
+    private static boolean matchesQuantity(BulkDiscount rule, int quantity) {
+        QuantityRange range = resolveRange(rule);
+        return range != null && range.matches(quantity);
+    }
+
+    private static OrderMetrics collectMetrics(Order order) {
+        int totalItems = 0;
+        Map<Long, Integer> productQuantities = new HashMap<>();
+        if (order != null && order.getOrderItems() != null) {
+            for (OrderItem item : order.getOrderItems()) {
+                if (item == null || item.getProduct() == null || item.getProduct().getId() == null) {
+                    continue;
+                }
+                int quantity = safeQuantity(item.getQuantity());
+                totalItems += quantity;
+                productQuantities.merge(item.getProduct().getId(), quantity, Integer::sum);
+            }
+        }
+        return new OrderMetrics(totalItems, productQuantities);
     }
 
     private static Set<Long> orderedProductIds(Order order) {
@@ -247,6 +324,22 @@ public final class OrderPricingSupport {
             return 0;
         }
         return Math.max(0, shippingFee);
+    }
+
+    private static int safeQuantity(Integer quantity) {
+        return quantity == null ? 0 : Math.max(0, quantity);
+    }
+
+    private record OrderMetrics(int totalItems, Map<Long, Integer> productQuantities) {
+    }
+
+    public record PricingBreakdown(
+            BigDecimal subtotal,
+            int discountPercent,
+            BigDecimal discountAmount,
+            BigDecimal vatAmount,
+            BigDecimal totalAmount
+    ) {
     }
 
     public record QuantityRange(Integer min, Integer max) {

@@ -51,8 +51,10 @@ import com.devwonder.backend.service.support.AdminDashboardSupport;
 import com.devwonder.backend.service.support.AdminIdentitySupport;
 import com.devwonder.backend.service.support.AdminOrderNotificationSupport;
 import com.devwonder.backend.service.support.AdminResponseMapper;
+import com.devwonder.backend.service.support.AccountValidationSupport;
 import com.devwonder.backend.service.support.AdminWriteSupport;
 import com.devwonder.backend.service.support.DealerPaymentSupport;
+import com.devwonder.backend.service.support.OrderInventorySupport;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import com.devwonder.backend.service.support.OrderStatusTransitionPolicy;
 import com.devwonder.backend.service.support.ProductSerialResponseMapper;
@@ -65,6 +67,8 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -73,7 +77,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AdminManagementService {
 
-    private static final String DEFAULT_ADMIN_PASSWORD = "123456";
     private static final String TEMP_PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#$%";
     private static final int TEMP_PASSWORD_LENGTH = 12;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -96,16 +99,22 @@ public class AdminManagementService {
     private final AdminOrderNotificationSupport adminOrderNotificationSupport;
     private final DealerPaymentSupport dealerPaymentSupport;
     private final WebSocketEventPublisher webSocketEventPublisher;
+    private final OrderInventorySupport orderInventorySupport;
 
     @Value("${sepay.enabled:false}")
     private boolean sepayEnabled;
 
     @Transactional(readOnly = true)
     public List<AdminProductResponse> getProducts() {
-        return productRepository.findAll().stream()
-                .sorted(Comparator.comparing(Product::getUpdatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+        return productRepository.findByIsDeletedFalseOrderByUpdatedAtDesc().stream()
                 .map(AdminResponseMapper::toProductResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AdminProductResponse> getProducts(Pageable pageable) {
+        return productRepository.findByIsDeletedFalse(pageable)
+                .map(AdminResponseMapper::toProductResponse);
     }
 
     @Transactional
@@ -163,6 +172,9 @@ public class AdminManagementService {
         OrderStatus previousStatus = order.getStatus();
         OrderStatusTransitionPolicy.assertAdminTransitionAllowed(previousStatus, request.status());
         order.setStatus(request.status());
+        if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
+            orderInventorySupport.restoreStock(order);
+        }
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
         Order saved = orderRepository.save(order);
@@ -187,7 +199,7 @@ public class AdminManagementService {
     public AdminOrderResponse recordOrderPayment(Long id, RecordPaymentRequest request) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
-        dealerPaymentSupport.recordAdminPayment(order, request, sepayEnabled);
+        dealerPaymentSupport.recordAdminPayment(order, request, sepayEnabled, activeDiscountRules());
         return AdminResponseMapper.toOrderResponse(
                 orderRepository.findById(id).orElseThrow(),
                 activeDiscountRules()
@@ -280,9 +292,12 @@ public class AdminManagementService {
     @Transactional
     @CacheEvict(cacheNames = CacheNames.PUBLIC_DEALERS, allEntries = true)
     public AdminDealerAccountResponse createDealerAccount(AdminDealerAccountUpsertRequest request) {
-        String email = requireNonBlank(request.email(), "email");
+        String email = requireEmail(request.email());
         String phone = requireNonBlank(request.phone(), "phone");
-        if (accountRepository.findByEmail(email).isPresent()) {
+        accountRepository.findByUsername(email).ifPresent(existing -> {
+            throw new ConflictException("Email already exists");
+        });
+        if (accountRepository.findByEmailIgnoreCase(email).isPresent()) {
             throw new ConflictException("Email already exists");
         }
         if (dealerRepository.existsByPhoneAndIdNot(phone, -1L)) {
@@ -313,10 +328,15 @@ public class AdminManagementService {
     public AdminDealerAccountResponse updateDealerAccount(Long id, AdminDealerAccountUpsertRequest request) {
         Dealer dealer = dealerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Dealer account not found"));
-        String email = requireNonBlank(request.email(), "email");
+        String email = requireEmail(request.email());
         String phone = requireNonBlank(request.phone(), "phone");
         String name = requireNonBlank(request.name(), "name");
-        accountRepository.findByEmail(email)
+        accountRepository.findByUsername(email)
+                .filter(existing -> !existing.getId().equals(id))
+                .ifPresent(existing -> {
+                    throw new ConflictException("Email already exists");
+                });
+        accountRepository.findByEmailIgnoreCase(email)
                 .filter(existing -> !existing.getId().equals(id))
                 .ifPresent(existing -> {
                     throw new ConflictException("Email already exists");
@@ -368,17 +388,18 @@ public class AdminManagementService {
         String name = requireNonBlank(request.name(), "name");
         String roleTitle = requireNonBlank(request.role(), "role");
         AdminIdentitySupport.UniqueIdentity identity = adminIdentitySupport.generateUniqueIdentity(name, "staff");
+        String temporaryPassword = generateTemporaryPassword();
 
         Admin admin = new Admin();
         admin.setUsername(identity.username());
         admin.setEmail(identity.email());
-        admin.setPassword(passwordEncoder.encode(DEFAULT_ADMIN_PASSWORD));
+        admin.setPassword(passwordEncoder.encode(temporaryPassword));
         admin.setDisplayName(name);
         admin.setRoleTitle(roleTitle);
         admin.setUserStatus(request.status() == null ? StaffUserStatus.PENDING : request.status());
         admin.setRequireLoginEmailConfirmation(Boolean.TRUE);
         admin.setRoles(new HashSet<>(List.of(resolveRole("ADMIN", "Admin role"))));
-        return AdminResponseMapper.toStaffUserResponse(adminRepository.save(admin));
+        return AdminResponseMapper.toStaffUserResponse(adminRepository.save(admin), temporaryPassword);
     }
 
     @Transactional
@@ -388,6 +409,7 @@ public class AdminManagementService {
         if (!passwordEncoder.matches(request.currentPassword(), admin.getPassword())) {
             throw new BadRequestException("Current password is incorrect");
         }
+        AccountValidationSupport.assertStrongPassword(request.newPassword(), "newPassword");
         admin.setPassword(passwordEncoder.encode(request.newPassword()));
         admin.setRequireLoginEmailConfirmation(Boolean.FALSE);
         adminRepository.save(admin);
@@ -448,11 +470,7 @@ public class AdminManagementService {
     }
 
     private String normalize(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
+        return AccountValidationSupport.normalize(value);
     }
 
     private String requireNonBlank(String value, String fieldName) {
@@ -488,7 +506,7 @@ public class AdminManagementService {
         if (!mailService.isEnabled()) {
             throw new BadRequestException("Email service must be configured to provision dealer accounts");
         }
-        if (normalize(email) == null) {
+        if (AccountValidationSupport.normalizeEmail(email) == null) {
             throw new BadRequestException("email must not be blank");
         }
     }
@@ -521,6 +539,14 @@ public class AdminManagementService {
                 Vui lòng đăng nhập và đổi mật khẩu ngay sau lần đăng nhập đầu tiên.
                 """.formatted(dealerName, username, temporaryPassword);
         mailService.sendText(email, subject, body.trim());
+    }
+
+    private String requireEmail(String value) {
+        String email = AccountValidationSupport.normalizeEmail(value);
+        if (email == null) {
+            throw new BadRequestException("email must not be blank");
+        }
+        return email;
     }
 
     private void publishOrderStatusRealtime(Order order, OrderStatus previousStatus) {

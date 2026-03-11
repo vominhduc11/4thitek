@@ -37,6 +37,7 @@ import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
+import com.devwonder.backend.service.support.AccountValidationSupport;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -127,6 +128,11 @@ public class AdminOperationsService {
     public AdminWarrantyResponse updateWarrantyStatus(Long id, UpdateAdminWarrantyStatusRequest request) {
         WarrantyRegistration registration = warrantyRegistrationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Warranty registration not found"));
+        if (request.status() == WarrantyStatus.ACTIVE
+                && registration.getWarrantyEnd() != null
+                && registration.getWarrantyEnd().isBefore(Instant.now())) {
+            throw new BadRequestException("Cannot activate a warranty that has already expired");
+        }
 
         registration.setStatus(request.status());
         ProductSerial productSerial = registration.getProductSerial();
@@ -243,9 +249,9 @@ public class AdminOperationsService {
     private List<Long> resolveRecipientIds(CreateAdminNotificationRequest request) {
         String audience = normalizeAudience(request.audience());
         return switch (audience) {
-            case "DEALERS" -> dealerRepository.findAll().stream().map(Dealer::getId).toList();
-            case "CUSTOMERS" -> customerRepository.findAll().stream().map(Customer::getId).toList();
-            case "ALL_ACCOUNTS" -> accountRepository.findAll().stream().map(Account::getId).toList();
+            case "DEALERS" -> dealerRepository.findAllIds();
+            case "CUSTOMERS" -> customerRepository.findAllIds();
+            case "ALL_ACCOUNTS" -> accountRepository.findAllIds();
             case "ACCOUNTS" -> {
                 List<Long> accountIds = request.accountIds() == null ? List.of() : request.accountIds().stream()
                         .filter(id -> id != null)
@@ -497,11 +503,7 @@ public class AdminOperationsService {
     }
 
     private String normalize(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
+        return AccountValidationSupport.normalize(value);
     }
 
     private String requireNonBlank(String value, String fieldName) {

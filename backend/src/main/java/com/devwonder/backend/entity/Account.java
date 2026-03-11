@@ -1,6 +1,7 @@
 package com.devwonder.backend.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -11,7 +12,10 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import com.devwonder.backend.entity.enums.CustomerStatus;
+import com.devwonder.backend.entity.enums.StaffUserStatus;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.HashSet;
@@ -63,6 +67,9 @@ public class Account implements UserDetails {
     )
     private Set<Role> roles = new HashSet<>();
 
+    @OneToMany(mappedBy = "account", cascade = CascadeType.REMOVE)
+    private Set<PasswordResetToken> passwordResetTokens = new HashSet<>();
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return roles.stream()
@@ -97,6 +104,12 @@ public class Account implements UserDetails {
 
     @Override
     public boolean isEnabled() {
+        if (this instanceof Dealer dealer) {
+            return dealer.getCustomerStatus() == null || dealer.getCustomerStatus() == CustomerStatus.ACTIVE;
+        }
+        if (this instanceof Admin admin) {
+            return admin.getUserStatus() == null || admin.getUserStatus() == StaffUserStatus.ACTIVE;
+        }
         return true;
     }
 

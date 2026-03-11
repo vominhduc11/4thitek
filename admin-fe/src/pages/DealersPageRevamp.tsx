@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   EmptyState,
   ErrorState,
+  GhostButton,
   LoadingRows,
   PagePanel,
   PrimaryButton,
@@ -14,6 +15,7 @@ import {
   cardTitleClass,
   formCardClass,
   inputClass,
+  labelClass,
   tableCardClass,
   tableHeadClass,
   tableMetaClass,
@@ -139,6 +141,7 @@ function DealersPageRevamp() {
     revenue: '',
     creditLimit: '',
   })
+  const toolbarSearchClass = 'w-full sm:max-w-sm lg:w-72 xl:w-80'
 
   const normalizedQuery = query.trim().toLowerCase()
   const filteredDealers = useMemo(
@@ -222,23 +225,23 @@ function DealersPageRevamp() {
 
   return (
     <PagePanel>
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h3 className={cardTitleClass}>{copy.title}</h3>
           <p className={bodyTextClass}>{copy.description}</p>
         </div>
-        <div className="flex w-full flex-col gap-3 sm:flex-row xl:w-auto">
+        <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
           <SearchInput
             id="dealers-search"
             label={copy.searchLabel}
             placeholder={copy.searchPlaceholder}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="w-full sm:w-80"
+            className={toolbarSearchClass}
           />
           <select
             aria-label={copy.status}
-            className={`${inputClass} w-full sm:w-auto`}
+            className={`${inputClass} w-full sm:max-w-[14rem] lg:w-56`}
             onChange={(event) => setStatusFilter(event.target.value as 'all' | DealerStatus)}
             value={statusFilter}
           >
@@ -274,72 +277,85 @@ function DealersPageRevamp() {
         <div className={`${formCardClass} mt-6`}>
           <p className="text-sm font-semibold text-[var(--ink)]">{copy.createTitle}</p>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <input
-              className={inputClass}
-              onChange={(event) => setForm((previous) => ({ ...previous, name: event.target.value }))}
-              placeholder={copy.dealerName}
-              value={form.name}
-            />
-            <select
-              aria-label={copy.tier}
-              className={inputClass}
-              onChange={(event) =>
-                setForm((previous) => ({ ...previous, tier: event.target.value as DealerTier }))
-              }
-              value={form.tier}
-            >
-              {DEALER_TIERS.map((tier) => (
-                <option key={tier} value={tier}>
-                  {dealerTierLabel[tier]}
-                </option>
-              ))}
-            </select>
-            <input
-              className={inputClass}
-              onChange={(event) => setForm((previous) => ({ ...previous, email: event.target.value }))}
-              placeholder={copy.email}
-              type="email"
-              value={form.email}
-            />
-            <input
-              className={inputClass}
-              onChange={(event) => setForm((previous) => ({ ...previous, phone: event.target.value }))}
-              placeholder={copy.phone}
-              value={form.phone}
-            />
-            <input
-              className={`${inputClass} md:col-span-2`}
-              min="0"
-              onChange={(event) =>
-                setForm((previous) => ({ ...previous, revenue: event.target.value }))
-              }
-              placeholder={copy.revenue}
-              type="number"
-              value={form.revenue}
-            />
-            <input
-              className={`${inputClass} md:col-span-2`}
-              min="0"
-              onChange={(event) =>
-                setForm((previous) => ({ ...previous, creditLimit: event.target.value }))
-              }
-              placeholder={copy.creditLimit}
-              type="number"
-              value={form.creditLimit}
-            />
+            <label className="space-y-2">
+              <span className={labelClass}>{copy.dealerName}</span>
+              <input
+                className={inputClass}
+                onChange={(event) => setForm((previous) => ({ ...previous, name: event.target.value }))}
+                value={form.name}
+              />
+            </label>
+            <label className="space-y-2">
+              <span className={labelClass}>{copy.tier}</span>
+              <select
+                aria-label={copy.tier}
+                className={inputClass}
+                onChange={(event) =>
+                  setForm((previous) => ({ ...previous, tier: event.target.value as DealerTier }))
+                }
+                value={form.tier}
+              >
+                {DEALER_TIERS.map((tier) => (
+                  <option key={tier} value={tier}>
+                    {dealerTierLabel[tier]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-2">
+              <span className={labelClass}>{copy.email}</span>
+              <input
+                className={inputClass}
+                onChange={(event) => setForm((previous) => ({ ...previous, email: event.target.value }))}
+                type="email"
+                value={form.email}
+              />
+            </label>
+            <label className="space-y-2">
+              <span className={labelClass}>{copy.phone}</span>
+              <input
+                className={inputClass}
+                onChange={(event) => setForm((previous) => ({ ...previous, phone: event.target.value }))}
+                value={form.phone}
+              />
+            </label>
+            <label className="space-y-2 md:col-span-2">
+              <span className={labelClass}>{copy.revenue}</span>
+              <input
+                className={inputClass}
+                min="0"
+                onChange={(event) =>
+                  setForm((previous) => ({ ...previous, revenue: event.target.value }))
+                }
+                type="number"
+                value={form.revenue}
+              />
+            </label>
+            <label className="space-y-2 md:col-span-2">
+              <span className={labelClass}>{copy.creditLimit}</span>
+              <input
+                className={inputClass}
+                min="0"
+                onChange={(event) =>
+                  setForm((previous) => ({ ...previous, creditLimit: event.target.value }))
+                }
+                type="number"
+                value={form.creditLimit}
+              />
+            </label>
           </div>
           {formError ? <p className="mt-2 text-sm text-rose-600">{formError}</p> : null}
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <PrimaryButton className="w-full sm:w-auto" onClick={handleCreate} type="button">
               {copy.save}
             </PrimaryButton>
-            <PrimaryButton
-              className="w-full bg-slate-900 shadow-[0_16px_30px_rgba(15,23,42,0.22)] hover:bg-slate-800 sm:w-auto"
+            <GhostButton
+              className="w-full sm:w-auto"
               onClick={() => setShowCreateForm(false)}
               type="button"
             >
               {copy.cancel}
-            </PrimaryButton>
+            </GhostButton>
           </div>
         </div>
       ) : null}
@@ -490,7 +506,7 @@ function DealersPageRevamp() {
                       >
                         <select
                           aria-label={`${copy.status} ${dealer.id}`}
-                          className={`${inputClass} h-9 w-full`}
+                          className={`${inputClass} min-h-11 w-full`}
                           onChange={async (event) => {
                             const next = event.target.value as DealerStatus
                             if (next === dealer.status) {

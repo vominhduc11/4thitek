@@ -131,14 +131,14 @@ public class DealerPortalService {
     @Transactional
     public DealerOrderResponse createOrder(String username, CreateDealerOrderRequest request) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
-        return dealerOrderWorkflowSupport.createOrder(dealer, request);
+        return dealerOrderWorkflowSupport.createOrder(dealer, request, activeDiscountRules());
     }
 
     @Transactional
     public DealerOrderResponse updateOrderStatus(String username, Long orderId, UpdateDealerOrderStatusRequest request) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         Order order = dealerPortalLookupSupport.requireDealerOrder(dealer.getId(), orderId);
-        return dealerOrderWorkflowSupport.updateOrderStatus(order, request);
+        return dealerOrderWorkflowSupport.updateOrderStatus(order, request, activeDiscountRules());
     }
 
     @Transactional(readOnly = true)
@@ -152,7 +152,7 @@ public class DealerPortalService {
     public DealerPaymentResponse recordPayment(String username, Long orderId, RecordPaymentRequest request) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         Order order = dealerPortalLookupSupport.requireDealerOrder(dealer.getId(), orderId);
-        return dealerPaymentSupport.recordPayment(dealer, order, request);
+        return dealerPaymentSupport.recordPayment(dealer, order, request, activeDiscountRules());
     }
 
     @Transactional(readOnly = true)
@@ -277,6 +277,10 @@ public class DealerPortalService {
     public void changePassword(String username, String currentPassword, String newPassword) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         dealerAccountSupport.changePassword(dealer, currentPassword, newPassword);
+    }
+
+    private List<BulkDiscount> activeDiscountRules() {
+        return bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
     }
 
 }

@@ -24,6 +24,7 @@ import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.RoleRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
+import com.devwonder.backend.service.support.AccountValidationSupport;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -179,12 +180,16 @@ public class DealerWarrantyManagementService {
         Instant warrantyStart = resolveWarrantyStart(request.warrantyStart(), registration.getWarrantyStart(), creating);
         registration.setWarrantyStart(warrantyStart);
         registration.setPurchaseDate(warrantyStart);
-        registration.setWarrantyEnd(resolveWarrantyEnd(request.warrantyEnd(), warrantyStart, productSerial));
+        Instant warrantyEnd = resolveWarrantyEnd(request.warrantyEnd(), warrantyStart, productSerial);
+        registration.setWarrantyEnd(warrantyEnd);
         registration.setWarrantyCode(buildWarrantyCode(productSerial));
 
         WarrantyStatus status = request.status() != null
                 ? request.status()
                 : (registration.getStatus() == null ? WarrantyStatus.ACTIVE : registration.getStatus());
+        if (status == WarrantyStatus.ACTIVE && warrantyEnd != null && warrantyEnd.isBefore(Instant.now())) {
+            status = WarrantyStatus.EXPIRED;
+        }
         registration.setStatus(status);
 
         productSerial.setDealer(dealer);
@@ -362,9 +367,15 @@ public class DealerWarrantyManagementService {
     }
 
     private String buildWarrantyCode(ProductSerial productSerial) {
-        String serial = productSerial.getSerial() == null ? "UNKNOWN" : productSerial.getSerial().replaceAll("[^A-Za-z0-9]", "");
-        String suffix = serial.length() <= 8 ? serial : serial.substring(serial.length() - 8);
-        return "WAR-" + suffix.toUpperCase();
+        String serial = productSerial.getSerial() == null
+                ? "UNKNOWN"
+                : productSerial.getSerial().replaceAll("[^A-Za-z0-9]", "");
+        String suffix = serial.length() <= 4 ? serial : serial.substring(serial.length() - 4);
+        Long productSerialId = productSerial.getId();
+        if (productSerialId == null) {
+            return "WAR-" + suffix.toUpperCase() + "-" + Instant.now().toEpochMilli();
+        }
+        return "WAR-" + suffix.toUpperCase() + "-" + productSerialId;
     }
 
     private ResolvedCustomer findOrCreateCustomer(CreateWarrantyRegistrationRequest request, String customerEmail) {
@@ -389,6 +400,7 @@ public class DealerWarrantyManagementService {
         }
 
         String customerPhone = normalize(request.customerPhone());
+        AccountValidationSupport.assertOptionalVietnamPhone(customerPhone, "customerPhone");
         if (customerPhone != null) {
             customerRepository.findByPhone(customerPhone).ifPresent(existing -> {
                 throw new ConflictException("Customer phone already exists");
@@ -453,11 +465,7 @@ public class DealerWarrantyManagementService {
     }
 
     private String normalize(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
+        return AccountValidationSupport.normalize(value);
     }
 
     private record ResolvedCustomer(Customer customer, boolean created, String generatedPassword) {

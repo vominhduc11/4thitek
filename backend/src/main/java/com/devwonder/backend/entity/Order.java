@@ -86,11 +86,11 @@ public class Order {
     @JoinColumn(name = "id_dealer")
     private Dealer dealer;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "order", cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE})
     @OrderBy("id ASC")
     private Set<OrderItem> orderItems = new HashSet<>();
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "order", cascade = CascadeType.REMOVE)
     @OrderBy("paidAt DESC, createdAt DESC")
     private Set<Payment> payments = new HashSet<>();
 }

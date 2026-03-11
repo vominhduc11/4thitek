@@ -77,6 +77,18 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.getProducts()));
     }
 
+    @GetMapping("/products/page")
+    public ResponseEntity<ApiResponse<PagedResponse<AdminProductResponse>>> productsPaged(
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sortBy", required = false) String sortBy,
+            @RequestParam(name = "sortDir", required = false) String sortDir
+    ) {
+        Pageable pageable = PaginationUtils.toPageable(page, size, sortBy, sortDir, "updatedAt");
+        Page<AdminProductResponse> result = adminManagementService.getProducts(pageable);
+        return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "updatedAt")));
+    }
+
     @PostMapping("/products")
     public ResponseEntity<ApiResponse<AdminProductResponse>> createProduct(
             @Valid @RequestBody AdminProductUpsertRequest request

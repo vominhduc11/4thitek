@@ -24,6 +24,7 @@ import {
   bodyTextClass,
   cardTitleClass,
   inputClass,
+  tableActionSelectClass,
   tableCardClass,
   tableHeadClass,
   tableMetaClass,
@@ -37,6 +38,14 @@ const statusTone = {
   EXPIRED: 'warning',
   VOID: 'danger',
 } as const
+
+const getRemainingLabel = (
+  remainingDays: number | null | undefined,
+  labels: { expired: string; days: string },
+) =>
+  remainingDays != null && remainingDays <= 0
+    ? labels.expired
+    : `${remainingDays ?? 0} ${labels.days}`
 
 const copyByLanguage = {
   vi: {
@@ -180,19 +189,19 @@ function WarrantiesPageRevamp() {
 
   return (
     <PagePanel>
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h3 className={cardTitleClass}>{copy.title}</h3>
           <p className={bodyTextClass}>{copy.description}</p>
         </div>
-        <div className="flex w-full flex-col gap-3 sm:flex-row xl:w-auto">
+        <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
           <SearchInput
             id="warranties-search"
             label={copy.searchLabel}
             placeholder={copy.searchPlaceholder}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="w-full sm:w-80"
+            className="w-full sm:max-w-sm lg:w-72 xl:w-80"
           />
           <select
             aria-label={copy.status}
@@ -257,7 +266,7 @@ function WarrantiesPageRevamp() {
                     </div>
                   </div>
                   <p className={`mt-3 ${tableMetaClass}`}>
-                    {copy.remaining}: {item.remainingDays ?? 0} {copy.days}
+                    {copy.remaining}: {getRemainingLabel(item.remainingDays, copy)}
                   </p>
                   <select
                     aria-label={`${copy.status} ${item.id}`}
@@ -328,7 +337,7 @@ function WarrantiesPageRevamp() {
                           {item.status ?? 'ACTIVE'}
                         </StatusBadge>
                         <p className={`mt-1 ${tableMetaClass}`}>
-                          {copy.remaining}: {item.remainingDays ?? 0} {copy.days}
+                          {copy.remaining}: {getRemainingLabel(item.remainingDays, copy)}
                         </p>
                       </td>
                       <td className="px-3 py-3 text-sm">
@@ -337,7 +346,7 @@ function WarrantiesPageRevamp() {
                       <td className="rounded-r-2xl px-3 py-3">
                         <select
                           aria-label={`${copy.status} ${item.id}`}
-                          className="h-9 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-2 text-xs font-semibold text-[var(--ink)]"
+                          className={tableActionSelectClass}
                           value={item.status ?? 'ACTIVE'}
                           onChange={async (event) => {
                             const next = event.target.value as BackendWarrantyStatus

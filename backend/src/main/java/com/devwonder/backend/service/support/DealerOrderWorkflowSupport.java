@@ -8,15 +8,12 @@ import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.OrderItem;
 import com.devwonder.backend.entity.Product;
-import com.devwonder.backend.entity.enums.DiscountRuleStatus;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
-import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.repository.OrderRepository;
-import com.devwonder.backend.repository.ProductRepository;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -30,12 +27,15 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class DealerOrderWorkflowSupport {
 
-    private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
-    private final BulkDiscountRepository bulkDiscountRepository;
+    private final OrderInventorySupport orderInventorySupport;
     private final DealerOrderNotificationSupport dealerOrderNotificationSupport;
 
-    public DealerOrderResponse createOrder(Dealer dealer, CreateDealerOrderRequest request) {
+    public DealerOrderResponse createOrder(
+            Dealer dealer,
+            CreateDealerOrderRequest request,
+            List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
+    ) {
         Order order = new Order();
         order.setDealer(dealer);
         order.setOrderCode(DealerOrderSupport.buildOrderCode(dealer.getId()));
@@ -50,10 +50,13 @@ public class DealerOrderWorkflowSupport {
         order.setPaidAmount(BigDecimal.ZERO);
 
         Map<Long, Integer> requestedQuantities = new LinkedHashMap<>();
+        Map<Long, Product> lockedProducts = orderInventorySupport.lockProductsForRequests(request.items());
         Set<OrderItem> items = new LinkedHashSet<>();
         for (CreateDealerOrderItemRequest itemRequest : request.items()) {
-            Product product = productRepository.findById(itemRequest.productId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+            Product product = lockedProducts.get(itemRequest.productId());
+            if (product == null) {
+                throw new ResourceNotFoundException("Product not found");
+            }
             requestedQuantities.merge(product.getId(), itemRequest.quantity(), Integer::sum);
             OrderItem item = new OrderItem();
             item.setOrder(order);
@@ -62,9 +65,8 @@ public class DealerOrderWorkflowSupport {
             item.setUnitPrice(DealerOrderSupport.resolveUnitPrice(itemRequest.unitPrice(), product));
             items.add(item);
         }
-        assertStockAvailable(requestedQuantities, items);
+        orderInventorySupport.reserveStock(requestedQuantities, lockedProducts);
         order.setOrderItems(items);
-        List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules = activeDiscountRules();
         order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
         assertCreditLimitAvailable(dealer, order, activeDiscountRules);
 
@@ -73,11 +75,17 @@ public class DealerOrderWorkflowSupport {
         return DealerPortalResponseMapper.toOrderResponse(saved, activeDiscountRules);
     }
 
-    public DealerOrderResponse updateOrderStatus(Order order, UpdateDealerOrderStatusRequest request) {
-        List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules = activeDiscountRules();
+    public DealerOrderResponse updateOrderStatus(
+            Order order,
+            UpdateDealerOrderStatusRequest request,
+            List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
+    ) {
         OrderStatusTransitionPolicy.assertDealerTransitionAllowed(order.getStatus(), request.status());
         OrderStatus previousStatus = order.getStatus();
         order.setStatus(request.status());
+        if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
+            orderInventorySupport.restoreStock(order);
+        }
         if (request.status() == OrderStatus.CANCELLED
                 && DealerOrderSupport.zeroIfNull(order.getPaidAmount()).compareTo(BigDecimal.ZERO) <= 0) {
             order.setPaymentStatus(PaymentStatus.CANCELLED);
@@ -103,9 +111,13 @@ public class DealerOrderWorkflowSupport {
         if (creditLimit.compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }
-        BigDecimal currentOutstandingDebt = orderRepository.findVisibleByDealerIdOrderByCreatedAtDesc(dealer.getId()).stream()
-                .filter(order -> order.getStatus() != OrderStatus.CANCELLED)
-                .filter(order -> order.getPaymentMethod() == PaymentMethod.DEBT)
+        BigDecimal currentOutstandingDebt = orderRepository
+                .findVisibleByDealerIdAndStatusNotAndPaymentMethodOrderByCreatedAtDesc(
+                        dealer.getId(),
+                        OrderStatus.CANCELLED,
+                        PaymentMethod.DEBT
+                )
+                .stream()
                 .map(order -> outstandingAmount(order, activeDiscountRules))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal projectedOutstandingDebt = currentOutstandingDebt.add(outstandingAmount(draftOrder, activeDiscountRules));
@@ -123,24 +135,7 @@ public class DealerOrderWorkflowSupport {
                 .max(BigDecimal.ZERO);
     }
 
-    private void assertStockAvailable(Map<Long, Integer> requestedQuantities, Set<OrderItem> items) {
-        for (OrderItem item : items) {
-            if (item == null || item.getProduct() == null || item.getProduct().getId() == null) {
-                continue;
-            }
-            Integer requestedQuantity = requestedQuantities.getOrDefault(item.getProduct().getId(), 0);
-            int availableStock = Math.max(0, item.getProduct().getStock() == null ? 0 : item.getProduct().getStock());
-            if (requestedQuantity > availableStock) {
-                throw new BadRequestException("Insufficient stock for product " + item.getProduct().getName());
-            }
-        }
-    }
-
     private BigDecimal zeroIfNull(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
-    }
-
-    private List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules() {
-        return bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
     }
 }

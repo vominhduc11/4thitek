@@ -77,9 +77,9 @@
     outline-offset: 2px;
   }
 
-  .modal-form :is(input, select, textarea):focus {
-    outline: none;
-    box-shadow: none;
+  .modal-form :is(input, select, textarea):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .modal-form .richtext-editor .ql-toolbar.ql-snow {
@@ -102,8 +102,8 @@
   }
 
   .modal-form .richtext-editor .ql-container.ql-snow:focus-within {
-    border-color: var(--border);
-    box-shadow: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
   }
 
   .modal-form .richtext-editor .ql-toolbar.ql-snow button {

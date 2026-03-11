@@ -16,9 +16,11 @@ import com.devwonder.backend.entity.enums.WarrantyStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ConflictException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
+import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.CustomerRepository;
 import com.devwonder.backend.repository.NotifyRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
+import com.devwonder.backend.service.support.AccountValidationSupport;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Instant;
@@ -36,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CustomerPortalService {
 
+    private final AccountRepository accountRepository;
     private final CustomerRepository customerRepository;
     private final WarrantyRegistrationRepository warrantyRegistrationRepository;
     private final NotificationService notificationService;
@@ -61,9 +64,7 @@ public class CustomerPortalService {
 
         if (request.phone() != null) {
             String phone = normalize(request.phone());
-            if (phone == null) {
-                throw new BadRequestException("phone must not be blank");
-            }
+            AccountValidationSupport.assertVietnamPhone(phone, "phone");
             if (customerRepository.existsByPhoneAndIdNot(phone, customer.getId())) {
                 throw new ConflictException("Phone already exists");
             }
@@ -71,7 +72,16 @@ public class CustomerPortalService {
         }
 
         if (request.email() != null) {
-            customer.setEmail(normalize(request.email()));
+            String email = AccountValidationSupport.normalizeEmail(request.email());
+            if (email == null) {
+                throw new BadRequestException("email must not be blank");
+            }
+            accountRepository.findByEmailIgnoreCase(email)
+                    .filter(existing -> !existing.getId().equals(customer.getId()))
+                    .ifPresent(existing -> {
+                        throw new ConflictException("Email already exists");
+                    });
+            customer.setEmail(email);
         }
 
         if (request.avatarUrl() != null) {
@@ -91,6 +101,7 @@ public class CustomerPortalService {
         if (!passwordEncoder.matches(request.currentPassword(), customer.getPassword())) {
             throw new BadRequestException("Current password is incorrect");
         }
+        AccountValidationSupport.assertStrongPassword(request.newPassword(), "newPassword");
         customer.setPassword(passwordEncoder.encode(request.newPassword()));
         customerRepository.save(customer);
     }
@@ -245,11 +256,7 @@ public class CustomerPortalService {
     }
 
     private String normalize(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
+        return AccountValidationSupport.normalize(value);
     }
 
     private boolean isValidUrl(String value) {

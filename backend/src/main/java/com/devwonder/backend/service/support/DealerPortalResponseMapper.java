@@ -52,14 +52,8 @@ public final class DealerPortalResponseMapper {
         List<DealerOrderItemResponse> items = order.getOrderItems() == null
                 ? List.of()
                 : order.getOrderItems().stream().map(DealerPortalResponseMapper::toOrderItemResponse).toList();
-        BigDecimal subtotal = OrderPricingSupport.computeSubtotal(order);
-        int discountPercent = OrderPricingSupport.computeDiscountPercent(order, rules);
-        BigDecimal discountAmount = OrderPricingSupport.computeDiscountAmount(subtotal, discountPercent);
-        BigDecimal vatAmount = OrderPricingSupport.computeVatAmount(subtotal.subtract(discountAmount));
+        OrderPricingSupport.PricingBreakdown pricing = OrderPricingSupport.computePricing(order, rules);
         int shippingFee = DealerOrderSupport.safeShippingFee(order.getShippingFee());
-        BigDecimal totalAmount = subtotal.subtract(discountAmount)
-                .add(vatAmount)
-                .add(BigDecimal.valueOf(shippingFee));
         BigDecimal paidAmount = DealerOrderSupport.zeroIfNull(order.getPaidAmount());
         return new DealerOrderResponse(
                 order.getId(),
@@ -68,14 +62,14 @@ public final class DealerPortalResponseMapper {
                 DealerOrderSupport.defaultPaymentMethod(order),
                 order.getPaymentStatus(),
                 paidAmount,
-                subtotal,
-                discountPercent,
-                discountAmount,
+                pricing.subtotal(),
+                pricing.discountPercent(),
+                pricing.discountAmount(),
                 VAT_PERCENT,
-                vatAmount,
+                pricing.vatAmount(),
                 shippingFee,
-                totalAmount,
-                totalAmount.subtract(paidAmount).max(BigDecimal.ZERO),
+                pricing.totalAmount(),
+                pricing.totalAmount().subtract(paidAmount).max(BigDecimal.ZERO),
                 order.getReceiverName(),
                 order.getReceiverAddress(),
                 order.getReceiverPhone(),

@@ -59,7 +59,7 @@ class PasswordResetServiceTests {
         Account account = new Account();
         account.setUsername("reset-user");
         account.setEmail("reset-user@example.com");
-        account.setPassword(passwordEncoder.encode("old-password"));
+        account.setPassword(passwordEncoder.encode("OldPass#123"));
         accountRepository.save(account);
 
         String message = passwordResetService.requestReset("reset-user@example.com");
@@ -76,17 +76,17 @@ class PasswordResetServiceTests {
         Account account = new Account();
         account.setUsername("reset-user-2");
         account.setEmail("reset-user-2@example.com");
-        account.setPassword(passwordEncoder.encode("old-password"));
+        account.setPassword(passwordEncoder.encode("OldPass#123"));
         accountRepository.save(account);
 
         passwordResetService.requestReset("reset-user-2@example.com");
         PasswordResetToken token = passwordResetTokenRepository.findAll().get(0);
 
-        String message = passwordResetService.resetPassword(token.getToken(), "new-password");
+        String message = passwordResetService.resetPassword(token.getToken(), "NewPass#456");
         Account updatedAccount = accountRepository.findById(account.getId()).orElseThrow();
 
         assertThat(message).isEqualTo("Password reset successful");
-        assertThat(passwordEncoder.matches("new-password", updatedAccount.getPassword())).isTrue();
+        assertThat(passwordEncoder.matches("NewPass#456", updatedAccount.getPassword())).isTrue();
         assertThat(passwordResetTokenRepository.findAll()).isEmpty();
     }
 }

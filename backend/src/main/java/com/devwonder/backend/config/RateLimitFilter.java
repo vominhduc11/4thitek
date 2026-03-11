@@ -12,7 +12,9 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -22,10 +24,16 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final RateLimitProperties properties;
     private final ObjectMapper objectMapper;
     private final Map<String, WindowState> windows = new ConcurrentHashMap<>();
+    private final long cleanupGraceSeconds;
 
-    public RateLimitFilter(RateLimitProperties properties, ObjectMapper objectMapper) {
+    public RateLimitFilter(
+            RateLimitProperties properties,
+            ObjectMapper objectMapper,
+            @Value("${app.rate-limit.cleanup-grace-seconds:300}") long cleanupGraceSeconds
+    ) {
         this.properties = properties;
         this.objectMapper = objectMapper;
+        this.cleanupGraceSeconds = Math.max(60L, cleanupGraceSeconds);
     }
 
     @Override
@@ -46,12 +54,16 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         String key = rule.bucketKey() + ":" + clientKey(request);
-        WindowState state = windows.computeIfAbsent(key, ignored -> new WindowState(Instant.now(), new AtomicInteger()));
+        WindowState state = windows.computeIfAbsent(
+                key,
+                ignored -> new WindowState(Instant.now(), new AtomicInteger(), rule.windowSeconds(), Instant.now())
+        );
         synchronized (state) {
             Instant now = Instant.now();
             if (Duration.between(state.windowStartedAt(), now).getSeconds() >= rule.windowSeconds()) {
                 state.reset(now);
             }
+            state.touch(now);
             int next = state.counter().incrementAndGet();
             if (next > rule.requestLimit()) {
                 response.setStatus(429);
@@ -92,16 +104,31 @@ public class RateLimitFilter extends OncePerRequestFilter {
         return request.getRemoteAddr();
     }
 
+    @Scheduled(fixedDelayString = "${app.rate-limit.cleanup-interval-ms:300000}")
+    void cleanupExpiredWindows() {
+        Instant now = Instant.now();
+        windows.entrySet().removeIf(entry -> entry.getValue().isExpired(now, cleanupGraceSeconds));
+    }
+
     private record LimitRule(String bucketKey, int requestLimit, long windowSeconds) {
     }
 
     private static final class WindowState {
         private Instant windowStartedAt;
         private final AtomicInteger counter;
+        private final long windowSeconds;
+        private Instant lastAccessedAt;
 
-        private WindowState(Instant windowStartedAt, AtomicInteger counter) {
+        private WindowState(
+                Instant windowStartedAt,
+                AtomicInteger counter,
+                long windowSeconds,
+                Instant lastAccessedAt
+        ) {
             this.windowStartedAt = windowStartedAt;
             this.counter = counter;
+            this.windowSeconds = Math.max(1L, windowSeconds);
+            this.lastAccessedAt = lastAccessedAt;
         }
 
         private Instant windowStartedAt() {
@@ -115,6 +142,16 @@ public class RateLimitFilter extends OncePerRequestFilter {
         private void reset(Instant newStart) {
             this.windowStartedAt = newStart;
             this.counter.set(0);
+            this.lastAccessedAt = newStart;
+        }
+
+        private void touch(Instant instant) {
+            this.lastAccessedAt = instant;
+        }
+
+        private boolean isExpired(Instant now, long cleanupGraceSeconds) {
+            long retentionSeconds = Math.max(windowSeconds, cleanupGraceSeconds);
+            return Duration.between(lastAccessedAt, now).getSeconds() >= retentionSeconds;
         }
     }
 }

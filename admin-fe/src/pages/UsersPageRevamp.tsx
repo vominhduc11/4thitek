@@ -8,6 +8,7 @@ import { userStatusLabel, userStatusTone } from '../lib/adminLabels'
 import {
   EmptyState,
   ErrorState,
+  GhostButton,
   LoadingRows,
   PagePanel,
   PrimaryButton,
@@ -18,6 +19,8 @@ import {
   cardTitleClass,
   formCardClass,
   inputClass,
+  labelClass,
+  tableActionSelectClass,
   tableCardClass,
   tableMetaClass,
 } from '../components/ui-kit'
@@ -84,16 +87,25 @@ function UsersPageRevamp() {
     name: '',
     role: '',
   })
+  const toolbarSearchClass = 'w-full sm:max-w-sm lg:w-72 xl:w-80'
 
   const normalizedQuery = query.trim().toLowerCase()
+  const searchableUsers = useMemo(
+    () =>
+      users.map((user) => ({
+        user,
+        searchText: `${user.name} ${user.role} ${user.id}`.toLowerCase(),
+      })),
+    [users],
+  )
   const filteredUsers = useMemo(
     () =>
-      users.filter((user) =>
+      searchableUsers.filter(({ searchText }) =>
         !normalizedQuery
           ? true
-          : `${user.name} ${user.role} ${user.id}`.toLowerCase().includes(normalizedQuery),
-      ),
-    [normalizedQuery, users],
+          : searchText.includes(normalizedQuery),
+      ).map(({ user }) => user),
+    [normalizedQuery, searchableUsers],
   )
 
   const stats = useMemo(
@@ -142,19 +154,19 @@ function UsersPageRevamp() {
 
   return (
     <PagePanel>
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h3 className={cardTitleClass}>{copy.title}</h3>
           <p className={bodyTextClass}>{copy.description}</p>
         </div>
-        <div className="flex w-full flex-col gap-3 sm:flex-row xl:w-auto">
+        <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
           <SearchInput
             id="users-search"
             label={copy.searchLabel}
             placeholder={copy.searchPlaceholder}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="w-full sm:w-80"
+            className={toolbarSearchClass}
           />
           <PrimaryButton icon={<UserPlus className="h-4 w-4" />} onClick={() => setShowInvite((current) => !current)} type="button">
             {copy.addUser}
@@ -172,31 +184,35 @@ function UsersPageRevamp() {
         <div className={`${formCardClass} mt-6`}>
           <p className="text-sm font-semibold text-[var(--ink)]">{copy.createTitle}</p>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <input
-              className={inputClass}
-              placeholder={copy.name}
-              value={form.name}
-              onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-            />
-            <input
-              className={inputClass}
-              placeholder={copy.role}
-              value={form.role}
-              onChange={(event) => setForm((current) => ({ ...current, role: event.target.value }))}
-            />
+            <label className="space-y-2">
+              <span className={labelClass}>{copy.name}</span>
+              <input
+                className={inputClass}
+                value={form.name}
+                onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+              />
+            </label>
+            <label className="space-y-2">
+              <span className={labelClass}>{copy.role}</span>
+              <input
+                className={inputClass}
+                value={form.role}
+                onChange={(event) => setForm((current) => ({ ...current, role: event.target.value }))}
+              />
+            </label>
           </div>
           {formError ? <p className="mt-2 text-sm text-rose-600">{formError}</p> : null}
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <PrimaryButton className="w-full sm:w-auto" onClick={() => void handleInvite()} type="button">
               {copy.save}
             </PrimaryButton>
-            <PrimaryButton
-              className="w-full bg-slate-900 shadow-[0_16px_30px_rgba(15,23,42,0.22)] hover:bg-slate-800 sm:w-auto"
+            <GhostButton
+              className="w-full sm:w-auto"
               onClick={() => setShowInvite(false)}
               type="button"
             >
               {copy.cancel}
-            </PrimaryButton>
+            </GhostButton>
           </div>
         </div>
       ) : null}
@@ -225,7 +241,7 @@ function UsersPageRevamp() {
                       <StatusBadge tone={userStatusTone[user.status]}>{userStatusLabel[user.status]}</StatusBadge>
                       <select
                         aria-label={`${copy.title} ${user.id}`}
-                        className="h-9 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-2 text-xs font-semibold text-[var(--ink)]"
+                        className={tableActionSelectClass}
                         value={user.status}
                         onChange={async (event) => {
                           const next = event.target.value as UserStatus

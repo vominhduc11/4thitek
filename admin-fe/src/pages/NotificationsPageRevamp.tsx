@@ -24,8 +24,10 @@ import {
   StatusBadge,
   bodyTextClass,
   cardTitleClass,
+  fieldErrorClass,
   formCardClass,
   inputClass,
+  labelClass,
   tableCardClass,
   tableHeadClass,
   tableMetaClass,
@@ -51,6 +53,24 @@ const typeTone = {
 
 const TITLE_MAX = 120
 const CONTENT_MAX = 500
+
+type NotificationFormState = {
+  audience: BackendNotificationCreateRequest['audience']
+  type: BackendNotifyType
+  title: string
+  content: string
+  link: string
+  accountIdsText: string
+}
+
+const createInitialForm = (): NotificationFormState => ({
+  audience: 'DEALERS',
+  type: 'SYSTEM',
+  title: '',
+  content: '',
+  link: '',
+  accountIdsText: '',
+})
 
 const copyByLanguage = {
   vi: {
@@ -80,6 +100,9 @@ const copyByLanguage = {
     statusRead: 'Đã đọc',
     statusUnread: 'Chưa đọc',
     validationError: 'Vui lòng nhập đủ tiêu đề và nội dung.',
+    titleRequired: 'Vui lòng nhập tiêu đề.',
+    contentRequired: 'Vui lòng nhập nội dung.',
+    accountIdsRequired: 'Vui lòng nhập ít nhất một ID tài khoản hợp lệ.',
     contentError: 'Tiêu đề hoặc nội dung vượt quá giới hạn cho phép.',
     reload: 'Tải lại',
   },
@@ -110,6 +133,9 @@ const copyByLanguage = {
     statusRead: 'Read',
     statusUnread: 'Unread',
     validationError: 'Title and content are required.',
+    titleRequired: 'Title is required.',
+    contentRequired: 'Content is required.',
+    accountIdsRequired: 'Enter at least one valid account id.',
     contentError: 'Title or content exceeds the allowed length.',
     reload: 'Reload',
   },
@@ -128,14 +154,49 @@ function NotificationsPageRevamp() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [form, setForm] = useState({
-    audience: 'DEALERS' as BackendNotificationCreateRequest['audience'],
-    type: 'SYSTEM' as BackendNotifyType,
-    title: '',
-    content: '',
-    link: '',
-    accountIdsText: '',
-  })
+  const [form, setForm] = useState<NotificationFormState>(createInitialForm)
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof NotificationFormState, string>>>({})
+  const toolbarSearchClass = 'w-full sm:max-w-sm lg:w-72 xl:w-80'
+
+  const validateForm = (value: NotificationFormState) => {
+    const errors: Partial<Record<keyof NotificationFormState, string>> = {}
+    const accountIds =
+      value.audience === 'ACCOUNTS'
+        ? value.accountIdsText
+            .split(/[,\n]+/)
+            .map((entry) => Number(entry.trim()))
+            .filter((entry) => Number.isFinite(entry))
+        : []
+
+    if (!value.title.trim()) {
+      errors.title = copy.titleRequired
+    } else if (value.title.trim().length > TITLE_MAX) {
+      errors.title = copy.contentError
+    }
+
+    if (!value.content.trim()) {
+      errors.content = copy.contentRequired
+    } else if (value.content.trim().length > CONTENT_MAX) {
+      errors.content = copy.contentError
+    }
+
+    if (value.audience === 'ACCOUNTS' && accountIds.length === 0) {
+      errors.accountIdsText = copy.accountIdsRequired
+    }
+
+    return errors
+  }
+
+  const updateFormField = <K extends keyof NotificationFormState>(
+    field: K,
+    nextValue: NotificationFormState[K],
+  ) => {
+    setForm((current) => {
+      const next = { ...current, [field]: nextValue }
+      setFormErrors(validateForm(next))
+      return next
+    })
+  }
 
   const loadData = async (nextPage = page) => {
     if (!accessToken) return
@@ -180,12 +241,9 @@ function NotificationsPageRevamp() {
 
   const handleSend = async () => {
     if (!accessToken) return
-    if (!form.title.trim() || !form.content.trim()) {
-      notify(copy.validationError, { title: copy.title, variant: 'error' })
-      return
-    }
-    if (form.title.trim().length > TITLE_MAX || form.content.trim().length > CONTENT_MAX) {
-      notify(copy.contentError, { title: copy.title, variant: 'error' })
+    const nextErrors = validateForm(form)
+    setFormErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) {
       return
     }
 
@@ -207,14 +265,8 @@ function NotificationsPageRevamp() {
         link: form.link.trim() || undefined,
         accountIds,
       })
-      setForm({
-        audience: 'DEALERS',
-        type: 'SYSTEM',
-        title: '',
-        content: '',
-        link: '',
-        accountIdsText: '',
-      })
+      setForm(createInitialForm())
+      setFormErrors({})
       setPage(0)
       await loadData(0)
     } catch (sendError) {
@@ -245,19 +297,19 @@ function NotificationsPageRevamp() {
 
   return (
     <PagePanel>
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h3 className={cardTitleClass}>{copy.title}</h3>
           <p className={bodyTextClass}>{copy.description}</p>
         </div>
-        <div className="flex w-full flex-col gap-3 sm:flex-row xl:w-auto">
+        <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
           <SearchInput
             id="notifications-search"
             label={copy.searchLabel}
             placeholder={copy.searchPlaceholder}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="w-full sm:w-80"
+            className={toolbarSearchClass}
           />
           <GhostButton icon={<RefreshCw className="h-4 w-4" />} onClick={() => void loadData(page)} type="button">
             {copy.reload}
@@ -274,60 +326,98 @@ function NotificationsPageRevamp() {
       <div className={`${formCardClass} mt-6`}>
         <p className="text-sm font-semibold text-[var(--ink)]">{copy.createTitle}</p>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <select
-            className={inputClass}
-            value={form.audience}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                audience: event.target.value as BackendNotificationCreateRequest['audience'],
-              }))
-            }
-          >
-            {AUDIENCE_OPTIONS.map((audience) => (
-              <option key={audience} value={audience}>
-                {audience}
-              </option>
-            ))}
-          </select>
-          <select
-            className={inputClass}
-            value={form.type}
-            onChange={(event) => setForm((current) => ({ ...current, type: event.target.value as BackendNotifyType }))}
-          >
-            {TYPE_OPTIONS.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-          <input
-            className={`${inputClass} md:col-span-2`}
-            maxLength={TITLE_MAX}
-            placeholder={copy.titleLabel}
-            value={form.title}
-            onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-          />
-          <textarea
-            className={`${textareaClass} md:col-span-2`}
-            maxLength={CONTENT_MAX}
-            placeholder={copy.content}
-            value={form.content}
-            onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))}
-          />
-          <input
-            className={inputClass}
-            placeholder={copy.link}
-            value={form.link}
-            onChange={(event) => setForm((current) => ({ ...current, link: event.target.value }))}
-          />
-          {form.audience === 'ACCOUNTS' ? (
-            <input
+          <label className="space-y-2">
+            <span className={labelClass}>{copy.audience}</span>
+            <select
+              aria-label={copy.audience}
               className={inputClass}
-              placeholder={copy.accountIds}
-              value={form.accountIdsText}
-              onChange={(event) => setForm((current) => ({ ...current, accountIdsText: event.target.value }))}
+              value={form.audience}
+              onChange={(event) =>
+                updateFormField(
+                  'audience',
+                  event.target.value as BackendNotificationCreateRequest['audience'],
+                )
+              }
+            >
+              {AUDIENCE_OPTIONS.map((audience) => (
+                <option key={audience} value={audience}>
+                  {audience}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-2">
+            <span className={labelClass}>{copy.type}</span>
+            <select
+              aria-label={copy.type}
+              className={inputClass}
+              value={form.type}
+              onChange={(event) => updateFormField('type', event.target.value as BackendNotifyType)}
+            >
+              {TYPE_OPTIONS.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-2 md:col-span-2">
+            <span className={labelClass}>{copy.titleLabel}</span>
+            <input
+              aria-describedby={formErrors.title ? 'notification-title-error' : undefined}
+              aria-invalid={Boolean(formErrors.title)}
+              className={`${inputClass} ${formErrors.title ? 'border-rose-300' : ''}`}
+              maxLength={TITLE_MAX}
+              value={form.title}
+              onChange={(event) => updateFormField('title', event.target.value)}
             />
+            {formErrors.title ? (
+              <p className={fieldErrorClass} id="notification-title-error">
+                {formErrors.title}
+              </p>
+            ) : null}
+          </label>
+          <label className="space-y-2 md:col-span-2">
+            <span className={labelClass}>{copy.content}</span>
+            <textarea
+              aria-describedby={formErrors.content ? 'notification-content-error' : undefined}
+              aria-invalid={Boolean(formErrors.content)}
+              className={`${textareaClass} ${formErrors.content ? 'border-rose-300' : ''}`}
+              maxLength={CONTENT_MAX}
+              value={form.content}
+              onChange={(event) => updateFormField('content', event.target.value)}
+            />
+            {formErrors.content ? (
+              <p className={fieldErrorClass} id="notification-content-error">
+                {formErrors.content}
+              </p>
+            ) : null}
+          </label>
+          <label className="space-y-2">
+            <span className={labelClass}>{copy.link}</span>
+            <input
+              aria-label={copy.link}
+              className={inputClass}
+              value={form.link}
+              onChange={(event) => updateFormField('link', event.target.value)}
+            />
+          </label>
+          {form.audience === 'ACCOUNTS' ? (
+            <label className="space-y-2">
+              <span className={labelClass}>{copy.accountIds}</span>
+              <input
+                aria-describedby={formErrors.accountIdsText ? 'notification-account-ids-error' : undefined}
+                aria-invalid={Boolean(formErrors.accountIdsText)}
+                className={`${inputClass} ${formErrors.accountIdsText ? 'border-rose-300' : ''}`}
+                value={form.accountIdsText}
+                onChange={(event) => updateFormField('accountIdsText', event.target.value)}
+              />
+              {formErrors.accountIdsText ? (
+                <p className={fieldErrorClass} id="notification-account-ids-error">
+                  {formErrors.accountIdsText}
+                </p>
+              ) : null}
+            </label>
           ) : null}
         </div>
         <p className={`mt-2 ${tableMetaClass}`}>

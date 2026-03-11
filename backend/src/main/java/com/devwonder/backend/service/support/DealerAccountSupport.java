@@ -18,6 +18,7 @@ public class DealerAccountSupport {
         if (!passwordEncoder.matches(currentPassword, dealer.getPassword())) {
             throw new BadRequestException("Current password is incorrect");
         }
+        AccountValidationSupport.assertStrongPassword(newPassword, "newPassword");
         dealer.setPassword(passwordEncoder.encode(newPassword));
         dealerRepository.save(dealer);
     }

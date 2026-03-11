@@ -104,6 +104,7 @@ function OrdersPageRevamp() {
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all')
   const [localError, setLocalError] = useState<string | null>(null)
+  const toolbarSearchClass = 'w-full sm:max-w-sm lg:w-72 xl:w-80'
 
   const normalizedQuery = query.trim().toLowerCase()
 
@@ -125,6 +126,60 @@ function OrdersPageRevamp() {
     const delivering = orders.filter((item) => item.status === 'delivering').length
     return { pending, delivering }
   }, [orders])
+
+  const handleStatusChange = async (
+    orderId: string,
+    currentStatus: OrderStatus,
+    nextStatus: OrderStatus,
+    revert: () => void,
+  ) => {
+    if (nextStatus === currentStatus) {
+      return
+    }
+
+    const approved = await confirm({
+      title: copy.changeStatusTitle,
+      message: copy.changeStatusMessage.replace('{status}', orderStatusLabel[nextStatus]),
+      tone: nextStatus === 'cancelled' ? 'danger' : 'warning',
+      confirmLabel: orderStatusLabel[nextStatus],
+    })
+
+    if (!approved) {
+      revert()
+      return
+    }
+
+    try {
+      await updateOrderStatus(orderId, nextStatus)
+    } catch (updateError) {
+      notify(updateError instanceof Error ? updateError.message : copy.updateFailed, {
+        title: copy.title,
+        variant: 'error',
+      })
+    }
+  }
+
+  const handleDeleteOrder = async (orderId: string) => {
+    const approved = await confirm({
+      title: copy.deleteTitle,
+      message: copy.deleteMessage,
+      tone: 'danger',
+      confirmLabel: copy.confirmDelete,
+    })
+
+    if (!approved) {
+      return
+    }
+
+    try {
+      await deleteOrder(orderId)
+    } catch (deleteError) {
+      notify(deleteError instanceof Error ? deleteError.message : copy.deleteFailed, {
+        title: copy.title,
+        variant: 'error',
+      })
+    }
+  }
 
   if (ordersState.status === 'loading' || ordersState.status === 'idle') {
     return (
@@ -151,23 +206,23 @@ function OrdersPageRevamp() {
 
   return (
     <PagePanel>
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h3 className={cardTitleClass}>{copy.title}</h3>
           <p className={bodyTextClass}>{copy.description}</p>
         </div>
-        <div className="flex w-full flex-col gap-3 sm:flex-row xl:w-auto">
+        <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
           <SearchInput
             id="orders-search"
             label={copy.searchLabel}
             placeholder={copy.searchPlaceholder}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="w-full sm:w-80"
+            className={toolbarSearchClass}
           />
           <select
             aria-label={copy.status}
-            className={`${inputClass} w-full sm:w-auto`}
+            className={`${inputClass} w-full sm:max-w-[14rem] lg:w-56`}
             onChange={(event) => setStatusFilter(event.target.value as 'all' | OrderStatus)}
             value={statusFilter}
           >
@@ -216,39 +271,16 @@ function OrdersPageRevamp() {
                     <select
                       aria-label={`${copy.status} ${order.id}`}
                       className={`${inputClass} w-full`}
-                      onChange={async (event) => {
-                        const next = event.target.value as OrderStatus
-                        if (next === order.status) {
-                          return
-                        }
-
-                        const approved = await confirm({
-                          title: copy.changeStatusTitle,
-                          message: copy.changeStatusMessage.replace(
-                            '{status}',
-                            orderStatusLabel[next],
-                          ),
-                          tone: next === 'cancelled' ? 'danger' : 'warning',
-                          confirmLabel: orderStatusLabel[next],
-                        })
-
-                        if (!approved) {
-                          event.currentTarget.value = order.status
-                          return
-                        }
-
-                        try {
-                          await updateOrderStatus(order.id, next)
-                        } catch (updateError) {
-                          notify(
-                            updateError instanceof Error ? updateError.message : copy.updateFailed,
-                            {
-                              title: copy.title,
-                              variant: 'error',
-                            },
-                          )
-                        }
-                      }}
+                      onChange={(event) =>
+                        void handleStatusChange(
+                          order.id,
+                          order.status,
+                          event.target.value as OrderStatus,
+                          () => {
+                            event.currentTarget.value = order.status
+                          },
+                        )
+                      }
                       value={order.status}
                     >
                       {getAllowedOrderStatuses(order.status).map((option) => (
@@ -260,29 +292,7 @@ function OrdersPageRevamp() {
                     <GhostButton
                       className="w-full"
                       icon={<Trash2 className="h-4 w-4" />}
-                      onClick={async () => {
-                        const approved = await confirm({
-                          title: copy.deleteTitle,
-                          message: copy.deleteMessage,
-                          tone: 'danger',
-                          confirmLabel: copy.confirmDelete,
-                        })
-                        if (!approved) {
-                          return
-                        }
-
-                        try {
-                          await deleteOrder(order.id)
-                        } catch (deleteError) {
-                          notify(
-                            deleteError instanceof Error ? deleteError.message : copy.deleteFailed,
-                            {
-                              title: copy.title,
-                              variant: 'error',
-                            },
-                          )
-                        }
-                      }}
+                      onClick={() => void handleDeleteOrder(order.id)}
                       type="button"
                     >
                       {copy.deleteLabel}
@@ -331,39 +341,16 @@ function OrdersPageRevamp() {
                           <select
                             aria-label={`${copy.status} ${order.id}`}
                             className={tableActionSelectClass}
-                            onChange={async (event) => {
-                              const next = event.target.value as OrderStatus
-                              if (next === order.status) {
-                                return
-                              }
-
-                              const approved = await confirm({
-                                title: copy.changeStatusTitle,
-                                message: copy.changeStatusMessage.replace(
-                                  '{status}',
-                                  orderStatusLabel[next],
-                                ),
-                                tone: next === 'cancelled' ? 'danger' : 'warning',
-                                confirmLabel: orderStatusLabel[next],
-                              })
-
-                              if (!approved) {
-                                event.currentTarget.value = order.status
-                                return
-                              }
-
-                              try {
-                                await updateOrderStatus(order.id, next)
-                              } catch (updateError) {
-                                notify(
-                                  updateError instanceof Error ? updateError.message : copy.updateFailed,
-                                  {
-                                    title: copy.title,
-                                    variant: 'error',
-                                  },
-                                )
-                              }
-                            }}
+                            onChange={(event) =>
+                              void handleStatusChange(
+                                order.id,
+                                order.status,
+                                event.target.value as OrderStatus,
+                                () => {
+                                  event.currentTarget.value = order.status
+                                },
+                              )
+                            }
                             value={order.status}
                           >
                             {getAllowedOrderStatuses(order.status).map((option) => (
@@ -373,31 +360,9 @@ function OrdersPageRevamp() {
                             ))}
                           </select>
                           <GhostButton
-                            className="h-9 min-w-0 px-3"
+                            className="min-h-11 min-w-0 px-3"
                             icon={<Trash2 className="h-4 w-4" />}
-                            onClick={async () => {
-                              const approved = await confirm({
-                                title: copy.deleteTitle,
-                                message: copy.deleteMessage,
-                                tone: 'danger',
-                                confirmLabel: copy.confirmDelete,
-                              })
-                              if (!approved) {
-                                return
-                              }
-
-                              try {
-                                await deleteOrder(order.id)
-                              } catch (deleteError) {
-                                notify(
-                                  deleteError instanceof Error ? deleteError.message : copy.deleteFailed,
-                                  {
-                                    title: copy.title,
-                                    variant: 'error',
-                                  },
-                                )
-                              }
-                            }}
+                            onClick={() => void handleDeleteOrder(order.id)}
                             type="button"
                           >
                             {copy.deleteLabel}

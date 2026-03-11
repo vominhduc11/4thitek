@@ -18,10 +18,10 @@ export const softCardClass =
   'rounded-3xl border border-[var(--border)] bg-[var(--surface-ghost)] p-4 shadow-sm backdrop-blur'
 
 export const ghostButtonClass =
-  'btn-stable inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--ink)] shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--accent)] hover:text-[var(--ink)] hover:shadow-[0_12px_26px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60'
+  'btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--ink)] shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--accent)] hover:text-[var(--ink)] hover:shadow-[0_12px_26px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60'
 
 export const primaryButtonClass =
-  'btn-stable inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60'
+  'btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60'
 
 export const inputClass =
   'h-11 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--ink)] shadow-sm transition placeholder:text-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1'
@@ -37,13 +37,15 @@ export const tableHeadClass = 'text-left text-xs uppercase tracking-[0.2em] text
 export const tableMetaClass = 'text-xs text-[var(--muted)]'
 export const tableValueClass = 'font-semibold text-[var(--ink)]'
 export const tableActionSelectClass =
-  'h-9 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-2 text-xs font-semibold text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]'
+  'min-h-11 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--ink)] shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1'
 export const formCardClass = 'rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)] p-5'
 export const textareaClass =
-  'min-h-[130px] w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-sm text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]'
+  'min-h-[130px] w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-sm text-[var(--ink)] placeholder:text-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1'
 export const selectClass = inputClass
 export const destructiveButtonClass =
-  'btn-stable inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-300/70 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-500 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60'
+  'btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-rose-300/70 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-500 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60'
+export const fieldErrorClass = 'mt-2 text-sm font-medium text-rose-600'
+export const fieldHintClass = 'mt-2 text-sm text-[var(--muted)]'
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   icon?: ReactNode
@@ -185,11 +187,13 @@ const badgeToneClass: Record<BadgeTone, string> = {
 
 export const StatusBadge = ({ tone, children, icon, className }: StatusBadgeProps) => (
   <span
+    aria-live="polite"
     className={cx(
       'inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold',
       badgeToneClass[tone],
       className,
     )}
+    role="status"
   >
     {icon}
     {children}
@@ -248,7 +252,8 @@ type LoadingRowsProps = {
 }
 
 export const LoadingRows = ({ rows = 4 }: LoadingRowsProps) => (
-  <div className="grid gap-3" aria-busy="true" aria-live="polite">
+  <div className="grid gap-3" aria-busy="true" aria-live="polite" role="status">
+    <span className="sr-only">Loading content</span>
     {Array.from({ length: rows }).map((_, index) => (
       <div
         key={`skeleton-row-${index}`}
@@ -306,11 +311,11 @@ export const PaginationNav = ({
           pageCount={totalPages}
           previousLabel={previousLabel}
           forcePage={page}
-          containerClassName="flex flex-wrap items-center gap-1 text-sm"
-          pageLinkClassName="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-          previousLinkClassName="flex h-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-          nextLinkClassName="flex h-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-          breakLinkClassName="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)]"
+          containerClassName="flex flex-wrap items-center gap-2 text-sm"
+          pageLinkClassName="flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          previousLinkClassName="flex min-h-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          nextLinkClassName="flex min-h-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          breakLinkClassName="flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 text-[var(--muted)]"
           activeLinkClassName="border-[var(--accent)] bg-[var(--accent)] text-white"
           disabledLinkClassName="cursor-not-allowed border-[var(--border)] text-[var(--muted)] opacity-50"
         />

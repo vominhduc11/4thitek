@@ -22,15 +22,28 @@ function LoginPage() {
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(true)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<{ username?: string; password?: string }>({})
 
   const target = ((location.state as LocationState | null)?.from || '/') as string
+
+  const validateFields = (nextUsername: string, nextPassword: string) => {
+    const nextErrors: { username?: string; password?: string } = {}
+    if (!nextUsername.trim()) {
+      nextErrors.username = t('Vui lòng nhập tên đăng nhập')
+    }
+    if (!nextPassword.trim()) {
+      nextErrors.password = t('Vui lòng nhập mật khẩu')
+    }
+    return nextErrors
+  }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError('')
 
-    if (!username.trim() || !password.trim()) {
-      setError('Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu')
+    const nextErrors = validateFields(username, password)
+    setFieldErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) {
       return
     }
 
@@ -62,7 +75,7 @@ function LoginPage() {
             <img
               src={logoCard}
               alt="4ThiTek"
-              className="h-auto w-52 max-w-full object-contain drop-shadow-[0_14px_28px_rgba(37,99,235,0.2)]"
+              className="h-auto w-[min(11rem,60vw)] max-w-full object-contain drop-shadow-[0_14px_28px_rgba(37,99,235,0.2)] sm:w-48 md:w-52"
             />
           </div>
           <p className="text-xs uppercase tracking-[0.3em] text-slate-500">{t('Bảng điều hành')}</p>
@@ -83,14 +96,27 @@ function LoginPage() {
               <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 id="username"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-10 py-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
+                aria-describedby={fieldErrors.username ? 'login-username-error' : undefined}
+                aria-invalid={Boolean(fieldErrors.username)}
+                className={`w-full rounded-2xl border bg-slate-50 px-10 py-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 ${
+                  fieldErrors.username ? 'border-rose-300' : 'border-slate-200'
+                }`}
                 type="text"
                 placeholder={t('Nhập tên đăng nhập')}
                 autoComplete="username"
                 value={username}
-                onChange={(event) => setUsername(event.target.value)}
+                onChange={(event) => {
+                  const nextValue = event.target.value
+                  setUsername(nextValue)
+                  setFieldErrors(validateFields(nextValue, password))
+                }}
               />
             </div>
+            {fieldErrors.username ? (
+              <p className="mt-2 text-sm font-medium text-rose-600" id="login-username-error">
+                {fieldErrors.username}
+              </p>
+            ) : null}
           </div>
 
           <div>
@@ -101,14 +127,27 @@ function LoginPage() {
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 id="password"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-10 py-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
+                aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
+                aria-invalid={Boolean(fieldErrors.password)}
+                className={`w-full rounded-2xl border bg-slate-50 px-10 py-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 ${
+                  fieldErrors.password ? 'border-rose-300' : 'border-slate-200'
+                }`}
                 type="password"
                 placeholder={t('Nhập mật khẩu')}
                 autoComplete="current-password"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(event) => {
+                  const nextValue = event.target.value
+                  setPassword(nextValue)
+                  setFieldErrors(validateFields(username, nextValue))
+                }}
               />
             </div>
+            {fieldErrors.password ? (
+              <p className="mt-2 text-sm font-medium text-rose-600" id="login-password-error">
+                {fieldErrors.password}
+              </p>
+            ) : null}
           </div>
 
           <label className="flex items-center gap-2 text-sm text-slate-500">

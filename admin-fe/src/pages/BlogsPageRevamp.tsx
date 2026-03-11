@@ -195,20 +195,25 @@ function BlogsPageRevamp() {
   const [createError, setCreateError] = useState('')
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [form, setForm] = useState<CreateFormState>(createInitialForm)
+  const toolbarSearchClass = 'w-full sm:max-w-sm lg:w-72 xl:w-80'
 
   const normalizedQuery = query.trim().toLowerCase()
+  const searchablePosts = useMemo(
+    () =>
+      posts.map((post) => ({
+        post,
+        searchText: `${post.id} ${post.title} ${post.category}`.toLowerCase(),
+      })),
+    [posts],
+  )
   const filteredPosts = useMemo(
     () =>
-      posts.filter((post) => {
+      searchablePosts.filter(({ post, searchText }) => {
         const matchesStatus = statusFilter === 'all' ? true : post.status === statusFilter
-        const matchesQuery =
-          !normalizedQuery ||
-          post.id.toLowerCase().includes(normalizedQuery) ||
-          post.title.toLowerCase().includes(normalizedQuery) ||
-          post.category.toLowerCase().includes(normalizedQuery)
+        const matchesQuery = !normalizedQuery || searchText.includes(normalizedQuery)
         return matchesStatus && matchesQuery
-      }),
-    [normalizedQuery, posts, statusFilter],
+      }).map(({ post }) => post),
+    [normalizedQuery, searchablePosts, statusFilter],
   )
 
   const stats = useMemo(() => {
@@ -307,23 +312,23 @@ function BlogsPageRevamp() {
 
   return (
     <PagePanel>
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h3 className={cardTitleClass}>{copy.title}</h3>
           <p className={bodyTextClass}>{copy.description}</p>
         </div>
-        <div className="flex w-full flex-col gap-3 sm:flex-row xl:w-auto">
+        <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
           <SearchInput
             id="blogs-search"
             label={copy.searchLabel}
             placeholder={copy.searchPlaceholder}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="w-full sm:w-80"
+            className={toolbarSearchClass}
           />
           <select
             aria-label={copy.filterLabel}
-            className={`${inputClass} w-full sm:w-56`}
+            className={`${inputClass} w-full sm:max-w-[14rem] lg:w-56`}
             onChange={(event) => setStatusFilter(event.target.value as 'all' | BlogStatus)}
             value={statusFilter}
           >
@@ -601,11 +606,11 @@ function BlogsPageRevamp() {
                             <img
                               src={resolveBackendAssetUrl(post.imageUrl)}
                               alt={post.title}
-                              className="h-12 w-12 rounded-2xl border border-[var(--border)] bg-[var(--surface)] object-cover"
+                              className="h-16 w-16 rounded-2xl border border-[var(--border)] bg-[var(--surface)] object-cover"
                               loading="lazy"
                             />
                           ) : (
-                            <div className="grid h-12 w-12 place-items-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)]">
+                            <div className="grid h-16 w-16 place-items-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)]">
                               <FileText className="h-4 w-4" />
                             </div>
                           )}
@@ -671,7 +676,7 @@ function BlogsPageRevamp() {
                             ))}
                           </select>
                           <DestructiveButton
-                            className="h-9 min-w-0 px-3"
+                            className="min-h-11 min-w-0 px-3"
                             icon={<Trash2 className="h-4 w-4" />}
                             onClick={async () => {
                               const approved = await confirm({

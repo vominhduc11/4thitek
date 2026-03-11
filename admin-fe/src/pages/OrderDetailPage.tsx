@@ -13,18 +13,24 @@ import {
   PagePanel,
   PrimaryButton,
   StatusBadge,
+  fieldErrorClass,
+  inputClass,
+  labelClass,
 } from '../components/ui-kit'
+import { useConfirmDialog } from '../hooks/useConfirmDialog'
 
 function OrderDetailPage() {
   const { id = '' } = useParams()
   const decodedId = decodeURIComponent(id)
   const navigate = useNavigate()
   const { notify } = useToast()
+  const { confirm, confirmDialog } = useConfirmDialog()
   const { orders, ordersState, updateOrderStatus, recordOrderPayment, deleteOrder, reloadResource } =
     useAdminData()
   const [paymentAmount, setPaymentAmount] = useState('')
   const [transactionCode, setTransactionCode] = useState('')
   const [paymentNote, setPaymentNote] = useState('')
+  const [paymentError, setPaymentError] = useState('')
 
   const order = orders.find((item) => item.id === decodedId)
 
@@ -35,6 +41,7 @@ function OrderDetailPage() {
     setPaymentAmount(order.outstandingAmount > 0 ? String(order.outstandingAmount) : '')
     setTransactionCode('')
     setPaymentNote('')
+    setPaymentError('')
   }, [order?.id, order?.outstandingAmount])
 
   if (ordersState.status === 'loading' || ordersState.status === 'idle') {
@@ -145,9 +152,25 @@ function OrderDetailPage() {
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <select
               aria-label={`Order status ${order.id}`}
-              className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className={`${inputClass} bg-white text-slate-700`}
               onChange={async (event) => {
                 const next = event.target.value as OrderStatus
+                if (next === order.status) {
+                  return
+                }
+
+                const approved = await confirm({
+                  title: 'Xac nhan doi trang thai',
+                  message: `Chuyen don nay sang "${orderStatusLabel[next]}"?`,
+                  tone: next === 'cancelled' ? 'danger' : 'warning',
+                  confirmLabel: orderStatusLabel[next],
+                })
+
+                if (!approved) {
+                  event.currentTarget.value = order.status
+                  return
+                }
+
                 try {
                   await updateOrderStatus(order.id, next)
                   notify(`Don ${order.id} -> ${orderStatusLabel[next]}`, {
@@ -172,6 +195,16 @@ function OrderDetailPage() {
             <PrimaryButton
               disabled={order.status !== 'delivering'}
               onClick={async () => {
+                const approved = await confirm({
+                  title: 'Xac nhan hoan tat don',
+                  message: `Danh dau don ${order.id} da hoan tat?`,
+                  tone: 'info',
+                  confirmLabel: 'Hoan tat',
+                })
+                if (!approved) {
+                  return
+                }
+
                 try {
                   await updateOrderStatus(order.id, 'completed')
                   notify(`Don ${order.id} da hoan tat`, { title: 'Orders', variant: 'success' })
@@ -195,36 +228,54 @@ function OrderDetailPage() {
                 Dung khi can xac nhan tien da nhan ngoai webhook tu dong.
               </p>
               <div className="mt-3 grid gap-3">
-                <input
-                  className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                  min="1"
-                  onChange={(event) => setPaymentAmount(event.target.value)}
-                  placeholder="So tien"
-                  type="number"
-                  value={paymentAmount}
-                />
-                <input
-                  className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                  onChange={(event) => setTransactionCode(event.target.value)}
-                  placeholder="Ma giao dich (tuy chon)"
-                  value={transactionCode}
-                />
-                <textarea
-                  className="min-h-24 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                  onChange={(event) => setPaymentNote(event.target.value)}
-                  placeholder="Ghi chu noi bo"
-                  value={paymentNote}
-                />
+                <label className="space-y-2">
+                  <span className={labelClass}>So tien</span>
+                  <input
+                    aria-describedby={paymentError ? 'order-payment-amount-error' : undefined}
+                    aria-invalid={Boolean(paymentError)}
+                    className={`${inputClass} bg-white text-slate-700 ${paymentError ? 'border-rose-300' : ''}`}
+                    min="1"
+                    onChange={(event) => {
+                      setPaymentAmount(event.target.value)
+                      const nextAmount = Number(event.target.value)
+                      setPaymentError(
+                        !event.target.value.trim() || (!Number.isNaN(nextAmount) && nextAmount > 0)
+                          ? ''
+                          : 'So tien thanh toan khong hop le',
+                      )
+                    }}
+                    type="number"
+                    value={paymentAmount}
+                  />
+                  {paymentError ? (
+                    <p className={fieldErrorClass} id="order-payment-amount-error">
+                      {paymentError}
+                    </p>
+                  ) : null}
+                </label>
+                <label className="space-y-2">
+                  <span className={labelClass}>Ma giao dich</span>
+                  <input
+                    className={`${inputClass} bg-white text-slate-700`}
+                    onChange={(event) => setTransactionCode(event.target.value)}
+                    value={transactionCode}
+                  />
+                </label>
+                <label className="space-y-2">
+                  <span className={labelClass}>Ghi chu noi bo</span>
+                  <textarea
+                    className="min-h-24 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                    onChange={(event) => setPaymentNote(event.target.value)}
+                    value={paymentNote}
+                  />
+                </label>
               </div>
               <div className="mt-3">
                 <PrimaryButton
                   onClick={async () => {
                     const amount = Number(paymentAmount)
                     if (Number.isNaN(amount) || amount <= 0) {
-                      notify('So tien thanh toan khong hop le', {
-                        title: 'Orders',
-                        variant: 'error',
-                      })
+                      setPaymentError('So tien thanh toan khong hop le')
                       return
                     }
 
@@ -243,6 +294,7 @@ function OrderDetailPage() {
                         title: 'Orders',
                         variant: 'success',
                       })
+                      setPaymentError('')
                     } catch (error) {
                       notify(
                         error instanceof Error ? error.message : 'Khong ghi nhan duoc thanh toan',
@@ -267,6 +319,16 @@ function OrderDetailPage() {
             <GhostButton
               className="mt-3 border-rose-200 text-rose-700 hover:border-rose-500 hover:text-rose-700"
               onClick={async () => {
+                const approved = await confirm({
+                  title: 'Xoa don hang',
+                  message: 'Hanh dong nay se xoa don khoi danh sach.',
+                  tone: 'danger',
+                  confirmLabel: 'Xoa don',
+                })
+                if (!approved) {
+                  return
+                }
+
                 try {
                   await deleteOrder(order.id)
                   notify(`Da xoa ${order.id}`, { title: 'Orders', variant: 'error' })
@@ -285,6 +347,7 @@ function OrderDetailPage() {
           </div>
         </div>
       </div>
+      {confirmDialog}
     </PagePanel>
   )
 }

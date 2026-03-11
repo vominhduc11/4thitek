@@ -30,6 +30,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -92,7 +93,7 @@ public class SepayService {
             return WebhookResult.ignored("order_not_found", null, null, "No order code found in transfer content");
         }
 
-        Order order = orderRepository.findFirstByOrderCodeIgnoreCase(orderCode)
+        Order order = orderRepository.findByOrderCodeIgnoreCaseForUpdate(orderCode)
                 .orElse(null);
         if (order == null) {
             return WebhookResult.ignored("order_not_found", orderCode, null, "Order does not exist");
@@ -125,7 +126,12 @@ public class SepayService {
         payment.setTransactionCode(transactionCode);
         payment.setNote(buildWebhookNote(request, orderCode));
         payment.setPaidAt(parsePaidAt(request.transactionDate()));
-        Payment savedPayment = paymentRepository.save(payment);
+        Payment savedPayment;
+        try {
+            savedPayment = paymentRepository.save(payment);
+        } catch (DataIntegrityViolationException ex) {
+            return WebhookResult.duplicate("duplicate_transaction", orderCode, transactionCode, "Webhook transaction already processed");
+        }
 
         order.setPaidAmount(zeroIfNull(order.getPaidAmount()).add(payment.getAmount()));
         order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
@@ -160,7 +166,7 @@ public class SepayService {
     private void validateWebhookToken(String providedToken) {
         String normalizedConfigured = normalize(webhookToken);
         if (normalizedConfigured == null) {
-            return;
+            throw new BadRequestException("SePay webhook token is not configured");
         }
         String normalizedProvided = normalize(providedToken);
         if (!normalizedConfigured.equals(normalizedProvided)) {
