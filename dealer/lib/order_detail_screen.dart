@@ -23,6 +23,8 @@ class OrderDetailScreen extends StatelessWidget {
   void _confirmCancel(BuildContext context, Order order) {
     showDialog<void>(
       context: context,
+      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+      requestFocus: true,
       builder: (dialogContext) {
         final colors = Theme.of(context).colorScheme;
         return AlertDialog(
@@ -65,6 +67,8 @@ class OrderDetailScreen extends StatelessWidget {
   void _confirmReceived(BuildContext context, Order order) {
     showDialog<void>(
       context: context,
+      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+      requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Xác nhận đã nhận hàng'),
@@ -240,6 +244,8 @@ class OrderDetailScreen extends StatelessWidget {
 
     showDialog<void>(
       context: context,
+      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+      requestFocus: true,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (_, setDialogState) {
@@ -448,7 +454,7 @@ class OrderDetailScreen extends StatelessWidget {
         TextButton(
           style: TextButton.styleFrom(
             foregroundColor: colors.error,
-            minimumSize: const Size(0, 44),
+            minimumSize: const Size(0, 48),
             padding: const EdgeInsets.symmetric(horizontal: 14),
           ),
           onPressed: () => _confirmCancel(context, order),
@@ -952,8 +958,8 @@ class _InfoRow extends StatelessWidget {
                       onPressed: onCopy,
                       tooltip: 'Sao chép',
                       constraints: const BoxConstraints(
-                        minWidth: 44,
-                        minHeight: 44,
+                        minWidth: 48,
+                        minHeight: 48,
                       ),
                       icon: Icon(
                         Icons.copy_outlined,

@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { motion, Variants, useInView } from 'framer-motion';
 import { useRef } from 'react';
@@ -28,7 +27,7 @@ const copyrightVariants: Variants = {
 };
 
 const Footer = () => {
-    const { t, language } = useLanguage();
+    const { t, language, setLanguage } = useLanguage();
     const ref = useRef(null);
     const inView = useInView(ref, { margin: '-60px', once: true });
     return (
@@ -41,106 +40,38 @@ const Footer = () => {
                 animate={inView ? 'visible' : 'hidden'}
             >
                 <div className={`${ultraWideSpacing['content-width-xl']} mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${ultraWideSpacing['grid-gap-md']}`}>
-                    {/* COMPANY Column */}
                     <motion.div variants={columnVariants}>
                         <h3 className={`uppercase ${typographyComponents.footer.heading} mb-3 sm:mb-4`}>
                             {t('footer.company.title')}
                         </h3>
                         <ul className="space-y-2">
-                            <li>
-                                <Link
-                                    href="/about"
-                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
-                                >
-                                    {t('footer.company.aboutUs')}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    href="/certification"
-                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
-                                >
-                                    {t('footer.company.certifications')}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    href="/products"
-                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
-                                >
-                                    {t('footer.company.headphones')}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    href="/contact"
-                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
-                                >
-                                    {t('footer.other.contact')}
-                                </Link>
-                            </li>
+                            <li><Link href="/about" className={`${typographyComponents.footer.link} hover:underline transition-colors`}>{t('footer.company.aboutUs')}</Link></li>
+                            <li><Link href="/certification" className={`${typographyComponents.footer.link} hover:underline transition-colors`}>{t('footer.company.certifications')}</Link></li>
+                            <li><Link href="/products" className={`${typographyComponents.footer.link} hover:underline transition-colors`}>{t('footer.company.headphones')}</Link></li>
+                            <li><Link href="/contact" className={`${typographyComponents.footer.link} hover:underline transition-colors`}>{t('footer.other.contact')}</Link></li>
                         </ul>
                     </motion.div>
 
-
-                    {/* RESELLER Column */}
                     <motion.div variants={columnVariants}>
                         <h3 className={`uppercase ${typographyComponents.footer.heading} mb-3 sm:mb-4`}>
                             {t('footer.reseller.title')}
                         </h3>
                         <ul className="space-y-2">
-                            <li>
-                                <Link
-                                    href="/become_our_reseller#dealer-network"
-                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
-                                >
-                                    {t('footer.reseller.information')}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    href="/become_our_reseller"
-                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
-                                >
-                                    {t('footer.reseller.becomeReseller')}
-                                </Link>
-                            </li>
+                            <li><Link href="/become_our_reseller#dealer-network" className={`${typographyComponents.footer.link} hover:underline transition-colors`}>{t('footer.reseller.information')}</Link></li>
+                            <li><Link href="/become_our_reseller" className={`${typographyComponents.footer.link} hover:underline transition-colors`}>{t('footer.reseller.becomeReseller')}</Link></li>
                         </ul>
                     </motion.div>
 
-                    {/* OTHER Column */}
                     <motion.div variants={columnVariants}>
                         <h3 className={`uppercase ${typographyComponents.footer.heading} mb-3 sm:mb-4`}>{t('footer.other.title')}</h3>
                         <ul className="space-y-2">
-                            <li>
-                                <Link
-                                    href="/warranty-check"
-                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
-                                >
-                                    {t('footer.other.warrantyCheck')}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    href="/policy"
-                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
-                                >
-                                    {t('footer.other.policy')}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    href="/blogs"
-                                    className={`${typographyComponents.footer.link} hover:underline transition-colors`}
-                                >
-                                    {t('footer.other.blog')}
-                                </Link>
-                            </li>
+                            <li><Link href="/warranty-check" className={`${typographyComponents.footer.link} hover:underline transition-colors`}>{t('footer.other.warrantyCheck')}</Link></li>
+                            <li><Link href="/policy" className={`${typographyComponents.footer.link} hover:underline transition-colors`}>{t('footer.other.policy')}</Link></li>
+                            <li><Link href="/blogs" className={`${typographyComponents.footer.link} hover:underline transition-colors`}>{t('footer.other.blog')}</Link></li>
                         </ul>
                     </motion.div>
                 </div>
 
-                {/* Separator Line */}
                 <motion.hr
                     className="border-gray-600 my-6 sm:my-8"
                     variants={lineVariants}
@@ -148,7 +79,6 @@ const Footer = () => {
                     animate={inView ? 'visible' : 'hidden'}
                 />
 
-                {/* Copyright & Language Selector */}
                 <motion.div
                     className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center text-xs text-gray-500 gap-4 sm:gap-0 text-center sm:text-left"
                     variants={copyrightVariants}
@@ -159,28 +89,29 @@ const Footer = () => {
                         {t('footer.copyright')}
                     </p>
 
-                    {/* Language Selector */}
-                    <div
-                        className="flex items-center cursor-pointer hover:text-gray-300 transition-colors justify-center sm:justify-start"
-                        aria-label={t('footer.languageSelectorLabel')}
-                    >
-                        <Image
-                            width={0}
-                            height={0}
-                            sizes="100vw"
-                            priority
-                            src={language === 'vi' ? "/flags/vn.svg" : "/flags/us.svg"}
-                            alt={language === 'vi' ? t('footer.flagAlt.vi') : t('footer.flagAlt.en')}
-                            className="w-4 sm:w-5 h-4 sm:h-5 rounded-full"
-                        />
-                        <span className={`ml-1.5 sm:ml-2 ${typographyComponents.footer.copyright}`}>{t('footer.languageSelector')}</span>
-                        <svg className="ml-1 w-3 h-3 fill-current" viewBox="0 0 20 20" aria-hidden="true">
-                            <path
-                                fillRule="evenodd"
-                                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                clipRule="evenodd"
-                            />
-                        </svg>
+                    <div className="flex items-center gap-2 justify-center sm:justify-start" aria-label={t('footer.languageSelectorLabel')}>
+                        <button
+                            type="button"
+                            onClick={() => setLanguage('vi')}
+                            className={`rounded-full border px-3 py-1 transition ${
+                                language === 'vi'
+                                    ? 'border-cyan-400/70 bg-cyan-400/15 text-white'
+                                    : 'border-white/10 text-gray-400 hover:border-white/25 hover:text-white'
+                            }`}
+                        >
+                            VN
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setLanguage('en')}
+                            className={`rounded-full border px-3 py-1 transition ${
+                                language === 'en'
+                                    ? 'border-cyan-400/70 bg-cyan-400/15 text-white'
+                                    : 'border-white/10 text-gray-400 hover:border-white/25 hover:text-white'
+                            }`}
+                        >
+                            EN
+                        </button>
                     </div>
                 </motion.div>
             </motion.footer>

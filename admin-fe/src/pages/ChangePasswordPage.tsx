@@ -1,7 +1,7 @@
 import { KeyRound, Lock, LogOut, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import logoCard from '../assets/images/logo.png'
+import logoCard from '../assets/images/logo-4t.png'
 import { changeAdminPassword } from '../lib/adminApi'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'

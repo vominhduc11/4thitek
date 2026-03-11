@@ -27,7 +27,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react'
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import logoMark from '../assets/images/logo-4t.png'
 import LanguageSwitcher from '../components/LanguageSwitcher'
@@ -537,12 +537,33 @@ function AppLayoutRevamp() {
 
     return searchIndex
       .filter((item) => item.searchText.includes(normalizedQuery))
-      .map(({ searchText: _searchText, ...item }) => item)
+      .map((item) => ({
+        id: item.id,
+        title: item.title,
+        meta: item.meta,
+        to: item.to,
+        icon: item.icon,
+      }))
   }, [deferredGlobalQuery, searchIndex])
 
   const visibleSearchResults = useMemo(
     () => (showAllSearchResults ? searchResults : searchResults.slice(0, SEARCH_RESULT_LIMIT)),
     [searchResults, showAllSearchResults],
+  )
+
+  const closeTransientUi = useCallback(
+    (options?: { clearQuery?: boolean }) => {
+      if (options?.clearQuery) {
+        setGlobalQuery('')
+      }
+      setIsSidebarOpen(false)
+      setIsAlertsOpen(false)
+      setIsAccountOpen(false)
+      setIsSearchOpen(false)
+      setShowAllSearchResults(false)
+      setActiveSearchIndex(-1)
+    },
+    [],
   )
 
   useEffect(() => {
@@ -554,29 +575,36 @@ function AppLayoutRevamp() {
   }, [theme])
 
   useEffect(() => {
-    setOpenGroups((current) => ({
-      ...current,
-      [activeGroup]: true,
-    }))
+    const timer = window.setTimeout(() => {
+      setOpenGroups((current) => ({
+        ...current,
+        [activeGroup]: true,
+      }))
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [activeGroup])
 
   useEffect(() => {
-    setIsSidebarOpen(false)
-    setIsAlertsOpen(false)
-    setIsAccountOpen(false)
-    setIsSearchOpen(false)
-    setShowAllSearchResults(false)
-    setActiveSearchIndex(-1)
-  }, [location.pathname])
+    const timer = window.setTimeout(() => {
+      closeTransientUi()
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [closeTransientUi, location.pathname])
 
   useEffect(() => {
-    setShowAllSearchResults(false)
-    setActiveSearchIndex(searchResults.length > 0 ? 0 : -1)
+    const timer = window.setTimeout(() => {
+      setShowAllSearchResults(false)
+      setActiveSearchIndex(searchResults.length > 0 ? 0 : -1)
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [deferredGlobalQuery, searchResults.length])
 
   useEffect(() => {
     if (!isSearchOpen) {
-      setActiveSearchIndex(-1)
+      const timer = window.setTimeout(() => {
+        setActiveSearchIndex(-1)
+      }, 0)
+      return () => window.clearTimeout(timer)
     }
   }, [isSearchOpen])
 
@@ -614,10 +642,7 @@ function AppLayoutRevamp() {
 
   const handleNavigate = (to: string) => {
     navigate(to)
-    setGlobalQuery('')
-    setIsSearchOpen(false)
-    setShowAllSearchResults(false)
-    setActiveSearchIndex(-1)
+    closeTransientUi({ clearQuery: true })
   }
 
   const markAlertRead = (id: string) => {
@@ -846,6 +871,8 @@ function AppLayoutRevamp() {
                     onChange={(event) => {
                       setGlobalQuery(event.target.value)
                       setIsSearchOpen(true)
+                      setShowAllSearchResults(false)
+                      setActiveSearchIndex(-1)
                     }}
                     onFocus={() => setIsSearchOpen(true)}
                     onKeyDown={handleSearchKeyDown}

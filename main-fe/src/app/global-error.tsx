@@ -72,7 +72,7 @@ export default function GlobalError({ reset }: { reset: () => void }) {
                         {t('errors.global.tryAgain')}
                     </button>
                     <Link
-                        href="/home"
+                        href="/"
                         className="w-full xs:flex-1 py-2 xs:py-2.5 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-900/30 text-center font-semibold text-sm xs:text-base transition"
                     >
                         {t('errors.global.goHome')}

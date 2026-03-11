@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { FiSearch, FiFilter, FiX, FiArrowLeft } from 'react-icons/fi';
@@ -11,6 +11,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useDebounce } from '@/hooks/useDebounce';
 import Hero from '@/components/ui/Hero';
 import { parseImageUrl } from '@/utils/media';
+import { buildBlogPath } from '@/lib/slug';
 
 interface SearchResult {
     type: 'product' | 'blog';
@@ -88,6 +89,7 @@ const filterVariants = {
 
 function SearchContent() {
     const { t, getTranslation } = useLanguage();
+    const router = useRouter();
     const searchParams = useSearchParams();
     const query = searchParams.get('q') || '';
 
@@ -153,7 +155,7 @@ function SearchContent() {
                         title: blog.title,
                         subtitle: blog.description,
                         image: parseImageUrl(blog.image),
-                        href: `/blogs/${blogId}`,
+                        href: buildBlogPath(blogId, blog.title),
                         category: blog.category || t('search.type.blog')
                     });
                 });
@@ -189,7 +191,7 @@ function SearchContent() {
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         if (searchInput.trim()) {
-            window.location.href = `/search?q=${encodeURIComponent(searchInput.trim())}`;
+            router.push(`/search?q=${encodeURIComponent(searchInput.trim())}`);
         }
     };
 
@@ -496,7 +498,7 @@ function SearchContent() {
                                     {defaultSuggestions.map((suggestion, index) => (
                                         <motion.button
                                             key={suggestion}
-                                            onClick={() => window.location.href = `/search?q=${encodeURIComponent(suggestion)}`}
+                                            onClick={() => router.push(`/search?q=${encodeURIComponent(suggestion)}`)}
                                             className="px-3 py-1.5 text-xs sm:text-sm bg-gray-700/30 hover:bg-[#4FC8FF]/20 text-gray-400 hover:text-[#4FC8FF] rounded-full transition-all duration-300 border border-gray-600/30 hover:border-[#4FC8FF]/50"
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}

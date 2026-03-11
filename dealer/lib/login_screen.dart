@@ -13,6 +13,7 @@ import 'cart_controller.dart';
 import 'forgot_password_screen.dart';
 import 'notification_controller.dart';
 import 'order_controller.dart';
+import 'validation_utils.dart';
 import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
@@ -447,7 +448,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   bool _isValidEmail(String email) {
-    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
+    return isValidEmailAddress(email);
   }
 
   bool _isValidPassword(String password) {
@@ -792,7 +793,7 @@ class _LoginCard extends StatelessWidget {
       suffixIcon: suffixIcon,
       errorText: forceErrorText,
       isDense: true,
-      constraints: const BoxConstraints(minHeight: 44),
+      constraints: const BoxConstraints(minHeight: 48),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       errorStyle: TextStyle(
         color: errorColor,
@@ -940,20 +941,15 @@ class _LoginCard extends StatelessWidget {
                           forceErrorText: emailFieldError,
                         ),
                         validator: (value) {
-                          final email = value?.trim() ?? '';
-                          if (email.isEmpty) {
-                            return 'Email kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u1ec3 tr\u1ed1ng';
-                          }
-                          final isValidEmail = RegExp(
-                            r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-                          ).hasMatch(email);
-                          final shouldShowFormatError =
-                              shouldValidateEmailFormat ||
-                              !emailFocusNode.hasFocus;
-                          if (!isValidEmail && shouldShowFormatError) {
-                            return 'Email kh\u00f4ng h\u1ee3p l\u1ec7';
-                          }
-                          return null;
+                          return validateEmailAddress(
+                            value,
+                            emptyMessage:
+                                'Email kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u1ec3 tr\u1ed1ng',
+                            invalidMessage: 'Email kh\u00f4ng h\u1ee3p l\u1ec7',
+                            showFormatError:
+                                shouldValidateEmailFormat ||
+                                !emailFocusNode.hasFocus,
+                          );
                         },
                         onFieldSubmitted: (_) =>
                             passwordFocusNode.requestFocus(),
@@ -1150,7 +1146,7 @@ class _LoginCard extends StatelessWidget {
                             TextButton(
                               onPressed: isLoading ? null : onForgotPassword,
                               style: TextButton.styleFrom(
-                                minimumSize: const Size(44, 44),
+                                minimumSize: const Size(48, 48),
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
                                   vertical: 4,
@@ -1180,8 +1176,8 @@ class _LoginCard extends StatelessWidget {
                   Expanded(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(
-                        minHeight: 44,
-                        minWidth: 44,
+                        minHeight: 48,
+                        minWidth: 48,
                       ),
                       child: Material(
                         color: Colors.transparent,
@@ -1227,7 +1223,7 @@ class _LoginCard extends StatelessWidget {
                   TextButton(
                     onPressed: isLoading ? null : onForgotPassword,
                     style: TextButton.styleFrom(
-                      minimumSize: const Size(44, 44),
+                      minimumSize: const Size(48, 48),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6,
                         vertical: 8,
@@ -1408,7 +1404,7 @@ class _RegisterPrompt extends StatelessWidget {
         child: TextButton(
           onPressed: isLoading ? null : onRegister,
           style: TextButton.styleFrom(
-            minimumSize: const Size(44, 44),
+            minimumSize: const Size(48, 48),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             foregroundColor: Colors.white,
           ),

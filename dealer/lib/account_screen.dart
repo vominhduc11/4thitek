@@ -106,6 +106,8 @@ class _AccountScreenState extends State<AccountScreen> {
     final confirmLabel = isEnglish ? 'Log out' : 'Đăng xuất';
     return showDialog<bool>(
       context: context,
+      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+      requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
           title: Text(title),

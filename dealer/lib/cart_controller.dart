@@ -30,21 +30,26 @@ class CartController extends ChangeNotifier {
   late final http.Client _client;
   final Map<String, CartItem> _items = <String, CartItem>{};
   List<BulkDiscountRule> _discountRules = const <BulkDiscountRule>[];
+  List<CartItem> _sortedItemsCache = const <CartItem>[];
+  bool _itemsCacheDirty = true;
 
   Future<void> load() async {
-    await _loadRemoteDiscountRules();
-    final loadedRemote = await _loadRemoteCart();
-    if (loadedRemote) {
-      return;
+    await _loadRemoteDiscountRules(notify: false);
+    final loadedRemote = await _loadRemoteCart(notify: false);
+    if (!loadedRemote) {
+      _replaceItems(const <CartItem>[]);
     }
-    _items.clear();
     notifyListeners();
   }
 
   List<CartItem> get items {
-    final list = _items.values.toList();
-    list.sort((a, b) => a.product.name.compareTo(b.product.name));
-    return list;
+    if (_itemsCacheDirty) {
+      final list = _items.values.toList(growable: false)
+        ..sort((a, b) => a.product.name.compareTo(b.product.name));
+      _sortedItemsCache = List<CartItem>.unmodifiable(list);
+      _itemsCacheDirty = false;
+    }
+    return _sortedItemsCache;
   }
 
   bool get isEmpty => _items.isEmpty;
@@ -60,10 +65,13 @@ class CartController extends ChangeNotifier {
     );
   }
 
-  List<BulkDiscountRule> get discountRules => List<BulkDiscountRule>.unmodifiable(_discountRules);
+  List<BulkDiscountRule> get discountRules =>
+      List<BulkDiscountRule>.unmodifiable(_discountRules);
 
-  BulkDiscountTarget? get nextDiscountTarget =>
-      nextBulkDiscountTargetForCart(items: _items.values, rules: _discountRules);
+  BulkDiscountTarget? get nextDiscountTarget => nextBulkDiscountTargetForCart(
+    items: _items.values,
+    rules: _discountRules,
+  );
 
   int get discountPercent =>
       bulkDiscountPercentForCart(items: _items.values, rules: _discountRules);
@@ -205,7 +213,7 @@ class CartController extends ChangeNotifier {
     );
   }
 
-  Future<bool> _loadRemoteCart() async {
+  Future<bool> _loadRemoteCart({bool notify = true}) async {
     final token = await _readAccessToken();
     if (token == null) {
       return false;
@@ -225,24 +233,27 @@ class CartController extends ChangeNotifier {
         throw Exception('Invalid cart payload');
       }
 
-      _items.clear();
+      final nextItems = <CartItem>[];
       for (final entry in data) {
         if (entry is! Map<String, dynamic>) {
           continue;
         }
         final item = _mapRemoteCartItem(entry);
         if (item != null) {
-          _items[item.product.id] = item;
+          nextItems.add(item);
         }
       }
-      notifyListeners();
+      _replaceItems(nextItems);
+      if (notify) {
+        notifyListeners();
+      }
       return true;
     } catch (_) {
       return false;
     }
   }
 
-  Future<bool> _loadRemoteDiscountRules() async {
+  Future<bool> _loadRemoteDiscountRules({bool notify = true}) async {
     final token = await _readAccessToken();
     if (token == null) {
       _discountRules = const <BulkDiscountRule>[];
@@ -266,11 +277,15 @@ class CartController extends ChangeNotifier {
           .whereType<Map<String, dynamic>>()
           .map(_mapDiscountRule)
           .toList(growable: false);
-      notifyListeners();
+      if (notify) {
+        notifyListeners();
+      }
       return true;
     } catch (_) {
       _discountRules = const <BulkDiscountRule>[];
-      notifyListeners();
+      if (notify) {
+        notifyListeners();
+      }
       return false;
     }
   }
@@ -282,6 +297,7 @@ class CartController extends ChangeNotifier {
   }) async {
     final previous = Map<String, CartItem>.from(_items);
     applyLocal();
+    _markItemsDirty();
     notifyListeners();
 
     if (remoteSync == null) {
@@ -292,6 +308,7 @@ class CartController extends ChangeNotifier {
         _items
           ..clear()
           ..addAll(previous);
+        _markItemsDirty();
         notifyListeners();
       }
       return false;
@@ -301,6 +318,7 @@ class CartController extends ChangeNotifier {
       final remoteItem = await remoteSync();
       if (remoteItem != null) {
         _items[remoteItem.product.id] = remoteItem;
+        _markItemsDirty();
         notifyListeners();
       }
       return true;
@@ -309,6 +327,7 @@ class CartController extends ChangeNotifier {
         _items
           ..clear()
           ..addAll(previous);
+        _markItemsDirty();
         notifyListeners();
       }
       return false;
@@ -511,6 +530,19 @@ class CartController extends ChangeNotifier {
   String? _normalizeString(Object? value) {
     final normalized = value?.toString().trim() ?? '';
     return normalized.isEmpty ? null : normalized;
+  }
+
+  void _replaceItems(Iterable<CartItem> items) {
+    _items
+      ..clear()
+      ..addEntries(
+        items.map((item) => MapEntry<String, CartItem>(item.product.id, item)),
+      );
+    _markItemsDirty();
+  }
+
+  void _markItemsDirty() {
+    _itemsCacheDirty = true;
   }
 
   @override

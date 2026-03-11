@@ -1,7 +1,7 @@
 import { Eye, EyeOff, Lock, User } from 'lucide-react'
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import logoCard from '../assets/images/logo.png'
+import logoCard from '../assets/images/logo-4t.png'
 import LanguageSwitcher from '../components/LanguageSwitcher'
 import { FieldErrorMessage } from '../components/ui-kit'
 import { useAuth } from '../context/AuthContext'

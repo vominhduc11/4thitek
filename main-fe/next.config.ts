@@ -60,6 +60,12 @@ const nextConfig: NextConfig = {
                 hostname: 'res.cloudinary.com',
                 port: '',
                 pathname: '/**'
+            },
+            {
+                protocol: 'https',
+                hostname: 'api.4thitek.vn',
+                port: '',
+                pathname: '/**'
             }
         ],
         formats: ['image/avif', 'image/webp'],
@@ -71,6 +77,11 @@ const nextConfig: NextConfig = {
             {
                 source: '/warranty_check',
                 destination: '/warranty-check',
+                permanent: true
+            },
+            {
+                source: '/home',
+                destination: '/',
                 permanent: true
             }
         ];

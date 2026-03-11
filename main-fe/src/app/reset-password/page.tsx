@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { API_BASE_URL } from '@/constants/api';
 
@@ -14,7 +14,7 @@ type ApiResponse<T> = {
 const genericRequestMessage =
     'If the email exists in our system, a password reset link has been sent.';
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
     const searchParams = useSearchParams();
     const token = searchParams.get('token')?.trim() ?? '';
     const requestedEmail = searchParams.get('email')?.trim() ?? '';
@@ -340,7 +340,7 @@ export default function ResetPasswordPage() {
                                         <p>{resetMessage}</p>
                                         <div className="mt-4 flex flex-wrap gap-3">
                                             <Link
-                                                href="/home"
+                                                href="/"
                                                 className="inline-flex items-center rounded-full bg-cyan-400 px-4 py-2 font-semibold text-slate-950 transition hover:bg-cyan-300"
                                             >
                                                 Back to homepage
@@ -360,5 +360,26 @@ export default function ResetPasswordPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+function ResetPasswordFallback() {
+    return (
+        <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(0,212,255,0.18),_rgba(12,19,29,0.96)_42%,_#05070b_100%)] text-white">
+            <div className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-4 py-16 sm:px-6 lg:px-8">
+                <div className="rounded-3xl border border-white/10 bg-[#111827]/80 px-8 py-10 text-center shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
+                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-cyan-300"></div>
+                    <p className="mt-4 text-sm text-slate-300">Loading reset form...</p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default function ResetPasswordPage() {
+    return (
+        <Suspense fallback={<ResetPasswordFallback />}>
+            <ResetPasswordContent />
+        </Suspense>
     );
 }

@@ -112,6 +112,7 @@ Future<void> showBankTransferInfoSheet({
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    requestFocus: true,
     builder: (sheetContext) {
       return _BankTransferInfoSheet(
         amount: amount,
@@ -286,7 +287,7 @@ class _BankTransferInfoRow extends StatelessWidget {
           IconButton(
             visualDensity: VisualDensity.compact,
             padding: const EdgeInsets.all(10),
-            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             onPressed: onCopy,
             icon: const Icon(Icons.copy, size: 18),
             tooltip: 'Sao chep',

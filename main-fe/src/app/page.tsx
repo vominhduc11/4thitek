@@ -1,5 +1,3 @@
-import { redirect } from 'next/navigation';
+import HomePageContent from './home/HomePageContent';
 
-export default function Home() {
-    return redirect('/home');
-}
+export default HomePageContent;

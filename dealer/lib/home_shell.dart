@@ -49,6 +49,8 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
+      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+      requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
           title: Text(l10n.welcomeTitle),
@@ -121,7 +123,9 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final tabs = _buildTabs(l10n);
-    final safeIndex = _currentIndex >= tabs.length ? tabs.length - 1 : _currentIndex;
+    final safeIndex = _currentIndex >= tabs.length
+        ? tabs.length - 1
+        : _currentIndex;
     final shellBody = PageStorage(
       bucket: _pageStorageBucket,
       child: IndexedStack(
@@ -133,7 +137,8 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth >= AppBreakpoints.desktop;
-        final useExtendedRail = constraints.maxWidth >= AppBreakpoints.railExtended;
+        final useExtendedRail =
+            constraints.maxWidth >= AppBreakpoints.railExtended;
         if (isDesktop) {
           return Scaffold(
             body: Row(

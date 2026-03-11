@@ -1,6 +1,7 @@
 import { RefreshCw, ShieldCheck } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  fetchAllAdminWarranties,
   fetchAdminWarranties,
   updateAdminWarrantyStatus,
   type BackendWarrantyResponse,
@@ -115,15 +116,18 @@ function WarrantiesPageRevamp() {
   const { notify } = useToast()
   const { confirm, confirmDialog } = useConfirmDialog()
   const [items, setItems] = useState<BackendWarrantyResponse[]>([])
+  const [allItems, setAllItems] = useState<BackendWarrantyResponse[]>([])
   const [page, setPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [totalItems, setTotalItems] = useState(0)
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'ALL' | BackendWarrantyStatus>('ALL')
   const [isLoading, setIsLoading] = useState(true)
+  const [isFilterLoading, setIsFilterLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const hasActiveFilters = query.trim().length > 0 || statusFilter !== 'ALL'
 
-  const loadData = async (nextPage = page) => {
+  const loadData = useCallback(async (nextPage: number) => {
     if (!accessToken) return
     setIsLoading(true)
     setError(null)
@@ -138,15 +142,42 @@ function WarrantiesPageRevamp() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [accessToken, copy.loadFallback])
 
   useEffect(() => {
     void loadData(page)
-  }, [accessToken, page])
+  }, [loadData, page])
+
+  const loadAllItems = useCallback(async () => {
+    if (!accessToken) return
+    setIsFilterLoading(true)
+    setError(null)
+    try {
+      const response = await fetchAllAdminWarranties(accessToken, 100)
+      setAllItems(response)
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : copy.loadFallback)
+    } finally {
+      setIsFilterLoading(false)
+    }
+  }, [accessToken, copy.loadFallback])
+
+  useEffect(() => {
+    if (!hasActiveFilters) {
+      setAllItems([])
+      setIsFilterLoading(false)
+      setError(null)
+      return
+    }
+
+    void loadAllItems()
+  }, [hasActiveFilters, loadAllItems])
+
+  const sourceItems = hasActiveFilters ? allItems : items
 
   const filteredItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
-    return items.filter((item) => {
+    return sourceItems.filter((item) => {
       const matchesStatus = statusFilter === 'ALL' ? true : item.status === statusFilter
       const haystack = [
         item.warrantyCode,
@@ -160,18 +191,25 @@ function WarrantiesPageRevamp() {
         .toLowerCase()
       return matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery))
     })
-  }, [items, query, statusFilter])
+  }, [query, sourceItems, statusFilter])
 
   const stats = useMemo(
     () => ({
-      active: items.filter((item) => item.status === 'ACTIVE').length,
-      expired: items.filter((item) => item.status === 'EXPIRED').length,
-      voided: items.filter((item) => item.status === 'VOID').length,
+      active: sourceItems.filter((item) => item.status === 'ACTIVE').length,
+      expired: sourceItems.filter((item) => item.status === 'EXPIRED').length,
+      voided: sourceItems.filter((item) => item.status === 'VOID').length,
     }),
-    [items],
+    [sourceItems],
   )
 
-  if (isLoading) {
+  const handleReload = useCallback(async () => {
+    await loadData(page)
+    if (hasActiveFilters) {
+      await loadAllItems()
+    }
+  }, [hasActiveFilters, loadAllItems, loadData, page])
+
+  if (isLoading || isFilterLoading) {
     return (
       <PagePanel>
         <LoadingRows rows={6} />
@@ -182,7 +220,7 @@ function WarrantiesPageRevamp() {
   if (error) {
     return (
       <PagePanel>
-        <ErrorState title={copy.loadTitle} message={error} onRetry={() => void loadData(page)} />
+        <ErrorState title={copy.loadTitle} message={error} onRetry={() => void handleReload()} />
       </PagePanel>
     )
   }
@@ -216,7 +254,7 @@ function WarrantiesPageRevamp() {
               </option>
             ))}
           </select>
-          <GhostButton aria-label={copy.reload} icon={<RefreshCw className="h-4 w-4" />} onClick={() => void loadData(page)} type="button">
+          <GhostButton aria-label={copy.reload} icon={<RefreshCw className="h-4 w-4" />} onClick={() => void handleReload()} type="button">
             {copy.reload}
           </GhostButton>
         </div>
@@ -288,6 +326,7 @@ function WarrantiesPageRevamp() {
                       try {
                         const updated = await updateAdminWarrantyStatus(accessToken!, item.id, next)
                         setItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
+                        setAllItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
                       } catch (updateError) {
                         notify(updateError instanceof Error ? updateError.message : copy.loadFallback, {
                           title: copy.title,
@@ -361,12 +400,13 @@ function WarrantiesPageRevamp() {
                               event.currentTarget.value = item.status ?? 'ACTIVE'
                               return
                             }
-                            try {
-                              const updated = await updateAdminWarrantyStatus(accessToken!, item.id, next)
-                              setItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
-                            } catch (updateError) {
-                              notify(updateError instanceof Error ? updateError.message : copy.loadFallback, {
-                                title: copy.title,
+                      try {
+                        const updated = await updateAdminWarrantyStatus(accessToken!, item.id, next)
+                        setItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
+                        setAllItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
+                      } catch (updateError) {
+                        notify(updateError instanceof Error ? updateError.message : copy.loadFallback, {
+                          title: copy.title,
                                 variant: 'error',
                               })
                             }
@@ -388,15 +428,17 @@ function WarrantiesPageRevamp() {
         )}
       </div>
 
-      <PaginationNav
-        page={page}
-        totalPages={totalPages}
-        totalItems={totalItems}
-        pageSize={25}
-        onPageChange={setPage}
-        previousLabel={copy.previous}
-        nextLabel={copy.next}
-      />
+      {!hasActiveFilters ? (
+        <PaginationNav
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={25}
+          onPageChange={setPage}
+          previousLabel={copy.previous}
+          nextLabel={copy.next}
+        />
+      ) : null}
       {confirmDialog}
     </PagePanel>
   )

@@ -30,6 +30,13 @@ class OrderController extends ChangeNotifier {
   late final http.Client _client;
   final Map<String, int> _remoteOrderIds = <String, int>{};
   final Map<int, String> _remoteOrderCodes = <int, String>{};
+  List<Order> _sortedOrdersCache = const <Order>[];
+  List<Order> _sortedDebtOrdersCache = const <Order>[];
+  List<DebtPaymentRecord> _sortedPaymentHistoryCache =
+      const <DebtPaymentRecord>[];
+  bool _ordersCacheDirty = true;
+  bool _debtOrdersCacheDirty = true;
+  bool _paymentHistoryCacheDirty = true;
 
   Future<void> load({bool forceRefresh = false}) async {
     final loadedRemote = await _loadRemoteOrdersAndPayments();
@@ -39,8 +46,8 @@ class OrderController extends ChangeNotifier {
     if (forceRefresh) {
       _remoteOrderIds.clear();
       _remoteOrderCodes.clear();
-      _orders.clear();
-      _paymentHistory.clear();
+      _replaceOrders(const <Order>[]);
+      _replacePaymentHistory(const <DebtPaymentRecord>[]);
       notifyListeners();
     }
   }
@@ -56,28 +63,37 @@ class OrderController extends ChangeNotifier {
   Future<void> clearSessionData() async {
     _remoteOrderIds.clear();
     _remoteOrderCodes.clear();
-    _orders.clear();
-    _paymentHistory.clear();
+    _replaceOrders(const <Order>[]);
+    _replacePaymentHistory(const <DebtPaymentRecord>[]);
     notifyListeners();
   }
 
   List<Order> get orders {
-    final list = List<Order>.from(_orders);
-    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return list;
+    if (_ordersCacheDirty) {
+      final list = List<Order>.from(_orders)
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      _sortedOrdersCache = List<Order>.unmodifiable(list);
+      _ordersCacheDirty = false;
+    }
+    return _sortedOrdersCache;
   }
 
   List<Order> get debtOrders {
-    final list = orders
-        .where(
-          (order) =>
-              order.paymentMethod == OrderPaymentMethod.debt &&
-              order.outstandingAmount > 0 &&
-              order.status != OrderStatus.cancelled,
-        )
-        .toList();
-    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return list;
+    if (_debtOrdersCacheDirty) {
+      final list =
+          _orders
+              .where(
+                (order) =>
+                    order.paymentMethod == OrderPaymentMethod.debt &&
+                    order.outstandingAmount > 0 &&
+                    order.status != OrderStatus.cancelled,
+              )
+              .toList(growable: false)
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      _sortedDebtOrdersCache = List<Order>.unmodifiable(list);
+      _debtOrdersCacheDirty = false;
+    }
+    return _sortedDebtOrdersCache;
   }
 
   int get totalOutstandingDebt {
@@ -91,9 +107,13 @@ class OrderController extends ChangeNotifier {
   }
 
   List<DebtPaymentRecord> get paymentHistory {
-    final list = List<DebtPaymentRecord>.from(_paymentHistory);
-    list.sort((a, b) => b.paidAt.compareTo(a.paidAt));
-    return list;
+    if (_paymentHistoryCacheDirty) {
+      final list = List<DebtPaymentRecord>.from(_paymentHistory)
+        ..sort((a, b) => b.paidAt.compareTo(a.paidAt));
+      _sortedPaymentHistoryCache = List<DebtPaymentRecord>.unmodifiable(list);
+      _paymentHistoryCacheDirty = false;
+    }
+    return _sortedPaymentHistoryCache;
   }
 
   bool containsId(String id) {
@@ -222,6 +242,7 @@ class OrderController extends ChangeNotifier {
         if (nextPayment != null &&
             !_paymentHistory.any((item) => item.id == nextPayment.id)) {
           _paymentHistory.add(nextPayment);
+          _markPaymentsDirty();
         }
         notifyListeners();
         return true;
@@ -263,12 +284,8 @@ class OrderController extends ChangeNotifier {
         _remoteOrderIds.values.map(_fetchRemotePaymentsForOrder),
       );
 
-      _orders
-        ..clear()
-        ..addAll(remoteOrders);
-      _paymentHistory
-        ..clear()
-        ..addAll(paymentsByOrder.expand((items) => items));
+      _replaceOrders(remoteOrders);
+      _replacePaymentHistory(paymentsByOrder.expand((items) => items));
       notifyListeners();
       return true;
     } catch (_) {
@@ -365,6 +382,7 @@ class OrderController extends ChangeNotifier {
     }
     _paymentHistory.removeWhere((payment) => payment.orderId == orderCode);
     _paymentHistory.addAll(await _fetchRemotePaymentsForOrder(remoteOrderId));
+    _markPaymentsDirty();
   }
 
   void _replaceOrder(Order nextOrder) {
@@ -374,6 +392,7 @@ class OrderController extends ChangeNotifier {
     } else {
       _orders.insert(0, nextOrder);
     }
+    _markOrdersDirty();
   }
 
   Order _mapRemoteOrder(Map<String, dynamic> json) {
@@ -597,6 +616,29 @@ class OrderController extends ChangeNotifier {
   String? _normalizeString(Object? value) {
     final text = value?.toString().trim() ?? '';
     return text.isEmpty ? null : text;
+  }
+
+  void _replaceOrders(Iterable<Order> orders) {
+    _orders
+      ..clear()
+      ..addAll(orders);
+    _markOrdersDirty();
+  }
+
+  void _replacePaymentHistory(Iterable<DebtPaymentRecord> payments) {
+    _paymentHistory
+      ..clear()
+      ..addAll(payments);
+    _markPaymentsDirty();
+  }
+
+  void _markOrdersDirty() {
+    _ordersCacheDirty = true;
+    _debtOrdersCacheDirty = true;
+  }
+
+  void _markPaymentsDirty() {
+    _paymentHistoryCacheDirty = true;
   }
 
   @override

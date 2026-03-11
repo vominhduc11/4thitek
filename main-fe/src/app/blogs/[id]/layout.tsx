@@ -2,36 +2,44 @@ import type { Metadata } from 'next';
 import JsonLd from '@/components/seo/JsonLd';
 import { articleJsonLd, createBaseMetadata } from '@/lib/seo';
 import { publicApiServer } from '@/lib/publicApiServer';
+import { buildBlogPath, extractRouteId, slugify } from '@/lib/slug';
+import { parseImageUrl } from '@/utils/media';
 
-const parseImageUrl = (value: string) => {
-    try {
-        const parsed = JSON.parse(value) as { imageUrl?: string };
-        return parsed.imageUrl || '';
-    } catch {
-        return value;
-    }
-};
+export async function generateStaticParams() {
+    const response = await publicApiServer.fetchBlogs();
+    return (response.data ?? []).flatMap((blog) => {
+        const id = String(blog.id).trim();
+        return id
+            ? [
+                  {
+                      id: `${id}-${slugify(blog.title)}`
+                  }
+              ]
+            : [];
+    });
+}
 
 export async function generateMetadata({
     params
 }: {
     params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-    const { id } = await params;
+    const { id: rawId } = await params;
+    const id = extractRouteId(rawId);
     const response = await publicApiServer.fetchBlogById(id);
     if (!response.success || !response.data) {
         return createBaseMetadata({
             locale: 'vi',
             path: `/blogs/${id}`,
-            title: '4ThiTek | Bài viết',
-            description: 'Bài viết từ 4ThiTek.'
+            title: '4ThiTek | Bai viet',
+            description: 'Bai viet tu 4ThiTek.'
         });
     }
 
     const article = response.data;
     return createBaseMetadata({
         locale: 'vi',
-        path: `/blogs/${id}`,
+        path: buildBlogPath(article.id, article.title),
         title: `${article.title} | 4ThiTek`,
         description: article.description || article.title
     });
@@ -44,7 +52,8 @@ export default async function BlogDetailLayout({
     children: React.ReactNode;
     params: Promise<{ id: string }>;
 }) {
-    const { id } = await params;
+    const { id: rawId } = await params;
+    const id = extractRouteId(rawId);
     const response = await publicApiServer.fetchBlogById(id);
     const article = response.success ? response.data : null;
 
@@ -56,8 +65,9 @@ export default async function BlogDetailLayout({
                         id,
                         title: article.title,
                         description: article.description || article.title,
-                        image: parseImageUrl(article.image),
-                        publishedAt: article.createdAt
+                        image: parseImageUrl(article.image, ''),
+                        publishedAt: article.createdAt,
+                        path: buildBlogPath(article.id, article.title)
                     })}
                 />
             ) : null}

@@ -483,6 +483,7 @@ class _DebtOrderCard extends StatelessWidget {
     await showModalBottomSheet<void>(
       context: context,
       useSafeArea: true,
+      requestFocus: true,
       isScrollControlled: true,
       showDragHandle: true,
       backgroundColor: colors.surface,
@@ -845,6 +846,8 @@ class _DebtOrderCard extends StatelessWidget {
   }) {
     return showDialog<bool>(
       context: context,
+      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+      requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
           title: Text(texts.largePaymentConfirmTitle),
@@ -1189,8 +1192,7 @@ class _DebtTexts {
   String get largePaymentConfirmTitle =>
       isEnglish ? 'Confirm large payment' : 'Xác nhận khoản thanh toán lớn';
 
-  String get creditLimitLabel =>
-      isEnglish ? 'Credit limit' : 'Hạn mức công nợ';
+  String get creditLimitLabel => isEnglish ? 'Credit limit' : 'Hạn mức công nợ';
 
   String creditLimitValue(int amount) {
     if (amount <= 0) {

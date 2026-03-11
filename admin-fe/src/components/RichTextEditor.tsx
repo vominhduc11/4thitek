@@ -29,6 +29,8 @@ export const RichTextEditor = ({
   const modulesRef = useRef(modules)
   const formatsRef = useRef(formats)
   const placeholderRef = useRef(placeholder)
+  const readOnlyRef = useRef(readOnly)
+  const ariaLabelRef = useRef(ariaLabel)
 
   useEffect(() => {
     onChangeRef.current = onChange
@@ -39,6 +41,14 @@ export const RichTextEditor = ({
   }, [value])
 
   useEffect(() => {
+    readOnlyRef.current = readOnly
+  }, [readOnly])
+
+  useEffect(() => {
+    ariaLabelRef.current = ariaLabel
+  }, [ariaLabel])
+
+  useEffect(() => {
     if (!containerRef.current || quillRef.current) return
 
     const container = containerRef.current
@@ -47,7 +57,7 @@ export const RichTextEditor = ({
       modules: modulesRef.current,
       formats: formatsRef.current,
       placeholder: placeholderRef.current,
-      readOnly,
+      readOnly: readOnlyRef.current,
     })
 
     quillRef.current = instance
@@ -61,7 +71,10 @@ export const RichTextEditor = ({
       }
     }
 
-    instance.root.setAttribute('aria-label', ariaLabel ?? placeholderRef.current ?? 'Rich text editor')
+    instance.root.setAttribute(
+      'aria-label',
+      ariaLabelRef.current ?? placeholderRef.current ?? 'Rich text editor',
+    )
     instance.root.setAttribute('aria-multiline', 'true')
     instance.on('text-change', handleChange)
 

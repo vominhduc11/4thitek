@@ -1,4 +1,3 @@
-// src/app/not-found.tsx
 'use client';
 
 import Link from 'next/link';
@@ -7,7 +6,6 @@ import { motion, Variants } from 'framer-motion';
 import { useHydration } from '@/hooks/useHydration';
 import { useLanguage } from '@/context/LanguageContext';
 
-// Animation variants
 const containerVariants: Variants = {
     hidden: { y: 40, opacity: 0 },
     visible: { y: 0, opacity: 1, transition: { type: 'spring', duration: 0.7 } }
@@ -50,20 +48,12 @@ export default function NotFound() {
                 initial="hidden"
                 animate="visible"
             >
-                <motion.div
-                    className="flex flex-col items-center gap-2 xs:gap-3 mb-4 xs:mb-6"
-                    variants={textBlockVariants}
-                >
+                <motion.div className="flex flex-col items-center gap-2 xs:gap-3 mb-4 xs:mb-6" variants={textBlockVariants}>
                     <motion.span
                         className="bg-blue-950/60 p-3 xs:p-4 rounded-full mb-1 xs:mb-2 border border-blue-900"
                         variants={iconVariants}
                     >
-                        {/* Icon size theo từng màn hình */}
-                        <FiBox size={28} className="xs:hidden text-blue-400" />
-                        <FiBox size={40} className="hidden xs:block sm:hidden text-blue-400" />
-                        <FiBox size={48} className="hidden sm:block md:hidden text-blue-400" />
-                        <FiBox size={56} className="hidden md:block lg:hidden text-blue-400" />
-                        <FiBox size={64} className="hidden lg:block text-blue-400" />
+                        <FiBox className="h-7 w-7 text-blue-400 xs:h-10 xs:w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 lg:h-16 lg:w-16" />
                     </motion.span>
                     <motion.h1
                         className="text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-50 mb-1 xs:mb-2 text-center"
@@ -78,12 +68,9 @@ export default function NotFound() {
                         {t('notFound.description')}
                     </motion.p>
                 </motion.div>
-                <motion.div
-                    className="flex flex-col xs:flex-row gap-2 xs:gap-3 w-full mt-3 xs:mt-4 mb-1 xs:mb-2"
-                    variants={actionsVariants}
-                >
+                <motion.div className="flex flex-col xs:flex-row gap-2 xs:gap-3 w-full mt-3 xs:mt-4 mb-1 xs:mb-2" variants={actionsVariants}>
                     <Link
-                        href="/home"
+                        href="/"
                         className="w-full xs:flex-1 py-2 xs:py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-center text-sm xs:text-base transition"
                     >
                         {t('notFound.backHome')}
@@ -95,10 +82,7 @@ export default function NotFound() {
                         {t('notFound.viewProducts')}
                     </Link>
                 </motion.div>
-                <motion.p
-                    className="text-xs xs:text-sm text-gray-600 mt-4 xs:mt-6 text-center"
-                    variants={copyrightVariants}
-                >
+                <motion.p className="text-xs xs:text-sm text-gray-600 mt-4 xs:mt-6 text-center" variants={copyrightVariants}>
                     {t('notFound.footer').replace('{year}', String(currentYear))}
                 </motion.p>
             </motion.div>

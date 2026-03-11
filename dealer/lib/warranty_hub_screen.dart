@@ -285,9 +285,7 @@ Order? _pickQuickOrder(
   WarrantyController warrantyController,
 ) {
   for (final order in orders) {
-    final activatedCount = warrantyController
-        .activationsForOrder(order.id)
-        .length;
+    final activatedCount = warrantyController.activationCountForOrder(order.id);
     if (activatedCount < order.totalItems) {
       return order;
     }

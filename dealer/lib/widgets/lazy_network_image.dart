@@ -133,21 +133,53 @@ class _LazyNetworkImageState extends State<LazyNetworkImage> {
       );
     }
 
-    return Image.network(
-      normalizedUrl,
-      width: widget.width,
-      height: widget.height,
-      fit: widget.fit,
-      filterQuality: widget.filterQuality,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) {
-          return child;
-        }
-        return _buildPlaceholder(context);
-      },
-      errorBuilder: (context, error, stackTrace) {
-        return _buildError(context, error, stackTrace);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final pixelRatio = MediaQuery.devicePixelRatioOf(context);
+        final cacheWidth = _resolveCacheDimension(
+          explicitDimension: widget.width,
+          constrainedDimension: constraints.maxWidth,
+          pixelRatio: pixelRatio,
+        );
+        final cacheHeight = _resolveCacheDimension(
+          explicitDimension: widget.height,
+          constrainedDimension: constraints.maxHeight,
+          pixelRatio: pixelRatio,
+        );
+
+        return Image.network(
+          normalizedUrl,
+          width: widget.width,
+          height: widget.height,
+          fit: widget.fit,
+          filterQuality: widget.filterQuality,
+          cacheWidth: cacheWidth,
+          cacheHeight: cacheHeight,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) {
+              return child;
+            }
+            return _buildPlaceholder(context);
+          },
+          errorBuilder: (context, error, stackTrace) {
+            return _buildError(context, error, stackTrace);
+          },
+        );
       },
     );
+  }
+
+  int? _resolveCacheDimension({
+    required double? explicitDimension,
+    required double constrainedDimension,
+    required double pixelRatio,
+  }) {
+    final rawDimension = explicitDimension != null && explicitDimension.isFinite
+        ? explicitDimension
+        : (constrainedDimension.isFinite ? constrainedDimension : null);
+    if (rawDimension == null || rawDimension <= 0) {
+      return null;
+    }
+    return (rawDimension * pixelRatio).round();
   }
 }

@@ -324,6 +324,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
   void _confirmCancel(BuildContext context, Order order) {
     showDialog<void>(
       context: context,
+      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+      requestFocus: true,
       builder: (dialogContext) {
         final colors = Theme.of(context).colorScheme;
         return AlertDialog(
@@ -506,154 +508,170 @@ class _OrdersScreenState extends State<OrdersScreen> {
         final shouldShowSerialProgress =
             order.status == OrderStatus.completed ||
             order.status == OrderStatus.shipping;
-        final serialProcessedCount = warrantyController
-            .activationsForOrder(order.id)
-            .length;
+        final serialProcessedCount = warrantyController.activationCountForOrder(
+          order.id,
+        );
+        final orderSemanticsLabel =
+            'Don ${order.id}, ${order.receiverName}, tong ${formatVnd(order.total)}, '
+            '${order.totalItems} san pham';
         final card = FadeSlideIn(
           key: ValueKey(order.id),
           delay: Duration(
             milliseconds: math.min(25 * (index % _pageSize), 150),
           ),
-          child: Card(
-            clipBehavior: Clip.antiAlias,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-              side: BorderSide(
-                color: colors.outlineVariant.withValues(alpha: 0.6),
+          child: Semantics(
+            container: true,
+            label: orderSemanticsLabel,
+            hint: 'Mo chi tiet don hang',
+            child: Card(
+              clipBehavior: Clip.antiAlias,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+                side: BorderSide(
+                  color: colors.outlineVariant.withValues(alpha: 0.6),
+                ),
               ),
-            ),
-            child: InkWell(
-              onTap: () => _openOrderDetail(context, order.id),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+              child: InkWell(
+                onTap: () => _openOrderDetail(context, order.id),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  order.id,
+                                  style: Theme.of(context).textTheme.titleSmall
+                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  order.receiverName,
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(fontWeight: FontWeight.w600),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Đặt ${formatRelativeTime(order.createdAt)}',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: colors.onSurfaceVariant,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                order.id,
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                order.receiverName,
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(fontWeight: FontWeight.w600),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Đặt ${formatRelativeTime(order.createdAt)}',
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(color: colors.onSurfaceVariant),
+                              _StatusChip(status: order.status),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.chevron_right,
+                                size: 18,
+                                color: colors.onSurfaceVariant,
                               ),
                             ],
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        formatVnd(order.total),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: colors.onSurface,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${order.totalItems} sản phẩm',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
                         ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Thanh toán: ${order.paymentMethod.label}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text(
+                            'Trạng thái TT:',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: colors.onSurfaceVariant),
+                          ),
+                          const SizedBox(width: 8),
+                          _PaymentStatusChip(
+                            paymentStatus: order.paymentStatus,
+                          ),
+                        ],
+                      ),
+                      if (shouldShowSerialProgress) ...[
+                        const SizedBox(height: 8),
                         Row(
-                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            _StatusChip(status: order.status),
-                            const SizedBox(width: 4),
-                            Icon(
-                              Icons.chevron_right,
-                              size: 18,
-                              color: colors.onSurfaceVariant,
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: order.totalItems > 0
+                                      ? serialProcessedCount / order.totalItems
+                                      : 0,
+                                  minHeight: 4,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Serial $serialProcessedCount/${order.totalItems}',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: colors.onSurfaceVariant),
                             ),
                           ],
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      formatVnd(order.total),
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: colors.onSurface,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${order.totalItems} sản phẩm',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Thanh toán: ${order.paymentMethod.label}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
+                      if (order.outstandingAmount > 0) ...[
+                        const SizedBox(height: 4),
                         Text(
-                          'Trạng thái TT:',
+                          'Còn nợ: ${formatVnd(order.outstandingAmount)}',
                           style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: colors.onSurfaceVariant),
-                        ),
-                        const SizedBox(width: 8),
-                        _PaymentStatusChip(paymentStatus: order.paymentStatus),
-                      ],
-                    ),
-                    if (shouldShowSerialProgress) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: LinearProgressIndicator(
-                                value: order.totalItems > 0
-                                    ? serialProcessedCount / order.totalItems
-                                    : 0,
-                                minHeight: 4,
+                              ?.copyWith(
+                                color: colors.error,
+                                fontWeight: FontWeight.w700,
                               ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Serial $serialProcessedCount/${order.totalItems}',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: colors.onSurfaceVariant),
-                          ),
-                        ],
-                      ),
-                    ],
-                    if (order.outstandingAmount > 0) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Còn nợ: ${formatVnd(order.outstandingAmount)}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colors.error,
-                          fontWeight: FontWeight.w700,
                         ),
-                      ),
-                    ],
-                    if (canCancel) ...[
-                      const SizedBox(height: 12),
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          foregroundColor: Theme.of(context).colorScheme.error,
-                          minimumSize: const Size(0, 48),
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                      ],
+                      if (canCancel) ...[
+                        const SizedBox(height: 12),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: Theme.of(
+                              context,
+                            ).colorScheme.error,
+                            minimumSize: const Size(0, 48),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                          ),
+                          onPressed: () => _confirmCancel(context, order),
+                          child: const Text('Hủy đơn'),
                         ),
-                        onPressed: () => _confirmCancel(context, order),
-                        child: const Text('Hủy đơn'),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -880,7 +898,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           )
                           .toList(),
                       child: Container(
-                        constraints: const BoxConstraints(minHeight: 44),
+                        constraints: const BoxConstraints(minHeight: 48),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
                           vertical: 8,

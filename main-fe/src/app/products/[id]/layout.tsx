@@ -2,15 +2,15 @@ import type { Metadata } from 'next';
 import JsonLd from '@/components/seo/JsonLd';
 import { createBaseMetadata, productJsonLd } from '@/lib/seo';
 import { publicApiServer } from '@/lib/publicApiServer';
+import { parseImageUrl } from '@/utils/media';
 
-const parseImageUrl = (value: string) => {
-    try {
-        const parsed = JSON.parse(value) as { imageUrl?: string };
-        return parsed.imageUrl || '';
-    } catch {
-        return value;
-    }
-};
+export async function generateStaticParams() {
+    const response = await publicApiServer.fetchProducts();
+    return (response.data ?? []).flatMap((product) => {
+        const id = String(product.id).trim();
+        return id ? [{ id }] : [];
+    });
+}
 
 export async function generateMetadata({
     params
@@ -23,8 +23,8 @@ export async function generateMetadata({
         return createBaseMetadata({
             locale: 'vi',
             path: `/products/${id}`,
-            title: '4ThiTek | Sản phẩm',
-            description: 'Thông tin sản phẩm 4ThiTek.'
+            title: '4ThiTek | San pham',
+            description: 'Thong tin san pham 4ThiTek.'
         });
     }
 
@@ -54,10 +54,10 @@ export default async function ProductLayout({
                 {product ? (
                     <JsonLd
                         data={productJsonLd({
-                            id: id,
+                            id,
                             name: product.name,
                             description: product.shortDescription || product.description || product.name,
-                            image: parseImageUrl(product.image)
+                            image: parseImageUrl(product.image, '')
                         })}
                     />
                 ) : null}

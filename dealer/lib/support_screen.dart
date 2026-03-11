@@ -476,6 +476,8 @@ class _SupportScreenState extends State<SupportScreen> {
     final priority = _priorityLabel(_priority, isEnglish: isEnglish);
     return showDialog<bool>(
       context: context,
+      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+      requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
           title: Text(isEnglish ? 'Confirm request' : 'Xác nhận gửi yêu cầu'),

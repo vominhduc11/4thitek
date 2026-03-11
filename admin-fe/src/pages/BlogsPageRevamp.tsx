@@ -18,7 +18,6 @@ import {
   formCardClass,
   inputClass,
   labelClass,
-  selectClass,
   tableActionSelectClass,
   tableCardClass,
   tableHeadClass,
@@ -400,7 +399,7 @@ function BlogsPageRevamp() {
               <span className={labelClass}>{copy.statusField}</span>
               <select
                 aria-label={copy.statusField}
-                className={`${selectClass} w-full`}
+                className={`${inputClass} w-full`}
                 onChange={(event) =>
                   setForm((previous) => ({
                     ...previous,

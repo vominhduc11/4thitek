@@ -1,6 +1,7 @@
 import { LifeBuoy, MessageSquareMore, RefreshCw } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  fetchAllAdminSupportTickets,
   fetchAdminSupportTickets,
   updateAdminSupportTicket,
   type BackendSupportTicketResponse,
@@ -104,6 +105,7 @@ function SupportTicketsPageRevamp() {
   const { accessToken } = useAuth()
   const { notify } = useToast()
   const [tickets, setTickets] = useState<BackendSupportTicketResponse[]>([])
+  const [allTickets, setAllTickets] = useState<BackendSupportTicketResponse[]>([])
   const [page, setPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [totalItems, setTotalItems] = useState(0)
@@ -113,10 +115,12 @@ function SupportTicketsPageRevamp() {
   const [replyDraft, setReplyDraft] = useState('')
   const [statusDraft, setStatusDraft] = useState<BackendSupportTicketStatus>('OPEN')
   const [isLoading, setIsLoading] = useState(true)
+  const [isFilterLoading, setIsFilterLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const hasActiveFilters = query.trim().length > 0 || statusFilter !== 'ALL'
 
-  const loadTickets = async (nextPage = page) => {
+  const loadTickets = useCallback(async (nextPage: number) => {
     if (!accessToken) return
     setIsLoading(true)
     setError(null)
@@ -136,15 +140,47 @@ function SupportTicketsPageRevamp() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [accessToken, copy.loadFallback])
 
   useEffect(() => {
     void loadTickets(page)
-  }, [accessToken, page])
+  }, [loadTickets, page])
+
+  const loadAllTickets = useCallback(async () => {
+    if (!accessToken) return
+    setIsFilterLoading(true)
+    setError(null)
+    try {
+      const response = await fetchAllAdminSupportTickets(accessToken, 100)
+      setAllTickets(response)
+      if (response.length > 0) {
+        setSelectedId((current) => response.find((item) => item.id === current)?.id ?? response[0].id)
+      } else {
+        setSelectedId(null)
+      }
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : copy.loadFallback)
+    } finally {
+      setIsFilterLoading(false)
+    }
+  }, [accessToken, copy.loadFallback])
+
+  useEffect(() => {
+    if (!hasActiveFilters) {
+      setAllTickets([])
+      setIsFilterLoading(false)
+      setError(null)
+      return
+    }
+
+    void loadAllTickets()
+  }, [hasActiveFilters, loadAllTickets])
+
+  const sourceTickets = hasActiveFilters ? allTickets : tickets
 
   const filteredTickets = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
-    return tickets.filter((ticket) => {
+    return sourceTickets.filter((ticket) => {
       const matchesStatus = statusFilter === 'ALL' ? true : ticket.status === statusFilter
       const haystack = [ticket.ticketCode, ticket.dealerName, ticket.subject, ticket.message]
         .filter(Boolean)
@@ -152,27 +188,42 @@ function SupportTicketsPageRevamp() {
         .toLowerCase()
       return matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery))
     })
-  }, [query, statusFilter, tickets])
+  }, [query, sourceTickets, statusFilter])
 
-  const selectedTicket =
-    filteredTickets.find((ticket) => ticket.id === selectedId) ??
-    tickets.find((ticket) => ticket.id === selectedId) ??
-    null
+  useEffect(() => {
+    if (filteredTickets.length === 0) {
+      setSelectedId(null)
+      return
+    }
+
+    if (!filteredTickets.some((ticket) => ticket.id === selectedId)) {
+      setSelectedId(filteredTickets[0].id)
+    }
+  }, [filteredTickets, selectedId])
+
+  const selectedTicket = filteredTickets.find((ticket) => ticket.id === selectedId) ?? null
 
   useEffect(() => {
     if (!selectedTicket) return
     setReplyDraft(selectedTicket.adminReply ?? '')
     setStatusDraft(selectedTicket.status ?? 'OPEN')
-  }, [selectedTicket?.id])
+  }, [selectedTicket])
 
   const stats = useMemo(
     () => ({
-      open: tickets.filter((ticket) => ticket.status === 'OPEN').length,
-      progress: tickets.filter((ticket) => ticket.status === 'IN_PROGRESS').length,
-      resolved: tickets.filter((ticket) => ticket.status === 'RESOLVED').length,
+      open: sourceTickets.filter((ticket) => ticket.status === 'OPEN').length,
+      progress: sourceTickets.filter((ticket) => ticket.status === 'IN_PROGRESS').length,
+      resolved: sourceTickets.filter((ticket) => ticket.status === 'RESOLVED').length,
     }),
-    [tickets],
+    [sourceTickets],
   )
+
+  const handleReload = useCallback(async () => {
+    await loadTickets(page)
+    if (hasActiveFilters) {
+      await loadAllTickets()
+    }
+  }, [hasActiveFilters, loadAllTickets, loadTickets, page])
 
   const handleSave = async () => {
     if (!accessToken || !selectedTicket) return
@@ -183,6 +234,7 @@ function SupportTicketsPageRevamp() {
         adminReply: replyDraft.trim() || undefined,
       })
       setTickets((current) => current.map((ticket) => (ticket.id === updated.id ? updated : ticket)))
+      setAllTickets((current) => current.map((ticket) => (ticket.id === updated.id ? updated : ticket)))
     } catch (saveError) {
       notify(saveError instanceof Error ? saveError.message : copy.loadFallback, {
         title: copy.title,
@@ -193,7 +245,7 @@ function SupportTicketsPageRevamp() {
     }
   }
 
-  if (isLoading) {
+  if (isLoading || isFilterLoading) {
     return (
       <PagePanel>
         <LoadingRows rows={6} />
@@ -204,7 +256,7 @@ function SupportTicketsPageRevamp() {
   if (error) {
     return (
       <PagePanel>
-        <ErrorState title={copy.loadTitle} message={error} onRetry={() => void loadTickets(page)} />
+        <ErrorState title={copy.loadTitle} message={error} onRetry={() => void handleReload()} />
       </PagePanel>
     )
   }
@@ -238,7 +290,7 @@ function SupportTicketsPageRevamp() {
               </option>
             ))}
           </select>
-          <GhostButton aria-label={copy.reload} icon={<RefreshCw className="h-4 w-4" />} onClick={() => void loadTickets(page)} type="button">
+          <GhostButton aria-label={copy.reload} icon={<RefreshCw className="h-4 w-4" />} onClick={() => void handleReload()} type="button">
             {copy.reload}
           </GhostButton>
         </div>
@@ -291,15 +343,17 @@ function SupportTicketsPageRevamp() {
               )
             })
           )}
-          <PaginationNav
-            page={page}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            pageSize={25}
-            onPageChange={setPage}
-            previousLabel={copy.previous}
-            nextLabel={copy.next}
-          />
+          {!hasActiveFilters ? (
+            <PaginationNav
+              page={page}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={25}
+              onPageChange={setPage}
+              previousLabel={copy.previous}
+              nextLabel={copy.next}
+            />
+          ) : null}
         </div>
 
         <div className={softCardClass}>

@@ -19,7 +19,7 @@ enum InventorySerialFilter { all, available, sold, defective }
 const double _detailSectionSpacing = 16;
 const double _detailSectionSpacingLarge = 18;
 const double _detailItemSpacing = 10;
-const double _detailMinTapTarget = 44;
+const double _detailMinTapTarget = 48;
 
 class InventoryProductDetailScreen extends StatefulWidget {
   const InventoryProductDetailScreen({
@@ -619,6 +619,7 @@ class _InventoryProductDetailScreenState
     return showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
+      requestFocus: true,
       builder: (sheetContext) {
         final colorScheme = Theme.of(sheetContext).colorScheme;
         return SafeArea(
@@ -945,7 +946,7 @@ class _SerialTile extends StatelessWidget {
                   TextButton(
                     onPressed: onOpenOrder,
                     style: TextButton.styleFrom(
-                      minimumSize: const Size(100, 44),
+                      minimumSize: const Size(100, 48),
                       alignment: Alignment.centerLeft,
                       padding: const EdgeInsets.symmetric(horizontal: 0),
                       foregroundColor: colorScheme.primary,

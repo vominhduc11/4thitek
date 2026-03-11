@@ -1,7 +1,8 @@
 import { Megaphone, RefreshCw, Send } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   createAdminNotificationDispatch,
+  fetchAllAdminNotifications,
   fetchAdminNotifications,
   type BackendNotificationCreateRequest,
   type BackendNotificationResponse,
@@ -151,13 +152,16 @@ function NotificationsPageRevamp() {
   const [page, setPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [totalItems, setTotalItems] = useState(0)
+  const [allItems, setAllItems] = useState<BackendNotificationResponse[]>([])
   const [query, setQuery] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const [isSearchLoading, setIsSearchLoading] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState<NotificationFormState>(createInitialForm)
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof NotificationFormState, string>>>({})
   const toolbarSearchClass = 'w-full sm:max-w-sm lg:w-72 xl:w-80'
+  const hasSearchQuery = query.trim().length > 0
 
   const validateForm = (value: NotificationFormState) => {
     const errors: Partial<Record<keyof NotificationFormState, string>> = {}
@@ -199,7 +203,7 @@ function NotificationsPageRevamp() {
     })
   }
 
-  const loadData = async (nextPage = page) => {
+  const loadData = useCallback(async (nextPage: number) => {
     if (!accessToken) return
     setIsLoading(true)
     setError(null)
@@ -214,31 +218,65 @@ function NotificationsPageRevamp() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [accessToken, copy.loadFallback])
 
   useEffect(() => {
     void loadData(page)
-  }, [accessToken, page])
+  }, [loadData, page])
+
+  const loadAllItems = useCallback(async () => {
+    if (!accessToken) return
+    setIsSearchLoading(true)
+    setError(null)
+    try {
+      const response = await fetchAllAdminNotifications(accessToken, 100)
+      setAllItems(response)
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : copy.loadFallback)
+    } finally {
+      setIsSearchLoading(false)
+    }
+  }, [accessToken, copy.loadFallback])
+
+  useEffect(() => {
+    if (!hasSearchQuery) {
+      setAllItems([])
+      setIsSearchLoading(false)
+      setError(null)
+      return
+    }
+
+    void loadAllItems()
+  }, [hasSearchQuery, loadAllItems])
+
+  const sourceItems = hasSearchQuery ? allItems : items
 
   const filteredItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
-    return items.filter((item) => {
+    return sourceItems.filter((item) => {
       const haystack = [item.title, item.content, item.accountName, item.accountType]
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
       return !normalizedQuery || haystack.includes(normalizedQuery)
     })
-  }, [items, query])
+  }, [query, sourceItems])
 
   const stats = useMemo(
     () => ({
-      total: items.length,
-      unread: items.filter((item) => !item.isRead).length,
-      promotions: items.filter((item) => item.type === 'PROMOTION').length,
+      total: sourceItems.length,
+      unread: sourceItems.filter((item) => !item.isRead).length,
+      promotions: sourceItems.filter((item) => item.type === 'PROMOTION').length,
     }),
-    [items],
+    [sourceItems],
   )
+
+  const handleReload = useCallback(async () => {
+    await loadData(page)
+    if (hasSearchQuery) {
+      await loadAllItems()
+    }
+  }, [hasSearchQuery, loadAllItems, loadData, page])
 
   const handleSend = async () => {
     if (!accessToken) return
@@ -270,6 +308,9 @@ function NotificationsPageRevamp() {
       setFormErrors({})
       setPage(0)
       await loadData(0)
+      if (hasSearchQuery) {
+        await loadAllItems()
+      }
     } catch (sendError) {
       notify(sendError instanceof Error ? sendError.message : copy.loadFallback, {
         title: copy.title,
@@ -280,7 +321,7 @@ function NotificationsPageRevamp() {
     }
   }
 
-  if (isLoading) {
+  if (isLoading || isSearchLoading) {
     return (
       <PagePanel>
         <LoadingRows rows={6} />
@@ -291,7 +332,7 @@ function NotificationsPageRevamp() {
   if (error) {
     return (
       <PagePanel>
-        <ErrorState title={copy.loadTitle} message={error} onRetry={() => void loadData(page)} />
+        <ErrorState title={copy.loadTitle} message={error} onRetry={() => void handleReload()} />
       </PagePanel>
     )
   }
@@ -312,7 +353,7 @@ function NotificationsPageRevamp() {
             onChange={(event) => setQuery(event.target.value)}
             className={toolbarSearchClass}
           />
-          <GhostButton aria-label={copy.reload} icon={<RefreshCw className="h-4 w-4" />} onClick={() => void loadData(page)} type="button">
+          <GhostButton aria-label={copy.reload} icon={<RefreshCw className="h-4 w-4" />} onClick={() => void handleReload()} type="button">
             {copy.reload}
           </GhostButton>
         </div>
@@ -499,15 +540,17 @@ function NotificationsPageRevamp() {
         )}
       </div>
 
-      <PaginationNav
-        page={page}
-        totalPages={totalPages}
-        totalItems={totalItems}
-        pageSize={25}
-        onPageChange={setPage}
-        previousLabel={copy.previous}
-        nextLabel={copy.next}
-      />
+      {!hasSearchQuery ? (
+        <PaginationNav
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={25}
+          onPageChange={setPage}
+          previousLabel={copy.previous}
+          nextLabel={copy.next}
+        />
+      ) : null}
     </PagePanel>
   )
 }

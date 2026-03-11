@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'auth_service.dart';
 import 'breakpoints.dart';
+import 'validation_utils.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
@@ -153,7 +154,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                   : () => Navigator.of(context).pop(),
                               tooltip: 'Quay lại đăng nhập',
                               style: IconButton.styleFrom(
-                                minimumSize: const Size(44, 44),
+                                minimumSize: const Size(48, 48),
                                 foregroundColor: Colors.white,
                                 backgroundColor: Colors.white.withValues(
                                   alpha: 0.14,
@@ -334,7 +335,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ? null
                       : () => Navigator.of(context).pop(),
                   style: TextButton.styleFrom(
-                    minimumSize: const Size(44, 44),
+                    minimumSize: const Size(48, 48),
                     foregroundColor: primaryActionColor,
                     textStyle: const TextStyle(
                       fontWeight: FontWeight.w700,
@@ -483,7 +484,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   ? null
                   : () => Navigator.of(context).pop(),
               style: TextButton.styleFrom(
-                minimumSize: const Size(44, 44),
+                minimumSize: const Size(48, 48),
                 foregroundColor: colorScheme.primary,
                 textStyle: const TextStyle(
                   fontWeight: FontWeight.w700,
@@ -566,7 +567,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return InputDecoration(
       prefixIcon: Icon(icon),
       isDense: true,
-      constraints: const BoxConstraints(minHeight: 44),
+      constraints: const BoxConstraints(minHeight: 48),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       errorStyle: TextStyle(
         color: errorColor,
@@ -625,7 +626,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       }
     });
     try {
-      final result = await _authService.requestPasswordReset(email: targetEmail);
+      final result = await _authService.requestPasswordReset(
+        email: targetEmail,
+      );
       if (!result.isSuccess) {
         _showErrorSnackbar(
           result.failure?.message ??
@@ -759,7 +762,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   bool _isValidEmail(String email) {
-    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
+    return isValidEmailAddress(email);
   }
 
   Future<void> _restoreResendCooldown() async {

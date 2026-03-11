@@ -41,7 +41,6 @@ export const tableActionSelectClass =
 export const formCardClass = 'rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)] p-5'
 export const textareaClass =
   'min-h-[130px] w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-sm text-[var(--ink)] placeholder:text-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1'
-export const selectClass = inputClass
 export const destructiveButtonClass =
   'btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-rose-300/70 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-500 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60'
 export const fieldErrorClass = 'mt-2 text-sm font-medium text-rose-600'
@@ -301,10 +300,12 @@ export const PaginationNav = ({
 }: PaginationNavProps) => {
   const hasPages = totalPages > 1
   const safeTotalPages = Math.max(totalPages, 1)
-  const start = totalItems != null && pageSize != null ? page * pageSize + 1 : null
+  const isEmpty = totalItems === 0
+  const start =
+    totalItems != null && pageSize != null ? (isEmpty ? 0 : page * pageSize + 1) : null
   const end =
     totalItems != null && pageSize != null
-      ? Math.min(totalItems, (page + 1) * pageSize)
+      ? (isEmpty ? 0 : Math.min(totalItems, (page + 1) * pageSize))
       : null
 
   if (!hasPages && totalItems == null) {
@@ -314,7 +315,9 @@ export const PaginationNav = ({
   return (
     <div className="mt-6 flex flex-col gap-3 text-sm text-[var(--muted)] md:flex-row md:items-center md:justify-between">
       <span>
-        {totalItems != null && start != null && end != null
+        {totalItems === 0
+          ? '0 / 0'
+          : totalItems != null && start != null && end != null
           ? `${start}-${end} / ${totalItems}`
           : `${page + 1} / ${safeTotalPages}`}
       </span>

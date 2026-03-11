@@ -41,7 +41,6 @@ const ProductImageWithFallback = memo(function ProductImageWithFallback({ src, a
                 width={200}
                 height={200}
                 sizes="200px"
-                priority={true}
                 className={`w-full h-full object-contain transition-opacity duration-200 ease-out ${isLoading ? 'opacity-0' : 'opacity-100'}`}
                 onLoad={() => setIsLoading(false)}
                 onError={() => {
@@ -99,19 +98,13 @@ export default function ProductGrid({ products }: ProductGridProps) {
                         }}
                         whileTap={{ scale: 0.98 }}
                     >
-                    {/* Video background animation on hover */}
                     {hoveredProductId === product.id && (
-                        <motion.video
-                            src="/videos/futuristic-background-2022-08-04-19-57-56-utc.mp4"
-                            className="absolute inset-0 w-full h-full object-cover -z-10 hidden sm:block"
-                            autoPlay
-                            loop
-                            muted
-                            playsInline
-                            initial={{ opacity: 0, scale: 1.1 }}
-                            animate={{ opacity: 0.4, scale: 1 }}
+                        <motion.div
+                            className="absolute inset-0 -z-10 hidden sm:block bg-[radial-gradient(circle_at_center,_rgba(79,200,255,0.18),_transparent_65%)]"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            transition={{ duration: 0.5 }}
+                            transition={{ duration: 0.25 }}
                         />
                     )}
 

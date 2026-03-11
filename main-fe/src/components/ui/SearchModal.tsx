@@ -5,20 +5,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiSearch, FiX, FiArrowRight, FiClock } from 'react-icons/fi';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { apiService } from '@/services/apiService';
-// import type { Product } from '@/types/product';
-// import type { BlogPost } from '@/types/blog';
 import { Z_INDEX } from '@/constants/zIndex';
 import { modalManager } from '@/utils/modalManager';
 import { useAnimationCoordinator } from '@/utils/animationCoordinator';
 import { ANIMATION_DURATIONS } from '@/constants/ui';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useLanguage } from '@/context/LanguageContext';
+import { buildBlogPath } from '@/lib/slug';
+import { parseImageUrl } from '@/utils/media';
 
 interface SearchModalProps {
     isOpen: boolean;
     onClose: () => void;
 }
+
+const SEARCH_HISTORY_STORAGE_KEY = '4thitek_recent_searches';
+const LEGACY_SEARCH_HISTORY_STORAGE_KEY = 'tunecore_recent_searches';
 
 interface SearchResult {
     type: 'product' | 'blog' | 'category';
@@ -30,18 +34,9 @@ interface SearchResult {
     category?: string;
 }
 
-// Helper function to parse image JSON string
-const parseImageUrl = (imageString: string): string => {
-    try {
-        const imageData = JSON.parse(imageString);
-        return imageData.imageUrl || '';
-    } catch {
-        return '';
-    }
-};
-
 const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalProps) {
     const { t } = useLanguage();
+    const router = useRouter();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<SearchResult[]>([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -54,9 +49,14 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
     // Load recent searches from localStorage
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('tunecore_recent_searches');
+            const saved =
+                localStorage.getItem(SEARCH_HISTORY_STORAGE_KEY) ??
+                localStorage.getItem(LEGACY_SEARCH_HISTORY_STORAGE_KEY);
             if (saved) {
-                setRecentSearches(JSON.parse(saved));
+                const parsed = JSON.parse(saved) as string[];
+                setRecentSearches(parsed);
+                localStorage.setItem(SEARCH_HISTORY_STORAGE_KEY, JSON.stringify(parsed));
+                localStorage.removeItem(LEGACY_SEARCH_HISTORY_STORAGE_KEY);
             }
         }
     }, []);
@@ -116,7 +116,7 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                     title: blog.title,
                     subtitle: blog.description,
                     image: parseImageUrl(blog.image),
-                    href: `/blogs/${blogId}`,
+                    href: buildBlogPath(blogId, blog.title),
                     category: blog.category || t('search.type.blog')
                 });
             });
@@ -155,12 +155,12 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
 
         setRecentSearches(newRecentSearches);
         if (typeof window !== 'undefined') {
-            localStorage.setItem('tunecore_recent_searches', JSON.stringify(newRecentSearches));
+            localStorage.setItem(SEARCH_HISTORY_STORAGE_KEY, JSON.stringify(newRecentSearches));
         }
 
-        // Navigate to search results page or handle search
-        window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
-    }, [recentSearches]);
+        onClose();
+        router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+    }, [onClose, recentSearches, router]);
 
     // Optimized filtered results with useMemo
     const filteredResults = useMemo(() => {

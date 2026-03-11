@@ -554,23 +554,32 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final isSelected = _stockFilter == filter;
     final colors = Theme.of(context).colorScheme;
 
-    return ChoiceChip(
-      label: Text(label),
+    return Semantics(
+      button: true,
       selected: isSelected,
-      onSelected: (_) => _setStockFilter(filter),
-      selectedColor: colors.primary.withValues(alpha: 0.15),
-      labelStyle: TextStyle(
-        color: isSelected ? colors.primary : colors.onSurface,
-        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(999),
-        side: BorderSide(
-          color: isSelected ? colors.primary : colors.outlineVariant,
+      label: label,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 48),
+        child: ChoiceChip(
+          label: Text(label),
+          selected: isSelected,
+          onSelected: (_) => _setStockFilter(filter),
+          selectedColor: colors.primary.withValues(alpha: 0.15),
+          labelStyle: TextStyle(
+            color: isSelected ? colors.primary : colors.onSurface,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+            side: BorderSide(
+              color: isSelected ? colors.primary : colors.outlineVariant,
+            ),
+          ),
+          backgroundColor: colors.surface,
+          visualDensity: VisualDensity.compact,
+          materialTapTargetSize: MaterialTapTargetSize.padded,
         ),
       ),
-      backgroundColor: colors.surface,
-      visualDensity: VisualDensity.compact,
     );
   }
 
@@ -722,11 +731,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final imageSize = isTablet ? 80.0 : 64.0;
     final gridImageHeight = isTablet ? 132.0 : 112.0;
     final cardPadding = isTablet ? (isGridLayout ? 16.0 : 18.0) : 14.0;
-    final addButtonLabel = remainingStock <= 0
-        ? 'Hết hàng'
-        : 'Thêm nhanh';
+    final addButtonLabel = remainingStock <= 0 ? 'Hết hàng' : 'Thêm nhanh';
 
     final useCompactQuickAdd = isGridLayout && canAddToCart;
+    final productSemanticsLabel =
+        '${product.name}, sku ${product.sku}, gia ${formatVnd(product.price)}, '
+        'ton kho $remainingStock';
 
     return FadeSlideIn(
       key: ValueKey(product.id),
@@ -735,252 +745,257 @@ class _ProductListScreenState extends State<ProductListScreen> {
         padding: EdgeInsets.only(
           bottom: isGridLayout ? 0 : (isTablet ? 12 : 10),
         ),
-        child: Card(
-          elevation: 0,
-          clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-            side: BorderSide(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+        child: Semantics(
+          container: true,
+          label: productSemanticsLabel,
+          hint: 'Mo chi tiet san pham',
+          child: Card(
+            elevation: 0,
+            clipBehavior: Clip.antiAlias,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+              side: BorderSide(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+              ),
             ),
-          ),
-          child: InkWell(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => ProductDetailScreen(product: product),
-                ),
-              );
-            },
-            child: Padding(
-              padding: EdgeInsets.all(cardPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Info section
-                  if (isGridLayout) ...[
-                    Hero(
-                      tag: 'product-image-${product.id}',
-                      child: ProductImage(
-                        product: product,
-                        width: double.infinity,
-                        height: gridImageHeight,
-                        borderRadius: BorderRadius.circular(16),
-                        iconSize: 34,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      product.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      product.sku,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    StockBadge(
-                      remainingStock: remainingStock,
-                      lowStockThreshold: _lowStockThreshold,
-                      iconSize: 13,
-                      iconTextSpacing: 3.5,
-                    ),
-                  ] else ...[
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Hero(
-                          tag: 'product-image-${product.id}',
-                          child: ProductImage(
-                            product: product,
-                            width: imageSize,
-                            height: imageSize,
-                            borderRadius: BorderRadius.circular(14),
-                            iconSize: isTablet ? 32 : 26,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                product.name,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      product.sku,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: theme
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  StockBadge(
-                                    remainingStock: remainingStock,
-                                    lowStockThreshold: _lowStockThreshold,
-                                    iconSize: isTablet ? 14 : 12,
-                                    iconTextSpacing: isTablet ? 4 : 3,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  SizedBox(height: isGridLayout ? 10 : 12),
-                  Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: theme.colorScheme.outlineVariant.withValues(
-                      alpha: 0.5,
-                    ),
+            child: InkWell(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => ProductDetailScreen(product: product),
                   ),
-                  const SizedBox(height: 10),
-                  // Action row
-                  Builder(
-                    builder: (context) {
-                      final priceText = Text(
-                        formatVnd(product.price),
+                );
+              },
+              child: Padding(
+                padding: EdgeInsets.all(cardPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Info section
+                    if (isGridLayout) ...[
+                      Hero(
+                        tag: 'product-image-${product.id}',
+                        child: ProductImage(
+                          product: product,
+                          width: double.infinity,
+                          height: gridImageHeight,
+                          borderRadius: BorderRadius.circular(16),
+                          iconSize: 34,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        product.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleMedium?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                         ),
-                      );
-
-                      Widget buildQuantityButton() {
-                        return Tooltip(
-                          message: 'Chọn số lượng',
-                          child: OutlinedButton(
-                            onPressed: canAddToCart
-                                ? () => _handleAddToCart(
-                                    cart,
-                                    product,
-                                    openQuantityDialog: true,
-                                  )
-                                : null,
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size(48, 48),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                              ),
-                            ),
-                            child: const Icon(Icons.tune, size: 18),
-                          ),
-                        );
-                      }
-
-                      Widget buildQuickAddButton() {
-                        return ElevatedButton(
-                          onPressed: canAddToCart
-                              ? () => _handleAddToCart(cart, product)
-                              : null,
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: const Size(48, 48),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: useCompactQuickAdd ? 10 : 14,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            elevation: isDark ? 0 : null,
-                            backgroundColor: isDark
-                                ? theme.colorScheme.secondaryContainer
-                                      .withValues(alpha: 0.8)
-                                : null,
-                            foregroundColor: isDark
-                                ? theme.colorScheme.onSecondaryContainer
-                                : null,
-                          ),
-                          child: isAddingToCart
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.4,
-                                  ),
-                                )
-                              : useCompactQuickAdd
-                              ? const Icon(
-                                  Icons.add_shopping_cart_outlined,
-                                  size: 18,
-                                )
-                              : Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.add_shopping_cart_outlined,
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(addButtonLabel),
-                                  ],
-                                ),
-                        );
-                      }
-
-                      final isMobileListLayout = !isTablet && !isGridLayout;
-                      if (isMobileListLayout) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            priceText,
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                buildQuantityButton(),
-                                const Spacer(),
-                                buildQuickAddButton(),
-                              ],
-                            ),
-                          ],
-                        );
-                      }
-
-                      return Row(
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        product.sku,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      StockBadge(
+                        remainingStock: remainingStock,
+                        lowStockThreshold: _lowStockThreshold,
+                        iconSize: 13,
+                        iconTextSpacing: 3.5,
+                      ),
+                    ] else ...[
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Expanded(
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: priceText,
+                          Hero(
+                            tag: 'product-image-${product.id}',
+                            child: ProductImage(
+                              product: product,
+                              width: imageSize,
+                              height: imageSize,
+                              borderRadius: BorderRadius.circular(14),
+                              iconSize: isTablet ? 32 : 26,
                             ),
                           ),
                           const SizedBox(width: 12),
-                          buildQuantityButton(),
-                          const SizedBox(width: 8),
-                          buildQuickAddButton(),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  product.name,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        product.sku,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    StockBadge(
+                                      remainingStock: remainingStock,
+                                      lowStockThreshold: _lowStockThreshold,
+                                      iconSize: isTablet ? 14 : 12,
+                                      iconTextSpacing: isTablet ? 4 : 3,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
-                      );
-                    },
-                  ),
-                ],
+                      ),
+                    ],
+                    SizedBox(height: isGridLayout ? 10 : 12),
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    // Action row
+                    Builder(
+                      builder: (context) {
+                        final priceText = Text(
+                          formatVnd(product.price),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        );
+
+                        Widget buildQuantityButton() {
+                          return Tooltip(
+                            message: 'Chọn số lượng',
+                            child: OutlinedButton(
+                              onPressed: canAddToCart
+                                  ? () => _handleAddToCart(
+                                      cart,
+                                      product,
+                                      openQuantityDialog: true,
+                                    )
+                                  : null,
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(48, 48),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                ),
+                              ),
+                              child: const Icon(Icons.tune, size: 18),
+                            ),
+                          );
+                        }
+
+                        Widget buildQuickAddButton() {
+                          return ElevatedButton(
+                            onPressed: canAddToCart
+                                ? () => _handleAddToCart(cart, product)
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(48, 48),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: useCompactQuickAdd ? 10 : 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: isDark ? 0 : null,
+                              backgroundColor: isDark
+                                  ? theme.colorScheme.secondaryContainer
+                                        .withValues(alpha: 0.8)
+                                  : null,
+                              foregroundColor: isDark
+                                  ? theme.colorScheme.onSecondaryContainer
+                                  : null,
+                            ),
+                            child: isAddingToCart
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.4,
+                                    ),
+                                  )
+                                : useCompactQuickAdd
+                                ? const Icon(
+                                    Icons.add_shopping_cart_outlined,
+                                    size: 18,
+                                  )
+                                : Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.add_shopping_cart_outlined,
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(addButtonLabel),
+                                    ],
+                                  ),
+                          );
+                        }
+
+                        final isMobileListLayout = !isTablet && !isGridLayout;
+                        if (isMobileListLayout) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              priceText,
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  buildQuantityButton(),
+                                  const Spacer(),
+                                  buildQuickAddButton(),
+                                ],
+                              ),
+                            ],
+                          );
+                        }
+
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: priceText,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            buildQuantityButton(),
+                            const SizedBox(width: 8),
+                            buildQuickAddButton(),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1107,6 +1122,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
     var selected = safeInitial <= maxQuantity ? safeInitial : maxQuantity;
     return showDialog<int>(
       context: context,
+      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+      requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Chọn số lượng'),

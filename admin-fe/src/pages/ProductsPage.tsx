@@ -19,14 +19,13 @@ import {
 import Modal, { type Styles } from 'react-modal'
 import { ProductVideoPreview } from '../components/ProductVideoPreview'
 import { RichTextEditor } from '../components/RichTextEditor'
-import { LoadingRows, PaginationNav } from '../components/ui-kit'
+import { ErrorState, LoadingRows, PaginationNav } from '../components/ui-kit'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductsContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import type { Product } from '../types/product'
-import { useSimulatedPageLoad } from '../hooks/useSimulatedPageLoad'
 import { resolveBackendAssetUrl } from '../lib/backendApi'
 import { storeFileReference } from '../lib/upload'
 
@@ -126,9 +125,10 @@ function ProductsPage() {
   const { notify } = useToast()
   const { accessToken } = useAuth()
   const { confirm, confirmDialog } = useConfirmDialog()
-  const { isLoading } = useSimulatedPageLoad('products-page')
   const {
     products,
+    isLoading: isProductsLoading,
+    error: productsError,
     archiveProduct,
     restoreProduct,
     togglePublishStatus,
@@ -848,10 +848,18 @@ function ProductsPage() {
     ))
   })()
 
-  if (isLoading) {
+  if (isProductsLoading) {
     return (
       <section className={`${panelClass} animate-card-enter`}>
         <LoadingRows rows={6} />
+      </section>
+    )
+  }
+
+  if (productsError && products.length === 0) {
+    return (
+      <section className={`${panelClass} animate-card-enter`}>
+        <ErrorState title="Products" message={productsError} />
       </section>
     )
   }
@@ -2036,6 +2044,9 @@ function ProductsPage() {
                       )
                     }
                     const stockNum = Number(newProduct.stock || 0)
+                    if (Number.isNaN(stockNum) || stockNum < 0 || !Number.isInteger(stockNum)) {
+                      nextErrors.stock = t('Tồn kho phải là số nguyên không âm')
+                    }
                     setErrors(nextErrors)
                     if (Object.keys(nextErrors).length) return
 
@@ -2051,7 +2062,7 @@ function ProductsPage() {
                           shortDescription: newProduct.shortDescription.trim(),
                           retailPrice: priceNum || 0,
                           warrantyPeriod: warrantyPeriodNum,
-                          stock: stockNum || 0,
+                          stock: stockNum,
                           publishStatus: newProduct.publishStatus,
                           isFeatured: newProduct.isFeatured,
                           showOnHomepage: newProduct.showOnHomepage,

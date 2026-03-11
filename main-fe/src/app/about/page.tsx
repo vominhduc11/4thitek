@@ -2,9 +2,7 @@ import { AboutHero, AboutHeader, AboutMission } from './components';
 
 export default function AboutPage() {
     return (
-        <div className="min-h-screen bg-[#0c131d] text-white flex flex-col"
-             style={{ animation: 'fadeIn 0.5s ease-in' }}
-        >
+        <div className="min-h-screen bg-[#0c131d] text-white flex flex-col">
             {/* Hero Section with Breadcrumb */}
             <AboutHero />
 

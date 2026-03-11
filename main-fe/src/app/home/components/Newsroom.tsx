@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiArrowUpRight } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
-import { apiService } from '@/services/apiService';
-import { parseImageUrl } from '@/utils/media';
+import type { BlogPost } from '@/types/blog';
+import { buildBlogPath } from '@/lib/slug';
 
 interface BlogItem {
     id: string;
@@ -17,53 +17,23 @@ interface BlogItem {
     createdAt: string;
 }
 
-export default function Newsroom() {
+interface NewsroomProps {
+    initialBlogs?: BlogPost[];
+}
+
+export default function Newsroom({ initialBlogs = [] }: NewsroomProps) {
     const router = useRouter();
     const { t, locale } = useLanguage();
-    const [blogs, setBlogs] = useState<BlogItem[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [errorKey, setErrorKey] = useState<string | null>(null);
-
-    useEffect(() => {
-        const fetchBlogs = async () => {
-            try {
-                setIsLoading(true);
-                const response = await apiService.fetchHomepageBlogs();
-
-                if (response.success && response.data) {
-                    const processedBlogs: BlogItem[] = response.data.map(
-                        (blog: { id: string; title: string; description: string; image: string; category: string; createdAt: string }) => ({
-                            id: blog.id,
-                            title: blog.title,
-                            description: blog.description,
-                            image: parseImageUrl(blog.image),
-                            category: blog.category || undefined,
-                            createdAt: blog.createdAt
-                        })
-                    );
-
-                    setBlogs(processedBlogs);
-                } else {
-                    setErrorKey('errors.blogs.loadFailed');
-                }
-            } catch (err) {
-                setErrorKey('errors.blogs.loadFailed');
-                console.error('Error fetching blogs:', err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchBlogs();
-    }, [t]);
-
-    const handleExploreMore = () => {
-        router.push('/blogs');
-    };
-
-    const handleNewsClick = (newsId: string) => {
-        router.push(`/blogs/${newsId}`);
-    };
+    const [blogs] = useState<BlogItem[]>(
+        initialBlogs.map((blog) => ({
+            id: blog.id,
+            title: blog.title,
+            description: blog.excerpt,
+            image: blog.featuredImage,
+            category: blog.category.name || undefined,
+            createdAt: blog.publishedAt
+        }))
+    );
 
     const formatDate = (dateString: string) => {
         try {
@@ -78,259 +48,76 @@ export default function Newsroom() {
         }
     };
 
-    // Animation variants (inline)
-    const animationVariants = {
-        section: {
-            initial: { opacity: 0 },
-            animate: { opacity: 1 },
-            transition: { duration: 0.8 }
-        },
-        header: {
-            initial: { y: -50, opacity: 0 },
-            animate: { y: 0, opacity: 1 },
-            transition: { duration: 0.8, delay: 0.2 }
-        },
-        subtitle: {
-            initial: { opacity: 0 },
-            animate: { opacity: 1 },
-            transition: { duration: 0.6, delay: 0.5 }
-        },
-        tagline: {
-            initial: { opacity: 0 },
-            animate: { opacity: 1 },
-            transition: { duration: 0.6, delay: 0.7 }
-        },
-        newsItem: (index: number) => ({
-            initial: { opacity: 0, y: 100, scale: 0.8 },
-            animate: { opacity: 1, y: 0, scale: 1 },
-            transition: {
-                duration: 0.6,
-                delay: index * 0.1,
-                type: 'spring',
-                stiffness: 100
-            }
-        }),
-        button: {
-            initial: { opacity: 0, y: 50 },
-            animate: { opacity: 1, y: 0 },
-            transition: { duration: 0.8, delay: 0.5 }
-        }
-    };
-
-    // Background dots (inline)
-    const backgroundDots = Array.from({ length: 4 }, (_, i) => ({
-        id: i,
-        left: `${10 + i * 25}%`,
-        top: `${20 + i * 15}%`,
-        animate: { scale: [1, 2, 1], opacity: [0.3, 0.8, 0.3] },
-        transition: { duration: 2 + i * 0.5, repeat: Infinity, delay: i * 0.5 }
-    }));
-
     return (
         <motion.section
-            className="relative bg-gradient-to-b from-[#001A35] to-[#032d4c] py-16 sm:py-20 md:py-24 overflow-hidden"
-            {...animationVariants.section}
+            className="relative overflow-hidden bg-gradient-to-b from-[#001A35] to-[#032d4c] py-16 sm:py-20 md:py-24"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.8 }}
             viewport={{ once: true, amount: 0.2 }}
         >
-            <div className="ml-0 sm:ml-20 pl-1 sm:pl-2 md:pl-2 lg:pl-3 xl:pl-4 2xl:pl-6 pr-1 sm:pr-2 md:pr-2 lg:pr-3 xl:pr-4 2xl:pr-6">
-                {/* Header Section */}
-                <motion.div
-                    className="text-center text-white z-10 mb-8 sm:mb-10 md:mb-12"
-                    {...animationVariants.header}
-                    viewport={{ once: true }}
-                >
-                    <motion.h2
-                        className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold font-sans"
-                        whileHover={{ scale: 1.05, color: '#4FC8FF', transition: { duration: 0.3 } }}
-                    >
-                        {t('newsroom.title')}
-                    </motion.h2>
-                    <motion.p
-                        className="mt-2 sm:mt-3 text-sm sm:text-base uppercase tracking-wider font-sans"
-                        {...animationVariants.subtitle}
-                        viewport={{ once: true }}
-                    >
-                        {t('newsroom.subtitle')}
-                    </motion.p>
-                    <motion.span
-                        className="mt-1 sm:mt-2 text-xs sm:text-sm text-white/70 block font-sans"
-                        {...animationVariants.tagline}
-                        viewport={{ once: true }}
-                    >
-                        {t('newsroom.tagline')}
-                    </motion.span>
-                </motion.div>
+            <div className="ml-0 px-3 sm:ml-20 sm:px-4 md:px-6 xl:px-8">
+                <div className="mb-8 text-center text-white sm:mb-10 md:mb-12">
+                    <h2 className="text-2xl font-semibold sm:text-3xl md:text-4xl lg:text-5xl">{t('newsroom.title')}</h2>
+                    <p className="mt-3 text-sm uppercase tracking-wider sm:text-base">{t('newsroom.subtitle')}</p>
+                    <span className="mt-2 block text-xs text-white/70 sm:text-sm">{t('newsroom.tagline')}</span>
+                </div>
 
-                {/* News Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6 z-10 relative">
-                    {isLoading ? (
-                        // Loading skeleton
-                        Array.from({ length: 6 }).map((_, index) => (
-                            <motion.div
-                                key={`skeleton-${index}`}
-                                className="relative w-full h-64 sm:h-72 md:h-80 bg-gray-800/40 rounded-lg animate-pulse"
-                                variants={animationVariants.newsItem(index)}
-                                initial="initial"
-                                whileInView="animate"
-                                viewport={{ once: true, amount: 0.3 }}
-                            >
-                                <div className="w-full h-2/3 bg-gray-700/50 rounded-t-lg"></div>
-                                <div className="p-3 space-y-2">
-                                    <div className="h-3 bg-gray-700/50 rounded w-3/4"></div>
-                                    <div className="h-2 bg-gray-700/50 rounded w-1/2"></div>
-                                </div>
-                            </motion.div>
-                        ))
-                    ) : errorKey ? (
-                        <div className="col-span-full text-center py-12">
-                            <p className="text-red-400 mb-4">⚠️ {t(errorKey)}</p>
-                            <p className="text-gray-500 text-sm">{t('common.tryAgainLater')}</p>
-                        </div>
-                    ) : (
-                        blogs.map((post, index) => (
-                        <motion.div
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+                    {blogs.map((post, index) => (
+                        <motion.button
                             key={post.id}
-                            className="relative w-full h-64 sm:h-72 md:h-80 bg-black/10 rounded-lg overflow-hidden group cursor-pointer"
-                            variants={animationVariants.newsItem(index)}
-                            initial="initial"
-                            whileInView="animate"
+                            type="button"
+                            className="group relative h-64 overflow-hidden rounded-lg bg-black/10 text-left sm:h-72 md:h-80"
+                            initial={{ opacity: 0, y: 48 }}
+                            whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true, amount: 0.3 }}
+                            transition={{ duration: 0.5, delay: index * 0.08 }}
                             whileHover={{
-                                y: -10,
-                                scale: 1.02,
-                                boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
-                                transition: { duration: 0.3 }
+                                y: -8,
+                                scale: 1.01,
+                                boxShadow: '0 18px 36px rgba(0,0,0,0.35)'
                             }}
-                            onClick={() => handleNewsClick(post.id)}
+                            onClick={() => router.push(buildBlogPath(post.id, post.title))}
                         >
                             {post.image ? (
-                                <motion.img
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
                                     src={post.image}
                                     alt={post.title}
-                                    className="w-full h-full object-cover"
-                                    whileHover={{ scale: 1.1 }}
-                                    transition={{ duration: 0.4 }}
+                                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                                     loading={index < 3 ? 'eager' : 'lazy'}
                                 />
                             ) : (
                                 <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950 text-slate-500">
-                                    <svg
-                                        aria-hidden="true"
-                                        className="h-10 w-10"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={1.5}
-                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2 1.586-1.586a2 2 0 012.828 0L20 14m-6-8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                        />
-                                    </svg>
+                                    <FiArrowUpRight className="h-10 w-10" />
                                 </div>
                             )}
 
-                            {/* Overlay Content */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/80 to-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-3 md:p-4">
-                                {/* Header */}
-                                <div className="flex justify-between items-start">
-                                    {post.category ? (
-                                        <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-[#4FC8FF] text-white text-xs font-semibold rounded-full">
-                                            {post.category}
-                                        </span>
-                                    ) : <span />}
-                                    <span className="text-white/70 text-xs font-medium">
-                                        {formatDate(post.createdAt)}
+                            <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black via-black/65 to-transparent p-4">
+                                {post.category ? (
+                                    <span className="mb-3 inline-flex w-fit rounded-full bg-[#4FC8FF] px-2 py-1 text-xs font-semibold text-white">
+                                        {post.category}
                                     </span>
-                                </div>
-
-                                {/* Main Content */}
-                                <div className="flex-1 flex flex-col justify-center space-y-2 my-3">
-                                    <h3 className="text-white font-bold text-xs sm:text-sm md:text-base leading-tight line-clamp-2">
-                                        {post.title}
-                                    </h3>
-                                    <p className="text-white/90 text-xs leading-relaxed line-clamp-3">
-                                        {post.description}
-                                    </p>
-                                </div>
-
-                                {/* Footer */}
-                                <div className="flex justify-between items-end">
-                                    <div className="flex-1 mr-1 sm:mr-2">
-                                        <p className="text-white/70 text-xs leading-tight line-clamp-2">
-                                            {post.category} • {formatDate(post.createdAt)}
-                                        </p>
-                                    </div>
-                                    <motion.button
-                                        className="p-1.5 sm:p-2 bg-white/20 hover:bg-[#4FC8FF] rounded-full transition-colors duration-300 flex-shrink-0"
-                                        whileHover={{
-                                            scale: 1.2,
-                                            rotate: 45,
-                                            backgroundColor: '#4FC8FF'
-                                        }}
-                                        whileTap={{ scale: 0.9 }}
-                                        transition={{ duration: 0.2 }}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleNewsClick(post.id);
-                                        }}
-                                        aria-label={t('newsroom.readMoreAria').replace('{title}', post.title)}
-                                    >
-                                        <FiArrowUpRight size={12} className="sm:w-3.5 sm:h-3.5" color="white" />
-                                    </motion.button>
+                                ) : null}
+                                <h3 className="line-clamp-2 text-base font-semibold text-white sm:text-lg">{post.title}</h3>
+                                <div className="mt-3 flex items-center justify-between text-xs text-white/70">
+                                    <span>{formatDate(post.createdAt)}</span>
+                                    <FiArrowUpRight className="h-4 w-4" />
                                 </div>
                             </div>
-
-                            {/* Animated border */}
-                            <motion.div
-                                className="absolute inset-0 border-2 border-transparent rounded-lg pointer-events-none"
-                                whileHover={{
-                                    borderColor: '#4FC8FF',
-                                    boxShadow: '0 0 20px rgba(79, 200, 255, 0.3)'
-                                }}
-                                transition={{ duration: 0.3 }}
-                            />
-
-                        </motion.div>
-                        ))
-                    )}
+                        </motion.button>
+                    ))}
                 </div>
 
-                {/* Explore More Button */}
-                <motion.div
-                    className="text-center mt-8 sm:mt-10 z-10 relative"
-                    {...animationVariants.button}
-                    viewport={{ once: true }}
-                >
-                    <motion.button
-                        className="px-6 sm:px-8 py-2 sm:py-3 border border-white text-white hover:bg-white/10 rounded-full transition text-sm sm:text-base font-medium font-sans"
-                        whileHover={{
-                            scale: 1.05,
-                            borderColor: '#4FC8FF',
-                            color: '#4FC8FF',
-                            boxShadow: '0 10px 25px rgba(79, 200, 255, 0.2)'
-                        }}
-                        whileTap={{ scale: 0.95 }}
-                        transition={{ duration: 0.3 }}
-                        onClick={handleExploreMore}
-                        aria-label={t('newsroom.exploreMoreAria')}
+                <div className="mt-10 flex justify-center">
+                    <button
+                        type="button"
+                        onClick={() => router.push('/blogs')}
+                        className="rounded-full border border-white/15 px-5 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white transition hover:border-cyan-300 hover:text-cyan-200"
                     >
                         {t('newsroom.exploreMore')}
-                    </motion.button>
-                </motion.div>
-
-                {/* Background Animated Elements */}
-                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                    {backgroundDots.map((dot) => (
-                        <motion.div
-                            key={dot.id}
-                            className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
-                            style={{ left: dot.left, top: dot.top }}
-                            animate={dot.animate}
-                            transition={dot.transition}
-                        />
-                    ))}
+                    </button>
                 </div>
             </div>
         </motion.section>

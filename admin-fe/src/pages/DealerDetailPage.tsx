@@ -109,7 +109,7 @@ function DealerDetailPage() {
       phone: dealer.phone,
       creditLimit: dealer.creditLimit > 0 ? String(dealer.creditLimit) : '',
     })
-  }, [dealer?.creditLimit, dealer?.email, dealer?.id, dealer?.name, dealer?.phone, dealer?.tier])
+  }, [dealer])
 
   if (dealersState.status === 'loading' || dealersState.status === 'idle') {
     return (

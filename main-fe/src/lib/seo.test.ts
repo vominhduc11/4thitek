@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { articleJsonLd, createBaseMetadata, organizationJsonLd, productJsonLd, websiteJsonLd } from './seo';
 
 describe('seo helpers', () => {
-    it('builds canonical metadata with hreflang alternates', () => {
+    it('builds canonical metadata without fake hreflang alternates', () => {
         const metadata = createBaseMetadata({
             locale: 'vi',
             path: '/products/scs-s10',
@@ -11,7 +11,7 @@ describe('seo helpers', () => {
         });
 
         expect(metadata.alternates?.canonical?.toString()).toBe('https://4thitek.vn/products/scs-s10');
-        expect(metadata.alternates?.languages?.vi?.toString()).toBe('https://4thitek.vn/products/scs-s10');
+        expect(metadata.alternates?.languages).toBeUndefined();
         expect(metadata.openGraph?.locale).toBe('vi_VN');
     });
 
@@ -38,11 +38,12 @@ describe('seo helpers', () => {
                 id: '99',
                 title: 'Review',
                 description: 'Chi tiet',
-                publishedAt: '2026-03-10T00:00:00Z'
+                publishedAt: '2026-03-10T00:00:00Z',
+                path: '/blogs/99-review'
             })
         ).toMatchObject({
             '@type': 'Article',
-            mainEntityOfPage: 'https://4thitek.vn/blogs/99'
+            mainEntityOfPage: 'https://4thitek.vn/blogs/99-review'
         });
     });
 });

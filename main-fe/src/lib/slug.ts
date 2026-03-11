@@ -1,0 +1,23 @@
+const normalizeVietnamese = (value: string) =>
+    value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/gi, 'd');
+
+export const slugify = (value: string) =>
+    normalizeVietnamese(value)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .replace(/-{2,}/g, '-');
+
+export const extractRouteId = (value: string) => {
+    const [firstSegment] = value.split('-');
+    return firstSegment.trim();
+};
+
+export const buildBlogPath = (id: string | number, title: string) => {
+    const safeId = String(id).trim();
+    const slug = slugify(title);
+    return slug ? `/blogs/${safeId}-${slug}` : `/blogs/${safeId}`;
+};

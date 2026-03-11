@@ -6,6 +6,7 @@ import 'breakpoints.dart';
 import 'dealer_profile_storage.dart';
 import 'file_reference.dart';
 import 'upload_service.dart';
+import 'validation_utils.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/section_card.dart';
@@ -118,10 +119,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     ].join('||');
   }
 
-  bool _isValidEmail(String email) {
-    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
-  }
-
   bool _isValidPhone(String phone) {
     return RegExp(r'^[0-9+\s-]{8,}$').hasMatch(phone);
   }
@@ -206,6 +203,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   Future<bool?> _confirmDiscardChanges(bool isEnglish) {
     return showDialog<bool>(
       context: context,
+      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+      requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
           title: Text(isEnglish ? 'Unsaved changes' : 'Có thay đổi chưa lưu'),
@@ -235,6 +234,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     }
     final confirmed = await showDialog<bool>(
       context: context,
+      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+      requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
           title: Text(isEnglish ? 'Reset fields' : 'Đặt lại dữ liệu'),
@@ -275,10 +276,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   String? _requiredValidator(String? value, String message) {
-    if (value == null || value.trim().isEmpty) {
-      return message;
-    }
-    return null;
+    return validateRequiredText(value, message: message);
   }
 
   String? _emailValidator(String? value, bool isEnglish) {
@@ -288,14 +286,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     final invalidMessage = isEnglish
         ? 'Invalid email format.'
         : 'Email không hợp lệ.';
-    final requiredResult = _requiredValidator(value, requiredMessage);
-    if (requiredResult != null) {
-      return requiredResult;
-    }
-    if (!_isValidEmail(value!.trim())) {
-      return invalidMessage;
-    }
-    return null;
+    return validateEmailAddress(
+      value,
+      emptyMessage: requiredMessage,
+      invalidMessage: invalidMessage,
+    );
   }
 
   String? _phoneValidator(String? value, bool isEnglish) {

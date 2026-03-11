@@ -52,6 +52,17 @@ class WarrantyController extends ChangeNotifier {
   final Product? Function(String productId)? _productLookup;
   final Map<String, int> _remoteSerialIds = <String, int>{};
   final Map<String, int> _remoteWarrantyIds = <String, int>{};
+  final Map<String, ImportedSerialRecord> _importedSerialsByNormalized =
+      <String, ImportedSerialRecord>{};
+  List<WarrantyActivationRecord> _sortedActivationsCache =
+      const <WarrantyActivationRecord>[];
+  List<ImportedSerialRecord> _sortedImportedSerialsCache =
+      const <ImportedSerialRecord>[];
+  Set<String>? _activatedSerialSetCache;
+  Map<String, int>? _activationCountByOrderCache;
+  bool _activationsCacheDirty = true;
+  bool _importedSerialsCacheDirty = true;
+  bool _activationDerivedDirty = true;
 
   Future<void> load({bool forceRefresh = false}) async {
     final loadedLocal = await _loadLocalState();
@@ -95,7 +106,7 @@ class WarrantyController extends ChangeNotifier {
 
   void markSerialDefective({required String serial, required bool defective}) {
     final normalized = _normalizeSerial(serial);
-    if (_findImportedSerialIndex(normalized) < 0) {
+    if (!_containsImportedSerial(normalized)) {
       return;
     }
     if (_activatedSerialSet().contains(normalized)) {
@@ -119,7 +130,7 @@ class WarrantyController extends ChangeNotifier {
     if (normalized.isEmpty) {
       return 'Serial không hợp lệ.';
     }
-    if (_findImportedSerialIndex(normalized) < 0) {
+    if (!_containsImportedSerial(normalized)) {
       return 'Serial $normalized chưa được nhập kho.';
     }
     if (_activatedSerialSet().contains(normalized)) {
@@ -167,8 +178,7 @@ class WarrantyController extends ChangeNotifier {
         final data = payload['data'];
         if (data is Map<String, dynamic>) {
           final importedBySerial = <String, ImportedSerialRecord>{
-            for (final record in _importedSerials)
-              _normalizeSerial(record.serial): record,
+            ..._importedSerialsByNormalized,
           };
           final nextRemoteSerialIds = <String, int>{..._remoteSerialIds};
           final updatedRecord = _mapRemoteSerial(
@@ -178,9 +188,7 @@ class WarrantyController extends ChangeNotifier {
           );
           if (updatedRecord != null) {
             _upsertImportedSerials(<ImportedSerialRecord>[updatedRecord]);
-            _remoteSerialIds
-              ..clear()
-              ..addAll(nextRemoteSerialIds);
+            _syncMapContents(_remoteSerialIds, nextRemoteSerialIds);
           }
         }
 
@@ -209,9 +217,15 @@ class WarrantyController extends ChangeNotifier {
   }
 
   List<WarrantyActivationRecord> get activations {
-    final list = List<WarrantyActivationRecord>.from(_activations);
-    list.sort((a, b) => b.activatedAt.compareTo(a.activatedAt));
-    return list;
+    if (_activationsCacheDirty) {
+      final list = List<WarrantyActivationRecord>.from(_activations)
+        ..sort((a, b) => b.activatedAt.compareTo(a.activatedAt));
+      _sortedActivationsCache = List<WarrantyActivationRecord>.unmodifiable(
+        list,
+      );
+      _activationsCacheDirty = false;
+    }
+    return _sortedActivationsCache;
   }
 
   List<WarrantyActivationRecord> recentActivations({int limit = 20}) {
@@ -246,9 +260,15 @@ class WarrantyController extends ChangeNotifier {
   }
 
   List<ImportedSerialRecord> get importedSerials {
-    final list = List<ImportedSerialRecord>.from(_importedSerials);
-    list.sort((a, b) => b.importedAt.compareTo(a.importedAt));
-    return list;
+    if (_importedSerialsCacheDirty) {
+      final list = List<ImportedSerialRecord>.from(_importedSerials)
+        ..sort((a, b) => b.importedAt.compareTo(a.importedAt));
+      _sortedImportedSerialsCache = List<ImportedSerialRecord>.unmodifiable(
+        list,
+      );
+      _importedSerialsCacheDirty = false;
+    }
+    return _sortedImportedSerialsCache;
   }
 
   List<ImportedSerialRecord> recentImportedSerials({int limit = 50}) {
@@ -328,24 +348,30 @@ class WarrantyController extends ChangeNotifier {
     String orderId,
     String productId,
   ) {
-    return availableImportedSerialsForOrderItem(orderId, productId).length;
+    final activated = _activatedSerialSet();
+    return _importedSerials.where((record) {
+      if (record.orderId != orderId || record.productId != productId) {
+        return false;
+      }
+      final normalized = _normalizeSerial(record.serial);
+      return !activated.contains(normalized) &&
+          !_defectiveSerials.contains(normalized);
+    }).length;
   }
 
   ImportedSerialRecord? findImportedSerial(String serial) {
     final normalized = _normalizeSerial(serial);
-    for (final record in _importedSerials) {
-      if (_normalizeSerial(record.serial) == normalized) {
-        return record;
-      }
-    }
-    return null;
+    return _importedSerialsByNormalized[normalized];
   }
 
   bool serialExists(String serial) {
     final normalized = _normalizeSerial(serial);
-    return _activations.any(
-      (activation) => _normalizeSerial(activation.serial) == normalized,
-    );
+    return _activatedSerialSet().contains(normalized);
+  }
+
+  int activationCountForOrder(String orderId) {
+    _ensureActivationDerivedCache();
+    return _activationCountByOrderCache![orderId] ?? 0;
   }
 
   String? validateSerialForActivation({
@@ -395,8 +421,7 @@ class WarrantyController extends ChangeNotifier {
     final prepared = _prepareSerialImport(
       serials: serials,
       maxToAdd: maxToAdd,
-      alreadyImported: (normalizedSerial) =>
-          _findImportedSerialIndex(normalizedSerial) >= 0,
+      alreadyImported: _containsImportedSerial,
     );
     if (prepared.acceptedSerials.isEmpty) {
       return WarrantySerialImportResult(
@@ -497,9 +522,7 @@ class WarrantyController extends ChangeNotifier {
           nextImportedRecords.add(record);
         }
 
-        _remoteSerialIds
-          ..clear()
-          ..addAll(nextRemoteSerialIds);
+        _syncMapContents(_remoteSerialIds, nextRemoteSerialIds);
         _upsertImportedSerials(nextImportedRecords);
         _sanitizeState();
         await _persist();
@@ -542,21 +565,38 @@ class WarrantyController extends ChangeNotifier {
     }
 
     if (await _canUseRemoteApi()) {
-      final successful = <WarrantyActivationRecord>[];
-      for (final record in newActivations) {
-        try {
-          await _createRemoteActivation(record);
-          successful.add(record);
-        } catch (_) {
-          if (successful.isNotEmpty) {
-            _upsertActivations(successful);
-            await _persist();
+      final requiresRemoteSync = newActivations.any((record) {
+        final remoteSerialId =
+            _remoteSerialIds[_normalizeSerial(record.serial)];
+        return remoteSerialId == null || remoteSerialId <= 0;
+      });
+      if (requiresRemoteSync && !await _loadRemoteState()) {
+        return false;
+      }
+
+      final results = await Future.wait<WarrantyActivationRecord?>(
+        newActivations.map((record) async {
+          try {
+            await _createRemoteActivation(record);
+            return record;
+          } catch (_) {
+            return null;
           }
-          await _loadRemoteState();
-          _sanitizeState();
-          notifyListeners();
-          return false;
-        }
+        }),
+      );
+      final successful = results.whereType<WarrantyActivationRecord>().toList(
+        growable: false,
+      );
+      final hasFailures = successful.length != newActivations.length;
+      if (hasFailures && successful.isNotEmpty) {
+        _upsertActivations(successful);
+        await _persist();
+      }
+      if (hasFailures) {
+        await _loadRemoteState();
+        _sanitizeState();
+        notifyListeners();
+        return false;
       }
       _upsertActivations(successful);
       await _persist();
@@ -575,14 +615,48 @@ class WarrantyController extends ChangeNotifier {
 
   Future<bool> _loadLocalState() async {
     final prefs = await SharedPreferences.getInstance();
-    _activations.clear();
-    _importedSerials.clear();
-    _defectiveSerials.clear();
-    await prefs.remove(_activationsStorageKey);
-    await prefs.remove(_serialsStorageKey);
-    await prefs.remove(_defectiveStorageKey);
-    _sanitizeState();
-    return false;
+    final hasStoredState =
+        prefs.containsKey(_activationsStorageKey) ||
+        prefs.containsKey(_serialsStorageKey) ||
+        prefs.containsKey(_defectiveStorageKey);
+    if (!hasStoredState) {
+      return false;
+    }
+
+    try {
+      final activationData = _decodeStoredList(
+        prefs.getString(_activationsStorageKey),
+      );
+      final serialData = _decodeStoredList(prefs.getString(_serialsStorageKey));
+      final defectiveData = _decodeStoredList(
+        prefs.getString(_defectiveStorageKey),
+      );
+
+      _replaceActivations(
+        activationData
+            .whereType<Map<String, dynamic>>()
+            .map(_activationFromJson)
+            .whereType<WarrantyActivationRecord>(),
+      );
+      _replaceImportedSerials(
+        serialData
+            .whereType<Map<String, dynamic>>()
+            .map(_serialFromJson)
+            .whereType<ImportedSerialRecord>(),
+      );
+      _defectiveSerials
+        ..clear()
+        ..addAll(
+          defectiveData
+              .map((entry) => _normalizeSerial(entry.toString()))
+              .where((serial) => serial.isNotEmpty),
+        );
+      _sanitizeState();
+      return true;
+    } catch (_) {
+      _resetToEmptyState();
+      return false;
+    }
   }
 
   Future<bool> _loadRemoteState() async {
@@ -596,8 +670,7 @@ class WarrantyController extends ChangeNotifier {
         _normalizeSerial(activation.serial): activation,
     };
     final cachedImportedBySerial = <String, ImportedSerialRecord>{
-      for (final record in _importedSerials)
-        _normalizeSerial(record.serial): record,
+      ..._importedSerialsByNormalized,
     };
 
     try {
@@ -662,21 +735,13 @@ class WarrantyController extends ChangeNotifier {
         }
       }
 
-      _importedSerials
-        ..clear()
-        ..addAll(nextImportedSerials);
-      _activations
-        ..clear()
-        ..addAll(nextActivations);
+      _replaceImportedSerials(nextImportedSerials);
+      _replaceActivations(nextActivations);
       _defectiveSerials
         ..clear()
         ..addAll(nextDefectiveSerials);
-      _remoteSerialIds
-        ..clear()
-        ..addAll(nextRemoteSerialIds);
-      _remoteWarrantyIds
-        ..clear()
-        ..addAll(nextRemoteWarrantyIds);
+      _syncMapContents(_remoteSerialIds, nextRemoteSerialIds);
+      _syncMapContents(_remoteWarrantyIds, nextRemoteWarrantyIds);
       _sanitizeState();
       await _persist();
       return true;
@@ -869,9 +934,7 @@ class WarrantyController extends ChangeNotifier {
       bySerial[_normalizeSerial(record.serial)] = record;
       _defectiveSerials.remove(_normalizeSerial(record.serial));
     }
-    _activations
-      ..clear()
-      ..addAll(bySerial.values);
+    _replaceActivations(bySerial.values);
     _ensureImportedSerialsForActivations(records);
   }
 
@@ -886,9 +949,7 @@ class WarrantyController extends ChangeNotifier {
     for (final record in records) {
       bySerial[_normalizeSerial(record.serial)] = record;
     }
-    _importedSerials
-      ..clear()
-      ..addAll(bySerial.values);
+    _replaceImportedSerials(bySerial.values);
   }
 
   bool _applyLocalDefectiveState({
@@ -912,35 +973,24 @@ class WarrantyController extends ChangeNotifier {
   }
 
   void _resetToEmptyState() {
-    _activations.clear();
-    _importedSerials.clear();
+    _replaceActivations(const <WarrantyActivationRecord>[]);
+    _replaceImportedSerials(const <ImportedSerialRecord>[]);
     _defectiveSerials.clear();
     _sanitizeState();
   }
 
   void _sanitizeState() {
     _ensureImportedSerialsForActivations(_activations);
-    _defectiveSerials.removeWhere(
-      (serial) => _findImportedSerialIndex(serial) < 0,
-    );
-    _defectiveSerials.removeWhere(
-      (serial) => _activatedSerialSet().contains(serial),
-    );
-  }
-
-  int _findImportedSerialIndex(String normalizedSerial) {
-    for (var i = 0; i < _importedSerials.length; i++) {
-      if (_normalizeSerial(_importedSerials[i].serial) == normalizedSerial) {
-        return i;
-      }
-    }
-    return -1;
+    final activatedSerials = _activatedSerialSet();
+    _defectiveSerials.removeWhere((serial) {
+      return !_containsImportedSerial(serial) ||
+          activatedSerials.contains(serial);
+    });
   }
 
   Set<String> _activatedSerialSet() {
-    return _activations
-        .map((activation) => _normalizeSerial(activation.serial))
-        .toSet();
+    _ensureActivationDerivedCache();
+    return _activatedSerialSetCache!;
   }
 
   void _ensureImportedSerialsForActivations(
@@ -948,8 +998,7 @@ class WarrantyController extends ChangeNotifier {
   ) {
     for (final activation in source) {
       final normalized = _normalizeSerial(activation.serial);
-      final currentIndex = _findImportedSerialIndex(normalized);
-      if (currentIndex < 0) {
+      if (!_containsImportedSerial(normalized)) {
         _importedSerials.add(
           ImportedSerialRecord(
             serial: normalized,
@@ -960,8 +1009,80 @@ class WarrantyController extends ChangeNotifier {
             importedAt: activation.activatedAt,
           ),
         );
+        _importedSerialsByNormalized[normalized] = _importedSerials.last;
+        _markImportedSerialsDirty();
       }
     }
+  }
+
+  void _replaceActivations(Iterable<WarrantyActivationRecord> activations) {
+    _activations
+      ..clear()
+      ..addAll(activations);
+    _markActivationsDirty();
+  }
+
+  void _replaceImportedSerials(Iterable<ImportedSerialRecord> serials) {
+    _importedSerials
+      ..clear()
+      ..addAll(serials);
+    _rebuildImportedSerialLookup();
+    _markImportedSerialsDirty();
+  }
+
+  void _rebuildImportedSerialLookup() {
+    _importedSerialsByNormalized
+      ..clear()
+      ..addEntries(
+        _importedSerials.map(
+          (record) => MapEntry<String, ImportedSerialRecord>(
+            _normalizeSerial(record.serial),
+            record,
+          ),
+        ),
+      );
+  }
+
+  void _markActivationsDirty() {
+    _activationsCacheDirty = true;
+    _activationDerivedDirty = true;
+  }
+
+  void _markImportedSerialsDirty() {
+    _importedSerialsCacheDirty = true;
+  }
+
+  void _ensureActivationDerivedCache() {
+    if (!_activationDerivedDirty &&
+        _activatedSerialSetCache != null &&
+        _activationCountByOrderCache != null) {
+      return;
+    }
+
+    final activatedSerials = <String>{};
+    final countsByOrder = <String, int>{};
+    for (final activation in _activations) {
+      final normalized = _normalizeSerial(activation.serial);
+      activatedSerials.add(normalized);
+      countsByOrder.update(
+        activation.orderId,
+        (count) => count + 1,
+        ifAbsent: () => 1,
+      );
+    }
+
+    _activatedSerialSetCache = activatedSerials;
+    _activationCountByOrderCache = countsByOrder;
+    _activationDerivedDirty = false;
+  }
+
+  bool _containsImportedSerial(String normalizedSerial) {
+    return _importedSerialsByNormalized.containsKey(normalizedSerial);
+  }
+
+  void _syncMapContents<K, V>(Map<K, V> target, Map<K, V> next) {
+    target.removeWhere((key, _) => !next.containsKey(key));
+    target.addAll(next);
   }
 
   Future<void> _persist() async {
@@ -977,6 +1098,59 @@ class WarrantyController extends ChangeNotifier {
     await prefs.setString(
       _defectiveStorageKey,
       jsonEncode(_defectiveSerials.toList(growable: false)),
+    );
+  }
+
+  List<dynamic> _decodeStoredList(String? raw) {
+    if (raw == null || raw.trim().isEmpty) {
+      return const <dynamic>[];
+    }
+    final decoded = jsonDecode(raw);
+    if (decoded is List) {
+      return decoded;
+    }
+    return const <dynamic>[];
+  }
+
+  WarrantyActivationRecord? _activationFromJson(Map<String, dynamic> json) {
+    final serial = _normalizeSerial(_normalizeString(json['serial']) ?? '');
+    if (serial.isEmpty) {
+      return null;
+    }
+    final activatedAt =
+        DateTime.tryParse(json['activatedAt']?.toString() ?? '') ??
+        DateTime.now();
+    return WarrantyActivationRecord(
+      orderId: _normalizeString(json['orderId']) ?? '',
+      productId: _normalizeString(json['productId']) ?? '',
+      productName: _normalizeString(json['productName']) ?? 'Product',
+      productSku: _normalizeString(json['productSku']) ?? '',
+      serial: serial,
+      customerName: _normalizeString(json['customerName']) ?? '',
+      customerEmail: _normalizeString(json['customerEmail']) ?? '',
+      customerPhone: _normalizeString(json['customerPhone']) ?? '',
+      customerAddress: _normalizeString(json['customerAddress']) ?? '',
+      warrantyMonths: _parseInt(json['warrantyMonths'], fallback: 12),
+      activatedAt: activatedAt,
+    );
+  }
+
+  ImportedSerialRecord? _serialFromJson(Map<String, dynamic> json) {
+    final serial = _normalizeSerial(_normalizeString(json['serial']) ?? '');
+    if (serial.isEmpty) {
+      return null;
+    }
+    return ImportedSerialRecord(
+      serial: serial,
+      orderId: _normalizeString(json['orderId']) ?? '',
+      productId: _normalizeString(json['productId']) ?? '',
+      productName: _normalizeString(json['productName']) ?? 'Product',
+      productSku: _normalizeString(json['productSku']) ?? '',
+      importedAt:
+          DateTime.tryParse(json['importedAt']?.toString() ?? '') ??
+          DateTime.now(),
+      warehouseId: _normalizeString(json['warehouseId']) ?? 'main',
+      warehouseName: _normalizeString(json['warehouseName']) ?? 'Kho',
     );
   }
 

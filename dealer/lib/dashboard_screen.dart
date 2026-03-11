@@ -313,7 +313,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   TextButton.icon(
                     onPressed: _openOrdersScreen,
                     style: TextButton.styleFrom(
-                      minimumSize: const Size(44, 44),
+                      minimumSize: const Size(48, 48),
                       visualDensity: VisualDensity.compact,
                       foregroundColor: const Color(0xFF1D4ED8),
                     ),
@@ -476,7 +476,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _selectedPeriod = selection.period;
     });
   }
-
 }
 
 class _OverviewCard extends StatelessWidget {
@@ -923,7 +922,7 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                         child: FilledButton.icon(
                           onPressed: widget.onCreateOrder,
                           style: FilledButton.styleFrom(
-                            minimumSize: const Size(220, 44),
+                            minimumSize: const Size(220, 48),
                           ),
                           icon: const Icon(
                             Icons.add_shopping_cart_outlined,
@@ -1389,11 +1388,7 @@ class _LowStockCard extends StatelessWidget {
                   color: accentColor.withValues(alpha: 0.16),
                 ),
                 alignment: Alignment.center,
-                child: Icon(
-                  _productIcon(),
-                  size: 20,
-                  color: accentColor,
-                ),
+                child: Icon(_productIcon(), size: 20, color: accentColor),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -1678,7 +1673,7 @@ class _LowStockPanel extends StatelessWidget {
                   style: FilledButton.styleFrom(
                     backgroundColor: colorScheme.error,
                     foregroundColor: colorScheme.onError,
-                    minimumSize: const Size(0, 44),
+                    minimumSize: const Size(0, 48),
                   ),
                   icon: const Icon(Icons.local_shipping_outlined, size: 18),
                   label: const Text('Nhập thêm ngay'),
@@ -1824,6 +1819,7 @@ class _OrderStatusDistributionCard extends StatelessWidget {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
+      requestFocus: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -2095,7 +2091,7 @@ class _AgingDebtCard extends StatelessWidget {
                     onPressed: onViewAll,
                     style: TextButton.styleFrom(
                       visualDensity: VisualDensity.compact,
-                      minimumSize: const Size(44, 44),
+                      minimumSize: const Size(48, 48),
                       foregroundColor: const Color(0xFF1D4ED8),
                     ),
                     icon: const Icon(Icons.list_alt_outlined, size: 18),
@@ -2181,6 +2177,7 @@ class _AgingDebtCard extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      requestFocus: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -2580,7 +2577,7 @@ class _EmptyCard extends StatelessWidget {
   Widget _buildCtaButton() {
     final label = ctaLabel!;
     final style = FilledButton.styleFrom(
-      minimumSize: const Size(double.infinity, 44),
+      minimumSize: const Size(double.infinity, 48),
     );
     if (ctaIcon != null) {
       return FilledButton.icon(
@@ -3861,7 +3858,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
           borderRadius: BorderRadius.circular(10),
           onTap: onTap,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 44),
+            constraints: const BoxConstraints(minHeight: 48),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
               child: Row(

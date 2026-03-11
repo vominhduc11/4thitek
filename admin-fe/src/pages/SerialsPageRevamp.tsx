@@ -1,6 +1,7 @@
 import { Barcode, RefreshCw, Upload } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  fetchAllAdminSerials,
   fetchAdminSerialsPaged,
   importAdminSerials,
   updateAdminSerialStatus,
@@ -138,6 +139,7 @@ function SerialsPageRevamp() {
   const { products } = useProducts()
   const { confirm, confirmDialog } = useConfirmDialog()
   const [items, setItems] = useState<BackendSerialResponse[]>([])
+  const [allItems, setAllItems] = useState<BackendSerialResponse[]>([])
   const [page, setPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [totalItems, setTotalItems] = useState(0)
@@ -145,8 +147,10 @@ function SerialsPageRevamp() {
   const [statusFilter, setStatusFilter] = useState<'ALL' | BackendProductSerialStatus>('ALL')
   const [showImport, setShowImport] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isFilterLoading, setIsFilterLoading] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const hasActiveFilters = query.trim().length > 0 || statusFilter !== 'ALL'
   const [form, setForm] = useState({
     productId: '',
     serials: '',
@@ -158,7 +162,7 @@ function SerialsPageRevamp() {
     warehouseName: 'Kho tổng',
   })
 
-  const loadData = async (nextPage = page) => {
+  const loadData = useCallback(async (nextPage: number) => {
     if (!accessToken) return
     setIsLoading(true)
     setError(null)
@@ -173,15 +177,42 @@ function SerialsPageRevamp() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [accessToken, copy.loadFallback])
 
   useEffect(() => {
     void loadData(page)
-  }, [accessToken, page])
+  }, [loadData, page])
+
+  const loadAllItems = useCallback(async () => {
+    if (!accessToken) return
+    setIsFilterLoading(true)
+    setError(null)
+    try {
+      const response = await fetchAllAdminSerials(accessToken, 100)
+      setAllItems(response)
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : copy.loadFallback)
+    } finally {
+      setIsFilterLoading(false)
+    }
+  }, [accessToken, copy.loadFallback])
+
+  useEffect(() => {
+    if (!hasActiveFilters) {
+      setAllItems([])
+      setIsFilterLoading(false)
+      setError(null)
+      return
+    }
+
+    void loadAllItems()
+  }, [hasActiveFilters, loadAllItems])
+
+  const sourceItems = hasActiveFilters ? allItems : items
 
   const filteredItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
-    return items.filter((item) => {
+    return sourceItems.filter((item) => {
       const matchesStatus = statusFilter === 'ALL' ? true : item.status === statusFilter
       const haystack = [
         item.serial,
@@ -196,16 +227,23 @@ function SerialsPageRevamp() {
         .toLowerCase()
       return matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery))
     })
-  }, [items, query, statusFilter])
+  }, [query, sourceItems, statusFilter])
 
   const stats = useMemo(
     () => ({
-      available: items.filter((item) => item.status === 'AVAILABLE').length,
-      sold: items.filter((item) => item.status === 'SOLD').length,
-      warranty: items.filter((item) => item.status === 'WARRANTY').length,
+      available: sourceItems.filter((item) => item.status === 'AVAILABLE').length,
+      sold: sourceItems.filter((item) => item.status === 'SOLD').length,
+      warranty: sourceItems.filter((item) => item.status === 'WARRANTY').length,
     }),
-    [items],
+    [sourceItems],
   )
+
+  const handleReload = useCallback(async () => {
+    await loadData(page)
+    if (hasActiveFilters) {
+      await loadAllItems()
+    }
+  }, [hasActiveFilters, loadAllItems, loadData, page])
 
   const handleImport = async () => {
     if (!accessToken) return
@@ -250,6 +288,9 @@ function SerialsPageRevamp() {
       setShowImport(false)
       setPage(0)
       await loadData(0)
+      if (hasActiveFilters) {
+        await loadAllItems()
+      }
     } catch (importError) {
       notify(importError instanceof Error ? importError.message : copy.loadFallback, {
         title: copy.title,
@@ -260,7 +301,7 @@ function SerialsPageRevamp() {
     }
   }
 
-  if (isLoading) {
+  if (isLoading || isFilterLoading) {
     return (
       <PagePanel>
         <LoadingRows rows={6} />
@@ -271,7 +312,7 @@ function SerialsPageRevamp() {
   if (error) {
     return (
       <PagePanel>
-        <ErrorState title={copy.loadTitle} message={error} onRetry={() => void loadData(page)} />
+        <ErrorState title={copy.loadTitle} message={error} onRetry={() => void handleReload()} />
       </PagePanel>
     )
   }
@@ -305,7 +346,7 @@ function SerialsPageRevamp() {
               </option>
             ))}
           </select>
-          <GhostButton aria-label={copy.reload} icon={<RefreshCw className="h-4 w-4" />} onClick={() => void loadData(page)} type="button">
+          <GhostButton aria-label={copy.reload} icon={<RefreshCw className="h-4 w-4" />} onClick={() => void handleReload()} type="button">
             {copy.reload}
           </GhostButton>
           <PrimaryButton aria-label={copy.import} icon={<Upload className="h-4 w-4" />} onClick={() => setShowImport((current) => !current)} type="button">
@@ -470,6 +511,7 @@ function SerialsPageRevamp() {
                       try {
                         const updated = await updateAdminSerialStatus(accessToken!, item.id, next)
                         setItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
+                        setAllItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
                       } catch (updateError) {
                         notify(updateError instanceof Error ? updateError.message : copy.loadFallback, {
                           title: copy.title,
@@ -540,12 +582,13 @@ function SerialsPageRevamp() {
                               event.currentTarget.value = item.status ?? 'AVAILABLE'
                               return
                             }
-                            try {
-                              const updated = await updateAdminSerialStatus(accessToken!, item.id, next)
-                              setItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
-                            } catch (updateError) {
-                              notify(updateError instanceof Error ? updateError.message : copy.loadFallback, {
-                                title: copy.title,
+                      try {
+                        const updated = await updateAdminSerialStatus(accessToken!, item.id, next)
+                        setItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
+                        setAllItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
+                      } catch (updateError) {
+                        notify(updateError instanceof Error ? updateError.message : copy.loadFallback, {
+                          title: copy.title,
                                 variant: 'error',
                               })
                             }
@@ -570,15 +613,17 @@ function SerialsPageRevamp() {
         )}
       </div>
 
-      <PaginationNav
-        page={page}
-        totalPages={totalPages}
-        totalItems={totalItems}
-        pageSize={25}
-        onPageChange={setPage}
-        previousLabel={copy.previous}
-        nextLabel={copy.next}
-      />
+      {!hasActiveFilters ? (
+        <PaginationNav
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={25}
+          onPageChange={setPage}
+          previousLabel={copy.previous}
+          nextLabel={copy.next}
+        />
+      ) : null}
       {confirmDialog}
     </PagePanel>
   )

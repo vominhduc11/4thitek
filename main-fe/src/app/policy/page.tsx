@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import HeroSection from '@/components/ui/Hero';
 import { PolicyBreadcrumb, PolicyContent } from './components';
@@ -8,7 +8,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { usePublicContent } from '@/hooks/usePublicContent';
 import type { PolicyContentPayload } from '@/types/content';
 
-export default function Policy() {
+function PolicyPageContent() {
     const { t } = useLanguage();
     const router = useRouter();
     const pathname = usePathname();
@@ -49,9 +49,7 @@ export default function Policy() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0c131d] text-white flex flex-col"
-             style={{ animation: 'fadeIn 0.5s ease-in' }}
-        >
+        <div className="min-h-screen bg-[#0c131d] text-white flex flex-col">
             <HeroSection
                 breadcrumbItems={breadcrumbItems}
                 breadcrumbWrapperClassName="ml-0 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20"
@@ -68,5 +66,24 @@ export default function Policy() {
                 error={error}
             />
         </div>
+    );
+}
+
+function PolicyPageFallback() {
+    return (
+        <div className="min-h-screen bg-[#0c131d] text-white flex items-center justify-center">
+            <div className="text-center">
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-[#4FC8FF]"></div>
+                <p className="mt-4 text-sm text-gray-400">Loading policy...</p>
+            </div>
+        </div>
+    );
+}
+
+export default function Policy() {
+    return (
+        <Suspense fallback={<PolicyPageFallback />}>
+            <PolicyPageContent />
+        </Suspense>
     );
 }

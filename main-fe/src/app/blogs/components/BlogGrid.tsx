@@ -11,6 +11,7 @@ import type { BlogPost } from '@/types/blog';
 import { useHydration } from '@/hooks/useHydration';
 import { formatDateSafe } from '@/utils/dateFormatter';
 import { useLanguage } from '@/context/LanguageContext';
+import { buildBlogPath } from '@/lib/slug';
 
 interface BlogGridProps {
     blogs: BlogPost[];
@@ -44,20 +45,20 @@ const BlogGrid = memo(function BlogGrid({ blogs }: BlogGridProps) {
     const getCategoryColor = useCallback((category: BlogPost['category']) => {
         // Handle object category payloads returned by the backend
         if (typeof category === 'object' && category?.color) {
-            return `text-[${category.color}]`;
+            return category.color;
         }
         // Handle old string format
         if (typeof category === 'string') {
             const categoryColors: { [key: string]: string } = {
-                TECHNOLOGY: 'text-blue-400',
-                TUTORIAL: 'text-green-400',
-                NEWS: 'text-red-400',
-                REVIEW: 'text-purple-400',
-                TIPS: 'text-yellow-400'
+                TECHNOLOGY: '#60a5fa',
+                TUTORIAL: '#4ade80',
+                NEWS: '#f87171',
+                REVIEW: '#c084fc',
+                TIPS: '#facc15'
             };
-            return categoryColors[category] || 'text-gray-400';
+            return categoryColors[category] || '#9ca3af';
         }
-        return 'text-gray-400';
+        return '#9ca3af';
     }, []);
 
     // Helper function to parse blog image JSON (commented out as unused)
@@ -96,7 +97,7 @@ const BlogGrid = memo(function BlogGrid({ blogs }: BlogGridProps) {
                             boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)'
                         }}
                     >
-                        <Link href={`/blogs/${blog.id}`} className="block">
+                        <Link href={buildBlogPath(blog.id, blog.title)} className="block">
                             {/* Cover Image - 16:9 Aspect Ratio */}
                             <div className="relative w-full aspect-video overflow-hidden">
                                 {blog.imageUrl ? (
@@ -143,7 +144,8 @@ const BlogGrid = memo(function BlogGrid({ blogs }: BlogGridProps) {
                                         {blog.formattedDate}
                                     </time>
                                     <span
-                                        className={`text-xs font-bold uppercase tracking-wide ${blog.categoryColor}`}
+                                        className="text-xs font-bold uppercase tracking-wide"
+                                        style={{ color: blog.categoryColor }}
                                     >
                                         {blog.categoryDisplay}
                                     </span>

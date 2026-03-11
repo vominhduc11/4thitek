@@ -19,7 +19,7 @@ import 'widgets/product_image.dart';
 const int _lowStockThreshold = 5;
 const double _inventoryFabHeight = 56;
 const double _inventoryFabBottomSpacing = 20;
-const double _inventoryMinTapTarget = 44;
+const double _inventoryMinTapTarget = 48;
 const int _inventoryPageSize = 12;
 const double _inventorySectionSpacing = 16;
 const double _inventorySectionSpacingLarge = 20;
@@ -501,6 +501,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      requestFocus: true,
       backgroundColor: Colors.transparent,
       barrierColor: colorScheme.scrim.withValues(alpha: 0.42),
       builder: (sheetContext) {
@@ -660,6 +661,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
+      requestFocus: true,
       builder: (_) => _SerialImportSheet(
         options: options,
         warrantyController: warrantyController,
@@ -761,6 +763,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
+      requestFocus: true,
       builder: (sheetContext) {
         final colorScheme = Theme.of(sheetContext).colorScheme;
         return SafeArea(
@@ -2200,7 +2203,7 @@ class _InventoryFilteredEmptyView extends StatelessWidget {
             const SizedBox(height: 10),
             TextButton(
               onPressed: onClear,
-              style: TextButton.styleFrom(minimumSize: const Size(116, 44)),
+              style: TextButton.styleFrom(minimumSize: const Size(116, 48)),
               child: const Text('Xóa bộ lọc'),
             ),
           ],

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   Archive,
@@ -242,7 +242,7 @@ function ProductDetailPage() {
     DRAFT: 'Bản nháp',
   }
 
-  const validateDraft = (value: ProductDraft) => {
+  const validateDraft = useCallback((value: ProductDraft) => {
     const errors: Record<string, string> = {}
     const retailPrice = Number(value.retailPrice)
     const stock = Number(value.stock)
@@ -262,9 +262,9 @@ function ProductDetailPage() {
     }
 
     return errors
-  }
+  }, [t])
 
-  const draftErrors = useMemo(() => (draft ? validateDraft(draft) : {}), [draft, t])
+  const draftErrors = useMemo(() => (draft ? validateDraft(draft) : {}), [draft, validateDraft])
   const isDirty = useMemo(() => {
     if (!draft || !product) {
       return false

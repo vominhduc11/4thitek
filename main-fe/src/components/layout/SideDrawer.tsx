@@ -34,7 +34,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
     // Handle Home navigation
     const handleHomeNavigation = () => {
         onClose(); // Close drawer first
-        router.push('/home');
+        router.push('/');
     };
 
     // Handle Blog navigation
@@ -328,7 +328,8 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                             onClick={async () => {
                                                 onClose();
                                                 await logout();
-                                                window.location.href = '/';
+                                                router.replace('/');
+                                                router.refresh();
                                             }}
                                             className="block text-xs sm:text-sm md:text-base lg:text-sm xl:text-base font-medium uppercase tracking-wider text-red-300 hover:text-white py-1.5 sm:py-2 md:py-3 lg:py-2 xl:py-3 w-full text-left"
                                             whileHover={{ x: 4, color: '#ffffff' }}

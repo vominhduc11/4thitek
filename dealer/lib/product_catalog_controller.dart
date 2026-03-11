@@ -13,24 +13,18 @@ class ProductCatalogController extends ChangeNotifier {
 
   final http.Client _client;
   List<Product> _products;
+  final Map<String, Product> _productsById = <String, Product>{};
   bool _isLoading = false;
   bool _hasLoaded = false;
   bool _isUsingFallback = false;
   String? _errorMessage;
 
-  List<Product> get products => List<Product>.unmodifiable(_products);
+  List<Product> get products => _products;
   bool get isLoading => _isLoading;
   bool get isUsingFallback => _isUsingFallback;
   String? get errorMessage => _errorMessage;
 
-  Product? findById(String productId) {
-    for (final product in _products) {
-      if (product.id == productId) {
-        return product;
-      }
-    }
-    return null;
-  }
+  Product? findById(String productId) => _productsById[productId];
 
   Future<void> load({bool forceRefresh = false}) async {
     if (_isLoading) {
@@ -41,7 +35,7 @@ class ProductCatalogController extends ChangeNotifier {
     }
 
     if (!DealerApiConfig.isConfigured) {
-      _products = const <Product>[];
+      _replaceProducts(const <Product>[]);
       _isUsingFallback = false;
       _errorMessage = 'Chua cau hinh API backend.';
       _hasLoaded = true;
@@ -71,7 +65,7 @@ class ProductCatalogController extends ChangeNotifier {
           .map(_mapSummaryProduct)
           .toList(growable: false);
 
-      _products = List<Product>.unmodifiable(remoteProducts);
+      _replaceProducts(remoteProducts);
       _isUsingFallback = false;
       _errorMessage = null;
       _hasLoaded = true;
@@ -121,16 +115,31 @@ class ProductCatalogController extends ChangeNotifier {
   }
 
   void _upsertProduct(Product product) {
-    final copy = _products.toList(growable: true);
-    final index = copy.indexWhere((item) => item.id == product.id);
+    final nextProducts = List<Product>.of(_products, growable: true);
+    final index = nextProducts.indexWhere((item) => item.id == product.id);
+    final previousName = index >= 0 ? nextProducts[index].name : null;
     if (index >= 0) {
-      copy[index] = product;
+      nextProducts[index] = product;
     } else {
-      copy.add(product);
-      copy.sort((a, b) => a.name.compareTo(b.name));
+      nextProducts.add(product);
     }
-    _products = List<Product>.unmodifiable(copy);
+    if (index < 0 || previousName != product.name) {
+      nextProducts.sort((a, b) => a.name.compareTo(b.name));
+    }
+    _replaceProducts(nextProducts);
     notifyListeners();
+  }
+
+  void _replaceProducts(Iterable<Product> products) {
+    final nextProducts = List<Product>.unmodifiable(products);
+    _products = nextProducts;
+    _productsById
+      ..clear()
+      ..addEntries(
+        nextProducts.map(
+          (product) => MapEntry<String, Product>(product.id, product),
+        ),
+      );
   }
 
   Map<String, dynamic> _decodePayload(String body) {
@@ -345,6 +354,12 @@ class ProductCatalogController extends ChangeNotifier {
     }
     return double.tryParse(value?.toString() ?? '')?.round() ?? 0;
   }
+
+  @override
+  void dispose() {
+    _client.close();
+    super.dispose();
+  }
 }
 
 class ProductCatalogScope extends InheritedNotifier<ProductCatalogController> {
@@ -361,7 +376,8 @@ class ProductCatalogScope extends InheritedNotifier<ProductCatalogController> {
   }
 
   static ProductCatalogController of(BuildContext context) {
-    final scope = context.dependOnInheritedWidgetOfExactType<ProductCatalogScope>();
+    final scope = context
+        .dependOnInheritedWidgetOfExactType<ProductCatalogScope>();
     assert(scope != null, 'ProductCatalogScope not found in widget tree.');
     return scope!.notifier!;
   }

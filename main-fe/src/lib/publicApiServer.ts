@@ -35,8 +35,14 @@ async function fetchEnvelope<T>(path: string, revalidate: number): Promise<Envel
 }
 
 export const publicApiServer = {
+    fetchHomepageProducts: () =>
+        fetchEnvelope<
+            Array<{ id: number | string; name: string; sku?: string; shortDescription: string; image: string; price?: number }>
+        >(API_ENDPOINTS.PRODUCT.PRODUCTS_HOMEPAGE, 3600),
     fetchProducts: () =>
-        fetchEnvelope<Array<{ id: number | string; name: string }>>(API_ENDPOINTS.PRODUCT.PRODUCTS, 3600),
+        fetchEnvelope<
+            Array<{ id: number | string; name: string; sku?: string; shortDescription: string; image: string; price?: number }>
+        >(API_ENDPOINTS.PRODUCT.PRODUCTS, 3600),
     fetchProductById: (id: string) =>
         fetchEnvelope<{
             id: number | string;
@@ -44,18 +50,32 @@ export const publicApiServer = {
             shortDescription: string;
             description: string;
             image: string;
+            specifications: string;
+            videos: string;
+            descriptions?: string;
+            price?: number;
         }>(API_ENDPOINTS.PRODUCT.PRODUCT_BY_ID(id), 3600),
+    fetchHomepageBlogs: () =>
+        fetchEnvelope<
+            Array<{ id: number | string; title: string; description: string; image: string; category: string; createdAt: string }>
+        >(API_ENDPOINTS.BLOG.BLOGS_HOMEPAGE, 1800),
     fetchBlogs: () =>
-        fetchEnvelope<Array<{ id: number | string; title: string; description: string; createdAt: string }>>(
+        fetchEnvelope<Array<{ id: number | string; title: string; description: string; image: string; category: string; createdAt: string }>>(
             API_ENDPOINTS.BLOG.BLOGS,
             1800
         ),
+    fetchBlogCategories: () =>
+        fetchEnvelope<Array<{ id: number | string; name: string }>>(API_ENDPOINTS.BLOG.CATEGORIES, 1800),
     fetchBlogById: (id: string) =>
         fetchEnvelope<{
             id: number | string;
             title: string;
             description: string;
             image: string;
+            category: string;
             createdAt: string;
-        }>(API_ENDPOINTS.BLOG.BLOG_BY_ID(id), 1800)
+            introduction?: string;
+        }>(API_ENDPOINTS.BLOG.BLOG_BY_ID(id), 1800),
+    fetchContentSection: <T>(section: string, language: string) =>
+        fetchEnvelope<T>(API_ENDPOINTS.CONTENT.SECTION(section, language), 86400)
 };

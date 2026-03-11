@@ -37,6 +37,12 @@ class ProductVideoItem {
   final String type;
 }
 
+final Expando<String> _productDescriptionCache = Expando<String>(
+  'productDescription',
+);
+final Expando<List<ProductDescriptionItem>> _productEffectiveDescriptionsCache =
+    Expando<List<ProductDescriptionItem>>('productEffectiveDescriptions');
+
 class Product {
   const Product({
     required this.id,
@@ -65,6 +71,10 @@ class Product {
   final List<ProductSpecification> specifications;
 
   String get description {
+    final cached = _productDescriptionCache[this];
+    if (cached != null) {
+      return cached;
+    }
     final textBlock = descriptions.firstWhere(
       (item) =>
           item.type == ProductDescriptionType.description &&
@@ -75,21 +85,28 @@ class Product {
         text: shortDescription,
       ),
     );
-    return textBlock.text?.trim().isNotEmpty == true
+    final resolved = textBlock.text?.trim().isNotEmpty == true
         ? textBlock.text!.trim()
         : shortDescription;
+    _productDescriptionCache[this] = resolved;
+    return resolved;
   }
 
   List<ProductDescriptionItem> get effectiveDescriptions {
-    if (descriptions.isNotEmpty) {
-      return descriptions;
+    final cached = _productEffectiveDescriptionsCache[this];
+    if (cached != null) {
+      return cached;
     }
-    return <ProductDescriptionItem>[
-      ProductDescriptionItem(
-        type: ProductDescriptionType.description,
-        text: shortDescription,
-      ),
-    ];
+    final resolved = descriptions.isNotEmpty
+        ? descriptions
+        : <ProductDescriptionItem>[
+            ProductDescriptionItem(
+              type: ProductDescriptionType.description,
+              text: shortDescription,
+            ),
+          ];
+    _productEffectiveDescriptionsCache[this] = resolved;
+    return resolved;
   }
 
   List<ProductVideoItem> get effectiveVideos => videos;
@@ -123,7 +140,9 @@ class BulkDiscountRule {
 
   bool appliesToCart(Iterable<CartItem> items) {
     final stats = _buildBulkDiscountStats(
-      items.map((item) => (productId: item.product.id, quantity: item.quantity)),
+      items.map(
+        (item) => (productId: item.product.id, quantity: item.quantity),
+      ),
     );
     return _matchesBulkDiscountRule(this, stats);
   }
@@ -215,21 +234,22 @@ BulkDiscountTarget? nextBulkDiscountTargetForCart({
     return null;
   }
 
-  final candidates = rules.where((rule) {
-    final minQuantity = rule.minQuantity;
-    if (minQuantity == null || minQuantity <= stats.totalItems) {
-      return false;
-    }
-    if (rule.productId == null) {
-      return true;
-    }
-    return stats.singleProductId != null && stats.singleProductId == rule.productId;
-  }).toList()
-    ..sort((a, b) {
-      final minCompare = (a.minQuantity ?? 0).compareTo(b.minQuantity ?? 0);
-      if (minCompare != 0) return minCompare;
-      return (a.percent).compareTo(b.percent);
-    });
+  final candidates =
+      rules.where((rule) {
+        final minQuantity = rule.minQuantity;
+        if (minQuantity == null || minQuantity <= stats.totalItems) {
+          return false;
+        }
+        if (rule.productId == null) {
+          return true;
+        }
+        return stats.singleProductId != null &&
+            stats.singleProductId == rule.productId;
+      }).toList()..sort((a, b) {
+        final minCompare = (a.minQuantity ?? 0).compareTo(b.minQuantity ?? 0);
+        if (minCompare != 0) return minCompare;
+        return (a.percent).compareTo(b.percent);
+      });
 
   if (candidates.isEmpty) {
     return null;
@@ -479,5 +499,6 @@ bool _matchesBulkDiscountRule(BulkDiscountRule rule, _BulkDiscountStats stats) {
   if (rule.productId == null) {
     return true;
   }
-  return stats.singleProductId != null && stats.singleProductId == rule.productId;
+  return stats.singleProductId != null &&
+      stats.singleProductId == rule.productId;
 }

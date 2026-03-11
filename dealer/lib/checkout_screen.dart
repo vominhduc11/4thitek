@@ -501,6 +501,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }) {
     return showDialog<bool>(
       context: context,
+      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+      requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Xác nhận ghi nhận công nợ'),
@@ -599,6 +601,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   ) async {
     await showDialog<void>(
       context: context,
+      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+      requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Cần điều chỉnh đơn hàng'),

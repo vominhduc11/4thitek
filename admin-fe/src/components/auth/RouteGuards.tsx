@@ -1,9 +1,14 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import RouteFallback from '../RouteFallback'
 
 export const ProtectedRoute = () => {
-  const { isAuthenticated, requiresPasswordChange } = useAuth()
+  const { isAuthenticated, isInitializing, requiresPasswordChange } = useAuth()
   const location = useLocation()
+
+  if (isInitializing) {
+    return <RouteFallback />
+  }
 
   if (!isAuthenticated) {
     return (
@@ -23,7 +28,11 @@ export const ProtectedRoute = () => {
 }
 
 export const PublicOnlyRoute = () => {
-  const { isAuthenticated, requiresPasswordChange } = useAuth()
+  const { isAuthenticated, isInitializing, requiresPasswordChange } = useAuth()
+
+  if (isInitializing) {
+    return <RouteFallback />
+  }
 
   if (isAuthenticated) {
     return <Navigate to={requiresPasswordChange ? '/change-password' : '/'} replace />

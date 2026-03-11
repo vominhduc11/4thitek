@@ -39,7 +39,7 @@ export function LoginModalProvider({ children }: { children: ReactNode }) {
         } else {
             // Nếu không có redirectPath, reload trang để cập nhật UI
             if (typeof window !== 'undefined') {
-                window.location.reload();
+                router.refresh();
             }
         }
     };

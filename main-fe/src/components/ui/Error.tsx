@@ -87,7 +87,7 @@ export default function Error({
                     
                     {showHome && (
                         <Link
-                            href="/home"
+                            href="/"
                             className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-600 hover:border-gray-500 text-gray-300 hover:text-white rounded-lg font-medium transition-all duration-300"
                         >
                             <FiHome className="text-sm" />

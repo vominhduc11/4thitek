@@ -63,10 +63,18 @@ export const toBackendOrderStatus = (status: OrderStatus): BackendOrderStatus =>
   }
 }
 
-export const mapBackendPaymentMethod = (method?: BackendPaymentMethod | null): PaymentMethod =>
-  method === 'DEBT' ? 'debt' : 'bank_transfer'
+export const mapBackendPaymentMethod = (method?: BackendPaymentMethod | null): PaymentMethod => {
+  switch (method) {
+    case 'DEBT':
+      return 'debt'
+    case 'BANK_TRANSFER':
+      return 'bank_transfer'
+    default:
+      return null
+  }
+}
 
-export const toBackendPaymentMethod = (method: PaymentMethod): BackendPaymentMethod =>
+export const toBackendPaymentMethod = (method: Exclude<PaymentMethod, null>): BackendPaymentMethod =>
   method === 'debt' ? 'DEBT' : 'BANK_TRANSFER'
 
 export const mapBackendPaymentStatus = (status?: BackendPaymentStatus | null): PaymentStatus => {

@@ -67,8 +67,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return;
     }
     final catalog = ProductCatalogScope.maybeOf(context);
-    final detailedProduct =
-        catalog == null
+    final detailedProduct = catalog == null
         ? _currentProduct
         : await catalog.fetchDetail(_currentProduct.id);
     if (!mounted) {
@@ -208,6 +207,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         : maxQuantity;
     final result = await showDialog<int>(
       context: context,
+      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+      requestFocus: true,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -223,7 +224,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
-                  Text('T\u1ed1i thi\u1ec3u: $minQuantity  \u2022  T\u1ed1i \u0111a: $maxQuantity'),
+                  Text(
+                    'T\u1ed1i thi\u1ec3u: $minQuantity  \u2022  T\u1ed1i \u0111a: $maxQuantity',
+                  ),
                   if (quantityInCart > 0) ...[
                     const SizedBox(height: 6),
                     Text(
@@ -293,9 +296,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       ..showSnackBar(
         const SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(
-            'San pham da het hang hoac da dat gioi han trong gio',
-          ),
+          content: Text('San pham da het hang hoac da dat gioi han trong gio'),
         ),
       );
   }
@@ -625,7 +626,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       final spec = entry.value;
                                       final isLast =
                                           index ==
-                                          _currentProduct.specifications.length -
+                                          _currentProduct
+                                                  .specifications
+                                                  .length -
                                               1;
                                       return Padding(
                                         padding: const EdgeInsets.only(

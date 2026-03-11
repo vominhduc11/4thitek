@@ -8,8 +8,7 @@ import { Montserrat } from 'next/font/google';
 import Link from 'next/link';
 import AvoidSidebar from '@/components/layout/AvoidSidebar';
 import { useLanguage } from '@/context/LanguageContext';
-import { apiService } from '@/services/apiService';
-import { parseImageUrl } from '@/utils/media';
+import type { SimpleProduct } from '@/types/product';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
 
 const montserrat = Montserrat({
@@ -18,61 +17,21 @@ const montserrat = Montserrat({
     display: 'swap'
 });
 
-interface Product {
-    id: string | number;
-    name: string;
-    shortDescription: string;
-    image: string;
-}
-
 interface FeaturedProductsCarouselProps {
-    products?: Product[];
+    products?: SimpleProduct[];
     initialIndex?: number;
 }
 
-
-const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({
+export default function FeaturedProductsCarousel({
+    products: initialProducts = [],
     initialIndex = 0
-}) => {
+}: FeaturedProductsCarouselProps) {
     const { t } = useLanguage();
     const { enableComplexAnimations, enableInfiniteAnimations, duration, ease } = useAnimationConfig();
-    const [products, setProducts] = useState<Product[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [products] = useState(initialProducts);
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [touchStart, setTouchStart] = useState<number | null>(null);
     const [touchEnd, setTouchEnd] = useState<number | null>(null);
-
-    useEffect(() => {
-        const fetchProducts = async () => {
-            try {
-                setIsLoading(true);
-                const response = await apiService.fetchHomepageProducts();
-
-                if (response.success && response.data) {
-                    const processedProducts: Product[] = response.data.map(
-                        (product: { id: string | number; name: string; shortDescription: string; image: string; price?: number }) => ({
-                            id: product.id,
-                            name: product.name,
-                            shortDescription: product.shortDescription,
-                            image: parseImageUrl(product.image, '')
-                        })
-                    );
-
-                    setProducts(processedProducts);
-                } else {
-                    setError(t('errors.products.loadFailed'));
-                }
-            } catch (err) {
-                setError(t('errors.products.loadFailed'));
-                console.error('Error fetching products:', err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchProducts();
-    }, [t]);
 
     useEffect(() => {
         if (!products.length) return;
@@ -91,37 +50,25 @@ const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({
         setCurrentIndex((prev) => (prev - 1 + products.length) % products.length);
     }, [products.length]);
 
-    const handleTouchStart = (e: React.TouchEvent) => {
-        setTouchEnd(null);
-        setTouchStart(e.targetTouches[0].clientX);
-    };
-
-    const handleTouchMove = (e: React.TouchEvent) => {
-        setTouchEnd(e.targetTouches[0].clientX);
-    };
-
     const handleTouchEnd = () => {
         if (touchStart === null || touchEnd === null) return;
 
         const distance = touchStart - touchEnd;
-        const isLeftSwipe = distance > 50;
-        const isRightSwipe = distance < -50;
-
-        if (isLeftSwipe) {
+        if (distance > 50) {
             nextProduct();
-        } else if (isRightSwipe) {
+        } else if (distance < -50) {
             prevProduct();
         }
     };
 
     useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
+        const handleKeyDown = (event: KeyboardEvent) => {
             if (!products.length) return;
-            if (e.key === 'ArrowLeft') {
-                e.preventDefault();
+            if (event.key === 'ArrowLeft') {
+                event.preventDefault();
                 prevProduct();
-            } else if (e.key === 'ArrowRight') {
-                e.preventDefault();
+            } else if (event.key === 'ArrowRight') {
+                event.preventDefault();
                 nextProduct();
             }
         };
@@ -130,600 +77,111 @@ const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [nextProduct, prevProduct, products.length]);
 
-    const currentProduct = products[currentIndex];
-
-    // Handle empty products or loading
-    if (isLoading || products.length === 0) {
+    if (!products.length) {
         return (
             <AvoidSidebar>
-                <section className="py-16 md:py-24 bg-gradient-to-b from-[#013A5E] to-[#032B4A] relative overflow-hidden">
-                    <div className="container mx-auto px-4 max-w-[1400px] relative z-10">
-                        <div className="text-center mb-16">
-                            <h2 className="text-[2rem] font-semibold text-[#E1F0FF] mb-4">
-                                {t('products.featured.carouselTitle')}
-                            </h2>
-                        </div>
-                        <div className="flex items-center justify-center h-96">
-                            {isLoading ? (
-                                <div className="text-white text-center">
-                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#48C7FF] mx-auto mb-4"></div>
-                                    <p>{t('products.featured.loading')}</p>
-                                </div>
-                            ) : error ? (
-                                <div className="text-center">
-                                    <p className="text-red-400 mb-4">⚠️ {error}</p>
-                                    <p className="text-gray-500 text-sm">{t('common.tryAgainLater')}</p>
-                                </div>
-                            ) : (
-                                <p className="text-gray-400">{t('products.featured.empty')}</p>
-                            )}
-                        </div>
+                <section className="relative overflow-hidden bg-gradient-to-b from-[#013A5E] to-[#032B4A] py-16 md:py-24">
+                    <div className="container relative z-10 mx-auto max-w-[1400px] px-4 text-center">
+                        <h2 className="mb-4 text-[2rem] font-semibold text-[#E1F0FF]">
+                            {t('products.featured.carouselTitle')}
+                        </h2>
+                        <p className="text-gray-300">{t('products.featured.empty')}</p>
                     </div>
                 </section>
             </AvoidSidebar>
         );
     }
 
+    const currentProduct = products[currentIndex];
     const transitionEase = enableComplexAnimations ? 'easeInOut' : ease;
     const transitionDuration = enableComplexAnimations ? 0.8 : duration;
 
-    const containerVariants = {
-        enter: (direction: number) => (enableComplexAnimations ? {
-            x: direction > 0 ? 300 : -300,
-            opacity: 0,
-            scale: 0.9,
-            rotateY: direction > 0 ? 15 : -15,
-            z: -100
-        } : { opacity: 0 }),
-        center: enableComplexAnimations ? {
-            zIndex: 1,
-            x: 0,
-            opacity: 1,
-            scale: 1,
-            rotateY: 0,
-            z: 0
-        } : { opacity: 1 },
-        exit: (direction: number) => (enableComplexAnimations ? {
-            zIndex: 0,
-            x: direction < 0 ? 300 : -300,
-            opacity: 0,
-            scale: 0.9,
-            rotateY: direction < 0 ? 15 : -15,
-            z: -100
-        } : { opacity: 0 })
-    };
-
-    const imageVariants = enableComplexAnimations ? {
-        enter: {
-            scale: 0.7,
-            opacity: 0,
-            rotateX: -10,
-            y: 50,
-            filter: 'blur(10px)'
-        },
-        center: {
-            scale: 1,
-            opacity: 1,
-            rotateX: 0,
-            y: 0,
-            filter: 'blur(0px)'
-        },
-        exit: {
-            scale: 0.7,
-            opacity: 0,
-            rotateX: 10,
-            y: -50,
-            filter: 'blur(10px)'
-        }
-    } : {
-        enter: { opacity: 0, scale: 0.98 },
-        center: { opacity: 1, scale: 1 },
-        exit: { opacity: 0, scale: 0.98 }
-    };
-
     return (
         <AvoidSidebar>
-            <section className="py-16 md:py-24 bg-gradient-to-b from-[#013A5E] to-[#032B4A] relative overflow-hidden">
-                {/* Background Decorative Elements */}
-                <div className="absolute inset-0 opacity-10">
-                    {/* Grid Pattern */}
+            <section className="relative overflow-hidden bg-gradient-to-b from-[#013A5E] to-[#032B4A] py-16 md:py-24">
+                <div className="container relative z-10 mx-auto max-w-[1400px] px-4">
+                    <div className="mb-16 text-center">
+                        <h2 className="text-[2rem] font-semibold text-[#E1F0FF]">{t('products.featured.carouselTitle')}</h2>
+                    </div>
+
                     <div
-                        className="absolute inset-0"
-                        style={{
-                            backgroundImage: `
-                            linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                            linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
-                        `,
-                            backgroundSize: '50px 50px'
+                        className="relative overflow-hidden rounded-[32px] border border-white/10 bg-black/25 p-6 backdrop-blur"
+                        onTouchStart={(event) => {
+                            setTouchEnd(null);
+                            setTouchStart(event.targetTouches[0].clientX);
                         }}
-                    ></div>
-
-                    {/* Circuit Pattern */}
-                    <div className="absolute top-10 left-10 w-32 h-32 opacity-20">
-                        <svg viewBox="0 0 100 100" className="w-full h-full">
-                            <circle cx="20" cy="20" r="2" fill="#48C7FF" />
-                            <circle cx="80" cy="20" r="2" fill="#48C7FF" />
-                            <circle cx="20" cy="80" r="2" fill="#48C7FF" />
-                            <circle cx="80" cy="80" r="2" fill="#48C7FF" />
-                            <line x1="20" y1="20" x2="80" y2="20" stroke="#48C7FF" strokeWidth="0.5" />
-                            <line x1="80" y1="20" x2="80" y2="80" stroke="#48C7FF" strokeWidth="0.5" />
-                            <line x1="80" y1="80" x2="20" y2="80" stroke="#48C7FF" strokeWidth="0.5" />
-                            <line x1="20" y1="80" x2="20" y2="20" stroke="#48C7FF" strokeWidth="0.5" />
-                            <line
-                                x1="20"
-                                y1="20"
-                                x2="80"
-                                y2="80"
-                                stroke="#48C7FF"
-                                strokeWidth="0.3"
-                                strokeDasharray="2,2"
-                            />
-                            <line
-                                x1="80"
-                                y1="20"
-                                x2="20"
-                                y2="80"
-                                stroke="#48C7FF"
-                                strokeWidth="0.3"
-                                strokeDasharray="2,2"
-                            />
-                        </svg>
-                    </div>
-
-                    {/* Floating Geometric Shapes */}
-                    <div className="absolute top-20 right-20 w-24 h-24 opacity-15">
-                        <svg viewBox="0 0 100 100" className="w-full h-full">
-                            <polygon
-                                points="50,5 90,35 75,85 25,85 10,35"
-                                fill="none"
-                                stroke="#E1F0FF"
-                                strokeWidth="1"
-                            />
-                            <circle cx="50" cy="50" r="15" fill="none" stroke="#48C7FF" strokeWidth="0.8" />
-                        </svg>
-                    </div>
-
-                    {/* Bottom Pattern */}
-                    <div className="absolute bottom-10 left-1/4 w-40 h-20 opacity-10">
-                        <svg viewBox="0 0 160 80" className="w-full h-full">
-                            <path d="M0,40 Q40,0 80,40 T160,40" fill="none" stroke="#48C7FF" strokeWidth="1" />
-                            <path d="M0,50 Q40,10 80,50 T160,50" fill="none" stroke="#E1F0FF" strokeWidth="0.5" />
-                            <circle cx="40" cy="30" r="1.5" fill="#48C7FF" />
-                            <circle cx="120" cy="30" r="1.5" fill="#48C7FF" />
-                        </svg>
-                    </div>
-                </div>
-
-                {/* Optimized Floating Particles - CSS Animations */}
-                <div className="absolute inset-0 pointer-events-none">
-                    <div className={`absolute top-1/4 left-1/3 w-2 h-2 bg-[#48C7FF] rounded-full opacity-30 ${enableInfiniteAnimations ? 'animate-float-slow' : ''}`} />
-                    <div className={`absolute top-2/3 right-1/4 w-1.5 h-1.5 bg-[#E1F0FF] rounded-full opacity-40 ${enableInfiniteAnimations ? 'animate-float-medium' : ''}`} />
-                    <div className={`absolute top-1/2 left-1/5 w-1 h-1 bg-[#48C7FF] rounded-full opacity-50 ${enableInfiniteAnimations ? 'animate-float-fast' : ''}`} />
-                </div>
-
-                <div className="container mx-auto px-4 max-w-[1400px] relative z-10">
-                    {/* Title with Decorative Elements */}
-                    <div className="text-center mb-16 relative">
-                        {/* Title Decoration Lines */}
-                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl">
-                            <div className="flex items-center justify-center">
-                                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#48C7FF]/30 to-[#48C7FF]/60"></div>
-                                <div className="px-8">
-                                    <div className="w-3 h-3 bg-[#48C7FF] rounded-full"></div>
-                                </div>
-                                <div className="flex-1 h-px bg-gradient-to-l from-transparent via-[#48C7FF]/30 to-[#48C7FF]/60"></div>
-                            </div>
-                        </div>
-
-                        <motion.h2
-                            className="relative text-[2rem] font-semibold text-[#E1F0FF] bg-gradient-to-b from-[#013A5E] to-[#032B4A] px-8 inline-block"
-                            initial={{ opacity: 0, y: 30 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ duration: enableComplexAnimations ? 0.6 : duration, ease }}
-                        >
-                            {t('products.featured.carouselTitle')}
-                        </motion.h2>
-
-                        {/* Decorative Corner Elements for Title */}
-                        <motion.div
-                            className="absolute -top-4 -left-4 w-8 h-8 opacity-40"
-                            animate={enableInfiniteAnimations ? { rotate: [0, 360] } : { rotate: 0 }}
-                            transition={enableInfiniteAnimations ? { duration: 20, repeat: Infinity, ease: 'linear' } : { duration: 0 }}
-                        >
-                            <svg viewBox="0 0 32 32" className="w-full h-full">
-                                <polygon points="16,2 20,12 30,16 20,20 16,30 12,20 2,16 12,12" fill="#48C7FF" />
-                            </svg>
-                        </motion.div>
-                        <motion.div
-                            className="absolute -top-4 -right-4 w-8 h-8 opacity-40"
-                            animate={enableInfiniteAnimations ? { rotate: [360, 0] } : { rotate: 0 }}
-                            transition={enableInfiniteAnimations ? { duration: 20, repeat: Infinity, ease: 'linear' } : { duration: 0 }}
-                        >
-                            <svg viewBox="0 0 32 32" className="w-full h-full">
-                                <polygon points="16,2 20,12 30,16 20,20 16,30 12,20 2,16 12,12" fill="#E1F0FF" />
-                            </svg>
-                        </motion.div>
-                    </div>
-
-                    {/* Carousel Container */}
-                    <div
-                        className="relative flex items-center justify-center"
-                        onTouchStart={handleTouchStart}
-                        onTouchMove={handleTouchMove}
+                        onTouchMove={(event) => setTouchEnd(event.targetTouches[0].clientX)}
                         onTouchEnd={handleTouchEnd}
                     >
-                        {/* Previous Button - Desktop only */}
-                        <motion.button
+                        <button
+                            type="button"
                             onClick={prevProduct}
-                            className="absolute left-4 top-1/2 transform -translate-y-1/2 z-20 p-2 text-white hover:text-[#48C7FF] focus:text-[#48C7FF] focus:outline-none focus:ring-2 focus:ring-[#48C7FF] rounded-full transition-colors duration-300 hidden md:block"
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                            aria-label={t('products.featured.prev')}
-                            tabIndex={0}
+                            className="absolute left-4 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/10 bg-black/30 p-3 text-white transition hover:border-cyan-300 hover:text-cyan-200"
+                            aria-label={t('common.previous')}
                         >
-                            <ChevronLeftIcon className="w-8 h-8" />
-                        </motion.button>
+                            <ChevronLeftIcon className="h-5 w-5" />
+                        </button>
 
-                        {/* Product Content */}
-                        <div className="flex flex-col lg:flex-row items-center justify-center max-w-6xl mx-auto px-8 lg:px-16">
-                            {/* Product Image with Decorative Elements */}
-                            <div className="relative w-full lg:w-1/2 flex justify-center mb-8 lg:mb-0">
-                                {/* Decorative Ring around Product */}
-                                <motion.div
-                                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                                    animate={enableInfiniteAnimations ? { rotate: 360 } : { rotate: 0 }}
-                                    transition={enableInfiniteAnimations ? { duration: 60, repeat: Infinity, ease: 'linear' } : { duration: 0 }}
-                                >
-                                    <div className="w-[500px] h-[500px] rounded-full border border-[#48C7FF]/20 border-dashed"></div>
-                                </motion.div>
-
-                                {/* Decorative Corner Elements */}
-                                <div className="absolute top-0 left-0 w-20 h-20 opacity-30">
-                                    <svg viewBox="0 0 80 80" className="w-full h-full">
-                                        <path
-                                            d="M0,20 L20,0 L60,0 L80,20 L80,60 L60,80"
-                                            fill="none"
-                                            stroke="#E1F0FF"
-                                            strokeWidth="1"
-                                        />
-                                        <circle cx="20" cy="20" r="2" fill="#48C7FF" />
-                                    </svg>
-                                </div>
-                                <div className="absolute top-0 right-0 w-20 h-20 opacity-30 rotate-90">
-                                    <svg viewBox="0 0 80 80" className="w-full h-full">
-                                        <path
-                                            d="M0,20 L20,0 L60,0 L80,20 L80,60 L60,80"
-                                            fill="none"
-                                            stroke="#E1F0FF"
-                                            strokeWidth="1"
-                                        />
-                                        <circle cx="20" cy="20" r="2" fill="#48C7FF" />
-                                    </svg>
-                                </div>
-                                <div className="absolute bottom-0 left-0 w-20 h-20 opacity-30 -rotate-90">
-                                    <svg viewBox="0 0 80 80" className="w-full h-full">
-                                        <path
-                                            d="M0,20 L20,0 L60,0 L80,20 L80,60 L60,80"
-                                            fill="none"
-                                            stroke="#E1F0FF"
-                                            strokeWidth="1"
-                                        />
-                                        <circle cx="20" cy="20" r="2" fill="#48C7FF" />
-                                    </svg>
-                                </div>
-                                <div className="absolute bottom-0 right-0 w-20 h-20 opacity-30 rotate-180">
-                                    <svg viewBox="0 0 80 80" className="w-full h-full">
-                                        <path
-                                            d="M0,20 L20,0 L60,0 L80,20 L80,60 L60,80"
-                                            fill="none"
-                                            stroke="#E1F0FF"
-                                            strokeWidth="1"
-                                        />
-                                        <circle cx="20" cy="20" r="2" fill="#48C7FF" />
-                                    </svg>
-                                </div>
-
-                                {/* Glow Effect Behind Product */}
-                                <motion.div
-                                    className="absolute inset-0 flex items-center justify-center"
-                                    animate={enableInfiniteAnimations ? {
-                                        scale: [1, 1.1, 1],
-                                        opacity: [0.1, 0.3, 0.1]
-                                    } : { scale: 1, opacity: 0.2 }}
-                                    transition={enableInfiniteAnimations ? {
-                                        duration: 4,
-                                        repeat: Infinity,
-                                        ease: 'easeInOut'
-                                    } : { duration: 0 }}
-                                >
-                                    <div className="w-80 h-80 bg-[#48C7FF] rounded-full blur-3xl"></div>
-                                </motion.div>
-
-                                <AnimatePresence mode="wait" custom={1}>
-                                    <motion.div
-                                        key={currentProduct.id}
-                                        variants={imageVariants}
-                                        initial="enter"
-                                        animate="center"
-                                        exit="exit"
-                                        transition={{
-                                            duration: transitionDuration,
-                                            ease: transitionEase,
-                                            type: 'tween'
-                                        }}
-                                        className="relative w-full max-w-[600px] lg:max-w-[400px] xl:max-w-[600px] h-[300px] lg:h-[400px] z-10"
-                                        style={enableComplexAnimations ? { perspective: '1000px' } : undefined}
-                                    >
-                                        {currentProduct.image ? (
-                                            <Image
-                                                src={currentProduct.image}
-                                                alt={currentProduct.name}
-                                                fill
-                                                className="object-contain drop-shadow-2xl"
-                                                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 400px, (max-width: 3200px) 600px, 800px"
-                                                priority
-                                            />
-                                        ) : (
-                                            <div className="flex h-full w-full items-center justify-center rounded-3xl border border-white/10 bg-white/5 text-center text-white/70">
-                                                {t('products.detail.media.imageUnavailable')}
-                                            </div>
-                                        )}
-                                    </motion.div>
-                                </AnimatePresence>
-                            </div>
-
-                            {/* Product Info with Decorative Elements */}
-                            <div className="relative w-full lg:w-1/2 text-center lg:text-left lg:pl-12">
-                                {/* Decorative Side Pattern */}
-                                <div className="absolute -left-8 top-1/2 transform -translate-y-1/2 w-1 h-40 bg-gradient-to-b from-transparent via-[#48C7FF]/50 to-transparent hidden lg:block"></div>
-
-                                {/* Quote-like Decoration */}
-                                <div className="absolute -top-4 left-0 lg:left-12 w-6 h-6 opacity-30">
-                                    <svg viewBox="0 0 24 24" className="w-full h-full">
-                                        <path
-                                            d="M8 5v6c0 3.31-2.69 6-6 6v2c5.51 0 10-4.49 10-10V5H8zm12 0v6c0 3.31-2.69 6-6 6v2c5.51 0 10-4.49 10-10V5h-4z"
-                                            fill="#48C7FF"
-                                        />
-                                    </svg>
-                                </div>
-
-                                <AnimatePresence mode="wait" custom={1}>
-                                    <motion.div
-                                        key={currentProduct.id}
-                                        custom={1}
-                                        variants={containerVariants}
-                                        initial="enter"
-                                        animate="center"
-                                        exit="exit"
-                                        transition={{
-                                            duration: transitionDuration,
-                                            ease: transitionEase,
-                                            type: 'tween',
-                                            staggerChildren: enableComplexAnimations ? 0.1 : 0
-                                        }}
-                                        className="relative"
-                                        style={enableComplexAnimations ? { perspective: '1000px', transformStyle: 'preserve-3d' } : undefined}
-                                    >
-                                        {/* Product Name with Underline Decoration */}
-                                        <motion.div
-                                            className="relative mb-6"
-                                            variants={{
-                                                enter: { y: 30, opacity: 0 },
-                                                center: { y: 0, opacity: 1 },
-                                                exit: { y: -30, opacity: 0 }
-                                            }}
-                                        >
-                                            <motion.h3
-                                                className={`${montserrat.className} font-black text-[1.75rem] lg:text-[2rem] xl:text-[2.25rem] text-[#48C7FF] relative z-10 min-h-[5.25rem] lg:min-h-[6rem] xl:min-h-[6.75rem] overflow-hidden line-clamp-3`}
-                                                style={{
-                                                    letterSpacing: '0.1rem'
-                                                }}
-                                                variants={{
-                                                    enter: { scale: 0.9, opacity: 0 },
-                                                    center: { scale: 1, opacity: 1 },
-                                                    exit: { scale: 0.9, opacity: 0 }
-                                                }}
-                                            >
-                                                {currentProduct.name}
-                                            </motion.h3>
-                                            {/* Animated Underline */}
-                                            <motion.div
-                                                className="absolute bottom-0 left-0 lg:left-0 h-0.5 bg-gradient-to-r from-[#48C7FF] to-[#E1F0FF]"
-                                                initial={{ width: 0, opacity: 0 }}
-                                                animate={{ width: '100%', opacity: 1 }}
-                                                transition={{ duration: 1.2, delay: 0.4, ease: [0.25, 0.1, 0.25, 1.0] }}
-                                            />
-                                            {/* Small decorative elements */}
-                                            <motion.div
-                                                className="absolute -right-4 -top-2 w-2 h-2 bg-[#48C7FF] rounded-full opacity-60"
-                                                initial={{ scale: 0, rotate: -180 }}
-                                                animate={{ scale: 1, rotate: 0 }}
-                                                transition={{ duration: 0.6, delay: 0.6 }}
-                                            />
-                                            <motion.div
-                                                className="absolute -right-2 -top-4 w-1 h-1 bg-[#E1F0FF] rounded-full opacity-80"
-                                                initial={{ scale: 0, rotate: 180 }}
-                                                animate={{ scale: 1, rotate: 0 }}
-                                                transition={{ duration: 0.4, delay: 0.8 }}
-                                            />
-                                        </motion.div>
-
-                                        {/* Product Description with Side Border */}
-                                        <motion.div
-                                            className="relative mb-8"
-                                            variants={{
-                                                enter: { x: -20, opacity: 0 },
-                                                center: { x: 0, opacity: 1 },
-                                                exit: { x: 20, opacity: 0 }
-                                            }}
-                                        >
-                                            <motion.div
-                                                className="absolute left-0 top-0 w-1 h-full bg-gradient-to-b from-[#48C7FF]/50 to-[#48C7FF]/10 rounded-full hidden lg:block"
-                                                initial={{ height: 0 }}
-                                                animate={{ height: '100%' }}
-                                                transition={{ duration: 0.8, delay: 0.2 }}
-                                            />
-                                            <motion.p
-                                                className="text-white text-[0.875rem] lg:text-base leading-[1.5] max-w-md mx-auto lg:mx-0 lg:pl-4 relative min-h-[76px] sm:min-h-[72px] pb-1"
-                                                variants={{
-                                                    enter: { opacity: 0, y: 20 },
-                                                    center: { opacity: 1, y: 0 },
-                                                    exit: { opacity: 0, y: -20 }
-                                                }}
-                                            >
-                                                <span
-                                                    className="block"
-                                                    style={{
-                                                        display: '-webkit-box',
-                                                        WebkitLineClamp: 3,
-                                                        WebkitBoxOrient: 'vertical',
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                        maxHeight: '4.5em'
-                                                    }}
-                                                >
-                                                    {currentProduct.shortDescription}
-                                                </span>
-                                            </motion.p>
-                                        </motion.div>
-
-                                        {/* Action Button with Decorative Elements */}
-                                        <motion.div
-                                            className="relative inline-block"
-                                            variants={{
-                                                enter: { scale: 0.8, opacity: 0, y: 30 },
-                                                center: { scale: 1, opacity: 1, y: 0 },
-                                                exit: { scale: 0.8, opacity: 0, y: -30 }
-                                            }}
-                                        >
-                                            {/* Button Glow Effect */}
-                                            <motion.div
-                                                className="absolute inset-0 bg-[#48C7FF]/20 rounded-full blur-lg"
-                                                animate={enableInfiniteAnimations ? {
-                                                    scale: [1, 1.2, 1],
-                                                    opacity: [0.2, 0.4, 0.2]
-                                                } : { scale: 1, opacity: 0.2 }}
-                                                transition={enableInfiniteAnimations ? {
-                                                    duration: 3,
-                                                    repeat: Infinity,
-                                                    ease: 'easeInOut'
-                                                } : { duration: 0 }}
-                                            />
-                                            <Link href={`/products/${currentProduct.id}`}>
-                                                <motion.button
-                                                    className="relative border border-white rounded-full px-6 py-2 text-[0.875rem] text-white hover:bg-[rgba(72,199,255,0.2)] hover:border-[#48C7FF] focus:outline-none focus:ring-2 focus:ring-[#48C7FF] focus:bg-[rgba(72,199,255,0.2)] focus:border-[#48C7FF] transition-all duration-300 overflow-hidden"
-                                                    whileHover={{
-                                                        scale: 1.05,
-                                                        boxShadow: '0 0 30px rgba(72, 199, 255, 0.4)'
-                                                    }}
-                                                    whileTap={{ scale: 0.98 }}
-                                                    aria-label={t('products.featured.discoverAria').replace('{name}', currentProduct.name)}
-                                                    initial={{ opacity: 0 }}
-                                                    animate={{ opacity: 1 }}
-                                                    transition={{ delay: 0.5, duration: 0.6 }}
-                                                >
-                                                    {/* Button shimmer effect */}
-                                                    <motion.div
-                                                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-                                                        animate={enableInfiniteAnimations ? { x: ['-100%', '100%'] } : { x: 0 }}
-                                                        transition={enableInfiniteAnimations ? {
-                                                            duration: 2,
-                                                            repeat: Infinity,
-                                                            ease: 'linear',
-                                                            delay: 1
-                                                        } : { duration: 0 }}
-                                                    />
-                                                    <motion.span
-                                                        className="relative z-10"
-                                                        initial={{ opacity: 0 }}
-                                                        animate={{ opacity: 1 }}
-                                                        transition={{ delay: 0.7 }}
-                                                    >
-                                                        {t('products.featured.discoveryNow')}
-                                                    </motion.span>
-                                                </motion.button>
-                                            </Link>
-                                        </motion.div>
-                                    </motion.div>
-                                </AnimatePresence>
-                            </div>
-                        </div>
-
-                        {/* Next Button - Desktop only */}
-                        <motion.button
+                        <button
+                            type="button"
                             onClick={nextProduct}
-                            className="absolute right-4 top-1/2 transform -translate-y-1/2 z-20 p-2 text-white hover:text-[#48C7FF] focus:text-[#48C7FF] focus:outline-none focus:ring-2 focus:ring-[#48C7FF] rounded-full transition-colors duration-300 hidden md:block"
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                            aria-label={t('products.featured.next')}
-                            tabIndex={0}
+                            className="absolute right-4 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/10 bg-black/30 p-3 text-white transition hover:border-cyan-300 hover:text-cyan-200"
+                            aria-label={t('common.next')}
                         >
-                            <ChevronRightIcon className="w-8 h-8" />
-                        </motion.button>
-                    </div>
+                            <ChevronRightIcon className="h-5 w-5" />
+                        </button>
 
-                    {/* Mobile Navigation Dots with Decorative Elements */}
-                    <div className="flex justify-center items-center mt-8 space-x-2 md:hidden relative">
-                        {/* Decorative Line Behind Dots */}
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-24 h-px bg-gradient-to-r from-transparent via-[#48C7FF]/30 to-transparent"></div>
-                        </div>
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={currentProduct.id}
+                                initial={{ opacity: 0, y: 18 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -18 }}
+                                transition={{ duration: transitionDuration, ease: transitionEase }}
+                                className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center"
+                            >
+                                <div className="relative mx-auto aspect-[4/3] w-full max-w-2xl overflow-hidden rounded-3xl bg-gradient-to-br from-white/10 to-white/5 p-6">
+                                    {currentProduct.image ? (
+                                        <Image
+                                            src={currentProduct.image}
+                                            alt={currentProduct.name}
+                                            fill
+                                            className="object-contain p-8"
+                                            sizes="(max-width: 1024px) 100vw, 50vw"
+                                            priority={currentIndex === 0}
+                                        />
+                                    ) : null}
+                                </div>
 
-                        {products.map((_, index) => (
-                            <div key={index} className="relative">
-                                {/* Active Dot Glow Effect */}
-                                {index === currentIndex && (
-                                    <motion.div
-                                        className="absolute inset-0 bg-[#48C7FF]/40 rounded-full blur-sm"
-                                        animate={enableInfiniteAnimations ? {
-                                            scale: [1, 1.5, 1],
-                                            opacity: [0.4, 0.8, 0.4]
-                                        } : { scale: 1, opacity: 0.4 }}
-                                        transition={enableInfiniteAnimations ? {
-                                            duration: 2,
-                                            repeat: Infinity,
-                                            ease: 'easeInOut'
-                                        } : { duration: 0 }}
-                                    />
-                                )}
-                                <motion.button
-                                    onClick={() => setCurrentIndex(index)}
-                                    className={`relative w-3 h-3 rounded-full transition-all duration-300 ${
-                                        index === currentIndex
-                                            ? 'bg-[#48C7FF] scale-125'
-                                            : 'bg-white/30 hover:bg-white/50'
-                                    }`}
-                                    whileHover={{ scale: 1.2 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    aria-label={t('products.featured.goTo').replace('{target}', String(index + 1))}
-                                />
-                            </div>
-                        ))}
-
-                        {/* Small Decorative Stars */}
-                        <motion.div
-                            className="absolute -left-8 w-2 h-2 opacity-40"
-                            animate={enableInfiniteAnimations ? { rotate: [0, 360] } : { rotate: 0 }}
-                            transition={enableInfiniteAnimations ? { duration: 10, repeat: Infinity, ease: 'linear' } : { duration: 0 }}
-                        >
-                            <svg viewBox="0 0 8 8" className="w-full h-full">
-                                <polygon points="4,1 5,3 7,3 5.5,4.5 6,7 4,5.5 2,7 2.5,4.5 1,3 3,3" fill="#48C7FF" />
-                            </svg>
-                        </motion.div>
-                        <motion.div
-                            className="absolute -right-8 w-2 h-2 opacity-40"
-                            animate={enableInfiniteAnimations ? { rotate: [360, 0] } : { rotate: 0 }}
-                            transition={enableInfiniteAnimations ? { duration: 8, repeat: Infinity, ease: 'linear' } : { duration: 0 }}
-                        >
-                            <svg viewBox="0 0 8 8" className="w-full h-full">
-                                <polygon points="4,1 5,3 7,3 5.5,4.5 6,7 4,5.5 2,7 2.5,4.5 1,3 3,3" fill="#E1F0FF" />
-                            </svg>
-                        </motion.div>
+                                <div className="text-center lg:text-left">
+                                    <p className="mb-3 text-sm uppercase tracking-[0.3em] text-cyan-300">
+                                        {t('products.featured.product')}
+                                    </p>
+                                    <h3 className={`${montserrat.className} text-3xl font-black uppercase text-white sm:text-4xl lg:text-5xl`}>
+                                        {currentProduct.name}
+                                    </h3>
+                                    <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-200 sm:text-lg">
+                                        {currentProduct.shortDescription}
+                                    </p>
+                                    <div className="mt-8 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
+                                        <Link
+                                            href={`/products/${currentProduct.id}`}
+                                            className="rounded-full bg-cyan-400 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-950 transition hover:bg-cyan-300"
+                                        >
+                                            {t('products.featured.discoveryNow')}
+                                        </Link>
+                                        {enableInfiniteAnimations && (
+                                            <span className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-slate-300">
+                                                {currentIndex + 1} / {products.length}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </AnimatePresence>
                     </div>
                 </div>
             </section>
         </AvoidSidebar>
     );
-};
-
-export default FeaturedProductsCarousel;
+}

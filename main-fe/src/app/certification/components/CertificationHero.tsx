@@ -6,7 +6,7 @@ import { useLanguage } from '@/context/LanguageContext';
 export default function CertificationHero() {
     const { t } = useLanguage();
     const breadcrumbItems = [
-        { label: t('nav.home'), href: '/home' },
+        { label: t('nav.home'), href: '/' },
         { label: t('certification.breadcrumb'), active: true }
     ];
 

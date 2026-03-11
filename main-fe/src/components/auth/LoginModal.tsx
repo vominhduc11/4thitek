@@ -12,7 +12,7 @@ import { API_BASE_URL } from '@/constants/api';
 // Đảm bảo bind modal với app container cho accessibility
 if (typeof window !== 'undefined') {
     try {
-        Modal.setAppElement('#__next');
+        Modal.setAppElement('body');
     } catch {
         // Modal app element setting failed
     }
@@ -81,6 +81,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
                     accessToken: string;
                     refreshToken: string;
                     expiresIn: number;
+                    refreshExpiresIn?: number;
                     tokenType: string;
                     user: {
                         id: number;
@@ -101,7 +102,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
                     accessToken: payload.data.accessToken,
                     refreshToken: payload.data.refreshToken,
                     expiresIn: payload.data.expiresIn,
-                    refreshExpiresIn: payload.data.expiresIn
+                    refreshExpiresIn: payload.data.refreshExpiresIn ?? payload.data.expiresIn
                 });
                 setEmail('');
                 setPassword('');
@@ -113,7 +114,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
 
                     // Nếu không có onSuccess callback, reload trang để cập nhật UI
                     if (!onSuccess) {
-                        window.location.reload();
+                        router.refresh();
                     }
                 }, 100); // Đợi 100ms để đảm bảo trạng thái đăng nhập đã được cập nhật
             }
@@ -162,7 +163,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
             }}
             style={customStyles}
             contentLabel={t('auth.login.modalLabel')}
-            ariaHideApp={false} // Tắt ariaHideApp để tránh lỗi
+            ariaHideApp={true}
             shouldCloseOnOverlayClick={true}
             shouldCloseOnEsc={true}
             shouldReturnFocusAfterClose={true}

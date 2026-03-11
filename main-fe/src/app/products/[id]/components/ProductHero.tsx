@@ -161,15 +161,8 @@ export default function ProductHero({
 
                     // Add click handler
                     button.addEventListener('click', () => {
-                        if (onBreadcrumbClick) {
-                            onBreadcrumbClick(item);
-                        }
+                        onBreadcrumbClick(item);
                         updateStickyActiveState(item.label);
-
-                        // Dispatch custom event as fallback
-                        window.dispatchEvent(new CustomEvent('breadcrumbNavigation', {
-                            detail: { label: item.label, section: item.section }
-                        }));
                     });
 
                     buttonWrapper.appendChild(button);
@@ -306,9 +299,6 @@ export default function ProductHero({
         const randomIndex = seed % relatedProducts.length;
         const randomProduct = relatedProducts[randomIndex];
 
-        // Small delay to show loading state and smooth transition
-        await new Promise((resolve) => setTimeout(resolve, 200));
-
         // Navigate to the random product
         router.push(`/products/${randomProduct.id}`);
     };
@@ -330,7 +320,7 @@ export default function ProductHero({
                     muted
                     loop
                     playsInline
-                    preload="metadata"
+                    preload="none"
                     className="w-full h-full object-cover"
                     onLoadedData={() => {
                         setVideoLoaded(true);

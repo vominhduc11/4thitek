@@ -52,9 +52,9 @@ class CartScreen extends StatelessWidget {
         return;
       }
       if (!didRemove) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(texts.syncCartFailed)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(texts.syncCartFailed)));
         return;
       }
       final messenger = ScaffoldMessenger.of(context);
@@ -76,6 +76,8 @@ class CartScreen extends StatelessWidget {
     Future<bool?> confirmDismiss(CartItem item) {
       return showDialog<bool>(
         context: context,
+        traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+        requestFocus: true,
         builder: (dialogContext) {
           return AlertDialog(
             title: Text(texts.deleteConfirmTitle),
@@ -261,10 +263,7 @@ class CartScreen extends StatelessWidget {
                         ),
                       );
                       final deleteButton = IconButton(
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          size: 20,
-                        ),
+                        icon: const Icon(Icons.delete_outline, size: 20),
                         color: const Color(0xFFDC2626),
                         tooltip: texts.deleteTooltip,
                         onPressed: () => unawaited(removeItemWithUndo(item)),
@@ -333,8 +332,9 @@ class CartScreen extends StatelessWidget {
                                             product: item.product,
                                             width: 44,
                                             height: 44,
-                                            borderRadius:
-                                                BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
                                             iconSize: 20,
                                           ),
                                           const SizedBox(width: 12),
@@ -346,23 +346,23 @@ class CartScreen extends StatelessWidget {
                                                 Text(
                                                   item.product.name,
                                                   style: theme
-                                                      .textTheme.titleSmall
+                                                      .textTheme
+                                                      .titleSmall
                                                       ?.copyWith(
-                                                    fontWeight:
-                                                        FontWeight.w700,
-                                                  ),
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
                                                 ),
                                                 const SizedBox(height: 4),
                                                 Text(
-                                                  formatVnd(
-                                                    item.product.price,
-                                                  ),
+                                                  formatVnd(item.product.price),
                                                   style: theme
-                                                      .textTheme.bodySmall
+                                                      .textTheme
+                                                      .bodySmall
                                                       ?.copyWith(
-                                                    color: colors
-                                                        .onSurfaceVariant,
-                                                  ),
+                                                        color: colors
+                                                            .onSurfaceVariant,
+                                                      ),
                                                 ),
                                                 const SizedBox(height: 2),
                                                 Text(
@@ -373,12 +373,13 @@ class CartScreen extends StatelessWidget {
                                                     ),
                                                   ),
                                                   style: theme
-                                                      .textTheme.bodySmall
+                                                      .textTheme
+                                                      .bodySmall
                                                       ?.copyWith(
-                                                    color: colors.primary,
-                                                    fontWeight:
-                                                        FontWeight.w600,
-                                                  ),
+                                                        color: colors.primary,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
                                                 ),
                                                 const SizedBox(height: 2),
                                                 Text(
@@ -386,11 +387,12 @@ class CartScreen extends StatelessWidget {
                                                     item.product.sku,
                                                   ),
                                                   style: theme
-                                                      .textTheme.labelSmall
+                                                      .textTheme
+                                                      .labelSmall
                                                       ?.copyWith(
-                                                    color: colors
-                                                        .onSurfaceVariant,
-                                                  ),
+                                                        color: colors
+                                                            .onSurfaceVariant,
+                                                      ),
                                                 ),
                                                 ...stockWarning,
                                               ],
@@ -422,44 +424,46 @@ class CartScreen extends StatelessWidget {
                                               Expanded(
                                                 child: Column(
                                                   crossAxisAlignment:
-                                                      CrossAxisAlignment
-                                                          .start,
+                                                      CrossAxisAlignment.start,
                                                   children: [
                                                     Text(
                                                       item.product.name,
-                                                      style: theme.textTheme
+                                                      style: theme
+                                                          .textTheme
                                                           .titleSmall
                                                           ?.copyWith(
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                      ),
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                          ),
                                                       maxLines: 2,
-                                                      overflow: TextOverflow
-                                                          .ellipsis,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
                                                     ),
                                                     const SizedBox(height: 4),
                                                     Text(
                                                       formatVnd(
                                                         item.product.price,
                                                       ),
-                                                      style: theme.textTheme
+                                                      style: theme
+                                                          .textTheme
                                                           .bodySmall
                                                           ?.copyWith(
-                                                        color: colors
-                                                            .onSurfaceVariant,
-                                                      ),
+                                                            color: colors
+                                                                .onSurfaceVariant,
+                                                          ),
                                                     ),
                                                     const SizedBox(height: 2),
                                                     Text(
                                                       texts.skuLabel(
                                                         item.product.sku,
                                                       ),
-                                                      style: theme.textTheme
+                                                      style: theme
+                                                          .textTheme
                                                           .labelSmall
                                                           ?.copyWith(
-                                                        color: colors
-                                                            .onSurfaceVariant,
-                                                      ),
+                                                            color: colors
+                                                                .onSurfaceVariant,
+                                                          ),
                                                     ),
                                                     ...stockWarning,
                                                   ],
@@ -484,12 +488,13 @@ class CartScreen extends StatelessWidget {
                                                       ),
                                                     ),
                                                     style: theme
-                                                        .textTheme.bodySmall
+                                                        .textTheme
+                                                        .bodySmall
                                                         ?.copyWith(
-                                                      color: colors.primary,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
+                                                          color: colors.primary,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
                                                   ),
                                                 ),
                                                 quantitySpinBox,

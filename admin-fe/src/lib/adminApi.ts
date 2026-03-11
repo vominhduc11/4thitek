@@ -1,4 +1,10 @@
 import { buildApiUrl } from './backendApi'
+import {
+  clearStoredAuthSession,
+  readStoredAuthSession,
+  refreshStoredAuthSession,
+  shouldRefreshAuthSession,
+} from './authSession'
 
 type ApiResponse<T> = {
   success: boolean
@@ -341,6 +347,7 @@ export type BackendChangePasswordRequest = {
 }
 
 const defaultErrorMessage = 'Request failed'
+const unauthorizedErrorMessage = 'Your session has expired. Please sign in again.'
 
 const buildQueryString = (params?: Record<string, string | number | null | undefined>) => {
   if (!params) return ''
@@ -351,6 +358,51 @@ const buildQueryString = (params?: Record<string, string | number | null | undef
   })
   const serialized = searchParams.toString()
   return serialized ? `?${serialized}` : ''
+}
+
+const parseApiResponse = async <T>(response: Response) => {
+  try {
+    return (await response.json()) as ApiResponse<T>
+  } catch {
+    return null
+  }
+}
+
+const requestWithToken = ({
+  path,
+  token,
+  method,
+  body,
+  params,
+}: {
+  path: string
+  token: string
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+  body?: unknown
+  params?: Record<string, string | number | null | undefined>
+}) =>
+  fetch(buildApiUrl(`${path}${buildQueryString(params)}`), {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+
+const resolveAuthorizedToken = async (fallbackToken: string) => {
+  const storedSession = readStoredAuthSession()
+
+  if (!storedSession) {
+    return fallbackToken
+  }
+
+  if (shouldRefreshAuthSession(storedSession)) {
+    const refreshedSession = await refreshStoredAuthSession()
+    return refreshedSession?.accessToken ?? storedSession.accessToken ?? fallbackToken
+  }
+
+  return storedSession.accessToken ?? fallbackToken
 }
 
 const authorizedJsonRequest = async <T>({
@@ -366,27 +418,59 @@ const authorizedJsonRequest = async <T>({
   body?: unknown
   params?: Record<string, string | number | null | undefined>
 }): Promise<T> => {
-  const response = await fetch(buildApiUrl(`${path}${buildQueryString(params)}`), {
+  let activeToken = await resolveAuthorizedToken(token)
+  let response = await requestWithToken({
+    path,
+    token: activeToken,
     method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body,
+    params,
   })
 
-  let payload: ApiResponse<T> | null = null
-  try {
-    payload = (await response.json()) as ApiResponse<T>
-  } catch {
-    payload = null
+  if (response.status === 401) {
+    const refreshedSession = await refreshStoredAuthSession()
+    if (refreshedSession?.accessToken) {
+      activeToken = refreshedSession.accessToken
+      response = await requestWithToken({
+        path,
+        token: activeToken,
+        method,
+        body,
+        params,
+      })
+    }
   }
 
+  const payload = await parseApiResponse<T>(response)
+
   if (!response.ok || !payload?.success) {
-    throw new Error(payload?.error || defaultErrorMessage)
+    if (response.status === 401) {
+      clearStoredAuthSession()
+    }
+    throw new Error(
+      payload?.error || (response.status === 401 ? unauthorizedErrorMessage : defaultErrorMessage),
+    )
   }
 
   return payload.data
+}
+
+const fetchAllPagedItems = async <T>(
+  fetchPage: (params: { page?: number; size?: number }) => Promise<BackendPagedResponse<T>>,
+  size = 100,
+) => {
+  const firstPage = await fetchPage({ page: 0, size })
+  if (firstPage.totalPages <= 1) {
+    return firstPage.items
+  }
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: Math.max(firstPage.totalPages - 1, 0) }, (_, index) =>
+      fetchPage({ page: index + 1, size }),
+    ),
+  )
+
+  return [firstPage, ...remainingPages].flatMap((pageData) => pageData.items)
 }
 
 export const fetchAdminProducts = (token: string) =>
@@ -641,6 +725,9 @@ export const fetchAdminSupportTickets = (
     params,
   })
 
+export const fetchAllAdminSupportTickets = (token: string, size?: number) =>
+  fetchAllPagedItems((params) => fetchAdminSupportTickets(token, params), size)
+
 export const updateAdminSupportTicket = (
   token: string,
   id: number,
@@ -666,6 +753,9 @@ export const fetchAdminWarranties = (
     params,
   })
 
+export const fetchAllAdminWarranties = (token: string, size?: number) =>
+  fetchAllPagedItems((params) => fetchAdminWarranties(token, params), size)
+
 export const updateAdminWarrantyStatus = (
   token: string,
   id: number,
@@ -687,6 +777,9 @@ export const fetchAdminSerialsPaged = (
     token,
     params,
   })
+
+export const fetchAllAdminSerials = (token: string, size?: number) =>
+  fetchAllPagedItems((params) => fetchAdminSerialsPaged(token, params), size)
 
 export const importAdminSerials = (token: string, body: BackendSerialImportRequest) =>
   authorizedJsonRequest<BackendSerialResponse[]>({
@@ -717,6 +810,9 @@ export const fetchAdminNotifications = (
     token,
     params,
   })
+
+export const fetchAllAdminNotifications = (token: string, size?: number) =>
+  fetchAllPagedItems((params) => fetchAdminNotifications(token, params), size)
 
 export const createAdminNotificationDispatch = (
   token: string,

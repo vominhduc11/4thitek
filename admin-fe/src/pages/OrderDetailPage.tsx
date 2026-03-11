@@ -1,5 +1,5 @@
 import { ArrowLeft } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAdminData, type OrderStatus } from '../context/AdminDataContext'
 import { useLanguage } from '../context/LanguageContext'
@@ -36,10 +36,8 @@ function OrderDetailPage() {
   const [paymentError, setPaymentError] = useState('')
 
   const order = orders.find((item) => item.id === decodedId)
-  const initialPaymentAmount = useMemo(
-    () => (order && order.outstandingAmount > 0 ? String(order.outstandingAmount) : ''),
-    [order?.outstandingAmount],
-  )
+  const initialPaymentAmount =
+    order && order.outstandingAmount > 0 ? String(order.outstandingAmount) : ''
   const isPaymentDirty = useMemo(
     () =>
       Boolean(
@@ -52,15 +50,22 @@ function OrderDetailPage() {
     [initialPaymentAmount, order, paymentAmount, paymentNote, transactionCode],
   )
 
-  useEffect(() => {
-    if (!order) {
-      return
-    }
+  const resetPaymentForm = useCallback(() => {
     setPaymentAmount(initialPaymentAmount)
     setTransactionCode('')
     setPaymentNote('')
     setPaymentError('')
-  }, [initialPaymentAmount, order?.id])
+  }, [initialPaymentAmount])
+
+  useEffect(() => {
+    if (!order) {
+      return
+    }
+    const timer = window.setTimeout(() => {
+      resetPaymentForm()
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [order, resetPaymentForm])
 
   if (ordersState.status === 'loading' || ordersState.status === 'idle') {
     return (
@@ -103,7 +108,11 @@ function OrderDetailPage() {
   }
 
   const paymentMethodLabel =
-    order.paymentMethod === 'debt' ? t('Công nợ') : t('Chuyển khoản ngân hàng')
+    order.paymentMethod === 'debt'
+      ? t('Công nợ')
+      : order.paymentMethod === 'bank_transfer'
+        ? t('Chuyển khoản ngân hàng')
+        : t('Chưa xác định')
   const paymentStatusLabel =
     order.paymentStatus === 'paid'
       ? t('Đã thanh toán')
@@ -316,11 +325,13 @@ function OrderDetailPage() {
                     try {
                       await recordOrderPayment(order.id, {
                         amount,
-                        method: order.paymentMethod,
+                        method: order.paymentMethod ?? undefined,
                         channel:
                           order.paymentMethod === 'bank_transfer'
                             ? 'Admin manual bank transfer confirmation'
-                            : 'Admin manual payment confirmation',
+                            : order.paymentMethod === 'debt'
+                              ? 'Admin manual debt confirmation'
+                              : 'Admin manual payment confirmation',
                         transactionCode: transactionCode.trim() || undefined,
                         note: paymentNote.trim() || undefined,
                       })

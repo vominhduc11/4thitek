@@ -6,14 +6,14 @@ import 'models.dart';
 import 'order_controller.dart';
 import 'serial_scan_screen.dart';
 import 'utils.dart';
+import 'validation_utils.dart';
 import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 const double _serialSectionGap = 18;
 const double _serialItemGap = 16;
-const double _serialMinTapTarget = 44;
-final RegExp _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+const double _serialMinTapTarget = 48;
 
 enum _SerialAssignResult { assigned, duplicate, invalid, full }
 
@@ -666,6 +666,8 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     final textController = TextEditingController();
     final pastedText = await showDialog<String>(
       context: context,
+      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+      requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Dán nhiều serial'),
@@ -824,7 +826,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
       return;
     }
 
-    if (!_emailPattern.hasMatch(customerEmail)) {
+    if (!isValidEmailAddress(customerEmail)) {
       _showSnackBar('Vui long nhap email hop le.');
       return;
     }

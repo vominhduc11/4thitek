@@ -6,7 +6,7 @@ import { useLanguage } from '@/context/LanguageContext';
 export default function AboutHero() {
     const { t } = useLanguage();
     const breadcrumbItems = [
-        { label: t('nav.home'), href: '/home' },
+        { label: t('nav.home'), href: '/' },
         { label: t('about.breadcrumb'), active: true }
     ];
 

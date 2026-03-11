@@ -68,8 +68,9 @@ _DashboardSnapshot _buildDashboardSnapshot({
     periodStart,
     periodEndExclusive,
   );
-  final activationWindowDays =
-      timeFilter == _DashboardTimeFilter.month ? 30 : 90;
+  final activationWindowDays = timeFilter == _DashboardTimeFilter.month
+      ? 30
+      : 90;
 
   return _DashboardSnapshot(
     periodAnchor: periodAnchor,
@@ -99,8 +100,9 @@ _DashboardSnapshot _buildDashboardSnapshot({
         .where((order) => order.status == OrderStatus.completed)
         .length,
     totalOutstandingDebt: _calculateTotalOutstandingDebt(orders),
-    periodUnitLabel:
-        timeFilter == _DashboardTimeFilter.month ? 'th\u00E1ng' : 'qu\u00FD',
+    periodUnitLabel: timeFilter == _DashboardTimeFilter.month
+        ? 'th\u00E1ng'
+        : 'qu\u00FD',
   );
 }
 
@@ -170,28 +172,34 @@ List<_DashboardLowStockItem> _buildLowStockProducts({
     current.serialAvailable += 1;
   }
 
-  final products = map.values
-      .map((entry) {
-        final trackedSerialCount = entry.serials.length;
-        final pendingWithoutSerial = entry.importedQuantity - trackedSerialCount;
-        final availableFromPending = pendingWithoutSerial > 0
-            ? pendingWithoutSerial
-            : 0;
+  final products =
+      map.values
+          .map((entry) {
+            final trackedSerialCount = entry.serials.length;
+            final pendingWithoutSerial =
+                entry.importedQuantity - trackedSerialCount;
+            final availableFromPending = pendingWithoutSerial > 0
+                ? pendingWithoutSerial
+                : 0;
 
-        return _DashboardLowStockItem(
-          product: entry.product,
-          availableQuantity: entry.serialAvailable + availableFromPending,
-        );
-      })
-      .where((item) => item.availableQuantity <= _lowStockAlertThreshold)
-      .toList(growable: false)
-    ..sort((a, b) {
-      final quantityCompare = a.availableQuantity.compareTo(b.availableQuantity);
-      if (quantityCompare != 0) {
-        return quantityCompare;
-      }
-      return a.product.name.toLowerCase().compareTo(b.product.name.toLowerCase());
-    });
+            return _DashboardLowStockItem(
+              product: entry.product,
+              availableQuantity: entry.serialAvailable + availableFromPending,
+            );
+          })
+          .where((item) => item.availableQuantity <= _lowStockAlertThreshold)
+          .toList(growable: false)
+        ..sort((a, b) {
+          final quantityCompare = a.availableQuantity.compareTo(
+            b.availableQuantity,
+          );
+          if (quantityCompare != 0) {
+            return quantityCompare;
+          }
+          return a.product.name.toLowerCase().compareTo(
+            b.product.name.toLowerCase(),
+          );
+        });
 
   return products.take(5).toList(growable: false);
 }
@@ -324,6 +332,7 @@ Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({
   return showModalBottomSheet<_DashboardTimeFilterSelection>(
     context: context,
     showDragHandle: true,
+    requestFocus: true,
     backgroundColor: Theme.of(context).colorScheme.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -406,27 +415,29 @@ Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({
                         child: OutlinedButton.icon(
                           onPressed: () {
                             setSheetState(() {
-                              draftPeriod = _dashboardPreviousPeriodStartForFilter(
-                                draftPeriod,
-                                draftFilter,
-                              );
+                              draftPeriod =
+                                  _dashboardPreviousPeriodStartForFilter(
+                                    draftPeriod,
+                                    draftFilter,
+                                  );
                             });
                           },
                           icon: const Icon(Icons.chevron_left),
                           label: const Text('K\u1EF3 tr\u01B0\u1EDBc'),
                           style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 44),
+                            minimumSize: const Size(0, 48),
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: _dashboardCanMoveToNextPeriod(
-                            draftPeriod,
-                            draftFilter,
-                            now,
-                          )
+                          onPressed:
+                              _dashboardCanMoveToNextPeriod(
+                                draftPeriod,
+                                draftFilter,
+                                now,
+                              )
                               ? () {
                                   setSheetState(() {
                                     draftPeriod =
@@ -440,7 +451,7 @@ Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({
                           icon: const Icon(Icons.chevron_right),
                           label: const Text('K\u1EF3 sau'),
                           style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 44),
+                            minimumSize: const Size(0, 48),
                           ),
                         ),
                       ),
@@ -466,17 +477,18 @@ Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({
                           return;
                         }
                         setSheetState(() {
-                          draftPeriod = _dashboardNormalizePeriodAnchorForFilter(
-                            picked,
-                            draftFilter,
-                            now: now,
-                          );
+                          draftPeriod =
+                              _dashboardNormalizePeriodAnchorForFilter(
+                                picked,
+                                draftFilter,
+                                now: now,
+                              );
                         });
                       },
                       icon: const Icon(Icons.event_outlined),
                       label: const Text('Ch\u1ECDn t\u1EEB l\u1ECBch'),
                       style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(44),
+                        minimumSize: const Size.fromHeight(48),
                       ),
                     ),
                   ),
@@ -513,7 +525,7 @@ Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({
                           );
                         },
                         style: FilledButton.styleFrom(
-                          minimumSize: const Size(96, 44),
+                          minimumSize: const Size(96, 48),
                         ),
                         child: const Text('\u00C1p d\u1EE5ng'),
                       ),

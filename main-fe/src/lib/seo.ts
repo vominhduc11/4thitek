@@ -1,14 +1,6 @@
 import type { Metadata } from 'next';
 import { buildCanonicalUrl, SITE_NAME, SITE_URL, type SupportedLocale } from './site';
 
-const alternates = (path: string) => ({
-    canonical: buildCanonicalUrl(path),
-    languages: {
-        vi: buildCanonicalUrl(path),
-        en: buildCanonicalUrl(path)
-    }
-});
-
 export const createBaseMetadata = ({
     locale,
     path,
@@ -23,7 +15,9 @@ export const createBaseMetadata = ({
     metadataBase: new URL(SITE_URL),
     title,
     description,
-    alternates: alternates(path),
+    alternates: {
+        canonical: buildCanonicalUrl(path)
+    },
     openGraph: {
         title,
         description,
@@ -88,13 +82,15 @@ export const articleJsonLd = ({
     title,
     description,
     image,
-    publishedAt
+    publishedAt,
+    path
 }: {
     id: string;
     title: string;
     description: string;
     image?: string;
     publishedAt?: string;
+    path?: string;
 }) => ({
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -115,5 +111,5 @@ export const articleJsonLd = ({
             url: `${SITE_URL}/logo.png`
         }
     },
-    mainEntityOfPage: `${SITE_URL}/blogs/${id}`
+    mainEntityOfPage: path ? buildCanonicalUrl(path).toString() : `${SITE_URL}/blogs/${id}`
 });

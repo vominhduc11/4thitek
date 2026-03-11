@@ -212,6 +212,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
+      requestFocus: true,
       builder: (sheetContext) {
         final colorScheme = Theme.of(sheetContext).colorScheme;
         final content = Padding(

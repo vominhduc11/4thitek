@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { FiLogOut, FiMenu, FiSearch, FiUser } from 'react-icons/fi';
 import { motion, Variants } from 'framer-motion';
 import { useEffect, useState } from 'react';
@@ -30,6 +31,7 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuClick }: HeaderProps) {
+    const router = useRouter();
     const [scrollY, setScrollY] = useState(0);
     const [isHydrated, setIsHydrated] = useState(false);
     const { openSearch } = useSearchModal();
@@ -51,7 +53,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
         }
     }, []);
 
-    // Header style based on scroll position - only apply after hydration
     const headerStyle = isHydrated
         ? {
               backgroundColor: scrollY <= 0 ? 'transparent' : `rgba(12,19,29,${Math.min(scrollY / 400, 0.9)})`,
@@ -66,7 +67,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
               boxShadow: 'none'
           };
 
-    // Logo animation - only apply after hydration
     const logoStyle = isHydrated
         ? {
               transform: scrollY > 100 ? 'scale(0.95)' : 'scale(1)',
@@ -85,7 +85,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
             animate="visible"
             style={{ ...headerStyle, zIndex: Z_INDEX.HEADER }}
         >
-            {/* Logo (left) */}
             <motion.div className="flex items-center gap-3 sm:gap-4" variants={logoVariants}>
                 <button
                     onClick={onMenuClick}
@@ -97,9 +96,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 </button>
                 <Link href="/" className="transition-all duration-300 ease-out cursor-pointer" style={logoStyle}>
                     <Image
-                        width={0}
-                        height={0}
-                        sizes="100vw"
+                        width={142}
+                        height={32}
+                        sizes="142px"
                         priority
                         src="/logo-4t.png"
                         alt={t('brand.logoAlt')}
@@ -108,7 +107,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 </Link>
             </motion.div>
 
-            {/* Actions (right) */}
             <motion.div variants={searchVariants} className="flex items-center gap-2 sm:gap-3">
                 {authHydrated && (
                     <>
@@ -125,7 +123,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                     type="button"
                                     onClick={async () => {
                                         await logout();
-                                        window.location.href = '/';
+                                        router.replace('/');
+                                        router.refresh();
                                     }}
                                     className="hidden sm:inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-rose-400/40 hover:text-rose-200"
                                 >
