@@ -61,7 +61,6 @@ class AdminSupportTicketNotificationTests {
         notifyRepository.deleteAll();
         dealerSupportTicketRepository.deleteAll();
         orderRepository.deleteAll();
-        dealerRepository.deleteAll();
         when(javaMailSender.createMimeMessage()).thenReturn(
                 new MimeMessage(Session.getInstance(new Properties()))
         );

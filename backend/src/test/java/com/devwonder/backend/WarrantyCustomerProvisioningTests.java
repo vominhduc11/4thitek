@@ -19,6 +19,7 @@ import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.CustomerRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.NotifyRepository;
+import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
@@ -66,6 +67,9 @@ class WarrantyCustomerProvisioningTests {
     @Autowired
     private NotifyRepository notifyRepository;
 
+    @Autowired
+    private OrderRepository orderRepository;
+
     @MockBean
     private JavaMailSender javaMailSender;
 
@@ -74,6 +78,7 @@ class WarrantyCustomerProvisioningTests {
         notifyRepository.deleteAll();
         warrantyRegistrationRepository.deleteAll();
         productSerialRepository.deleteAll();
+        orderRepository.deleteAll();
         productRepository.deleteAll();
         customerRepository.deleteAll();
         dealerRepository.deleteAll();

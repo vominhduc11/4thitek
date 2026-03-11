@@ -9,20 +9,20 @@ void main() {
     expect(sourceDir.existsSync(), isTrue, reason: 'Missing lib/ directory.');
 
     const mojibakeFingerprints = <String>[
-      'Ã',
-      'áº',
-      'á»',
-      'á¼',
-      'á¸',
-      'Ä‘',
-      'Æ°',
-      'â€™',
-      'â€œ',
-      'â€',
-      'â€“',
-      'â€”',
-      'â‚«',
-      '�',
+      ‘Ã’,
+      ‘áº’,
+      ‘á»’,
+      ‘á¼’,
+      ‘á¸’,
+      ‘Ä’’,
+      ‘Æ°’,
+      ‘â€™’,
+      ‘â€œ’,
+      ‘â€’,
+      ‘â€”’,
+      ‘â€”’,
+      ‘â‚«’,
+      ‘\uFFFD’,
     ];
 
     final brokenCharPattern = RegExp(r'[\u00C0-\u1EF9]\?[\u00C0-\u1EF9]|\?\?');
