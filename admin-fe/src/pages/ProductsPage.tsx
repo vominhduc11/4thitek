@@ -104,6 +104,19 @@ const createDescriptionTemplate = (): DescriptionItem[] => [
   { type: 'video', url: '', caption: '' },
 ]
 
+const createDescriptionBlock = (type: DescriptionItem['type']): DescriptionItem => {
+  switch (type) {
+    case 'title':
+    case 'description':
+      return { type, text: '' }
+    case 'image':
+    case 'video':
+      return { type, url: '', caption: '' }
+    case 'gallery':
+      return { type, gallery: [], caption: '' }
+  }
+}
+
 const createSpecificationTemplate = () => [
   { label: '', value: '' },
   { label: '', value: '' },
@@ -891,13 +904,20 @@ function ProductsPage() {
     setFilterHomepage('all')
   }
 
-  const descriptionTypeOptions: Array<{ id: DescriptionItem['type']; label: string }> = [
-    { id: 'title', label: t('Tiêu đề') },
-    { id: 'description', label: t('Mô tả') },
-    { id: 'image', label: t('Hình ảnh') },
-    { id: 'gallery', label: t('Nhiều hình ảnh') },
-    { id: 'video', label: t('Video') },
+  const descriptionBlockOptions: Array<{
+    id: DescriptionItem['type']
+    label: string
+    addLabel: string
+  }> = [
+    { id: 'title', label: t('Tiêu đề'), addLabel: t('+ Tiêu đề') },
+    { id: 'description', label: t('Mô tả'), addLabel: t('+ Mô tả') },
+    { id: 'image', label: t('Hình ảnh'), addLabel: t('+ Hình ảnh') },
+    { id: 'gallery', label: t('Nhiều hình ảnh'), addLabel: t('+ Nhiều hình ảnh') },
+    { id: 'video', label: t('Video'), addLabel: t('+ Video') },
   ]
+
+  const getDescriptionBlockLabel = (type: DescriptionItem['type']) =>
+    descriptionBlockOptions.find((option) => option.id === type)?.label ?? type
 
   const descriptionEditorModules = useMemo(
     () => ({
@@ -916,89 +936,11 @@ function ProductsPage() {
     [],
   )
 
-  const changeDescriptionType = async (index: number, nextType: DescriptionItem['type']) => {
-    const current = newProduct.descriptions[index]
-    if (!current || current.type === nextType) {
-      return
-    }
-
-    const legacyUrls = ((current as { urls?: string[] }).urls ?? []).filter((url) => url.trim())
-    const currentGallery = (current.gallery ?? []).filter((item) => item.url.trim())
-    const currentPrimaryUrl =
-      current.url?.trim() || currentGallery[0]?.url?.trim() || legacyUrls[0] || ''
-
-    const nextItem: DescriptionItem = { type: nextType }
-
-    if (nextType === 'title' || nextType === 'description') {
-      nextItem.text = current.text ?? ''
-    }
-
-    if (nextType === 'image' || nextType === 'video') {
-      nextItem.url = currentPrimaryUrl
-      nextItem.caption = current.caption ?? ''
-    }
-
-    if (nextType === 'gallery') {
-      nextItem.gallery =
-        currentGallery.length > 0
-          ? currentGallery
-          : currentPrimaryUrl
-            ? [{ url: currentPrimaryUrl }]
-            : legacyUrls.map((url) => ({ url }))
-      nextItem.caption = current.caption ?? ''
-    }
-
-    const currentMediaCount = new Set(
-      [current.url ?? '', ...currentGallery.map((item) => item.url), ...legacyUrls]
-        .map((url) => url.trim())
-        .filter(Boolean),
-    ).size
-    const nextMediaCount = new Set(
-      [
-        nextItem.url ?? '',
-        ...(nextItem.gallery ?? []).map((item) => item.url),
-      ]
-        .map((url) => url.trim())
-        .filter(Boolean),
-    ).size
-
-    const willLoseText = Boolean((current.text ?? '').trim()) && !Boolean((nextItem.text ?? '').trim())
-    const willLoseCaption =
-      Boolean((current.caption ?? '').trim()) && !Boolean((nextItem.caption ?? '').trim())
-    const willLoseMedia = currentMediaCount > nextMediaCount
-    const nextTrackedUrls = new Set(getTrackedCreateUploadUrlsFromDescriptionItem(nextItem))
-    const removedTrackedUrls = getTrackedCreateUploadUrlsFromDescriptionItem(current).filter(
-      (url) => !nextTrackedUrls.has(url),
-    )
-
-    if (willLoseText || willLoseCaption || willLoseMedia) {
-      const approved = await confirm({
-        title: t('\u0110\u1ed5i lo\u1ea1i n\u1ed9i dung?'),
-        message: t(
-          'M\u1ed9t ph\u1ea7n d\u1eef li\u1ec7u trong m\u1ee5c n\u00e0y s\u1ebd b\u1ecb x\u00f3a khi \u0111\u1ed5i lo\u1ea1i.',
-        ),
-        confirmLabel: t('V\u1eabn \u0111\u1ed5i'),
-        cancelLabel: t('Gi\u1eef lo\u1ea1i c\u0169'),
-        tone: 'warning',
-      })
-
-      if (!approved) {
-        return
-      }
-    }
-
-    setNewProduct((prev) => {
-      const copy = [...prev.descriptions]
-      copy[index] = nextItem
-      return { ...prev, descriptions: copy }
-    })
-    setDescriptionImageErrors((prev) => {
-      if (!(index in prev)) return prev
-      const next = { ...prev }
-      delete next[index]
-      return next
-    })
-    void cleanupCreateUploadedAssets(removedTrackedUrls)
+  const appendDescriptionBlock = (type: DescriptionItem['type']) => {
+    setNewProduct((prev) => ({
+      ...prev,
+      descriptions: [...prev.descriptions, createDescriptionBlock(type)],
+    }))
   }
 
   const moveDescriptionItem = (index: number, direction: -1 | 1) => {
@@ -1989,7 +1931,7 @@ function ProductsPage() {
             <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label={t('Các tab sản phẩm')}>
               {[
                 { id: 'basic', label: 'Thông tin' },
-                { id: 'description', label: 'Mô tả' },
+                { id: 'description', label: 'Mô tả chi tiết' },
                 { id: 'specs', label: 'Thông số' },
                 { id: 'videos', label: 'Video' },
               ].map((tab) => {
@@ -2154,6 +2096,11 @@ function ProductsPage() {
                             setNewProduct({ ...newProduct, shortDescription: e.target.value })
                           }
                         />
+                        <p className="mt-1 text-xs text-slate-500">
+                          {t(
+                            'Đoạn này dùng cho phần tóm tắt ngắn. Nội dung đầy đủ được xây dựng ở tab "Mô tả chi tiết".',
+                          )}
+                        </p>
                       </label>
                     </div>
                   </div>
@@ -2371,9 +2318,11 @@ function ProductsPage() {
               >
                 <div className="flex flex-wrap items-start justify-between gap-2 text-sm text-slate-700">
                   <div>
-                    <p className="font-semibold text-slate-900">{t('Mô tả')}</p>
-                    <p className="text-xs text-slate-500">
-                      {t('Thêm các đoạn mô tả ngắn cho sản phẩm.')}
+                    <p className="font-semibold text-slate-900">{t('Mô tả chi tiết')}</p>
+                    <p className="max-w-2xl text-xs text-slate-500">
+                      {t(
+                        'Xây dựng phần mô tả chi tiết bằng các khối nội dung. Thứ tự các khối cũng là thứ tự hiển thị trên trang sản phẩm.',
+                      )}
                     </p>
                   </div>
                   <button
@@ -2386,46 +2335,41 @@ function ProductsPage() {
                     {t('Dùng mẫu')}
                   </button>
                 </div>
+                <div className="flex flex-wrap gap-2">
+                  {descriptionBlockOptions.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={subtleActionButtonClass}
+                      onClick={() => appendDescriptionBlock(option.id)}
+                    >
+                      {option.addLabel}
+                    </button>
+                  ))}
+                </div>
                 {newProduct.descriptions.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-                    <p className="font-semibold text-slate-700">{t('Chưa có mô tả nào.')}</p>
-                    <button
-                      type="button"
-                      className={`mt-2 ${subtleActionButtonClass}`}
-                      onClick={() =>
-                        setNewProduct({
-                          ...newProduct,
-                          descriptions: [{ type: 'description', text: '' }],
-                        })
-                      }
-                    >
-                      {t('Thêm mô tả đầu tiên')}
-                    </button>
+                    <p className="font-semibold text-slate-700">{t('Chưa có khối nội dung nào.')}</p>
+                    <p className="mt-2">
+                      {t(
+                        'Chọn loại khối ở phía trên để thêm tiêu đề, đoạn mô tả, hình ảnh, bộ ảnh hoặc video vào trang chi tiết sản phẩm.',
+                      )}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      {t('Nút "Dùng mẫu" sẽ tạo sẵn một bố cục cơ bản để bạn chỉnh sửa nhanh hơn.')}
+                    </p>
                   </div>
                 ) : (
                   newProduct.descriptions.map((d, idx) => (
                     <div key={idx} className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex flex-wrap items-center gap-1 rounded-full border border-slate-200 bg-slate-50 p-1 text-[11px]">
-                          {descriptionTypeOptions.map((option) => {
-                            const isActive = d.type === option.id
-                            return (
-                              <button
-                                key={option.id}
-                                type="button"
-                                className={
-                                  isActive
-                                    ? 'rounded-full bg-[var(--accent)] px-2 py-1 font-semibold text-white shadow-sm'
-                                    : 'rounded-full px-2 py-1 font-semibold text-slate-600 hover:text-slate-900'
-                                }
-                                onClick={() => {
-                                  void changeDescriptionType(idx, option.id)
-                                }}
-                              >
-                                {option.label}
-                              </button>
-                            )
-                          })}
+                        <div className="space-y-1">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                            {t('Khối')} {idx + 1}
+                          </p>
+                          <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                            {getDescriptionBlockLabel(d.type)}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
@@ -2664,6 +2608,11 @@ function ProductsPage() {
                               setNewProduct({ ...newProduct, descriptions: copy })
                             }}
                           />
+                          <p className="text-xs text-slate-500 md:col-span-2">
+                            {t(
+                              'Video này hiển thị xen kẽ trong mô tả chi tiết. Nếu muốn có khu vực video riêng cho sản phẩm, dùng tab "Video".',
+                            )}
+                          </p>
                           {debouncedDescriptionVideoUrls[idx] &&
                           isValidRemoteUrl(debouncedDescriptionVideoUrls[idx]) ? (
                             <div className="group relative overflow-hidden rounded-lg border border-slate-200 md:col-span-2">
@@ -2690,21 +2639,18 @@ function ProductsPage() {
                   ))
                 )}
                 {newProduct.descriptions.length > 0 && (
-                  <button
-                    type="button"
-                    className={subtleActionButtonClass}
-                    onClick={() =>
-                      setNewProduct({
-                        ...newProduct,
-                        descriptions: [
-                          ...newProduct.descriptions,
-                          { type: 'description', text: '' },
-                        ],
-                      })
-                    }
-                  >
-                    {t('Thêm mục mô tả')}
-                  </button>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {descriptionBlockOptions.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        className={subtleActionButtonClass}
+                        onClick={() => appendDescriptionBlock(option.id)}
+                      >
+                        {option.addLabel}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
@@ -2848,8 +2794,10 @@ function ProductsPage() {
                 <div className="flex flex-wrap items-start justify-between gap-2 text-sm text-slate-700">
                   <div>
                     <p className="font-semibold text-slate-900">{t('Video')}</p>
-                    <p className="text-xs text-slate-500">
-                      {t('Thêm video giới thiệu hoặc hướng dẫn sản phẩm.')}
+                    <p className="max-w-2xl text-xs text-slate-500">
+                      {t(
+                        'Các video ở tab này hiển thị thành khu vực video riêng trên trang sản phẩm. Video chèn giữa nội dung dùng ở tab "Mô tả chi tiết".',
+                      )}
                     </p>
                   </div>
                   <button
