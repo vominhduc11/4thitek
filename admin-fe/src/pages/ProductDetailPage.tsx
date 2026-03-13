@@ -221,6 +221,7 @@ function ProductDetailPage() {
   const [descriptionVideoErrors, setDescriptionVideoErrors] = useState<Record<number, string>>({})
   const [productVideoErrors, setProductVideoErrors] = useState<Record<number, string>>({})
   const [actionMessage, setActionMessage] = useState('')
+  const [mainImagePreviewUrl, setMainImagePreviewUrl] = useState('')
 
   void descriptionVideoErrors
   void productVideoErrors
@@ -277,6 +278,7 @@ function ProductDetailPage() {
     if (product && !isEditing) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setDraft(buildDraft(product))
+      setMainImagePreviewUrl('')
     }
   }, [product, isEditing])
 
@@ -285,6 +287,16 @@ function ProductDetailPage() {
     const timer = window.setTimeout(() => setActionMessage(''), 3000)
     return () => window.clearTimeout(timer)
   }, [actionMessage])
+
+  useEffect(() => {
+    if (!mainImagePreviewUrl || !mainImagePreviewUrl.startsWith('blob:')) {
+      return
+    }
+
+    return () => {
+      URL.revokeObjectURL(mainImagePreviewUrl)
+    }
+  }, [mainImagePreviewUrl])
 
   const descriptionEditorModules = useMemo(
     () => ({
@@ -334,6 +346,7 @@ function ProductDetailPage() {
 
   const handleStartEdit = () => {
     setDraft(buildDraft(product))
+    setMainImagePreviewUrl('')
     setDescriptionImageErrors({})
     setDescriptionVideoErrors({})
     setProductVideoErrors({})
@@ -342,6 +355,7 @@ function ProductDetailPage() {
 
   const handleCancelEdit = () => {
     setDraft(buildDraft(product))
+    setMainImagePreviewUrl('')
     setDescriptionImageErrors({})
     setDescriptionVideoErrors({})
     setProductVideoErrors({})
@@ -701,10 +715,12 @@ function ProductDetailPage() {
       })
       return
     }
+    setMainImagePreviewUrl(URL.createObjectURL(file))
     try {
       const stored = await uploadImageAsset(file)
       setDraft((prev) => (prev ? { ...prev, image: stored.url } : prev))
     } catch {
+      setMainImagePreviewUrl('')
       notify(t('Không thể tải ảnh sản phẩm'), {
         title: 'Products',
         variant: 'error',
@@ -1014,6 +1030,7 @@ function ProductDetailPage() {
             <img
               className="h-24 w-24 rounded-3xl border border-slate-200 bg-slate-50 object-cover"
               src={
+                mainImagePreviewUrl ||
                 resolveBackendAssetUrl(draft.image.trim()) ||
                 getImageUrl(product.image) ||
                 productPlaceholder
@@ -1203,9 +1220,10 @@ function ProductDetailPage() {
                   <input
                     className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
                     value={draft.image}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      setMainImagePreviewUrl('')
                       setDraft({ ...draft, image: event.target.value })
-                    }
+                    }}
                   />
                   <div className="mt-3 flex flex-wrap items-center gap-3">
                     <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">

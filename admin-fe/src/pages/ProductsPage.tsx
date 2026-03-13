@@ -153,6 +153,7 @@ function ProductsPage() {
   const retailPriceInputRef = useRef<HTMLInputElement | null>(null)
   const retailPriceCaretRef = useRef<number | null>(null)
   const [selectedImageName, setSelectedImageName] = useState('')
+  const [imagePreviewUrl, setImagePreviewUrl] = useState('')
   const [imageError, setImageError] = useState('')
   const [descriptionImageErrors, setDescriptionImageErrors] = useState<Record<number, string>>({})
   const [descriptionVideoErrors, setDescriptionVideoErrors] = useState<Record<number, string>>({})
@@ -266,6 +267,16 @@ function ProductsPage() {
     const timer = window.setTimeout(() => setActionMessage(''), 3000)
     return () => window.clearTimeout(timer)
   }, [actionMessage, notify])
+
+  useEffect(() => {
+    if (!imagePreviewUrl || !imagePreviewUrl.startsWith('blob:')) {
+      return
+    }
+
+    return () => {
+      URL.revokeObjectURL(imagePreviewUrl)
+    }
+  }, [imagePreviewUrl])
 
   const pageCount = Math.ceil(visibleProducts.length / ITEMS_PER_PAGE)
   const pagedProducts = useMemo(() => {
@@ -534,6 +545,7 @@ function ProductsPage() {
     setDescriptionImageErrors({})
     setDescriptionVideoErrors({})
     setProductVideoErrors({})
+    setImagePreviewUrl('')
     setImageError('')
     setSelectedImageName('')
     setErrors({})
@@ -559,11 +571,13 @@ function ProductsPage() {
       setImageError(t('Ảnh tối đa 10MB'))
       setSelectedImageName('')
       setNewProduct((prev) => ({ ...prev, imageUrl: '' }))
+      setImagePreviewUrl('')
       event.target.value = ''
       return
     }
     setImageError('')
     setSelectedImageName(file.name)
+    setImagePreviewUrl(URL.createObjectURL(file))
     try {
       const stored = await uploadImageAsset(file)
       setNewProduct((prev) => ({ ...prev, imageUrl: stored.url }))
@@ -572,10 +586,12 @@ function ProductsPage() {
       setSelectedImageName('')
       setNewProduct((prev) => ({ ...prev, imageUrl: '' }))
       event.target.value = ''
+      setImagePreviewUrl('')
     }
   }
 
   const handleClearImage = () => {
+    setImagePreviewUrl('')
     setImageError('')
     setSelectedImageName('')
     setNewProduct((prev) => ({ ...prev, imageUrl: '' }))
@@ -1353,7 +1369,7 @@ function ProductsPage() {
                         {t('Chọn ảnh')}
                       </label>
                     </div>
-                    {(selectedImageName || newProduct.imageUrl) && (
+                    {(selectedImageName || imagePreviewUrl || newProduct.imageUrl) && (
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
                         {selectedImageName && (
                           <span>
@@ -1361,7 +1377,7 @@ function ProductsPage() {
                             <span className="font-semibold text-slate-800">{selectedImageName}</span>
                           </span>
                         )}
-                        {!newProduct.imageUrl && (
+                        {(imagePreviewUrl || newProduct.imageUrl) && (
                           <button
                             type="button"
                             onClick={handleClearImage}
@@ -1376,7 +1392,7 @@ function ProductsPage() {
                     {imageError && (
                       <p className="mt-2 text-xs text-rose-500">{imageError}</p>
                     )}
-                    {newProduct.imageUrl && (
+                    {(imagePreviewUrl || newProduct.imageUrl) && (
                       <div className="group relative mt-3 overflow-hidden rounded-2xl border bg-white">
                         <button
                           type="button"
@@ -1387,7 +1403,7 @@ function ProductsPage() {
                           {t('\u0058\u00f3a \u1ea3nh')}
                         </button>
                         <img
-                          src={resolveBackendAssetUrl(newProduct.imageUrl)}
+                          src={imagePreviewUrl || resolveBackendAssetUrl(newProduct.imageUrl)}
                           alt={t('\u0058em tr\u01b0\u1edbc')}
                           className="h-40 w-full object-cover"
                           onError={(ev) => ((ev.target as HTMLImageElement).style.display = 'none')}
