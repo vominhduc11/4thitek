@@ -43,6 +43,7 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
     const [activeTab, setActiveTab] = useState<'all' | 'products' | 'blogs'>('all');
     const [recentSearches, setRecentSearches] = useState<string[]>([]);
     const inputRef = useRef<HTMLInputElement>(null);
+    const searchRequestIdRef = useRef(0);
     const { registerAnimation, completeAnimation, cancelAnimation } = useAnimationCoordinator();
     const { handleError } = useErrorHandler();
 
@@ -53,10 +54,18 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                 localStorage.getItem(SEARCH_HISTORY_STORAGE_KEY) ??
                 localStorage.getItem(LEGACY_SEARCH_HISTORY_STORAGE_KEY);
             if (saved) {
-                const parsed = JSON.parse(saved) as string[];
-                setRecentSearches(parsed);
-                localStorage.setItem(SEARCH_HISTORY_STORAGE_KEY, JSON.stringify(parsed));
-                localStorage.removeItem(LEGACY_SEARCH_HISTORY_STORAGE_KEY);
+                try {
+                    const parsed = JSON.parse(saved);
+                    const normalized = Array.isArray(parsed)
+                        ? parsed.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+                        : [];
+                    setRecentSearches(normalized);
+                    localStorage.setItem(SEARCH_HISTORY_STORAGE_KEY, JSON.stringify(normalized));
+                    localStorage.removeItem(LEGACY_SEARCH_HISTORY_STORAGE_KEY);
+                } catch {
+                    localStorage.removeItem(SEARCH_HISTORY_STORAGE_KEY);
+                    localStorage.removeItem(LEGACY_SEARCH_HISTORY_STORAGE_KEY);
+                }
             }
         }
     }, []);
@@ -64,9 +73,10 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
     // Focus input when modal opens
     useEffect(() => {
         if (isOpen && inputRef.current) {
-            setTimeout(() => {
+            const focusTimer = window.setTimeout(() => {
                 inputRef.current?.focus();
             }, 100);
+            return () => window.clearTimeout(focusTimer);
         }
     }, [isOpen]);
 
@@ -131,19 +141,25 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
     // Handle search with debouncing
     useEffect(() => {
         if (!query.trim()) {
+            searchRequestIdRef.current += 1;
             setResults([]);
             setIsSearching(false);
             return;
         }
 
         setIsSearching(true);
-        const searchTimeout = setTimeout(async () => {
+        const requestId = searchRequestIdRef.current + 1;
+        searchRequestIdRef.current = requestId;
+        const searchTimeout = window.setTimeout(async () => {
             const searchResults = await performSearch(query);
+            if (searchRequestIdRef.current !== requestId) {
+                return;
+            }
             setResults(searchResults);
             setIsSearching(false);
         }, ANIMATION_DURATIONS.NORMAL * 1000);
 
-        return () => clearTimeout(searchTimeout);
+        return () => window.clearTimeout(searchTimeout);
     }, [query, performSearch]);
 
     // Optimized search submit handler

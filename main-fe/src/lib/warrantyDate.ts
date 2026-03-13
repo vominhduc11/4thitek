@@ -5,14 +5,32 @@ const WARRANTY_DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
     year: 'numeric',
 };
 
-export const formatWarrantyPurchaseDate = (value: string, locale: string) => {
+const parseWarrantyDateParts = (value: string) => {
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
     if (!match) {
         throw new Error(`Invalid warranty purchase date: ${value}`);
     }
 
     const [, year, month, day] = match;
-    const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+    const parsedYear = Number(year);
+    const parsedMonth = Number(month);
+    const parsedDay = Number(day);
+    const date = new Date(Date.UTC(parsedYear, parsedMonth - 1, parsedDay));
+
+    if (
+        Number.isNaN(date.getTime()) ||
+        date.getUTCFullYear() !== parsedYear ||
+        date.getUTCMonth() !== parsedMonth - 1 ||
+        date.getUTCDate() !== parsedDay
+    ) {
+        throw new Error(`Invalid warranty purchase date: ${value}`);
+    }
+
+    return date;
+};
+
+export const formatWarrantyPurchaseDate = (value: string, locale: string) => {
+    const date = parseWarrantyDateParts(value);
     return new Intl.DateTimeFormat(locale, {
         ...WARRANTY_DATE_FORMAT_OPTIONS,
         timeZone: 'UTC',

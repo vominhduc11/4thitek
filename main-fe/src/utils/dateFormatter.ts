@@ -16,7 +16,7 @@ const formatWithDisplayTimeZone = (
     });
 
 export function formatDate(
-    dateString: string,
+    dateString?: string | null,
     locale: string = 'vi-VN',
     options: Intl.DateTimeFormatOptions = {
         day: '2-digit',
@@ -24,6 +24,10 @@ export function formatDate(
         year: 'numeric'
     }
 ): string {
+    if (!dateString) {
+        return '';
+    }
+
     try {
         const date = new Date(dateString);
 
@@ -39,7 +43,11 @@ export function formatDate(
     }
 }
 
-export function formatDateSafe(dateString: string, isHydrated: boolean = true, locale: string = 'vi-VN'): string {
+export function formatDateSafe(dateString?: string | null, isHydrated: boolean = true, locale: string = 'vi-VN'): string {
+    if (!dateString) {
+        return '';
+    }
+
     try {
         const date = new Date(dateString);
 

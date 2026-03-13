@@ -11,4 +11,9 @@ describe('dateFormatter', () => {
         expect(formatDateSafe('2026-03-13T23:30:00Z', false, 'vi-VN')).toBe('14/03/2026');
         expect(formatDateSafe('2026-03-13T23:30:00Z', true, 'vi-VN')).toBe('14/03/2026');
     });
+
+    it('returns an empty string for missing dates', () => {
+        expect(formatDate(undefined, 'vi-VN')).toBe('');
+        expect(formatDateSafe(undefined, true, 'vi-VN')).toBe('');
+    });
 });

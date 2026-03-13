@@ -20,6 +20,7 @@ type RequestOptions = {
     params?: Record<string, string | number | boolean | null | undefined>;
     cache?: RequestCache;
     revalidate?: number;
+    signal?: AbortSignal;
 };
 
 type ProductSummaryPayload = {
@@ -113,7 +114,7 @@ class ApiService {
     }
 
     private async request<T>(path: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
-        const { method = 'GET', token, body, params, cache, revalidate } = options;
+        const { method = 'GET', token, body, params, cache, revalidate, signal } = options;
         const isPublicGet = method === 'GET' && !token && body === undefined;
         const requestInit: RequestInit & { next?: { revalidate: number } } = {
             method,
@@ -123,7 +124,8 @@ class ApiService {
                 ...(body === undefined ? {} : { 'Content-Type': 'application/json' })
             },
             body: body === undefined ? undefined : JSON.stringify(body),
-            cache: cache ?? (isPublicGet ? 'force-cache' : 'no-store')
+            cache: cache ?? (isPublicGet ? 'force-cache' : 'no-store'),
+            signal
         };
         if (typeof window === 'undefined' && isPublicGet && revalidate !== undefined) {
             requestInit.next = { revalidate };
@@ -361,7 +363,8 @@ class ApiService {
     async searchProducts(
         query: string,
         limit: number = 10,
-        filters?: { minPrice?: number; maxPrice?: number }
+        filters?: { minPrice?: number; maxPrice?: number },
+        signal?: AbortSignal
     ) {
         const response = await this.request<ProductSummaryPayload[]>(API_ENDPOINTS.PRODUCT.PRODUCTS_SEARCH, {
             cache: 'no-store',
@@ -369,7 +372,8 @@ class ApiService {
                 query: query.trim() || undefined,
                 minPrice: filters?.minPrice,
                 maxPrice: filters?.maxPrice
-            }
+            },
+            signal
         });
         const results = (response.data ?? [])
             .map((product) => this.toProductListItem(product))

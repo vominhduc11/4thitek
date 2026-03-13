@@ -205,20 +205,30 @@ const parseBlogImage = (value?: string | null) => {
   return value
 }
 
-export const mapOrder = (order: BackendOrderResponse): Order => ({
-  id: String(order.id),
-  dealer: order.dealerName || '',
-  total: Number(order.totalAmount ?? 0),
-  status: mapBackendOrderStatus(order.status),
-  paymentMethod: mapBackendPaymentMethod(order.paymentMethod),
-  paymentStatus: mapBackendPaymentStatus(order.paymentStatus),
-  paidAmount: Number(order.paidAmount ?? 0),
-  outstandingAmount: Math.max(0, Number(order.totalAmount ?? 0) - Number(order.paidAmount ?? 0)),
-  items: Number(order.itemCount ?? 0),
-  address: order.address || '',
-  note: order.note || '',
-  createdAt: order.createdAt || '',
-})
+const parseFiniteNumber = (value: unknown, fallback = 0) => {
+  const parsed = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+export const mapOrder = (order: BackendOrderResponse): Order => {
+  const totalAmount = parseFiniteNumber(order.totalAmount)
+  const paidAmount = parseFiniteNumber(order.paidAmount)
+
+  return {
+    id: String(order.id),
+    dealer: order.dealerName || '',
+    total: totalAmount,
+    status: mapBackendOrderStatus(order.status),
+    paymentMethod: mapBackendPaymentMethod(order.paymentMethod),
+    paymentStatus: mapBackendPaymentStatus(order.paymentStatus),
+    paidAmount,
+    outstandingAmount: Math.max(0, totalAmount - paidAmount),
+    items: Number(order.itemCount ?? 0),
+    address: order.address || '',
+    note: order.note || '',
+    createdAt: order.createdAt || '',
+  }
+}
 
 export const mapBlog = (blog: BackendBlogResponse): BlogPost => ({
   id: String(blog.id),

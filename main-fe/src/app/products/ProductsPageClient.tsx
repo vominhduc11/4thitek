@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { ProductsHero, ProductGrid } from './components';
@@ -26,6 +26,7 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
     const [minPrice, setMinPrice] = useState('');
     const [maxPrice, setMaxPrice] = useState('');
     const { t, language } = useLanguage();
+    const activeRequestRef = useRef(0);
     const debouncedSearchQuery = useDebounce(searchQuery, 350);
     const { retry, retryCount, isRetrying, canRetry } = useRetry({
         maxAttempts: 3,
@@ -45,11 +46,16 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
             safeMaxPrice !== undefined;
 
         if (!hasFilters) {
+            activeRequestRef.current += 1;
             setProducts(initialProducts);
             setErrorKey(null);
             setLoading(false);
             return;
         }
+
+        const requestId = activeRequestRef.current + 1;
+        activeRequestRef.current = requestId;
+        const controller = new AbortController();
 
         const fetchProducts = async () => {
             try {
@@ -57,7 +63,11 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
                 const response = await apiService.searchProducts(normalizedQuery, 100, {
                     minPrice: safeMinPrice,
                     maxPrice: safeMaxPrice
-                });
+                }, controller.signal);
+
+                if (activeRequestRef.current !== requestId || controller.signal.aborted) {
+                    return;
+                }
 
                 if (response.success && response.data) {
                     const convertedProducts = response.data
@@ -69,14 +79,20 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
                     setErrorKey('errors.products.loadFailedMessage');
                 }
             } catch (error) {
+                if (controller.signal.aborted || activeRequestRef.current !== requestId) {
+                    return;
+                }
                 console.error('Error fetching products:', error);
                 setErrorKey('errors.products.loadFailedMessage');
             } finally {
-                setLoading(false);
+                if (activeRequestRef.current === requestId && !controller.signal.aborted) {
+                    setLoading(false);
+                }
             }
         };
 
         void fetchProducts();
+        return () => controller.abort();
     }, [debouncedSearchQuery, initialProducts, maxPrice, minPrice]);
 
     if (loading && products.length === 0) {

@@ -38,6 +38,24 @@ function OrderDetailPage() {
   const order = orders.find((item) => item.id === decodedId)
   const initialPaymentAmount =
     order && order.outstandingAmount > 0 ? String(order.outstandingAmount) : ''
+  const validatePaymentAmount = useCallback(
+    (value: string) => {
+      if (!value.trim()) {
+        return ''
+      }
+
+      const nextAmount = Number(value)
+      if (Number.isNaN(nextAmount) || nextAmount <= 0) {
+        return t('Sá»‘ tiá»n thanh toĂ¡n khĂ´ng há»£p lá»‡')
+      }
+      if (order && nextAmount > order.outstandingAmount) {
+        return t('Sá»‘ tiá»n khĂ´ng Ä‘Æ°á»£t vÆ°á»£t quĂ¡ cĂ²n láº¡i')
+      }
+
+      return ''
+    },
+    [order, t],
+  )
   const isPaymentDirty = useMemo(
     () =>
       Boolean(
@@ -277,12 +295,16 @@ function OrderDetailPage() {
                     aria-describedby={paymentError ? 'order-payment-amount-error' : undefined}
                     aria-invalid={Boolean(paymentError)}
                     className={`${inputClass} bg-white text-slate-700 ${paymentError ? 'border-rose-300' : ''}`}
+                    max={order.outstandingAmount > 0 ? order.outstandingAmount : undefined}
                     min="1"
                     onChange={(event) => {
                       setPaymentAmount(event.target.value)
                       const nextAmount = Number(event.target.value)
                       setPaymentError(
-                        !event.target.value.trim() || (!Number.isNaN(nextAmount) && nextAmount > 0)
+                        !event.target.value.trim() ||
+                        (!Number.isNaN(nextAmount) &&
+                          nextAmount > 0 &&
+                          nextAmount <= order.outstandingAmount)
                           ? ''
                           : t('Số tiền thanh toán không hợp lệ'),
                       )
@@ -316,6 +338,11 @@ function OrderDetailPage() {
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                 <PrimaryButton
                   onClick={async () => {
+                    const nextPaymentError = validatePaymentAmount(paymentAmount)
+                    if (nextPaymentError) {
+                      setPaymentError(nextPaymentError)
+                      return
+                    }
                     const amount = Number(paymentAmount)
                     if (Number.isNaN(amount) || amount <= 0) {
                       setPaymentError(t('Số tiền thanh toán không hợp lệ'))
