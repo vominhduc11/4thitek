@@ -20,4 +20,6 @@ public interface ProductSerialRepository extends JpaRepository<ProductSerial, Lo
 
     @EntityGraph(attributePaths = {"product", "dealer", "order", "warranty"})
     Page<ProductSerial> findAllByOrderByImportedAtDesc(Pageable pageable);
+
+    long countByOrderIdAndProductId(Long orderId, Long productId);
 }

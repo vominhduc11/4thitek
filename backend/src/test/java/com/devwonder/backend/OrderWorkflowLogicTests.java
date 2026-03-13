@@ -161,6 +161,26 @@ class OrderWorkflowLogicTests {
     }
 
     @Test
+    void dealerCannotCreateDebtOrderWithoutConfiguredCreditLimit() {
+        Dealer dealer = dealerRepository.save(createDealer("credit-not-configured@example.com"));
+        Product product = productRepository.save(createProduct("SKU-CREDIT-0", BigDecimal.valueOf(100_000)));
+
+        CreateDealerOrderRequest request = new CreateDealerOrderRequest(
+                PaymentMethod.DEBT,
+                "Dealer receiver",
+                "123 Credit Street",
+                "0900000000",
+                0,
+                "Debt order should require configured credit limit",
+                List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
+        );
+
+        assertThatThrownBy(() -> dealerPortalService.createOrder(dealer.getUsername(), request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Credit limit is not configured");
+    }
+
+    @Test
     void concurrentDebtOrdersRespectDealerCreditLimit() throws Exception {
         Dealer dealer = createDealer("credit-limit-race@example.com");
         dealer.setCreditLimit(BigDecimal.valueOf(150_000));
@@ -221,7 +241,7 @@ class OrderWorkflowLogicTests {
         var response = dealerPortalService.createOrder(
                 dealer.getUsername(),
                 new CreateDealerOrderRequest(
-                        PaymentMethod.DEBT,
+                        PaymentMethod.BANK_TRANSFER,
                         "Dealer receiver",
                         "123 Discount Street",
                         "0900000000",
@@ -319,6 +339,29 @@ class OrderWorkflowLogicTests {
     }
 
     @Test
+    void dealerPayloadCannotOverrideServerProductPrice() {
+        Dealer dealer = dealerRepository.save(createDealer("price-guard@example.com"));
+        Product product = productRepository.save(createProduct("SKU-PRICE-1", BigDecimal.valueOf(100_000)));
+
+        var response = dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer receiver",
+                        "123 Price Street",
+                        "0900000000",
+                        0,
+                        "Client price should be ignored",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, BigDecimal.ONE))
+                )
+        );
+
+        assertThat(response.subtotal()).isEqualByComparingTo("100000");
+        assertThat(response.items()).hasSize(1);
+        assertThat(response.items().get(0).unitPrice()).isEqualByComparingTo("100000");
+    }
+
+    @Test
     void adminCanRecordBankTransferPaymentWhenSepayIsDisabled() {
         Dealer dealer = dealerRepository.save(createDealer("manual-bank-payment@example.com"));
         Product product = productRepository.save(createProduct("SKU-BANK-1", BigDecimal.valueOf(100_000)));
@@ -387,10 +430,12 @@ class OrderWorkflowLogicTests {
 
     @Test
     void concurrentManualDuplicatePaymentsOnlyRecordOnce() throws Exception {
-        Dealer dealer = dealerRepository.save(createDealer("manual-duplicate@example.com"));
+        Dealer dealer = createDealer("manual-duplicate@example.com");
+        dealer.setCreditLimit(BigDecimal.valueOf(500_000));
+        Dealer savedDealer = dealerRepository.save(dealer);
         Product product = productRepository.save(createProduct("SKU-DUP-1", BigDecimal.valueOf(100_000)));
         var createdOrder = dealerPortalService.createOrder(
-                dealer.getUsername(),
+                savedDealer.getUsername(),
                 new CreateDealerOrderRequest(
                         PaymentMethod.DEBT,
                         "Dealer receiver",
@@ -454,7 +499,7 @@ class OrderWorkflowLogicTests {
         var createdOrder = dealerPortalService.createOrder(
                 dealer.getUsername(),
                 new CreateDealerOrderRequest(
-                        PaymentMethod.DEBT,
+                        PaymentMethod.BANK_TRANSFER,
                         "Dealer receiver",
                         "123 Cancel Street",
                         "0900000000",
@@ -474,6 +519,23 @@ class OrderWorkflowLogicTests {
         assertThat(notifications).hasSize(1);
         assertThat(notifications.get(0).getContent()).contains("hủy đơn");
         assertThat(notifications.get(0).getLink()).isEqualTo("/orders/" + createdOrder.id());
+    }
+
+    @Test
+    void adminCanDeleteOnlyCancelledOrders() {
+        Dealer dealer = dealerRepository.save(createDealer("delete-guard@example.com"));
+        Order pendingOrder = orderRepository.save(createOrder(dealer, OrderStatus.PENDING, "WF-DELETE-1"));
+
+        assertThatThrownBy(() -> adminManagementService.deleteOrder(pendingOrder.getId()))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Only cancelled orders can be deleted");
+
+        pendingOrder.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(pendingOrder);
+
+        adminManagementService.deleteOrder(pendingOrder.getId());
+
+        assertThat(orderRepository.findById(pendingOrder.getId()).orElseThrow().getIsDeleted()).isTrue();
     }
 
     private Dealer createDealer(String username) {

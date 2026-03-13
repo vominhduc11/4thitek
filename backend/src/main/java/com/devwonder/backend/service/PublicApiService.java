@@ -10,6 +10,7 @@ import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
 import com.devwonder.backend.entity.WarrantyRegistration;
+import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.PublishStatus;
 import com.devwonder.backend.entity.enums.WarrantyStatus;
 import com.devwonder.backend.exception.ResourceNotFoundException;
@@ -86,6 +87,7 @@ public class PublicApiService {
     @Cacheable(CacheNames.PUBLIC_DEALERS)
     public List<PublicDealerResponse> getDealers() {
         return dealerRepository.findAll().stream()
+                .filter(dealer -> dealer.getCustomerStatus() == null || dealer.getCustomerStatus() == CustomerStatus.ACTIVE)
                 .map(this::toDealer)
                 .toList();
     }

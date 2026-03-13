@@ -32,6 +32,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isSubmitting = false;
   bool _isLoadingBankTransferInstructions = false;
 
+  bool get _canUseDebtPayment => _profile.creditLimit > 0;
+
   @override
   void initState() {
     super.initState();
@@ -41,7 +43,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           if (!mounted) {
             return;
           }
-          setState(() => _profile = profile);
+          final canUseDebtPayment = profile.creditLimit > 0;
+          setState(() {
+            _profile = profile;
+            if (_method == OrderPaymentMethod.debt && !canUseDebtPayment) {
+              _method = OrderPaymentMethod.bankTransfer;
+            }
+          });
         })
         .catchError((_) {
           // Keep default profile when remote profile is temporarily unavailable.
@@ -80,7 +88,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (!mounted) {
       return;
     }
-    setState(() => _profile = latestProfile);
+    final canUseDebtPayment = latestProfile.creditLimit > 0;
+    setState(() {
+      _profile = latestProfile;
+      if (_method == OrderPaymentMethod.debt && !canUseDebtPayment) {
+        _method = OrderPaymentMethod.bankTransfer;
+      }
+    });
   }
 
   Future<void> _loadBankTransferInstructions({bool showError = false}) async {
@@ -237,9 +251,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         ),
                         RadioListTile<OrderPaymentMethod>(
                           value: OrderPaymentMethod.debt,
+                          enabled: _canUseDebtPayment,
                           title: const Text('Ghi nhan cong no'),
-                          subtitle: const Text(
-                            'Don duoc tao ngay va cong vao tong cong no hien tai.',
+                          subtitle: Text(
+                            _canUseDebtPayment
+                                ? 'Don duoc tao ngay va cong vao tong cong no hien tai.'
+                                : 'Can duoc cap han muc cong no truoc khi dung tuy chon nay.',
                           ),
                         ),
                       ],
@@ -439,6 +456,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   return;
                                 }
                               } else {
+                                if (!_canUseDebtPayment) {
+                                  _showSnackBar(
+                                    'Tai khoan chua duoc cap han muc cong no.',
+                                  );
+                                  return;
+                                }
                                 final confirmed = await _showDebtConfirmDialog(
                                   context,
                                   amount: total,

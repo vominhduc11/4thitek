@@ -21,6 +21,8 @@ import {
 } from '../components/ui-kit'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
 
+const canDeleteOrder = (status: OrderStatus) => status === 'cancelled'
+
 function OrderDetailPage() {
   const { id = '' } = useParams()
   const decodedId = decodeURIComponent(id)
@@ -405,6 +407,8 @@ function OrderDetailPage() {
             </p>
             <GhostButton
               className="mt-3 border-rose-200 text-rose-700 hover:border-rose-500 hover:text-rose-700"
+              disabled={!canDeleteOrder(order.status)}
+              title={canDeleteOrder(order.status) ? undefined : 'Chi xoa duoc don da huy'}
               onClick={async () => {
                 const approved = await confirm({
                   title: t('Xóa đơn hàng'),

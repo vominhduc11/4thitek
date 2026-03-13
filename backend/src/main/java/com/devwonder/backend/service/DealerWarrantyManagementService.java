@@ -130,6 +130,9 @@ public class DealerWarrantyManagementService {
             Long forcedDealerId
     ) {
         Dealer dealer = resolveDealer(forcedDealerId, productSerial);
+        if (productSerial.getStatus() == ProductSerialStatus.DEFECTIVE) {
+            throw new BadRequestException("Defective serial cannot be activated for warranty");
+        }
         LocalDate purchaseDate = request.purchaseDate();
         if (purchaseDate == null) {
             throw new BadRequestException("purchaseDate is required");
@@ -187,6 +190,9 @@ public class DealerWarrantyManagementService {
 
     private Dealer resolveDealer(Long forcedDealerId, ProductSerial productSerial) {
         Long productDealerId = productSerial.getDealer() == null ? null : productSerial.getDealer().getId();
+        if (forcedDealerId != null && productDealerId == null) {
+            throw new ResourceNotFoundException("Product serial not found");
+        }
         if (forcedDealerId != null && productDealerId != null && !forcedDealerId.equals(productDealerId)) {
             throw new ResourceNotFoundException("Product serial not found");
         }

@@ -311,7 +311,6 @@ class OrderController extends ChangeNotifier {
               (item) => <String, dynamic>{
                 'productId': int.tryParse(item.product.id),
                 'quantity': item.quantity,
-                'unitPrice': item.product.price,
               },
             )
             .where((item) => item['productId'] != null)

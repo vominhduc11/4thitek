@@ -187,6 +187,9 @@ public class AdminManagementService {
     public void deleteOrder(Long id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+        if (order.getStatus() != OrderStatus.CANCELLED) {
+            throw new BadRequestException("Only cancelled orders can be deleted");
+        }
         boolean wasVisible = !Boolean.TRUE.equals(order.getIsDeleted());
         order.setIsDeleted(true);
         Order saved = orderRepository.save(order);

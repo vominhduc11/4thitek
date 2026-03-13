@@ -3,12 +3,15 @@ package com.devwonder.backend;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
 import com.devwonder.backend.entity.WarrantyRegistration;
+import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.entity.enums.PublishStatus;
 import com.devwonder.backend.entity.enums.WarrantyStatus;
+import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
@@ -38,11 +41,15 @@ class PublicApiServiceTests {
     @Autowired
     private ProductRepository productRepository;
 
+    @Autowired
+    private DealerRepository dealerRepository;
+
     @BeforeEach
     void setUp() {
         warrantyRegistrationRepository.deleteAll();
         productSerialRepository.deleteAll();
         productRepository.deleteAll();
+        dealerRepository.deleteAll();
     }
 
     @Test
@@ -124,6 +131,17 @@ class PublicApiServiceTests {
         assertThat(response.status()).isEqualTo("VOID");
     }
 
+    @Test
+    void getDealersReturnsOnlyActiveDealerAccounts() {
+        dealerRepository.save(createDealer("active-dealer@example.com", CustomerStatus.ACTIVE));
+        dealerRepository.save(createDealer("pending-dealer@example.com", CustomerStatus.UNDER_REVIEW));
+
+        var response = publicApiService.getDealers();
+
+        assertThat(response).hasSize(1);
+        assertThat(response.get(0).email()).isEqualTo("active-dealer@example.com");
+    }
+
     private Product createProduct(String sku, PublishStatus publishStatus) {
         Product product = new Product();
         product.setName("Product " + sku);
@@ -139,5 +157,15 @@ class PublicApiServiceTests {
         serial.setSerial(serialValue);
         serial.setStatus(ProductSerialStatus.WARRANTY);
         return productSerialRepository.save(serial);
+    }
+
+    private Dealer createDealer(String email, CustomerStatus status) {
+        Dealer dealer = new Dealer();
+        dealer.setUsername(email);
+        dealer.setEmail(email);
+        dealer.setPassword("encoded-password");
+        dealer.setBusinessName("Dealer " + email);
+        dealer.setCustomerStatus(status);
+        return dealer;
     }
 }

@@ -114,7 +114,7 @@ class AdminOrderNotificationTests {
     @Test
     void deleteOrderHidesItFromDealerPortalAndCreatesNotification() {
         Dealer dealer = dealerRepository.save(createDealer("dealer-delete@example.com"));
-        Order order = orderRepository.save(createOrder(dealer, OrderStatus.PENDING, "SCS-1-DELETE"));
+        Order order = orderRepository.save(createOrder(dealer, OrderStatus.CANCELLED, "SCS-1-DELETE"));
 
         adminManagementService.deleteOrder(order.getId());
 

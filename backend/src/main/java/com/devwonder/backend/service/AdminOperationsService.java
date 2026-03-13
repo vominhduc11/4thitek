@@ -17,11 +17,13 @@ import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.DealerSupportTicket;
 import com.devwonder.backend.entity.Notify;
 import com.devwonder.backend.entity.Order;
+import com.devwonder.backend.entity.OrderItem;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
 import com.devwonder.backend.entity.WarrantyRegistration;
 import com.devwonder.backend.entity.enums.DealerSupportTicketStatus;
 import com.devwonder.backend.entity.enums.NotifyType;
+import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.entity.enums.WarrantyStatus;
 import com.devwonder.backend.exception.BadRequestException;
@@ -43,6 +45,7 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -155,8 +158,19 @@ public class AdminOperationsService {
 
         Dealer dealer = resolveDealer(request.dealerId());
         Order order = resolveOrder(request.orderId());
+        if (order != null && order.getStatus() == OrderStatus.CANCELLED) {
+            throw new BadRequestException("Cannot import serials for a cancelled order");
+        }
         if (dealer == null && order != null) {
             dealer = order.getDealer();
+        }
+        if (dealer != null && order != null && order.getDealer() != null
+                && !Objects.equals(dealer.getId(), order.getDealer().getId())) {
+            throw new BadRequestException("Dealer does not own the selected order");
+        }
+        int orderedQuantity = resolveOrderedQuantity(order, product.getId());
+        if (order != null && orderedQuantity <= 0) {
+            throw new BadRequestException("Product is not part of the selected order");
         }
 
         Set<String> uniqueSerials = new LinkedHashSet<>();
@@ -173,6 +187,18 @@ public class AdminOperationsService {
         if (uniqueSerials.isEmpty()) {
             throw new BadRequestException("No valid serials supplied");
         }
+        ProductSerialStatus initialStatus = request.status() == null ? ProductSerialStatus.AVAILABLE : request.status();
+        if (initialStatus != ProductSerialStatus.AVAILABLE
+                && initialStatus != ProductSerialStatus.DEFECTIVE
+                && initialStatus != ProductSerialStatus.SOLD) {
+            throw new BadRequestException("Unsupported serial import status");
+        }
+        if (order != null) {
+            long existingSerialCount = productSerialRepository.countByOrderIdAndProductId(order.getId(), product.getId());
+            if (existingSerialCount + uniqueSerials.size() > orderedQuantity) {
+                throw new BadRequestException("Imported serial count exceeds ordered quantity");
+            }
+        }
 
         List<AdminSerialResponse> imported = new ArrayList<>();
         for (String serial : uniqueSerials) {
@@ -181,7 +207,7 @@ public class AdminOperationsService {
             productSerial.setProduct(product);
             productSerial.setDealer(dealer);
             productSerial.setOrder(order);
-            productSerial.setStatus(request.status() == null ? ProductSerialStatus.AVAILABLE : request.status());
+            productSerial.setStatus(initialStatus);
             productSerial.setWarehouseId(defaultIfBlank(request.warehouseId(), "main"));
             productSerial.setWarehouseName(defaultIfBlank(request.warehouseName(), "Kho tong"));
             imported.add(toSerialResponse(productSerialRepository.save(productSerial)));
@@ -354,6 +380,20 @@ public class AdminOperationsService {
         }
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+    }
+
+    private int resolveOrderedQuantity(Order order, Long productId) {
+        if (order == null || order.getOrderItems() == null || productId == null) {
+            return 0;
+        }
+        return order.getOrderItems().stream()
+                .filter(item -> item != null
+                        && item.getProduct() != null
+                        && Objects.equals(item.getProduct().getId(), productId))
+                .map(OrderItem::getQuantity)
+                .filter(Objects::nonNull)
+                .mapToInt(quantity -> Math.max(0, quantity))
+                .sum();
     }
 
     private WarrantyStatus resolveWarrantyStatus(WarrantyRegistration registration) {

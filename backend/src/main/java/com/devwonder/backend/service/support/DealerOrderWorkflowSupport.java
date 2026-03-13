@@ -62,7 +62,7 @@ public class DealerOrderWorkflowSupport {
             item.setOrder(order);
             item.setProduct(product);
             item.setQuantity(itemRequest.quantity());
-            item.setUnitPrice(DealerOrderSupport.resolveUnitPrice(itemRequest.unitPrice(), product));
+            item.setUnitPrice(DealerOrderSupport.resolveUnitPrice(product));
             items.add(item);
         }
         orderInventorySupport.reserveStock(requestedQuantities, lockedProducts);
@@ -109,7 +109,7 @@ public class DealerOrderWorkflowSupport {
         }
         BigDecimal creditLimit = zeroIfNull(dealer.getCreditLimit());
         if (creditLimit.compareTo(BigDecimal.ZERO) <= 0) {
-            return;
+            throw new BadRequestException("Credit limit is not configured");
         }
         BigDecimal currentOutstandingDebt = orderRepository
                 .findVisibleByDealerIdAndStatusNotAndPaymentMethodOrderByCreatedAtDesc(

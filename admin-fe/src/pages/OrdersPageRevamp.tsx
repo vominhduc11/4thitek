@@ -36,6 +36,8 @@ const ORDER_STATUS_OPTIONS: Array<{ value: 'all' | OrderStatus; label: string }>
   { value: 'cancelled', label: orderStatusLabel.cancelled },
 ]
 
+const canDeleteOrder = (status: OrderStatus) => status === 'cancelled'
+
 const copyByLanguage = {
   vi: {
     title: '\u0110\u01a1n h\u00e0ng',
@@ -291,8 +293,10 @@ function OrdersPageRevamp() {
                     </select>
                     <GhostButton
                       className="w-full"
+                      disabled={!canDeleteOrder(order.status)}
                       icon={<Trash2 className="h-4 w-4" />}
                       onClick={() => void handleDeleteOrder(order.id)}
+                      title={canDeleteOrder(order.status) ? undefined : copy.deleteMessage}
                       type="button"
                     >
                       {copy.deleteLabel}
@@ -361,8 +365,10 @@ function OrdersPageRevamp() {
                           </select>
                           <GhostButton
                             className="min-h-11 min-w-0 px-3"
+                            disabled={!canDeleteOrder(order.status)}
                             icon={<Trash2 className="h-4 w-4" />}
                             onClick={() => void handleDeleteOrder(order.id)}
+                            title={canDeleteOrder(order.status) ? undefined : copy.deleteMessage}
                             type="button"
                           >
                             {copy.deleteLabel}

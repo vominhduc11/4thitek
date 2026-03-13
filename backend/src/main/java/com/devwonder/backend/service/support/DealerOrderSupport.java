@@ -19,10 +19,7 @@ public final class DealerOrderSupport {
                 : order.getPaymentMethod();
     }
 
-    public static BigDecimal resolveUnitPrice(BigDecimal requestedPrice, Product product) {
-        if (requestedPrice != null && requestedPrice.compareTo(BigDecimal.ZERO) > 0) {
-            return requestedPrice.setScale(0, RoundingMode.HALF_UP);
-        }
+    public static BigDecimal resolveUnitPrice(Product product) {
         if (product != null && product.getRetailPrice() != null) {
             return product.getRetailPrice().setScale(0, RoundingMode.HALF_UP);
         }
