@@ -4,7 +4,6 @@ import com.devwonder.backend.dto.dealer.DealerBankTransferInstructionResponse;
 import com.devwonder.backend.dto.notify.CreateNotifyRequest;
 import com.devwonder.backend.dto.webhook.SepayWebhookRequest;
 import com.devwonder.backend.entity.Order;
-import com.devwonder.backend.entity.OrderItem;
 import com.devwonder.backend.entity.Payment;
 import com.devwonder.backend.entity.enums.DiscountRuleStatus;
 import com.devwonder.backend.entity.enums.NotifyType;
@@ -12,11 +11,10 @@ import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
 import com.devwonder.backend.exception.BadRequestException;
-import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.exception.UnauthorizedException;
+import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.PaymentRepository;
-import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -33,15 +31,20 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 @RequiredArgsConstructor
 public class SepayService {
 
+    private static final Logger log = LoggerFactory.getLogger(SepayService.class);
     private static final ZoneId APP_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final Pattern ORDER_CODE_PATTERN = Pattern.compile("\\bSCS-\\d+-\\d+(?:-\\d+)?\\b", Pattern.CASE_INSENSITIVE);
     private static final DateTimeFormatter SEPAY_DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -80,7 +83,7 @@ public class SepayService {
     @Transactional
     public WebhookResult processWebhook(SepayWebhookRequest request, String providedToken) {
         if (!sepayEnabled) {
-            throw new BadRequestException("SePay webhook is not enabled");
+            return WebhookResult.ignored("disabled", null, null, "SePay webhook is disabled");
         }
         validateWebhookToken(providedToken);
 
@@ -142,14 +145,12 @@ public class SepayService {
         order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
         orderRepository.save(order);
 
-        if (order.getDealer() != null) {
-            notificationService.create(new CreateNotifyRequest(
+        if (order.getDealer() != null && order.getDealer().getId() != null) {
+            queuePaymentNotificationAfterCommit(
                     order.getDealer().getId(),
-                    "Thanh toán chuyển khoản đã được xác nhận",
-                    "SePay da ghi nhan " + payment.getAmount().toPlainString() + " cho don " + order.getOrderCode() + ".",
-                    NotifyType.ORDER,
-                    "/orders/" + order.getOrderCode()
-            ));
+                    payment.getAmount(),
+                    order.getOrderCode()
+            );
         }
 
         return WebhookResult.processed(
@@ -174,9 +175,39 @@ public class SepayService {
             throw new BadRequestException("SePay webhook token is not configured");
         }
         String normalizedProvided = normalize(providedToken);
-        if (!normalizedConfigured.equals(normalizedProvided)) {
+        byte[] configuredBytes = normalizedConfigured.getBytes(StandardCharsets.UTF_8);
+        byte[] providedBytes = (normalizedProvided == null ? "" : normalizedProvided).getBytes(StandardCharsets.UTF_8);
+        if (!MessageDigest.isEqual(configuredBytes, providedBytes)) {
             throw new UnauthorizedException("Invalid SePay webhook token");
         }
+    }
+
+    private void queuePaymentNotificationAfterCommit(Long dealerId, BigDecimal amount, String orderCode) {
+        Runnable notificationTask = () -> {
+            try {
+                notificationService.create(new CreateNotifyRequest(
+                        dealerId,
+                        "Thanh toán chuyển khoản đã được xác nhận",
+                        "SePay đã ghi nhận " + amount.toPlainString() + " cho đơn " + orderCode + ".",
+                        NotifyType.ORDER,
+                        "/orders/" + orderCode
+                ));
+            } catch (RuntimeException ex) {
+                log.warn("Could not create SePay payment notification for order {}", orderCode, ex);
+            }
+        };
+
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            notificationTask.run();
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                notificationTask.run();
+            }
+        });
     }
 
     private boolean isIncomingTransfer(String transferType) {
