@@ -37,6 +37,34 @@ type GalleryItem = {
   url: string
 }
 
+type ProductSpecificationItem = {
+  label: string
+  value: string
+}
+
+type ProductVideoItem = {
+  title: string
+  descriptions: string
+  url: string
+  type: 'unboxing' | 'tutorial'
+}
+
+type NewProductDraft = {
+  name: string
+  sku: string
+  shortDescription: string
+  descriptions: DescriptionItem[]
+  specifications: ProductSpecificationItem[]
+  videos: ProductVideoItem[]
+  retailPrice: string
+  warrantyPeriod: string
+  stock: string
+  publishStatus: 'DRAFT' | 'PUBLISHED'
+  isFeatured: boolean
+  showOnHomepage: boolean
+  imageUrl: string
+}
+
 type DescriptionItem = {
   type: 'title' | 'description' | 'image' | 'gallery' | 'video'
   text?: string
@@ -81,7 +109,7 @@ const createSpecificationTemplate = () => [
   { label: '', value: '' },
 ]
 
-const createVideoTemplate = () => [
+const createVideoTemplate = (): ProductVideoItem[] => [
   { title: '', descriptions: '', url: '', type: 'tutorial' as const },
 ]
 
@@ -100,7 +128,7 @@ const hasSpecificationContent = (items: Array<{ label: string; value: string }>)
   items.some((item) => item.label.trim() || item.value.trim())
 
 const hasVideoContent = (
-  items: Array<{ title: string; descriptions: string; url: string; type: 'unboxing' | 'tutorial' }>,
+  items: ProductVideoItem[],
 ) => items.some((item) => item.title.trim() || item.descriptions.trim() || item.url.trim())
 
 const isValidRemoteUrl = (value: string) => {
@@ -168,18 +196,54 @@ const suggestedSpecificationLabels = [
   'B\u1ea3o h\u00e0nh',
 ]
 
-const createInitialNewProduct = () => ({
+const sanitizeDescriptionItem = (item: DescriptionItem): DescriptionItem | null => {
+  if (item.type === 'title' || item.type === 'description') {
+    const text = item.text?.trim() ?? ''
+    return text ? { type: item.type, text } : null
+  }
+
+  if (item.type === 'image' || item.type === 'video') {
+    const url = item.url?.trim() ?? ''
+    const caption = item.caption?.trim() ?? ''
+    if (!url && !caption) {
+      return null
+    }
+
+    return {
+      type: item.type,
+      ...(url ? { url } : {}),
+      ...(caption ? { caption } : {}),
+    }
+  }
+
+  const gallery = (item.gallery ?? [])
+    .map((galleryItem) => ({ url: galleryItem.url.trim() }))
+    .filter((galleryItem) => galleryItem.url)
+  const caption = item.caption?.trim() ?? ''
+
+  if (gallery.length === 0 && !caption) {
+    return null
+  }
+
+  return {
+    type: 'gallery',
+    ...(gallery.length > 0 ? { gallery } : {}),
+    ...(caption ? { caption } : {}),
+  }
+}
+
+const sanitizeDescriptionItems = (items: DescriptionItem[]) =>
+  items
+    .map((item) => sanitizeDescriptionItem(item))
+    .filter((item): item is DescriptionItem => Boolean(item))
+
+const createInitialNewProduct = (): NewProductDraft => ({
   name: '',
   sku: '',
   shortDescription: '',
-  descriptions: [] as DescriptionItem[],
-  specifications: [] as { label: string; value: string }[],
-  videos: [] as {
-    title: string
-    descriptions: string
-    url: string
-    type: 'unboxing' | 'tutorial'
-  }[],
+  descriptions: [],
+  specifications: [],
+  videos: [],
   retailPrice: '',
   warrantyPeriod: '12',
   stock: '',
@@ -284,6 +348,12 @@ function ProductsPage() {
   const [imageError, setImageError] = useState('')
   const [descriptionImageErrors, setDescriptionImageErrors] = useState<Record<number, string>>({})
   const [productVideoErrors, setProductVideoErrors] = useState<Record<number, string>>({})
+  const [debouncedDescriptionVideoUrls, setDebouncedDescriptionVideoUrls] = useState<
+    Record<number, string>
+  >({})
+  const [debouncedProductVideoUrls, setDebouncedProductVideoUrls] = useState<Record<number, string>>(
+    {},
+  )
   const [activeTab, setActiveTab] = useState<'basic' | 'description' | 'specs' | 'videos'>('basic')
   const [currentPage, setCurrentPage] = useState(0)
   const [actionMessage, setActionMessage] = useState('')
@@ -403,6 +473,46 @@ function ProductsPage() {
     }
   }, [imagePreviewUrl])
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const nextUrls = newProduct.descriptions.reduce<Record<number, string>>((acc, item, index) => {
+        if (item.type !== 'video') {
+          return acc
+        }
+
+        const url = item.url?.trim() ?? ''
+        if (url) {
+          acc[index] = url
+        }
+
+        return acc
+      }, {})
+      setDebouncedDescriptionVideoUrls(nextUrls)
+    }, 400)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [newProduct.descriptions])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const nextUrls = newProduct.videos.reduce<Record<number, string>>((acc, item, index) => {
+        const url = item.url.trim()
+        if (url) {
+          acc[index] = url
+        }
+
+        return acc
+      }, {})
+      setDebouncedProductVideoUrls(nextUrls)
+    }, 400)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [newProduct.videos])
+
   const isCreateFormDirty = useMemo(
     () => JSON.stringify(newProduct) !== JSON.stringify(createInitialNewProduct()),
     [newProduct],
@@ -424,6 +534,7 @@ function ProductsPage() {
     }),
     [descriptionImageErrors, errors, imageError, productVideoErrors],
   )
+  const hasZeroRetailPrice = newProduct.retailPrice.trim() === '0'
 
   const pageCount = Math.ceil(visibleProducts.length / ITEMS_PER_PAGE)
   const pagedProducts = useMemo(() => {
@@ -448,6 +559,10 @@ function ProductsPage() {
     'rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]'
   const primaryButtonClass =
     'btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60'
+  const secondaryButtonClass =
+    'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60'
+  const subtleActionButtonClass =
+    'inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]'
   const filterBaseClass =
     'inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition whitespace-nowrap'
 
@@ -457,6 +572,116 @@ function ProductsPage() {
       category: 'products',
       accessToken,
     })
+
+  const getCreateFieldError = (
+    field: Exclude<CreateProductErrorField, 'videos'>,
+    draft: NewProductDraft = newProduct,
+  ) => {
+    if (field === 'name') {
+      return draft.name.trim() ? '' : t('Vui lòng nhập tên sản phẩm')
+    }
+
+    if (field === 'sku') {
+      const normalizedSku = draft.sku.trim()
+      if (!normalizedSku) {
+        return t('Vui lòng nhập SKU')
+      }
+
+      return products.some((product) => product.sku === normalizedSku) ? t('SKU đã tồn tại') : ''
+    }
+
+    if (field === 'retailPrice') {
+      if (!draft.retailPrice.trim()) {
+        return t('Vui lòng nhập giá bán lẻ')
+      }
+
+      const priceNum = Number(draft.retailPrice)
+      return Number.isNaN(priceNum) || priceNum < 0 ? t('Giá phải là số không âm') : ''
+    }
+
+    if (field === 'warrantyPeriod') {
+      const warrantyPeriodNum = Number(draft.warrantyPeriod)
+      return Number.isNaN(warrantyPeriodNum) ||
+        warrantyPeriodNum <= 0 ||
+        !Number.isInteger(warrantyPeriodNum)
+        ? t('Thời hạn bảo hành phải là số nguyên dương')
+        : ''
+    }
+
+    const stockNum = Number(draft.stock || 0)
+    return Number.isNaN(stockNum) || stockNum < 0 || !Number.isInteger(stockNum)
+      ? t('Tồn kho phải là số nguyên không âm')
+      : ''
+  }
+
+  const setCreateFieldError = (
+    field: Exclude<CreateProductErrorField, 'videos'>,
+    message: string,
+  ) => {
+    setErrors((prev) => {
+      if (!message) {
+        if (!(field in prev)) return prev
+        const next = { ...prev }
+        delete next[field]
+        return next
+      }
+
+      if (prev[field] === message) {
+        return prev
+      }
+
+      return {
+        ...prev,
+        [field]: message,
+      }
+    })
+  }
+
+  const validateCreateFieldOnBlur = (
+    field: Exclude<CreateProductErrorField, 'videos'>,
+    draft: NewProductDraft = newProduct,
+  ) => {
+    setCreateFieldError(field, getCreateFieldError(field, draft))
+  }
+
+  const getProductVideoError = (video: ProductVideoItem) => {
+    const hasVideoValues =
+      video.title.trim() || video.descriptions.trim() || video.url.trim()
+
+    if (!hasVideoValues) {
+      return ''
+    }
+
+    if (!video.url.trim()) {
+      return t('Vui lòng nhập URL video')
+    }
+
+    return isValidRemoteUrl(video.url) ? '' : t('URL video không hợp lệ')
+  }
+
+  const validateProductVideoOnBlur = (
+    index: number,
+    video: ProductVideoItem = newProduct.videos[index] ?? createVideoTemplate()[0],
+  ) => {
+    setProductVideoErrors((prev) => {
+      const message = getProductVideoError(video)
+      if (!message) {
+        if (!(index in prev)) return prev
+        const next = { ...prev }
+        delete next[index]
+        return next
+      }
+
+      if (prev[index] === message) {
+        return prev
+      }
+
+      return {
+        ...prev,
+        [index]: message,
+      }
+    })
+  }
 
   const focusCreateField = (field: CreateProductErrorField) => {
     const target =
@@ -840,6 +1065,8 @@ function ProductsPage() {
     retailPriceCaretRef.current = null
     setDescriptionImageErrors({})
     setProductVideoErrors({})
+    setDebouncedDescriptionVideoUrls({})
+    setDebouncedProductVideoUrls({})
     videoUrlInputRefs.current = {}
     setImagePreviewUrl('')
     setImageError('')
@@ -893,53 +1120,29 @@ function ProductsPage() {
   const validateCreateProduct = () => {
     const nextErrors: Record<string, string> = {}
     const nextProductVideoErrors: Record<number, string> = {}
+    const basicFields: Array<Exclude<CreateProductErrorField, 'videos'>> = [
+      'name',
+      'sku',
+      'retailPrice',
+      'warrantyPeriod',
+      'stock',
+    ]
 
-    if (!newProduct.name.trim()) {
-      nextErrors.name = t('Vui lòng nhập tên sản phẩm')
-    }
-    if (!newProduct.sku.trim()) {
-      nextErrors.sku = t('Vui lòng nhập SKU')
-    }
-    if (products.some((p) => p.sku === newProduct.sku.trim())) {
-      nextErrors.sku = t('SKU đã tồn tại')
-    }
+    basicFields.forEach((field) => {
+      const message = getCreateFieldError(field)
+      if (message) {
+        nextErrors[field] = message
+      }
+    })
 
     const priceNum = Number(newProduct.retailPrice)
-    if (Number.isNaN(priceNum) || priceNum < 0) {
-      nextErrors.retailPrice = t('Giá phải là số không âm')
-    }
-
     const warrantyPeriodNum = Number(newProduct.warrantyPeriod)
-    if (
-      Number.isNaN(warrantyPeriodNum) ||
-      warrantyPeriodNum <= 0 ||
-      !Number.isInteger(warrantyPeriodNum)
-    ) {
-      nextErrors.warrantyPeriod = t(
-        'Thời hạn bảo hành phải là số nguyên dương',
-      )
-    }
-
     const stockNum = Number(newProduct.stock || 0)
-    if (Number.isNaN(stockNum) || stockNum < 0 || !Number.isInteger(stockNum)) {
-      nextErrors.stock = t('Tồn kho phải là số nguyên không âm')
-    }
 
     newProduct.videos.forEach((video, index) => {
-      const hasVideoValues =
-        video.title.trim() || video.descriptions.trim() || video.url.trim()
-
-      if (!hasVideoValues) {
-        return
-      }
-
-      if (!video.url.trim()) {
-        nextProductVideoErrors[index] = t('Vui l\u00f2ng nh\u1eadp URL video')
-        return
-      }
-
-      if (!isValidRemoteUrl(video.url)) {
-        nextProductVideoErrors[index] = t('URL video kh\u00f4ng h\u1ee3p l\u1ec7')
+      const message = getProductVideoError(video)
+      if (message) {
+        nextProductVideoErrors[index] = message
       }
     })
 
@@ -947,6 +1150,8 @@ function ProductsPage() {
       Object.keys(nextProductVideoErrors)
         .map((key) => Number(key))
         .find((index) => !Number.isNaN(index)) ?? null
+
+    const sanitizedDescriptions = sanitizeDescriptionItems(newProduct.descriptions)
 
     const firstErrorField =
       createProductErrorFieldOrder.find((field) =>
@@ -975,6 +1180,7 @@ function ProductsPage() {
       firstErrorField,
       firstVideoErrorIndex,
       priceNum,
+      sanitizedDescriptions,
       stockNum,
       sanitizedSpecifications,
       sanitizedVideos,
@@ -993,6 +1199,7 @@ function ProductsPage() {
       firstErrorField,
       firstVideoErrorIndex,
       priceNum,
+      sanitizedDescriptions,
       sanitizedSpecifications,
       sanitizedVideos,
       stockNum,
@@ -1022,11 +1229,32 @@ function ProductsPage() {
       return
     }
 
-    const descJson = JSON.stringify(newProduct.descriptions || [])
+    const descJson = JSON.stringify(sanitizedDescriptions)
     const specJson = JSON.stringify(sanitizedSpecifications)
     const videoJson = JSON.stringify(sanitizedVideos)
 
     void (async () => {
+      if (newProduct.retailPrice.trim() === '0') {
+        const approved = await confirm({
+          title: t('Tạo sản phẩm với giá 0 VND?'),
+          message: t(
+            'Sản phẩm sẽ được lưu với giá bán lẻ bằng 0. Hãy xác nhận nếu đây là chủ đích của bạn.',
+          ),
+          confirmLabel: t('Vẫn tạo'),
+          cancelLabel: t('Xem lại giá'),
+          tone: 'warning',
+        })
+
+        if (!approved) {
+          setActiveTab('basic')
+          window.setTimeout(() => {
+            retailPriceInputRef.current?.focus()
+            retailPriceInputRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+          }, 0)
+          return
+        }
+      }
+
       setIsCreating(true)
       try {
         await addProduct({
@@ -1701,6 +1929,12 @@ function ProductsPage() {
                           placeholder={t('Nhập tên sản phẩm')}
                           value={newProduct.name}
                           onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                          onBlur={(e) =>
+                            validateCreateFieldOnBlur('name', {
+                              ...newProduct,
+                              name: e.target.value,
+                            })
+                          }
                         />
                         {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
                       </label>
@@ -1723,7 +1957,16 @@ function ProductsPage() {
                               warrantyPeriod: toDigitsOnly(e.target.value),
                             })
                           }
+                          onBlur={(e) =>
+                            validateCreateFieldOnBlur('warrantyPeriod', {
+                              ...newProduct,
+                              warrantyPeriod: toDigitsOnly(e.target.value),
+                            })
+                          }
                         />
+                        <p className="mt-1 text-xs text-slate-500">
+                          {t('Mặc định là 12 tháng nếu bạn không thay đổi.')}
+                        </p>
                         {errors.warrantyPeriod && (
                           <p className="mt-1 text-xs text-red-500">{errors.warrantyPeriod}</p>
                         )}
@@ -1737,7 +1980,16 @@ function ProductsPage() {
                           placeholder={t('Nhập SKU')}
                           value={newProduct.sku}
                           onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
+                          onBlur={(e) =>
+                            validateCreateFieldOnBlur('sku', {
+                              ...newProduct,
+                              sku: e.target.value,
+                            })
+                          }
                         />
+                        <p className="mt-1 text-xs text-slate-500">
+                          {t('Gợi ý: dùng chữ in hoa, số và dấu gạch ngang để dễ tìm kiếm.')}
+                        </p>
                         {errors.sku && <p className="mt-1 text-xs text-red-500">{errors.sku}</p>}
                       </label>
                       <label className="text-sm text-slate-700 md:col-span-2">
@@ -1826,11 +2078,26 @@ function ProductsPage() {
                               retailPriceCaretRef.current = caretPosition
                               setNewProduct({ ...newProduct, retailPrice: digitsOnly })
                             }}
+                            onBlur={(e) =>
+                              validateCreateFieldOnBlur('retailPrice', {
+                                ...newProduct,
+                                retailPrice: toDigitsOnly(e.target.value),
+                              })
+                            }
                           />
                           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500">
                             VND
                           </span>
                         </div>
+                        {hasZeroRetailPrice ? (
+                          <p className="mt-1 text-xs text-amber-600">
+                            {t('Giá 0 VND vẫn được phép, nhưng hệ thống sẽ hỏi xác nhận khi tạo.')}
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-xs text-slate-500">
+                            {t('Nhập giá bán lẻ thực tế của sản phẩm.')}
+                          </p>
+                        )}
                         {errors.retailPrice && (
                           <p className="mt-1 text-xs text-red-500">{errors.retailPrice}</p>
                         )}
@@ -1851,7 +2118,16 @@ function ProductsPage() {
                           onChange={(e) =>
                             setNewProduct({ ...newProduct, stock: toDigitsOnly(e.target.value) })
                           }
+                          onBlur={(e) =>
+                            validateCreateFieldOnBlur('stock', {
+                              ...newProduct,
+                              stock: toDigitsOnly(e.target.value),
+                            })
+                          }
                         />
+                        <p className="mt-1 text-xs text-slate-500">
+                          {t('Để trống nếu muốn mặc định tồn kho ban đầu là 0.')}
+                        </p>
                         {errors.stock && <p className="mt-1 text-xs text-red-500">{errors.stock}</p>}
                       </label>
                       <label className="text-sm text-slate-700">
@@ -1953,7 +2229,7 @@ function ProductsPage() {
                   </div>
                   <button
                     type="button"
-                    className="text-xs text-[var(--accent)] underline"
+                    className={subtleActionButtonClass}
                     onClick={() => {
                       void applyDescriptionTemplate()
                     }}
@@ -1966,7 +2242,7 @@ function ProductsPage() {
                     <p className="font-semibold text-slate-700">{t('Chưa có mô tả nào.')}</p>
                     <button
                       type="button"
-                      className="mt-2 text-xs font-semibold text-[var(--accent)]"
+                      className={`mt-2 ${subtleActionButtonClass}`}
                       onClick={() =>
                         setNewProduct({
                           ...newProduct,
@@ -2263,9 +2539,13 @@ function ProductsPage() {
                               setNewProduct({ ...newProduct, descriptions: copy })
                             }}
                           />
-                          {d.url && (
+                          {debouncedDescriptionVideoUrls[idx] &&
+                          isValidRemoteUrl(debouncedDescriptionVideoUrls[idx]) ? (
                             <div className="group relative overflow-hidden rounded-lg border border-slate-200 md:col-span-2">
-                              <ProductVideoPreview url={d.url} title={d.caption} />
+                              <ProductVideoPreview
+                                url={debouncedDescriptionVideoUrls[idx]}
+                                title={d.caption}
+                              />
                               <button
                                 type="button"
                                 className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
@@ -2278,7 +2558,7 @@ function ProductsPage() {
                                 {t('X\u00f3a video')}
                               </button>
                             </div>
-                          )}
+                          ) : null}
                         </div>
                       )}
                     </div>
@@ -2287,7 +2567,7 @@ function ProductsPage() {
                 {newProduct.descriptions.length > 0 && (
                   <button
                     type="button"
-                    className="text-xs text-[var(--accent)]"
+                    className={subtleActionButtonClass}
                     onClick={() =>
                       setNewProduct({
                         ...newProduct,
@@ -2332,7 +2612,7 @@ function ProductsPage() {
                   </div>
                   <button
                     type="button"
-                    className="text-xs text-[var(--accent)] underline"
+                    className={subtleActionButtonClass}
                     onClick={() => {
                       void applySpecificationTemplate()
                     }}
@@ -2345,7 +2625,7 @@ function ProductsPage() {
                     <p className="font-semibold text-slate-700">{t('Chưa có thông số nào.')}</p>
                     <button
                       type="button"
-                      className="mt-2 text-xs font-semibold text-[var(--accent)]"
+                      className={`mt-2 ${subtleActionButtonClass}`}
                       onClick={() =>
                         setNewProduct({
                           ...newProduct,
@@ -2419,7 +2699,7 @@ function ProductsPage() {
                 {newProduct.specifications.length > 0 && (
                   <button
                     type="button"
-                    className="text-xs text-[var(--accent)]"
+                    className={subtleActionButtonClass}
                     onClick={() =>
                       setNewProduct({
                         ...newProduct,
@@ -2449,7 +2729,7 @@ function ProductsPage() {
                   </div>
                   <button
                     type="button"
-                    className="text-xs text-[var(--accent)] underline"
+                    className={subtleActionButtonClass}
                     onClick={() => {
                       void applyVideoTemplate()
                     }}
@@ -2462,7 +2742,7 @@ function ProductsPage() {
                     <p className="font-semibold text-slate-700">{t('Chưa có video nào.')}</p>
                     <button
                       type="button"
-                      className="mt-2 text-xs font-semibold text-[var(--accent)]"
+                      className={`mt-2 ${subtleActionButtonClass}`}
                       onClick={() =>
                         setNewProduct({
                           ...newProduct,
@@ -2510,6 +2790,12 @@ function ProductsPage() {
                               return next
                             })
                           }}
+                          onBlur={(e) =>
+                            validateProductVideoOnBlur(idx, {
+                              ...v,
+                              url: e.target.value,
+                            })
+                          }
                         />
                       </label>
                       {productVideoErrors[idx] && (
@@ -2549,9 +2835,13 @@ function ProductsPage() {
                           />
                         </label>
                       </div>
-                      {v.url && (
+                      {debouncedProductVideoUrls[idx] &&
+                      isValidRemoteUrl(debouncedProductVideoUrls[idx]) ? (
                         <div className="group relative overflow-hidden rounded-lg border border-slate-200">
-                          <ProductVideoPreview url={v.url} title={v.title} />
+                          <ProductVideoPreview
+                            url={debouncedProductVideoUrls[idx]}
+                            title={v.title}
+                          />
                           <button
                             type="button"
                             className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
@@ -2570,7 +2860,7 @@ function ProductsPage() {
                             {t('X\u00f3a video')}
                           </button>
                         </div>
-                      )}
+                      ) : null}
                       <div className="flex items-center justify-end gap-2">
                         <button
                           type="button"
@@ -2627,7 +2917,7 @@ function ProductsPage() {
                 {newProduct.videos.length > 0 && (
                   <button
                     type="button"
-                    className="text-xs text-[var(--accent)]"
+                    className={subtleActionButtonClass}
                     onClick={() =>
                       setNewProduct({
                         ...newProduct,
@@ -2648,7 +2938,7 @@ function ProductsPage() {
                 <button
                   type="button"
                   disabled={isCreating}
-                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  className={secondaryButtonClass}
                   onClick={() => {
                     void requestCloseModal()
                   }}
