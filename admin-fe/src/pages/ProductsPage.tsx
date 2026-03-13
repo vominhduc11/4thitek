@@ -540,10 +540,10 @@ function ProductsPage() {
   }
 
   const descriptionTypeOptions: Array<{ id: DescriptionItem['type']; label: string }> = [
-    { id: 'title', label: t('TiĂªu Ä‘á»') },
-    { id: 'description', label: t('MĂ´ táº£') },
-    { id: 'image', label: t('HĂ¬nh áº£nh') },
-    { id: 'gallery', label: t('Nhiá»u hĂ¬nh áº£nh') },
+    { id: 'title', label: t('Tiêu đề') },
+    { id: 'description', label: t('Mô tả') },
+    { id: 'image', label: t('Hình ảnh') },
+    { id: 'gallery', label: t('Nhiều hình ảnh') },
     { id: 'video', label: t('Video') },
   ]
 
@@ -705,7 +705,7 @@ function ProductsPage() {
     if (file.size > MAX_IMAGE_BYTES) {
       setDescriptionImageErrors((prev) => ({
         ...prev,
-        [index]: t('áº¢nh tá»‘i Ä‘a 10MB'),
+        [index]: t('Ảnh tối đa 10MB'),
       }))
       return
     }
@@ -742,7 +742,7 @@ function ProductsPage() {
     if (oversized) {
       setDescriptionImageErrors((prev) => ({
         ...prev,
-        [index]: t('áº¢nh tá»‘i Ä‘a 10MB'),
+        [index]: t('Ảnh tối đa 10MB'),
       }))
     }
     const validFiles = fileList.filter((file) => file.size <= MAX_IMAGE_BYTES)
@@ -782,7 +782,7 @@ function ProductsPage() {
     if (file.size > MAX_IMAGE_BYTES) {
       setDescriptionImageErrors((prev) => ({
         ...prev,
-        [index]: t('áº¢nh tá»‘i Ä‘a 10MB'),
+        [index]: t('Ảnh tối đa 10MB'),
       }))
       return
     }
@@ -895,18 +895,18 @@ function ProductsPage() {
     const nextProductVideoErrors: Record<number, string> = {}
 
     if (!newProduct.name.trim()) {
-      nextErrors.name = t('Vui lĂ²ng nháº­p tĂªn sáº£n pháº©m')
+      nextErrors.name = t('Vui lòng nhập tên sản phẩm')
     }
     if (!newProduct.sku.trim()) {
-      nextErrors.sku = t('Vui lĂ²ng nháº­p SKU')
+      nextErrors.sku = t('Vui lòng nhập SKU')
     }
     if (products.some((p) => p.sku === newProduct.sku.trim())) {
-      nextErrors.sku = t('SKU Ä‘Ă£ tá»“n táº¡i')
+      nextErrors.sku = t('SKU đã tồn tại')
     }
 
     const priceNum = Number(newProduct.retailPrice)
     if (Number.isNaN(priceNum) || priceNum < 0) {
-      nextErrors.retailPrice = t('GiĂ¡ pháº£i lĂ  sá»‘ khĂ´ng Ă¢m')
+      nextErrors.retailPrice = t('Giá phải là số không âm')
     }
 
     const warrantyPeriodNum = Number(newProduct.warrantyPeriod)
@@ -916,13 +916,13 @@ function ProductsPage() {
       !Number.isInteger(warrantyPeriodNum)
     ) {
       nextErrors.warrantyPeriod = t(
-        'Thá»i háº¡n báº£o hĂ nh pháº£i lĂ  sá»‘ nguyĂªn dÆ°Æ¡ng',
+        'Thời hạn bảo hành phải là số nguyên dương',
       )
     }
 
     const stockNum = Number(newProduct.stock || 0)
     if (Number.isNaN(stockNum) || stockNum < 0 || !Number.isInteger(stockNum)) {
-      nextErrors.stock = t('Tá»“n kho pháº£i lĂ  sá»‘ nguyĂªn khĂ´ng Ă¢m')
+      nextErrors.stock = t('Tồn kho phải là số nguyên không âm')
     }
 
     newProduct.videos.forEach((video, index) => {
@@ -1048,7 +1048,7 @@ function ProductsPage() {
         })
         closeModal()
       } catch (error) {
-        notify(error instanceof Error ? error.message : t('KhÄ‚Â´ng thĂ¡Â»Æ’ tĂ¡ÂºÂ¡o sĂ¡ÂºÂ£n phĂ¡ÂºÂ©m'), {
+        notify(error instanceof Error ? error.message : t('Không thể tạo sản phẩm'), {
           title: 'Products',
           variant: 'error',
         })
@@ -1064,7 +1064,7 @@ function ProductsPage() {
       return
     }
     if (file.size > MAX_IMAGE_BYTES) {
-      setImageError(t('áº¢nh tá»‘i Ä‘a 10MB'))
+      setImageError(t('Ảnh tối đa 10MB'))
       setSelectedImageName('')
       setNewProduct((prev) => ({ ...prev, imageUrl: '' }))
       setImagePreviewUrl('')
@@ -1103,19 +1103,19 @@ function ProductsPage() {
 
   const handleDelete = useCallback(async (sku: string) => {
     const approved = await confirm({
-      title: t('XĂ³a vÄ©nh viá»…n sáº£n pháº©m'),
-      message: t('XĂ³a vÄ©nh viá»…n sáº£n pháº©m nĂ y?'),
+      title: t('Xóa vĩnh viễn sản phẩm'),
+      message: t('Xóa vĩnh viễn sản phẩm này?'),
       tone: 'danger',
-      confirmLabel: t('XĂ³a'),
+      confirmLabel: t('Xóa'),
     })
     if (!approved) {
       return
     }
     try {
       await deleteProduct(sku)
-      setActionMessage(t("ÄĂ£ xĂ³a vÄ©nh viá»…n sáº£n pháº©m."))
+      setActionMessage(t('Đã xóa vĩnh viễn sản phẩm.'))
     } catch (error) {
-      notify(error instanceof Error ? error.message : t('KhĂ´ng thá»ƒ xĂ³a sáº£n pháº©m'), {
+      notify(error instanceof Error ? error.message : t('Không thể xóa sản phẩm'), {
         title: 'Products',
         variant: 'error',
       })
@@ -1126,9 +1126,9 @@ function ProductsPage() {
     if (product.isDeleted) {
       try {
         await restoreProduct(product.sku)
-        setActionMessage(t("ÄĂ£ khĂ´i phá»¥c sáº£n pháº©m vá» báº£n nhĂ¡p."))
+        setActionMessage(t('Đã khôi phục sản phẩm về bản nháp.'))
       } catch (error) {
-        notify(error instanceof Error ? error.message : t('KhĂ´ng thá»ƒ khĂ´i phá»¥c sáº£n pháº©m'), {
+        notify(error instanceof Error ? error.message : t('Không thể khôi phục sản phẩm'), {
           title: 'Products',
           variant: 'error',
         })
@@ -1136,19 +1136,19 @@ function ProductsPage() {
       return
     }
     const approved = await confirm({
-      title: t('áº¨n sáº£n pháº©m'),
-      message: t('áº¨n sáº£n pháº©m nĂ y khá»i danh má»¥c?'),
+      title: t('Ẩn sản phẩm'),
+      message: t('Ẩn sản phẩm này khỏi danh mục?'),
       tone: 'warning',
-      confirmLabel: t('áº¨n sáº£n pháº©m'),
+      confirmLabel: t('Ẩn sản phẩm'),
     })
     if (!approved) {
       return
     }
     try {
       await archiveProduct(product.sku)
-      setActionMessage(t("ÄĂ£ áº©n sáº£n pháº©m khá»i danh má»¥c."))
+      setActionMessage(t('Đã ẩn sản phẩm khỏi danh mục.'))
     } catch (error) {
-      notify(error instanceof Error ? error.message : t('KhĂ´ng thá»ƒ áº©n sáº£n pháº©m'), {
+      notify(error instanceof Error ? error.message : t('Không thể ẩn sản phẩm'), {
         title: 'Products',
         variant: 'error',
       })
@@ -1161,10 +1161,10 @@ function ProductsPage() {
     }
     if (product.publishStatus === "PUBLISHED") {
       const approved = await confirm({
-        title: t('Há»§y xuáº¥t báº£n'),
-        message: t('Há»§y xuáº¥t báº£n sáº£n pháº©m nĂ y?'),
+        title: t('Hủy xuất bản'),
+        message: t('Hủy xuất bản sản phẩm này?'),
         tone: 'warning',
-        confirmLabel: t('Há»§y xuáº¥t báº£n'),
+        confirmLabel: t('Hủy xuất bản'),
       })
       if (!approved) {
         return
@@ -1174,11 +1174,11 @@ function ProductsPage() {
       await togglePublishStatus(product.sku)
       setActionMessage(
         product.publishStatus === "PUBLISHED"
-          ? t("ÄĂ£ há»§y xuáº¥t báº£n sáº£n pháº©m.")
-          : t("ÄĂ£ xuáº¥t báº£n sáº£n pháº©m."),
+          ? t('Đã hủy xuất bản sản phẩm.')
+          : t('Đã xuất bản sản phẩm.'),
       )
     } catch (error) {
-      notify(error instanceof Error ? error.message : t('KhĂ´ng thá»ƒ cáº­p nháº­t tráº¡ng thĂ¡i xuáº¥t báº£n'), {
+      notify(error instanceof Error ? error.message : t('Không thể cập nhật trạng thái xuất bản'), {
         title: 'Products',
         variant: 'error',
       })
@@ -1186,14 +1186,14 @@ function ProductsPage() {
   }, [confirm, notify, t, togglePublishStatus])
 
   const filters = useMemo(() => ([
-    { value: 'all', label: 'Táº¥t cáº£', count: filterCounts.all },
-    { value: 'active', label: 'Äang bĂ¡n', count: filterCounts.active },
-    { value: 'lowStock', label: 'Tá»“n kho tháº¥p', count: filterCounts.lowStock },
-    { value: 'outOfStock', label: 'Háº¿t hĂ ng', count: filterCounts.outOfStock },
-    { value: 'draft', label: 'Báº£n nhĂ¡p', count: filterCounts.draft },
+    { value: 'all', label: 'Tất cả', count: filterCounts.all },
+    { value: 'active', label: 'Đang bán', count: filterCounts.active },
+    { value: 'lowStock', label: 'Tồn kho thấp', count: filterCounts.lowStock },
+    { value: 'outOfStock', label: 'Hết hàng', count: filterCounts.outOfStock },
+    { value: 'draft', label: 'Bản nháp', count: filterCounts.draft },
     {
       value: 'deleted',
-      label: 'ÄĂ£ xĂ³a',
+      label: 'Đã xóa',
       count: filterCounts.deleted,
     },
   ] as const), [filterCounts])
@@ -1204,10 +1204,10 @@ function ProductsPage() {
         <div className="rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] px-6 py-10 text-center text-sm text-slate-500">
           <Package className="mx-auto h-10 w-10 text-slate-400" />
           <p className="mt-4 text-base font-semibold text-slate-900">
-            {t('KhĂ´ng tĂ¬m tháº¥y sáº£n pháº©m')}
+            {t('Không tìm thấy sản phẩm')}
           </p>
           <p className="mt-2 text-xs text-slate-500">
-            {t('Thá»­ Ä‘á»•i bá»™ lá»c hoáº·c tá»« khĂ³a tĂ¬m kiáº¿m.')}
+            {t('Thử đổi bộ lọc hoặc từ khóa tìm kiếm.')}
           </p>
         </div>
       )
@@ -1231,20 +1231,20 @@ function ProductsPage() {
               <div className="flex items-center gap-1">
                 {product.isFeatured && (
                   <span
-                    aria-label={t('Ná»•i báº­t')}
+                    aria-label={t('Nổi bật')}
                     className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/15 text-amber-700"
                     role="img"
-                    title={t('Ná»•i báº­t')}
+                    title={t('Nổi bật')}
                   >
                     <Star aria-hidden="true" className="h-3 w-3" />
                   </span>
                 )}
                 {product.showOnHomepage && (
                   <span
-                    aria-label={t('Trang chá»§')}
+                    aria-label={t('Trang chủ')}
                     className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/15 text-blue-700"
                     role="img"
-                    title={t('Trang chá»§')}
+                    title={t('Trang chủ')}
                   >
                     <Home aria-hidden="true" className="h-3 w-3" />
                   </span>
@@ -1260,7 +1260,7 @@ function ProductsPage() {
                 {formatPriceVND(product.retailPrice || 0)}
               </span>
               <span className="px-2 text-slate-300">|</span>
-              <span>{t('Tá»“n')}: {product.stock > 999 ? '999+' : product.stock}</span>
+              <span>{t('Tồn')}: {product.stock > 999 ? '999+' : product.stock}</span>
             </p>
           </div>
         </div>
@@ -1278,20 +1278,20 @@ function ProductsPage() {
             }
           >
             {product.isDeleted
-              ? t('ÄĂ£ xĂ³a')
+              ? t('Đã xóa')
               : product.publishStatus === 'PUBLISHED'
-                ? t('ÄĂ£ xuáº¥t báº£n')
+                ? t('Đã xuất bản')
                 : product.publishStatus === 'DRAFT'
-                  ? t('Báº£n nhĂ¡p')
-                  : t('ÄĂ£ xĂ³a')}
+                  ? t('Bản nháp')
+                  : t('Đã xóa')}
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2 md:justify-end">
           <Link
             className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-[var(--accent)] hover:text-slate-900 hover:shadow-[0_12px_24px_rgba(15,23,42,0.12)]"
             to={`/products/${product.sku}`}
-            aria-label={t('Chi tiáº¿t')}
-            title={t('Chi tiáº¿t')}
+            aria-label={t('Chi tiết')}
+            title={t('Chi tiết')}
           >
             <Eye className="h-4 w-4" />
           </Link>
@@ -1306,13 +1306,13 @@ function ProductsPage() {
             disabled={product.isDeleted}
             aria-label={
               product.publishStatus === 'DRAFT'
-                ? t('Xuáº¥t báº£n')
-                : t('Há»§y xuáº¥t báº£n')
+                ? t('Xuất bản')
+                : t('Hủy xuất bản')
             }
             title={
               product.publishStatus === 'DRAFT'
-                ? t('Xuáº¥t báº£n')
-                : t('Há»§y xuáº¥t báº£n')
+                ? t('Xuất bản')
+                : t('Hủy xuất bản')
             }
           >
             <CheckCircle className="h-4 w-4" />
@@ -1327,13 +1327,13 @@ function ProductsPage() {
             onClick={() => handleArchiveToggle(product)}
             aria-label={
               product.isDeleted
-                ? t('KhĂ´i phá»¥c')
-                : t('áº¨n sáº£n pháº©m')
+                ? t('Khôi phục')
+                : t('Ẩn sản phẩm')
             }
             title={
               product.isDeleted
-                ? t('KhĂ´i phá»¥c')
-                : t('áº¨n sáº£n pháº©m')
+                ? t('Khôi phục')
+                : t('Ẩn sản phẩm')
             }
           >
             {product.isDeleted ? (
@@ -1351,11 +1351,11 @@ function ProductsPage() {
             type="button"
             onClick={() => handleDelete(product.sku)}
             disabled={!product.isDeleted}
-            aria-label={t('XĂ³a')}
+            aria-label={t('Xóa')}
             title={
               product.isDeleted
-                ? t('XĂ³a vÄ©nh viá»…n')
-                : t('Chá»‰ xĂ³a vÄ©nh viá»…n Ä‘Æ°á»£c khi Ä‘Ă£ áº©n sáº£n pháº©m')
+                ? t('Xóa vĩnh viễn')
+                : t('Chỉ xóa vĩnh viễn được khi đã ẩn sản phẩm')
             }
           >
             <Trash2 className="h-4 w-4" />
@@ -1386,10 +1386,10 @@ function ProductsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold text-slate-900">
-            {t('Sáº£n pháº©m')}
+            {t('Sản phẩm')}
           </h3>
           <p className="text-sm text-slate-500">
-            {t('Quáº£n lĂ½ sáº£n pháº©m vĂ  tá»“n kho.')}
+            {t('Quản lý sản phẩm và tồn kho.')}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -1397,8 +1397,8 @@ function ProductsPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               className="h-11 w-full max-w-sm rounded-2xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-700 shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
-              placeholder={t('TĂ¬m tĂªn, SKU...')}
-              aria-label={t('TĂ¬m tĂªn, SKU...')}
+              placeholder={t('Tìm tên, SKU...')}
+              aria-label={t('Tìm tên, SKU...')}
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
@@ -1427,18 +1427,18 @@ function ProductsPage() {
                 value={filterFeatured}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterFeatured(e.target.value as FeaturedFilter)}
               >
-                <option value="all">{t('Ná»•i báº­t: Táº¥t cáº£')}</option>
-                <option value="featured">{t('Ná»•i báº­t')}</option>
-                <option value="nonFeatured">{t('KhĂ´ng ná»•i báº­t')}</option>
+                <option value="all">{t('Nổi bật: Tất cả')}</option>
+                <option value="featured">{t('Nổi bật')}</option>
+                <option value="nonFeatured">{t('Không nổi bật')}</option>
               </select>
               <select
                 className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700"
                 value={filterHomepage}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterHomepage(e.target.value as HomepageFilter)}
               >
-                <option value="all">{t('Trang chá»§: Táº¥t cáº£')}</option>
-                <option value="homepage">{t('Trang chá»§')}</option>
-                <option value="nonHomepage">{t('KhĂ´ng á»Ÿ trang chá»§')}</option>
+                <option value="all">{t('Trang chủ: Tất cả')}</option>
+                <option value="homepage">{t('Trang chủ')}</option>
+                <option value="nonHomepage">{t('Không ở trang chủ')}</option>
               </select>
             </div>
           )}
@@ -1475,13 +1475,13 @@ function ProductsPage() {
             type="button"
             onClick={() => {
               const header = [
-                t('TĂªn sáº£n pháº©m'),
+                t('Tên sản phẩm'),
                 'SKU',
-                t('GiĂ¡'),
-                t('Tá»“n kho'),
-                t('Xuáº¥t báº£n'),
-                t('Ná»•i báº­t'),
-                t('Trang chá»§'),
+                t('Giá'),
+                t('Tồn kho'),
+                t('Xuất bản'),
+                t('Nổi bật'),
+                t('Trang chủ'),
               ]
               const rows = visibleProducts.map((p) => [
                 p.name,
@@ -1489,8 +1489,8 @@ function ProductsPage() {
                 p.retailPrice ?? 0,
                 p.stock,
                 p.publishStatus,
-                p.isFeatured ? t('CĂ³') : t('KhĂ´ng'),
-                p.showOnHomepage ? t('CĂ³') : t('KhĂ´ng')
+                p.isFeatured ? t('Có') : t('Không'),
+                p.showOnHomepage ? t('Có') : t('Không')
               ])
               const csv = [header, ...rows]
                 .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
@@ -1506,7 +1506,7 @@ function ProductsPage() {
             }}
           >
             <FileDown className="h-4 w-4" />
-            {t('Xuáº¥t CSV')}
+            {t('Xuất CSV')}
           </button>
           <button
             className={primaryButtonClass}
@@ -1514,7 +1514,7 @@ function ProductsPage() {
             onClick={openCreateModal}
           >
             <Plus className="h-4 w-4" />
-            {t('ThĂªm sáº£n pháº©m')}
+            {t('Thêm sản phẩm')}
           </button>
         </div>
       </div>
@@ -1527,34 +1527,34 @@ function ProductsPage() {
       <div className="mt-6 hidden flex-wrap items-center gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-xs md:flex">
         <div className="flex items-center gap-2">
           <span className="uppercase tracking-[0.2em] text-slate-400">
-            {t('Tá»•ng SKU')}
+            {t('Tổng SKU')}
           </span>
           <span className="text-sm font-semibold text-slate-900">
             {products.filter((product) => !product.isDeleted).length}
           </span>
           <span className="text-slate-500">
-            {t('{count} báº£n nhĂ¡p', { count: draftProducts.length })}
+            {t('{count} bản nháp', { count: draftProducts.length })}
           </span>
         </div>
         <span className="h-4 w-px bg-[var(--border)]" aria-hidden="true" />
         <div className="flex items-center gap-2">
           <span className="uppercase tracking-[0.2em] text-slate-400">
-            {t('Tá»“n kho tháº¥p')}
+            {t('Tồn kho thấp')}
           </span>
           <span className="text-sm font-semibold text-slate-900">
             {lowStockProducts.length}
           </span>
-          <span className="text-slate-500">{t('Cáº§n bá»• sung')}</span>
+          <span className="text-slate-500">{t('Cần bổ sung')}</span>
         </div>
         <span className="h-4 w-px bg-[var(--border)]" aria-hidden="true" />
         <div className="flex items-center gap-2">
           <span className="uppercase tracking-[0.2em] text-slate-400">
-            {t('Äang bĂ¡n')}
+            {t('Đang bán')}
           </span>
           <span className="text-sm font-semibold text-slate-900">
             {activeProducts.length}
           </span>
-          <span className="text-slate-500">{t('Äang kinh doanh')}</span>
+          <span className="text-slate-500">{t('Đang kinh doanh')}</span>
         </div>
       </div>
 
@@ -1573,8 +1573,8 @@ function ProductsPage() {
           totalItems={visibleProducts.length}
           pageSize={ITEMS_PER_PAGE}
           onPageChange={setCurrentPage}
-          previousLabel={t('TrÆ°á»›c')}
-          nextLabel={t('Tiáº¿p')}
+          previousLabel={t('Trước')}
+          nextLabel={t('Tiếp')}
         />
       )}
 
@@ -1587,7 +1587,7 @@ function ProductsPage() {
           tabRefs.current.basic?.focus()
         }}
         style={modalStyles}
-        contentLabel={t('Táº¡o sáº£n pháº©m')}
+        contentLabel={t('Tạo sản phẩm')}
       >
         <div
           aria-busy={isCreating}
@@ -1595,7 +1595,7 @@ function ProductsPage() {
         >
             <div className="flex items-center justify-between">
               <h4 className="text-lg font-semibold text-slate-900">
-                {t('Táº¡o sáº£n pháº©m')}
+                {t('Tạo sản phẩm')}
               </h4>
               <button
                 type="button"
@@ -1609,11 +1609,11 @@ function ProductsPage() {
               </button>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label={t('CĂ¡c tab sáº£n pháº©m')}>
+            <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label={t('Các tab sản phẩm')}>
               {[
-                { id: 'basic', label: 'ThĂ´ng tin' },
-                { id: 'description', label: 'MĂ´ táº£' },
-                { id: 'specs', label: 'ThĂ´ng sá»‘' },
+                { id: 'basic', label: 'Thông tin' },
+                { id: 'description', label: 'Mô tả' },
+                { id: 'specs', label: 'Thông số' },
                 { id: 'videos', label: 'Video' },
               ].map((tab) => {
                 const tabId = tab.id as typeof activeTab
@@ -1688,17 +1688,17 @@ function ProductsPage() {
               >
                 <div className="space-y-4">
                   <div className="rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('ThĂ´ng tin cÆ¡ báº£n')}</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('Thông tin cơ bản')}</p>
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
                       <label className="text-sm text-slate-700">
                         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                          {t('TĂªn sáº£n pháº©m')} <span className="text-rose-500">*</span>
+                          {t('Tên sản phẩm')} <span className="text-rose-500">*</span>
                         </span>
                         <input
                           ref={nameInputRef}
                           aria-invalid={Boolean(errors.name)}
                           className={`mt-2 w-full rounded-xl border px-3 py-2 text-sm ${errors.name ? 'border-rose-300' : 'border-slate-200'}`}
-                          placeholder={t('Nháº­p tĂªn sáº£n pháº©m')}
+                          placeholder={t('Nhập tên sản phẩm')}
                           value={newProduct.name}
                           onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                         />
@@ -1734,7 +1734,7 @@ function ProductsPage() {
                           ref={skuInputRef}
                           aria-invalid={Boolean(errors.sku)}
                           className={`mt-2 w-full rounded-xl border px-3 py-2 text-sm ${errors.sku ? 'border-rose-300' : 'border-slate-200'}`}
-                          placeholder={t('Nháº­p SKU')}
+                          placeholder={t('Nhập SKU')}
                           value={newProduct.sku}
                           onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
                         />
@@ -1742,11 +1742,11 @@ function ProductsPage() {
                       </label>
                       <label className="text-sm text-slate-700 md:col-span-2">
                         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                          {t('MĂ´ táº£ ngáº¯n')}
+                          {t('Mô tả ngắn')}
                         </span>
                         <textarea
                           className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                          placeholder={t('Nháº­p mĂ´ táº£ ngáº¯n')}
+                          placeholder={t('Nhập mô tả ngắn')}
                           rows={3}
                           value={newProduct.shortDescription}
                           onChange={(e) =>
@@ -1757,7 +1757,7 @@ function ProductsPage() {
                     </div>
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('Hiá»ƒn thá»‹')}</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('Hiển thị')}</p>
                     <div className="mt-3 flex flex-wrap gap-3">
                       <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
                         <input
@@ -1767,7 +1767,7 @@ function ProductsPage() {
                             setNewProduct({ ...newProduct, isFeatured: e.target.checked })
                           }
                         />
-                        {t('Ná»•i báº­t')}
+                        {t('Nổi bật')}
                       </label>
                       <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
                         <input
@@ -1777,18 +1777,18 @@ function ProductsPage() {
                             setNewProduct({ ...newProduct, showOnHomepage: e.target.checked })
                           }
                         />
-                        {t('Trang chá»§')}
+                        {t('Trang chủ')}
                       </label>
                     </div>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div className="rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('GiĂ¡ & tráº¡ng thĂ¡i')}</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('Giá & trạng thái')}</p>
                     <div className="mt-4 grid gap-3">
                       <label className="text-sm text-slate-700">
                         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                          {t('GiĂ¡ bĂ¡n láº»')} <span className="text-rose-500">*</span>
+                          {t('Giá bán lẻ')} <span className="text-rose-500">*</span>
                         </span>
                         <div className="relative mt-2">
                           <input
@@ -1797,7 +1797,7 @@ function ProductsPage() {
                             aria-invalid={Boolean(errors.retailPrice)}
                             inputMode="numeric"
                             autoComplete="off"
-                            placeholder={t('Nháº­p giĂ¡ bĂ¡n láº»')}
+                            placeholder={t('Nhập giá bán lẻ')}
                             className={`w-full rounded-xl border px-3 py-2 pr-12 text-sm ${errors.retailPrice ? 'border-rose-300' : 'border-slate-200'}`}
                             value={formatNumberInput(newProduct.retailPrice)}
                             onChange={(e) => {
@@ -1837,7 +1837,7 @@ function ProductsPage() {
                       </label>
                       <label className="text-sm text-slate-700">
                         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                          {t('Tá»“n kho')}
+                          {t('Tồn kho')}
                         </span>
                         <input
                           ref={stockInputRef}
@@ -1845,7 +1845,7 @@ function ProductsPage() {
                           aria-invalid={Boolean(errors.stock)}
                           inputMode="numeric"
                           autoComplete="off"
-                          placeholder={t('Nháº­p tá»“n kho')}
+                          placeholder={t('Nhập tồn kho')}
                           className={`mt-2 w-full rounded-xl border px-3 py-2 text-sm ${errors.stock ? 'border-rose-300' : 'border-slate-200'}`}
                           value={newProduct.stock}
                           onChange={(e) =>
@@ -1856,7 +1856,7 @@ function ProductsPage() {
                       </label>
                       <label className="text-sm text-slate-700">
                         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                          {t('Tráº¡ng thĂ¡i xuáº¥t báº£n')}
+                          {t('Trạng thái xuất bản')}
                         </span>
                         <select
                           className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
@@ -1868,8 +1868,8 @@ function ProductsPage() {
                             })
                           }
                         >
-                          <option value="DRAFT">{t('Báº£n nhĂ¡p')}</option>
-                          <option value="PUBLISHED">{t('ÄĂ£ xuáº¥t báº£n')}</option>
+                          <option value="DRAFT">{t('Bản nháp')}</option>
+                          <option value="PUBLISHED">{t('Đã xuất bản')}</option>
                         </select>
                       </label>
                     </div>
@@ -1877,8 +1877,8 @@ function ProductsPage() {
                   <div className="rounded-2xl border border-dashed border-slate-200 bg-[var(--surface-muted)] p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-slate-900">{t('áº¢nh sáº£n pháº©m')}</p>
-                        <p className="text-xs text-slate-500">{t('PNG/JPG, tá»‘i Ä‘a 10MB')}</p>
+                        <p className="text-sm font-semibold text-slate-900">{t('Ảnh sản phẩm')}</p>
+                        <p className="text-xs text-slate-500">{t('PNG/JPG, tối đa 10MB')}</p>
                       </div>
                       <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
                         <input
@@ -1888,7 +1888,7 @@ function ProductsPage() {
                           ref={imageInputRef}
                           onChange={handleImageChange}
                         />
-                        {t('Chá»n áº£nh')}
+                        {t('Chọn ảnh')}
                       </label>
                     </div>
                     {(selectedImageName || imagePreviewUrl || newProduct.imageUrl) && (
@@ -1946,9 +1946,9 @@ function ProductsPage() {
               >
                 <div className="flex flex-wrap items-start justify-between gap-2 text-sm text-slate-700">
                   <div>
-                    <p className="font-semibold text-slate-900">{t('MĂ´ táº£')}</p>
+                    <p className="font-semibold text-slate-900">{t('Mô tả')}</p>
                     <p className="text-xs text-slate-500">
-                      {t('ThĂªm cĂ¡c Ä‘oáº¡n mĂ´ táº£ ngáº¯n cho sáº£n pháº©m.')}
+                      {t('Thêm các đoạn mô tả ngắn cho sản phẩm.')}
                     </p>
                   </div>
                   <button
@@ -1958,12 +1958,12 @@ function ProductsPage() {
                       void applyDescriptionTemplate()
                     }}
                   >
-                    {t('DĂ¹ng máº«u')}
+                    {t('Dùng mẫu')}
                   </button>
                 </div>
                 {newProduct.descriptions.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-                    <p className="font-semibold text-slate-700">{t('ChÆ°a cĂ³ mĂ´ táº£ nĂ o.')}</p>
+                    <p className="font-semibold text-slate-700">{t('Chưa có mô tả nào.')}</p>
                     <button
                       type="button"
                       className="mt-2 text-xs font-semibold text-[var(--accent)]"
@@ -1974,7 +1974,7 @@ function ProductsPage() {
                         })
                       }
                     >
-                      {t('ThĂªm mĂ´ táº£ Ä‘áº§u tiĂªn')}
+                      {t('Thêm mô tả đầu tiên')}
                     </button>
                   </div>
                 ) : (
@@ -2024,13 +2024,13 @@ function ProductsPage() {
                             className="min-h-11 rounded-lg px-3 py-2 text-xs font-semibold text-red-500"
                             onClick={() => removeDescriptionItem(idx)}
                           >
-                            {t('XĂ³a')}
+                            {t('Xóa')}
                           </button>
                         </div>
                       </div>
                       {d.type === 'title' && (
                         <label className="block">
-                          <span className="sr-only">{t('TiĂªu Ä‘á» mĂ´ táº£')}</span>
+                          <span className="sr-only">{t('Tiêu đề mô tả')}</span>
                           <input
                             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                             value={d.text ?? ''}
@@ -2039,18 +2039,18 @@ function ProductsPage() {
                               copy[idx] = { ...copy[idx], text: e.target.value }
                               setNewProduct({ ...newProduct, descriptions: copy })
                             }}
-                            placeholder={t('Nháº­p tiĂªu Ä‘á»')}
+                            placeholder={t('Nhập tiêu đề')}
                           />
                         </label>
                       )}
                       {d.type === 'description' && (
                         <div className="richtext-editor">
                           <RichTextEditor
-                            ariaLabel={t('TrĂ¬nh soáº¡n tháº£o mĂ´ táº£ chi tiáº¿t')}
+                            ariaLabel={t('Trình soạn thảo mô tả chi tiết')}
                             value={d.text ?? ''}
                             modules={descriptionEditorModules}
                             formats={descriptionEditorFormats}
-                            placeholder={t('Nháº­p mĂ´ táº£')}
+                            placeholder={t('Nhập mô tả')}
                             onChange={(value) => {
                               const copy = [...newProduct.descriptions]
                               copy[idx] = { ...copy[idx], text: value }
@@ -2070,13 +2070,13 @@ function ProductsPage() {
                                 handleDescriptionImageFile(idx, e.target.files?.[0] ?? null)
                               }
                             />
-                            {t('Chá»n áº£nh')}
+                            {t('Chọn ảnh')}
                           </label>
                           <label className="block">
-                            <span className="sr-only">{t('ChĂº thĂ­ch hĂ¬nh áº£nh')}</span>
+                            <span className="sr-only">{t('Chú thích hình ảnh')}</span>
                             <input
                               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                              placeholder={t('Nháº­p chĂº thĂ­ch')}
+                              placeholder={t('Nhập chú thích')}
                               value={d.caption ?? ''}
                               onChange={(e) => {
                                 const copy = [...newProduct.descriptions]
@@ -2092,7 +2092,7 @@ function ProductsPage() {
                             <div className="group relative overflow-hidden rounded-lg border border-slate-200 md:col-span-2">
                               <img
                                 src={resolveBackendAssetUrl(d.url)}
-                                alt={t('Xem trÆ°á»›c')}
+                                alt={t('Xem trước')}
                                 className="h-40 w-full object-cover"
                               />
                               <button
@@ -2109,7 +2109,7 @@ function ProductsPage() {
                                   })
                                 }}
                               >
-                                {t('XĂ³a áº£nh')}
+                                {t('Xóa ảnh')}
                               </button>
                             </div>
                           )}
@@ -2126,7 +2126,7 @@ function ProductsPage() {
                                 className="sr-only"
                                 onChange={(e) => handleDescriptionGalleryFiles(idx, e.target.files)}
                               />
-                              {t('Chá»n nhiá»u áº£nh')}
+                              {t('Chọn nhiều ảnh')}
                             </label>
                             <button
                               type="button"
@@ -2140,7 +2140,7 @@ function ProductsPage() {
                                 setNewProduct({ ...newProduct, descriptions: copy })
                               }}
                             >
-                              {t('ThĂªm hĂ¬nh áº£nh')}
+                              {t('Thêm hình ảnh')}
                             </button>
                           </div>
                           {descriptionImageErrors[idx] && (
@@ -2148,11 +2148,11 @@ function ProductsPage() {
                           )}
                           <label className="text-sm text-slate-700">
                             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                              {t('ChĂº thĂ­ch bá»™ áº£nh')}
+                              {t('Chú thích bộ ảnh')}
                             </span>
                             <input
                               className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                              placeholder={t('Nháº­p chĂº thĂ­ch bá»™ áº£nh')}
+                              placeholder={t('Nhập chú thích bộ ảnh')}
                               value={d.caption ?? ''}
                               onChange={(e) => {
                                 const copy = [...newProduct.descriptions]
@@ -2163,7 +2163,7 @@ function ProductsPage() {
                           </label>
                           {(d.gallery ?? []).length === 0 && (
                             <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-                              <p className="font-semibold text-slate-700">{t('ChÆ°a cĂ³ hĂ¬nh áº£nh nĂ o.')}</p>
+                              <p className="font-semibold text-slate-700">{t('Chưa có hình ảnh nào.')}</p>
                               <button
                                 type="button"
                                 className="mt-2 text-xs font-semibold text-[var(--accent)]"
@@ -2176,7 +2176,7 @@ function ProductsPage() {
                                   setNewProduct({ ...newProduct, descriptions: copy })
                                 }}
                               >
-                                {t('ThĂªm hĂ¬nh áº£nh Ä‘áº§u tiĂªn')}
+                                {t('Thêm hình ảnh đầu tiên')}
                               </button>
                             </div>
                           )}
@@ -2193,13 +2193,13 @@ function ProductsPage() {
                                         handleGalleryItemFile(idx, itemIdx, e.target.files?.[0] ?? null)
                                       }
                                     />
-                                    {item.url ? t('Chá»n áº£nh') : t('Chá»n áº£nh')}
+                                    {item.url ? t('Chọn ảnh') : t('Chọn ảnh')}
                                   </label>
                                   {item.url && (
                                     <div className="group relative overflow-hidden rounded-lg border border-slate-200">
                                       <img
                                         src={resolveBackendAssetUrl(item.url)}
-                                        alt={t('Xem trÆ°á»›c')}
+                                        alt={t('Xem trước')}
                                         className="h-24 w-full object-cover"
                                       />
                                       <button
@@ -2215,7 +2215,7 @@ function ProductsPage() {
                                           setNewProduct({ ...newProduct, descriptions: copy })
                                         }}
                                       >
-                                        {t('XĂ³a áº£nh')}
+                                        {t('Xóa ảnh')}
                                       </button>
                                     </div>
                                   )}
@@ -2233,7 +2233,7 @@ function ProductsPage() {
                                       setNewProduct({ ...newProduct, descriptions: copy })
                                     }}
                                   >
-                                    {t('XĂ³a áº£nh')}
+                                    {t('Xóa ảnh')}
                                   </button>
                                 </div>
                               </div>
@@ -2298,7 +2298,7 @@ function ProductsPage() {
                       })
                     }
                   >
-                    {t('ThĂªm má»¥c mĂ´ táº£')}
+                    {t('Thêm mục mô tả')}
                   </button>
                 )}
               </div>
@@ -2313,9 +2313,9 @@ function ProductsPage() {
               >
                 <div className="flex flex-wrap items-start justify-between gap-2 text-sm text-slate-700">
                   <div>
-                    <p className="font-semibold text-slate-900">{t('ThĂ´ng sá»‘')}</p>
+                    <p className="font-semibold text-slate-900">{t('Thông số')}</p>
                     <p className="text-xs text-slate-500">
-                      {t('ThĂªm cĂ¡c thĂ´ng sá»‘ ká»¹ thuáº­t quan trá»ng.')}
+                      {t('Thêm các thông số kỹ thuật quan trọng.')}
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {suggestedSpecificationLabels.map((label) => (
@@ -2337,12 +2337,12 @@ function ProductsPage() {
                       void applySpecificationTemplate()
                     }}
                   >
-                    {t('DĂ¹ng máº«u')}
+                    {t('Dùng mẫu')}
                   </button>
                 </div>
                 {newProduct.specifications.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-                    <p className="font-semibold text-slate-700">{t('ChÆ°a cĂ³ thĂ´ng sá»‘ nĂ o.')}</p>
+                    <p className="font-semibold text-slate-700">{t('Chưa có thông số nào.')}</p>
                     <button
                       type="button"
                       className="mt-2 text-xs font-semibold text-[var(--accent)]"
@@ -2353,17 +2353,17 @@ function ProductsPage() {
                         })
                       }
                     >
-                      {t('ThĂªm thĂ´ng sá»‘ Ä‘áº§u tiĂªn')}
+                      {t('Thêm thông số đầu tiên')}
                     </button>
                   </div>
                 ) : (
                   newProduct.specifications.map((s, idx) => (
                     <div key={idx} className="grid gap-2 md:grid-cols-[1fr_1fr_auto] md:items-center">
                       <label className="block">
-                        <span className="sr-only">{t('NhĂ£n thĂ´ng sá»‘')}</span>
+                        <span className="sr-only">{t('Nhãn thông số')}</span>
                         <input
                           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                          placeholder={t('Nháº­p nhĂ£n')}
+                          placeholder={t('Nhập nhãn')}
                           value={s.label}
                           onChange={(e) => {
                             const copy = [...newProduct.specifications]
@@ -2373,10 +2373,10 @@ function ProductsPage() {
                         />
                       </label>
                       <label className="block">
-                        <span className="sr-only">{t('GiĂ¡ trá»‹ thĂ´ng sá»‘')}</span>
+                        <span className="sr-only">{t('Giá trị thông số')}</span>
                         <input
                           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                          placeholder={t('Nháº­p giĂ¡ trá»‹')}
+                          placeholder={t('Nhập giá trị')}
                           value={s.value}
                           onChange={(e) => {
                             const copy = [...newProduct.specifications]
@@ -2410,7 +2410,7 @@ function ProductsPage() {
                             setNewProduct({ ...newProduct, specifications: copy })
                           }}
                         >
-                          {t('XĂ³a')}
+                          {t('Xóa')}
                         </button>
                       </div>
                     </div>
@@ -2427,7 +2427,7 @@ function ProductsPage() {
                       })
                     }
                   >
-                    {t('+ ThĂªm thĂ´ng sá»‘')}
+                    {t('+ Thêm thông số')}
                   </button>
                 )}
               </div>
@@ -2444,7 +2444,7 @@ function ProductsPage() {
                   <div>
                     <p className="font-semibold text-slate-900">{t('Video')}</p>
                     <p className="text-xs text-slate-500">
-                      {t('ThĂªm video giá»›i thiá»‡u hoáº·c hÆ°á»›ng dáº«n sáº£n pháº©m.')}
+                      {t('Thêm video giới thiệu hoặc hướng dẫn sản phẩm.')}
                     </p>
                   </div>
                   <button
@@ -2454,12 +2454,12 @@ function ProductsPage() {
                       void applyVideoTemplate()
                     }}
                   >
-                    {t('DĂ¹ng máº«u')}
+                    {t('Dùng mẫu')}
                   </button>
                 </div>
                 {newProduct.videos.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-                    <p className="font-semibold text-slate-700">{t('ChÆ°a cĂ³ video nĂ o.')}</p>
+                    <p className="font-semibold text-slate-700">{t('Chưa có video nào.')}</p>
                     <button
                       type="button"
                       className="mt-2 text-xs font-semibold text-[var(--accent)]"
@@ -2470,17 +2470,17 @@ function ProductsPage() {
                         })
                       }
                     >
-                      {t('ThĂªm video Ä‘áº§u tiĂªn')}
+                      {t('Thêm video đầu tiên')}
                     </button>
                   </div>
                 ) : (
                   newProduct.videos.map((v, idx) => (
                     <div key={idx} className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-3">
                       <label className="block">
-                        <span className="sr-only">{t('TiĂªu Ä‘á» video')}</span>
+                        <span className="sr-only">{t('Tiêu đề video')}</span>
                         <input
                           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                          placeholder={t('Nháº­p tiĂªu Ä‘á»')}
+                          placeholder={t('Nhập tiêu đề')}
                           value={v.title}
                           onChange={(e) => {
                             const copy = [...newProduct.videos]
@@ -2517,7 +2517,7 @@ function ProductsPage() {
                       )}
                       <div className="grid gap-2 md:grid-cols-[180px_1fr]">
                         <label className="block">
-                          <span className="sr-only">{t('Loáº¡i video')}</span>
+                          <span className="sr-only">{t('Loại video')}</span>
                           <select
                             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                             value={v.type}
@@ -2530,15 +2530,15 @@ function ProductsPage() {
                               setNewProduct({ ...newProduct, videos: copy })
                             }}
                           >
-                            <option value="tutorial">{t('HÆ°á»›ng dáº«n')}</option>
-                            <option value="unboxing">{t('Mở há»™p')}</option>
+                            <option value="tutorial">{t('Hướng dẫn')}</option>
+                            <option value="unboxing">{t('Mở hộp')}</option>
                           </select>
                         </label>
                         <label className="block">
-                          <span className="sr-only">{t('MĂ´ táº£ video')}</span>
+                          <span className="sr-only">{t('Mô tả video')}</span>
                           <textarea
                             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                            placeholder={t('Nháº­p mĂ´ táº£')}
+                            placeholder={t('Nhập mô tả')}
                             rows={2}
                             value={v.descriptions}
                             onChange={(e) => {
@@ -2618,7 +2618,7 @@ function ProductsPage() {
                             })
                           }}
                         >
-                          {t('XĂ³a video')}
+                          {t('Xóa video')}
                         </button>
                       </div>
                     </div>
@@ -2638,7 +2638,7 @@ function ProductsPage() {
                       })
                     }
                   >
-                    {t('+ ThĂªm video')}
+                    {t('+ Thêm video')}
                   </button>
                 )}
               </div>
@@ -2680,4 +2680,3 @@ function ProductsPage() {
 }
 
 export default ProductsPage
-
