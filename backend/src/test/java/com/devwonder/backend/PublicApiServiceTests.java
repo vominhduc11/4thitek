@@ -20,6 +20,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import java.util.List;
+import java.util.Map;
 
 @SpringBootTest
 class PublicApiServiceTests {
@@ -55,6 +57,26 @@ class PublicApiServiceTests {
         assertThatThrownBy(() -> publicApiService.getProduct(saved.getId()))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Product not found");
+    }
+
+    @Test
+    void getProductPrefersLongDescriptionFromStructuredContent() {
+        Product product = new Product();
+        product.setName("Detailed");
+        product.setSku("DETAIL-1");
+        product.setShortDescription("Short summary");
+        product.setDescriptions(List.of(Map.of(
+                "type", "description",
+                "text", "Long form detail for the public product page"
+        )));
+        product.setIsDeleted(false);
+        product.setPublishStatus(PublishStatus.PUBLISHED);
+        Product saved = productRepository.save(product);
+
+        var response = publicApiService.getProduct(saved.getId());
+
+        assertThat(response.shortDescription()).isEqualTo("Short summary");
+        assertThat(response.description()).isEqualTo("Long form detail for the public product page");
     }
 
     @Test

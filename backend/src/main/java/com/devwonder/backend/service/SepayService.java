@@ -20,11 +20,15 @@ import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.HexFormat;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -112,14 +116,15 @@ public class SepayService {
             return WebhookResult.duplicate("already_paid", orderCode, null, "Order is already fully paid");
         }
 
-        String transactionCode = buildTransactionCode(request);
+        BigDecimal normalizedAmount = amount.setScale(0, RoundingMode.HALF_UP);
+        String transactionCode = buildTransactionCode(request, orderCode, normalizedAmount);
         if (transactionCode != null && paymentRepository.existsByTransactionCodeIgnoreCase(transactionCode)) {
             return WebhookResult.duplicate("duplicate_transaction", orderCode, transactionCode, "Webhook transaction already processed");
         }
 
         Payment payment = new Payment();
         payment.setOrder(order);
-        payment.setAmount(amount.setScale(0, RoundingMode.HALF_UP));
+        payment.setAmount(normalizedAmount);
         payment.setMethod(PaymentMethod.BANK_TRANSFER);
         payment.setStatus(PaymentStatus.PAID);
         payment.setChannel(buildChannel(request.gateway()));
@@ -205,12 +210,32 @@ public class SepayService {
         return null;
     }
 
-    private String buildTransactionCode(SepayWebhookRequest request) {
+    private String buildTransactionCode(SepayWebhookRequest request, String orderCode, BigDecimal amount) {
         String uniqueToken = firstNonBlank(request.id(), request.referenceCode(), request.code());
         if (uniqueToken == null) {
-            return null;
+            return "SEPAY:FINGERPRINT:" + hashTransactionFingerprint(request, orderCode, amount);
         }
         return "SEPAY:" + uniqueToken;
+    }
+
+    private String hashTransactionFingerprint(SepayWebhookRequest request, String orderCode, BigDecimal amount) {
+        String fingerprint = String.join("|",
+                safeFingerprintValue(orderCode),
+                safeFingerprintValue(amount == null ? null : amount.toPlainString()),
+                safeFingerprintValue(normalize(request.transactionDate())),
+                safeFingerprintValue(normalize(request.gateway())),
+                safeFingerprintValue(normalize(request.accountNumber())),
+                safeFingerprintValue(normalize(request.transferContent())),
+                safeFingerprintValue(normalize(request.content())),
+                safeFingerprintValue(normalize(request.description())),
+                safeFingerprintValue(normalize(request.subAccount()))
+        );
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(fingerprint.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is not available for SePay fingerprinting.", ex);
+        }
     }
 
     private String buildChannel(String gateway) {
@@ -270,6 +295,10 @@ public class SepayService {
             }
         }
         return null;
+    }
+
+    private String safeFingerprintValue(String value) {
+        return value == null ? "" : value;
     }
 
     private String normalize(String value) {

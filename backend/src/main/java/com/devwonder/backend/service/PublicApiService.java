@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -155,7 +156,7 @@ public class PublicApiService {
                 product.getName(),
                 product.getSku(),
                 product.getShortDescription(),
-                product.getShortDescription(),
+                extractDescriptionText(product),
                 extractImage(product),
                 product.getRetailPrice() == null ? 0 : product.getRetailPrice().doubleValue(),
                 toJson(product.getSpecifications()),
@@ -228,6 +229,67 @@ public class PublicApiService {
             return true;
         }
         return source != null && source.toLowerCase().contains(term.toLowerCase());
+    }
+
+    private String extractDescriptionText(Product product) {
+        if (product == null) {
+            return null;
+        }
+
+        String descriptionFromContent = extractDescriptionText(product.getDescriptions(), "description");
+        if (descriptionFromContent != null) {
+            return descriptionFromContent;
+        }
+
+        descriptionFromContent = extractDescriptionText(product.getDescriptions(), null);
+        if (descriptionFromContent != null) {
+            return descriptionFromContent;
+        }
+
+        return normalize(product.getShortDescription());
+    }
+
+    private String extractDescriptionText(List<Map<String, Object>> items, String preferredType) {
+        if (items == null) {
+            return null;
+        }
+
+        for (Map<String, Object> item : items) {
+            if (item == null) {
+                continue;
+            }
+
+            String type = normalize(asText(item.get("type")));
+            if (preferredType != null && !preferredType.equalsIgnoreCase(type)) {
+                continue;
+            }
+
+            String candidate = firstNonBlank(
+                    asText(item.get("text")),
+                    asText(item.get("description")),
+                    asText(item.get("content")),
+                    asText(item.get("value"))
+            );
+            if (candidate != null) {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            String normalized = normalize(value);
+            if (normalized != null) {
+                return normalized;
+            }
+        }
+        return null;
+    }
+
+    private String asText(Object value) {
+        return value == null ? null : value.toString();
     }
 
     private String normalize(String value) {

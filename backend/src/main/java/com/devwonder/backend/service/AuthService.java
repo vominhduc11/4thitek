@@ -62,6 +62,9 @@ public class AuthService {
             );
         } catch (DisabledException ex) {
             Account disabledAccount = accountRepository.findByUsernameOrEmail(identity, identity).orElse(null);
+            if (!matchesSubmittedPassword(request.password(), disabledAccount)) {
+                throw new BadCredentialsException("Invalid credentials");
+            }
             if (disabledAccount instanceof Dealer) {
                 dealerAccountLifecycleService.assertDealerPortalAccess(disabledAccount);
             }
@@ -167,5 +170,12 @@ public class AuthService {
 
     private String normalize(String value) {
         return AccountValidationSupport.normalize(value);
+    }
+
+    private boolean matchesSubmittedPassword(String rawPassword, Account account) {
+        return rawPassword != null
+                && account != null
+                && account.getPassword() != null
+                && passwordEncoder.matches(rawPassword, account.getPassword());
     }
 }

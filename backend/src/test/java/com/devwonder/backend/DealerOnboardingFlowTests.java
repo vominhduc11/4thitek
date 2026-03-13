@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.mail.javamail.JavaMailSender;
 
 @SpringBootTest(properties = {
@@ -153,6 +154,32 @@ class DealerOnboardingFlowTests {
                 "dealer.active@example.com",
                 "DealerPass#123"
         )).accessToken()).isNotBlank();
+    }
+
+    @Test
+    void underReviewDealerWithWrongPasswordLooksLikeInvalidCredentials() {
+        authService.registerDealer(new RegisterDealerRequest(
+                "dealer.hidden@example.com",
+                "DealerPass#123",
+                "Dealer Hidden",
+                "Dealer Contact",
+                "222333444",
+                "0912345691",
+                "dealer.hidden@example.com",
+                "101 Nguyen Trai",
+                null,
+                "District 1",
+                "Ho Chi Minh City",
+                "Vietnam",
+                null
+        ));
+
+        assertThatThrownBy(() -> authService.login(new LoginRequest(
+                "dealer.hidden@example.com",
+                "WrongPass#123"
+        )))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessageContaining("Invalid credentials");
     }
 
     @Test
