@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -44,6 +44,129 @@ type DescriptionItem = {
   caption?: string
   gallery?: GalleryItem[]
 }
+
+type CreateProductErrorField = 'name' | 'sku' | 'retailPrice' | 'warrantyPeriod' | 'stock' | 'videos'
+
+const createProductErrorFieldOrder: CreateProductErrorField[] = [
+  'name',
+  'sku',
+  'retailPrice',
+  'warrantyPeriod',
+  'stock',
+  'videos',
+]
+
+const createProductErrorTabMap: Record<
+  CreateProductErrorField,
+  'basic' | 'description' | 'specs' | 'videos'
+> = {
+  name: 'basic',
+  sku: 'basic',
+  retailPrice: 'basic',
+  warrantyPeriod: 'basic',
+  stock: 'basic',
+  videos: 'videos',
+}
+
+const createDescriptionTemplate = (): DescriptionItem[] => [
+  { type: 'title', text: '' },
+  { type: 'description', text: '' },
+  { type: 'image', url: '', caption: '' },
+  { type: 'gallery', gallery: [] },
+  { type: 'video', url: '', caption: '' },
+]
+
+const createSpecificationTemplate = () => [
+  { label: '', value: '' },
+  { label: '', value: '' },
+]
+
+const createVideoTemplate = () => [
+  { title: '', descriptions: '', url: '', type: 'tutorial' as const },
+]
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error && error.message.trim() ? error.message : fallback
+
+const hasDescriptionContent = (items: DescriptionItem[]) =>
+  items.some((item) => {
+    if ((item.text ?? '').trim()) return true
+    if ((item.url ?? '').trim()) return true
+    if ((item.caption ?? '').trim()) return true
+    return (item.gallery ?? []).some((galleryItem) => galleryItem.url.trim())
+  })
+
+const hasSpecificationContent = (items: Array<{ label: string; value: string }>) =>
+  items.some((item) => item.label.trim() || item.value.trim())
+
+const hasVideoContent = (
+  items: Array<{ title: string; descriptions: string; url: string; type: 'unboxing' | 'tutorial' }>,
+) => items.some((item) => item.title.trim() || item.descriptions.trim() || item.url.trim())
+
+const isValidRemoteUrl = (value: string) => {
+  try {
+    const parsed = new URL(value.trim())
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+const moveListItem = <T,>(items: T[], fromIndex: number, toIndex: number) => {
+  if (
+    fromIndex === toIndex ||
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= items.length ||
+    toIndex >= items.length
+  ) {
+    return items
+  }
+
+  const next = [...items]
+  const [moved] = next.splice(fromIndex, 1)
+  next.splice(toIndex, 0, moved)
+  return next
+}
+
+const moveIndexedRecord = <T,>(record: Record<number, T>, fromIndex: number, toIndex: number) => {
+  const next: Record<number, T> = {}
+
+  Object.entries(record).forEach(([key, value]) => {
+    const index = Number(key)
+    if (Number.isNaN(index)) {
+      return
+    }
+
+    if (index === fromIndex) {
+      next[toIndex] = value
+      return
+    }
+
+    if (fromIndex < toIndex && index > fromIndex && index <= toIndex) {
+      next[index - 1] = value
+      return
+    }
+
+    if (fromIndex > toIndex && index >= toIndex && index < fromIndex) {
+      next[index + 1] = value
+      return
+    }
+
+    next[index] = value
+  })
+
+  return next
+}
+
+const suggestedSpecificationLabels = [
+  'K\u00edch th\u01b0\u1edbc',
+  'Tr\u1ecdng l\u01b0\u1ee3ng',
+  'Ch\u1ea5t li\u1ec7u',
+  'C\u00f4ng su\u1ea5t',
+  '\u0110i\u1ec7n \u00e1p',
+  'B\u1ea3o h\u00e0nh',
+]
 
 const createInitialNewProduct = () => ({
   name: '',
@@ -98,7 +221,6 @@ const formatNumberInput = (value: string) => {
 }
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
-const MAX_VIDEO_BYTES = 10 * 1024 * 1024
 const ITEMS_PER_PAGE = 8
 
 const modalStyles: Styles = {
@@ -142,6 +264,10 @@ function ProductsPage() {
   const [showModal, setShowModal] = useState(false)
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
   const imageInputRef = useRef<HTMLInputElement | null>(null)
+  const nameInputRef = useRef<HTMLInputElement | null>(null)
+  const warrantyInputRef = useRef<HTMLInputElement | null>(null)
+  const skuInputRef = useRef<HTMLInputElement | null>(null)
+  const videoUrlInputRefs = useRef<Record<number, HTMLInputElement | null>>({})
   const tabRefs = useRef<
     Record<'basic' | 'description' | 'specs' | 'videos', HTMLButtonElement | null>
   >({
@@ -151,20 +277,19 @@ function ProductsPage() {
     videos: null,
   })
   const retailPriceInputRef = useRef<HTMLInputElement | null>(null)
+  const stockInputRef = useRef<HTMLInputElement | null>(null)
   const retailPriceCaretRef = useRef<number | null>(null)
   const [selectedImageName, setSelectedImageName] = useState('')
   const [imagePreviewUrl, setImagePreviewUrl] = useState('')
   const [imageError, setImageError] = useState('')
   const [descriptionImageErrors, setDescriptionImageErrors] = useState<Record<number, string>>({})
-  const [descriptionVideoErrors, setDescriptionVideoErrors] = useState<Record<number, string>>({})
   const [productVideoErrors, setProductVideoErrors] = useState<Record<number, string>>({})
-  void descriptionVideoErrors
-  void productVideoErrors
   const [activeTab, setActiveTab] = useState<'basic' | 'description' | 'specs' | 'videos'>('basic')
   const [currentPage, setCurrentPage] = useState(0)
   const [actionMessage, setActionMessage] = useState('')
   const [newProduct, setNewProduct] = useState(createInitialNewProduct)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isCreating, setIsCreating] = useState(false)
   const tabOrder = ['basic', 'description', 'specs', 'videos'] as const
 
   const normalizedSearch = useMemo(() => searchTerm.trim().toLowerCase(), [searchTerm])
@@ -278,6 +403,28 @@ function ProductsPage() {
     }
   }, [imagePreviewUrl])
 
+  const isCreateFormDirty = useMemo(
+    () => JSON.stringify(newProduct) !== JSON.stringify(createInitialNewProduct()),
+    [newProduct],
+  )
+
+  const createTabHasError = useMemo(
+    () => ({
+      basic: Boolean(
+        imageError ||
+          errors.name ||
+          errors.sku ||
+          errors.retailPrice ||
+          errors.warrantyPeriod ||
+          errors.stock,
+      ),
+      description: Object.keys(descriptionImageErrors).length > 0,
+      specs: false,
+      videos: Object.keys(productVideoErrors).length > 0,
+    }),
+    [descriptionImageErrors, errors, imageError, productVideoErrors],
+  )
+
   const pageCount = Math.ceil(visibleProducts.length / ITEMS_PER_PAGE)
   const pagedProducts = useMemo(() => {
     const start = currentPage * ITEMS_PER_PAGE
@@ -300,7 +447,7 @@ function ProductsPage() {
   const panelClass =
     'rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]'
   const primaryButtonClass =
-    'btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0'
+    'btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60'
   const filterBaseClass =
     'inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition whitespace-nowrap'
 
@@ -311,6 +458,80 @@ function ProductsPage() {
       accessToken,
     })
 
+  const focusCreateField = (field: CreateProductErrorField) => {
+    const target =
+      field === 'name'
+        ? nameInputRef.current
+        : field === 'warrantyPeriod'
+          ? warrantyInputRef.current
+          : field === 'sku'
+            ? skuInputRef.current
+            : field === 'retailPrice'
+              ? retailPriceInputRef.current
+              : field === 'stock'
+                ? stockInputRef.current
+                : null
+
+    target?.focus()
+    target?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }
+
+  const confirmTemplateReplacement = async (hasContent: boolean) => {
+    if (!hasContent) {
+      return true
+    }
+
+    return confirm({
+      title: t('Thay th\u1ebf d\u1eef li\u1ec7u hi\u1ec7n t\u1ea1i?'),
+      message: t(
+        'M\u1eabu s\u1ebd ghi \u0111\u00e8 n\u1ed9i dung b\u1ea1n \u0111ang nh\u1eadp trong m\u1ee5c n\u00e0y.',
+      ),
+      confirmLabel: t('Ghi \u0111\u00e8'),
+      cancelLabel: t('Gi\u1eef l\u1ea1i'),
+      tone: 'warning',
+    })
+  }
+
+  const applyDescriptionTemplate = async () => {
+    const approved = await confirmTemplateReplacement(hasDescriptionContent(newProduct.descriptions))
+    if (!approved) {
+      return
+    }
+
+    setDescriptionImageErrors({})
+    setNewProduct((prev) => ({
+      ...prev,
+      descriptions: createDescriptionTemplate(),
+    }))
+  }
+
+  const applySpecificationTemplate = async () => {
+    const approved = await confirmTemplateReplacement(
+      hasSpecificationContent(newProduct.specifications),
+    )
+    if (!approved) {
+      return
+    }
+
+    setNewProduct((prev) => ({
+      ...prev,
+      specifications: createSpecificationTemplate(),
+    }))
+  }
+
+  const applyVideoTemplate = async () => {
+    const approved = await confirmTemplateReplacement(hasVideoContent(newProduct.videos))
+    if (!approved) {
+      return
+    }
+
+    setProductVideoErrors({})
+    setNewProduct((prev) => ({
+      ...prev,
+      videos: createVideoTemplate(),
+    }))
+  }
+
   const resetFilters = () => {
     setFilter('all')
     setSearchTerm('')
@@ -319,10 +540,10 @@ function ProductsPage() {
   }
 
   const descriptionTypeOptions: Array<{ id: DescriptionItem['type']; label: string }> = [
-    { id: 'title', label: t('Tiêu đề') },
-    { id: 'description', label: t('Mô tả') },
-    { id: 'image', label: t('Hình ảnh') },
-    { id: 'gallery', label: t('Nhiều hình ảnh') },
+    { id: 'title', label: t('TiĂªu Ä‘á»') },
+    { id: 'description', label: t('MĂ´ táº£') },
+    { id: 'image', label: t('HĂ¬nh áº£nh') },
+    { id: 'gallery', label: t('Nhiá»u hĂ¬nh áº£nh') },
     { id: 'video', label: t('Video') },
   ]
 
@@ -343,29 +564,75 @@ function ProductsPage() {
     [],
   )
 
-  const changeDescriptionType = (index: number, nextType: DescriptionItem['type']) => {
+  const changeDescriptionType = async (index: number, nextType: DescriptionItem['type']) => {
+    const current = newProduct.descriptions[index]
+    if (!current || current.type === nextType) {
+      return
+    }
+
+    const legacyUrls = ((current as { urls?: string[] }).urls ?? []).filter((url) => url.trim())
+    const currentGallery = (current.gallery ?? []).filter((item) => item.url.trim())
+    const currentPrimaryUrl =
+      current.url?.trim() || currentGallery[0]?.url?.trim() || legacyUrls[0] || ''
+
+    const nextItem: DescriptionItem = { type: nextType }
+
+    if (nextType === 'title' || nextType === 'description') {
+      nextItem.text = current.text ?? ''
+    }
+
+    if (nextType === 'image' || nextType === 'video') {
+      nextItem.url = currentPrimaryUrl
+      nextItem.caption = current.caption ?? ''
+    }
+
+    if (nextType === 'gallery') {
+      nextItem.gallery =
+        currentGallery.length > 0
+          ? currentGallery
+          : currentPrimaryUrl
+            ? [{ url: currentPrimaryUrl }]
+            : legacyUrls.map((url) => ({ url }))
+      nextItem.caption = current.caption ?? ''
+    }
+
+    const currentMediaCount = new Set(
+      [current.url ?? '', ...currentGallery.map((item) => item.url), ...legacyUrls]
+        .map((url) => url.trim())
+        .filter(Boolean),
+    ).size
+    const nextMediaCount = new Set(
+      [
+        nextItem.url ?? '',
+        ...(nextItem.gallery ?? []).map((item) => item.url),
+      ]
+        .map((url) => url.trim())
+        .filter(Boolean),
+    ).size
+
+    const willLoseText = Boolean((current.text ?? '').trim()) && !Boolean((nextItem.text ?? '').trim())
+    const willLoseCaption =
+      Boolean((current.caption ?? '').trim()) && !Boolean((nextItem.caption ?? '').trim())
+    const willLoseMedia = currentMediaCount > nextMediaCount
+
+    if (willLoseText || willLoseCaption || willLoseMedia) {
+      const approved = await confirm({
+        title: t('\u0110\u1ed5i lo\u1ea1i n\u1ed9i dung?'),
+        message: t(
+          'M\u1ed9t ph\u1ea7n d\u1eef li\u1ec7u trong m\u1ee5c n\u00e0y s\u1ebd b\u1ecb x\u00f3a khi \u0111\u1ed5i lo\u1ea1i.',
+        ),
+        confirmLabel: t('V\u1eabn \u0111\u1ed5i'),
+        cancelLabel: t('Gi\u1eef lo\u1ea1i c\u0169'),
+        tone: 'warning',
+      })
+
+      if (!approved) {
+        return
+      }
+    }
+
     setNewProduct((prev) => {
       const copy = [...prev.descriptions]
-      const current = copy[index] ?? { type: nextType }
-      const nextItem: DescriptionItem = { type: nextType }
-
-      if (nextType === 'title' || nextType === 'description') {
-        nextItem.text = current.text ?? ''
-      }
-      if (nextType === 'image' || nextType === 'video') {
-        nextItem.url = current.url ?? ''
-        nextItem.caption = current.caption ?? ''
-      }
-      if (nextType === 'gallery') {
-        const legacyUrls = (current as { urls?: string[] }).urls
-        const currentGallery =
-          current.gallery && current.gallery.length
-            ? current.gallery
-            : legacyUrls?.map((url) => ({ url })) ?? []
-        nextItem.gallery = currentGallery
-        nextItem.caption = current.caption ?? ''
-      }
-
       copy[index] = nextItem
       return { ...prev, descriptions: copy }
     })
@@ -375,11 +642,61 @@ function ProductsPage() {
       delete next[index]
       return next
     })
-    setDescriptionVideoErrors((prev) => {
-      if (!(index in prev)) return prev
-      const next = { ...prev }
-      delete next[index]
-      return next
+  }
+
+  const moveDescriptionItem = (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction
+    if (targetIndex < 0 || targetIndex >= newProduct.descriptions.length) {
+      return
+    }
+
+    setNewProduct((prev) => ({
+      ...prev,
+      descriptions: moveListItem(prev.descriptions, index, targetIndex),
+    }))
+    setDescriptionImageErrors((prev) => moveIndexedRecord(prev, index, targetIndex))
+  }
+
+  const moveSpecificationItem = (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction
+    if (targetIndex < 0 || targetIndex >= newProduct.specifications.length) {
+      return
+    }
+
+    setNewProduct((prev) => ({
+      ...prev,
+      specifications: moveListItem(prev.specifications, index, targetIndex),
+    }))
+  }
+
+  const moveVideoItem = (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction
+    if (targetIndex < 0 || targetIndex >= newProduct.videos.length) {
+      return
+    }
+
+    setNewProduct((prev) => ({
+      ...prev,
+      videos: moveListItem(prev.videos, index, targetIndex),
+    }))
+    setProductVideoErrors((prev) => moveIndexedRecord(prev, index, targetIndex))
+    videoUrlInputRefs.current = moveIndexedRecord(videoUrlInputRefs.current, index, targetIndex)
+  }
+
+  const applySuggestedSpecificationLabel = (label: string) => {
+    setNewProduct((prev) => {
+      const emptyLabelIndex = prev.specifications.findIndex((item) => !item.label.trim())
+      const copy = [...prev.specifications]
+
+      if (emptyLabelIndex >= 0) {
+        copy[emptyLabelIndex] = { ...copy[emptyLabelIndex], label }
+        return { ...prev, specifications: copy }
+      }
+
+      return {
+        ...prev,
+        specifications: [...copy, { label, value: '' }],
+      }
     })
   }
 
@@ -388,7 +705,7 @@ function ProductsPage() {
     if (file.size > MAX_IMAGE_BYTES) {
       setDescriptionImageErrors((prev) => ({
         ...prev,
-        [index]: t('Ảnh tối đa 10MB'),
+        [index]: t('áº¢nh tá»‘i Ä‘a 10MB'),
       }))
       return
     }
@@ -405,8 +722,16 @@ function ProductsPage() {
         delete next[index]
         return next
       })
-    } catch {
-      // ignore
+    } catch (error) {
+      const message = getErrorMessage(
+        error,
+        t('Kh\u00f4ng th\u1ec3 t\u1ea3i \u1ea3nh l\u00ean. Vui l\u00f2ng th\u1eed l\u1ea1i.'),
+      )
+      setDescriptionImageErrors((prev) => ({
+        ...prev,
+        [index]: message,
+      }))
+      notify(message, { title: 'Products', variant: 'error' })
     }
   }
 
@@ -417,7 +742,7 @@ function ProductsPage() {
     if (oversized) {
       setDescriptionImageErrors((prev) => ({
         ...prev,
-        [index]: t('Ảnh tối đa 10MB'),
+        [index]: t('áº¢nh tá»‘i Ä‘a 10MB'),
       }))
     }
     const validFiles = fileList.filter((file) => file.size <= MAX_IMAGE_BYTES)
@@ -439,8 +764,16 @@ function ProductsPage() {
         delete next[index]
         return next
       })
-    } catch {
-      // ignore
+    } catch (error) {
+      const message = getErrorMessage(
+        error,
+        t('Kh\u00f4ng th\u1ec3 t\u1ea3i \u1ea3nh l\u00ean. Vui l\u00f2ng th\u1eed l\u1ea1i.'),
+      )
+      setDescriptionImageErrors((prev) => ({
+        ...prev,
+        [index]: message,
+      }))
+      notify(message, { title: 'Products', variant: 'error' })
     }
   }
 
@@ -449,7 +782,7 @@ function ProductsPage() {
     if (file.size > MAX_IMAGE_BYTES) {
       setDescriptionImageErrors((prev) => ({
         ...prev,
-        [index]: t('Ảnh tối đa 10MB'),
+        [index]: t('áº¢nh tá»‘i Ä‘a 10MB'),
       }))
       return
     }
@@ -469,42 +802,18 @@ function ProductsPage() {
         delete next[index]
         return next
       })
-    } catch {
-      // ignore
-    }
-  }
-
-  const handleDescriptionVideoFile = async (index: number, file: File | null) => {
-    if (!file) return
-    if (file.size > MAX_VIDEO_BYTES) {
-      setDescriptionVideoErrors((prev) => ({
+    } catch (error) {
+      const message = getErrorMessage(
+        error,
+        t('Kh\u00f4ng th\u1ec3 t\u1ea3i \u1ea3nh l\u00ean. Vui l\u00f2ng th\u1eed l\u1ea1i.'),
+      )
+      setDescriptionImageErrors((prev) => ({
         ...prev,
-        [index]: t('Video tối đa 10MB'),
+        [index]: message,
       }))
-      return
+      notify(message, { title: 'Products', variant: 'error' })
     }
-    setDescriptionVideoErrors((prev) => ({
-      ...prev,
-      [index]: t('Tải tệp video chưa được hỗ trợ. Vui lòng dùng URL video.'),
-    }))
   }
-
-  const handleProductVideoFile = async (index: number, file: File | null) => {
-    if (!file) return
-    if (file.size > MAX_VIDEO_BYTES) {
-      setProductVideoErrors((prev) => ({
-        ...prev,
-        [index]: t('Video tối đa 10MB'),
-      }))
-      return
-    }
-    setProductVideoErrors((prev) => ({
-      ...prev,
-      [index]: t('Tải tệp video chưa được hỗ trợ. Vui lòng dùng URL video.'),
-    }))
-  }
-  void handleDescriptionVideoFile
-  void handleProductVideoFile
 
   const removeDescriptionItem = (index: number) => {
     setNewProduct((prev) => ({
@@ -524,33 +833,52 @@ function ProductsPage() {
       })
       return next
     })
-    setDescriptionVideoErrors((prev) => {
-      const next: Record<number, string> = {}
-      Object.entries(prev).forEach(([key, value]) => {
-        const idx = Number(key)
-        if (Number.isNaN(idx)) return
-        if (idx < index) {
-          next[idx] = value
-        } else if (idx > index) {
-          next[idx - 1] = value
-        }
-      })
-      return next
-    })
   }
 
-  const closeModal = () => {
+  const resetCreateForm = () => {
     setActiveTab('basic')
     retailPriceCaretRef.current = null
     setDescriptionImageErrors({})
-    setDescriptionVideoErrors({})
     setProductVideoErrors({})
+    videoUrlInputRefs.current = {}
     setImagePreviewUrl('')
     setImageError('')
     setSelectedImageName('')
     setErrors({})
+    setIsCreating(false)
     setNewProduct(createInitialNewProduct())
+    if (imageInputRef.current) {
+      imageInputRef.current.value = ''
+    }
+  }
+
+  const openCreateModal = () => {
+    resetCreateForm()
+    setShowModal(true)
+  }
+
+  const closeModal = () => {
+    resetCreateForm()
     setShowModal(false)
+  }
+
+  const requestCloseModal = async () => {
+    if (isCreating) {
+      return
+    }
+    if (isCreateFormDirty) {
+      const approved = await confirm({
+        title: t('\u0110\u00f3ng bi\u1ec3u m\u1eabu t\u1ea1o s\u1ea3n ph\u1ea9m?'),
+        message: t('M\u1ecdi thay \u0111\u1ed5i ch\u01b0a l\u01b0u s\u1ebd b\u1ecb m\u1ea5t.'),
+        confirmLabel: t('Ti\u1ebfp t\u1ee5c \u0111\u00f3ng'),
+        cancelLabel: t('\u1ede l\u1ea1i'),
+        tone: 'warning',
+      })
+      if (!approved) {
+        return
+      }
+    }
+    closeModal()
   }
 
   useLayoutEffect(() => {
@@ -562,13 +890,181 @@ function ProductsPage() {
     input.setSelectionRange(caret, caret)
   }, [newProduct.retailPrice])
 
+  const validateCreateProduct = () => {
+    const nextErrors: Record<string, string> = {}
+    const nextProductVideoErrors: Record<number, string> = {}
+
+    if (!newProduct.name.trim()) {
+      nextErrors.name = t('Vui lĂ²ng nháº­p tĂªn sáº£n pháº©m')
+    }
+    if (!newProduct.sku.trim()) {
+      nextErrors.sku = t('Vui lĂ²ng nháº­p SKU')
+    }
+    if (products.some((p) => p.sku === newProduct.sku.trim())) {
+      nextErrors.sku = t('SKU Ä‘Ă£ tá»“n táº¡i')
+    }
+
+    const priceNum = Number(newProduct.retailPrice)
+    if (Number.isNaN(priceNum) || priceNum < 0) {
+      nextErrors.retailPrice = t('GiĂ¡ pháº£i lĂ  sá»‘ khĂ´ng Ă¢m')
+    }
+
+    const warrantyPeriodNum = Number(newProduct.warrantyPeriod)
+    if (
+      Number.isNaN(warrantyPeriodNum) ||
+      warrantyPeriodNum <= 0 ||
+      !Number.isInteger(warrantyPeriodNum)
+    ) {
+      nextErrors.warrantyPeriod = t(
+        'Thá»i háº¡n báº£o hĂ nh pháº£i lĂ  sá»‘ nguyĂªn dÆ°Æ¡ng',
+      )
+    }
+
+    const stockNum = Number(newProduct.stock || 0)
+    if (Number.isNaN(stockNum) || stockNum < 0 || !Number.isInteger(stockNum)) {
+      nextErrors.stock = t('Tá»“n kho pháº£i lĂ  sá»‘ nguyĂªn khĂ´ng Ă¢m')
+    }
+
+    newProduct.videos.forEach((video, index) => {
+      const hasVideoValues =
+        video.title.trim() || video.descriptions.trim() || video.url.trim()
+
+      if (!hasVideoValues) {
+        return
+      }
+
+      if (!video.url.trim()) {
+        nextProductVideoErrors[index] = t('Vui l\u00f2ng nh\u1eadp URL video')
+        return
+      }
+
+      if (!isValidRemoteUrl(video.url)) {
+        nextProductVideoErrors[index] = t('URL video kh\u00f4ng h\u1ee3p l\u1ec7')
+      }
+    })
+
+    const firstVideoErrorIndex =
+      Object.keys(nextProductVideoErrors)
+        .map((key) => Number(key))
+        .find((index) => !Number.isNaN(index)) ?? null
+
+    const firstErrorField =
+      createProductErrorFieldOrder.find((field) =>
+        field === 'videos' ? firstVideoErrorIndex !== null : Boolean(nextErrors[field]),
+      ) ?? null
+
+    const sanitizedSpecifications = newProduct.specifications
+      .map((item) => ({
+        label: item.label.trim(),
+        value: item.value.trim(),
+      }))
+      .filter((item) => item.label || item.value)
+
+    const sanitizedVideos = newProduct.videos
+      .map((video) => ({
+        title: video.title.trim(),
+        descriptions: video.descriptions.trim(),
+        url: video.url.trim(),
+        type: video.type,
+      }))
+      .filter((video) => video.title || video.descriptions || video.url)
+
+    return {
+      nextErrors,
+      nextProductVideoErrors,
+      firstErrorField,
+      firstVideoErrorIndex,
+      priceNum,
+      stockNum,
+      sanitizedSpecifications,
+      sanitizedVideos,
+      warrantyPeriodNum,
+    }
+  }
+
+  const handleCreateProductSubmit = () => {
+    if (isCreating) {
+      return
+    }
+
+    const {
+      nextErrors,
+      nextProductVideoErrors,
+      firstErrorField,
+      firstVideoErrorIndex,
+      priceNum,
+      sanitizedSpecifications,
+      sanitizedVideos,
+      stockNum,
+      warrantyPeriodNum,
+    } = validateCreateProduct()
+
+    setErrors(nextErrors)
+    setProductVideoErrors(nextProductVideoErrors)
+
+    if (firstErrorField) {
+      const targetTab = createProductErrorTabMap[firstErrorField]
+      setActiveTab(targetTab)
+      window.setTimeout(() => {
+        tabRefs.current[targetTab]?.focus()
+        if (firstErrorField === 'videos' && firstVideoErrorIndex !== null) {
+          const target = videoUrlInputRefs.current[firstVideoErrorIndex]
+          target?.focus()
+          target?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+          return
+        }
+        focusCreateField(firstErrorField)
+      }, 0)
+      notify(t('Vui l\u00f2ng ki\u1ec3m tra l\u1ea1i c\u00e1c tr\u01b0\u1eddng b\u1eaft bu\u1ed9c'), {
+        title: 'Products',
+        variant: 'error',
+      })
+      return
+    }
+
+    const descJson = JSON.stringify(newProduct.descriptions || [])
+    const specJson = JSON.stringify(sanitizedSpecifications)
+    const videoJson = JSON.stringify(sanitizedVideos)
+
+    void (async () => {
+      setIsCreating(true)
+      try {
+        await addProduct({
+          name: newProduct.name.trim(),
+          sku: newProduct.sku.trim(),
+          shortDescription: newProduct.shortDescription.trim(),
+          retailPrice: priceNum || 0,
+          warrantyPeriod: warrantyPeriodNum,
+          stock: stockNum,
+          publishStatus: newProduct.publishStatus,
+          isFeatured: newProduct.isFeatured,
+          showOnHomepage: newProduct.showOnHomepage,
+          image: newProduct.imageUrl
+            ? JSON.stringify({ imageUrl: newProduct.imageUrl })
+            : undefined,
+          descriptions: descJson,
+          specifications: specJson,
+          videos: videoJson,
+        })
+        closeModal()
+      } catch (error) {
+        notify(error instanceof Error ? error.message : t('KhÄ‚Â´ng thĂ¡Â»Æ’ tĂ¡ÂºÂ¡o sĂ¡ÂºÂ£n phĂ¡ÂºÂ©m'), {
+          title: 'Products',
+          variant: 'error',
+        })
+      } finally {
+        setIsCreating(false)
+      }
+    })()
+  }
+
   const handleImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) {
       return
     }
     if (file.size > MAX_IMAGE_BYTES) {
-      setImageError(t('Ảnh tối đa 10MB'))
+      setImageError(t('áº¢nh tá»‘i Ä‘a 10MB'))
       setSelectedImageName('')
       setNewProduct((prev) => ({ ...prev, imageUrl: '' }))
       setImagePreviewUrl('')
@@ -581,12 +1077,17 @@ function ProductsPage() {
     try {
       const stored = await uploadImageAsset(file)
       setNewProduct((prev) => ({ ...prev, imageUrl: stored.url }))
-    } catch {
-      setImageError(t('Không thể xử lý tệp đã chọn'))
+    } catch (error) {
+      const message = getErrorMessage(
+        error,
+        t('Kh\u00f4ng th\u1ec3 x\u1eed l\u00fd t\u1ec7p \u0111\u00e3 ch\u1ecdn'),
+      )
+      setImageError(message)
       setSelectedImageName('')
       setNewProduct((prev) => ({ ...prev, imageUrl: '' }))
       event.target.value = ''
       setImagePreviewUrl('')
+      notify(message, { title: 'Products', variant: 'error' })
     }
   }
 
@@ -602,19 +1103,19 @@ function ProductsPage() {
 
   const handleDelete = useCallback(async (sku: string) => {
     const approved = await confirm({
-      title: t('Xóa vĩnh viễn sản phẩm'),
-      message: t('Xóa vĩnh viễn sản phẩm này?'),
+      title: t('XĂ³a vÄ©nh viá»…n sáº£n pháº©m'),
+      message: t('XĂ³a vÄ©nh viá»…n sáº£n pháº©m nĂ y?'),
       tone: 'danger',
-      confirmLabel: t('Xóa'),
+      confirmLabel: t('XĂ³a'),
     })
     if (!approved) {
       return
     }
     try {
       await deleteProduct(sku)
-      setActionMessage(t("Đã xóa vĩnh viễn sản phẩm."))
+      setActionMessage(t("ÄĂ£ xĂ³a vÄ©nh viá»…n sáº£n pháº©m."))
     } catch (error) {
-      notify(error instanceof Error ? error.message : t('Không thể xóa sản phẩm'), {
+      notify(error instanceof Error ? error.message : t('KhĂ´ng thá»ƒ xĂ³a sáº£n pháº©m'), {
         title: 'Products',
         variant: 'error',
       })
@@ -625,9 +1126,9 @@ function ProductsPage() {
     if (product.isDeleted) {
       try {
         await restoreProduct(product.sku)
-        setActionMessage(t("Đã khôi phục sản phẩm về bản nháp."))
+        setActionMessage(t("ÄĂ£ khĂ´i phá»¥c sáº£n pháº©m vá» báº£n nhĂ¡p."))
       } catch (error) {
-        notify(error instanceof Error ? error.message : t('Không thể khôi phục sản phẩm'), {
+        notify(error instanceof Error ? error.message : t('KhĂ´ng thá»ƒ khĂ´i phá»¥c sáº£n pháº©m'), {
           title: 'Products',
           variant: 'error',
         })
@@ -635,19 +1136,19 @@ function ProductsPage() {
       return
     }
     const approved = await confirm({
-      title: t('Ẩn sản phẩm'),
-      message: t('Ẩn sản phẩm này khỏi danh mục?'),
+      title: t('áº¨n sáº£n pháº©m'),
+      message: t('áº¨n sáº£n pháº©m nĂ y khá»i danh má»¥c?'),
       tone: 'warning',
-      confirmLabel: t('Ẩn sản phẩm'),
+      confirmLabel: t('áº¨n sáº£n pháº©m'),
     })
     if (!approved) {
       return
     }
     try {
       await archiveProduct(product.sku)
-      setActionMessage(t("Đã ẩn sản phẩm khỏi danh mục."))
+      setActionMessage(t("ÄĂ£ áº©n sáº£n pháº©m khá»i danh má»¥c."))
     } catch (error) {
-      notify(error instanceof Error ? error.message : t('Không thể ẩn sản phẩm'), {
+      notify(error instanceof Error ? error.message : t('KhĂ´ng thá»ƒ áº©n sáº£n pháº©m'), {
         title: 'Products',
         variant: 'error',
       })
@@ -660,10 +1161,10 @@ function ProductsPage() {
     }
     if (product.publishStatus === "PUBLISHED") {
       const approved = await confirm({
-        title: t('Hủy xuất bản'),
-        message: t('Hủy xuất bản sản phẩm này?'),
+        title: t('Há»§y xuáº¥t báº£n'),
+        message: t('Há»§y xuáº¥t báº£n sáº£n pháº©m nĂ y?'),
         tone: 'warning',
-        confirmLabel: t('Hủy xuất bản'),
+        confirmLabel: t('Há»§y xuáº¥t báº£n'),
       })
       if (!approved) {
         return
@@ -673,11 +1174,11 @@ function ProductsPage() {
       await togglePublishStatus(product.sku)
       setActionMessage(
         product.publishStatus === "PUBLISHED"
-          ? t("Đã hủy xuất bản sản phẩm.")
-          : t("Đã xuất bản sản phẩm."),
+          ? t("ÄĂ£ há»§y xuáº¥t báº£n sáº£n pháº©m.")
+          : t("ÄĂ£ xuáº¥t báº£n sáº£n pháº©m."),
       )
     } catch (error) {
-      notify(error instanceof Error ? error.message : t('Không thể cập nhật trạng thái xuất bản'), {
+      notify(error instanceof Error ? error.message : t('KhĂ´ng thá»ƒ cáº­p nháº­t tráº¡ng thĂ¡i xuáº¥t báº£n'), {
         title: 'Products',
         variant: 'error',
       })
@@ -685,14 +1186,14 @@ function ProductsPage() {
   }, [confirm, notify, t, togglePublishStatus])
 
   const filters = useMemo(() => ([
-    { value: 'all', label: 'Tất cả', count: filterCounts.all },
-    { value: 'active', label: 'Đang bán', count: filterCounts.active },
-    { value: 'lowStock', label: 'Tồn kho thấp', count: filterCounts.lowStock },
-    { value: 'outOfStock', label: 'Hết hàng', count: filterCounts.outOfStock },
-    { value: 'draft', label: 'Bản nháp', count: filterCounts.draft },
+    { value: 'all', label: 'Táº¥t cáº£', count: filterCounts.all },
+    { value: 'active', label: 'Äang bĂ¡n', count: filterCounts.active },
+    { value: 'lowStock', label: 'Tá»“n kho tháº¥p', count: filterCounts.lowStock },
+    { value: 'outOfStock', label: 'Háº¿t hĂ ng', count: filterCounts.outOfStock },
+    { value: 'draft', label: 'Báº£n nhĂ¡p', count: filterCounts.draft },
     {
       value: 'deleted',
-      label: 'Đã xóa',
+      label: 'ÄĂ£ xĂ³a',
       count: filterCounts.deleted,
     },
   ] as const), [filterCounts])
@@ -703,10 +1204,10 @@ function ProductsPage() {
         <div className="rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] px-6 py-10 text-center text-sm text-slate-500">
           <Package className="mx-auto h-10 w-10 text-slate-400" />
           <p className="mt-4 text-base font-semibold text-slate-900">
-            {t('Không tìm thấy sản phẩm')}
+            {t('KhĂ´ng tĂ¬m tháº¥y sáº£n pháº©m')}
           </p>
           <p className="mt-2 text-xs text-slate-500">
-            {t('Thử đổi bộ lọc hoặc từ khóa tìm kiếm.')}
+            {t('Thá»­ Ä‘á»•i bá»™ lá»c hoáº·c tá»« khĂ³a tĂ¬m kiáº¿m.')}
           </p>
         </div>
       )
@@ -730,20 +1231,20 @@ function ProductsPage() {
               <div className="flex items-center gap-1">
                 {product.isFeatured && (
                   <span
-                    aria-label={t('Nổi bật')}
+                    aria-label={t('Ná»•i báº­t')}
                     className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/15 text-amber-700"
                     role="img"
-                    title={t('Nổi bật')}
+                    title={t('Ná»•i báº­t')}
                   >
                     <Star aria-hidden="true" className="h-3 w-3" />
                   </span>
                 )}
                 {product.showOnHomepage && (
                   <span
-                    aria-label={t('Trang chủ')}
+                    aria-label={t('Trang chá»§')}
                     className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/15 text-blue-700"
                     role="img"
-                    title={t('Trang chủ')}
+                    title={t('Trang chá»§')}
                   >
                     <Home aria-hidden="true" className="h-3 w-3" />
                   </span>
@@ -759,7 +1260,7 @@ function ProductsPage() {
                 {formatPriceVND(product.retailPrice || 0)}
               </span>
               <span className="px-2 text-slate-300">|</span>
-              <span>{t('Tồn')}: {product.stock > 999 ? '999+' : product.stock}</span>
+              <span>{t('Tá»“n')}: {product.stock > 999 ? '999+' : product.stock}</span>
             </p>
           </div>
         </div>
@@ -777,20 +1278,20 @@ function ProductsPage() {
             }
           >
             {product.isDeleted
-              ? t('Đã xóa')
+              ? t('ÄĂ£ xĂ³a')
               : product.publishStatus === 'PUBLISHED'
-                ? t('Đã xuất bản')
+                ? t('ÄĂ£ xuáº¥t báº£n')
                 : product.publishStatus === 'DRAFT'
-                  ? t('Bản nháp')
-                  : t('Đã xóa')}
+                  ? t('Báº£n nhĂ¡p')
+                  : t('ÄĂ£ xĂ³a')}
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2 md:justify-end">
           <Link
             className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-[var(--accent)] hover:text-slate-900 hover:shadow-[0_12px_24px_rgba(15,23,42,0.12)]"
             to={`/products/${product.sku}`}
-            aria-label={t('Chi tiết')}
-            title={t('Chi tiết')}
+            aria-label={t('Chi tiáº¿t')}
+            title={t('Chi tiáº¿t')}
           >
             <Eye className="h-4 w-4" />
           </Link>
@@ -805,13 +1306,13 @@ function ProductsPage() {
             disabled={product.isDeleted}
             aria-label={
               product.publishStatus === 'DRAFT'
-                ? t('Xuất bản')
-                : t('Hủy xuất bản')
+                ? t('Xuáº¥t báº£n')
+                : t('Há»§y xuáº¥t báº£n')
             }
             title={
               product.publishStatus === 'DRAFT'
-                ? t('Xuất bản')
-                : t('Hủy xuất bản')
+                ? t('Xuáº¥t báº£n')
+                : t('Há»§y xuáº¥t báº£n')
             }
           >
             <CheckCircle className="h-4 w-4" />
@@ -826,13 +1327,13 @@ function ProductsPage() {
             onClick={() => handleArchiveToggle(product)}
             aria-label={
               product.isDeleted
-                ? t('Khôi phục')
-                : t('Ẩn sản phẩm')
+                ? t('KhĂ´i phá»¥c')
+                : t('áº¨n sáº£n pháº©m')
             }
             title={
               product.isDeleted
-                ? t('Khôi phục')
-                : t('Ẩn sản phẩm')
+                ? t('KhĂ´i phá»¥c')
+                : t('áº¨n sáº£n pháº©m')
             }
           >
             {product.isDeleted ? (
@@ -850,11 +1351,11 @@ function ProductsPage() {
             type="button"
             onClick={() => handleDelete(product.sku)}
             disabled={!product.isDeleted}
-            aria-label={t('Xóa')}
+            aria-label={t('XĂ³a')}
             title={
               product.isDeleted
-                ? t('Xóa vĩnh viễn')
-                : t('Chỉ xóa vĩnh viễn được khi đã ẩn sản phẩm')
+                ? t('XĂ³a vÄ©nh viá»…n')
+                : t('Chá»‰ xĂ³a vÄ©nh viá»…n Ä‘Æ°á»£c khi Ä‘Ă£ áº©n sáº£n pháº©m')
             }
           >
             <Trash2 className="h-4 w-4" />
@@ -885,10 +1386,10 @@ function ProductsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold text-slate-900">
-            {t('Sản phẩm')}
+            {t('Sáº£n pháº©m')}
           </h3>
           <p className="text-sm text-slate-500">
-            {t('Quản lý sản phẩm và tồn kho.')}
+            {t('Quáº£n lĂ½ sáº£n pháº©m vĂ  tá»“n kho.')}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -896,8 +1397,8 @@ function ProductsPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               className="h-11 w-full max-w-sm rounded-2xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-700 shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
-              placeholder={t('Tìm tên, SKU...')}
-              aria-label={t('Tìm tên, SKU...')}
+              placeholder={t('TĂ¬m tĂªn, SKU...')}
+              aria-label={t('TĂ¬m tĂªn, SKU...')}
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
@@ -926,18 +1427,18 @@ function ProductsPage() {
                 value={filterFeatured}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterFeatured(e.target.value as FeaturedFilter)}
               >
-                <option value="all">{t('Nổi bật: Tất cả')}</option>
-                <option value="featured">{t('Nổi bật')}</option>
-                <option value="nonFeatured">{t('Không nổi bật')}</option>
+                <option value="all">{t('Ná»•i báº­t: Táº¥t cáº£')}</option>
+                <option value="featured">{t('Ná»•i báº­t')}</option>
+                <option value="nonFeatured">{t('KhĂ´ng ná»•i báº­t')}</option>
               </select>
               <select
                 className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700"
                 value={filterHomepage}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterHomepage(e.target.value as HomepageFilter)}
               >
-                <option value="all">{t('Trang chủ: Tất cả')}</option>
-                <option value="homepage">{t('Trang chủ')}</option>
-                <option value="nonHomepage">{t('Không ở trang chủ')}</option>
+                <option value="all">{t('Trang chá»§: Táº¥t cáº£')}</option>
+                <option value="homepage">{t('Trang chá»§')}</option>
+                <option value="nonHomepage">{t('KhĂ´ng á»Ÿ trang chá»§')}</option>
               </select>
             </div>
           )}
@@ -974,13 +1475,13 @@ function ProductsPage() {
             type="button"
             onClick={() => {
               const header = [
-                t('Tên sản phẩm'),
+                t('TĂªn sáº£n pháº©m'),
                 'SKU',
-                t('Giá'),
-                t('Tồn kho'),
-                t('Xuất bản'),
-                t('Nổi bật'),
-                t('Trang chủ'),
+                t('GiĂ¡'),
+                t('Tá»“n kho'),
+                t('Xuáº¥t báº£n'),
+                t('Ná»•i báº­t'),
+                t('Trang chá»§'),
               ]
               const rows = visibleProducts.map((p) => [
                 p.name,
@@ -988,8 +1489,8 @@ function ProductsPage() {
                 p.retailPrice ?? 0,
                 p.stock,
                 p.publishStatus,
-                p.isFeatured ? t('Có') : t('Không'),
-                p.showOnHomepage ? t('Có') : t('Không')
+                p.isFeatured ? t('CĂ³') : t('KhĂ´ng'),
+                p.showOnHomepage ? t('CĂ³') : t('KhĂ´ng')
               ])
               const csv = [header, ...rows]
                 .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
@@ -1005,26 +1506,15 @@ function ProductsPage() {
             }}
           >
             <FileDown className="h-4 w-4" />
-            {t('Xuất CSV')}
+            {t('Xuáº¥t CSV')}
           </button>
           <button
             className={primaryButtonClass}
             type="button"
-            onClick={() => {
-              setActiveTab('basic')
-              retailPriceCaretRef.current = null
-              setNewProduct(createInitialNewProduct())
-              setSelectedImageName('')
-              setImageError('')
-              setDescriptionImageErrors({})
-              setDescriptionVideoErrors({})
-              setProductVideoErrors({})
-              setErrors({})
-              setShowModal(true)
-            }}
+            onClick={openCreateModal}
           >
             <Plus className="h-4 w-4" />
-            {t('Thêm sản phẩm')}
+            {t('ThĂªm sáº£n pháº©m')}
           </button>
         </div>
       </div>
@@ -1037,34 +1527,34 @@ function ProductsPage() {
       <div className="mt-6 hidden flex-wrap items-center gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-xs md:flex">
         <div className="flex items-center gap-2">
           <span className="uppercase tracking-[0.2em] text-slate-400">
-            {t('Tổng SKU')}
+            {t('Tá»•ng SKU')}
           </span>
           <span className="text-sm font-semibold text-slate-900">
             {products.filter((product) => !product.isDeleted).length}
           </span>
           <span className="text-slate-500">
-            {t('{count} bản nháp', { count: draftProducts.length })}
+            {t('{count} báº£n nhĂ¡p', { count: draftProducts.length })}
           </span>
         </div>
         <span className="h-4 w-px bg-[var(--border)]" aria-hidden="true" />
         <div className="flex items-center gap-2">
           <span className="uppercase tracking-[0.2em] text-slate-400">
-            {t('Tồn kho thấp')}
+            {t('Tá»“n kho tháº¥p')}
           </span>
           <span className="text-sm font-semibold text-slate-900">
             {lowStockProducts.length}
           </span>
-          <span className="text-slate-500">{t('Cần bổ sung')}</span>
+          <span className="text-slate-500">{t('Cáº§n bá»• sung')}</span>
         </div>
         <span className="h-4 w-px bg-[var(--border)]" aria-hidden="true" />
         <div className="flex items-center gap-2">
           <span className="uppercase tracking-[0.2em] text-slate-400">
-            {t('Đang bán')}
+            {t('Äang bĂ¡n')}
           </span>
           <span className="text-sm font-semibold text-slate-900">
             {activeProducts.length}
           </span>
-          <span className="text-slate-500">{t('Đang kinh doanh')}</span>
+          <span className="text-slate-500">{t('Äang kinh doanh')}</span>
         </div>
       </div>
 
@@ -1083,89 +1573,111 @@ function ProductsPage() {
           totalItems={visibleProducts.length}
           pageSize={ITEMS_PER_PAGE}
           onPageChange={setCurrentPage}
-          previousLabel={t('Trước')}
-          nextLabel={t('Tiếp')}
+          previousLabel={t('TrÆ°á»›c')}
+          nextLabel={t('Tiáº¿p')}
         />
       )}
 
       <Modal
         isOpen={showModal}
-        onRequestClose={closeModal}
+        onRequestClose={() => {
+          void requestCloseModal()
+        }}
         onAfterOpen={() => {
           tabRefs.current.basic?.focus()
         }}
         style={modalStyles}
-        contentLabel={t('Tạo sản phẩm')}
+        contentLabel={t('Táº¡o sáº£n pháº©m')}
       >
-        <div className="app-scroll modal-form w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+        <div
+          aria-busy={isCreating}
+          className="app-scroll modal-form w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl"
+        >
             <div className="flex items-center justify-between">
               <h4 className="text-lg font-semibold text-slate-900">
-                {t('Tạo sản phẩm')}
+                {t('Táº¡o sáº£n pháº©m')}
               </h4>
               <button
+                type="button"
                 className="rounded-full p-2 hover:bg-slate-100"
-                onClick={closeModal}
+                disabled={isCreating}
+                onClick={() => {
+                  void requestCloseModal()
+                }}
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label={t('Các tab sản phẩm')}>
+            <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label={t('CĂ¡c tab sáº£n pháº©m')}>
               {[
-                { id: 'basic', label: 'Thông tin' },
-                { id: 'description', label: 'Mô tả' },
-                { id: 'specs', label: 'Thông số' },
+                { id: 'basic', label: 'ThĂ´ng tin' },
+                { id: 'description', label: 'MĂ´ táº£' },
+                { id: 'specs', label: 'ThĂ´ng sá»‘' },
                 { id: 'videos', label: 'Video' },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  ref={(node) => {
-                    tabRefs.current[tab.id as typeof activeTab] = node
-                  }}
-                  id={`product-tab-${tab.id}`}
-                  className={
-                    activeTab === tab.id
-                      ? 'rounded-full bg-[var(--accent)] px-3 py-1 text-xs font-semibold text-white shadow'
-                      : 'rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700'
-                  }
-                  role="tab"
-                  aria-selected={activeTab === tab.id}
-                  aria-controls={`product-tabpanel-${tab.id}`}
-                  tabIndex={activeTab === tab.id ? 0 : -1}
-                  onKeyDown={(event) => {
-                    const currentIndex = tabOrder.indexOf(activeTab)
-                    let nextIndex = currentIndex
+              ].map((tab) => {
+                const tabId = tab.id as typeof activeTab
+                const isTabActive = activeTab === tabId
+                const tabHasError = createTabHasError[tabId]
 
-                    switch (event.key) {
-                      case 'ArrowRight':
-                      case 'ArrowDown':
-                        nextIndex = (currentIndex + 1) % tabOrder.length
-                        break
-                      case 'ArrowLeft':
-                      case 'ArrowUp':
-                        nextIndex = (currentIndex - 1 + tabOrder.length) % tabOrder.length
-                        break
-                      case 'Home':
-                        nextIndex = 0
-                        break
-                      case 'End':
-                        nextIndex = tabOrder.length - 1
-                        break
-                      default:
-                        return
+                return (
+                  <button
+                    key={tab.id}
+                    ref={(node) => {
+                      tabRefs.current[tabId] = node
+                    }}
+                    id={`product-tab-${tab.id}`}
+                    className={
+                      isTabActive
+                        ? `inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-3 py-1 text-xs font-semibold text-white shadow ${tabHasError ? 'ring-2 ring-rose-200 ring-offset-2 ring-offset-white' : ''}`
+                        : `inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${tabHasError ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-slate-200 text-slate-700'}`
                     }
+                    role="tab"
+                    aria-selected={isTabActive}
+                    aria-controls={`product-tabpanel-${tab.id}`}
+                    tabIndex={isTabActive ? 0 : -1}
+                    onKeyDown={(event) => {
+                      const currentIndex = tabOrder.indexOf(activeTab)
+                      let nextIndex = currentIndex
 
-                    event.preventDefault()
-                    const nextTab = tabOrder[nextIndex]
-                    setActiveTab(nextTab)
-                    tabRefs.current[nextTab]?.focus()
-                  }}
-                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                >
-                  {t(tab.label)}
-                </button>
-              ))}
+                      switch (event.key) {
+                        case 'ArrowRight':
+                        case 'ArrowDown':
+                          nextIndex = (currentIndex + 1) % tabOrder.length
+                          break
+                        case 'ArrowLeft':
+                        case 'ArrowUp':
+                          nextIndex = (currentIndex - 1 + tabOrder.length) % tabOrder.length
+                          break
+                        case 'Home':
+                          nextIndex = 0
+                          break
+                        case 'End':
+                          nextIndex = tabOrder.length - 1
+                          break
+                        default:
+                          return
+                      }
+
+                      event.preventDefault()
+                      const nextTab = tabOrder[nextIndex]
+                      setActiveTab(nextTab)
+                      tabRefs.current[nextTab]?.focus()
+                    }}
+                    onClick={() => setActiveTab(tabId)}
+                  >
+                    <span>{t(tab.label)}</span>
+                    {tabHasError ? <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" /> : null}
+                  </button>
+                )
+              })}
             </div>
+
+                        {isCreateFormDirty ? (
+              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800" role="status">
+                {t('B\u1ea1n c\u00f3 thay \u0111\u1ed5i ch\u01b0a l\u01b0u trong bi\u1ec3u m\u1eabu t\u1ea1o s\u1ea3n ph\u1ea9m.')}
+              </div>
+            ) : null}
 
             {activeTab === 'basic' && (
               <div
@@ -1176,15 +1688,17 @@ function ProductsPage() {
               >
                 <div className="space-y-4">
                   <div className="rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('Thông tin cơ bản')}</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('ThĂ´ng tin cÆ¡ báº£n')}</p>
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
                       <label className="text-sm text-slate-700">
                         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                          {t('Tên sản phẩm')} <span className="text-rose-500">*</span>
+                          {t('TĂªn sáº£n pháº©m')} <span className="text-rose-500">*</span>
                         </span>
                         <input
-                          className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                          placeholder={t('Nhập tên sản phẩm')}
+                          ref={nameInputRef}
+                          aria-invalid={Boolean(errors.name)}
+                          className={`mt-2 w-full rounded-xl border px-3 py-2 text-sm ${errors.name ? 'border-rose-300' : 'border-slate-200'}`}
+                          placeholder={t('Nháº­p tĂªn sáº£n pháº©m')}
                           value={newProduct.name}
                           onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                         />
@@ -1195,11 +1709,13 @@ function ProductsPage() {
                           {t('Th\u1eddi h\u1ea1n b\u1ea3o h\u00e0nh (th\u00e1ng)')}
                         </span>
                         <input
+                          ref={warrantyInputRef}
                           type="text"
+                          aria-invalid={Boolean(errors.warrantyPeriod)}
                           inputMode="numeric"
                           autoComplete="off"
                           placeholder={t('Nh\u1eadp s\u1ed1 th\u00e1ng b\u1ea3o h\u00e0nh')}
-                          className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          className={`mt-2 w-full rounded-xl border px-3 py-2 text-sm ${errors.warrantyPeriod ? 'border-rose-300' : 'border-slate-200'}`}
                           value={newProduct.warrantyPeriod}
                           onChange={(e) =>
                             setNewProduct({
@@ -1215,8 +1731,10 @@ function ProductsPage() {
                       <label className="text-sm text-slate-700">
                         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">SKU *</span>
                         <input
-                          className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                          placeholder={t('Nhập SKU')}
+                          ref={skuInputRef}
+                          aria-invalid={Boolean(errors.sku)}
+                          className={`mt-2 w-full rounded-xl border px-3 py-2 text-sm ${errors.sku ? 'border-rose-300' : 'border-slate-200'}`}
+                          placeholder={t('Nháº­p SKU')}
                           value={newProduct.sku}
                           onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
                         />
@@ -1224,11 +1742,11 @@ function ProductsPage() {
                       </label>
                       <label className="text-sm text-slate-700 md:col-span-2">
                         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                          {t('Mô tả ngắn')}
+                          {t('MĂ´ táº£ ngáº¯n')}
                         </span>
                         <textarea
                           className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                          placeholder={t('Nhập mô tả ngắn')}
+                          placeholder={t('Nháº­p mĂ´ táº£ ngáº¯n')}
                           rows={3}
                           value={newProduct.shortDescription}
                           onChange={(e) =>
@@ -1239,7 +1757,7 @@ function ProductsPage() {
                     </div>
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('Hiển thị')}</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('Hiá»ƒn thá»‹')}</p>
                     <div className="mt-3 flex flex-wrap gap-3">
                       <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
                         <input
@@ -1249,7 +1767,7 @@ function ProductsPage() {
                             setNewProduct({ ...newProduct, isFeatured: e.target.checked })
                           }
                         />
-                        {t('Nổi bật')}
+                        {t('Ná»•i báº­t')}
                       </label>
                       <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
                         <input
@@ -1259,27 +1777,28 @@ function ProductsPage() {
                             setNewProduct({ ...newProduct, showOnHomepage: e.target.checked })
                           }
                         />
-                        {t('Trang chủ')}
+                        {t('Trang chá»§')}
                       </label>
                     </div>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div className="rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('Giá & trạng thái')}</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('GiĂ¡ & tráº¡ng thĂ¡i')}</p>
                     <div className="mt-4 grid gap-3">
                       <label className="text-sm text-slate-700">
                         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                          {t('Giá bán lẻ')} <span className="text-rose-500">*</span>
+                          {t('GiĂ¡ bĂ¡n láº»')} <span className="text-rose-500">*</span>
                         </span>
                         <div className="relative mt-2">
                           <input
                             ref={retailPriceInputRef}
                             type="text"
+                            aria-invalid={Boolean(errors.retailPrice)}
                             inputMode="numeric"
                             autoComplete="off"
-                            placeholder={t('Nhập giá bán lẻ')}
-                            className="w-full rounded-xl border border-slate-200 px-3 py-2 pr-12 text-sm"
+                            placeholder={t('Nháº­p giĂ¡ bĂ¡n láº»')}
+                            className={`w-full rounded-xl border px-3 py-2 pr-12 text-sm ${errors.retailPrice ? 'border-rose-300' : 'border-slate-200'}`}
                             value={formatNumberInput(newProduct.retailPrice)}
                             onChange={(e) => {
                               const rawValue = e.target.value
@@ -1318,23 +1837,26 @@ function ProductsPage() {
                       </label>
                       <label className="text-sm text-slate-700">
                         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                          {t('Tồn kho')}
+                          {t('Tá»“n kho')}
                         </span>
                         <input
+                          ref={stockInputRef}
                           type="text"
+                          aria-invalid={Boolean(errors.stock)}
                           inputMode="numeric"
                           autoComplete="off"
-                          placeholder={t('Nhập tồn kho')}
-                          className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          placeholder={t('Nháº­p tá»“n kho')}
+                          className={`mt-2 w-full rounded-xl border px-3 py-2 text-sm ${errors.stock ? 'border-rose-300' : 'border-slate-200'}`}
                           value={newProduct.stock}
                           onChange={(e) =>
                             setNewProduct({ ...newProduct, stock: toDigitsOnly(e.target.value) })
                           }
                         />
+                        {errors.stock && <p className="mt-1 text-xs text-red-500">{errors.stock}</p>}
                       </label>
                       <label className="text-sm text-slate-700">
                         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                          {t('Trạng thái xuất bản')}
+                          {t('Tráº¡ng thĂ¡i xuáº¥t báº£n')}
                         </span>
                         <select
                           className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
@@ -1346,8 +1868,8 @@ function ProductsPage() {
                             })
                           }
                         >
-                          <option value="DRAFT">{t('Bản nháp')}</option>
-                          <option value="PUBLISHED">{t('Đã xuất bản')}</option>
+                          <option value="DRAFT">{t('Báº£n nhĂ¡p')}</option>
+                          <option value="PUBLISHED">{t('ÄĂ£ xuáº¥t báº£n')}</option>
                         </select>
                       </label>
                     </div>
@@ -1355,8 +1877,8 @@ function ProductsPage() {
                   <div className="rounded-2xl border border-dashed border-slate-200 bg-[var(--surface-muted)] p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-slate-900">{t('Ảnh sản phẩm')}</p>
-                        <p className="text-xs text-slate-500">{t('PNG/JPG, tối đa 10MB')}</p>
+                        <p className="text-sm font-semibold text-slate-900">{t('áº¢nh sáº£n pháº©m')}</p>
+                        <p className="text-xs text-slate-500">{t('PNG/JPG, tá»‘i Ä‘a 10MB')}</p>
                       </div>
                       <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
                         <input
@@ -1366,7 +1888,7 @@ function ProductsPage() {
                           ref={imageInputRef}
                           onChange={handleImageChange}
                         />
-                        {t('Chọn ảnh')}
+                        {t('Chá»n áº£nh')}
                       </label>
                     </div>
                     {(selectedImageName || imagePreviewUrl || newProduct.imageUrl) && (
@@ -1424,33 +1946,24 @@ function ProductsPage() {
               >
                 <div className="flex flex-wrap items-start justify-between gap-2 text-sm text-slate-700">
                   <div>
-                    <p className="font-semibold text-slate-900">{t('Mô tả')}</p>
+                    <p className="font-semibold text-slate-900">{t('MĂ´ táº£')}</p>
                     <p className="text-xs text-slate-500">
-                      {t('Thêm các đoạn mô tả ngắn cho sản phẩm.')}
+                      {t('ThĂªm cĂ¡c Ä‘oáº¡n mĂ´ táº£ ngáº¯n cho sáº£n pháº©m.')}
                     </p>
                   </div>
                   <button
                     type="button"
                     className="text-xs text-[var(--accent)] underline"
-                    onClick={() =>
-                      setNewProduct({
-                        ...newProduct,
-                        descriptions: [
-                          { type: 'title', text: '' },
-                          { type: 'description', text: '' },
-                          { type: 'image', url: '', caption: '' },
-                          { type: 'gallery', gallery: [] },
-                          { type: 'video', url: '', caption: '' },
-                        ],
-                      })
-                    }
+                    onClick={() => {
+                      void applyDescriptionTemplate()
+                    }}
                   >
-                    {t('Dùng mẫu')}
+                    {t('DĂ¹ng máº«u')}
                   </button>
                 </div>
                 {newProduct.descriptions.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-                    <p className="font-semibold text-slate-700">{t('Chưa có mô tả nào.')}</p>
+                    <p className="font-semibold text-slate-700">{t('ChÆ°a cĂ³ mĂ´ táº£ nĂ o.')}</p>
                     <button
                       type="button"
                       className="mt-2 text-xs font-semibold text-[var(--accent)]"
@@ -1461,7 +1974,7 @@ function ProductsPage() {
                         })
                       }
                     >
-                      {t('Thêm mô tả đầu tiên')}
+                      {t('ThĂªm mĂ´ táº£ Ä‘áº§u tiĂªn')}
                     </button>
                   </div>
                 ) : (
@@ -1480,24 +1993,44 @@ function ProductsPage() {
                                     ? 'rounded-full bg-[var(--accent)] px-2 py-1 font-semibold text-white shadow-sm'
                                     : 'rounded-full px-2 py-1 font-semibold text-slate-600 hover:text-slate-900'
                                 }
-                                onClick={() => changeDescriptionType(idx, option.id)}
+                                onClick={() => {
+                                  void changeDescriptionType(idx, option.id)
+                                }}
                               >
                                 {option.label}
                               </button>
                             )
                           })}
                         </div>
-                        <button
-                          type="button"
-                          className="text-xs text-red-500"
-                          onClick={() => removeDescriptionItem(idx)}
-                        >
-                          {t('Xóa')}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                            onClick={() => moveDescriptionItem(idx, -1)}
+                          >
+                            {t('L\u00ean')}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === newProduct.descriptions.length - 1}
+                            className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                            onClick={() => moveDescriptionItem(idx, 1)}
+                          >
+                            {t('Xu\u1ed1ng')}
+                          </button>
+                          <button
+                            type="button"
+                            className="min-h-11 rounded-lg px-3 py-2 text-xs font-semibold text-red-500"
+                            onClick={() => removeDescriptionItem(idx)}
+                          >
+                            {t('XĂ³a')}
+                          </button>
+                        </div>
                       </div>
                       {d.type === 'title' && (
                         <label className="block">
-                          <span className="sr-only">{t('Tiêu đề mô tả')}</span>
+                          <span className="sr-only">{t('TiĂªu Ä‘á» mĂ´ táº£')}</span>
                           <input
                             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                             value={d.text ?? ''}
@@ -1506,18 +2039,18 @@ function ProductsPage() {
                               copy[idx] = { ...copy[idx], text: e.target.value }
                               setNewProduct({ ...newProduct, descriptions: copy })
                             }}
-                            placeholder={t('Nhập tiêu đề')}
+                            placeholder={t('Nháº­p tiĂªu Ä‘á»')}
                           />
                         </label>
                       )}
                       {d.type === 'description' && (
                         <div className="richtext-editor">
                           <RichTextEditor
-                            ariaLabel={t('Trình soạn thảo mô tả chi tiết')}
+                            ariaLabel={t('TrĂ¬nh soáº¡n tháº£o mĂ´ táº£ chi tiáº¿t')}
                             value={d.text ?? ''}
                             modules={descriptionEditorModules}
                             formats={descriptionEditorFormats}
-                            placeholder={t('Nhập mô tả')}
+                            placeholder={t('Nháº­p mĂ´ táº£')}
                             onChange={(value) => {
                               const copy = [...newProduct.descriptions]
                               copy[idx] = { ...copy[idx], text: value }
@@ -1537,13 +2070,13 @@ function ProductsPage() {
                                 handleDescriptionImageFile(idx, e.target.files?.[0] ?? null)
                               }
                             />
-                            {t('Chọn ảnh')}
+                            {t('Chá»n áº£nh')}
                           </label>
                           <label className="block">
-                            <span className="sr-only">{t('Chú thích hình ảnh')}</span>
+                            <span className="sr-only">{t('ChĂº thĂ­ch hĂ¬nh áº£nh')}</span>
                             <input
                               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                              placeholder={t('Nhập chú thích')}
+                              placeholder={t('Nháº­p chĂº thĂ­ch')}
                               value={d.caption ?? ''}
                               onChange={(e) => {
                                 const copy = [...newProduct.descriptions]
@@ -1559,7 +2092,7 @@ function ProductsPage() {
                             <div className="group relative overflow-hidden rounded-lg border border-slate-200 md:col-span-2">
                               <img
                                 src={resolveBackendAssetUrl(d.url)}
-                                alt={t('Xem trước')}
+                                alt={t('Xem trÆ°á»›c')}
                                 className="h-40 w-full object-cover"
                               />
                               <button
@@ -1576,7 +2109,7 @@ function ProductsPage() {
                                   })
                                 }}
                               >
-                                {t('Xóa ảnh')}
+                                {t('XĂ³a áº£nh')}
                               </button>
                             </div>
                           )}
@@ -1593,7 +2126,7 @@ function ProductsPage() {
                                 className="sr-only"
                                 onChange={(e) => handleDescriptionGalleryFiles(idx, e.target.files)}
                               />
-                              {t('Chọn nhiều ảnh')}
+                              {t('Chá»n nhiá»u áº£nh')}
                             </label>
                             <button
                               type="button"
@@ -1607,7 +2140,7 @@ function ProductsPage() {
                                 setNewProduct({ ...newProduct, descriptions: copy })
                               }}
                             >
-                              {t('Thêm hình ảnh')}
+                              {t('ThĂªm hĂ¬nh áº£nh')}
                             </button>
                           </div>
                           {descriptionImageErrors[idx] && (
@@ -1615,11 +2148,11 @@ function ProductsPage() {
                           )}
                           <label className="text-sm text-slate-700">
                             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                              {t('Chú thích bộ ảnh')}
+                              {t('ChĂº thĂ­ch bá»™ áº£nh')}
                             </span>
                             <input
                               className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                              placeholder={t('Nhập chú thích bộ ảnh')}
+                              placeholder={t('Nháº­p chĂº thĂ­ch bá»™ áº£nh')}
                               value={d.caption ?? ''}
                               onChange={(e) => {
                                 const copy = [...newProduct.descriptions]
@@ -1630,7 +2163,7 @@ function ProductsPage() {
                           </label>
                           {(d.gallery ?? []).length === 0 && (
                             <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-                              <p className="font-semibold text-slate-700">{t('Chưa có hình ảnh nào.')}</p>
+                              <p className="font-semibold text-slate-700">{t('ChÆ°a cĂ³ hĂ¬nh áº£nh nĂ o.')}</p>
                               <button
                                 type="button"
                                 className="mt-2 text-xs font-semibold text-[var(--accent)]"
@@ -1643,7 +2176,7 @@ function ProductsPage() {
                                   setNewProduct({ ...newProduct, descriptions: copy })
                                 }}
                               >
-                                {t('Thêm hình ảnh đầu tiên')}
+                                {t('ThĂªm hĂ¬nh áº£nh Ä‘áº§u tiĂªn')}
                               </button>
                             </div>
                           )}
@@ -1660,13 +2193,13 @@ function ProductsPage() {
                                         handleGalleryItemFile(idx, itemIdx, e.target.files?.[0] ?? null)
                                       }
                                     />
-                                    {item.url ? t('Chọn ảnh') : t('Chọn ảnh')}
+                                    {item.url ? t('Chá»n áº£nh') : t('Chá»n áº£nh')}
                                   </label>
                                   {item.url && (
                                     <div className="group relative overflow-hidden rounded-lg border border-slate-200">
                                       <img
                                         src={resolveBackendAssetUrl(item.url)}
-                                        alt={t('Xem trước')}
+                                        alt={t('Xem trÆ°á»›c')}
                                         className="h-24 w-full object-cover"
                                       />
                                       <button
@@ -1682,7 +2215,7 @@ function ProductsPage() {
                                           setNewProduct({ ...newProduct, descriptions: copy })
                                         }}
                                       >
-                                        {t('Xóa ảnh')}
+                                        {t('XĂ³a áº£nh')}
                                       </button>
                                     </div>
                                   )}
@@ -1700,7 +2233,7 @@ function ProductsPage() {
                                       setNewProduct({ ...newProduct, descriptions: copy })
                                     }}
                                   >
-                                    {t('Xóa ảnh')}
+                                    {t('XĂ³a áº£nh')}
                                   </button>
                                 </div>
                               </div>
@@ -1765,7 +2298,7 @@ function ProductsPage() {
                       })
                     }
                   >
-                    {t('Thêm mục mô tả')}
+                    {t('ThĂªm má»¥c mĂ´ táº£')}
                   </button>
                 )}
               </div>
@@ -1780,30 +2313,36 @@ function ProductsPage() {
               >
                 <div className="flex flex-wrap items-start justify-between gap-2 text-sm text-slate-700">
                   <div>
-                    <p className="font-semibold text-slate-900">{t('Thông số')}</p>
+                    <p className="font-semibold text-slate-900">{t('ThĂ´ng sá»‘')}</p>
                     <p className="text-xs text-slate-500">
-                      {t('Thêm các thông số kỹ thuật quan trọng.')}
+                      {t('ThĂªm cĂ¡c thĂ´ng sá»‘ ká»¹ thuáº­t quan trá»ng.')}
                     </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {suggestedSpecificationLabels.map((label) => (
+                        <button
+                          key={label}
+                          type="button"
+                          className="min-h-11 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                          onClick={() => applySuggestedSpecificationLabel(label)}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <button
                     type="button"
                     className="text-xs text-[var(--accent)] underline"
-                    onClick={() =>
-                      setNewProduct({
-                        ...newProduct,
-                        specifications: [
-                          { label: '', value: '' },
-                          { label: '', value: '' },
-                        ],
-                      })
-                    }
+                    onClick={() => {
+                      void applySpecificationTemplate()
+                    }}
                   >
-                    {t('Dùng mẫu')}
+                    {t('DĂ¹ng máº«u')}
                   </button>
                 </div>
                 {newProduct.specifications.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-                    <p className="font-semibold text-slate-700">{t('Chưa có thông số nào.')}</p>
+                    <p className="font-semibold text-slate-700">{t('ChÆ°a cĂ³ thĂ´ng sá»‘ nĂ o.')}</p>
                     <button
                       type="button"
                       className="mt-2 text-xs font-semibold text-[var(--accent)]"
@@ -1814,17 +2353,17 @@ function ProductsPage() {
                         })
                       }
                     >
-                      {t('Thêm thông số đầu tiên')}
+                      {t('ThĂªm thĂ´ng sá»‘ Ä‘áº§u tiĂªn')}
                     </button>
                   </div>
                 ) : (
                   newProduct.specifications.map((s, idx) => (
                     <div key={idx} className="grid gap-2 md:grid-cols-[1fr_1fr_auto] md:items-center">
                       <label className="block">
-                        <span className="sr-only">{t('Nhãn thông số')}</span>
+                        <span className="sr-only">{t('NhĂ£n thĂ´ng sá»‘')}</span>
                         <input
                           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                          placeholder={t('Nhập nhãn')}
+                          placeholder={t('Nháº­p nhĂ£n')}
                           value={s.label}
                           onChange={(e) => {
                             const copy = [...newProduct.specifications]
@@ -1834,10 +2373,10 @@ function ProductsPage() {
                         />
                       </label>
                       <label className="block">
-                        <span className="sr-only">{t('Giá trị thông số')}</span>
+                        <span className="sr-only">{t('GiĂ¡ trá»‹ thĂ´ng sá»‘')}</span>
                         <input
                           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                          placeholder={t('Nhập giá trị')}
+                          placeholder={t('Nháº­p giĂ¡ trá»‹')}
                           value={s.value}
                           onChange={(e) => {
                             const copy = [...newProduct.specifications]
@@ -1846,16 +2385,34 @@ function ProductsPage() {
                           }}
                         />
                       </label>
-                      <button
-                        type="button"
-                        className="justify-self-end text-xs text-red-500 md:justify-self-auto"
-                        onClick={() => {
-                          const copy = newProduct.specifications.filter((_, i) => i !== idx)
-                          setNewProduct({ ...newProduct, specifications: copy })
-                        }}
-                      >
-                        {t('Xóa')}
-                      </button>
+                      <div className="flex items-center justify-end gap-2 md:justify-self-auto">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          onClick={() => moveSpecificationItem(idx, -1)}
+                        >
+                          {t('L\u00ean')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={idx === newProduct.specifications.length - 1}
+                          className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          onClick={() => moveSpecificationItem(idx, 1)}
+                        >
+                          {t('Xu\u1ed1ng')}
+                        </button>
+                        <button
+                          type="button"
+                          className="min-h-11 px-3 py-2 text-xs font-semibold text-red-500"
+                          onClick={() => {
+                            const copy = newProduct.specifications.filter((_, i) => i !== idx)
+                            setNewProduct({ ...newProduct, specifications: copy })
+                          }}
+                        >
+                          {t('XĂ³a')}
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -1870,7 +2427,7 @@ function ProductsPage() {
                       })
                     }
                   >
-                    {t('+ Thêm thông số')}
+                    {t('+ ThĂªm thĂ´ng sá»‘')}
                   </button>
                 )}
               </div>
@@ -1887,63 +2444,111 @@ function ProductsPage() {
                   <div>
                     <p className="font-semibold text-slate-900">{t('Video')}</p>
                     <p className="text-xs text-slate-500">
-                      {t('Thêm video giới thiệu hoặc hướng dẫn sản phẩm.')}
+                      {t('ThĂªm video giá»›i thiá»‡u hoáº·c hÆ°á»›ng dáº«n sáº£n pháº©m.')}
                     </p>
                   </div>
                   <button
                     type="button"
                     className="text-xs text-[var(--accent)] underline"
-                    onClick={() =>
-                      setNewProduct({
-                        ...newProduct,
-                        videos: [
-                          {
-                            title: '',
-                            descriptions: '',
-                            url: '',
-                            type: 'tutorial',
-                          },
-                        ],
-                      })
-                    }
+                    onClick={() => {
+                      void applyVideoTemplate()
+                    }}
                   >
-                    {t('Dùng mẫu')}
+                    {t('DĂ¹ng máº«u')}
                   </button>
                 </div>
                 {newProduct.videos.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-                    <p className="font-semibold text-slate-700">{t('Chưa có video nào.')}</p>
+                    <p className="font-semibold text-slate-700">{t('ChÆ°a cĂ³ video nĂ o.')}</p>
                     <button
                       type="button"
                       className="mt-2 text-xs font-semibold text-[var(--accent)]"
                       onClick={() =>
                         setNewProduct({
                           ...newProduct,
-                          videos: [
-                            { title: '', descriptions: '', url: '', type: 'tutorial' as const },
-                          ],
+                          videos: createVideoTemplate(),
                         })
                       }
                     >
-                      {t('Thêm video đầu tiên')}
+                      {t('ThĂªm video Ä‘áº§u tiĂªn')}
                     </button>
                   </div>
                 ) : (
                   newProduct.videos.map((v, idx) => (
-                    <div key={idx} className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-white p-3">
+                    <div key={idx} className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-3">
+                      <label className="block">
+                        <span className="sr-only">{t('TiĂªu Ä‘á» video')}</span>
+                        <input
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                          placeholder={t('Nháº­p tiĂªu Ä‘á»')}
+                          value={v.title}
+                          onChange={(e) => {
+                            const copy = [...newProduct.videos]
+                            copy[idx] = { ...copy[idx], title: e.target.value }
+                            setNewProduct({ ...newProduct, videos: copy })
+                          }}
+                        />
+                      </label>
                       <label className="block">
                         <span className="sr-only">{t('URL video')}</span>
                         <input
-                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                          ref={(element) => {
+                            videoUrlInputRefs.current[idx] = element
+                          }}
+                          aria-invalid={Boolean(productVideoErrors[idx])}
+                          className={`w-full rounded-lg border px-3 py-2 text-sm ${productVideoErrors[idx] ? 'border-rose-300' : 'border-slate-200'}`}
                           placeholder={t('Nh\u1eadp URL video YouTube ho\u1eb7c file video c\u00f4ng khai')}
                           value={v.url}
                           onChange={(e) => {
                             const copy = [...newProduct.videos]
                             copy[idx] = { ...copy[idx], url: e.target.value }
                             setNewProduct({ ...newProduct, videos: copy })
+                            setProductVideoErrors((prev) => {
+                              if (!(idx in prev)) return prev
+                              const next = { ...prev }
+                              delete next[idx]
+                              return next
+                            })
                           }}
                         />
                       </label>
+                      {productVideoErrors[idx] && (
+                        <p className="text-xs text-rose-500">{productVideoErrors[idx]}</p>
+                      )}
+                      <div className="grid gap-2 md:grid-cols-[180px_1fr]">
+                        <label className="block">
+                          <span className="sr-only">{t('Loáº¡i video')}</span>
+                          <select
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                            value={v.type}
+                            onChange={(e) => {
+                              const copy = [...newProduct.videos]
+                              copy[idx] = {
+                                ...copy[idx],
+                                type: e.target.value as 'unboxing' | 'tutorial',
+                              }
+                              setNewProduct({ ...newProduct, videos: copy })
+                            }}
+                          >
+                            <option value="tutorial">{t('HÆ°á»›ng dáº«n')}</option>
+                            <option value="unboxing">{t('Mở há»™p')}</option>
+                          </select>
+                        </label>
+                        <label className="block">
+                          <span className="sr-only">{t('MĂ´ táº£ video')}</span>
+                          <textarea
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                            placeholder={t('Nháº­p mĂ´ táº£')}
+                            rows={2}
+                            value={v.descriptions}
+                            onChange={(e) => {
+                              const copy = [...newProduct.videos]
+                              copy[idx] = { ...copy[idx], descriptions: e.target.value }
+                              setNewProduct({ ...newProduct, videos: copy })
+                            }}
+                          />
+                        </label>
+                      </div>
                       {v.url && (
                         <div className="group relative overflow-hidden rounded-lg border border-slate-200">
                           <ProductVideoPreview url={v.url} title={v.title} />
@@ -1954,62 +2559,68 @@ function ProductsPage() {
                               const copy = [...newProduct.videos]
                               copy[idx] = { ...copy[idx], url: '' }
                               setNewProduct({ ...newProduct, videos: copy })
+                              setProductVideoErrors((prev) => {
+                                if (!(idx in prev)) return prev
+                                const next = { ...prev }
+                                delete next[idx]
+                                return next
+                              })
                             }}
                           >
                             {t('X\u00f3a video')}
                           </button>
                         </div>
                       )}
-                      <label className="block">
-                        <span className="sr-only">{t('Tiêu đề video')}</span>
-                        <input
-                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                          placeholder={t('Nhập tiêu đề')}
-                          value={v.title}
-                          onChange={(e) => {
-                            const copy = [...newProduct.videos]
-                            copy[idx] = { ...copy[idx], title: e.target.value }
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          onClick={() => moveVideoItem(idx, -1)}
+                        >
+                          {t('L\u00ean')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={idx === newProduct.videos.length - 1}
+                          className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          onClick={() => moveVideoItem(idx, 1)}
+                        >
+                          {t('Xu\u1ed1ng')}
+                        </button>
+                        <button
+                          type="button"
+                          className="min-h-11 px-3 py-2 text-xs font-semibold text-red-500"
+                          onClick={() => {
+                            const copy = newProduct.videos.filter((_, i) => i !== idx)
                             setNewProduct({ ...newProduct, videos: copy })
-                          }}
-                        />
-                      </label>
-                      <label className="block">
-                        <span className="sr-only">{t('Mô tả video')}</span>
-                        <textarea
-                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                          placeholder={t('Nhập mô tả')}
-                          rows={2}
-                          value={v.descriptions}
-                          onChange={(e) => {
-                            const copy = [...newProduct.videos]
-                            copy[idx] = { ...copy[idx], descriptions: e.target.value }
-                            setNewProduct({ ...newProduct, videos: copy })
-                          }}
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        className="self-end text-xs text-red-500"
-                        onClick={() => {
-                          const copy = newProduct.videos.filter((_, i) => i !== idx)
-                          setNewProduct({ ...newProduct, videos: copy })
-                          setProductVideoErrors((prev) => {
-                            const next: Record<number, string> = {}
-                            Object.entries(prev).forEach(([key, value]) => {
+                            const nextVideoUrlRefs: Record<number, HTMLInputElement | null> = {}
+                            Object.entries(videoUrlInputRefs.current).forEach(([key, element]) => {
                               const index = Number(key)
-                              if (Number.isNaN(index)) return
-                              if (index < idx) {
-                                next[index] = value
-                              } else if (index > idx) {
-                                next[index - 1] = value
+                              if (Number.isNaN(index) || index === idx) {
+                                return
                               }
+                              nextVideoUrlRefs[index > idx ? index - 1 : index] = element
                             })
-                            return next
-                          })
-                        }}
-                      >
-                        {t('Xóa video')}
-                      </button>
+                            videoUrlInputRefs.current = nextVideoUrlRefs
+                            setProductVideoErrors((prev) => {
+                              const next: Record<number, string> = {}
+                              Object.entries(prev).forEach(([key, value]) => {
+                                const index = Number(key)
+                                if (Number.isNaN(index)) return
+                                if (index < idx) {
+                                  next[index] = value
+                                } else if (index > idx) {
+                                  next[index - 1] = value
+                                }
+                              })
+                              return next
+                            })
+                          }}
+                        >
+                          {t('XĂ³a video')}
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -2022,84 +2633,42 @@ function ProductsPage() {
                         ...newProduct,
                         videos: [
                           ...newProduct.videos,
-                          { title: '', descriptions: '', url: '', type: 'tutorial' as const },
+                          ...createVideoTemplate(),
                         ],
                       })
                     }
                   >
-                    {t('+ Thêm video')}
+                    {t('+ ThĂªm video')}
                   </button>
                 )}
               </div>
             )}
             <div className="sticky bottom-0 mt-6 -mx-6 border-t border-slate-200/70 bg-white/95 px-6 py-4 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur">
-              <div className="flex justify-end">
+                            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button
-                  className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm"
+                  type="button"
+                  disabled={isCreating}
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                   onClick={() => {
-                    const nextErrors: Record<string, string> = {}
-                    if (!newProduct.name.trim())
-                      nextErrors.name = t('Vui lòng nhập tên sản phẩm')
-                    if (!newProduct.sku.trim())
-                      nextErrors.sku = t('Vui lòng nhập SKU')
-                    if (products.some((p) => p.sku === newProduct.sku.trim())) {
-                      nextErrors.sku = t('SKU đã tồn tại')
-                    }
-                    const priceNum = Number(newProduct.retailPrice)
-                    if (Number.isNaN(priceNum) || priceNum < 0) {
-                      nextErrors.retailPrice = t('Giá phải là số không âm')
-                    }
-                    const warrantyPeriodNum = Number(newProduct.warrantyPeriod)
-                    if (
-                      Number.isNaN(warrantyPeriodNum) ||
-                      warrantyPeriodNum <= 0 ||
-                      !Number.isInteger(warrantyPeriodNum)
-                    ) {
-                      nextErrors.warrantyPeriod = t(
-                        'Th\u1eddi h\u1ea1n b\u1ea3o h\u00e0nh ph\u1ea3i l\u00e0 s\u1ed1 nguy\u00ean d\u01b0\u01a1ng',
-                      )
-                    }
-                    const stockNum = Number(newProduct.stock || 0)
-                    if (Number.isNaN(stockNum) || stockNum < 0 || !Number.isInteger(stockNum)) {
-                      nextErrors.stock = t('Tồn kho phải là số nguyên không âm')
-                    }
-                    setErrors(nextErrors)
-                    if (Object.keys(nextErrors).length) return
-
-                    const descJson = JSON.stringify(newProduct.descriptions || [])
-                    const specJson = JSON.stringify(newProduct.specifications || [])
-                    const videoJson = JSON.stringify(newProduct.videos || [])
-
-                    void (async () => {
-                      try {
-                        await addProduct({
-                          name: newProduct.name.trim(),
-                          sku: newProduct.sku.trim(),
-                          shortDescription: newProduct.shortDescription.trim(),
-                          retailPrice: priceNum || 0,
-                          warrantyPeriod: warrantyPeriodNum,
-                          stock: stockNum,
-                          publishStatus: newProduct.publishStatus,
-                          isFeatured: newProduct.isFeatured,
-                          showOnHomepage: newProduct.showOnHomepage,
-                          image: newProduct.imageUrl
-                            ? JSON.stringify({ imageUrl: newProduct.imageUrl })
-                            : undefined,
-                          descriptions: descJson,
-                          specifications: specJson,
-                          videos: videoJson,
-                        })
-                        closeModal()
-                      } catch (error) {
-                        notify(error instanceof Error ? error.message : t('Không thể tạo sản phẩm'), {
-                          title: 'Products',
-                          variant: 'error',
-                        })
-                      }
-                    })()
+                    void requestCloseModal()
                   }}
                 >
-                  {t('Tạo')}
+                  {t('H\u1ee7y')}
+                </button>
+                <button
+                  type="button"
+                  disabled={isCreating}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={handleCreateProductSubmit}
+                >
+                  {isCreating ? (
+                    <>
+                      <RotateCcw className="h-4 w-4 animate-spin" />
+                      {t('\u0110ang t\u1ea1o...')}
+                    </>
+                  ) : (
+                    t('T\u1ea1o')
+                  )}
                 </button>
               </div>
             </div>
@@ -2111,3 +2680,4 @@ function ProductsPage() {
 }
 
 export default ProductsPage
+
