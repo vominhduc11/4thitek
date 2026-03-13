@@ -1,5 +1,8 @@
 class DealerApiConfig {
-  static const String _rawBaseUrl = String.fromEnvironment('API_BASE_URL');
+  static const String _rawBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://api.4thitek.vn',
+  );
   static const String _rawWebSocketBaseUrl = String.fromEnvironment(
     'WS_BASE_URL',
   );

@@ -4,7 +4,7 @@ Flutter dealer application cho he thong 4thitek.
 
 ## Che do du lieu
 
-- App yeu cau `API_BASE_URL` de dang nhap va thao tac voi backend that.
+- App mac dinh dung `https://api.4thitek.vn`; co the override bang `API_BASE_URL` khi chay local hoac build theo moi truong khac.
 - Socket mac dinh di qua `WS_BASE_URL` neu duoc cung cap, neu khong se fallback ve `API_BASE_URL + /ws`.
 - Link quay lai main site/public reseller page lay tu `PUBLIC_SITE_BASE_URL`.
 - San pham, gio hang, don hang, warranty, thong bao va profile dealer deu lay tu backend.
