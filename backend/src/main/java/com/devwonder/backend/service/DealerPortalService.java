@@ -151,7 +151,7 @@ public class DealerPortalService {
     @Transactional
     public DealerPaymentResponse recordPayment(String username, Long orderId, RecordPaymentRequest request) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
-        Order order = dealerPortalLookupSupport.requireDealerOrder(dealer.getId(), orderId);
+        Order order = dealerPortalLookupSupport.requireDealerOrderForUpdate(dealer.getId(), orderId);
         return dealerPaymentSupport.recordPayment(dealer, order, request, activeDiscountRules());
     }
 

@@ -21,6 +21,7 @@ import com.devwonder.backend.entity.enums.StaffUserStatus;
 import com.devwonder.backend.repository.AdminRepository;
 import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.exception.BadRequestException;
+import com.devwonder.backend.exception.ConflictException;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.DealerSupportTicketRepository;
 import com.devwonder.backend.repository.NotifyRepository;
@@ -30,7 +31,14 @@ import com.devwonder.backend.service.AdminManagementService;
 import com.devwonder.backend.service.DealerPortalService;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -290,6 +298,100 @@ class OrderWorkflowLogicTests {
 
         assertThat(updatedOrder.paymentStatus()).isEqualTo(PaymentStatus.PAID);
         assertThat(updatedOrder.paidAmount()).isEqualByComparingTo(createdOrder.totalAmount());
+    }
+
+    @Test
+    void adminCannotRecordPaymentAboveOutstandingBalance() {
+        Dealer dealer = dealerRepository.save(createDealer("manual-overpay@example.com"));
+        Product product = productRepository.save(createProduct("SKU-BANK-2", BigDecimal.valueOf(100_000)));
+        var createdOrder = dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer receiver",
+                        "123 Overpay Street",
+                        "0900000000",
+                        0,
+                        "Overpayment should be rejected",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
+                )
+        );
+
+        assertThatThrownBy(() -> adminManagementService.recordOrderPayment(
+                createdOrder.id(),
+                new RecordPaymentRequest(
+                        createdOrder.totalAmount().add(BigDecimal.ONE),
+                        PaymentMethod.BANK_TRANSFER,
+                        "Admin manual confirmation",
+                        "MANUAL-TX-OVERPAY",
+                        "Should fail",
+                        null,
+                        Instant.parse("2026-03-10T02:00:00Z")
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("outstanding balance");
+    }
+
+    @Test
+    void concurrentManualDuplicatePaymentsOnlyRecordOnce() throws Exception {
+        Dealer dealer = dealerRepository.save(createDealer("manual-duplicate@example.com"));
+        Product product = productRepository.save(createProduct("SKU-DUP-1", BigDecimal.valueOf(100_000)));
+        var createdOrder = dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.DEBT,
+                        "Dealer receiver",
+                        "123 Duplicate Street",
+                        "0900000000",
+                        0,
+                        "Concurrent duplicate payment test",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 2, product.getRetailPrice()))
+                )
+        );
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        Callable<String> task = () -> {
+            ready.countDown();
+            start.await(5, TimeUnit.SECONDS);
+            try {
+                adminManagementService.recordOrderPayment(
+                        createdOrder.id(),
+                        new RecordPaymentRequest(
+                                BigDecimal.valueOf(100_000),
+                                PaymentMethod.DEBT,
+                                "Admin manual confirmation",
+                                null,
+                                "Concurrent duplicate test",
+                                null,
+                                Instant.parse("2026-03-10T02:00:00Z")
+                        )
+                );
+                return "recorded";
+            } catch (ConflictException ex) {
+                return "duplicate";
+            }
+        };
+
+        try {
+            Future<String> first = executor.submit(task);
+            Future<String> second = executor.submit(task);
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+
+            List<String> results = new ArrayList<>();
+            results.add(first.get(10, TimeUnit.SECONDS));
+            results.add(second.get(10, TimeUnit.SECONDS));
+
+            assertThat(results).containsExactlyInAnyOrder("recorded", "duplicate");
+        } finally {
+            executor.shutdownNow();
+        }
+
+        Order savedOrder = orderRepository.findById(createdOrder.id()).orElseThrow();
+        assertThat(savedOrder.getPaidAmount()).isEqualByComparingTo("100000");
     }
 
     @Test

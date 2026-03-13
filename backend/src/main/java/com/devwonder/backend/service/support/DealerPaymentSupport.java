@@ -71,6 +71,13 @@ public class DealerPaymentSupport {
         }
 
         BigDecimal amount = request.amount().setScale(0, RoundingMode.HALF_UP);
+        BigDecimal outstandingAmount = computeOutstandingAmount(order, activeDiscountRules);
+        if (outstandingAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException("Order is already fully paid");
+        }
+        if (amount.compareTo(outstandingAmount) > 0) {
+            throw new BadRequestException("Payment amount exceeds outstanding balance");
+        }
         Instant duplicateWindow = Instant.now().minusSeconds(5);
         if (paymentRepository.existsByOrderIdAndAmountAndCreatedAtAfter(order.getId(), amount, duplicateWindow)) {
             throw new ConflictException("Duplicate payment detected");
@@ -99,5 +106,15 @@ public class DealerPaymentSupport {
             dealerOrderNotificationSupport.notifyPaymentRecorded(dealer, order, amount);
         }
         return DealerPortalResponseMapper.toPaymentResponse(savedPayment);
+    }
+
+    private BigDecimal computeOutstandingAmount(
+            Order order,
+            List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
+    ) {
+        BigDecimal totalAmount = OrderPricingSupport.computeTotalAmount(order, activeDiscountRules);
+        BigDecimal paidAmount = DealerOrderSupport.zeroIfNull(order.getPaidAmount());
+        BigDecimal outstandingAmount = totalAmount.subtract(paidAmount);
+        return outstandingAmount.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : outstandingAmount;
     }
 }

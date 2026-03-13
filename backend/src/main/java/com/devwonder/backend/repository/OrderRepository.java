@@ -59,6 +59,29 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     );
 
     @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "dealer", "payments"})
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select o
+            from Order o
+            where o.id = :id
+              and o.dealer.id = :dealerId
+              and (o.isDeleted = false or o.isDeleted is null)
+            """)
+    Optional<Order> findVisibleByIdAndDealerIdForUpdate(
+            @Param("id") Long id,
+            @Param("dealerId") Long dealerId
+    );
+
+    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "dealer", "payments"})
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select o
+            from Order o
+            where o.id = :id
+            """)
+    Optional<Order> findByIdForUpdate(@Param("id") Long id);
+
+    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "dealer", "payments"})
     Optional<Order> findFirstByOrderCodeIgnoreCase(String orderCode);
 
     @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "dealer", "payments"})

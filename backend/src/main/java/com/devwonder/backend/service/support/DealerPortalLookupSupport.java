@@ -25,6 +25,11 @@ public class DealerPortalLookupSupport {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
     }
 
+    public Order requireDealerOrderForUpdate(Long dealerId, Long orderId) {
+        return orderRepository.findVisibleByIdAndDealerIdForUpdate(orderId, dealerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+    }
+
     public Order resolveDealerOrder(Long dealerId, Long orderId) {
         if (orderId == null) {
             return null;

@@ -197,7 +197,7 @@ public class AdminManagementService {
 
     @Transactional
     public AdminOrderResponse recordOrderPayment(Long id, RecordPaymentRequest request) {
-        Order order = orderRepository.findById(id)
+        Order order = orderRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         dealerPaymentSupport.recordAdminPayment(order, request, sepayEnabled, activeDiscountRules());
         return AdminResponseMapper.toOrderResponse(

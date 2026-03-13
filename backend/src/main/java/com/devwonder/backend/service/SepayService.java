@@ -115,11 +115,21 @@ public class SepayService {
             return WebhookResult.ignored("order_cancelled", orderCode, null, "Cancelled order cannot receive payment");
         }
         var activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
-        if (zeroIfNull(order.getPaidAmount()).compareTo(OrderPricingSupport.computeTotalAmount(order, activeDiscountRules)) >= 0) {
+        BigDecimal totalAmount = OrderPricingSupport.computeTotalAmount(order, activeDiscountRules);
+        BigDecimal outstandingAmount = remainingOutstandingAmount(order, totalAmount);
+        if (outstandingAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return WebhookResult.duplicate("already_paid", orderCode, null, "Order is already fully paid");
         }
 
         BigDecimal normalizedAmount = amount.setScale(0, RoundingMode.HALF_UP);
+        if (normalizedAmount.compareTo(outstandingAmount) > 0) {
+            return WebhookResult.ignored(
+                    "amount_exceeds_outstanding",
+                    orderCode,
+                    null,
+                    "Transfer amount exceeds outstanding balance"
+            );
+        }
         String transactionCode = buildTransactionCode(request, orderCode, normalizedAmount);
         if (transactionCode != null && paymentRepository.existsByTransactionCodeIgnoreCase(transactionCode)) {
             return WebhookResult.duplicate("duplicate_transaction", orderCode, transactionCode, "Webhook transaction already processed");
@@ -316,6 +326,11 @@ public class SepayService {
 
     private BigDecimal zeroIfNull(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private BigDecimal remainingOutstandingAmount(Order order, BigDecimal totalAmount) {
+        BigDecimal outstandingAmount = zeroIfNull(totalAmount).subtract(zeroIfNull(order == null ? null : order.getPaidAmount()));
+        return outstandingAmount.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : outstandingAmount;
     }
 
     private String firstNonBlank(String... values) {

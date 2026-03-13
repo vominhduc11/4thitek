@@ -101,6 +101,35 @@ class SepayServiceTests {
         verify(notificationService).create(any());
     }
 
+    @Test
+    void overpaymentWebhookIsIgnoredAndDoesNotChangeBalance() {
+        Product product = createProduct("SEPAY-TEST-3");
+        Order order = orderRepository.save(createBankTransferOrder("SCS-2026-303", product, null));
+        SepayWebhookRequest request = new SepayWebhookRequest(
+                null,
+                "SePay",
+                "2026-03-13 11:30:00",
+                "123456789",
+                "in",
+                BigDecimal.valueOf(999_999_999L),
+                null,
+                null,
+                null,
+                null,
+                "Thanh toan SCS-2026-303",
+                "Thanh toan SCS-2026-303",
+                null
+        );
+
+        SepayService.WebhookResult result = sepayService.processWebhook(request, "test-token");
+        Order refreshedOrder = orderRepository.findFirstByOrderCodeIgnoreCase(order.getOrderCode()).orElseThrow();
+        var payments = paymentRepository.findByOrderIdOrderByPaidAtDescIdDesc(refreshedOrder.getId());
+
+        assertThat(result.status()).isEqualTo("amount_exceeds_outstanding");
+        assertThat(payments).isEmpty();
+        assertThat(refreshedOrder.getPaidAmount()).isEqualByComparingTo("0");
+    }
+
     private SepayWebhookRequest createWebhook(String orderCode) {
         return new SepayWebhookRequest(
                 null,
