@@ -1,6 +1,7 @@
 package com.devwonder.backend.service;
 
 import com.devwonder.backend.exception.BadRequestException;
+import com.devwonder.backend.exception.ResourceNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -21,11 +22,16 @@ import org.springframework.util.unit.DataSize;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 
@@ -34,6 +40,7 @@ public class FileStorageService implements DisposableBean {
 
     private static final String LOCAL_PROVIDER = "local";
     private static final String S3_PROVIDER = "s3";
+    private static final String UPLOADS_PREFIX = "/uploads/";
 
     private final Path uploadDir;
     private final Set<String> allowedExtensions;
@@ -42,6 +49,9 @@ public class FileStorageService implements DisposableBean {
     private final String publicBaseUrl;
     private final S3Client s3Client;
     private final long maxFileSizeBytes;
+
+    public record StoredFile(InputStream inputStream, String contentType, long contentLength) {
+    }
 
     public FileStorageService(
             @Value("${app.upload.dir:./uploads}") String dir,
@@ -142,11 +152,11 @@ public class FileStorageService implements DisposableBean {
         } catch (IOException ex) {
             throw new IllegalStateException("Cannot read uploaded file", ex);
         }
-        return buildPublicObjectUrl(key);
+        return key;
     }
 
     public void delete(String relativePath) {
-        String normalizedPath = normalizeRelativePath(relativePath);
+        String normalizedPath = normalizeStoredPath(relativePath);
         if (normalizedPath == null) {
             return;
         }
@@ -164,6 +174,82 @@ public class FileStorageService implements DisposableBean {
         }
 
         s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(normalizedPath).build());
+    }
+
+    public StoredFile open(String storedPath) {
+        String normalizedPath = normalizeStoredPath(storedPath);
+        if (normalizedPath == null) {
+            throw new ResourceNotFoundException("Uploaded file not found");
+        }
+
+        if (LOCAL_PROVIDER.equals(provider)) {
+            Path targetPath = uploadDir.resolve(normalizedPath).normalize();
+            ensureInsideUploadDir(targetPath);
+            if (!Files.isRegularFile(targetPath)) {
+                throw new ResourceNotFoundException("Uploaded file not found");
+            }
+
+            try {
+                String contentType = Files.probeContentType(targetPath);
+                long contentLength = Files.size(targetPath);
+                return new StoredFile(Files.newInputStream(targetPath), contentType, contentLength);
+            } catch (IOException ex) {
+                throw new IllegalStateException("Cannot read uploaded file", ex);
+            }
+        }
+
+        try {
+            ResponseInputStream<GetObjectResponse> inputStream = s3Client.getObject(
+                    GetObjectRequest.builder().bucket(bucket).key(normalizedPath).build()
+            );
+            GetObjectResponse response = inputStream.response();
+            long contentLength = response.contentLength() == null ? -1L : response.contentLength();
+            return new StoredFile(inputStream, response.contentType(), contentLength);
+        } catch (NoSuchKeyException ex) {
+            throw new ResourceNotFoundException("Uploaded file not found");
+        } catch (S3Exception ex) {
+            if (ex.statusCode() == 404) {
+                throw new ResourceNotFoundException("Uploaded file not found");
+            }
+            throw new IllegalStateException("Cannot read uploaded file", ex);
+        }
+    }
+
+    public String normalizeStoredPath(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+
+        String normalizedValue = value.trim();
+        String fromConfiguredBase = stripConfiguredPublicBase(normalizedValue);
+        if (fromConfiguredBase != null) {
+            return fromConfiguredBase;
+        }
+
+        String fromUploadsPrefix = stripUploadsPrefix(normalizedValue);
+        if (fromUploadsPrefix != null) {
+            return fromUploadsPrefix;
+        }
+
+        if (normalizedValue.startsWith("http://") || normalizedValue.startsWith("https://")) {
+            try {
+                URI uri = URI.create(normalizedValue);
+                String path = uri.getPath();
+                String fromBucketPrefix = stripBucketPrefix(path);
+                if (fromBucketPrefix != null) {
+                    return fromBucketPrefix;
+                }
+                fromUploadsPrefix = stripUploadsPrefix(path);
+                if (fromUploadsPrefix != null) {
+                    return fromUploadsPrefix;
+                }
+            } catch (IllegalArgumentException ex) {
+                throw new BadRequestException("Invalid upload path");
+            }
+            throw new BadRequestException("Unsupported upload URL");
+        }
+
+        return normalizeRelativePath(normalizedValue);
     }
 
     private String extractExtension(String originalFilename) {
@@ -221,12 +307,52 @@ public class FileStorageService implements DisposableBean {
         return normalizedSubfolder + "/" + generatedName;
     }
 
-    private String buildPublicObjectUrl(String key) {
-        if (publicBaseUrl == null) {
-            return key;
+    private String stripConfiguredPublicBase(String value) {
+        if (!StringUtils.hasText(publicBaseUrl)) {
+            return null;
         }
+
         String base = publicBaseUrl.endsWith("/") ? publicBaseUrl.substring(0, publicBaseUrl.length() - 1) : publicBaseUrl;
-        return base + "/" + key;
+        if (value.startsWith(base + "/")) {
+            return normalizeRelativePath(value.substring(base.length() + 1));
+        }
+
+        try {
+            String basePath = URI.create(base).getPath();
+            String requestPath = URI.create(value).getPath();
+            if (StringUtils.hasText(basePath) && StringUtils.hasText(requestPath) && requestPath.startsWith(basePath + "/")) {
+                return normalizeRelativePath(requestPath.substring(basePath.length() + 1));
+            }
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+
+        return null;
+    }
+
+    private String stripBucketPrefix(String value) {
+        if (!StringUtils.hasText(bucket) || !StringUtils.hasText(value)) {
+            return null;
+        }
+
+        String normalizedValue = value.replace('\\', '/').trim();
+        String bucketPrefix = "/" + bucket + "/";
+        if (normalizedValue.startsWith(bucketPrefix)) {
+            return normalizeRelativePath(normalizedValue.substring(bucketPrefix.length()));
+        }
+        return null;
+    }
+
+    private String stripUploadsPrefix(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+
+        String normalizedValue = value.replace('\\', '/').trim();
+        if (normalizedValue.startsWith(UPLOADS_PREFIX)) {
+            return normalizeRelativePath(normalizedValue.substring(UPLOADS_PREFIX.length()));
+        }
+        return null;
     }
 
     private void ensureInsideUploadDir(Path path) {

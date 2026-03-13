@@ -54,4 +54,42 @@ describe('backendApi', () => {
     expect(api.getApiBaseUrl()).toBe('http://localhost:8080/api')
     expect(api.buildApiUrl('/orders')).toBe('http://localhost:8080/api/orders')
   })
+
+  it('rewrites legacy storage host assets through the backend uploads path', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', '')
+    ;(globalThis as { window?: unknown }).window = {
+      __APP_CONFIG__: {
+        apiBaseUrl: 'https://api.4thitek.vn/api/v1',
+      },
+      location: {
+        origin: 'https://admin.4thitek.vn',
+      },
+    }
+
+    const api = await importBackendApi()
+
+    expect(
+      api.resolveBackendAssetUrl(
+        'https://storage.4thitek.vn/4thitek-uploads/products/example.png',
+      ),
+    ).toBe('https://api.4thitek.vn/uploads/products/example.png')
+  })
+
+  it('normalizes bare object keys to the backend uploads path', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', '')
+    ;(globalThis as { window?: unknown }).window = {
+      __APP_CONFIG__: {
+        apiBaseUrl: 'https://api.4thitek.vn/api/v1',
+      },
+      location: {
+        origin: 'https://admin.4thitek.vn',
+      },
+    }
+
+    const api = await importBackendApi()
+
+    expect(api.resolveBackendAssetUrl('products/example.png')).toBe(
+      'https://api.4thitek.vn/uploads/products/example.png',
+    )
+  })
 })

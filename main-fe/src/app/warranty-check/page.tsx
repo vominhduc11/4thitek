@@ -7,6 +7,7 @@ import { WarrantyInfo, WarrantyCheckData } from '@/types/warranty';
 import { apiService } from '@/services/apiService';
 import { ERROR_MESSAGES, ErrorType } from '@/constants/warranty';
 import { handleApiError } from '@/utils/errorHandler';
+import { parseImageUrl } from '@/utils/media';
 import { useLanguage } from '@/context/LanguageContext';
 import { formatWarrantyBoundaryDate, formatWarrantyPurchaseDate } from '@/lib/warrantyDate';
 
@@ -18,12 +19,8 @@ const WarrantyCheckPage = () => {
 
     // Helper function to parse product image JSON
     const parseProductImage = (imageData: string): string | undefined => {
-        try {
-            const parsed = JSON.parse(imageData);
-            return parsed.imageUrl;
-        } catch {
-            return undefined;
-        }
+        const resolved = parseImageUrl(imageData);
+        return resolved || undefined;
     };
 
     // Helper function to convert API data to UI format

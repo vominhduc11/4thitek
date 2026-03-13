@@ -1,6 +1,6 @@
 import type { BlogPost } from '@/types/blog';
 import type { Product, ProductSpecification, ProductVideo, SimpleProduct } from '@/types/product';
-import { parseImageUrl, parseJsonArray } from '@/utils/media';
+import { parseImageUrl, parseJsonArray, resolveMediaUrl } from '@/utils/media';
 import { slugify } from './slug';
 
 const EMPTY_PRODUCT_CATEGORY = {
@@ -41,6 +41,51 @@ const pickString = (...values: unknown[]) => {
         if (trimmed) return trimmed;
     }
     return '';
+};
+
+const normalizeGalleryEntries = (value: unknown) => {
+    if (!Array.isArray(value)) {
+        return value;
+    }
+
+    return value.map((entry) => {
+        if (typeof entry === 'string') {
+            return resolveMediaUrl(entry, entry);
+        }
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+            return entry;
+        }
+
+        const typedEntry = entry as Record<string, unknown>;
+        const url = typeof typedEntry.url === 'string' ? resolveMediaUrl(typedEntry.url, typedEntry.url) : typedEntry.url;
+        return {
+            ...typedEntry,
+            ...(typeof url === 'string' ? { url } : {})
+        };
+    });
+};
+
+const normalizeMediaPayload = <T,>(entry: T): T => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        return entry;
+    }
+
+    const typedEntry = entry as Record<string, unknown>;
+    const normalized: Record<string, unknown> = { ...typedEntry };
+
+    for (const field of ['imageUrl', 'url', 'link'] as const) {
+        if (typeof typedEntry[field] === 'string') {
+            normalized[field] = resolveMediaUrl(typedEntry[field] as string, typedEntry[field] as string);
+        }
+    }
+
+    for (const field of ['gallery', 'images', 'urls'] as const) {
+        if (field in typedEntry) {
+            normalized[field] = normalizeGalleryEntries(typedEntry[field]);
+        }
+    }
+
+    return normalized as T;
 };
 
 export const toEntityId = (value: string | number | null | undefined): string | null => {
@@ -150,7 +195,7 @@ export function mapBlogSummaryToPost(blog: {
             slug: slugify(blog.category),
             description: blog.category
         },
-        introductionBlocks: parseJsonArray(blog.introduction || '[]', []),
+        introductionBlocks: parseJsonArray(blog.introduction || '[]', []).map((entry) => normalizeMediaPayload(entry)),
         tags: [],
         isPublished: true,
         seo: {
@@ -180,7 +225,7 @@ export function mapProductDetailToViewModel(
     hasApiSpecifications: boolean;
 } {
     const id = toEntityId(productData.id) ?? '';
-    const descriptions = parseJsonArray(productData.descriptions || '[]', []);
+    const descriptions = parseJsonArray(productData.descriptions || '[]', []).map((entry) => normalizeMediaPayload(entry));
     const image = parseImageUrl(productData.image, '');
 
     const videos = parseJsonArray<unknown>(productData.videos || '[]', []).reduce<ProductVideo[]>((acc, entry, index) => {

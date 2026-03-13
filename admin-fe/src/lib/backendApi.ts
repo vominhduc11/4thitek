@@ -1,5 +1,8 @@
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '')
+const trimLeadingSlash = (value: string) => value.replace(/^\/+/, '')
 const CANONICAL_API_BASE_URL = 'https://api.4thitek.vn/api/v1'
+const LEGACY_STORAGE_HOST_PATTERN = /(^|\.)storage\.4thitek\.vn$/i
+const LEGACY_STORAGE_BUCKET_PREFIX = '/4thitek-uploads/'
 
 const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value)
 const isLocalHostname = (value: string) => /^(localhost|127(?:\.\d{1,3}){3}|0\.0\.0\.0)$/i.test(value)
@@ -137,17 +140,46 @@ export const getBackendOrigin = () => {
   }
 }
 
+const normalizeAssetPath = (value: string) => {
+  if (!value || value.startsWith('data:') || value.startsWith('blob:')) {
+    return value
+  }
+
+  if (isAbsoluteUrl(value)) {
+    try {
+      const parsed = new URL(value)
+      if (LEGACY_STORAGE_HOST_PATTERN.test(parsed.hostname) && parsed.pathname.startsWith(LEGACY_STORAGE_BUCKET_PREFIX)) {
+        return `/uploads/${trimLeadingSlash(parsed.pathname.slice(LEGACY_STORAGE_BUCKET_PREFIX.length))}`
+      }
+    } catch {
+      return value
+    }
+    return value
+  }
+
+  if (value.startsWith('/uploads/')) {
+    return value
+  }
+
+  if (value.startsWith('/')) {
+    return value
+  }
+
+  return `/uploads/${trimLeadingSlash(value)}`
+}
+
 export const resolveBackendAssetUrl = (value: string) => {
   const trimmed = value.trim()
   if (!trimmed) {
     return trimmed
   }
-  if (isAbsoluteUrl(trimmed) || trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
-    return trimmed
+  const normalized = normalizeAssetPath(trimmed)
+  if (isAbsoluteUrl(normalized) || normalized.startsWith('data:') || normalized.startsWith('blob:')) {
+    return normalized
   }
-  if (trimmed.startsWith('/')) {
+  if (normalized.startsWith('/')) {
     const origin = getBackendOrigin()
-    return origin ? `${origin}${trimmed}` : trimmed
+    return origin ? `${origin}${normalized}` : normalized
   }
-  return trimmed
+  return normalized
 }

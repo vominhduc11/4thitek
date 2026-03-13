@@ -4,7 +4,6 @@ import com.devwonder.backend.dto.ApiResponse;
 import com.devwonder.backend.entity.Account;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.service.FileStorageService;
-import java.net.URI;
 import java.util.Map;
 import java.util.Set;
 import java.util.Locale;
@@ -14,7 +13,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,9 +30,6 @@ public class UploadController {
 
     @Value("${app.upload.base-url:/uploads}")
     private String uploadBaseUrl;
-
-    @Value("${app.storage.s3.public-base-url:}")
-    private String storagePublicBaseUrl;
 
     @PostMapping(value = "/{category}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Map<String, String>>> upload(
@@ -98,10 +93,12 @@ public class UploadController {
         };
     }
 
-    private String buildPublicUrl(String relativePath) {
-        if (relativePath.startsWith("http://") || relativePath.startsWith("https://")) {
-            return relativePath;
+    private String buildPublicUrl(String storedPath) {
+        String normalizedPath = fileStorageService.normalizeStoredPath(storedPath);
+        if (normalizedPath == null) {
+            throw new BadRequestException("Invalid upload path");
         }
+
         String baseUrl = uploadBaseUrl == null ? "/uploads" : uploadBaseUrl.trim();
         if (baseUrl.isEmpty()) {
             baseUrl = "/uploads";
@@ -112,30 +109,15 @@ public class UploadController {
         if (baseUrl.endsWith("/")) {
             baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
         }
-        return baseUrl + "/" + relativePath.replace('\\', '/');
+        return baseUrl + "/" + normalizedPath;
     }
 
     private String resolveRelativePath(String value) {
-        String normalized = value == null ? "" : value.trim();
-        if (normalized.isEmpty()) {
+        String normalizedPath = fileStorageService.normalizeStoredPath(value);
+        if (normalizedPath == null) {
             throw new BadRequestException("url is required");
         }
-
-        String fromStorageBase = stripConfiguredBase(normalized, storagePublicBaseUrl);
-        if (fromStorageBase != null) {
-            return fromStorageBase;
-        }
-
-        String fromUploadBase = stripConfiguredBase(normalized, uploadBaseUrl);
-        if (fromUploadBase != null) {
-            return fromUploadBase;
-        }
-
-        if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
-            throw new BadRequestException("Unsupported upload URL");
-        }
-
-        return normalized.startsWith("/") ? normalized.substring(1) : normalized;
+        return normalizedPath;
     }
 
     private void assertDeleteAccess(Authentication authentication, String relativePath) {
@@ -171,45 +153,6 @@ public class UploadController {
         }
 
         throw new BadRequestException("Unsupported upload path");
-    }
-
-    private String stripConfiguredBase(String value, String configuredBase) {
-        if (!StringUtils.hasText(configuredBase)) {
-            return null;
-        }
-
-        String normalizedBase = configuredBase.trim();
-        while (normalizedBase.endsWith("/")) {
-            normalizedBase = normalizedBase.substring(0, normalizedBase.length() - 1);
-        }
-        if (normalizedBase.isEmpty()) {
-            return null;
-        }
-
-        if (value.startsWith(normalizedBase + "/")) {
-            return value.substring(normalizedBase.length() + 1);
-        }
-        if (value.equals(normalizedBase)) {
-            return null;
-        }
-
-        if (!normalizedBase.startsWith("/")) {
-            return null;
-        }
-
-        try {
-            String path = URI.create(value).getPath();
-            if (!StringUtils.hasText(path)) {
-                return null;
-            }
-            if (path.startsWith(normalizedBase + "/")) {
-                return path.substring(normalizedBase.length() + 1);
-            }
-        } catch (IllegalArgumentException ignored) {
-            return null;
-        }
-
-        return null;
     }
 
     private Account requireAccount(Authentication authentication) {
