@@ -1,4 +1,4 @@
-﻿package com.devwonder.backend;
+package com.devwonder.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

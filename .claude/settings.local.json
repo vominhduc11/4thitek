@@ -35,7 +35,10 @@
       "Bash(bash /tmp/full_api_test.sh 2>&1)",
       "Bash(find /root/myproject/4thitek/backend/src -name \"AdminDealerAccountCreateRequest.java\" -o -name \"*DealerProvision*\" | xargs cat 2>/dev/null | head -30)",
       "Bash(find /root/myproject/4thitek/backend/src -name \"GlobalExceptionHandler.java\" | xargs cat 2>/dev/null | grep -A3 \"serialize\\\\|Serialize\\\\|SERIAL\" -i | head -30)",
-      "Bash(find /root/myproject/4thitek/backend/src -name \"CreateWarrantyRegistrationRequest.java\" | xargs cat 2>/dev/null)"
+      "Bash(find /root/myproject/4thitek/backend/src -name \"CreateWarrantyRegistrationRequest.java\" | xargs cat 2>/dev/null)",
+      "Bash(cd /root/myproject/4thitek/backend && mvn test -DskipTests=false 2>&1 | head -100)",
+      "Bash(cd /root/myproject/4thitek/backend && mvn test -q 2>&1 | tail -150)",
+      "Bash(mvn test:*)"
     ]
   }
 }
