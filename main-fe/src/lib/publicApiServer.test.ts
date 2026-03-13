@@ -7,8 +7,8 @@ const importPublicApiServer = async () => {
 
 describe('publicApiServer', () => {
     beforeEach(() => {
-        vi.stubEnv('NEXT_PUBLIC_API_BASE_URL', 'https://api.4thitek.vn');
-        vi.stubEnv('INTERNAL_API_BASE_URL', 'http://backend:8080');
+        vi.stubEnv('NEXT_PUBLIC_API_BASE_URL', 'https://api.4thitek.vn/api/v1');
+        vi.stubEnv('INTERNAL_API_BASE_URL', 'https://api.4thitek.vn/api/v1');
     });
 
     afterEach(() => {
@@ -30,7 +30,7 @@ describe('publicApiServer', () => {
         await publicApiServer.fetchProducts();
 
         expect(fetchMock).toHaveBeenCalledWith(
-            'http://backend:8080/api/v1/product/products',
+            'https://api.4thitek.vn/api/v1/product/products',
             expect.objectContaining({
                 cache: 'force-cache',
                 next: { revalidate: 3600 }

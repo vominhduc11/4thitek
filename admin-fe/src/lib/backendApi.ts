@@ -1,4 +1,5 @@
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '')
+const CANONICAL_API_BASE_URL = 'https://api.4thitek.vn/api/v1'
 
 const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value)
 
@@ -36,7 +37,7 @@ const readRuntimeApiBaseUrl = () => {
 const rawApiBaseUrl = (() => {
   const trimmed = readRuntimeApiBaseUrl() || (import.meta.env.VITE_API_BASE_URL ?? '').trim()
   if (!trimmed || isPlaceholderHost(trimmed)) {
-    return '/api/v1'
+    return CANONICAL_API_BASE_URL
   }
   return trimmed
 })()

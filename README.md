@@ -82,7 +82,7 @@ Mac dinh stack nay tu fallback duoc cac gia tri toi thieu de boot:
 - Postgres password mac dinh: `app_password`
 - Redis password mac dinh: `redis_password`
 - JWT secret mac dinh: `change-me-to-a-32-byte-secret`
-- `main-fe` va `admin-fe` dung `/api/v1` theo mac dinh, nhung backend van giu alias `/api`
+- `main-fe` va `admin-fe` mac dinh dung `https://api.4thitek.vn/api/v1` la API base URL duy nhat trong production
 - MinIO bucket mac dinh: `4thitek-uploads`
 - `admin-fe` render `runtime-config.js` tu bien moi truong `API_BASE_URL` luc container boot
 
@@ -120,8 +120,8 @@ Workflow GitHub Actions nam o [.github/workflows/ci.yml](.github/workflows/ci.ym
 
 - Public site: `https://4thitek.vn`
 - Admin dashboard: `https://admin.4thitek.vn`
-- API legacy: `https://api.4thitek.vn/api`
-- API versioned: `https://api.4thitek.vn/api/v1`
+- Canonical API base URL: `https://api.4thitek.vn/api/v1`
+- Backend van giu alias `/api`, nhung khong con duoc dung lam default trong client/runtime config.
 - Dealer mobile API: `https://api.4thitek.vn`
 - Dealer WebSocket: `https://ws.4thitek.vn/ws`
 

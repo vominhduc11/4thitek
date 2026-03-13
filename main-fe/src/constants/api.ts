@@ -32,14 +32,12 @@ const normalizeConfiguredApiBaseUrl = (value?: string | null) => {
     return `${stripApiSuffix(normalized)}/api/v1`;
 };
 
-const publicApiBaseUrl =
-    normalizeConfiguredApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL) || '/api/v1';
-const internalApiBaseUrl =
-    normalizeConfiguredApiBaseUrl(process.env.INTERNAL_API_BASE_URL) ||
-    normalizeConfiguredApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL) ||
-    'https://api.4thitek.vn/api/v1';
+const CANONICAL_API_BASE_URL = 'https://api.4thitek.vn/api/v1';
 
-export const API_BASE_URL = typeof window === 'undefined' ? internalApiBaseUrl : publicApiBaseUrl;
+export const API_BASE_URL =
+    normalizeConfiguredApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL) ||
+    normalizeConfiguredApiBaseUrl(process.env.INTERNAL_API_BASE_URL) ||
+    CANONICAL_API_BASE_URL;
 
 // API Endpoints
 export const API_ENDPOINTS = {

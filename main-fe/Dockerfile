@@ -24,8 +24,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Set production environment variables for build
-ARG NEXT_PUBLIC_API_BASE_URL=https://api.4thitek.vn/api
-ARG INTERNAL_API_BASE_URL=https://api.4thitek.vn/api
+ARG NEXT_PUBLIC_API_BASE_URL=https://api.4thitek.vn/api/v1
+ARG INTERNAL_API_BASE_URL=https://api.4thitek.vn/api/v1
 ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
 ENV INTERNAL_API_BASE_URL=${INTERNAL_API_BASE_URL}
 

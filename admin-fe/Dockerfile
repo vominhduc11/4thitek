@@ -11,7 +11,7 @@ WORKDIR /app
 
 COPY . .
 
-ARG VITE_API_BASE_URL=https://api.4thitek.vn/api
+ARG VITE_API_BASE_URL=https://api.4thitek.vn/api/v1
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
 RUN npm run build

@@ -1,3 +1,3 @@
 window.__APP_CONFIG__ = {
-  apiBaseUrl: '/api/v1',
+  apiBaseUrl: 'https://api.4thitek.vn/api/v1',
 }
