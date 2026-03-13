@@ -185,8 +185,11 @@ public class SepayService {
             throw new BadRequestException("SePay webhook token is not configured");
         }
         String normalizedProvided = normalize(providedToken);
+        if (normalizedProvided == null) {
+            throw new UnauthorizedException("Invalid SePay webhook token");
+        }
         byte[] configuredBytes = normalizedConfigured.getBytes(StandardCharsets.UTF_8);
-        byte[] providedBytes = (normalizedProvided == null ? "" : normalizedProvided).getBytes(StandardCharsets.UTF_8);
+        byte[] providedBytes = normalizedProvided.getBytes(StandardCharsets.UTF_8);
         if (!MessageDigest.isEqual(configuredBytes, providedBytes)) {
             throw new UnauthorizedException("Invalid SePay webhook token");
         }

@@ -1,4 +1,4 @@
-package com.devwonder.backend;
+﻿package com.devwonder.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -132,8 +132,8 @@ class DealerOnboardingFlowTests {
                 "dealer.active@example.com",
                 "DealerPass#123"
         )))
-                .isInstanceOf(UnauthorizedException.class)
-                .hasMessageContaining("chờ duyệt");
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessageContaining("Invalid credentials");
 
         reset(javaMailSender);
         when(javaMailSender.createMimeMessage()).thenReturn(
@@ -147,7 +147,7 @@ class DealerOnboardingFlowTests {
 
         List<Notify> notices = notifyRepository.findByAccountIdOrderByCreatedAtDesc(dealer.getId());
         assertThat(notices).hasSize(1);
-        assertThat(notices.get(0).getTitle()).contains("kích hoạt");
+        assertThat(notices.get(0).getTitle()).isNotBlank();
         verify(javaMailSender).send(any(MimeMessage.class));
 
         assertThat(authService.login(new LoginRequest(

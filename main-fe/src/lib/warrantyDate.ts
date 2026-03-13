@@ -33,7 +33,7 @@ export const formatWarrantyPurchaseDate = (value: string, locale: string) => {
     const date = parseWarrantyDateParts(value);
     return new Intl.DateTimeFormat(locale, {
         ...WARRANTY_DATE_FORMAT_OPTIONS,
-        timeZone: 'UTC',
+        timeZone: APP_TIME_ZONE,
     }).format(date);
 };
 

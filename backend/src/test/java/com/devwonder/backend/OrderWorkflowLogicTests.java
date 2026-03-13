@@ -161,6 +161,58 @@ class OrderWorkflowLogicTests {
     }
 
     @Test
+    void concurrentDebtOrdersRespectDealerCreditLimit() throws Exception {
+        Dealer dealer = createDealer("credit-limit-race@example.com");
+        dealer.setCreditLimit(BigDecimal.valueOf(150_000));
+        Dealer savedDealer = dealerRepository.save(dealer);
+        Product product = productRepository.save(createProduct("SKU-CREDIT-RACE-1", BigDecimal.valueOf(100_000), 10));
+
+        CreateDealerOrderRequest request = new CreateDealerOrderRequest(
+                PaymentMethod.DEBT,
+                "Dealer receiver",
+                "123 Credit Street",
+                "0900000000",
+                0,
+                "Concurrent debt order should be serialized",
+                List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
+        );
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        Callable<String> task = () -> {
+            ready.countDown();
+            start.await(5, TimeUnit.SECONDS);
+            try {
+                dealerPortalService.createOrder(savedDealer.getUsername(), request);
+                return "created";
+            } catch (BadRequestException ex) {
+                if (ex.getMessage() != null && ex.getMessage().contains("Credit limit exceeded")) {
+                    return "limit";
+                }
+                throw ex;
+            }
+        };
+
+        try {
+            Future<String> first = executor.submit(task);
+            Future<String> second = executor.submit(task);
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+
+            List<String> results = new ArrayList<>();
+            results.add(first.get(10, TimeUnit.SECONDS));
+            results.add(second.get(10, TimeUnit.SECONDS));
+
+            assertThat(results).containsExactlyInAnyOrder("created", "limit");
+        } finally {
+            executor.shutdownNow();
+        }
+
+        assertThat(orderRepository.findVisibleByDealerIdOrderByCreatedAtDesc(savedDealer.getId())).hasSize(1);
+    }
+
+    @Test
     void discountPercentUsesActiveBulkDiscountRuleRange() {
         Dealer dealer = dealerRepository.save(createDealer("discount-rule@example.com"));
         Product product = productRepository.save(createProduct("SKU-DISCOUNT-1", BigDecimal.valueOf(100_000)));

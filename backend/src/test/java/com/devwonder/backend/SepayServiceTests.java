@@ -1,6 +1,7 @@
 package com.devwonder.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -15,6 +16,7 @@ import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
 import com.devwonder.backend.exception.ResourceNotFoundException;
+import com.devwonder.backend.exception.UnauthorizedException;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.PaymentRepository;
@@ -128,6 +130,16 @@ class SepayServiceTests {
         assertThat(result.status()).isEqualTo("amount_exceeds_outstanding");
         assertThat(payments).isEmpty();
         assertThat(refreshedOrder.getPaidAmount()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void blankWebhookTokenIsRejected() {
+        Product product = createProduct("SEPAY-TEST-4");
+        orderRepository.save(createBankTransferOrder("SCS-2026-404", product, null));
+
+        assertThatThrownBy(() -> sepayService.processWebhook(createWebhook("SCS-2026-404"), "   "))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessageContaining("Invalid SePay webhook token");
     }
 
     private SepayWebhookRequest createWebhook(String orderCode) {

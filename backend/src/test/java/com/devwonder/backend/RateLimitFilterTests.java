@@ -12,8 +12,11 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:rate_limit_preflight;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-        "app.rate-limit.auth.requests=1",
-        "app.rate-limit.auth.window-seconds=60",
+        "app.rate-limit.enabled=true",
+        "app.rate-limit.auth-requests=1",
+        "app.rate-limit.auth-window-seconds=60",
+        "app.rate-limit.webhook-requests=1",
+        "app.rate-limit.webhook-window-seconds=60",
         "app.cors.allowed-origin-patterns=http://localhost:*",
         "app.bootstrap-super-admin.enabled=true",
         "app.bootstrap-super-admin.email=rate.limit.admin@example.com",
@@ -45,5 +48,18 @@ class RateLimitFilterTests {
                                 }
                                 """))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    void appliesRateLimitToSepayWebhookEndpoint() throws Exception {
+        mockMvc.perform(post("/api/webhooks/sepay")
+                        .contentType(APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk());
+
+        mockMvc.perform(post("/api/webhooks/sepay")
+                        .contentType(APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isTooManyRequests());
     }
 }

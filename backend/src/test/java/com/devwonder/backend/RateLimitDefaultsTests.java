@@ -13,8 +13,9 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:rate_limit_defaults;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-        "app.rate-limit.auth.requests=0",
-        "app.rate-limit.auth.window-seconds=0",
+        "app.rate-limit.enabled=true",
+        "app.rate-limit.auth-requests=0",
+        "app.rate-limit.auth-window-seconds=0",
         "app.cors.allowed-origin-patterns=http://localhost:*",
         "app.bootstrap-super-admin.enabled=true",
         "app.bootstrap-super-admin.email=rate.limit.defaults@example.com",

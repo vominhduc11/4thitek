@@ -20,6 +20,11 @@ public class DealerPortalLookupSupport {
                 .orElseThrow(() -> new ResourceNotFoundException("Dealer not found"));
     }
 
+    public Dealer requireDealerByUsernameForUpdate(String username) {
+        return dealerRepository.findByUsernameForUpdate(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Dealer not found"));
+    }
+
     public Order requireDealerOrder(Long dealerId, Long orderId) {
         return orderRepository.findVisibleByIdAndDealerId(orderId, dealerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));

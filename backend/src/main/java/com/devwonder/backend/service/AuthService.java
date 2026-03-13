@@ -61,14 +61,7 @@ public class AuthService {
                     new UsernamePasswordAuthenticationToken(identity, request.password())
             );
         } catch (DisabledException ex) {
-            Account disabledAccount = accountRepository.findByUsernameOrEmail(identity, identity).orElse(null);
-            if (!matchesSubmittedPassword(request.password(), disabledAccount)) {
-                throw new BadCredentialsException("Invalid credentials");
-            }
-            if (disabledAccount instanceof Dealer) {
-                dealerAccountLifecycleService.assertDealerPortalAccess(disabledAccount);
-            }
-            throw new UnauthorizedException("Account is not active");
+            throw new BadCredentialsException("Invalid credentials");
         }
 
         Account account = accountRepository.findByUsernameOrEmail(identity, identity)
@@ -170,12 +163,5 @@ public class AuthService {
 
     private String normalize(String value) {
         return AccountValidationSupport.normalize(value);
-    }
-
-    private boolean matchesSubmittedPassword(String rawPassword, Account account) {
-        return rawPassword != null
-                && account != null
-                && account.getPassword() != null
-                && passwordEncoder.matches(rawPassword, account.getPassword());
     }
 }

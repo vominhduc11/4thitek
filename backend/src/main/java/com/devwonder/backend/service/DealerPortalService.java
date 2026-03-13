@@ -130,7 +130,7 @@ public class DealerPortalService {
 
     @Transactional
     public DealerOrderResponse createOrder(String username, CreateDealerOrderRequest request) {
-        Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
+        Dealer dealer = dealerPortalLookupSupport.requireDealerByUsernameForUpdate(username);
         return dealerOrderWorkflowSupport.createOrder(dealer, request, activeDiscountRules());
     }
 
