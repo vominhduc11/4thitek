@@ -15,6 +15,7 @@ import com.devwonder.backend.exception.UnauthorizedException;
 import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.PaymentRepository;
+import com.devwonder.backend.service.support.AppMessageSupport;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -53,6 +54,7 @@ public class SepayService {
     private final PaymentRepository paymentRepository;
     private final BulkDiscountRepository bulkDiscountRepository;
     private final NotificationService notificationService;
+    private final AppMessageSupport appMessageSupport;
 
     @Value("${sepay.enabled:false}")
     private boolean sepayEnabled;
@@ -200,8 +202,12 @@ public class SepayService {
             try {
                 notificationService.create(new CreateNotifyRequest(
                         dealerId,
-                        "Thanh toán chuyển khoản đã được xác nhận",
-                        "SePay đã ghi nhận " + amount.toPlainString() + " cho đơn " + orderCode + ".",
+                        appMessageSupport.get("notification.sepay.payment_confirmed.title"),
+                        appMessageSupport.get(
+                                "notification.sepay.payment_confirmed.content",
+                                amount.toPlainString(),
+                                orderCode
+                        ),
                         NotifyType.ORDER,
                         "/orders/" + orderCode
                 ));

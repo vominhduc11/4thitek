@@ -10,4 +10,5 @@ import org.springframework.stereotype.Repository;
 public interface BulkDiscountRepository extends JpaRepository<BulkDiscount, Long> {
 
     List<BulkDiscount> findByStatus(DiscountRuleStatus status);
+    long countByStatus(DiscountRuleStatus status);
 }

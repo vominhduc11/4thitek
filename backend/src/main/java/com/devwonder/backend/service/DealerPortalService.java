@@ -16,6 +16,7 @@ import com.devwonder.backend.dto.dealer.UpsertDealerCartItemRequest;
 import com.devwonder.backend.dto.notify.NotifyResponse;
 import com.devwonder.backend.dto.warranty.CreateWarrantyRegistrationRequest;
 import com.devwonder.backend.dto.warranty.WarrantyRegistrationResponse;
+import com.devwonder.backend.config.CacheNames;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.BulkDiscount;
 import com.devwonder.backend.entity.Order;
@@ -34,6 +35,7 @@ import com.devwonder.backend.service.support.DealerSerialSupport;
 import com.devwonder.backend.service.support.DealerWarrantySupport;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -129,12 +131,14 @@ public class DealerPortalService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
     public DealerOrderResponse createOrder(String username, CreateDealerOrderRequest request) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsernameForUpdate(username);
         return dealerOrderWorkflowSupport.createOrder(dealer, request, activeDiscountRules());
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
     public DealerOrderResponse updateOrderStatus(String username, Long orderId, UpdateDealerOrderStatusRequest request) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         Order order = dealerPortalLookupSupport.requireDealerOrder(dealer.getId(), orderId);
@@ -149,6 +153,7 @@ public class DealerPortalService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
     public DealerPaymentResponse recordPayment(String username, Long orderId, RecordPaymentRequest request) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         Order order = dealerPortalLookupSupport.requireDealerOrderForUpdate(dealer.getId(), orderId);

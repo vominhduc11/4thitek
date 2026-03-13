@@ -128,6 +128,8 @@ public final class AdminResponseMapper {
         return new AdminDealerAccountResponse(
                 dealer.getId(),
                 firstNonBlank(dealer.getBusinessName(), dealer.getContactName(), dealer.getUsername()),
+                dealer.getBusinessName(),
+                dealer.getContactName(),
                 dealer.getDealerTier() == null ? DealerTier.GOLD : dealer.getDealerTier(),
                 dealer.getCustomerStatus() == null ? CustomerStatus.ACTIVE : dealer.getCustomerStatus(),
                 visibleOrders.size(),

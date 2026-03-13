@@ -2,6 +2,7 @@ package com.devwonder.backend.config;
 
 public final class CacheNames {
 
+    public static final String ADMIN_DASHBOARD = "admin-dashboard";
     public static final String PUBLIC_HOMEPAGE_PRODUCTS = "public-homepage-products";
     public static final String PUBLIC_PRODUCTS = "public-products";
     public static final String PUBLIC_PRODUCT_BY_ID = "public-product-by-id";

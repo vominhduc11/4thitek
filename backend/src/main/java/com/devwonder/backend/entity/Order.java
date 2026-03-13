@@ -78,6 +78,9 @@ public class Order {
     @Column(name = "paid_amount")
     private BigDecimal paidAmount;
 
+    @Column(name = "completed_at")
+    private Instant completedAt;
+
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;

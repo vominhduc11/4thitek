@@ -128,6 +128,8 @@ export type BackendOrderResponse = {
 export type BackendDealerAccountResponse = {
   id: number
   name: string
+  businessName?: string | null
+  contactName?: string | null
   tier?: BackendDealerAccountTier | null
   status?: BackendDealerAccountStatus | null
   orders?: number | null
@@ -140,6 +142,8 @@ export type BackendDealerAccountResponse = {
 
 export type BackendDealerAccountUpsertRequest = {
   name: string
+  businessName?: string
+  contactName?: string
   tier?: BackendDealerAccountTier
   status?: BackendDealerAccountStatus
   revenue?: number
@@ -539,10 +543,15 @@ export const fetchAdminCategories = (token: string) =>
   })
 
 export const fetchAdminOrders = (token: string) =>
-  authorizedJsonRequest<BackendOrderResponse[]>({
-    path: '/admin/orders',
-    token,
-  })
+  fetchAllPagedItems(
+    (params) =>
+      authorizedJsonRequest<BackendPagedResponse<BackendOrderResponse>>({
+        path: '/admin/orders/page',
+        token,
+        params,
+      }),
+    100,
+  )
 
 export const updateAdminOrderStatus = (
   token: string,
@@ -583,10 +592,15 @@ export const deleteAdminOrder = (token: string, id: number) =>
   })
 
 export const fetchAdminDealerAccounts = (token: string) =>
-  authorizedJsonRequest<BackendDealerAccountResponse[]>({
-    path: '/admin/dealers/accounts',
-    token,
-  })
+  fetchAllPagedItems(
+    (params) =>
+      authorizedJsonRequest<BackendPagedResponse<BackendDealerAccountResponse>>({
+        path: '/admin/dealers/accounts/page',
+        token,
+        params,
+      }),
+    100,
+  )
 
 export const createAdminDealerAccount = (
   token: string,

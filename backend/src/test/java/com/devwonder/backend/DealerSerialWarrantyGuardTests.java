@@ -24,7 +24,9 @@ import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.DealerPortalService;
 import com.devwonder.backend.service.PublicApiService;
+import com.devwonder.backend.service.support.WarrantyDateSupport;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -132,7 +134,7 @@ class DealerSerialWarrantyGuardTests {
                 )
         ))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Product serial not found");
+                .hasMessageContaining("Product serial is not assigned to this dealer");
     }
 
     @Test
@@ -189,6 +191,36 @@ class DealerSerialWarrantyGuardTests {
         assertThat(response.status().name()).isEqualTo("EXPIRED");
         assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
                 .isEqualTo(ProductSerialStatus.SOLD);
+    }
+
+    @Test
+    void warrantyActivationUsesAppTimezoneForStartDate() {
+        Dealer dealer = dealerRepository.save(createDealer("warranty-timezone@example.com"));
+        Product product = productRepository.save(createProduct("SKU-WARRANTY-5", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-5"));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-WARRANTY-5",
+                ProductSerialStatus.AVAILABLE
+        ));
+        LocalDate purchaseDate = LocalDate.of(2026, 3, 14);
+
+        var response = dealerPortalService.activateWarranty(
+                dealer.getUsername(),
+                new CreateWarrantyRegistrationRequest(
+                        serial.getId(),
+                        "Customer Timezone",
+                        "timezone@example.com",
+                        "0912345690",
+                        "202 Warranty Street",
+                        purchaseDate
+                )
+        );
+
+        Instant expectedStart = purchaseDate.atStartOfDay(WarrantyDateSupport.APP_ZONE).toInstant();
+        assertThat(response.warrantyStart()).isEqualTo(expectedStart);
     }
 
     @Test

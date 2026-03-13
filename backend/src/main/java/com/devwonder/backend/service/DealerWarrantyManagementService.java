@@ -19,7 +19,6 @@ import com.devwonder.backend.service.support.AccountValidationSupport;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -171,9 +170,9 @@ public class DealerWarrantyManagementService {
         }
         AccountValidationSupport.assertOptionalVietnamPhone(customerPhone, "customerPhone");
 
-        Instant warrantyStart = purchaseDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant warrantyStart = purchaseDate.atStartOfDay(WarrantyDateSupport.APP_ZONE).toInstant();
         Instant warrantyEnd = purchaseDate.plusMonths(resolveWarrantyMonths(productSerial))
-                .atStartOfDay(ZoneOffset.UTC)
+                .atStartOfDay(WarrantyDateSupport.APP_ZONE)
                 .toInstant();
 
         registration.setProductSerial(productSerial);
@@ -203,15 +202,15 @@ public class DealerWarrantyManagementService {
     private Dealer resolveDealer(Long forcedDealerId, ProductSerial productSerial) {
         Long productDealerId = productSerial.getDealer() == null ? null : productSerial.getDealer().getId();
         if (forcedDealerId != null && productDealerId == null) {
-            throw new ResourceNotFoundException("Product serial not found");
+            throw new ResourceNotFoundException("Product serial is not assigned to this dealer");
         }
         if (forcedDealerId != null && productDealerId != null && !forcedDealerId.equals(productDealerId)) {
-            throw new ResourceNotFoundException("Product serial not found");
+            throw new ResourceNotFoundException("Product serial is not assigned to this dealer");
         }
 
         Long effectiveDealerId = forcedDealerId != null ? forcedDealerId : productDealerId;
         if (effectiveDealerId == null) {
-            return null;
+            throw new BadRequestException("Product serial is not assigned to a dealer");
         }
 
         return dealerRepository.findById(effectiveDealerId)
@@ -283,7 +282,7 @@ public class DealerWarrantyManagementService {
         String suffix = serial.length() <= 4 ? serial : serial.substring(serial.length() - 4);
         Long productSerialId = productSerial.getId();
         if (productSerialId == null) {
-            return "WAR-" + suffix.toUpperCase() + "-" + Instant.now().toEpochMilli();
+            return "WAR-" + (serial.isBlank() ? suffix.toUpperCase() : serial.toUpperCase());
         }
         return "WAR-" + suffix.toUpperCase() + "-" + productSerialId;
     }

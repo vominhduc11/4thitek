@@ -11,6 +11,8 @@ public record AdminDealerAccountUpsertRequest(
         BigDecimal revenue,
         BigDecimal creditLimit,
         String email,
-        String phone
+        String phone,
+        String businessName,
+        String contactName
 ) {
 }

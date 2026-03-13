@@ -35,6 +35,7 @@ public class CacheConfig {
 
         return new ConcurrentMapCacheManager(
                 List.of(
+                        CacheNames.ADMIN_DASHBOARD,
                         CacheNames.PUBLIC_HOMEPAGE_PRODUCTS,
                         CacheNames.PUBLIC_PRODUCTS,
                         CacheNames.PUBLIC_PRODUCT_BY_ID,

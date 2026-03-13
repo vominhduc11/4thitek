@@ -1,9 +1,11 @@
 package com.devwonder.backend;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.devwonder.backend.dto.admin.AdminSerialImportRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminSerialStatusRequest;
+import com.devwonder.backend.dto.admin.UpdateAdminWarrantyStatusRequest;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.OrderItem;
@@ -140,6 +142,32 @@ class AdminSerialInvariantTests {
         ))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("RETURNED status must be managed via a dedicated return workflow");
+    }
+
+    @Test
+    void adminWarrantyStatusUpdateKeepsUnorderedSerialOutOfSoldState() {
+        Product product = productRepository.save(createProduct("SKU-ADMIN-STATUS-4"));
+        ProductSerial serial = productSerialRepository.save(createSerial(
+                null,
+                null,
+                product,
+                "ADMIN-SERIAL-5",
+                ProductSerialStatus.WARRANTY
+        ));
+        WarrantyRegistration warranty = warrantyRegistrationRepository.save(createWarranty(
+                serial,
+                null,
+                null,
+                WarrantyStatus.ACTIVE
+        ));
+
+        adminOperationsService.updateWarrantyStatus(
+                warranty.getId(),
+                new UpdateAdminWarrantyStatusRequest(WarrantyStatus.EXPIRED)
+        );
+
+        assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
+                .isEqualTo(ProductSerialStatus.AVAILABLE);
     }
 
     private Dealer createDealer(String email) {

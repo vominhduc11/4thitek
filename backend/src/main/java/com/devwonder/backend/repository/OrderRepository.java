@@ -4,6 +4,7 @@ import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import jakarta.persistence.LockModeType;
@@ -18,6 +19,22 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
+    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "dealer", "payments"})
+    @Query(
+            value = """
+                    select o
+                    from Order o
+                    where (o.isDeleted = false or o.isDeleted is null)
+                    order by o.createdAt desc
+                    """,
+            countQuery = """
+                    select count(o)
+                    from Order o
+                    where (o.isDeleted = false or o.isDeleted is null)
+                    """
+    )
+    Page<Order> findVisibleByCreatedAtDesc(Pageable pageable);
+
     @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "dealer", "payments"})
     @Query("""
             select o
@@ -107,6 +124,47 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("dealerId") Long dealerId,
             @Param("cancelledStatus") OrderStatus cancelledStatus,
             @Param("paymentMethod") PaymentMethod paymentMethod
+    );
+
+    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "dealer", "payments"})
+    @Query("""
+            select o
+            from Order o
+            where (o.isDeleted = false or o.isDeleted is null)
+              and o.status = com.devwonder.backend.entity.enums.OrderStatus.COMPLETED
+              and coalesce(o.completedAt, o.updatedAt, o.createdAt) >= :startInclusive
+            order by coalesce(o.completedAt, o.updatedAt, o.createdAt) desc
+            """)
+    List<Order> findRevenueOrdersFrom(@Param("startInclusive") Instant startInclusive);
+
+    @Query("""
+            select count(o)
+            from Order o
+            where (o.isDeleted = false or o.isDeleted is null)
+            """)
+    long countVisibleOrders();
+
+    @Query("""
+            select count(o)
+            from Order o
+            where (o.isDeleted = false or o.isDeleted is null)
+              and o.status = :status
+            """)
+    long countVisibleOrdersByStatus(@Param("status") OrderStatus status);
+
+    @Query("""
+            select p.id, p.name, p.sku, coalesce(sum(oi.quantity), 0)
+            from OrderItem oi
+            join oi.order o
+            left join oi.product p
+            where (o.isDeleted = false or o.isDeleted is null)
+              and o.status = :status
+            group by p.id, p.name, p.sku
+            order by coalesce(sum(oi.quantity), 0) desc
+            """)
+    List<Object[]> findTopProductsForDashboard(
+            @Param("status") OrderStatus status,
+            Pageable pageable
     );
 
     @Query(value = """

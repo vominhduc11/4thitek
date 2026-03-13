@@ -8,6 +8,7 @@ import com.devwonder.backend.entity.enums.NotifyType;
 import com.devwonder.backend.entity.enums.StaffUserStatus;
 import com.devwonder.backend.repository.AdminRepository;
 import com.devwonder.backend.service.NotificationService;
+import java.util.Locale;
 import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -18,12 +19,13 @@ public class DealerOrderNotificationSupport {
 
     private final AdminRepository adminRepository;
     private final NotificationService notificationService;
+    private final AppMessageSupport appMessageSupport;
 
     public void notifyOrderCreated(Dealer dealer, Order order) {
         notificationService.create(new CreateNotifyRequest(
                 dealer.getId(),
-                "Đơn hàng mới đã được tạo",
-                "Don " + order.getOrderCode() + " da duoc ghi nhan tren he thong.",
+                appMessageSupport.get("notification.dealer.order.created.title"),
+                appMessageSupport.get("notification.dealer.order.created.content", order.getOrderCode()),
                 NotifyType.ORDER,
                 "/orders/" + order.getOrderCode()
         ));
@@ -32,8 +34,12 @@ public class DealerOrderNotificationSupport {
     public void notifyPaymentRecorded(Dealer dealer, Order order, BigDecimal amount) {
         notificationService.create(new CreateNotifyRequest(
                 dealer.getId(),
-                "Da ghi nhan thanh toan",
-                "He thong da ghi nhan thanh toan " + amount.toPlainString() + " cho don " + order.getOrderCode() + ".",
+                appMessageSupport.get("notification.dealer.payment.recorded.title"),
+                appMessageSupport.get(
+                        "notification.dealer.payment.recorded.content",
+                        amount.toPlainString(),
+                        order.getOrderCode()
+                ),
                 NotifyType.ORDER,
                 "/orders/" + order.getOrderCode()
         ));
@@ -57,8 +63,8 @@ public class DealerOrderNotificationSupport {
             }
             notificationService.create(new CreateNotifyRequest(
                     admin.getId(),
-                    "Dealer đã hủy đơn hàng",
-                    dealerName + " vừa hủy đơn " + orderCode + ".",
+                    appMessageSupport.get("notification.admin.dealer-cancelled.title"),
+                    appMessageSupport.get("notification.admin.dealer-cancelled.content", dealerName, orderCode),
                     NotifyType.ORDER,
                     "/orders/" + order.getId()
             ));

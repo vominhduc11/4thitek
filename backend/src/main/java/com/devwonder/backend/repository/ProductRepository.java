@@ -22,6 +22,28 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByIsDeletedFalseOrderByUpdatedAtDesc();
     Page<Product> findByIsDeletedFalse(Pageable pageable);
     boolean existsBySkuAndIdNot(String sku, Long id);
+    @Query("""
+            select count(p)
+            from Product p
+            where p.isDeleted = false or p.isDeleted is null
+            """)
+    long countActiveProducts();
+
+    @Query("""
+            select count(p)
+            from Product p
+            where (p.isDeleted = false or p.isDeleted is null)
+              and coalesce(p.stock, 0) < :threshold
+            """)
+    long countActiveProductsBelowStock(@Param("threshold") int threshold);
+
+    @Query("""
+            select count(p)
+            from Product p
+            where (p.isDeleted = false or p.isDeleted is null)
+              and p.publishStatus = :publishStatus
+            """)
+    long countActiveProductsByPublishStatus(@Param("publishStatus") PublishStatus publishStatus);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

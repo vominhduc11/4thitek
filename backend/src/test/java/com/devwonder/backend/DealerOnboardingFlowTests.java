@@ -16,6 +16,7 @@ import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Notify;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.exception.ConflictException;
+import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.UnauthorizedException;
 import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.DealerRepository;
@@ -248,6 +249,49 @@ class DealerOnboardingFlowTests {
     }
 
     @Test
+    void registerDealerRejectsTooShortUsernameEvenIfDtoValidationIsBypassed() {
+        assertThatThrownBy(() -> authService.registerDealer(new RegisterDealerRequest(
+                "ab",
+                "DealerPass#123",
+                "Dealer Short Username",
+                "Dealer Contact",
+                "700800900",
+                "0912345603",
+                "short.username@example.com",
+                "444 Username Street",
+                null,
+                "District 1",
+                "Ho Chi Minh City",
+                null,
+                null
+        )))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("username must be 3-50 characters");
+    }
+
+    @Test
+    void registerDealerDoesNotForceVietnamAsDefaultCountry() {
+        authService.registerDealer(new RegisterDealerRequest(
+                "dealer.country@example.com",
+                "DealerPass#123",
+                "Dealer Country",
+                "Dealer Contact",
+                "701800900",
+                "0912345604",
+                "dealer.country@example.com",
+                "555 Country Street",
+                null,
+                "District 9",
+                "Ho Chi Minh City",
+                null,
+                null
+        ));
+
+        Dealer saved = dealerRepository.findByUsername("dealer.country@example.com").orElseThrow();
+        assertThat(saved.getCountry()).isNull();
+    }
+
+    @Test
     void genericDealerAccountUpdateAlsoNotifiesWhenStatusChanges() {
         authService.registerDealer(new RegisterDealerRequest(
                 "dealer.lifecycle@example.com",
@@ -280,7 +324,9 @@ class DealerOnboardingFlowTests {
                         null,
                         BigDecimal.ZERO,
                         "dealer.lifecycle@example.com",
-                        "0912345602"
+                        "0912345602",
+                        null,
+                        null
                 )
         );
 

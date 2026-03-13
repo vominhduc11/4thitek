@@ -39,19 +39,23 @@ function DealerDetailPage() {
   const { confirm, confirmDialog } = useConfirmDialog()
   const dealer = dealers.find((item) => item.id === dealerId)
   const [form, setForm] = useState({
-    name: '',
+    businessName: '',
+    contactName: '',
     tier: 'gold' as DealerTier,
     email: '',
     phone: '',
     creditLimit: '',
   })
-  const [formErrors, setFormErrors] = useState<Partial<Record<'name' | 'email' | 'phone' | 'creditLimit', string>>>({})
+  const [formErrors, setFormErrors] = useState<
+    Partial<Record<'businessName' | 'contactName' | 'email' | 'phone' | 'creditLimit', string>>
+  >({})
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const isDirty = useMemo(
     () =>
       Boolean(
         dealer &&
-          (form.name !== dealer.name ||
+          (form.businessName !== dealer.businessName ||
+            form.contactName !== dealer.contactName ||
             form.tier !== dealer.tier ||
             form.email !== dealer.email ||
             form.phone !== dealer.phone ||
@@ -61,10 +65,15 @@ function DealerDetailPage() {
   )
 
   const validateForm = (value: typeof form) => {
-    const errors: Partial<Record<'name' | 'email' | 'phone' | 'creditLimit', string>> = {}
+    const errors: Partial<Record<'businessName' | 'contactName' | 'email' | 'phone' | 'creditLimit', string>> =
+      {}
 
-    if (!value.name.trim()) {
-      errors.name = t('Vui lòng nhập tên đại lý.')
+    if (!value.businessName.trim()) {
+      errors.businessName = t('Vui lòng nhập tên đại lý.')
+    }
+
+    if (!value.contactName.trim()) {
+      errors.contactName = t('Vui lòng nhập người liên hệ.')
     }
 
     if (!value.email.trim()) {
@@ -103,7 +112,8 @@ function DealerDetailPage() {
       return
     }
     setForm({
-      name: dealer.name,
+      businessName: dealer.businessName,
+      contactName: dealer.contactName,
       tier: dealer.tier,
       email: dealer.email,
       phone: dealer.phone,
@@ -153,7 +163,8 @@ function DealerDetailPage() {
     setIsSavingProfile(true)
     try {
       await updateDealer(dealer.id, {
-        name: form.name.trim(),
+        businessName: form.businessName.trim(),
+        contactName: form.contactName.trim(),
         tier: form.tier,
         email: form.email.trim(),
         phone: form.phone.trim(),
@@ -204,7 +215,8 @@ function DealerDetailPage() {
             </span>
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{dealer.id}</p>
-              <h3 className="text-xl font-semibold text-slate-900">{dealer.name}</h3>
+              <h3 className="text-xl font-semibold text-slate-900">{dealer.businessName}</h3>
+              <p className="mt-1 text-sm text-slate-500">{dealer.contactName}</p>
             </div>
           </div>
 
@@ -296,15 +308,30 @@ function DealerDetailPage() {
               <label className="space-y-2">
                 <span className={labelClass}>{t('Tên đại lý')}</span>
                 <input
-                  aria-describedby={formErrors.name ? 'dealer-name-error' : undefined}
-                  aria-invalid={Boolean(formErrors.name)}
-                  className={`${inputClass} bg-white text-slate-700 ${formErrors.name ? 'border-rose-300' : ''}`}
-                  onChange={(event) => updateFormField('name', event.target.value)}
-                  value={form.name}
+                  aria-describedby={formErrors.businessName ? 'dealer-business-name-error' : undefined}
+                  aria-invalid={Boolean(formErrors.businessName)}
+                  className={`${inputClass} bg-white text-slate-700 ${formErrors.businessName ? 'border-rose-300' : ''}`}
+                  onChange={(event) => updateFormField('businessName', event.target.value)}
+                  value={form.businessName}
                 />
-                {formErrors.name ? (
-                  <FieldErrorMessage className={fieldErrorClass} id="dealer-name-error">
-                    {formErrors.name}
+                {formErrors.businessName ? (
+                  <FieldErrorMessage className={fieldErrorClass} id="dealer-business-name-error">
+                    {formErrors.businessName}
+                  </FieldErrorMessage>
+                ) : null}
+              </label>
+              <label className="space-y-2">
+                <span className={labelClass}>{t('Người liên hệ')}</span>
+                <input
+                  aria-describedby={formErrors.contactName ? 'dealer-contact-name-error' : undefined}
+                  aria-invalid={Boolean(formErrors.contactName)}
+                  className={`${inputClass} bg-white text-slate-700 ${formErrors.contactName ? 'border-rose-300' : ''}`}
+                  onChange={(event) => updateFormField('contactName', event.target.value)}
+                  value={form.contactName}
+                />
+                {formErrors.contactName ? (
+                  <FieldErrorMessage className={fieldErrorClass} id="dealer-contact-name-error">
+                    {formErrors.contactName}
                   </FieldErrorMessage>
                 ) : null}
               </label>
@@ -383,7 +410,8 @@ function DealerDetailPage() {
                 <GhostButton
                   onClick={() => {
                     setForm({
-                      name: dealer.name,
+                      businessName: dealer.businessName,
+                      contactName: dealer.contactName,
                       tier: dealer.tier,
                       email: dealer.email,
                       phone: dealer.phone,

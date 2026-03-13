@@ -80,7 +80,9 @@ class AdminDealerAccountProvisioningTests {
                 null,
                 BigDecimal.valueOf(500_000),
                 "provisioned.dealer@example.com",
-                "0901234567"
+                "0901234567",
+                null,
+                null
         ));
 
         Dealer savedDealer = dealerRepository.findByUsername("provisioned.dealer@example.com").orElseThrow();

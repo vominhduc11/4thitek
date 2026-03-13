@@ -256,6 +256,24 @@ public final class OrderPricingSupport {
         return QuantityRange.of(value, null);
     }
 
+    public static String canonicalRangeLabel(QuantityRange range) {
+        if (range == null) {
+            return null;
+        }
+        Integer min = range.min();
+        Integer max = range.max();
+        if (min != null && max != null) {
+            return min + " - " + max;
+        }
+        if (min != null) {
+            return min + "+";
+        }
+        if (max != null) {
+            return "<= " + max;
+        }
+        return null;
+    }
+
     private static List<Integer> extractNumbers(String value) {
         List<Integer> numbers = new ArrayList<>();
         Matcher matcher = RANGE_NUMBER_PATTERN.matcher(value);

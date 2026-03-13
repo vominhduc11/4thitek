@@ -37,6 +37,8 @@ export type BlogPost = {
 export type Dealer = {
   id: string
   name: string
+  businessName: string
+  contactName: string
   tier: DealerTier
   status: DealerStatus
   orders: number

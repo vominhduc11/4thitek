@@ -6,6 +6,7 @@ import com.devwonder.backend.dto.auth.LoginRequest;
 import com.devwonder.backend.dto.auth.RefreshTokenRequest;
 import com.devwonder.backend.dto.auth.RegisterDealerRequest;
 import com.devwonder.backend.dto.auth.RegisterDealerResponse;
+import com.devwonder.backend.config.CacheNames;
 import com.devwonder.backend.entity.Account;
 import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.Dealer;
@@ -22,10 +23,10 @@ import com.devwonder.backend.security.JWTUtils;
 import com.devwonder.backend.service.support.AccountValidationSupport;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -96,11 +97,10 @@ public class AuthService {
         }
     }
 
+    @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
     public RegisterDealerResponse registerDealer(RegisterDealerRequest request) {
         String username = normalize(request.username());
-        if (username == null) {
-            throw new BadRequestException("username is required");
-        }
+        AccountValidationSupport.assertUsernameLength(username, "username");
         if (accountRepository.existsByUsername(username)) {
             throw new ConflictException("Username already exists");
         }
@@ -133,7 +133,7 @@ public class AuthService {
         dealer.setWard(normalize(request.ward()));
         dealer.setDistrict(normalize(request.district()));
         dealer.setCity(normalize(request.city()));
-        dealer.setCountry(Optional.ofNullable(normalize(request.country())).orElse("Vietnam"));
+        dealer.setCountry(normalize(request.country()));
         dealer.setAvatarUrl(normalize(request.avatarUrl()));
         dealer.setCustomerStatus(CustomerStatus.UNDER_REVIEW);
         dealer.setRoles(new HashSet<>(Set.of(resolveRole("USER", "Default dealer role"))));

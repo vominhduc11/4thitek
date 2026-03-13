@@ -58,16 +58,21 @@ import com.devwonder.backend.service.support.OrderInventorySupport;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import com.devwonder.backend.service.support.OrderStatusTransitionPolicy;
 import com.devwonder.backend.service.support.ProductSerialResponseMapper;
+import com.devwonder.backend.service.support.WarrantyDateSupport;
 import java.math.BigDecimal;
 import java.security.SecureRandom;
+import java.time.Instant;
+import java.time.YearMonth;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -119,6 +124,7 @@ public class AdminManagementService {
 
     @Transactional
     @CacheEvict(cacheNames = {
+            CacheNames.ADMIN_DASHBOARD,
             CacheNames.PUBLIC_PRODUCTS,
             CacheNames.PUBLIC_HOMEPAGE_PRODUCTS,
             CacheNames.PUBLIC_PRODUCT_BY_ID
@@ -131,6 +137,7 @@ public class AdminManagementService {
 
     @Transactional
     @CacheEvict(cacheNames = {
+            CacheNames.ADMIN_DASHBOARD,
             CacheNames.PUBLIC_PRODUCTS,
             CacheNames.PUBLIC_HOMEPAGE_PRODUCTS,
             CacheNames.PUBLIC_PRODUCT_BY_ID
@@ -144,6 +151,7 @@ public class AdminManagementService {
 
     @Transactional
     @CacheEvict(cacheNames = {
+            CacheNames.ADMIN_DASHBOARD,
             CacheNames.PUBLIC_PRODUCTS,
             CacheNames.PUBLIC_HOMEPAGE_PRODUCTS,
             CacheNames.PUBLIC_PRODUCT_BY_ID
@@ -158,20 +166,30 @@ public class AdminManagementService {
     @Transactional(readOnly = true)
     public List<AdminOrderResponse> getOrders() {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
-        return orderRepository.findAll().stream()
-                .filter(AdminDashboardSupport::isVisibleOrder)
-                .sorted(Comparator.comparing(Order::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+        return orderRepository.findVisibleByCreatedAtDesc(Pageable.unpaged()).stream()
                 .map(order -> AdminResponseMapper.toOrderResponse(order, activeDiscountRules))
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public Page<AdminOrderResponse> getOrders(Pageable pageable) {
+        List<BulkDiscount> activeDiscountRules = activeDiscountRules();
+        Pageable effectivePageable = pageable == null || pageable.isUnpaged()
+                ? PageRequest.of(0, 100)
+                : pageable;
+        return orderRepository.findVisibleByCreatedAtDesc(effectivePageable)
+                .map(order -> AdminResponseMapper.toOrderResponse(order, activeDiscountRules));
+    }
+
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
     public AdminOrderResponse updateOrderStatus(Long id, UpdateDealerOrderStatusRequest request) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         OrderStatus previousStatus = order.getStatus();
         OrderStatusTransitionPolicy.assertAdminTransitionAllowed(previousStatus, request.status());
         order.setStatus(request.status());
+        applyCompletedAt(order, request.status(), previousStatus);
         if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
             orderInventorySupport.restoreStock(order);
         }
@@ -184,6 +202,7 @@ public class AdminManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
     public void deleteOrder(Long id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
@@ -199,14 +218,13 @@ public class AdminManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
     public AdminOrderResponse recordOrderPayment(Long id, RecordPaymentRequest request) {
         Order order = orderRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
-        dealerPaymentSupport.recordAdminPayment(order, request, sepayEnabled, activeDiscountRules());
-        return AdminResponseMapper.toOrderResponse(
-                orderRepository.findById(id).orElseThrow(),
-                activeDiscountRules()
-        );
+        List<BulkDiscount> activeDiscountRules = activeDiscountRules();
+        dealerPaymentSupport.recordAdminPayment(order, request, sepayEnabled, activeDiscountRules);
+        return AdminResponseMapper.toOrderResponse(order, activeDiscountRules);
     }
 
     @Transactional(readOnly = true)
@@ -231,6 +249,7 @@ public class AdminManagementService {
 
     @Transactional
     @CacheEvict(cacheNames = {
+            CacheNames.ADMIN_DASHBOARD,
             CacheNames.PUBLIC_BLOGS,
             CacheNames.PUBLIC_HOMEPAGE_BLOGS,
             CacheNames.PUBLIC_BLOG_BY_ID,
@@ -246,6 +265,7 @@ public class AdminManagementService {
 
     @Transactional
     @CacheEvict(cacheNames = {
+            CacheNames.ADMIN_DASHBOARD,
             CacheNames.PUBLIC_BLOGS,
             CacheNames.PUBLIC_HOMEPAGE_BLOGS,
             CacheNames.PUBLIC_BLOG_BY_ID,
@@ -262,6 +282,7 @@ public class AdminManagementService {
 
     @Transactional
     @CacheEvict(cacheNames = {
+            CacheNames.ADMIN_DASHBOARD,
             CacheNames.PUBLIC_BLOGS,
             CacheNames.PUBLIC_HOMEPAGE_BLOGS,
             CacheNames.PUBLIC_BLOG_BY_ID,
@@ -286,14 +307,23 @@ public class AdminManagementService {
     @Transactional(readOnly = true)
     public List<AdminDealerAccountResponse> getDealerAccounts() {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
-        return dealerRepository.findAll().stream()
-                .sorted(Comparator.comparing(Dealer::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+        return dealerRepository.findAllByOrderByCreatedAtDesc().stream()
                 .map(dealer -> AdminResponseMapper.toDealerAccountResponse(dealer, activeDiscountRules))
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public Page<AdminDealerAccountResponse> getDealerAccounts(Pageable pageable) {
+        List<BulkDiscount> activeDiscountRules = activeDiscountRules();
+        Pageable effectivePageable = pageable == null || pageable.isUnpaged()
+                ? PageRequest.of(0, 100)
+                : pageable;
+        return dealerRepository.findAllByOrderByCreatedAtDesc(effectivePageable)
+                .map(dealer -> AdminResponseMapper.toDealerAccountResponse(dealer, activeDiscountRules));
+    }
+
     @Transactional
-    @CacheEvict(cacheNames = CacheNames.PUBLIC_DEALERS, allEntries = true)
+    @CacheEvict(cacheNames = {CacheNames.ADMIN_DASHBOARD, CacheNames.PUBLIC_DEALERS}, allEntries = true)
     public AdminDealerAccountResponse createDealerAccount(AdminDealerAccountUpsertRequest request) {
         String email = requireEmail(request.email());
         String phone = requireNonBlank(request.phone(), "phone");
@@ -310,9 +340,10 @@ public class AdminManagementService {
         Dealer dealer = new Dealer();
         ensureDealerProvisioningEmailAvailable(email);
         String temporaryPassword = generateTemporaryPassword();
-        String name = requireNonBlank(request.name(), "name");
-        dealer.setBusinessName(name);
-        dealer.setContactName(name);
+        String businessName = resolveBusinessName(request, null);
+        String contactName = resolveContactName(request, null, businessName);
+        dealer.setBusinessName(businessName);
+        dealer.setContactName(contactName);
         dealer.setUsername(email);
         dealer.setEmail(email);
         dealer.setPhone(phone);
@@ -327,14 +358,13 @@ public class AdminManagementService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = CacheNames.PUBLIC_DEALERS, allEntries = true)
+    @CacheEvict(cacheNames = {CacheNames.ADMIN_DASHBOARD, CacheNames.PUBLIC_DEALERS}, allEntries = true)
     public AdminDealerAccountResponse updateDealerAccount(Long id, AdminDealerAccountUpsertRequest request) {
         Dealer dealer = dealerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Dealer account not found"));
         CustomerStatus previousStatus = dealer.getCustomerStatus();
         String email = requireEmail(request.email());
         String phone = requireNonBlank(request.phone(), "phone");
-        String name = requireNonBlank(request.name(), "name");
         accountRepository.findByUsername(email)
                 .filter(existing -> !existing.getId().equals(id))
                 .ifPresent(existing -> {
@@ -349,8 +379,10 @@ public class AdminManagementService {
             throw new ConflictException("Phone already exists");
         }
 
-        dealer.setBusinessName(name);
-        dealer.setContactName(name);
+        String businessName = resolveBusinessName(request, dealer);
+        String contactName = resolveContactName(request, dealer, businessName);
+        dealer.setBusinessName(businessName);
+        dealer.setContactName(contactName);
         dealer.setUsername(email);
         dealer.setEmail(email);
         dealer.setPhone(phone);
@@ -365,11 +397,11 @@ public class AdminManagementService {
         if (request.status() != null && request.status() != previousStatus) {
             dealerAccountLifecycleService.notifyDealerStatusChanged(saved, previousStatus);
         }
-        return AdminResponseMapper.toDealerAccountResponse(saved);
+        return AdminResponseMapper.toDealerAccountResponse(saved, activeDiscountRules());
     }
 
     @Transactional
-    @CacheEvict(cacheNames = CacheNames.PUBLIC_DEALERS, allEntries = true)
+    @CacheEvict(cacheNames = {CacheNames.ADMIN_DASHBOARD, CacheNames.PUBLIC_DEALERS}, allEntries = true)
     public AdminDealerAccountResponse updateDealerAccountStatus(
             Long id,
             UpdateAdminDealerAccountStatusRequest request
@@ -380,7 +412,7 @@ public class AdminManagementService {
         dealer.setCustomerStatus(request.status());
         Dealer saved = dealerRepository.save(dealer);
         dealerAccountLifecycleService.notifyDealerStatusChanged(saved, previousStatus);
-        return AdminResponseMapper.toDealerAccountResponse(saved);
+        return AdminResponseMapper.toDealerAccountResponse(saved, activeDiscountRules());
     }
 
     @Transactional(readOnly = true)
@@ -392,6 +424,7 @@ public class AdminManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
     public AdminStaffUserResponse createUser(AdminStaffUserUpsertRequest request) {
         String name = requireNonBlank(request.name(), "name");
         String roleTitle = requireNonBlank(request.role(), "role");
@@ -424,6 +457,7 @@ public class AdminManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
     public AdminStaffUserResponse updateUserStatus(Long id, UpdateAdminStaffUserStatusRequest request) {
         Admin admin = adminRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Staff user not found"));
@@ -439,6 +473,7 @@ public class AdminManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
     public AdminDiscountRuleResponse createDiscountRule(AdminDiscountRuleUpsertRequest request) {
         BulkDiscount rule = new BulkDiscount();
         rule.setLabel(requireNonBlank(request.label(), "label"));
@@ -449,6 +484,7 @@ public class AdminManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
     public AdminDiscountRuleResponse updateDiscountRuleStatus(Long id, UpdateAdminDiscountRuleStatusRequest request) {
         BulkDiscount rule = bulkDiscountRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Discount rule not found"));
@@ -457,15 +493,46 @@ public class AdminManagementService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(CacheNames.ADMIN_DASHBOARD)
     public AdminDashboardResponse getDashboard() {
-        return AdminDashboardSupport.buildDashboard(
-                orderRepository.findAll(),
-                productRepository.findAll(),
-                dealerRepository.findAll(),
-                adminRepository.findAll(),
-                blogRepository.findAll(),
-                bulkDiscountRepository.findAll()
-        );
+        List<BulkDiscount> activeDiscountRules = activeDiscountRules();
+        Instant dashboardStart = YearMonth.now(WarrantyDateSupport.APP_ZONE)
+                .minusMonths(5)
+                .atDay(1)
+                .atStartOfDay(WarrantyDateSupport.APP_ZONE)
+                .toInstant();
+        List<Order> revenueOrders = orderRepository.findRevenueOrdersFrom(dashboardStart);
+        List<AdminDashboardSupport.TopProductStat> topProducts = orderRepository.findTopProductsForDashboard(
+                        OrderStatus.COMPLETED,
+                        PageRequest.of(0, 5)
+                ).stream()
+                .map(this::toDashboardTopProductStat)
+                .toList();
+
+        return AdminDashboardSupport.buildDashboard(new AdminDashboardSupport.DashboardSnapshot(
+                Math.toIntExact(orderRepository.countVisibleOrders()),
+                Math.toIntExact(orderRepository.countVisibleOrdersByStatus(OrderStatus.PENDING)),
+                Math.toIntExact(orderRepository.countVisibleOrdersByStatus(OrderStatus.CONFIRMED)),
+                Math.toIntExact(orderRepository.countVisibleOrdersByStatus(OrderStatus.SHIPPING)),
+                Math.toIntExact(orderRepository.countVisibleOrdersByStatus(OrderStatus.COMPLETED)),
+                Math.toIntExact(orderRepository.countVisibleOrdersByStatus(OrderStatus.CANCELLED)),
+                Math.toIntExact(productRepository.countActiveProducts()),
+                Math.toIntExact(productRepository.countActiveProductsBelowStock(10)),
+                Math.toIntExact(productRepository.countActiveProductsBelowStock(5)),
+                Math.toIntExact(dealerRepository.count()),
+                Math.toIntExact(dealerRepository.countByCustomerStatus(CustomerStatus.UNDER_REVIEW)),
+                Math.toIntExact(adminRepository.count()),
+                Math.toIntExact(adminRepository.countByUserStatus(StaffUserStatus.PENDING)),
+                Math.toIntExact(productRepository.countActiveProductsByPublishStatus(com.devwonder.backend.entity.enums.PublishStatus.PUBLISHED)),
+                Math.toIntExact(productRepository.countActiveProducts() - productRepository.countActiveProductsByPublishStatus(com.devwonder.backend.entity.enums.PublishStatus.PUBLISHED)),
+                Math.toIntExact(blogRepository.countActiveByStatus(com.devwonder.backend.entity.enums.BlogStatus.PUBLISHED)),
+                Math.toIntExact(blogRepository.countActiveByStatusNot(com.devwonder.backend.entity.enums.BlogStatus.PUBLISHED)),
+                Math.toIntExact(bulkDiscountRepository.count()),
+                Math.toIntExact(bulkDiscountRepository.countByStatus(DiscountRuleStatus.PENDING)),
+                revenueOrders,
+                topProducts,
+                activeDiscountRules
+        ));
     }
 
     private Role resolveRole(String name, String description) {
@@ -504,10 +571,25 @@ public class AdminManagementService {
     }
 
     private void applyDiscountRuleRange(BulkDiscount rule, String rangeLabel) {
-        rule.setRangeLabel(rangeLabel);
         OrderPricingSupport.QuantityRange range = OrderPricingSupport.parseRange(rangeLabel);
+        if (range == null) {
+            throw new BadRequestException("range is invalid");
+        }
+        rule.setRangeLabel(OrderPricingSupport.canonicalRangeLabel(range));
         rule.setMinQuantity(range == null ? null : range.min());
         rule.setMaxQuantity(range == null ? null : range.max());
+    }
+
+    private AdminDashboardSupport.TopProductStat toDashboardTopProductStat(Object[] row) {
+        String name = firstNonBlank(
+                row == null || row.length < 2 ? null : valueAsString(row[1]),
+                row == null || row.length < 3 ? null : valueAsString(row[2]),
+                "Unknown product"
+        );
+        long units = row == null || row.length < 4 || row[3] == null
+                ? 0L
+                : ((Number) row[3]).longValue();
+        return new AdminDashboardSupport.TopProductStat(name, units);
     }
 
     private void ensureDealerProvisioningEmailAvailable(String email) {
@@ -555,6 +637,65 @@ public class AdminManagementService {
             throw new BadRequestException("email must not be blank");
         }
         return email;
+    }
+
+    private String resolveBusinessName(AdminDealerAccountUpsertRequest request, Dealer existingDealer) {
+        String explicitBusinessName = normalize(request.businessName());
+        if (explicitBusinessName != null) {
+            return explicitBusinessName;
+        }
+        String legacyName = normalize(request.name());
+        if (legacyName != null) {
+            return legacyName;
+        }
+        if (existingDealer != null) {
+            String existingBusinessName = normalize(existingDealer.getBusinessName());
+            if (existingBusinessName != null) {
+                return existingBusinessName;
+            }
+        }
+        throw new BadRequestException("businessName must not be blank");
+    }
+
+    private String resolveContactName(
+            AdminDealerAccountUpsertRequest request,
+            Dealer existingDealer,
+            String businessName
+    ) {
+        String explicitContactName = normalize(request.contactName());
+        if (explicitContactName != null) {
+            return explicitContactName;
+        }
+        if (normalize(request.businessName()) == null) {
+            String legacyName = normalize(request.name());
+            if (legacyName != null) {
+                return legacyName;
+            }
+        }
+        if (existingDealer != null) {
+            String existingContactName = normalize(existingDealer.getContactName());
+            if (existingContactName != null) {
+                return existingContactName;
+            }
+        }
+        return businessName;
+    }
+
+    private void applyCompletedAt(Order order, OrderStatus nextStatus, OrderStatus previousStatus) {
+        if (order == null || nextStatus == null) {
+            return;
+        }
+        if (nextStatus == OrderStatus.COMPLETED && previousStatus != OrderStatus.COMPLETED) {
+            order.setCompletedAt(Instant.now());
+            return;
+        }
+        if (nextStatus != OrderStatus.COMPLETED && previousStatus == OrderStatus.COMPLETED) {
+            order.setCompletedAt(null);
+        }
+    }
+
+    private String valueAsString(Object value) {
+        return value == null ? null : String.valueOf(value);
     }
 
     private void publishOrderStatusRealtime(Order order, OrderStatus previousStatus) {

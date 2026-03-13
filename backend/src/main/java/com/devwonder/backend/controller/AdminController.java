@@ -115,6 +115,18 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.getOrders()));
     }
 
+    @GetMapping("/orders/page")
+    public ResponseEntity<ApiResponse<PagedResponse<AdminOrderResponse>>> ordersPaged(
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sortBy", required = false) String sortBy,
+            @RequestParam(name = "sortDir", required = false) String sortDir
+    ) {
+        Pageable pageable = PaginationUtils.toPageable(page, size, sortBy, sortDir, "createdAt");
+        Page<AdminOrderResponse> result = adminManagementService.getOrders(pageable);
+        return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "createdAt")));
+    }
+
     @PatchMapping("/orders/{id}/status")
     public ResponseEntity<ApiResponse<AdminOrderResponse>> updateOrderStatus(
             @PathVariable("id") Long id,
@@ -275,6 +287,18 @@ public class AdminController {
     @GetMapping("/dealers/accounts")
     public ResponseEntity<ApiResponse<List<AdminDealerAccountResponse>>> dealerAccounts() {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.getDealerAccounts()));
+    }
+
+    @GetMapping("/dealers/accounts/page")
+    public ResponseEntity<ApiResponse<PagedResponse<AdminDealerAccountResponse>>> dealerAccountsPaged(
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sortBy", required = false) String sortBy,
+            @RequestParam(name = "sortDir", required = false) String sortDir
+    ) {
+        Pageable pageable = PaginationUtils.toPageable(page, size, sortBy, sortDir, "createdAt");
+        Page<AdminDealerAccountResponse> result = adminManagementService.getDealerAccounts(pageable);
+        return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "createdAt")));
     }
 
     @PostMapping("/dealers/accounts")

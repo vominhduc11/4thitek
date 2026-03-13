@@ -17,6 +17,7 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     boolean existsByUsername(String username);
     boolean existsByEmailIgnoreCase(String email);
     boolean existsByEmailAndIdNot(String email, Long id);
+    List<Account> findByIdIn(List<Long> ids);
 
     @Query("select a.id from Account a")
     List<Long> findAllIds();

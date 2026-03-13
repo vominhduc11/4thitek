@@ -38,6 +38,7 @@ import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.support.AccountValidationSupport;
+import com.devwonder.backend.service.support.AppMessageSupport;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -73,6 +74,7 @@ public class AdminOperationsService {
     private final AccountRepository accountRepository;
     private final MailService mailService;
     private final AsyncMailService asyncMailService;
+    private final AppMessageSupport appMessageSupport;
 
     @Transactional(readOnly = true)
     public Page<AdminSupportTicketResponse> getSupportTickets(Pageable pageable) {
@@ -107,7 +109,7 @@ public class AdminOperationsService {
         if (dealer != null && (statusChanged || replyChanged)) {
             notificationService.create(new CreateNotifyRequest(
                     dealer.getId(),
-                    "Cập nhật yêu cầu hỗ trợ",
+                    appMessageSupport.get("notification.support.updated.title"),
                     buildSupportTicketNotificationContent(saved, statusChanged, replyChanged),
                     NotifyType.SYSTEM,
                     "/support"
@@ -135,9 +137,7 @@ public class AdminOperationsService {
         registration.setStatus(request.status());
         ProductSerial productSerial = registration.getProductSerial();
         if (productSerial != null) {
-            productSerial.setStatus(request.status() == WarrantyStatus.ACTIVE
-                    ? ProductSerialStatus.WARRANTY
-                    : ProductSerialStatus.SOLD);
+            productSerial.setStatus(resolveSerialStatusForWarranty(productSerial, request.status()));
             productSerialRepository.save(productSerial);
         }
 
@@ -203,7 +203,7 @@ public class AdminOperationsService {
             }
         }
 
-        List<AdminSerialResponse> imported = new ArrayList<>();
+        List<ProductSerial> serialsToSave = new ArrayList<>();
         for (String serial : uniqueSerials) {
             ProductSerial productSerial = new ProductSerial();
             productSerial.setSerial(serial);
@@ -213,9 +213,11 @@ public class AdminOperationsService {
             productSerial.setStatus(initialStatus);
             productSerial.setWarehouseId(defaultIfBlank(request.warehouseId(), "main"));
             productSerial.setWarehouseName(defaultIfBlank(request.warehouseName(), "Kho tong"));
-            imported.add(toSerialResponse(productSerialRepository.save(productSerial)));
+            serialsToSave.add(productSerial);
         }
-        return imported;
+        return productSerialRepository.saveAll(serialsToSave).stream()
+                .map(this::toSerialResponse)
+                .toList();
     }
 
     @Transactional
@@ -278,6 +280,16 @@ public class AdminOperationsService {
                         .toList();
                 if (accountIds.isEmpty()) {
                     throw new BadRequestException("accountIds is required for ACCOUNTS audience");
+                }
+                List<Long> existingIds = accountRepository.findByIdIn(accountIds).stream()
+                        .map(Account::getId)
+                        .distinct()
+                        .toList();
+                if (existingIds.size() != accountIds.size()) {
+                    List<Long> missingIds = accountIds.stream()
+                            .filter(id -> !existingIds.contains(id))
+                            .toList();
+                    throw new BadRequestException("Unknown accountIds: " + missingIds);
                 }
                 yield accountIds;
             }
@@ -417,6 +429,15 @@ public class AdminOperationsService {
         return registration.getStatus() == null ? WarrantyStatus.ACTIVE : registration.getStatus();
     }
 
+    private ProductSerialStatus resolveSerialStatusForWarranty(ProductSerial productSerial, WarrantyStatus warrantyStatus) {
+        if (warrantyStatus == WarrantyStatus.ACTIVE) {
+            return ProductSerialStatus.WARRANTY;
+        }
+        return productSerial.getOrder() == null
+                ? ProductSerialStatus.AVAILABLE
+                : ProductSerialStatus.SOLD;
+    }
+
     private void assertManualSerialStatusAllowed(ProductSerial productSerial, ProductSerialStatus nextStatus) {
         WarrantyRegistration warranty = productSerial.getWarranty();
         WarrantyStatus warrantyStatus = warranty == null ? null : resolveWarrantyStatus(warranty);
@@ -459,15 +480,20 @@ public class AdminOperationsService {
     ) {
         String ticketCode = safeValue(ticket.getTicketCode(), "#" + ticket.getId());
         if (statusChanged && replyChanged) {
-            return "Yêu cầu " + ticketCode + " đã được cập nhật sang trạng thái "
-                    + buildSupportTicketStatusLabel(ticket.getStatus())
-                    + " và có phản hồi mới từ admin.";
+            return appMessageSupport.get(
+                    "notification.support.updated.status_reply",
+                    ticketCode,
+                    buildSupportTicketStatusLabel(ticket.getStatus())
+            );
         }
         if (replyChanged) {
-            return "Yêu cầu " + ticketCode + " có phản hồi mới từ admin.";
+            return appMessageSupport.get("notification.support.updated.reply", ticketCode);
         }
-        return "Yêu cầu " + ticketCode + " đã được cập nhật sang trạng thái "
-                + buildSupportTicketStatusLabel(ticket.getStatus()) + ".";
+        return appMessageSupport.get(
+                "notification.support.updated.status",
+                ticketCode,
+                buildSupportTicketStatusLabel(ticket.getStatus())
+        );
     }
 
     private void sendSupportTicketEmailIfPossible(

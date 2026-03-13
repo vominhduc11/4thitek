@@ -9,8 +9,10 @@ import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
+import com.devwonder.backend.entity.enums.PublishStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.YearMonth;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -103,6 +105,73 @@ class AdminDashboardSupportTests {
         assertThat(response.orders()).isEqualTo(2);
         assertThat(response.revenue()).isEqualByComparingTo("110");
         assertThat(response.lastOrderAt()).isEqualTo(pendingOrder.getCreatedAt());
+    }
+
+    @Test
+    void buildDashboardUsesCompletedAtForTrendBuckets() {
+        YearMonth currentMonth = YearMonth.now(WarrantyDateSupport.APP_ZONE);
+        Instant createdInOldMonth = currentMonth.minusMonths(2)
+                .atDay(5)
+                .atStartOfDay(WarrantyDateSupport.APP_ZONE)
+                .toInstant();
+        Instant completedThisMonth = currentMonth
+                .atDay(3)
+                .atStartOfDay(WarrantyDateSupport.APP_ZONE)
+                .toInstant();
+
+        Order order = createOrder(
+                "DASH-TREND-COMPLETED",
+                createProduct("Trend product"),
+                1,
+                BigDecimal.valueOf(100),
+                OrderStatus.COMPLETED,
+                createdInOldMonth
+        );
+        order.setCompletedAt(completedThisMonth);
+
+        var dashboard = AdminDashboardSupport.buildDashboard(
+                List.of(order),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+
+        String currentMonthLabel = currentMonth.format(java.time.format.DateTimeFormatter.ofPattern("MM/yyyy"));
+        assertThat(dashboard.trend().points())
+                .filteredOn(point -> point.label().equals(currentMonthLabel))
+                .singleElement()
+                .extracting(point -> point.value())
+                .isEqualTo(110);
+    }
+
+    @Test
+    void buildDashboardExcludesDeletedProductsFromDraftCount() {
+        Product published = createProduct("Published product");
+        published.setPublishStatus(PublishStatus.PUBLISHED);
+
+        Product draft = createProduct("Draft product");
+        draft.setPublishStatus(PublishStatus.DRAFT);
+
+        Product deletedDraft = createProduct("Deleted draft");
+        deletedDraft.setPublishStatus(PublishStatus.DRAFT);
+        deletedDraft.setIsDeleted(true);
+
+        var dashboard = AdminDashboardSupport.buildDashboard(
+                List.of(),
+                List.of(published, draft, deletedDraft),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+
+        assertThat(dashboard.system())
+                .filteredOn(item -> item.label().equals("San pham"))
+                .singleElement()
+                .extracting(item -> item.hint())
+                .isEqualTo("1 ban nhap");
     }
 
     private Order createOrder(

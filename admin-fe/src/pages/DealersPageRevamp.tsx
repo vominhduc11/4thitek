@@ -59,6 +59,7 @@ const copyByLanguage = {
     totalRevenue: 'T\u1ed5ng doanh thu',
     createTitle: 'Th\u00eam \u0111\u1ea1i l\u00fd m\u1edbi',
     dealerName: 'T\u00ean \u0111\u1ea1i l\u00fd',
+    contactName: 'Ng\u01b0\u1eddi li\u00ean h\u1ec7',
     email: 'Email',
     phone: 'S\u1ed1 \u0111i\u1ec7n tho\u1ea1i',
     revenue: 'Doanh thu hi\u1ec7n t\u1ea1i (VND)',
@@ -66,7 +67,7 @@ const copyByLanguage = {
     save: 'L\u01b0u \u0111\u1ea1i l\u00fd',
     cancel: 'H\u1ee7y',
     nameRequired:
-      'Vui l\u00f2ng nh\u1eadp \u0111\u1ea7y \u0111\u1ee7 t\u00ean, email v\u00e0 s\u1ed1 \u0111i\u1ec7n tho\u1ea1i.',
+      'Vui l\u00f2ng nh\u1eadp \u0111\u1ea7y \u0111\u1ee7 t\u00ean \u0111\u1ea1i l\u00fd, ng\u01b0\u1eddi li\u00ean h\u1ec7, email v\u00e0 s\u1ed1 \u0111i\u1ec7n tho\u1ea1i.',
     numberInvalid: 'Doanh thu v\u00e0 h\u1ea1n m\u1ee9c ph\u1ea3i l\u00e0 s\u1ed1 kh\u00f4ng \u00e2m.',
     emptyTitle: 'Kh\u00f4ng c\u00f3 \u0111\u1ea1i l\u00fd',
     emptyMessage: 'Th\u1eed \u0111i\u1ec1u ch\u1ec9nh b\u1ed9 l\u1ecdc ho\u1eb7c t\u1eeb kh\u00f3a t\u00ecm ki\u1ebfm.',
@@ -97,13 +98,14 @@ const copyByLanguage = {
     totalRevenue: 'Total revenue',
     createTitle: 'Create dealer',
     dealerName: 'Dealer name',
+    contactName: 'Contact person',
     email: 'Email',
     phone: 'Phone',
     revenue: 'Current revenue (VND)',
     creditLimit: 'Credit limit (VND)',
     save: 'Save dealer',
     cancel: 'Cancel',
-    nameRequired: 'Name, email, and phone are required.',
+    nameRequired: 'Dealer name, contact person, email, and phone are required.',
     numberInvalid: 'Revenue and credit limit must be non-negative numbers.',
     emptyTitle: 'No dealers found',
     emptyMessage: 'Try adjusting filters or your search keywords.',
@@ -135,7 +137,8 @@ function DealersPageRevamp() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [formError, setFormError] = useState('')
   const [form, setForm] = useState({
-    name: '',
+    businessName: '',
+    contactName: '',
     tier: 'gold' as DealerTier,
     email: '',
     phone: '',
@@ -152,6 +155,7 @@ function DealersPageRevamp() {
         const matchesSearch =
           !normalizedQuery ||
           dealer.name.toLowerCase().includes(normalizedQuery) ||
+          dealer.contactName.toLowerCase().includes(normalizedQuery) ||
           dealer.id.toLowerCase().includes(normalizedQuery) ||
           dealer.email.toLowerCase().includes(normalizedQuery)
         return matchesStatus && matchesSearch
@@ -171,7 +175,7 @@ function DealersPageRevamp() {
     setFormError('')
     const revenue = Number(form.revenue || 0)
     const creditLimit = Number(form.creditLimit || 0)
-    if (!form.name.trim() || !form.email.trim() || !form.phone.trim()) {
+    if (!form.businessName.trim() || !form.contactName.trim() || !form.email.trim() || !form.phone.trim()) {
       setFormError(copy.nameRequired)
       return
     }
@@ -182,7 +186,8 @@ function DealersPageRevamp() {
 
     try {
       await addDealer({
-        name: form.name,
+        businessName: form.businessName,
+        contactName: form.contactName,
         tier: form.tier,
         email: form.email,
         phone: form.phone,
@@ -192,7 +197,8 @@ function DealersPageRevamp() {
       })
       setShowCreateForm(false)
       setForm({
-        name: '',
+        businessName: '',
+        contactName: '',
         tier: 'gold',
         email: '',
         phone: '',
@@ -282,8 +288,16 @@ function DealersPageRevamp() {
               <span className={labelClass}>{copy.dealerName}</span>
               <input
                 className={inputClass}
-                onChange={(event) => setForm((previous) => ({ ...previous, name: event.target.value }))}
-                value={form.name}
+                onChange={(event) => setForm((previous) => ({ ...previous, businessName: event.target.value }))}
+                value={form.businessName}
+              />
+            </label>
+            <label className="space-y-2">
+              <span className={labelClass}>{copy.contactName}</span>
+              <input
+                className={inputClass}
+                onChange={(event) => setForm((previous) => ({ ...previous, contactName: event.target.value }))}
+                value={form.contactName}
               />
             </label>
             <label className="space-y-2">
@@ -380,6 +394,7 @@ function DealersPageRevamp() {
                         <p className={tableMetaClass}>
                           {dealer.id} · {dealer.email}
                         </p>
+                        <p className={tableMetaClass}>{dealer.contactName}</p>
                       </div>
                       <StatusBadge tone={dealerStatusTone[dealer.status]}>
                         {dealerStatusLabel[dealer.status]}
@@ -479,6 +494,7 @@ function DealersPageRevamp() {
                         <p className={tableMetaClass}>
                           {dealer.id} · {dealer.email}
                         </p>
+                        <p className={tableMetaClass}>{dealer.contactName}</p>
                       </td>
                       <td className="px-3 py-3">
                         <StatusBadge tone={dealerTierTone[dealer.tier]}>

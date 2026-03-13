@@ -10,6 +10,7 @@ import com.devwonder.backend.entity.enums.NotifyType;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.DealerSupportTicketRepository;
+import com.devwonder.backend.service.support.AppMessageSupport;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,6 +25,7 @@ public class DealerSupportTicketService {
     private final DealerRepository dealerRepository;
     private final DealerSupportTicketRepository dealerSupportTicketRepository;
     private final NotificationService notificationService;
+    private final AppMessageSupport appMessageSupport;
 
     @Transactional(readOnly = true)
     public DealerSupportTicketResponse getLatestTicket(String username) {
@@ -56,8 +58,8 @@ public class DealerSupportTicketService {
         DealerSupportTicket saved = dealerSupportTicketRepository.save(ticket);
         notificationService.create(new CreateNotifyRequest(
                 dealer.getId(),
-                "Yêu cầu hỗ trợ đã được tạo",
-                "Ma yeu cau " + saved.getTicketCode() + " da duoc ghi nhan.",
+                appMessageSupport.get("notification.support.created.title"),
+                appMessageSupport.get("notification.support.created.content", saved.getTicketCode()),
                 NotifyType.SYSTEM,
                 "/support"
         ));

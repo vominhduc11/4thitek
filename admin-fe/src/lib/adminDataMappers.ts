@@ -244,7 +244,9 @@ export const mapBlog = (blog: BackendBlogResponse): BlogPost => ({
 
 export const mapDealer = (dealer: BackendDealerAccountResponse): Dealer => ({
   id: String(dealer.id),
-  name: dealer.name || '',
+  name: dealer.name || dealer.businessName || dealer.contactName || '',
+  businessName: dealer.businessName || dealer.name || '',
+  contactName: dealer.contactName || dealer.businessName || dealer.name || '',
   tier: mapBackendDealerAccountTier(dealer.tier),
   status: mapBackendDealerAccountStatus(dealer.status),
   orders: Number(dealer.orders ?? 0),

@@ -47,4 +47,20 @@ public interface BlogRepository extends JpaRepository<Blog, Long> {
             order by b.createdAt desc
             """)
     List<Blog> search(@Param("query") String query, @Param("status") BlogStatus status);
+
+    @Query("""
+            select count(b)
+            from Blog b
+            where (b.isDeleted = false or b.isDeleted is null)
+              and b.status = :status
+            """)
+    long countActiveByStatus(@Param("status") BlogStatus status);
+
+    @Query("""
+            select count(b)
+            from Blog b
+            where (b.isDeleted = false or b.isDeleted is null)
+              and (b.status is null or b.status <> :status)
+            """)
+    long countActiveByStatusNot(@Param("status") BlogStatus status);
 }

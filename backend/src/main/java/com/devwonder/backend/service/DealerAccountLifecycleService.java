@@ -6,6 +6,7 @@ import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.NotifyType;
 import com.devwonder.backend.exception.UnauthorizedException;
+import com.devwonder.backend.service.support.AppMessageSupport;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,7 @@ public class DealerAccountLifecycleService {
 
     private final NotificationService notificationService;
     private final MailService mailService;
+    private final AppMessageSupport appMessageSupport;
 
     public void assertDealerPortalAccess(Account account) {
         if (!(account instanceof Dealer dealer)) {
@@ -83,17 +85,17 @@ public class DealerAccountLifecycleService {
 
     private String notificationTitle(CustomerStatus status) {
         return switch (status) {
-            case ACTIVE -> "Tài khoản đại lý đã được kích hoạt";
-            case UNDER_REVIEW -> "Hồ sơ đại lý đang được xem xét";
-            case NEEDS_ATTENTION -> "Hồ sơ đại lý cần bổ sung";
+            case ACTIVE -> appMessageSupport.get("notification.dealer.lifecycle.active.title");
+            case UNDER_REVIEW -> appMessageSupport.get("notification.dealer.lifecycle.under_review.title");
+            case NEEDS_ATTENTION -> appMessageSupport.get("notification.dealer.lifecycle.needs_attention.title");
         };
     }
 
     private String notificationContent(CustomerStatus status) {
         return switch (status) {
-            case ACTIVE -> "Hồ sơ đại lý của bạn đã được phê duyệt. Bạn có thể đăng nhập ứng dụng Dealer bằng tài khoản đã đăng ký.";
-            case UNDER_REVIEW -> "Hồ sơ đại lý của bạn đang được 4ThiTek xem xét. Chúng tôi sẽ gửi email khi có cập nhật mới.";
-            case NEEDS_ATTENTION -> "Hồ sơ đại lý của bạn cần bổ sung thông tin trước khi kích hoạt. Vui lòng kiểm tra email để biết chi tiết.";
+            case ACTIVE -> appMessageSupport.get("notification.dealer.lifecycle.active.content");
+            case UNDER_REVIEW -> appMessageSupport.get("notification.dealer.lifecycle.under_review.content");
+            case NEEDS_ATTENTION -> appMessageSupport.get("notification.dealer.lifecycle.needs_attention.content");
         };
     }
 

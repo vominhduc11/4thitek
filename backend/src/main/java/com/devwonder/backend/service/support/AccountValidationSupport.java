@@ -11,6 +11,8 @@ public final class AccountValidationSupport {
     private static final Pattern HAS_LOWERCASE = Pattern.compile(".*[a-z].*");
     private static final Pattern HAS_DIGIT = Pattern.compile(".*\\d.*");
     private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final int MIN_USERNAME_LENGTH = 3;
+    private static final int MAX_USERNAME_LENGTH = 50;
 
     private AccountValidationSupport() {
     }
@@ -38,6 +40,16 @@ public final class AccountValidationSupport {
             throw new BadRequestException(
                     fieldName + " must be at least 8 characters and include uppercase, lowercase, and a number"
             );
+        }
+    }
+
+    public static void assertUsernameLength(String rawUsername, String fieldName) {
+        String username = normalize(rawUsername);
+        if (username == null) {
+            throw new BadRequestException(fieldName + " is required");
+        }
+        if (username.length() < MIN_USERNAME_LENGTH || username.length() > MAX_USERNAME_LENGTH) {
+            throw new BadRequestException(fieldName + " must be 3-50 characters");
         }
     }
 

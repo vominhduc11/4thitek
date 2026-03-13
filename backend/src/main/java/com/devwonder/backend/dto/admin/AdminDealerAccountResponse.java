@@ -8,6 +8,8 @@ import java.time.Instant;
 public record AdminDealerAccountResponse(
         Long id,
         String name,
+        String businessName,
+        String contactName,
         DealerTier tier,
         CustomerStatus status,
         Integer orders,

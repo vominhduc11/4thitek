@@ -120,12 +120,12 @@ type AdminDataContextValue = {
   dealers: Dealer[]
   dealersState: AdminResourceState
   addDealer: (
-    payload: Pick<Dealer, 'name' | 'tier' | 'email' | 'phone'> &
+    payload: Pick<Dealer, 'businessName' | 'contactName' | 'tier' | 'email' | 'phone'> &
       Partial<Pick<Dealer, 'revenue' | 'orders' | 'creditLimit'>>,
   ) => Promise<Dealer>
   updateDealer: (
     id: string,
-    payload: Pick<Dealer, 'name' | 'tier' | 'email' | 'phone' | 'creditLimit'>,
+    payload: Pick<Dealer, 'businessName' | 'contactName' | 'tier' | 'email' | 'phone' | 'creditLimit'>,
   ) => Promise<void>
   updateDealerStatus: (id: string, status: DealerStatus) => Promise<void>
   users: StaffUser[]
@@ -507,7 +507,9 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   const addDealer: AdminDataContextValue['addDealer'] = async (payload) => {
     const token = requireToken()
     const created = await createAdminDealerAccount(token, {
-      name: payload.name.trim(),
+      name: payload.businessName.trim(),
+      businessName: payload.businessName.trim(),
+      contactName: payload.contactName.trim(),
       tier: toBackendDealerAccountTier(payload.tier),
       email: payload.email.trim(),
       phone: payload.phone.trim(),
@@ -540,7 +542,9 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const updated = await updateAdminDealerAccount(token, Number(id), {
-      name: payload.name.trim(),
+      name: payload.businessName.trim(),
+      businessName: payload.businessName.trim(),
+      contactName: payload.contactName.trim(),
       tier: toBackendDealerAccountTier(payload.tier),
       status: toBackendDealerAccountStatus(current.status),
       email: payload.email.trim(),

@@ -83,6 +83,11 @@ public class DealerOrderWorkflowSupport {
         OrderStatusTransitionPolicy.assertDealerTransitionAllowed(order.getStatus(), request.status());
         OrderStatus previousStatus = order.getStatus();
         order.setStatus(request.status());
+        if (request.status() == OrderStatus.COMPLETED && previousStatus != OrderStatus.COMPLETED) {
+            order.setCompletedAt(java.time.Instant.now());
+        } else if (request.status() != OrderStatus.COMPLETED && previousStatus == OrderStatus.COMPLETED) {
+            order.setCompletedAt(null);
+        }
         if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
             orderInventorySupport.restoreStock(order);
         }

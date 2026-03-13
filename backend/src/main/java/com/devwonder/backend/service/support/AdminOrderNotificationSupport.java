@@ -7,6 +7,7 @@ import com.devwonder.backend.entity.enums.NotifyType;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.service.MailService;
 import com.devwonder.backend.service.NotificationService;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,7 @@ public class AdminOrderNotificationSupport {
 
     private final NotificationService notificationService;
     private final MailService mailService;
+    private final AppMessageSupport appMessageSupport;
 
     public void notifyStatusChange(Order order, OrderStatus previousStatus) {
         Dealer dealer = order.getDealer();
@@ -49,32 +51,23 @@ public class AdminOrderNotificationSupport {
         String orderCode = firstNonBlank(order.getOrderCode(), "đơn hàng #" + order.getId());
         notificationService.create(new CreateNotifyRequest(
                 dealer.getId(),
-                "Đơn hàng đã được gỡ khỏi hệ thống",
-                "Đơn " + orderCode + " không còn hiển thị trên hệ thống. Vui lòng liên hệ admin nếu cần hỗ trợ thêm.",
+                appMessageSupport.get("notification.order.deleted.title"),
+                appMessageSupport.get("notification.order.deleted.content", orderCode),
                 NotifyType.ORDER,
                 "/orders"
         ));
     }
 
     private String buildOrderStatusNotificationTitle(OrderStatus status) {
-        return switch (status) {
-            case PENDING -> "Đơn hàng đang chờ xử lý";
-            case CONFIRMED -> "Đơn hàng đã được xác nhận";
-            case SHIPPING -> "Đơn hàng đang được giao";
-            case COMPLETED -> "Đơn hàng đã hoàn tất";
-            case CANCELLED -> "Đơn hàng đã bị hủy";
-        };
+        return appMessageSupport.get("notification.order.status.%s.title".formatted(status.name().toLowerCase(Locale.ROOT)));
     }
 
     private String buildOrderStatusNotificationContent(Order order, OrderStatus status) {
         String orderCode = firstNonBlank(order.getOrderCode(), "đơn hàng #" + order.getId());
-        return switch (status) {
-            case PENDING -> "Đơn " + orderCode + " đang chờ admin xử lý.";
-            case CONFIRMED -> "Đơn " + orderCode + " đã được admin xác nhận và đang được chuẩn bị.";
-            case SHIPPING -> "Đơn " + orderCode + " đang trên đường giao đến đại lý.";
-            case COMPLETED -> "Đơn " + orderCode + " đã hoàn tất. Cảm ơn bạn đã đặt hàng.";
-            case CANCELLED -> "Đơn " + orderCode + " đã bị hủy. Vui lòng liên hệ admin nếu cần hỗ trợ thêm.";
-        };
+        return appMessageSupport.get(
+                "notification.order.status.%s.content".formatted(status.name().toLowerCase(Locale.ROOT)),
+                orderCode
+        );
     }
 
     private void sendStatusEmailIfPossible(Dealer dealer, Order order, OrderStatus status) {
