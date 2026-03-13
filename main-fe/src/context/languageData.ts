@@ -690,7 +690,7 @@ export const translations = {
                 usernamePlaceholder: 'Enter username (3-20 characters)',
                 password: 'Password',
                 passwordRequired: 'Password *',
-                passwordPlaceholder: 'Enter password (minimum 6 characters)',
+                passwordPlaceholder: 'Enter password (8+ chars, uppercase, lowercase, number)',
                 confirmPassword: 'Confirm Password',
                 confirmPasswordRequired: 'Confirm Password *',
                 confirmPasswordPlaceholder: 'Re-enter your password',
@@ -704,7 +704,7 @@ export const translations = {
                 invalidEmail: 'Please enter a valid email address',
                 invalidPhone: 'Please enter a valid Vietnamese phone number (e.g., 0987654321, +84987654321)',
                 invalidUsername: 'Username must be 3-20 characters and contain only letters, numbers, underscore, or hyphen',
-                invalidPassword: 'Password must be at least 6 characters long',
+                invalidPassword: 'Password must be at least 8 characters and include uppercase, lowercase, and a number',
                 streetAddress: 'Street Address',
                 streetAddressRequired: 'Street Address *',
                 streetAddressPlaceholder: '123 Business Street',
@@ -1496,7 +1496,7 @@ export const translations = {
                 usernamePlaceholder: 'Nhập tên đăng nhập (3-20 ký tự)',
                 password: 'Mật khẩu',
                 passwordRequired: 'Mật khẩu *',
-                passwordPlaceholder: 'Nhập mật khẩu (tối thiểu 6 ký tự)',
+                passwordPlaceholder: 'Nhập mật khẩu (ít nhất 8 ký tự, có chữ hoa, chữ thường và số)',
                 confirmPassword: 'Xác nhận mật khẩu',
                 confirmPasswordRequired: 'Xác nhận mật khẩu *',
                 confirmPasswordPlaceholder: 'Nhập lại mật khẩu',
@@ -1510,7 +1510,7 @@ export const translations = {
                 invalidEmail: 'Vui lòng nhập địa chỉ email hợp lệ',
                 invalidPhone: 'Vui lòng nhập số điện thoại Việt Nam hợp lệ (ví dụ: 0987654321, +84987654321)',
                 invalidUsername: 'Tên đăng nhập phải có 3-20 ký tự và chỉ chứa chữ cái, số, dấu gạch dưới hoặc gạch ngang',
-                invalidPassword: 'Mật khẩu phải có ít nhất 6 ký tự',
+                invalidPassword: 'Mật khẩu phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số',
                 streetAddress: 'Địa Chỉ',
                 streetAddressRequired: 'Địa Chỉ *',
                 streetAddressPlaceholder: '123 Đường Kinh Doanh',
@@ -1757,7 +1757,7 @@ export const extraTranslations = {
                     cityMax: 'City must be 100 characters or less.',
                     passwordRequired: 'Password is required.',
                     confirmPasswordRequired: 'Please confirm your password.',
-                    passwordMin: 'Password must be at least 6 characters.',
+                    passwordMin: 'Password must be at least 8 characters and include uppercase, lowercase, and a number.',
                     passwordMismatch: 'Password confirmation does not match.'
                 }
             }
@@ -2387,7 +2387,7 @@ export const extraTranslations = {
                     cityMax: 'Thành phố tối đa 100 ký tự.',
                     passwordRequired: 'Vui lòng nhập mật khẩu.',
                     confirmPasswordRequired: 'Vui lòng xác nhận mật khẩu.',
-                    passwordMin: 'Mật khẩu phải có ít nhất 6 ký tự.',
+                    passwordMin: 'Mật khẩu phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số.',
                     passwordMismatch: 'Xác nhận mật khẩu không khớp.'
                 }
             }
@@ -2877,4 +2877,3 @@ export const extraTranslations = {
         },
     }
 };
-

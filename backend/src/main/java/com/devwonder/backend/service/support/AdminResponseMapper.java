@@ -114,12 +114,15 @@ public final class AdminResponseMapper {
         List<Order> visibleOrders = dealer.getOrders() == null
                 ? List.of()
                 : dealer.getOrders().stream().filter(AdminDashboardSupport::isVisibleOrder).toList();
+        List<Order> revenueOrders = visibleOrders.stream()
+                .filter(AdminDashboardSupport::isRevenueOrder)
+                .toList();
         Instant lastOrderAt = visibleOrders.stream()
                 .map(Order::getCreatedAt)
                 .filter(Objects::nonNull)
                 .max(Comparator.naturalOrder())
                 .orElse(dealer.getCreatedAt());
-        BigDecimal revenue = visibleOrders.stream()
+        BigDecimal revenue = revenueOrders.stream()
                 .map(order -> OrderPricingSupport.computeTotalAmount(order, rules))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         return new AdminDealerAccountResponse(

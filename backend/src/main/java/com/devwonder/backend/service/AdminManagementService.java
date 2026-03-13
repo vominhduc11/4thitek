@@ -331,6 +331,7 @@ public class AdminManagementService {
     public AdminDealerAccountResponse updateDealerAccount(Long id, AdminDealerAccountUpsertRequest request) {
         Dealer dealer = dealerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Dealer account not found"));
+        CustomerStatus previousStatus = dealer.getCustomerStatus();
         String email = requireEmail(request.email());
         String phone = requireNonBlank(request.phone(), "phone");
         String name = requireNonBlank(request.name(), "name");
@@ -360,7 +361,11 @@ public class AdminManagementService {
             dealer.setCustomerStatus(request.status());
         }
         dealer.setCreditLimit(requireNonNegativeAmount(request.creditLimit(), "creditLimit"));
-        return AdminResponseMapper.toDealerAccountResponse(dealerRepository.save(dealer));
+        Dealer saved = dealerRepository.save(dealer);
+        if (request.status() != null && request.status() != previousStatus) {
+            dealerAccountLifecycleService.notifyDealerStatusChanged(saved, previousStatus);
+        }
+        return AdminResponseMapper.toDealerAccountResponse(saved);
     }
 
     @Transactional

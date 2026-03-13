@@ -38,13 +38,35 @@ import {
   textareaClass,
 } from '../components/ui-kit'
 
-const SERIAL_STATUS_OPTIONS: BackendProductSerialStatus[] = [
+const SERIAL_STATUS_FILTER_OPTIONS: BackendProductSerialStatus[] = [
   'AVAILABLE',
   'DEFECTIVE',
   'SOLD',
   'WARRANTY',
   'RETURNED',
 ]
+
+const SERIAL_IMPORT_STATUS_OPTIONS: BackendProductSerialStatus[] = [
+  'AVAILABLE',
+  'DEFECTIVE',
+  'SOLD',
+]
+
+const SERIAL_MANUAL_STATUS_OPTIONS: BackendProductSerialStatus[] = [
+  'AVAILABLE',
+  'DEFECTIVE',
+  'SOLD',
+  'WARRANTY',
+]
+
+const getManualStatusOptions = (
+  currentStatus: BackendProductSerialStatus | null | undefined,
+): BackendProductSerialStatus[] => {
+  if (!currentStatus || SERIAL_MANUAL_STATUS_OPTIONS.includes(currentStatus)) {
+    return SERIAL_MANUAL_STATUS_OPTIONS
+  }
+  return [currentStatus, ...SERIAL_MANUAL_STATUS_OPTIONS]
+}
 
 const statusTone = {
   AVAILABLE: 'success',
@@ -335,7 +357,7 @@ function SerialsPageRevamp() {
             onChange={(event) => setStatusFilter(event.target.value as 'ALL' | BackendProductSerialStatus)}
           >
             <option value="ALL">{copy.all}</option>
-            {SERIAL_STATUS_OPTIONS.map((status) => (
+            {SERIAL_STATUS_FILTER_OPTIONS.map((status) => (
               <option key={status} value={status}>
                 {status}
               </option>
@@ -384,7 +406,7 @@ function SerialsPageRevamp() {
                   setForm((current) => ({ ...current, status: event.target.value as BackendProductSerialStatus }))
                 }
               >
-                {SERIAL_STATUS_OPTIONS.map((status) => (
+                {SERIAL_IMPORT_STATUS_OPTIONS.map((status) => (
                   <option key={status} value={status}>
                     {status}
                   </option>
@@ -481,6 +503,7 @@ function SerialsPageRevamp() {
                   <select
                     aria-label={`${copy.status} ${item.id}`}
                     className={`mt-4 w-full ${tableActionSelectClass}`}
+                    disabled={item.status === 'RETURNED'}
                     value={item.status ?? 'AVAILABLE'}
                     onChange={async (event) => {
                       const next = event.target.value as BackendProductSerialStatus
@@ -507,7 +530,7 @@ function SerialsPageRevamp() {
                       }
                     }}
                   >
-                    {SERIAL_STATUS_OPTIONS.map((status) => (
+                    {getManualStatusOptions(item.status).map((status) => (
                       <option key={`${item.id}-${status}`} value={status}>
                         {status}
                       </option>
@@ -555,6 +578,7 @@ function SerialsPageRevamp() {
                         <select
                           aria-label={`${copy.status} ${item.id}`}
                           className={`mt-2 w-full ${tableActionSelectClass}`}
+                          disabled={item.status === 'RETURNED'}
                           value={item.status ?? 'AVAILABLE'}
                           onChange={async (event) => {
                             const next = event.target.value as BackendProductSerialStatus
@@ -581,7 +605,7 @@ function SerialsPageRevamp() {
                             }
                           }}
                         >
-                          {SERIAL_STATUS_OPTIONS.map((status) => (
+                          {getManualStatusOptions(item.status).map((status) => (
                             <option key={`${item.id}-${status}`} value={status}>
                               {status}
                             </option>

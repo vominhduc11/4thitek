@@ -8,12 +8,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.devwonder.backend.dto.admin.UpdateAdminDealerAccountStatusRequest;
+import com.devwonder.backend.dto.admin.AdminDealerAccountUpsertRequest;
 import com.devwonder.backend.dto.auth.LoginRequest;
 import com.devwonder.backend.dto.auth.RefreshTokenRequest;
 import com.devwonder.backend.dto.auth.RegisterDealerRequest;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Notify;
 import com.devwonder.backend.entity.enums.CustomerStatus;
+import com.devwonder.backend.exception.ConflictException;
 import com.devwonder.backend.exception.UnauthorizedException;
 import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.DealerRepository;
@@ -23,6 +25,7 @@ import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.security.JWTUtils;
 import com.devwonder.backend.service.AdminManagementService;
 import com.devwonder.backend.service.AuthService;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -205,5 +208,85 @@ class DealerOnboardingFlowTests {
         assertThatThrownBy(() -> authService.refreshToken(new RefreshTokenRequest(refreshToken)))
                 .isInstanceOf(UnauthorizedException.class)
                 .hasMessageContaining("Account is not active");
+    }
+
+    @Test
+    void registerDealerRejectsDuplicatePhoneNumber() {
+        authService.registerDealer(new RegisterDealerRequest(
+                "dealer.phone.one@example.com",
+                "DealerPass#123",
+                "Dealer Phone One",
+                "Dealer Contact",
+                "100200300",
+                "0912345601",
+                "dealer.phone.one@example.com",
+                "111 Phone Street",
+                null,
+                "District 1",
+                "Ho Chi Minh City",
+                "Vietnam",
+                null
+        ));
+
+        assertThatThrownBy(() -> authService.registerDealer(new RegisterDealerRequest(
+                "dealer.phone.two@example.com",
+                "DealerPass#123",
+                "Dealer Phone Two",
+                "Dealer Contact",
+                "400500600",
+                "0912345601",
+                "dealer.phone.two@example.com",
+                "222 Phone Street",
+                null,
+                "District 3",
+                "Ho Chi Minh City",
+                "Vietnam",
+                null
+        )))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Phone already exists");
+    }
+
+    @Test
+    void genericDealerAccountUpdateAlsoNotifiesWhenStatusChanges() {
+        authService.registerDealer(new RegisterDealerRequest(
+                "dealer.lifecycle@example.com",
+                "DealerPass#123",
+                "Dealer Lifecycle",
+                "Dealer Contact",
+                "555666777",
+                "0912345602",
+                "dealer.lifecycle@example.com",
+                "333 Lifecycle Street",
+                null,
+                "District 7",
+                "Ho Chi Minh City",
+                "Vietnam",
+                null
+        ));
+        Dealer dealer = dealerRepository.findByUsername("dealer.lifecycle@example.com").orElseThrow();
+        notifyRepository.deleteAll();
+        reset(javaMailSender);
+        when(javaMailSender.createMimeMessage()).thenReturn(
+                new MimeMessage(Session.getInstance(new Properties()))
+        );
+
+        adminManagementService.updateDealerAccount(
+                dealer.getId(),
+                new AdminDealerAccountUpsertRequest(
+                        "Dealer Lifecycle",
+                        dealer.getDealerTier(),
+                        CustomerStatus.ACTIVE,
+                        null,
+                        BigDecimal.ZERO,
+                        "dealer.lifecycle@example.com",
+                        "0912345602"
+                )
+        );
+
+        List<Notify> notices = notifyRepository.findByAccountIdOrderByCreatedAtDesc(dealer.getId());
+        assertThat(notices).hasSize(1);
+        assertThat(notices.get(0).getTitle()).isNotBlank();
+        verify(javaMailSender).send(any(MimeMessage.class));
     }
 }

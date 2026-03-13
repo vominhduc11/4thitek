@@ -2,6 +2,7 @@ package com.devwonder.backend.service;
 
 import com.devwonder.backend.dto.warranty.CreateWarrantyRegistrationRequest;
 import com.devwonder.backend.dto.warranty.WarrantyRegistrationResponse;
+import com.devwonder.backend.config.CacheNames;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
@@ -22,6 +23,7 @@ import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -79,6 +81,7 @@ public class DealerWarrantyManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.PUBLIC_WARRANTY_LOOKUP, allEntries = true)
     public WarrantyRegistrationResponse create(Long forcedDealerId, CreateWarrantyRegistrationRequest request) {
         ProductSerial productSerial = productSerialRepository.findById(request.productSerialId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product serial not found"));
@@ -99,6 +102,7 @@ public class DealerWarrantyManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.PUBLIC_WARRANTY_LOOKUP, allEntries = true)
     public WarrantyRegistrationResponse update(Long id, Long forcedDealerId, CreateWarrantyRegistrationRequest request) {
         WarrantyRegistration registration = warrantyRegistrationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Warranty registration not found"));
@@ -117,10 +121,20 @@ public class DealerWarrantyManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.PUBLIC_WARRANTY_LOOKUP, allEntries = true)
     public void delete(Long id) {
         WarrantyRegistration registration = warrantyRegistrationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Warranty registration not found"));
+        ProductSerial productSerial = registration.getProductSerial();
+        if (productSerial != null) {
+            productSerial.setWarranty(null);
+        }
+        registration.setProductSerial(null);
         warrantyRegistrationRepository.delete(registration);
+        if (productSerial != null) {
+            productSerial.setStatus(resolveStatusAfterWarrantyDeletion(productSerial));
+            productSerialRepository.save(productSerial);
+        }
     }
 
     private void apply(
@@ -182,9 +196,7 @@ public class DealerWarrantyManagementService {
         registration.setStatus(nextStatus);
 
         productSerial.setDealer(dealer);
-        productSerial.setStatus(nextStatus == WarrantyStatus.VOID
-                ? ProductSerialStatus.SOLD
-                : ProductSerialStatus.WARRANTY);
+        productSerial.setStatus(resolveSerialStatus(nextStatus));
         productSerialRepository.save(productSerial);
     }
 
@@ -216,6 +228,18 @@ public class DealerWarrantyManagementService {
 
     private WarrantyStatus resolveWarrantyStatus(Instant warrantyEnd) {
         return WarrantyDateSupport.isExpired(warrantyEnd) ? WarrantyStatus.EXPIRED : WarrantyStatus.ACTIVE;
+    }
+
+    private ProductSerialStatus resolveSerialStatus(WarrantyStatus warrantyStatus) {
+        return warrantyStatus == WarrantyStatus.ACTIVE
+                ? ProductSerialStatus.WARRANTY
+                : ProductSerialStatus.SOLD;
+    }
+
+    private ProductSerialStatus resolveStatusAfterWarrantyDeletion(ProductSerial productSerial) {
+        return productSerial.getOrder() == null
+                ? ProductSerialStatus.AVAILABLE
+                : ProductSerialStatus.SOLD;
     }
 
     private WarrantyRegistrationResponse toResponse(WarrantyRegistration registration) {

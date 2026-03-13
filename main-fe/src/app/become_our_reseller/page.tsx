@@ -36,7 +36,7 @@ type FormFieldName = keyof FormData;
 const DEALER_NAME_MAX_LENGTH = 150;
 const DEALER_CONTACT_NAME_MAX_LENGTH = 150;
 const DEALER_EMAIL_MAX_LENGTH = 100;
-const DEALER_PASSWORD_MIN_LENGTH = 6;
+const DEALER_PASSWORD_MIN_LENGTH = 8;
 
 
 export default function BecomeOurReseller() {
@@ -53,6 +53,15 @@ export default function BecomeOurReseller() {
     // Memoized validation regexes for performance - matching backend validation
     const emailRegex = useMemo(() => /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/, []);
     const phoneRegex = useMemo(() => /^(0[0-9]{9})$/, []);
+    const hasUppercaseRegex = useMemo(() => /[A-Z]/, []);
+    const hasLowercaseRegex = useMemo(() => /[a-z]/, []);
+    const hasDigitRegex = useMemo(() => /\d/, []);
+    const isStrongPassword = useCallback((value: string) => {
+        return value.length >= DEALER_PASSWORD_MIN_LENGTH
+            && hasUppercaseRegex.test(value)
+            && hasLowercaseRegex.test(value)
+            && hasDigitRegex.test(value);
+    }, [hasDigitRegex, hasLowercaseRegex, hasUppercaseRegex]);
 
     // Centralized field validation - matching backend requirements
     const validateField = useCallback((name: FormFieldName, value: string, values: FormData) => {
@@ -103,7 +112,7 @@ export default function BecomeOurReseller() {
                 }
                 break;
             case 'password':
-                if (value && value.length < DEALER_PASSWORD_MIN_LENGTH) {
+                if (value && !isStrongPassword(value)) {
                     error = t('becomeReseller.form.errors.passwordMin');
                 }
                 break;
@@ -118,7 +127,7 @@ export default function BecomeOurReseller() {
             ...prev,
             [name]: error
         }));
-    }, [emailRegex, phoneRegex, t]);
+    }, [emailRegex, isStrongPassword, phoneRegex, t]);
 
     // Debounced validation for better UX
     const debouncedValidate = useMemo(
@@ -310,7 +319,7 @@ export default function BecomeOurReseller() {
                     }
                     break;
                 case 'password':
-                    if (value.length < DEALER_PASSWORD_MIN_LENGTH) {
+                    if (!isStrongPassword(value)) {
                         newErrors.password = t('becomeReseller.form.errors.passwordMin');
                     }
                     break;

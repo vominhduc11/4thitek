@@ -53,18 +53,23 @@ public final class AdminDashboardSupport {
         List<BulkDiscount> availableRules = safeList(rules).stream()
                 .filter(rule -> rule != null && rule.getStatus() == DiscountRuleStatus.ACTIVE)
                 .toList();
+        List<Order> revenueOrders = activeOrders.stream()
+                .filter(AdminDashboardSupport::isRevenueOrder)
+                .toList();
 
         Instant now = Instant.now();
-        BigDecimal revenue = activeOrders.stream()
-                .map(order -> OrderPricingSupport.computeTotalAmount(order, availableRules))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal current30 = revenueBetween(activeOrders, now.minusSeconds(60L * 60 * 24 * 30), now, availableRules);
+        BigDecimal current30 = revenueBetween(revenueOrders, now.minusSeconds(60L * 60 * 24 * 30), now, availableRules);
         BigDecimal previous30 = revenueBetween(
-                activeOrders,
+                revenueOrders,
                 now.minusSeconds(60L * 60 * 24 * 60),
                 now.minusSeconds(60L * 60 * 24 * 30),
                 availableRules
         );
+        BigDecimal progressTarget = previous30.compareTo(BigDecimal.ZERO) > 0
+                ? previous30
+                : current30.compareTo(BigDecimal.ZERO) > 0
+                ? current30
+                : BigDecimal.ONE;
 
         long pendingOrders = activeOrders.stream().filter(order -> order.getStatus() == OrderStatus.PENDING).count();
         long lowStockSkus = availableProducts.stream().filter(product -> safeInt(product.getStock()) < 10).count();
@@ -81,9 +86,9 @@ public final class AdminDashboardSupport {
         return new AdminDashboardResponse(
                 new AdminDashboardResponse.Metric(
                         "Doanh thu 30 ngay",
-                        revenue,
+                        current30,
                         formatDelta(current30, previous30),
-                        toProgress(revenue, revenue.add(BigDecimal.valueOf(1_000_000L)))
+                        toProgress(current30, progressTarget)
                 ),
                 new AdminDashboardResponse.OrderSummary(
                         activeOrders.size(),
@@ -96,14 +101,18 @@ public final class AdminDashboardSupport {
                         availableProducts.isEmpty() ? 0 : clampProgress((int) ((lowStockSkus * 100) / availableProducts.size()))
                 ),
                 orderStatus,
-                buildTopProducts(activeOrders),
+                buildTopProducts(revenueOrders),
                 buildSystemItems(availableDealers, availableAdmins, availableProducts, availableBlogs, availableRules),
-                buildTrend(activeOrders, availableRules)
+                buildTrend(revenueOrders, availableRules)
         );
     }
 
     public static boolean isVisibleOrder(Order order) {
         return order != null && !Boolean.TRUE.equals(order.getIsDeleted());
+    }
+
+    public static boolean isRevenueOrder(Order order) {
+        return isVisibleOrder(order) && order.getStatus() == OrderStatus.COMPLETED;
     }
 
     private static List<AdminDashboardResponse.TopProduct> buildTopProducts(List<Order> orders) {

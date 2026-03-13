@@ -193,6 +193,9 @@ public class AdminOperationsService {
                 && initialStatus != ProductSerialStatus.SOLD) {
             throw new BadRequestException("Unsupported serial import status");
         }
+        if (initialStatus == ProductSerialStatus.SOLD && order == null) {
+            throw new BadRequestException("SOLD status requires a linked order");
+        }
         if (order != null) {
             long existingSerialCount = productSerialRepository.countByOrderIdAndProductId(order.getId(), product.getId());
             if (existingSerialCount + uniqueSerials.size() > orderedQuantity) {
@@ -220,7 +223,15 @@ public class AdminOperationsService {
     public AdminSerialResponse updateSerialStatus(Long id, UpdateAdminSerialStatusRequest request) {
         ProductSerial productSerial = productSerialRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Serial not found"));
-        productSerial.setStatus(request.status());
+        ProductSerialStatus nextStatus = request.status();
+        if (nextStatus == null) {
+            throw new BadRequestException("status is required");
+        }
+        if (nextStatus.equals(productSerial.getStatus())) {
+            return toSerialResponse(productSerial);
+        }
+        assertManualSerialStatusAllowed(productSerial, nextStatus);
+        productSerial.setStatus(nextStatus);
         return toSerialResponse(productSerialRepository.save(productSerial));
     }
 
@@ -404,6 +415,37 @@ public class AdminOperationsService {
             return WarrantyStatus.EXPIRED;
         }
         return registration.getStatus() == null ? WarrantyStatus.ACTIVE : registration.getStatus();
+    }
+
+    private void assertManualSerialStatusAllowed(ProductSerial productSerial, ProductSerialStatus nextStatus) {
+        WarrantyRegistration warranty = productSerial.getWarranty();
+        WarrantyStatus warrantyStatus = warranty == null ? null : resolveWarrantyStatus(warranty);
+        if (productSerial.getStatus() == ProductSerialStatus.RETURNED) {
+            throw new BadRequestException("RETURNED serial must be managed via a dedicated return workflow");
+        }
+
+        if (nextStatus == ProductSerialStatus.RETURNED) {
+            throw new BadRequestException("RETURNED status must be managed via a dedicated return workflow");
+        }
+        if (nextStatus == ProductSerialStatus.WARRANTY) {
+            if (warranty == null || warrantyStatus != WarrantyStatus.ACTIVE) {
+                throw new BadRequestException("WARRANTY status requires an active warranty registration");
+            }
+            return;
+        }
+        if (nextStatus == ProductSerialStatus.SOLD) {
+            if (productSerial.getOrder() == null) {
+                throw new BadRequestException("SOLD status requires a linked order");
+            }
+            if (warrantyStatus == WarrantyStatus.ACTIVE) {
+                throw new BadRequestException("Active warranty serial must remain in WARRANTY status");
+            }
+            return;
+        }
+        if ((nextStatus == ProductSerialStatus.AVAILABLE || nextStatus == ProductSerialStatus.DEFECTIVE)
+                && warranty != null) {
+            throw new BadRequestException("Warranty-linked serial cannot move back to inventory status");
+        }
     }
 
     private long computeRemainingDays(Instant warrantyEnd) {

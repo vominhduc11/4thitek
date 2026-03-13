@@ -9,7 +9,7 @@ public record RegisterDealerRequest(
         @Size(min = 3, max = 50, message = "username must be 3-50 characters")
         String username,
         @NotBlank(message = "password is required")
-        @Size(min = 6, max = 255, message = "password must be 6-255 characters")
+        @Size(min = 8, max = 255, message = "password must be 8-255 characters")
         String password,
         @NotBlank(message = "businessName is required")
         @Size(min = 2, max = 150, message = "businessName must be 2-150 characters")

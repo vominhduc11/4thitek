@@ -115,6 +115,11 @@ public class AuthService {
         if (normalizedTaxCode != null && dealerRepository.findByTaxCode(normalizedTaxCode).isPresent()) {
             throw new ConflictException("Tax code already exists");
         }
+        String normalizedPhone = normalize(request.phone());
+        AccountValidationSupport.assertOptionalVietnamPhone(normalizedPhone, "phone");
+        if (normalizedPhone != null && dealerRepository.existsByPhoneAndIdNot(normalizedPhone, -1L)) {
+            throw new ConflictException("Phone already exists");
+        }
 
         Dealer dealer = new Dealer();
         dealer.setUsername(username);
@@ -123,7 +128,7 @@ public class AuthService {
         dealer.setBusinessName(normalize(request.businessName()));
         dealer.setContactName(normalize(request.contactName()));
         dealer.setTaxCode(normalizedTaxCode);
-        dealer.setPhone(normalize(request.phone()));
+        dealer.setPhone(normalizedPhone);
         dealer.setAddressLine(normalize(request.addressLine()));
         dealer.setWard(normalize(request.ward()));
         dealer.setDistrict(normalize(request.district()));

@@ -1,5 +1,6 @@
 package com.devwonder.backend;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.devwonder.backend.dto.dealer.CreateDealerOrderItemRequest;
@@ -22,6 +23,7 @@ import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.DealerPortalService;
+import com.devwonder.backend.service.PublicApiService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
@@ -52,6 +54,9 @@ class DealerSerialWarrantyGuardTests {
 
     @Autowired
     private WarrantyRegistrationRepository warrantyRegistrationRepository;
+
+    @Autowired
+    private PublicApiService publicApiService;
 
     @BeforeEach
     void setUp() {
@@ -156,6 +161,73 @@ class DealerSerialWarrantyGuardTests {
                 .hasMessageContaining("Defective serial cannot be activated for warranty");
     }
 
+    @Test
+    void expiredWarrantyActivationMarksSerialAsSold() {
+        Dealer dealer = dealerRepository.save(createDealer("warranty-expired-status@example.com"));
+        Product product = productRepository.save(createProduct("SKU-WARRANTY-3", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-3"));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-WARRANTY-3",
+                ProductSerialStatus.AVAILABLE
+        ));
+
+        var response = dealerPortalService.activateWarranty(
+                dealer.getUsername(),
+                new CreateWarrantyRegistrationRequest(
+                        serial.getId(),
+                        "Customer Expired",
+                        "expired@example.com",
+                        "0912345688",
+                        "789 Warranty Street",
+                        LocalDate.now().minusMonths(18)
+                )
+        );
+
+        assertThat(response.status().name()).isEqualTo("EXPIRED");
+        assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
+                .isEqualTo(ProductSerialStatus.SOLD);
+    }
+
+    @Test
+    void deletingWarrantyEvictsLookupAndRestoresSerialToSold() {
+        Dealer dealer = dealerRepository.save(createDealer("warranty-delete-guard@example.com"));
+        Product product = productRepository.save(createProduct("SKU-WARRANTY-4", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-4"));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-WARRANTY-4",
+                ProductSerialStatus.AVAILABLE
+        ));
+
+        var warranty = dealerPortalService.activateWarranty(
+                dealer.getUsername(),
+                new CreateWarrantyRegistrationRequest(
+                        serial.getId(),
+                        "Customer Delete",
+                        "delete@example.com",
+                        "0912345689",
+                        "101 Warranty Street",
+                        LocalDate.now()
+                )
+        );
+
+        assertThat(publicApiService.lookupWarranty(serial.getSerial()).status()).isEqualTo("ACTIVE");
+
+        dealerPortalService.deleteWarranty(dealer.getUsername(), warranty.id());
+
+        assertThat(warrantyRegistrationRepository.findById(warranty.id())).isEmpty();
+        assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
+                .isEqualTo(ProductSerialStatus.SOLD);
+        assertThatThrownBy(() -> publicApiService.lookupWarranty(serial.getSerial()))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Warranty not found");
+    }
+
     private Dealer createDealer(String username) {
         Dealer dealer = new Dealer();
         dealer.setUsername(username);
@@ -197,5 +269,21 @@ class DealerSerialWarrantyGuardTests {
         items.add(item);
         order.setOrderItems(items);
         return order;
+    }
+
+    private ProductSerial createDealerOwnedSerial(
+            Dealer dealer,
+            Order order,
+            Product product,
+            String serialValue,
+            ProductSerialStatus status
+    ) {
+        ProductSerial serial = new ProductSerial();
+        serial.setDealer(dealer);
+        serial.setOrder(order);
+        serial.setProduct(product);
+        serial.setSerial(serialValue);
+        serial.setStatus(status);
+        return serial;
     }
 }
