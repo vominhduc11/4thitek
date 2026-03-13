@@ -1,5 +1,5 @@
 import { Clock3, FileText, ImagePlus, Plus, Tag, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   DestructiveButton,
@@ -34,7 +34,7 @@ import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import { blogStatusTone } from '../lib/adminLabels'
 import { resolveBackendAssetUrl } from '../lib/backendApi'
 import { formatDateTime } from '../lib/formatters'
-import { storeFileReference } from '../lib/upload'
+import { deleteStoredFileReference, storeFileReference } from '../lib/upload'
 
 const BLOG_STATUS_ORDER: BlogStatus[] = ['published', 'scheduled', 'draft']
 
@@ -194,6 +194,7 @@ function BlogsPageRevamp() {
   const [showCreate, setShowCreate] = useState(false)
   const [createError, setCreateError] = useState('')
   const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const composerUploadedAssetUrlsRef = useRef<Set<string>>(new Set())
   const [form, setForm] = useState<CreateFormState>(createInitialForm)
   const toolbarSearchClass = 'w-full sm:max-w-sm lg:w-72 xl:w-80'
 
@@ -234,7 +235,41 @@ function BlogsPageRevamp() {
     [copy.allStatuses, statusLabels],
   )
 
+  const cleanupComposerUploadedAssets = useCallback(
+    async (urls: Array<string | null | undefined>) => {
+      const trackedUrls = Array.from(
+        new Set(
+          urls
+            .map((url) => String(url ?? '').trim())
+            .filter((url) => url && composerUploadedAssetUrlsRef.current.has(url)),
+        ),
+      )
+
+      if (trackedUrls.length === 0) {
+        return
+      }
+
+      const results = await Promise.allSettled(
+        trackedUrls.map(async (url) => {
+          await deleteStoredFileReference({
+            url,
+            accessToken,
+          })
+          return url
+        }),
+      )
+
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          composerUploadedAssetUrlsRef.current.delete(trackedUrls[index])
+        }
+      })
+    },
+    [accessToken],
+  )
+
   const closeComposer = () => {
+    void cleanupComposerUploadedAssets(Array.from(composerUploadedAssetUrlsRef.current))
     setShowCreate(false)
     setCreateError('')
     setForm(createInitialForm())
@@ -245,6 +280,7 @@ function BlogsPageRevamp() {
       return
     }
 
+    const previousImageUrl = form.imageUrl.trim()
     setCreateError('')
     setIsUploadingImage(true)
     try {
@@ -253,11 +289,13 @@ function BlogsPageRevamp() {
         category: 'blogs',
         accessToken,
       })
+      composerUploadedAssetUrlsRef.current.add(stored.url)
       setForm((previous) => ({
         ...previous,
         imageUrl: stored.url,
         imageName: file.name,
       }))
+      void cleanupComposerUploadedAssets([previousImageUrl])
     } catch {
       setCreateError(copy.uploadFailed)
     } finally {
@@ -284,6 +322,7 @@ function BlogsPageRevamp() {
         title: copy.title,
         variant: 'success',
       })
+      composerUploadedAssetUrlsRef.current.clear()
       closeComposer()
     } catch (error) {
       setCreateError(error instanceof Error ? error.message : copy.createFailed)

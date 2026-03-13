@@ -1,4 +1,4 @@
-import { buildApiUrl, hasBackendApi, resolveBackendAssetUrl } from './backendApi'
+﻿import { buildApiUrl, hasBackendApi, resolveBackendAssetUrl } from './backendApi'
 
 export type UploadCategory =
   | 'products'
@@ -17,6 +17,11 @@ type ApiResponse<T> = {
 type UploadResponse = {
   url: string
   fileName: string
+}
+
+type DeleteUploadResponse = {
+  status: string
+  path: string
 }
 
 export type StoredAsset = {
@@ -84,5 +89,36 @@ export const storeFileReference = async ({
     url: payload.data.url,
     previewUrl: resolveBackendAssetUrl(payload.data.url),
     storage: 'remote',
+  }
+}
+
+export const deleteStoredFileReference = async ({
+  url,
+  accessToken,
+}: {
+  url: string
+  accessToken?: string | null
+}) => {
+  if (!url.trim() || !hasBackendApi() || !accessToken) {
+    return
+  }
+
+  const endpoint = new URL(buildApiUrl('/upload'))
+  endpoint.searchParams.set('url', url)
+
+  const response = await fetch(endpoint.toString(), {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(await extractErrorMessage(response))
+  }
+
+  const payload = (await response.json()) as ApiResponse<DeleteUploadResponse>
+  if (!payload.success) {
+    throw new Error(payload.error || 'Delete upload failed')
   }
 }

@@ -27,7 +27,7 @@ import { useToast } from '../context/ToastContext'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import type { Product } from '../types/product'
 import { resolveBackendAssetUrl } from '../lib/backendApi'
-import { storeFileReference } from '../lib/upload'
+import { deleteStoredFileReference, storeFileReference } from '../lib/upload'
 
 type ProductFilter = 'all' | 'active' | 'lowStock' | 'outOfStock' | 'draft' | 'deleted'
 type FeaturedFilter = 'all' | 'featured' | 'nonFeatured'
@@ -332,6 +332,7 @@ function ProductsPage() {
   const warrantyInputRef = useRef<HTMLInputElement | null>(null)
   const skuInputRef = useRef<HTMLInputElement | null>(null)
   const videoUrlInputRefs = useRef<Record<number, HTMLInputElement | null>>({})
+  const createUploadedAssetUrlsRef = useRef<Set<string>>(new Set())
   const tabRefs = useRef<
     Record<'basic' | 'description' | 'specs' | 'videos', HTMLButtonElement | null>
   >({
@@ -573,6 +574,130 @@ function ProductsPage() {
       accessToken,
     })
 
+  const getTrackedCreateUploadUrls = (urls: Array<string | null | undefined>) =>
+    Array.from(
+      new Set(
+        urls
+          .map((url) => url?.trim() ?? '')
+          .filter((url) => url && createUploadedAssetUrlsRef.current.has(url)),
+      ),
+    )
+
+  const getTrackedCreateUploadUrlsFromDescriptionItem = (item?: DescriptionItem) =>
+    getTrackedCreateUploadUrls([item?.url, ...(item?.gallery ?? []).map((galleryItem) => galleryItem.url)])
+
+  const getTrackedCreateUploadUrlsFromDescriptionItems = (items: DescriptionItem[]) =>
+    getTrackedCreateUploadUrls(
+      items.flatMap((item) => [item.url, ...(item.gallery ?? []).map((galleryItem) => galleryItem.url)]),
+    )
+
+  const trackCreateUploadedAsset = (url: string) => {
+    const normalized = url.trim()
+    if (normalized) {
+      createUploadedAssetUrlsRef.current.add(normalized)
+    }
+  }
+
+  const clearCreateUploadedAssetTracking = () => {
+    createUploadedAssetUrlsRef.current.clear()
+  }
+
+  const cleanupCreateUploadedAssets = useCallback(
+    async (urls: Array<string | null | undefined>) => {
+      const trackedUrls = getTrackedCreateUploadUrls(urls)
+      if (trackedUrls.length === 0) {
+        return
+      }
+
+      const results = await Promise.allSettled(
+        trackedUrls.map(async (url) => {
+          await deleteStoredFileReference({
+            url,
+            accessToken,
+          })
+          return url
+        }),
+      )
+
+      const failedUrls: string[] = []
+      results.forEach((result, index) => {
+        const url = trackedUrls[index]
+        if (result.status === 'fulfilled') {
+          createUploadedAssetUrlsRef.current.delete(url)
+          return
+        }
+        failedUrls.push(url)
+      })
+
+      if (failedUrls.length > 0) {
+        notify(t('Không thể dọn một số ảnh tạm trên máy chủ. Vui lòng thử lại.'), {
+          title: 'Products',
+          variant: 'error',
+        })
+      }
+    },
+    [accessToken, notify, t],
+  )
+
+  useEffect(() => {
+    return () => {
+      if (createUploadedAssetUrlsRef.current.size > 0) {
+        void cleanupCreateUploadedAssets(Array.from(createUploadedAssetUrlsRef.current))
+      }
+    }
+  }, [cleanupCreateUploadedAssets])
+
+  const clearDescriptionImage = (index: number) => {
+    const currentUrl = newProduct.descriptions[index]?.url?.trim() ?? ''
+
+    setNewProduct((prev) => {
+      const copy = [...prev.descriptions]
+      const currentItem = copy[index] ?? { type: 'image' as const }
+      copy[index] = { ...currentItem, type: 'image', url: '' }
+      return { ...prev, descriptions: copy }
+    })
+    setDescriptionImageErrors((prev) => {
+      if (!(index in prev)) {
+        return prev
+      }
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
+    void cleanupCreateUploadedAssets([currentUrl])
+  }
+
+  const clearGalleryItemImage = (index: number, itemIndex: number, removeItem = false) => {
+    const current = newProduct.descriptions[index]
+    const galleryEntry = current?.gallery?.[itemIndex]
+    const currentUrl = galleryEntry?.url?.trim() ?? ''
+
+    setNewProduct((prev) => {
+      const copy = [...prev.descriptions]
+      const currentItem = copy[index] ?? { type: 'gallery' as const, gallery: [] as GalleryItem[] }
+      const nextGallery = [...(currentItem.gallery ?? [])]
+
+      if (removeItem) {
+        nextGallery.splice(itemIndex, 1)
+      } else {
+        const existing = nextGallery[itemIndex] ?? { url: '' }
+        nextGallery[itemIndex] = { ...existing, url: '' }
+      }
+
+      copy[index] = { ...currentItem, type: 'gallery', gallery: nextGallery }
+      return { ...prev, descriptions: copy }
+    })
+    setDescriptionImageErrors((prev) => {
+      if (!(index in prev)) {
+        return prev
+      }
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
+    void cleanupCreateUploadedAssets([currentUrl])
+  }
+
   const getCreateFieldError = (
     field: Exclude<CreateProductErrorField, 'videos'>,
     draft: NewProductDraft = newProduct,
@@ -723,11 +848,13 @@ function ProductsPage() {
       return
     }
 
+    const previousUrls = getTrackedCreateUploadUrlsFromDescriptionItems(newProduct.descriptions)
     setDescriptionImageErrors({})
     setNewProduct((prev) => ({
       ...prev,
       descriptions: createDescriptionTemplate(),
     }))
+    void cleanupCreateUploadedAssets(previousUrls)
   }
 
   const applySpecificationTemplate = async () => {
@@ -839,6 +966,10 @@ function ProductsPage() {
     const willLoseCaption =
       Boolean((current.caption ?? '').trim()) && !Boolean((nextItem.caption ?? '').trim())
     const willLoseMedia = currentMediaCount > nextMediaCount
+    const nextTrackedUrls = new Set(getTrackedCreateUploadUrlsFromDescriptionItem(nextItem))
+    const removedTrackedUrls = getTrackedCreateUploadUrlsFromDescriptionItem(current).filter(
+      (url) => !nextTrackedUrls.has(url),
+    )
 
     if (willLoseText || willLoseCaption || willLoseMedia) {
       const approved = await confirm({
@@ -867,6 +998,7 @@ function ProductsPage() {
       delete next[index]
       return next
     })
+    void cleanupCreateUploadedAssets(removedTrackedUrls)
   }
 
   const moveDescriptionItem = (index: number, direction: -1 | 1) => {
@@ -935,7 +1067,9 @@ function ProductsPage() {
       return
     }
     try {
+      const previousUrl = newProduct.descriptions[index]?.url?.trim() ?? ''
       const stored = await uploadImageAsset(file)
+      trackCreateUploadedAsset(stored.url)
       setNewProduct((prev) => {
         const copy = [...prev.descriptions]
         const current = copy[index] ?? { type: 'image' as const }
@@ -947,6 +1081,7 @@ function ProductsPage() {
         delete next[index]
         return next
       })
+      void cleanupCreateUploadedAssets([previousUrl])
     } catch (error) {
       const message = getErrorMessage(
         error,
@@ -976,6 +1111,7 @@ function ProductsPage() {
       const storedItems = await Promise.all(
         validFiles.map((file) => uploadImageAsset(file)),
       )
+      storedItems.forEach((item) => trackCreateUploadedAsset(item.url))
       const newItems = storedItems.filter((item) => item.url).map((item) => ({ url: item.url }))
       setNewProduct((prev) => {
         const copy = [...prev.descriptions]
@@ -1012,7 +1148,9 @@ function ProductsPage() {
       return
     }
     try {
+      const previousUrl = newProduct.descriptions[index]?.gallery?.[itemIndex]?.url?.trim() ?? ''
       const stored = await uploadImageAsset(file)
+      trackCreateUploadedAsset(stored.url)
       setNewProduct((prev) => {
         const copy = [...prev.descriptions]
         const current = copy[index] ?? { type: 'gallery' as const, gallery: [] as GalleryItem[] }
@@ -1027,6 +1165,7 @@ function ProductsPage() {
         delete next[index]
         return next
       })
+      void cleanupCreateUploadedAssets([previousUrl])
     } catch (error) {
       const message = getErrorMessage(
         error,
@@ -1041,6 +1180,7 @@ function ProductsPage() {
   }
 
   const removeDescriptionItem = (index: number) => {
+    const removedItem = newProduct.descriptions[index]
     setNewProduct((prev) => ({
       ...prev,
       descriptions: prev.descriptions.filter((_, i) => i !== index),
@@ -1058,6 +1198,7 @@ function ProductsPage() {
       })
       return next
     })
+    void cleanupCreateUploadedAssets(getTrackedCreateUploadUrlsFromDescriptionItem(removedItem))
   }
 
   const resetCreateForm = () => {
@@ -1080,6 +1221,9 @@ function ProductsPage() {
   }
 
   const openCreateModal = () => {
+    if (createUploadedAssetUrlsRef.current.size > 0) {
+      void cleanupCreateUploadedAssets(Array.from(createUploadedAssetUrlsRef.current))
+    }
     resetCreateForm()
     setShowModal(true)
   }
@@ -1105,6 +1249,7 @@ function ProductsPage() {
         return
       }
     }
+    await cleanupCreateUploadedAssets(Array.from(createUploadedAssetUrlsRef.current))
     closeModal()
   }
 
@@ -1274,6 +1419,7 @@ function ProductsPage() {
           specifications: specJson,
           videos: videoJson,
         })
+        clearCreateUploadedAssetTracking()
         closeModal()
       } catch (error) {
         notify(error instanceof Error ? error.message : t('Không thể tạo sản phẩm'), {
@@ -1291,10 +1437,10 @@ function ProductsPage() {
     if (!file) {
       return
     }
+    const previousImageUrl = newProduct.imageUrl.trim()
     if (file.size > MAX_IMAGE_BYTES) {
       setImageError(t('Ảnh tối đa 10MB'))
       setSelectedImageName('')
-      setNewProduct((prev) => ({ ...prev, imageUrl: '' }))
       setImagePreviewUrl('')
       event.target.value = ''
       return
@@ -1304,7 +1450,9 @@ function ProductsPage() {
     setImagePreviewUrl(URL.createObjectURL(file))
     try {
       const stored = await uploadImageAsset(file)
+      trackCreateUploadedAsset(stored.url)
       setNewProduct((prev) => ({ ...prev, imageUrl: stored.url }))
+      void cleanupCreateUploadedAssets([previousImageUrl])
     } catch (error) {
       const message = getErrorMessage(
         error,
@@ -1312,7 +1460,6 @@ function ProductsPage() {
       )
       setImageError(message)
       setSelectedImageName('')
-      setNewProduct((prev) => ({ ...prev, imageUrl: '' }))
       event.target.value = ''
       setImagePreviewUrl('')
       notify(message, { title: 'Products', variant: 'error' })
@@ -1320,6 +1467,7 @@ function ProductsPage() {
   }
 
   const handleClearImage = () => {
+    const currentImageUrl = newProduct.imageUrl.trim()
     setImagePreviewUrl('')
     setImageError('')
     setSelectedImageName('')
@@ -1327,6 +1475,7 @@ function ProductsPage() {
     if (imageInputRef.current) {
       imageInputRef.current.value = ''
     }
+    void cleanupCreateUploadedAssets([currentImageUrl])
   }
 
   const handleDelete = useCallback(async (sku: string) => {
@@ -2374,16 +2523,7 @@ function ProductsPage() {
                               <button
                                 type="button"
                                 className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
-                                onClick={() => {
-                                  const copy = [...newProduct.descriptions]
-                                  copy[idx] = { ...copy[idx], url: '' }
-                                  setNewProduct({ ...newProduct, descriptions: copy })
-                                  setDescriptionImageErrors((prev) => {
-                                    const next = { ...prev }
-                                    delete next[idx]
-                                    return next
-                                  })
-                                }}
+                                onClick={() => clearDescriptionImage(idx)}
                               >
                                 {t('Xóa ảnh')}
                               </button>
@@ -2481,15 +2621,7 @@ function ProductsPage() {
                                       <button
                                         type="button"
                                         className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
-                                        onClick={() => {
-                                          const copy = [...newProduct.descriptions]
-                                          const current = { ...copy[idx] }
-                                          const nextGallery = [...(current.gallery ?? [])]
-                                          nextGallery[itemIdx] = { ...nextGallery[itemIdx], url: '' }
-                                          current.gallery = nextGallery
-                                          copy[idx] = current
-                                          setNewProduct({ ...newProduct, descriptions: copy })
-                                        }}
+                                        onClick={() => clearGalleryItemImage(idx, itemIdx)}
                                       >
                                         {t('Xóa ảnh')}
                                       </button>
@@ -2500,14 +2632,7 @@ function ProductsPage() {
                                   <button
                                     type="button"
                                     className="text-xs text-red-500"
-                                    onClick={() => {
-                                      const copy = [...newProduct.descriptions]
-                                      const current = { ...copy[idx] }
-                                      const nextGallery = (current.gallery ?? []).filter((_, i) => i !== itemIdx)
-                                      current.gallery = nextGallery
-                                      copy[idx] = current
-                                      setNewProduct({ ...newProduct, descriptions: copy })
-                                    }}
+                                    onClick={() => clearGalleryItemImage(idx, itemIdx, true)}
                                   >
                                     {t('Xóa ảnh')}
                                   </button>

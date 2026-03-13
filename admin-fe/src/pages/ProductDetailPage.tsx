@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   Archive,
@@ -21,7 +21,7 @@ import { useToast } from '../context/ToastContext'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import type { Product } from '../types/product'
 import { resolveBackendAssetUrl } from '../lib/backendApi'
-import { storeFileReference } from '../lib/upload'
+import { deleteStoredFileReference, storeFileReference } from '../lib/upload'
 
 const getImageUrl = (image: string) => {
   const cached = imageUrlCache.get(image)
@@ -222,6 +222,7 @@ function ProductDetailPage() {
   const [productVideoErrors, setProductVideoErrors] = useState<Record<number, string>>({})
   const [actionMessage, setActionMessage] = useState('')
   const [mainImagePreviewUrl, setMainImagePreviewUrl] = useState('')
+  const editUploadedAssetUrlsRef = useRef<Set<string>>(new Set())
 
   void descriptionVideoErrors
   void productVideoErrors
@@ -231,6 +232,72 @@ function ProductDetailPage() {
       category: 'products',
       accessToken,
     })
+
+  const getTrackedEditUploadUrls = (urls: Array<string | null | undefined>) =>
+    Array.from(
+      new Set(
+        urls
+          .map((url) => String(url ?? '').trim())
+          .filter((url) => url && editUploadedAssetUrlsRef.current.has(url)),
+      ),
+    )
+
+  const getDraftTrackedUploadUrls = (value: ProductDraft) =>
+    getTrackedEditUploadUrls([
+      value.image,
+      ...value.descriptions.flatMap((item) => [
+        item.url,
+        ...((item.gallery ?? []).map((entry) => (typeof entry === 'string' ? entry : entry.url))),
+      ]),
+    ])
+
+  const trackEditUploadedAsset = (url: string) => {
+    const normalized = url.trim()
+    if (normalized) {
+      editUploadedAssetUrlsRef.current.add(normalized)
+    }
+  }
+
+  const clearEditUploadedAssetTracking = () => {
+    editUploadedAssetUrlsRef.current.clear()
+  }
+
+  const cleanupEditUploadedAssets = useCallback(
+    async (urls: Array<string | null | undefined>) => {
+      const trackedUrls = getTrackedEditUploadUrls(urls)
+      if (trackedUrls.length === 0) {
+        return
+      }
+
+      const results = await Promise.allSettled(
+        trackedUrls.map(async (url) => {
+          await deleteStoredFileReference({
+            url,
+            accessToken,
+          })
+          return url
+        }),
+      )
+
+      const failedUrls: string[] = []
+      results.forEach((result, index) => {
+        const url = trackedUrls[index]
+        if (result.status === 'fulfilled') {
+          editUploadedAssetUrlsRef.current.delete(url)
+          return
+        }
+        failedUrls.push(url)
+      })
+
+      if (failedUrls.length > 0) {
+        notify(t('Không thể dọn một số ảnh tạm trên máy chủ. Vui lòng thử lại.'), {
+          title: 'Products',
+          variant: 'error',
+        })
+      }
+    },
+    [accessToken, notify, t],
+  )
 
   const productStatusLabelMap: Record<Product['status'], string> = {
     Active: 'Đang bán',
@@ -298,6 +365,14 @@ function ProductDetailPage() {
     }
   }, [mainImagePreviewUrl])
 
+  useEffect(() => {
+    return () => {
+      if (editUploadedAssetUrlsRef.current.size > 0) {
+        void cleanupEditUploadedAssets(Array.from(editUploadedAssetUrlsRef.current))
+      }
+    }
+  }, [cleanupEditUploadedAssets])
+
   const descriptionEditorModules = useMemo(
     () => ({
       toolbar: [
@@ -345,6 +420,9 @@ function ProductDetailPage() {
   const shortDescription = product.shortDescription?.trim() ?? ''
 
   const handleStartEdit = () => {
+    if (editUploadedAssetUrlsRef.current.size > 0) {
+      void cleanupEditUploadedAssets(Array.from(editUploadedAssetUrlsRef.current))
+    }
     setDraft(buildDraft(product))
     setMainImagePreviewUrl('')
     setDescriptionImageErrors({})
@@ -353,7 +431,8 @@ function ProductDetailPage() {
     setIsEditing(true)
   }
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = async () => {
+    await cleanupEditUploadedAssets(Array.from(editUploadedAssetUrlsRef.current))
     setDraft(buildDraft(product))
     setMainImagePreviewUrl('')
     setDescriptionImageErrors({})
@@ -428,6 +507,10 @@ function ProductDetailPage() {
         type: video.type || 'tutorial',
       }))
       .filter((video) => video.title || video.descriptions || video.url)
+    const retainedTrackedUrls = getDraftTrackedUploadUrls(draft)
+    const discardedTrackedUrls = Array.from(editUploadedAssetUrlsRef.current).filter(
+      (url) => !retainedTrackedUrls.includes(url),
+    )
 
     try {
       await updateProduct(product.sku, {
@@ -444,6 +527,8 @@ function ProductDetailPage() {
         updatedAt: new Date().toISOString(),
       })
 
+      await cleanupEditUploadedAssets(discardedTrackedUrls)
+      clearEditUploadedAssetTracking()
       setIsEditing(false)
     } catch (error) {
       notify(error instanceof Error ? error.message : t('Không thể lưu sản phẩm'), {
@@ -603,6 +688,7 @@ function ProductDetailPage() {
     }
     try {
       const stored = await uploadImageAsset(file)
+      trackEditUploadedAsset(stored.url)
       setDraft((prev) => {
         if (!prev) return prev
         const copy = [...prev.descriptions]
@@ -636,6 +722,7 @@ function ProductDetailPage() {
       const storedItems = await Promise.all(
         validFiles.map((candidate) => uploadImageAsset(candidate)),
       )
+      storedItems.forEach((item) => trackEditUploadedAsset(item.url))
       const newItems = storedItems.filter((item) => item.url).map((item) => ({ url: item.url }))
       setDraft((prev) => {
         if (!prev) return prev
@@ -666,6 +753,7 @@ function ProductDetailPage() {
     }
     try {
       const stored = await uploadImageAsset(file)
+      trackEditUploadedAsset(stored.url)
       setDraft((prev) => {
         if (!prev) return prev
         const copy = [...prev.descriptions]
@@ -718,6 +806,7 @@ function ProductDetailPage() {
     setMainImagePreviewUrl(URL.createObjectURL(file))
     try {
       const stored = await uploadImageAsset(file)
+      trackEditUploadedAsset(stored.url)
       setDraft((prev) => (prev ? { ...prev, image: stored.url } : prev))
     } catch {
       setMainImagePreviewUrl('')

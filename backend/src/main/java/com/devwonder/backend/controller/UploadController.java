@@ -7,8 +7,11 @@ import java.util.Locale;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import java.net.URI;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +29,9 @@ public class UploadController {
     @Value("${app.upload.base-url:/uploads}")
     private String uploadBaseUrl;
 
+    @Value("${app.storage.s3.public-base-url:}")
+    private String storagePublicBaseUrl;
+
     @PostMapping(value = "/{category}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Map<String, String>>> upload(
             @PathVariable("category") String category,
@@ -36,6 +42,18 @@ public class UploadController {
         return ResponseEntity.ok(ApiResponse.success(Map.of(
                 "url", url,
                 "fileName", fileName
+        )));
+    }
+
+    @DeleteMapping
+    public ResponseEntity<ApiResponse<Map<String, String>>> delete(
+            @RequestParam("url") String url
+    ) {
+        String relativePath = resolveRelativePath(url);
+        fileStorageService.delete(relativePath);
+        return ResponseEntity.ok(ApiResponse.success(Map.of(
+                "status", "deleted",
+                "path", relativePath
         )));
     }
 
@@ -67,5 +85,67 @@ public class UploadController {
             baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
         }
         return baseUrl + "/" + relativePath.replace('\\', '/');
+    }
+
+    private String resolveRelativePath(String value) {
+        String normalized = value == null ? "" : value.trim();
+        if (normalized.isEmpty()) {
+            throw new BadRequestException("url is required");
+        }
+
+        String fromStorageBase = stripConfiguredBase(normalized, storagePublicBaseUrl);
+        if (fromStorageBase != null) {
+            return fromStorageBase;
+        }
+
+        String fromUploadBase = stripConfiguredBase(normalized, uploadBaseUrl);
+        if (fromUploadBase != null) {
+            return fromUploadBase;
+        }
+
+        if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
+            throw new BadRequestException("Unsupported upload URL");
+        }
+
+        return normalized.startsWith("/") ? normalized.substring(1) : normalized;
+    }
+
+    private String stripConfiguredBase(String value, String configuredBase) {
+        if (!StringUtils.hasText(configuredBase)) {
+            return null;
+        }
+
+        String normalizedBase = configuredBase.trim();
+        while (normalizedBase.endsWith("/")) {
+            normalizedBase = normalizedBase.substring(0, normalizedBase.length() - 1);
+        }
+        if (normalizedBase.isEmpty()) {
+            return null;
+        }
+
+        if (value.startsWith(normalizedBase + "/")) {
+            return value.substring(normalizedBase.length() + 1);
+        }
+        if (value.equals(normalizedBase)) {
+            return null;
+        }
+
+        if (!normalizedBase.startsWith("/")) {
+            return null;
+        }
+
+        try {
+            String path = URI.create(value).getPath();
+            if (!StringUtils.hasText(path)) {
+                return null;
+            }
+            if (path.startsWith(normalizedBase + "/")) {
+                return path.substring(normalizedBase.length() + 1);
+            }
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+
+        return null;
     }
 }
