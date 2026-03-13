@@ -84,6 +84,28 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/user/dealer", "/api/v1/user/dealer").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/user/dealer/page", "/api/v1/user/dealer/page").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/user/dealer", "/api/v1/user/dealer").permitAll()
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/upload/products",
+                                "/api/v1/upload/products",
+                                "/api/upload/blogs",
+                                "/api/v1/upload/blogs",
+                                "/api/upload/avatars",
+                                "/api/v1/upload/avatars"
+                        ).hasAnyAuthority("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/upload/dealer-avatars",
+                                "/api/v1/upload/dealer-avatars",
+                                "/api/upload/payment-proofs",
+                                "/api/v1/upload/payment-proofs"
+                        ).hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/upload/customer-avatars",
+                                "/api/v1/upload/customer-avatars"
+                        ).hasAnyAuthority("CUSTOMER", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/upload", "/api/v1/upload").authenticated()
                         .requestMatchers("/api/upload/**", "/api/v1/upload/**").authenticated()
                         .requestMatchers("/admin/**", "/api/admin/**", "/api/v1/admin/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
                         .requestMatchers("/api/customer/**", "/api/v1/customer/**").hasAuthority("CUSTOMER")
