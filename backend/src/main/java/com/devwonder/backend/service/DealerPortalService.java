@@ -234,6 +234,12 @@ public class DealerPortalService {
     }
 
     @Transactional
+    public WarrantyRegistrationResponse activateWarranty(String username, CreateWarrantyRegistrationRequest request) {
+        Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
+        return dealerWarrantySupport.createWarranty(dealer.getId(), request);
+    }
+
+    @Transactional
     public WarrantyRegistrationResponse updateWarranty(String username, Long id, CreateWarrantyRegistrationRequest request) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         return dealerWarrantySupport.updateWarranty(dealer.getId(), id, request);
@@ -258,7 +264,6 @@ public class DealerPortalService {
         return dealerSerialSupport.importSerials(
                 dealer,
                 order,
-                dealerPortalLookupSupport.resolveCustomer(request.customerId()),
                 request
         );
     }

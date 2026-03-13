@@ -1,8 +1,9 @@
 import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from 'react'
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import RouteErrorBoundary from './components/RouteErrorBoundary'
 import RouteFallback from './components/RouteFallback'
 import { ProtectedRoute, PublicOnlyRoute, SuperAdminRoute } from './components/auth/RouteGuards'
+import { AdminDataProvider } from './context/AdminDataContext'
 import { ProductsProvider } from './context/ProductsContext'
 import AppLayout from './layouts/AppLayout'
 
@@ -34,69 +35,66 @@ const renderLazyElement = (Component: LazyExoticComponent<ComponentType>) => (
   </RouteErrorBoundary>
 )
 
-function LegacyDealersRedirect() {
-  const location = useLocation()
-  const nextPath = location.pathname.replace(/^\/customers(?=\/|$)/, '/dealers')
-
-  return <Navigate to={`${nextPath}${location.search}${location.hash}`} replace />
-}
+const AdminShell = () => (
+  <AdminDataProvider>
+    <ProductsProvider>
+      <AppLayout />
+    </ProductsProvider>
+  </AdminDataProvider>
+)
 
 function App() {
   return (
-    <ProductsProvider>
-      <Routes>
-        <Route element={<PublicOnlyRoute />}>
-          <Route path="/login" element={renderLazyElement(LoginPage)} />
-        </Route>
+    <Routes>
+      <Route element={<PublicOnlyRoute />}>
+        <Route path="/login" element={renderLazyElement(LoginPage)} />
+      </Route>
 
-        <Route element={<ProtectedRoute />}>
-          <Route path="/change-password" element={renderLazyElement(ChangePasswordPage)} />
-          <Route element={<AppLayout />}>
-            <Route index element={renderLazyElement(DashboardPage)} />
-            <Route path="/products" element={renderLazyElement(ProductsPage)} />
-            <Route
-              path="/products/:sku"
-              element={renderLazyElement(ProductDetailPage)}
-            />
-            <Route path="/orders" element={renderLazyElement(OrdersPage)} />
-            <Route path="/orders/:id" element={renderLazyElement(OrderDetailPage)} />
-            <Route path="/blogs" element={renderLazyElement(BlogsPage)} />
-            <Route path="/blogs/:id" element={renderLazyElement(BlogDetailPage)} />
-            <Route
-              path="/discounts"
-              element={renderLazyElement(WholesaleDiscountsPage)}
-            />
-            <Route path="/customers" element={<LegacyDealersRedirect />} />
-            <Route path="/customers/:id" element={<LegacyDealersRedirect />} />
-            <Route path="/dealers" element={renderLazyElement(DealersPage)} />
-            <Route
-              path="/dealers/:id"
-              element={renderLazyElement(DealerDetailPage)}
-            />
-            <Route
-              path="/support-tickets"
-              element={renderLazyElement(SupportTicketsPage)}
-            />
-            <Route
-              path="/warranties"
-              element={renderLazyElement(WarrantiesPage)}
-            />
-            <Route path="/serials" element={renderLazyElement(SerialsPage)} />
-            <Route
-              path="/notifications"
-              element={renderLazyElement(NotificationsPage)}
-            />
-            <Route path="/reports" element={renderLazyElement(ReportsPage)} />
-            <Route element={<SuperAdminRoute />}>
-              <Route path="/users" element={renderLazyElement(UsersPage)} />
-            </Route>
-            <Route path="/settings" element={renderLazyElement(SettingsPage)} />
+      <Route element={<ProtectedRoute />}>
+        <Route path="/change-password" element={renderLazyElement(ChangePasswordPage)} />
+        <Route element={<AdminShell />}>
+          <Route index element={renderLazyElement(DashboardPage)} />
+          <Route path="/products" element={renderLazyElement(ProductsPage)} />
+          <Route
+            path="/products/:sku"
+            element={renderLazyElement(ProductDetailPage)}
+          />
+          <Route path="/orders" element={renderLazyElement(OrdersPage)} />
+          <Route path="/orders/:id" element={renderLazyElement(OrderDetailPage)} />
+          <Route path="/blogs" element={renderLazyElement(BlogsPage)} />
+          <Route path="/blogs/:id" element={renderLazyElement(BlogDetailPage)} />
+          <Route
+            path="/discounts"
+            element={renderLazyElement(WholesaleDiscountsPage)}
+          />
+          <Route path="/dealers" element={renderLazyElement(DealersPage)} />
+          <Route
+            path="/dealers/:id"
+            element={renderLazyElement(DealerDetailPage)}
+          />
+          <Route
+            path="/support-tickets"
+            element={renderLazyElement(SupportTicketsPage)}
+          />
+          <Route
+            path="/warranties"
+            element={renderLazyElement(WarrantiesPage)}
+          />
+          <Route path="/serials" element={renderLazyElement(SerialsPage)} />
+          <Route
+            path="/notifications"
+            element={renderLazyElement(NotificationsPage)}
+          />
+          <Route path="/reports" element={renderLazyElement(ReportsPage)} />
+          <Route element={<SuperAdminRoute />}>
+            <Route path="/users" element={renderLazyElement(UsersPage)} />
           </Route>
+          <Route path="/settings" element={renderLazyElement(SettingsPage)} />
         </Route>
+      </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </ProductsProvider>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   )
 }
 

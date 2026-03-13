@@ -105,6 +105,13 @@ Chay dev stack:
 docker compose -f docker-compose.dev.yaml up --build
 ```
 
+Mac dinh dev stack se bootstrap tai khoan admin local:
+
+- Email: `owner@4thitek.vn`
+- Password tam thoi: `YourStrongPassword123!`
+
+Lan dang nhap dau tien se duoc chuyen sang man hinh doi mat khau.
+
 File [docker-compose.prod.yaml](docker-compose.prod.yaml) duoc giu lai nhu alias production de tuong thich nguoc voi lenh cu.
 
 ## CI

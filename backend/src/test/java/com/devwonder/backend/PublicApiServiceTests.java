@@ -15,6 +15,7 @@ import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.PublicApiService;
 import java.time.Instant;
+import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,7 +68,7 @@ class PublicApiServiceTests {
         registration.setProductSerial(serial);
         registration.setWarrantyCode("WH-EXP-1");
         registration.setStatus(WarrantyStatus.ACTIVE);
-        registration.setPurchaseDate(warrantyStart);
+        registration.setPurchaseDate(LocalDate.of(2024, 1, 1));
         registration.setWarrantyStart(warrantyStart);
         registration.setWarrantyEnd(warrantyEnd);
         warrantyRegistrationRepository.save(registration);
@@ -75,6 +76,7 @@ class PublicApiServiceTests {
         var response = publicApiService.lookupWarranty(serial.getSerial());
 
         assertThat(response.status()).isEqualTo("EXPIRED");
+        assertThat(response.purchaseDate()).isEqualTo(LocalDate.of(2024, 1, 1));
         assertThat(response.warrantyStart()).isEqualTo(warrantyStart);
         assertThat(response.warrantyEnd()).isEqualTo(warrantyEnd);
         assertThat(response.remainingDays()).isZero();
@@ -90,7 +92,7 @@ class PublicApiServiceTests {
         registration.setProductSerial(serial);
         registration.setWarrantyCode("WH-VOID-1");
         registration.setStatus(WarrantyStatus.VOID);
-        registration.setPurchaseDate(now);
+        registration.setPurchaseDate(LocalDate.now());
         registration.setWarrantyStart(now);
         registration.setWarrantyEnd(now.plusSeconds(86400));
         warrantyRegistrationRepository.save(registration);

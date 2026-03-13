@@ -21,8 +21,8 @@ export const handleApiError = (error: unknown): ErrorInfo => {
                 errorType = 'server';
                 errorMessage = ERROR_MESSAGES.SERVER_MAINTENANCE as typeof errorMessage;
             } else if (status === 401 || status === 403) {
-                errorType = 'unknown';
-                errorMessage = ERROR_MESSAGES.AUTH_EXPIRED as typeof errorMessage;
+                errorType = 'server';
+                errorMessage = ERROR_MESSAGES.GENERIC_ERROR as typeof errorMessage;
             }
         }
     } else if (error && typeof error === 'object' && 'code' in error) {

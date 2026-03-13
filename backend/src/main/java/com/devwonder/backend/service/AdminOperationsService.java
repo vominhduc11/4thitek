@@ -13,7 +13,6 @@ import com.devwonder.backend.dto.admin.UpdateAdminWarrantyStatusRequest;
 import com.devwonder.backend.config.CacheNames;
 import com.devwonder.backend.dto.notify.CreateNotifyRequest;
 import com.devwonder.backend.entity.Account;
-import com.devwonder.backend.entity.Customer;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.DealerSupportTicket;
 import com.devwonder.backend.entity.Notify;
@@ -29,7 +28,6 @@ import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ConflictException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.AccountRepository;
-import com.devwonder.backend.repository.CustomerRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.DealerSupportTicketRepository;
 import com.devwonder.backend.repository.NotifyRepository;
@@ -38,9 +36,8 @@ import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.support.AccountValidationSupport;
+import com.devwonder.backend.service.support.WarrantyDateSupport;
 import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -67,7 +64,6 @@ public class AdminOperationsService {
     private final ProductSerialRepository productSerialRepository;
     private final ProductRepository productRepository;
     private final DealerRepository dealerRepository;
-    private final CustomerRepository customerRepository;
     private final OrderRepository orderRepository;
     private final NotificationService notificationService;
     private final NotifyRepository notifyRepository;
@@ -111,7 +107,7 @@ public class AdminOperationsService {
                     "Cập nhật yêu cầu hỗ trợ",
                     buildSupportTicketNotificationContent(saved, statusChanged, replyChanged),
                     NotifyType.SYSTEM,
-                    "/dealer/support"
+                    "/support"
             ));
             sendSupportTicketEmailIfPossible(dealer, saved, statusChanged, replyChanged);
         }
@@ -129,8 +125,7 @@ public class AdminOperationsService {
         WarrantyRegistration registration = warrantyRegistrationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Warranty registration not found"));
         if (request.status() == WarrantyStatus.ACTIVE
-                && registration.getWarrantyEnd() != null
-                && registration.getWarrantyEnd().isBefore(Instant.now())) {
+                && WarrantyDateSupport.isExpired(registration.getWarrantyEnd())) {
             throw new BadRequestException("Cannot activate a warranty that has already expired");
         }
 
@@ -144,16 +139,6 @@ public class AdminOperationsService {
         }
 
         WarrantyRegistration saved = warrantyRegistrationRepository.save(registration);
-        Customer customer = saved.getCustomer();
-        if (customer != null) {
-            notificationService.create(new CreateNotifyRequest(
-                    customer.getId(),
-                    "Cap nhat bao hanh",
-                    "Phieu bao hanh " + safeValue(saved.getWarrantyCode(), "#" + saved.getId()) + " da duoc cap nhat sang " + request.status().name() + ".",
-                    NotifyType.WARRANTY,
-                    "/account"
-            ));
-        }
         return toWarrantyResponse(saved);
     }
 
@@ -170,7 +155,6 @@ public class AdminOperationsService {
 
         Dealer dealer = resolveDealer(request.dealerId());
         Order order = resolveOrder(request.orderId());
-        Customer customer = resolveCustomer(request.customerId());
         if (dealer == null && order != null) {
             dealer = order.getDealer();
         }
@@ -196,7 +180,6 @@ public class AdminOperationsService {
             productSerial.setSerial(serial);
             productSerial.setProduct(product);
             productSerial.setDealer(dealer);
-            productSerial.setCustomer(customer);
             productSerial.setOrder(order);
             productSerial.setStatus(request.status() == null ? ProductSerialStatus.AVAILABLE : request.status());
             productSerial.setWarehouseId(defaultIfBlank(request.warehouseId(), "main"));
@@ -250,7 +233,6 @@ public class AdminOperationsService {
         String audience = normalizeAudience(request.audience());
         return switch (audience) {
             case "DEALERS" -> dealerRepository.findAllIds();
-            case "CUSTOMERS" -> customerRepository.findAllIds();
             case "ALL_ACCOUNTS" -> accountRepository.findAllIds();
             case "ACCOUNTS" -> {
                 List<Long> accountIds = request.accountIds() == null ? List.of() : request.accountIds().stream()
@@ -290,7 +272,6 @@ public class AdminOperationsService {
         ProductSerial productSerial = registration.getProductSerial();
         Product product = productSerial == null ? null : productSerial.getProduct();
         Dealer dealer = registration.getDealer();
-        Customer customer = registration.getCustomer();
         Instant warrantyEnd = registration.getWarrantyEnd();
         return new AdminWarrantyResponse(
                 registration.getId(),
@@ -302,10 +283,9 @@ public class AdminOperationsService {
                 product == null ? null : product.getSku(),
                 dealer == null ? null : dealer.getId(),
                 dealer == null ? null : firstNonBlank(dealer.getBusinessName(), dealer.getContactName(), dealer.getUsername()),
-                customer == null ? null : customer.getId(),
-                customer == null ? registration.getCustomerName() : firstNonBlank(customer.getFullName(), registration.getCustomerName()),
-                customer == null ? registration.getCustomerEmail() : firstNonBlank(customer.getEmail(), registration.getCustomerEmail()),
-                customer == null ? registration.getCustomerPhone() : firstNonBlank(customer.getPhone(), registration.getCustomerPhone()),
+                registration.getCustomerName(),
+                registration.getCustomerEmail(),
+                registration.getCustomerPhone(),
                 resolveWarrantyStatus(registration),
                 registration.getWarrantyStart(),
                 warrantyEnd,
@@ -317,8 +297,8 @@ public class AdminOperationsService {
     private AdminSerialResponse toSerialResponse(ProductSerial serial) {
         Product product = serial.getProduct();
         Dealer dealer = serial.getDealer();
-        Customer customer = serial.getCustomer();
         Order order = serial.getOrder();
+        WarrantyRegistration warranty = serial.getWarranty();
         return new AdminSerialResponse(
                 serial.getId(),
                 serial.getSerial(),
@@ -328,8 +308,7 @@ public class AdminOperationsService {
                 product == null ? null : product.getSku(),
                 dealer == null ? null : dealer.getId(),
                 dealer == null ? null : firstNonBlank(dealer.getBusinessName(), dealer.getContactName(), dealer.getUsername()),
-                customer == null ? null : customer.getId(),
-                customer == null ? null : firstNonBlank(customer.getFullName(), customer.getUsername()),
+                warranty == null ? null : warranty.getCustomerName(),
                 order == null ? null : order.getId(),
                 order == null ? null : order.getOrderCode(),
                 serial.getWarehouseId(),
@@ -358,9 +337,6 @@ public class AdminOperationsService {
         if (account instanceof Dealer dealer) {
             return firstNonBlank(dealer.getBusinessName(), dealer.getContactName(), dealer.getUsername());
         }
-        if (account instanceof Customer customer) {
-            return firstNonBlank(customer.getFullName(), customer.getUsername());
-        }
         return firstNonBlank(account.getUsername(), account.getEmail());
     }
 
@@ -370,14 +346,6 @@ public class AdminOperationsService {
         }
         return dealerRepository.findById(dealerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Dealer not found"));
-    }
-
-    private Customer resolveCustomer(Long customerId) {
-        if (customerId == null) {
-            return null;
-        }
-        return customerRepository.findById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
     }
 
     private Order resolveOrder(Long orderId) {
@@ -392,22 +360,14 @@ public class AdminOperationsService {
         if (registration.getStatus() == WarrantyStatus.VOID) {
             return WarrantyStatus.VOID;
         }
-        Instant warrantyEnd = registration.getWarrantyEnd();
-        if (warrantyEnd != null && warrantyEnd.isBefore(Instant.now())) {
+        if (WarrantyDateSupport.isExpired(registration.getWarrantyEnd())) {
             return WarrantyStatus.EXPIRED;
         }
         return registration.getStatus() == null ? WarrantyStatus.ACTIVE : registration.getStatus();
     }
 
     private long computeRemainingDays(Instant warrantyEnd) {
-        if (warrantyEnd == null) {
-            return 0L;
-        }
-        long days = ChronoUnit.DAYS.between(
-                Instant.now().atZone(ZoneOffset.UTC).toLocalDate(),
-                warrantyEnd.atZone(ZoneOffset.UTC).toLocalDate()
-        );
-        return Math.max(0L, days);
+        return WarrantyDateSupport.remainingDays(warrantyEnd);
     }
 
     private String buildSupportTicketNotificationContent(

@@ -6,7 +6,6 @@ import com.devwonder.backend.dto.auth.ForgotPasswordRequest;
 import com.devwonder.backend.dto.auth.LoginRequest;
 import com.devwonder.backend.dto.auth.PasswordResetTokenValidationResponse;
 import com.devwonder.backend.dto.auth.RefreshTokenRequest;
-import com.devwonder.backend.dto.auth.RegisterCustomerRequest;
 import com.devwonder.backend.dto.auth.RegisterDealerRequest;
 import com.devwonder.backend.dto.auth.RegisterDealerResponse;
 import com.devwonder.backend.dto.auth.ResetPasswordRequest;
@@ -68,10 +67,4 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(authService.registerDealer(request)));
     }
 
-    @PostMapping("/register-customer")
-    public ResponseEntity<ApiResponse<AuthResponse>> registerCustomer(
-            @Valid @RequestBody RegisterCustomerRequest request
-    ) {
-        return ResponseEntity.ok(ApiResponse.success(authService.registerCustomer(request)));
-    }
 }

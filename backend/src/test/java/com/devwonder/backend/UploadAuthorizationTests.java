@@ -10,7 +10,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.devwonder.backend.entity.Admin;
+import com.devwonder.backend.entity.Dealer;
+import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.repository.AdminRepository;
+import com.devwonder.backend.repository.DealerRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.UUID;
@@ -47,6 +50,9 @@ class UploadAuthorizationTests {
     private AdminRepository adminRepository;
 
     @Autowired
+    private DealerRepository dealerRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
@@ -58,31 +64,31 @@ class UploadAuthorizationTests {
     }
 
     @Test
-    void customerCannotUploadProductAssets() throws Exception {
-        String customerToken = registerCustomerAndExtractAccessToken("cust-products");
+    void dealerCannotUploadProductAssets() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("dealer-products");
 
         mockMvc.perform(multipart("/api/upload/products")
                         .file(sampleImage("product-upload.png"))
-                        .header("Authorization", "Bearer " + customerToken))
+                        .header("Authorization", "Bearer " + dealerToken))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void customerCanUploadOwnAvatarIntoScopedFolder() throws Exception {
-        String customerToken = registerCustomerAndExtractAccessToken("cust-avatar");
+    void dealerCanUploadOwnAvatarIntoScopedFolder() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("dealer-avatar");
 
-        mockMvc.perform(multipart("/api/upload/customer-avatars")
-                        .file(sampleImage("customer-avatar.png"))
-                        .header("Authorization", "Bearer " + customerToken))
+        mockMvc.perform(multipart("/api/upload/dealer-avatars")
+                        .file(sampleImage("dealer-avatar.png"))
+                        .header("Authorization", "Bearer " + dealerToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.url").value(containsString("/uploads/avatars/customers/account-")))
-                .andExpect(jsonPath("$.data.fileName").value(containsString("avatars/customers/account-")));
+                .andExpect(jsonPath("$.data.url").value(containsString("/uploads/avatars/dealers/account-")))
+                .andExpect(jsonPath("$.data.fileName").value(containsString("avatars/dealers/account-")));
     }
 
     @Test
-    void customerCannotDeleteAdminManagedProductAsset() throws Exception {
+    void dealerCannotDeleteAdminManagedProductAsset() throws Exception {
         String adminToken = login("upload.admin@example.com", "ChangedPass#456");
-        String customerToken = registerCustomerAndExtractAccessToken("cust-delete");
+        String dealerToken = registerDealerAndExtractAccessToken("dealer-delete");
 
         MvcResult uploadResult = mockMvc.perform(multipart("/api/upload/products")
                         .file(sampleImage("admin-product.png"))
@@ -95,7 +101,7 @@ class UploadAuthorizationTests {
 
         mockMvc.perform(delete("/api/upload")
                         .param("url", uploadedUrl)
-                        .header("Authorization", "Bearer " + customerToken))
+                        .header("Authorization", "Bearer " + dealerToken))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("Access denied"));
     }
@@ -104,30 +110,44 @@ class UploadAuthorizationTests {
         return new MockMultipartFile("file", fileName, "image/png", "test-image".getBytes(UTF_8));
     }
 
-    private String registerCustomerAndExtractAccessToken(String prefix) throws Exception {
+    private String registerDealerAndExtractAccessToken(String prefix) throws Exception {
         String unique = UUID.randomUUID().toString().substring(0, 8);
         long phoneSuffix = Math.floorMod(UUID.randomUUID().getMostSignificantBits(), 1_000_000_000L);
-        MvcResult registerResult = mockMvc.perform(post("/api/auth/register-customer")
+        String username = prefix + "." + unique;
+        String email = prefix + "." + unique + "@example.com";
+        String password = "Dealer#123";
+        mockMvc.perform(post("/api/auth/register-dealer")
                         .contentType(APPLICATION_JSON)
                         .content("""
                                 {
-                                  "fullName": "Upload Boundary %s",
-                                  "phone": "0%s",
-                                  "email": "%s@example.com",
                                   "username": "%s",
-                                  "password": "Customer#123"
+                                  "password": "%s",
+                                  "businessName": "Upload Dealer %s",
+                                  "contactName": "Boundary Dealer %s",
+                                  "taxCode": "TAX-%s",
+                                  "phone": "0%s",
+                                  "email": "%s",
+                                  "addressLine": "123 Upload Street",
+                                  "district": "District 1",
+                                  "city": "Ho Chi Minh City",
+                                  "country": "Vietnam"
                                 }
                                 """.formatted(
+                                username,
+                                password,
+                                unique,
+                                unique,
                                 unique,
                                 "%09d".formatted(phoneSuffix),
-                                prefix + unique,
-                                prefix + unique
+                                email
                         )))
-                .andExpect(status().isOk())
-                .andReturn();
+                .andExpect(status().isOk());
 
-        JsonNode payload = objectMapper.readTree(registerResult.getResponse().getContentAsString());
-        return payload.path("data").path("accessToken").asText();
+        Dealer dealer = dealerRepository.findByUsername(username).orElseThrow();
+        dealer.setCustomerStatus(CustomerStatus.ACTIVE);
+        dealerRepository.save(dealer);
+
+        return login(email, password);
     }
 
     private String login(String username, String password) throws Exception {

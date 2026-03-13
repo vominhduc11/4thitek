@@ -37,12 +37,6 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, errorInfo
                 ? [`- ${t('warrantyCheck.export.remainingDaysLabel')}: ${t('warrantyCheck.export.remainingDaysValue').replace('{days}', String(warrantyInfo.remainingDays))}`]
                 : []),
             '',
-            `${t('warrantyCheck.export.customerInfoTitle')}:`,
-            ...(warrantyInfo.customerName ? [`- ${t('warrantyCheck.export.customerNameLabel')}: ${warrantyInfo.customerName}`] : []),
-            ...(warrantyInfo.customerPhone ? [`- ${t('warrantyCheck.export.customerPhoneLabel')}: ${warrantyInfo.customerPhone}`] : []),
-            ...(warrantyInfo.customerEmail ? [`- ${t('warrantyCheck.export.customerEmailLabel')}: ${warrantyInfo.customerEmail}`] : []),
-            ...(warrantyInfo.customerAddress ? [`- ${t('warrantyCheck.export.customerAddressLabel')}: ${warrantyInfo.customerAddress}`] : []),
-            '',
             `${t('warrantyCheck.export.supportTitle')}:`,
             `- ${t('warrantyCheck.export.hotlineLabel')}: ${t('warrantyCheck.export.hotlineValue')}`,
             `- ${t('warrantyCheck.export.supportEmailLabel')}: ${t('warrantyCheck.export.supportEmailValue')}`,
@@ -209,7 +203,7 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, errorInfo
                         <ul className="text-sm text-gray-300 space-y-2">
                             {tips.map((tip) => (
                                 <li key={tip} className="flex items-start">
-                                    <span className="text-blue-400 mr-2 mt-0.5">•</span>
+                                    <span className="text-blue-400 mr-2 mt-0.5">&bull;</span>
                                     <span>{tip}</span>
                                 </li>
                             ))}
@@ -495,7 +489,7 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, errorInfo
                         transition={{ duration: 0.5, delay: 0.8 }}
                     >
                         <h3 className="font-semibold text-amber-400 mb-2">
-                            {locale === 'vi' ? 'Bảo hành bị vô hiệu' : 'Warranty Voided'}
+                            {locale === 'vi' ? 'Bao hanh vo hieu' : 'Warranty voided'}
                         </h3>
                         <motion.p
                             className="text-sm text-amber-300"
@@ -504,7 +498,7 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, errorInfo
                             transition={{ duration: 0.5, delay: 0.9 }}
                         >
                             {locale === 'vi'
-                                ? 'Bảo hành này đã bị vô hiệu và không còn được áp dụng.'
+                                ? 'Bao hanh nay da bi vo hieu va khong con duoc ap dung.'
                                 : 'This warranty has been voided and is no longer eligible for coverage.'}
                         </motion.p>
                         <motion.p
@@ -514,70 +508,9 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, errorInfo
                             transition={{ duration: 0.5, delay: 1.0 }}
                         >
                             {locale === 'vi'
-                                ? 'Liên hệ hỗ trợ nếu bạn cần xác minh thêm.'
+                                ? 'Lien he ho tro neu ban can xac minh them.'
                                 : 'Contact support if you believe this is incorrect.'}
                         </motion.p>
-                    </motion.div>
-                )}
-
-                {(warrantyInfo.customerName || warrantyInfo.dealerName) && (
-                    <motion.div
-                        className="bg-blue-900/20 p-3 sm:p-4 rounded-lg border border-blue-700 transition-all duration-300 hover:bg-blue-900/30 hover:border-blue-600"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.8 }}
-                    >
-                        <h3 className="font-semibold text-blue-400 mb-2">{t('warrantyCheck.result.sections.customerInfo')}</h3>
-                        {warrantyInfo.customerName && (
-                            <motion.p
-                                className="text-sm text-blue-300 mb-1"
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.3, delay: 0.9 }}
-                            >
-                                <span className="font-medium">{t('warrantyCheck.result.fields.customerName')}:</span> {warrantyInfo.customerName}
-                            </motion.p>
-                        )}
-                        {warrantyInfo.customerPhone && (
-                            <motion.p
-                                className="text-sm text-blue-300 mb-1"
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.3, delay: 1.0 }}
-                            >
-                                <span className="font-medium">{t('warrantyCheck.result.fields.customerPhone')}:</span> {warrantyInfo.customerPhone}
-                            </motion.p>
-                        )}
-                        {warrantyInfo.customerEmail && (
-                            <motion.p
-                                className="text-sm text-blue-300 mb-1"
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.3, delay: 1.1 }}
-                            >
-                                <span className="font-medium">{t('warrantyCheck.result.fields.customerEmail')}:</span> {warrantyInfo.customerEmail}
-                            </motion.p>
-                        )}
-                        {warrantyInfo.customerAddress && (
-                            <motion.p
-                                className="text-sm text-blue-300 mb-1"
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.3, delay: 1.2 }}
-                            >
-                                <span className="font-medium">{t('warrantyCheck.result.fields.customerAddress')}:</span> {warrantyInfo.customerAddress}
-                            </motion.p>
-                        )}
-                        {warrantyInfo.dealerName && (
-                            <motion.p
-                                className="text-sm text-blue-300"
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.3, delay: 1.3 }}
-                            >
-                                <span className="font-medium">{t('warrantyCheck.result.fields.dealerName')}:</span> {warrantyInfo.dealerName}
-                            </motion.p>
-                        )}
                     </motion.div>
                 )}
             </motion.div>
@@ -640,10 +573,10 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, errorInfo
                     transition={{ duration: 0.5, delay: 1.5 }}
                 >
                     <span className="text-blue-400 hover:text-blue-300 transition-colors cursor-pointer">
-                        📞 {t('warrantyCheck.result.support.hotlineLabel')}: {t('warrantyCheck.result.support.hotlineValue')}
+                        {t('warrantyCheck.result.support.hotlineLabel')}: {t('warrantyCheck.result.support.hotlineValue')}
                     </span>
                     <span className="text-blue-400 hover:text-blue-300 transition-colors cursor-pointer">
-                        ✉️ {t('warrantyCheck.result.support.emailLabel')}: {t('warrantyCheck.result.support.emailValue')}
+                        {t('warrantyCheck.result.support.emailLabel')}: {t('warrantyCheck.result.support.emailValue')}
                     </span>
                 </motion.div>
             </motion.div>

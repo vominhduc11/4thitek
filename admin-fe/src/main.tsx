@@ -5,7 +5,6 @@ import { BrowserRouter } from 'react-router-dom'
 import Modal from 'react-modal'
 import './index.css'
 import App from './App.tsx'
-import { AdminDataProvider } from './context/AdminDataContext'
 import { AuthProvider } from './context/AuthContext'
 import { LanguageProvider } from './context/LanguageContext'
 import { ToastProvider } from './context/ToastContext'
@@ -49,9 +48,7 @@ createRoot(document.getElementById('root')!).render(
         <LanguageProvider>
           <ToastProvider>
             <AuthProvider>
-              <AdminDataProvider>
-                <App />
-              </AdminDataProvider>
+              <App />
             </AuthProvider>
           </ToastProvider>
         </LanguageProvider>

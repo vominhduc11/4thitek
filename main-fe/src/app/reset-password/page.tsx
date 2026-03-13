@@ -189,7 +189,7 @@ function ResetPasswordContent() {
                             <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4">
                                 <p className="text-sm font-semibold text-cyan-200">1. Request</p>
                                 <p className="mt-2 text-sm leading-6 text-slate-300">
-                                    Enter the email used for your dealer or customer account.
+                                    Enter the email used for your dealer or staff account.
                                 </p>
                             </div>
                             <div className="rounded-2xl border border-white/10 bg-black/20 p-4">

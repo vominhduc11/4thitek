@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'breakpoints.dart';
 import 'dashboard_screen.dart';
 import 'global_search.dart';
 import 'models.dart';
 import 'notification_controller.dart';
+import 'order_detail_screen.dart';
 import 'orders_screen.dart';
 import 'product_list_screen.dart';
+import 'support_screen.dart';
 import 'utils.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
@@ -274,7 +277,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       sheetContext,
                     ).pop(_NoticeDetailAction.openRelated),
                     icon: const Icon(Icons.open_in_new),
-                    label: Text(_relatedActionLabel(notice.type)),
+                    label: Text(_relatedActionLabel(notice)),
                   ),
                 ],
               ),
@@ -314,19 +317,84 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         );
         break;
       case _NoticeDetailAction.openRelated:
-        _openRelatedContent(notice);
+        await _openRelatedContent(notice);
         break;
     }
   }
 
-  void _openRelatedContent(DistributorNotice notice) {
+  Future<void> _openRelatedContent(DistributorNotice notice) async {
+    if (await _openNoticeLink(notice.link)) {
+      return;
+    }
+
     final destination = switch (notice.type) {
       NoticeType.order => const OrdersScreen(),
       NoticeType.promotion => const ProductListScreen(),
       NoticeType.system => const DashboardScreen(),
     };
 
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => destination));
+    if (!mounted) {
+      return;
+    }
+
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => destination));
+  }
+
+  Future<bool> _openNoticeLink(String? rawLink) async {
+    final link = rawLink?.trim() ?? '';
+    if (link.isEmpty) {
+      return false;
+    }
+
+    final uri = Uri.tryParse(link);
+    if (uri == null) {
+      return false;
+    }
+
+    if (uri.hasScheme) {
+      final launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('KhĂ´ng má»Ÿ Ä‘Æ°á»£c liĂªn káº¿t.')),
+        );
+      }
+      return launched;
+    }
+
+    final path = uri.path;
+    final orderId =
+        uri.pathSegments.length >= 2 && uri.pathSegments.first == 'orders'
+        ? uri.pathSegments[1]
+        : null;
+    final destination = path == '/orders'
+        ? const OrdersScreen()
+        : orderId != null && orderId.isNotEmpty
+        ? OrderDetailScreen(orderId: orderId)
+        : path == '/products' || path.startsWith('/products/')
+        ? const ProductListScreen()
+        : path == '/account/support' ||
+              path == '/dealer/support' ||
+              path == '/support'
+        ? const SupportScreen()
+        : path == '/notifications'
+        ? const NotificationsScreen()
+        : path == '/home' || path == '/'
+        ? const DashboardScreen()
+        : null;
+
+    if (destination == null) {
+      return false;
+    }
+    if (!mounted) {
+      return true;
+    }
+
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => destination));
+    return true;
   }
 
   String _noticeTypeLabel(NoticeType type) {
@@ -340,8 +408,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  String _relatedActionLabel(NoticeType type) {
-    switch (type) {
+  String _relatedActionLabel(DistributorNotice notice) {
+    final link = notice.link?.trim() ?? '';
+    if (link.startsWith('/orders')) {
+      return 'Xem Ä‘Æ¡n hĂ ng';
+    }
+    if (link.startsWith('/products')) {
+      return 'Xem sáº£n pháº©m';
+    }
+    if (link == '/account/support' ||
+        link == '/dealer/support' ||
+        link == '/support') {
+      return 'Xem há»— trá»£';
+    }
+    if (link.startsWith('/notifications')) {
+      return 'Xem thĂ´ng bĂ¡o';
+    }
+    if (link.isNotEmpty) {
+      return 'Má»Ÿ liĂªn káº¿t';
+    }
+
+    switch (notice.type) {
       case NoticeType.order:
         return 'Xem đơn hàng';
       case NoticeType.promotion:

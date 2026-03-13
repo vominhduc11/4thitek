@@ -11,6 +11,7 @@ class WarrantyActivationRecord {
     required this.customerAddress,
     required this.warrantyMonths,
     required this.activatedAt,
+    required this.purchaseDate,
   });
 
   final String orderId;
@@ -24,16 +25,14 @@ class WarrantyActivationRecord {
   final String customerAddress;
   final int warrantyMonths;
   final DateTime activatedAt;
+  final DateTime purchaseDate;
 
-  DateTime get startsAt => activatedAt;
+  DateTime get startsAt => purchaseDate;
 
   DateTime get expiresAt => DateTime(
-    activatedAt.year,
-    activatedAt.month + warrantyMonths,
-    activatedAt.day,
-    activatedAt.hour,
-    activatedAt.minute,
-    activatedAt.second,
+    purchaseDate.year,
+    purchaseDate.month + warrantyMonths,
+    purchaseDate.day,
   );
 }
 

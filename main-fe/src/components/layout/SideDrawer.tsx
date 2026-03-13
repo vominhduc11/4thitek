@@ -9,8 +9,6 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Z_INDEX } from '@/constants/zIndex';
 import { SOCIAL_URLS } from '@/constants/urls';
 import { modalManager } from '@/utils/modalManager';
-import { useAuth } from '@/context/AuthContext';
-import { useLoginModal } from '@/context/LoginModalContext';
 
 interface SideDrawerProps {
     isOpen: boolean;
@@ -18,10 +16,8 @@ interface SideDrawerProps {
 }
 
 export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
-    const { t, language } = useLanguage();
+    const { t } = useLanguage();
     const router = useRouter();
-    const { isAuthenticated, isHydrated, logout } = useAuth();
-    const { openLoginModal } = useLoginModal();
 
     // Handle Products navigation
     const handleProductsNavigation = () => {
@@ -43,14 +39,6 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
         router.push('/blogs');
     };
 
-    const handleAccountNavigation = () => {
-        onClose();
-        if (isAuthenticated) {
-            router.push('/account');
-            return;
-        }
-        openLoginModal('/account');
-    };
 
     // Remove hover effects as no longer needed
 
@@ -276,24 +264,6 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                     </motion.button>
                                 </motion.li>
 
-                                {isHydrated && (
-                                    <motion.li variants={staggerItem}>
-                                        <motion.button
-                                            onClick={handleAccountNavigation}
-                                            className="block text-xs sm:text-sm md:text-base lg:text-sm xl:text-base font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2 md:py-3 lg:py-2 xl:py-3 w-full text-left"
-                                            whileHover={{ x: 4, color: '#ffffff' }}
-                                            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                                        >
-                                            {isAuthenticated
-                                                ? language === 'vi'
-                                                    ? 'TAI KHOAN'
-                                                    : 'ACCOUNT'
-                                                : language === 'vi'
-                                                  ? 'DANG NHAP'
-                                                  : 'SIGN IN'}
-                                        </motion.button>
-                                    </motion.li>
-                                )}
 
                                 {/* Blog */}
                                 <motion.li variants={staggerItem}>
@@ -322,23 +292,6 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                     </motion.button>
                                 </motion.li>
 
-                                {isHydrated && isAuthenticated && (
-                                    <motion.li variants={staggerItem}>
-                                        <motion.button
-                                            onClick={async () => {
-                                                onClose();
-                                                await logout();
-                                                router.replace('/');
-                                                router.refresh();
-                                            }}
-                                            className="block text-xs sm:text-sm md:text-base lg:text-sm xl:text-base font-medium uppercase tracking-wider text-red-300 hover:text-white py-1.5 sm:py-2 md:py-3 lg:py-2 xl:py-3 w-full text-left"
-                                            whileHover={{ x: 4, color: '#ffffff' }}
-                                            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                                        >
-                                            {language === 'vi' ? 'DANG XUAT' : 'SIGN OUT'}
-                                        </motion.button>
-                                    </motion.li>
-                                )}
                             </motion.ul>
 
                             <motion.div

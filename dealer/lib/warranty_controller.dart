@@ -791,7 +791,7 @@ class WarrantyController extends ChangeNotifier {
           product?.sku ??
           productId,
       importedAt:
-          DateTime.tryParse(json['importedAt']?.toString() ?? '') ??
+          _parseDateTimeValue(json['importedAt']) ??
           cached?.importedAt ??
           DateTime.now(),
       warehouseId:
@@ -833,14 +833,17 @@ class WarrantyController extends ChangeNotifier {
     final order = orderCode.isEmpty ? null : _orderLookup?.call(orderCode);
     final productId = imported?.productId ?? cached?.productId ?? '';
     final product = productId.isEmpty ? null : _productLookup?.call(productId);
-    final activatedAt =
-        DateTime.tryParse(json['warrantyStart']?.toString() ?? '') ??
-        DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
-        cached?.activatedAt ??
-        DateTime.now();
-    final warrantyEnd = DateTime.tryParse(
-      json['warrantyEnd']?.toString() ?? '',
+    final purchaseDate = _normalizeLocalDate(
+      _parseDateTimeValue(json['purchaseDate']) ??
+          _parseDateTimeValue(json['warrantyStart']) ??
+          cached?.purchaseDate ??
+          DateTime.now(),
     );
+    final activatedAt =
+        _parseDateTimeValue(json['createdAt']) ??
+        cached?.activatedAt ??
+        purchaseDate;
+    final warrantyEnd = _parseDateTimeValue(json['warrantyEnd']);
 
     return WarrantyActivationRecord(
       orderId: orderCode,
@@ -875,8 +878,9 @@ class WarrantyController extends ChangeNotifier {
       warrantyMonths:
           cached?.warrantyMonths ??
           product?.warrantyMonths ??
-          _resolveWarrantyMonths(activatedAt, warrantyEnd),
+          _resolveWarrantyMonths(purchaseDate, warrantyEnd),
       activatedAt: activatedAt,
+      purchaseDate: purchaseDate,
     );
   }
 
@@ -893,22 +897,16 @@ class WarrantyController extends ChangeNotifier {
       }
     }
 
-    final remoteOrderId = _remoteOrderIdForOrderCode?.call(record.orderId);
     final response = await _client.post(
-      Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/warranties')),
+      Uri.parse(DealerApiConfig.resolveUrl('/api/warranty-activation')),
       headers: await _authorizedJsonHeaders(),
       body: jsonEncode(<String, dynamic>{
         'productSerialId': remoteSerialId,
-        ...?remoteOrderId == null
-            ? null
-            : <String, dynamic>{'orderId': remoteOrderId},
         'customerName': record.customerName,
         'customerEmail': record.customerEmail,
         'customerPhone': record.customerPhone,
         'customerAddress': record.customerAddress,
-        'warrantyStart': record.activatedAt.toUtc().toIso8601String(),
-        'warrantyEnd': record.expiresAt.toUtc().toIso8601String(),
-        'status': 'ACTIVE',
+        'purchaseDate': _toIsoDate(record.purchaseDate),
       }),
     );
     final payload = _decodeBody(response.body);
@@ -1117,9 +1115,13 @@ class WarrantyController extends ChangeNotifier {
     if (serial.isEmpty) {
       return null;
     }
+    final purchaseDate = _normalizeLocalDate(
+      _parseDateTimeValue(json['purchaseDate']) ??
+          _parseDateTimeValue(json['activatedAt']) ??
+          DateTime.now(),
+    );
     final activatedAt =
-        DateTime.tryParse(json['activatedAt']?.toString() ?? '') ??
-        DateTime.now();
+        _parseDateTimeValue(json['activatedAt']) ?? purchaseDate;
     return WarrantyActivationRecord(
       orderId: _normalizeString(json['orderId']) ?? '',
       productId: _normalizeString(json['productId']) ?? '',
@@ -1132,6 +1134,7 @@ class WarrantyController extends ChangeNotifier {
       customerAddress: _normalizeString(json['customerAddress']) ?? '',
       warrantyMonths: _parseInt(json['warrantyMonths'], fallback: 12),
       activatedAt: activatedAt,
+      purchaseDate: purchaseDate,
     );
   }
 
@@ -1146,9 +1149,7 @@ class WarrantyController extends ChangeNotifier {
       productId: _normalizeString(json['productId']) ?? '',
       productName: _normalizeString(json['productName']) ?? 'Product',
       productSku: _normalizeString(json['productSku']) ?? '',
-      importedAt:
-          DateTime.tryParse(json['importedAt']?.toString() ?? '') ??
-          DateTime.now(),
+      importedAt: _parseDateTimeValue(json['importedAt']) ?? DateTime.now(),
       warehouseId: _normalizeString(json['warehouseId']) ?? 'main',
       warehouseName: _normalizeString(json['warehouseName']) ?? 'Kho',
     );
@@ -1237,6 +1238,29 @@ class WarrantyController extends ChangeNotifier {
     return text.isEmpty ? null : text;
   }
 
+  DateTime _normalizeLocalDate(DateTime value) {
+    return DateTime(value.year, value.month, value.day);
+  }
+
+  DateTime? _parseDateTimeValue(Object? value) {
+    final raw = value?.toString().trim() ?? '';
+    if (raw.isEmpty) {
+      return null;
+    }
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) {
+      return null;
+    }
+    return parsed.isUtc ? parsed.toLocal() : parsed;
+  }
+
+  String _toIsoDate(DateTime value) {
+    final normalized = _normalizeLocalDate(value);
+    final month = normalized.month.toString().padLeft(2, '0');
+    final day = normalized.day.toString().padLeft(2, '0');
+    return '${normalized.year}-$month-$day';
+  }
+
   bool _isRemoteDefectiveStatus(Object? value) {
     final status = value?.toString().trim().toUpperCase() ?? '';
     return status == 'DEFECTIVE';
@@ -1250,11 +1274,11 @@ class WarrantyController extends ChangeNotifier {
     return _normalizeString(fallback) ?? '';
   }
 
-  int _resolveWarrantyMonths(DateTime activatedAt, DateTime? warrantyEnd) {
-    if (warrantyEnd == null || !warrantyEnd.isAfter(activatedAt)) {
+  int _resolveWarrantyMonths(DateTime purchaseDate, DateTime? warrantyEnd) {
+    if (warrantyEnd == null || !warrantyEnd.isAfter(purchaseDate)) {
       return 12;
     }
-    final days = warrantyEnd.difference(activatedAt).inDays;
+    final days = warrantyEnd.difference(purchaseDate).inDays;
     final months = (days / 30).round();
     return months <= 0 ? 12 : months;
   }
@@ -1325,6 +1349,11 @@ String _normalizeSerial(String serial) {
 }
 
 Map<String, dynamic> _activationToJson(WarrantyActivationRecord record) {
+  final purchaseDate = DateTime(
+    record.purchaseDate.year,
+    record.purchaseDate.month,
+    record.purchaseDate.day,
+  );
   return <String, dynamic>{
     'orderId': record.orderId,
     'productId': record.productId,
@@ -1337,6 +1366,8 @@ Map<String, dynamic> _activationToJson(WarrantyActivationRecord record) {
     'customerAddress': record.customerAddress,
     'warrantyMonths': record.warrantyMonths,
     'activatedAt': record.activatedAt.toIso8601String(),
+    'purchaseDate':
+        '${purchaseDate.year}-${purchaseDate.month.toString().padLeft(2, '0')}-${purchaseDate.day.toString().padLeft(2, '0')}',
   };
 }
 

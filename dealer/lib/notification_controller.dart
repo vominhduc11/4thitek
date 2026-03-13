@@ -10,6 +10,7 @@ import 'api_config.dart';
 import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
 import 'models.dart';
+import 'utils.dart';
 
 class NotificationController extends ChangeNotifier {
   NotificationController({
@@ -185,9 +186,8 @@ class NotificationController extends ChangeNotifier {
             type: _mapRemoteType(entry['type']?.toString()),
             title: _normalizeString(entry['title']) ?? 'Thông báo',
             message: _normalizeString(entry['content']) ?? '',
-            createdAt:
-                DateTime.tryParse(entry['createdAt']?.toString() ?? '') ??
-                DateTime.now(),
+            createdAt: parseApiDateTime(entry['createdAt']) ?? DateTime.now(),
+            link: _normalizeString(entry['link']),
           ),
         );
         if (_parseBool(entry['isRead'])) {
@@ -409,9 +409,8 @@ class NotificationController extends ChangeNotifier {
       type: _mapRemoteType(payload['type']?.toString()),
       title: _normalizeString(payload['title']) ?? 'Thông báo',
       message: _normalizeString(payload['content']) ?? '',
-      createdAt:
-          DateTime.tryParse(payload['createdAt']?.toString() ?? '') ??
-          DateTime.now(),
+      createdAt: parseApiDateTime(payload['createdAt']) ?? DateTime.now(),
+      link: _normalizeString(payload['link']),
     );
 
     final existingIndex = _notices.indexWhere((entry) => entry.id == notice.id);

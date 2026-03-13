@@ -83,7 +83,6 @@ const copyByLanguage = {
     warehouseId: 'Mã kho',
     warehouseName: 'Tên kho',
     dealerId: 'ID đại lý',
-    customerId: 'ID khách hàng',
     orderId: 'ID đơn hàng',
     save: 'Thực hiện import',
     cancel: 'Hủy',
@@ -119,7 +118,6 @@ const copyByLanguage = {
     warehouseId: 'Warehouse ID',
     warehouseName: 'Warehouse name',
     dealerId: 'Dealer ID',
-    customerId: 'Customer ID',
     orderId: 'Order ID',
     save: 'Run import',
     cancel: 'Cancel',
@@ -156,7 +154,6 @@ function SerialsPageRevamp() {
     serials: '',
     status: 'AVAILABLE' as BackendProductSerialStatus,
     dealerId: '',
-    customerId: '',
     orderId: '',
     warehouseId: 'main',
     warehouseName: 'Kho tổng',
@@ -270,7 +267,6 @@ function SerialsPageRevamp() {
         serials,
         status: form.status,
         dealerId: form.dealerId ? Number(form.dealerId) : undefined,
-        customerId: form.customerId ? Number(form.customerId) : undefined,
         orderId: form.orderId ? Number(form.orderId) : undefined,
         warehouseId: form.warehouseId.trim() || undefined,
         warehouseName: form.warehouseName.trim() || undefined,
@@ -280,7 +276,6 @@ function SerialsPageRevamp() {
         serials: '',
         status: 'AVAILABLE',
         dealerId: '',
-        customerId: '',
         orderId: '',
         warehouseId: 'main',
         warehouseName: 'Kho tổng',
@@ -418,14 +413,6 @@ function SerialsPageRevamp() {
                 className={inputClass}
                 value={form.dealerId}
                 onChange={(event) => setForm((current) => ({ ...current, dealerId: event.target.value }))}
-              />
-            </label>
-            <label className="space-y-2">
-              <span className={labelClass}>{copy.customerId}</span>
-              <input
-                className={inputClass}
-                value={form.customerId}
-                onChange={(event) => setForm((current) => ({ ...current, customerId: event.target.value }))}
               />
             </label>
             <label className="space-y-2">

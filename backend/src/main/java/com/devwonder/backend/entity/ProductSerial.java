@@ -46,10 +46,6 @@ public class ProductSerial {
     private Dealer dealer;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_customer")
-    private Customer customer;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_order")
     private Order order;
 

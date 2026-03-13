@@ -43,12 +43,12 @@ public class DealerWarrantySupport {
                 registration.getProductSerial() == null ? null : registration.getProductSerial().getId(),
                 registration.getProductSerial() == null ? null : registration.getProductSerial().getSerial(),
                 dealerId,
-                registration.getCustomer() == null ? null : registration.getCustomer().getId(),
                 registration.getOrder() == null ? null : registration.getOrder().getId(),
                 registration.getCustomerName(),
                 registration.getCustomerEmail(),
                 registration.getCustomerPhone(),
                 registration.getCustomerAddress(),
+                registration.getPurchaseDate(),
                 registration.getWarrantyStart(),
                 registration.getWarrantyEnd(),
                 registration.getStatus(),
@@ -57,15 +57,13 @@ public class DealerWarrantySupport {
     }
 
     public WarrantyRegistrationResponse createWarranty(Long dealerId, CreateWarrantyRegistrationRequest request) {
-        dealerPortalLookupSupport.validateDealerOwnership(dealerId, request.orderId());
-        return dealerWarrantyManagementService.create(DealerRequestSupport.forceDealerRequest(dealerId, request));
+        return dealerWarrantyManagementService.create(dealerId, request);
     }
 
     public WarrantyRegistrationResponse updateWarranty(Long dealerId, Long id, CreateWarrantyRegistrationRequest request) {
         warrantyRegistrationRepository.findByIdAndDealerId(id, dealerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Warranty registration not found"));
-        dealerPortalLookupSupport.validateDealerOwnership(dealerId, request.orderId());
-        return dealerWarrantyManagementService.update(id, DealerRequestSupport.forceDealerRequest(dealerId, request));
+        return dealerWarrantyManagementService.update(id, dealerId, request);
     }
 
     public void deleteWarranty(Long dealerId, Long id) {

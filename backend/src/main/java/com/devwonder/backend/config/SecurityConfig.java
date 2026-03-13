@@ -80,7 +80,6 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register-customer", "/api/v1/auth/register-customer").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/user/dealer", "/api/v1/user/dealer").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/user/dealer/page", "/api/v1/user/dealer/page").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/user/dealer", "/api/v1/user/dealer").permitAll()
@@ -102,13 +101,12 @@ public class SecurityConfig {
                         ).hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/api/upload/customer-avatars",
-                                "/api/v1/upload/customer-avatars"
-                        ).hasAnyAuthority("CUSTOMER", "ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/upload", "/api/v1/upload").authenticated()
+                                "/api/warranty-activation",
+                                "/api/v1/warranty-activation"
+                        ).hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/upload", "/api/v1/upload").hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
                         .requestMatchers("/api/upload/**", "/api/v1/upload/**").authenticated()
                         .requestMatchers("/admin/**", "/api/admin/**", "/api/v1/admin/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers("/api/customer/**", "/api/v1/customer/**").hasAuthority("CUSTOMER")
                         .requestMatchers("/user/**", "/api/dealer/**", "/api/v1/dealer/**").hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
                         .requestMatchers("/adminuser/**").hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
                         .anyRequest().authenticated())

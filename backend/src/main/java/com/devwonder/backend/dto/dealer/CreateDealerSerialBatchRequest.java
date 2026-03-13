@@ -9,7 +9,6 @@ public record CreateDealerSerialBatchRequest(
         @NotNull(message = "productId is required")
         Long productId,
         Long orderId,
-        Long customerId,
         ProductSerialStatus status,
         String warehouseId,
         String warehouseName,

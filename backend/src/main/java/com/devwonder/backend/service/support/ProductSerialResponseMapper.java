@@ -18,7 +18,6 @@ public final class ProductSerialResponseMapper {
                 product == null ? null : product.getId(),
                 product == null ? null : product.getName(),
                 product == null ? null : product.getSku(),
-                serial.getCustomer() == null ? null : serial.getCustomer().getId(),
                 serial.getOrder() == null ? null : serial.getOrder().getId(),
                 serial.getWarehouseId(),
                 serial.getWarehouseName(),

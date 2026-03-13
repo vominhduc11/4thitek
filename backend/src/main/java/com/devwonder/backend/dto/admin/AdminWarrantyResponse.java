@@ -13,7 +13,6 @@ public record AdminWarrantyResponse(
         String productSku,
         Long dealerId,
         String dealerName,
-        Long customerId,
         String customerName,
         String customerEmail,
         String customerPhone,

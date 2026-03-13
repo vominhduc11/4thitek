@@ -10,25 +10,6 @@ public final class DealerRequestSupport {
     private DealerRequestSupport() {
     }
 
-    public static CreateWarrantyRegistrationRequest forceDealerRequest(
-            Long dealerId,
-            CreateWarrantyRegistrationRequest request
-    ) {
-        return new CreateWarrantyRegistrationRequest(
-                request.productSerialId(),
-                dealerId,
-                request.customerId(),
-                request.orderId(),
-                request.customerName(),
-                request.customerEmail(),
-                request.customerPhone(),
-                request.customerAddress(),
-                request.warrantyStart(),
-                request.warrantyEnd(),
-                request.status()
-        );
-    }
-
     public static String requireNonBlank(String value, String fieldName) {
         String normalized = normalize(value);
         if (normalized == null) {

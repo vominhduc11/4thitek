@@ -39,7 +39,6 @@ import {
 
 const AUDIENCE_OPTIONS: BackendNotificationCreateRequest['audience'][] = [
   'DEALERS',
-  'CUSTOMERS',
   'ALL_ACCOUNTS',
   'ACCOUNTS',
 ]
@@ -254,7 +253,7 @@ function NotificationsPageRevamp() {
   const filteredItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
     return sourceItems.filter((item) => {
-      const haystack = [item.title, item.content, item.accountName, item.accountType]
+      const haystack = [item.title, item.content, item.link, item.accountName, item.accountType]
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
@@ -488,6 +487,11 @@ function NotificationsPageRevamp() {
                     <StatusBadge tone={typeTone[item.type ?? 'SYSTEM']}>{item.type ?? 'SYSTEM'}</StatusBadge>
                   </div>
                   <p className="mt-3 text-sm text-[var(--ink)]">{item.content}</p>
+                  {item.link ? (
+                    <p className={`mt-2 break-all text-xs ${tableMetaClass}`}>
+                      {copy.link}: {item.link}
+                    </p>
+                  ) : null}
                   <div className="mt-4 flex items-center justify-between gap-3">
                     <StatusBadge tone={item.isRead ? 'neutral' : 'warning'}>
                       {item.isRead ? copy.statusRead : copy.statusUnread}
@@ -515,6 +519,9 @@ function NotificationsPageRevamp() {
                       <td className="rounded-l-2xl px-3 py-3">
                         <p className="font-semibold text-[var(--ink)]">{item.title}</p>
                         <p className={`${tableMetaClass} line-clamp-2`}>{item.content}</p>
+                        {item.link ? (
+                          <p className={`${tableMetaClass} mt-1 break-all`}>{copy.link}: {item.link}</p>
+                        ) : null}
                       </td>
                       <td className="px-3 py-3">
                         <p>{item.accountName ?? '-'}</p>

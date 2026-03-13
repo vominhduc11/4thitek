@@ -8,15 +8,13 @@ import { apiService } from '@/services/apiService';
 import { ERROR_MESSAGES, ErrorType } from '@/constants/warranty';
 import { handleApiError } from '@/utils/errorHandler';
 import { useLanguage } from '@/context/LanguageContext';
+import { formatWarrantyBoundaryDate, formatWarrantyPurchaseDate } from '@/lib/warrantyDate';
 
 const WarrantyCheckPage = () => {
     const { locale } = useLanguage();
     const [warrantyInfo, setWarrantyInfo] = useState<WarrantyInfo | null>(null);
     const [showResult, setShowResult] = useState(false);
     const [errorInfo, setErrorInfo] = useState<{ message: string; type: ErrorType } | null>(null);
-
-    // Login functionality removed
-
 
     // Helper function to parse product image JSON
     const parseProductImage = (imageData: string): string | undefined => {
@@ -30,7 +28,6 @@ const WarrantyCheckPage = () => {
 
     // Helper function to convert API data to UI format
     const convertApiDataToWarrantyInfo = (apiData: WarrantyCheckData): WarrantyInfo => {
-        // Check if required fields exist
         if (!apiData?.purchaseDate) {
             throw new Error(ERROR_MESSAGES.PURCHASE_DATE_MISSING);
         }
@@ -40,12 +37,6 @@ const WarrantyCheckPage = () => {
         if (!apiData?.productSerial) {
             throw new Error(ERROR_MESSAGES.SERIAL_MISSING);
         }
-        if (!apiData?.customer) {
-            throw new Error(ERROR_MESSAGES.CUSTOMER_MISSING);
-        }
-
-        const purchaseDate = new Date(apiData.purchaseDate);
-        const expirationDate = new Date(apiData.warrantyEnd);
 
         const statusMapping: { [key: string]: 'active' | 'expired' | 'void' | 'invalid' } = {
             'ACTIVE': 'active',
@@ -56,14 +47,10 @@ const WarrantyCheckPage = () => {
         return {
             serialNumber: apiData.productSerial.serialNumber,
             productName: apiData.productSerial.productName,
-            purchaseDate: purchaseDate.toLocaleDateString(locale),
+            purchaseDate: formatWarrantyPurchaseDate(apiData.purchaseDate, locale),
             warrantyStatus: statusMapping[apiData.status] || 'invalid',
-            warrantyEndDate: expirationDate.toLocaleDateString(locale),
+            warrantyEndDate: formatWarrantyBoundaryDate(apiData.warrantyEnd, locale),
             remainingDays: Math.max(0, apiData.remainingDays ?? 0),
-            customerName: apiData.customer.name,
-            customerPhone: apiData.customer.phone,
-            customerEmail: apiData.customer.email,
-            customerAddress: apiData.customer.address,
             warrantyCode: apiData.warrantyCode,
             productSku: apiData.productSerial.productSku,
             productImage: parseProductImage(apiData.productSerial.image)
@@ -79,12 +66,10 @@ const WarrantyCheckPage = () => {
             const response = await apiService.checkWarranty(data.serialNumber);
 
             if (response.success && response.data) {
-                // API now returns single object, not array
-                const warrantyData = convertApiDataToWarrantyInfo(response.data as unknown as WarrantyCheckData);
+                const warrantyData = convertApiDataToWarrantyInfo(response.data);
                 setWarrantyInfo(warrantyData);
                 setErrorInfo(null);
             } else {
-                // API returned unsuccessful response or no data
                 setWarrantyInfo(null);
                 setErrorInfo({
                     message: response.error || ERROR_MESSAGES.SERIAL_NOT_FOUND,
@@ -134,7 +119,6 @@ const WarrantyCheckPage = () => {
                     )}
                 </AnimatePresence>
             </div>
-
         </div>
     );
 };

@@ -37,4 +37,21 @@ describe('backendApi', () => {
     expect(api.buildApiUrl('/users')).toBe('https://api.4thitek.vn/api/v1/users')
     expect(api.buildApiUrl('/api/v1/orders')).toBe('https://api.4thitek.vn/api/v1/orders')
   })
+
+  it('prefers the local env API base URL while running on localhost', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'http://localhost:8080/api')
+    ;(globalThis as { window?: unknown }).window = {
+      __APP_CONFIG__: {
+        apiBaseUrl: 'https://api.4thitek.vn/api/v1',
+      },
+      location: {
+        origin: 'http://127.0.0.1:4173',
+      },
+    }
+
+    const api = await importBackendApi()
+
+    expect(api.getApiBaseUrl()).toBe('http://localhost:8080/api')
+    expect(api.buildApiUrl('/orders')).toBe('http://localhost:8080/api/orders')
+  })
 })

@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import type { BlogPost } from '@/types/blog';
 import { buildBlogPath } from '@/lib/slug';
+import { useHydration } from '@/hooks/useHydration';
+import { formatDateSafe } from '@/utils/dateFormatter';
 
 interface BlogItem {
     id: string;
@@ -24,6 +26,7 @@ interface NewsroomProps {
 export default function Newsroom({ initialBlogs = [] }: NewsroomProps) {
     const router = useRouter();
     const { t, locale } = useLanguage();
+    const isHydrated = useHydration();
     const [blogs] = useState<BlogItem[]>(
         initialBlogs.map((blog) => ({
             id: blog.id,
@@ -34,19 +37,6 @@ export default function Newsroom({ initialBlogs = [] }: NewsroomProps) {
             createdAt: blog.publishedAt
         }))
     );
-
-    const formatDate = (dateString: string) => {
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString(locale, {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-        } catch {
-            return t('common.recent');
-        }
-    };
 
     return (
         <motion.section
@@ -102,7 +92,7 @@ export default function Newsroom({ initialBlogs = [] }: NewsroomProps) {
                                 ) : null}
                                 <h3 className="line-clamp-2 text-base font-semibold text-white sm:text-lg">{post.title}</h3>
                                 <div className="mt-3 flex items-center justify-between text-xs text-white/70">
-                                    <span>{formatDate(post.createdAt)}</span>
+                                    <span>{formatDateSafe(post.createdAt, isHydrated, locale)}</span>
                                     <FiArrowUpRight className="h-4 w-4" />
                                 </div>
                             </div>

@@ -10,7 +10,7 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
-import { formatDateTime } from '../lib/formatters'
+import { formatDateOnly } from '../lib/formatters'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import {
   EmptyState,
@@ -41,10 +41,13 @@ const statusTone = {
 } as const
 
 const getRemainingLabel = (
+  status: BackendWarrantyStatus | null | undefined,
   remainingDays: number | null | undefined,
-  labels: { expired: string; days: string },
+  labels: { expired: string; days: string; notAvailable: string },
 ) =>
-  remainingDays != null && remainingDays <= 0
+  status === 'VOID'
+    ? labels.notAvailable
+    : status === 'EXPIRED'
     ? labels.expired
     : `${remainingDays ?? 0} ${labels.days}`
 
@@ -299,12 +302,12 @@ function WarrantiesPageRevamp() {
                     <div className="flex justify-between gap-3">
                       <span className={tableMetaClass}>{copy.endDate}</span>
                       <span className="text-right text-[var(--ink)]">
-                        {item.warrantyEnd ? formatDateTime(item.warrantyEnd) : copy.notAvailable}
+                        {item.warrantyEnd ? formatDateOnly(item.warrantyEnd) : copy.notAvailable}
                       </span>
                     </div>
                   </div>
                   <p className={`mt-3 ${tableMetaClass}`}>
-                    {copy.remaining}: {getRemainingLabel(item.remainingDays, copy)}
+                    {copy.remaining}: {getRemainingLabel(item.status, item.remainingDays, copy)}
                   </p>
                   <select
                     aria-label={`${copy.status} ${item.id}`}
@@ -376,11 +379,11 @@ function WarrantiesPageRevamp() {
                           {item.status ?? 'ACTIVE'}
                         </StatusBadge>
                         <p className={`mt-1 ${tableMetaClass}`}>
-                          {copy.remaining}: {getRemainingLabel(item.remainingDays, copy)}
+                          {copy.remaining}: {getRemainingLabel(item.status, item.remainingDays, copy)}
                         </p>
                       </td>
                       <td className="px-3 py-3 text-sm">
-                        {item.warrantyEnd ? formatDateTime(item.warrantyEnd) : copy.notAvailable}
+                        {item.warrantyEnd ? formatDateOnly(item.warrantyEnd) : copy.notAvailable}
                       </td>
                       <td className="rounded-r-2xl px-3 py-3">
                         <select

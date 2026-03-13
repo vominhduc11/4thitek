@@ -2,22 +2,23 @@ package com.devwonder.backend.dto.warranty;
 
 import com.devwonder.backend.entity.enums.WarrantyStatus;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.time.Instant;
+import java.time.LocalDate;
 
 public record CreateWarrantyRegistrationRequest(
         @NotNull(message = "productSerialId is required")
         Long productSerialId,
-        Long dealerId,
-        Long customerId,
-        Long orderId,
+        @NotBlank(message = "customerName is required")
         String customerName,
+        @NotBlank(message = "customerEmail is required")
         @Email(message = "customerEmail must be a valid email")
         String customerEmail,
+        @NotBlank(message = "customerPhone is required")
         String customerPhone,
+        @NotBlank(message = "customerAddress is required")
         String customerAddress,
-        Instant warrantyStart,
-        Instant warrantyEnd,
-        WarrantyStatus status
+        @NotNull(message = "purchaseDate is required")
+        LocalDate purchaseDate
 ) {
 }

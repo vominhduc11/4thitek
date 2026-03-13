@@ -3,7 +3,6 @@ package com.devwonder.backend.service.support;
 import com.devwonder.backend.dto.dealer.CreateDealerSerialBatchRequest;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
 import com.devwonder.backend.dto.dealer.UpdateDealerSerialStatusRequest;
-import com.devwonder.backend.entity.Customer;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.Product;
@@ -37,7 +36,6 @@ public class DealerSerialSupport {
     public List<DealerProductSerialResponse> importSerials(
             Dealer dealer,
             Order order,
-            Customer customer,
             CreateDealerSerialBatchRequest request
     ) {
         Product product = productRepository.findById(request.productId())
@@ -62,7 +60,6 @@ public class DealerSerialSupport {
             productSerial.setSerial(serial);
             productSerial.setProduct(product);
             productSerial.setDealer(dealer);
-            productSerial.setCustomer(customer);
             productSerial.setOrder(order);
             productSerial.setStatus(request.status() == null ? ProductSerialStatus.AVAILABLE : request.status());
             productSerial.setWarehouseId(DealerRequestSupport.defaultIfBlank(request.warehouseId(), "main"));

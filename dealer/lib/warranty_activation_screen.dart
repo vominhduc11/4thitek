@@ -41,6 +41,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   final _addressController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final Map<String, List<TextEditingController>> _serialControllers = {};
+  DateTime _purchaseDate = DateTime.now();
   bool _isInitialized = false;
   bool _isSubmitting = false;
   bool _didApplyPrefill = false;
@@ -62,6 +63,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     _syncSerialInputs(order, warrantyController);
     _applyPrefilledSerial(order, warrantyController);
     _prefillCustomerFromOrder(order);
+    _purchaseDate = DateUtils.dateOnly(order.createdAt.toLocal());
     _isInitialized = true;
   }
 
@@ -145,12 +147,9 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     final totalCount = order.totalItems;
     final isFullyActivated = activatedCount >= totalCount;
     final hasOrderCustomerData = _hasOrderCustomerProfile(order);
-    final lockNameField =
-        isFullyActivated || order.receiverName.trim().isNotEmpty;
-    final lockPhoneField =
-        isFullyActivated || order.receiverPhone.trim().isNotEmpty;
-    final lockAddressField =
-        isFullyActivated || order.receiverAddress.trim().isNotEmpty;
+    final lockNameField = isFullyActivated;
+    final lockPhoneField = isFullyActivated;
+    final lockAddressField = isFullyActivated;
     final progressValue = totalCount == 0 ? 0.0 : activatedCount / totalCount;
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -254,7 +253,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                           labelText: 'Email khách hàng',
                           prefixIcon: Icon(Icons.alternate_email_outlined),
                           helperText:
-                              'Dùng để tạo tài khoản khách hàng và gửi thông tin bảo hành.',
+                              'Dung de luu thong tin kich hoat bao hanh va lien he ho tro khi can.',
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -276,10 +275,27 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                           prefixIcon: Icon(Icons.location_on_outlined),
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: isFullyActivated ? null : _pickPurchaseDate,
+                        icon: const Icon(Icons.event_outlined),
+                        label: Text('Ngay mua: ${formatDate(_purchaseDate)}'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(52),
+                          alignment: Alignment.centerLeft,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Dealer co the chon lai ngay khach mua tai cua hang truoc khi kich hoat bao hanh.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                       if (hasOrderCustomerData) ...[
                         const SizedBox(height: 8),
                         Text(
-                          'Thông tin khách hàng đã được lấy từ đơn hàng và khóa chỉnh sửa.',
+                          'Thong tin khach hang da duoc dien san tu don hang, dealer co the chinh sua neu can.',
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: colorScheme.onSurfaceVariant),
                         ),
@@ -618,6 +634,23 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     }
   }
 
+  Future<void> _pickPurchaseDate() async {
+    final now = DateUtils.dateOnly(DateTime.now());
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _purchaseDate.isAfter(now) ? now : _purchaseDate,
+      firstDate: DateTime(now.year - 5, 1, 1),
+      lastDate: now,
+      helpText: 'Chon ngay mua',
+    );
+    if (!mounted || picked == null) {
+      return;
+    }
+    setState(() {
+      _purchaseDate = DateUtils.dateOnly(picked);
+    });
+  }
+
   bool _hasOrderCustomerProfile(Order order) {
     return order.receiverName.trim().isNotEmpty ||
         order.receiverPhone.trim().isNotEmpty ||
@@ -821,7 +854,8 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
 
     if (customerName.isEmpty ||
         customerEmail.isEmpty ||
-        customerPhone.isEmpty) {
+        customerPhone.isEmpty ||
+        customerAddress.isEmpty) {
       _showSnackBar('Vui lòng nhập đầy đủ thông tin khách hàng.');
       return;
     }
@@ -875,6 +909,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
             customerAddress: customerAddress,
             warrantyMonths: item.product.warrantyMonths,
             activatedAt: DateTime.now(),
+            purchaseDate: DateUtils.dateOnly(_purchaseDate),
           ),
         );
       }

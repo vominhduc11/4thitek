@@ -1,10 +1,8 @@
 package com.devwonder.backend.service.support;
 
-import com.devwonder.backend.entity.Customer;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.exception.ResourceNotFoundException;
-import com.devwonder.backend.repository.CustomerRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +14,6 @@ public class DealerPortalLookupSupport {
 
     private final DealerRepository dealerRepository;
     private final OrderRepository orderRepository;
-    private final CustomerRepository customerRepository;
 
     public Dealer requireDealerByUsername(String username) {
         return dealerRepository.findByUsername(username)
@@ -33,14 +30,6 @@ public class DealerPortalLookupSupport {
             return null;
         }
         return requireDealerOrder(dealerId, orderId);
-    }
-
-    public Customer resolveCustomer(Long customerId) {
-        if (customerId == null) {
-            return null;
-        }
-        return customerRepository.findById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
     }
 
     public void validateDealerOwnership(Long dealerId, Long orderId) {

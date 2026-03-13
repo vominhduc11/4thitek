@@ -179,7 +179,7 @@ export const getRequiredResources = (
   if (pathname.startsWith('/blogs')) {
     return ['posts']
   }
-  if (pathname.startsWith('/dealers') || pathname.startsWith('/customers')) {
+  if (pathname.startsWith('/dealers')) {
     return ['dealers']
   }
   if (pathname.startsWith('/users')) {

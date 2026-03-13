@@ -14,6 +14,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.LocalDate;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -40,10 +41,6 @@ public class WarrantyRegistration {
     private Dealer dealer;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_customer")
-    private Customer customer;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_order")
     private Order order;
 
@@ -67,7 +64,7 @@ public class WarrantyRegistration {
     private WarrantyStatus status;
 
     @Column(name = "purchase_date")
-    private Instant purchaseDate;
+    private LocalDate purchaseDate;
 
     @Column(name = "warranty_start")
     private Instant warrantyStart;

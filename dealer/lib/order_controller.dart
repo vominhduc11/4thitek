@@ -7,6 +7,7 @@ import 'api_config.dart';
 import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
 import 'models.dart';
+import 'utils.dart';
 
 class OrderController extends ChangeNotifier {
   OrderController({
@@ -410,9 +411,7 @@ class OrderController extends ChangeNotifier {
 
     return Order(
       id: orderCode,
-      createdAt:
-          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
-          DateTime.now(),
+      createdAt: parseApiDateTime(json['createdAt']) ?? DateTime.now(),
       status: _mapRemoteOrderStatus(json['status']?.toString()),
       paymentMethod: _mapRemotePaymentMethod(json['paymentMethod']?.toString()),
       paymentStatus: _mapRemotePaymentStatus(json['paymentStatus']?.toString()),
@@ -465,8 +464,7 @@ class OrderController extends ChangeNotifier {
       id: json['id']?.toString() ?? '',
       orderId: orderCode,
       amount: _parsePrice(json['amount']),
-      paidAt:
-          DateTime.tryParse(json['paidAt']?.toString() ?? '') ?? DateTime.now(),
+      paidAt: parseApiDateTime(json['paidAt']) ?? DateTime.now(),
       channel: _normalizeString(json['channel']) ?? '',
       note: _normalizeString(json['note']),
       proofFileName: _normalizeString(json['proofFileName']),

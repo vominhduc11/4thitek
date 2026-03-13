@@ -9,7 +9,6 @@ public record AdminSerialImportRequest(
         @NotNull(message = "productId is required")
         Long productId,
         Long dealerId,
-        Long customerId,
         Long orderId,
         ProductSerialStatus status,
         String warehouseId,

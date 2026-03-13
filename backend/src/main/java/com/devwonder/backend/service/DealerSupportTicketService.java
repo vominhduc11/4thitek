@@ -59,7 +59,7 @@ public class DealerSupportTicketService {
                 "Yêu cầu hỗ trợ đã được tạo",
                 "Ma yeu cau " + saved.getTicketCode() + " da duoc ghi nhan.",
                 NotifyType.SYSTEM,
-                "/account/support"
+                "/support"
         ));
         return toResponse(saved);
     }

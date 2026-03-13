@@ -272,19 +272,19 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.getCategories()));
     }
 
-    @GetMapping({"/customers", "/dealers/accounts"})
+    @GetMapping("/dealers/accounts")
     public ResponseEntity<ApiResponse<List<AdminDealerAccountResponse>>> dealerAccounts() {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.getDealerAccounts()));
     }
 
-    @PostMapping({"/customers", "/dealers/accounts"})
+    @PostMapping("/dealers/accounts")
     public ResponseEntity<ApiResponse<AdminDealerAccountResponse>> createDealerAccount(
             @Valid @RequestBody AdminDealerAccountUpsertRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.createDealerAccount(request)));
     }
 
-    @PutMapping({"/customers/{id}", "/dealers/accounts/{id}"})
+    @PutMapping("/dealers/accounts/{id}")
     public ResponseEntity<ApiResponse<AdminDealerAccountResponse>> updateDealerAccount(
             @PathVariable("id") Long id,
             @Valid @RequestBody AdminDealerAccountUpsertRequest request
@@ -292,7 +292,7 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.updateDealerAccount(id, request)));
     }
 
-    @PatchMapping({"/customers/{id}/status", "/dealers/accounts/{id}/status"})
+    @PatchMapping("/dealers/accounts/{id}/status")
     public ResponseEntity<ApiResponse<AdminDealerAccountResponse>> updateDealerAccountStatus(
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateAdminDealerAccountStatusRequest request

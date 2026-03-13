@@ -7,12 +7,26 @@ String formatVnd(int amount) {
   return '$formatted ₫';
 }
 
+DateTime? parseApiDateTime(Object? value) {
+  final raw = value?.toString().trim() ?? '';
+  if (raw.isEmpty) {
+    return null;
+  }
+  final parsed = DateTime.tryParse(raw);
+  if (parsed == null) {
+    return null;
+  }
+  return parsed.toLocal();
+}
+
 String formatDate(DateTime value) {
-  return '${_twoDigits(value.day)}/${_twoDigits(value.month)}/${value.year}';
+  final localValue = value.toLocal();
+  return '${_twoDigits(localValue.day)}/${_twoDigits(localValue.month)}/${localValue.year}';
 }
 
 String formatDateTime(DateTime value) {
-  return '${formatDate(value)} ${_twoDigits(value.hour)}:${_twoDigits(value.minute)}';
+  final localValue = value.toLocal();
+  return '${formatDate(localValue)} ${_twoDigits(localValue.hour)}:${_twoDigits(localValue.minute)}';
 }
 
 String formatRelativeTime(DateTime value, {DateTime? now}) {

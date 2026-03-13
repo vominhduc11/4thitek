@@ -3,7 +3,6 @@ package com.devwonder.backend.service;
 import com.devwonder.backend.dto.publicapi.PublicDealerResponse;
 import com.devwonder.backend.dto.publicapi.PublicProductDetailResponse;
 import com.devwonder.backend.dto.publicapi.PublicProductSummaryResponse;
-import com.devwonder.backend.dto.publicapi.WarrantyLookupCustomerResponse;
 import com.devwonder.backend.dto.publicapi.WarrantyLookupProductSerialResponse;
 import com.devwonder.backend.dto.publicapi.WarrantyLookupResponse;
 import com.devwonder.backend.config.CacheNames;
@@ -17,11 +16,10 @@ import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
+import com.devwonder.backend.service.support.WarrantyDateSupport;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -102,7 +100,6 @@ public class PublicApiService {
         return new WarrantyLookupResponse(
                 registration.getId(),
                 productSerial == null ? null : productSerial.getId(),
-                registration.getCustomer() == null ? null : registration.getCustomer().getId(),
                 registration.getWarrantyCode(),
                 resolvedStatus.name(),
                 registration.getPurchaseDate(),
@@ -110,12 +107,7 @@ public class PublicApiService {
                 registration.getWarrantyEnd(),
                 computeRemainingDays(registration.getWarrantyEnd()),
                 registration.getCreatedAt(),
-                new WarrantyLookupCustomerResponse(
-                        registration.getCustomerName(),
-                        registration.getCustomerPhone(),
-                        registration.getCustomerEmail(),
-                        registration.getCustomerAddress()
-                ),
+                registration.getCustomerName(),
                 new WarrantyLookupProductSerialResponse(
                         productSerial == null ? null : productSerial.getId(),
                         productSerial == null ? null : productSerial.getSerial(),
@@ -131,8 +123,7 @@ public class PublicApiService {
         if (registration.getStatus() == WarrantyStatus.VOID) {
             return WarrantyStatus.VOID;
         }
-        Instant warrantyEnd = registration.getWarrantyEnd();
-        if (warrantyEnd != null && warrantyEnd.isBefore(Instant.now())) {
+        if (WarrantyDateSupport.isExpired(registration.getWarrantyEnd())) {
             return WarrantyStatus.EXPIRED;
         }
         if (registration.getStatus() == WarrantyStatus.EXPIRED) {
@@ -142,14 +133,7 @@ public class PublicApiService {
     }
 
     private long computeRemainingDays(Instant warrantyEnd) {
-        if (warrantyEnd == null) {
-            return 0L;
-        }
-        long days = ChronoUnit.DAYS.between(
-                Instant.now().atZone(ZoneOffset.UTC).toLocalDate(),
-                warrantyEnd.atZone(ZoneOffset.UTC).toLocalDate()
-        );
-        return Math.max(0L, days);
+        return WarrantyDateSupport.remainingDays(warrantyEnd);
     }
 
     private PublicProductSummaryResponse toSummary(Product product) {

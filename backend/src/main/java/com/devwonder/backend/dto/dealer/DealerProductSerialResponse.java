@@ -10,7 +10,6 @@ public record DealerProductSerialResponse(
         Long productId,
         String productName,
         String productSku,
-        Long customerId,
         Long orderId,
         String warehouseId,
         String warehouseName,

@@ -3,7 +3,6 @@ package com.devwonder.backend.service;
 import com.devwonder.backend.dto.admin.AdminReportExportResponse;
 import com.devwonder.backend.dto.admin.AdminReportExportType;
 import com.devwonder.backend.dto.admin.AdminReportFormat;
-import com.devwonder.backend.entity.Customer;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.OrderItem;
@@ -13,6 +12,7 @@ import com.devwonder.backend.entity.WarrantyRegistration;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
+import com.devwonder.backend.service.support.WarrantyDateSupport;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -158,7 +158,7 @@ public class AdminReportingService {
                             product == null ? "N/A" : safe(product.getName()),
                             productSerial == null ? "N/A" : safe(productSerial.getSerial()),
                             dealerName(registration.getDealer()),
-                            customerName(registration.getCustomer(), registration.getCustomerName()),
+                            firstNonBlank(registration.getCustomerName(), "N/A"),
                             safeEnum(resolveWarrantyStatus(registration)),
                             formatDate(registration.getWarrantyStart()),
                             formatDate(registration.getWarrantyEnd())
@@ -185,7 +185,7 @@ public class AdminReportingService {
                             safeEnum(serial.getStatus()),
                             safe(serial.getWarehouseName()),
                             dealerName(serial.getDealer()),
-                            customerName(serial.getCustomer(), null),
+                            firstNonBlank(serial.getWarranty() == null ? null : serial.getWarranty().getCustomerName(), "N/A"),
                             formatDate(serial.getImportedAt())
                     );
                 })
@@ -313,13 +313,6 @@ public class AdminReportingService {
         return firstNonBlank(dealer.getBusinessName(), dealer.getContactName(), dealer.getUsername());
     }
 
-    private String customerName(Customer customer, String fallback) {
-        if (customer == null) {
-            return firstNonBlank(fallback, "N/A");
-        }
-        return firstNonBlank(customer.getFullName(), customer.getUsername(), fallback, "N/A");
-    }
-
     private String safe(String value) {
         if (value == null || value.isBlank()) {
             return "N/A";
@@ -352,8 +345,8 @@ public class AdminReportingService {
         if (registration.getStatus() == null) {
             return null;
         }
-        if (registration.getWarrantyEnd() != null && registration.getWarrantyEnd().isBefore(Instant.now())
-                && registration.getStatus().name().equals("ACTIVE")) {
+        if (registration.getStatus().name().equals("ACTIVE")
+                && WarrantyDateSupport.isExpired(registration.getWarrantyEnd())) {
             return Enum.valueOf(registration.getStatus().getDeclaringClass(), "EXPIRED");
         }
         return registration.getStatus();

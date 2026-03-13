@@ -68,50 +68,6 @@ type BlogDetailPayload = {
     showOnHomepage?: boolean;
 };
 
-export type CustomerProfilePayload = {
-    id: number;
-    fullName: string;
-    phone: string;
-    email: string;
-    avatarUrl?: string | null;
-    createdAt?: string | null;
-};
-
-export type CustomerProfileUpdatePayload = {
-    fullName: string;
-    phone: string;
-    email: string;
-};
-
-export type CustomerPasswordChangePayload = {
-    currentPassword: string;
-    newPassword: string;
-};
-
-export type CustomerWarrantySummaryPayload = {
-    id: number;
-    productName: string;
-    productImage: string;
-    serialNumber: string;
-    status: 'ACTIVE' | 'EXPIRED' | 'VOID';
-    warrantyStart?: string | null;
-    warrantyEnd?: string | null;
-    remainingDays: number;
-    dealerName?: string | null;
-};
-
-export type CustomerNotificationPayload = {
-    id: number;
-    accountId?: number | null;
-    title: string;
-    content: string;
-    isRead?: boolean | null;
-    type?: 'SYSTEM' | 'PROMOTION' | 'ORDER' | 'WARRANTY' | null;
-    link?: string | null;
-    readAt?: string | null;
-    createdAt?: string | null;
-};
-
 export type PagedPayload<T> = {
     items: T[];
     page: number;
@@ -458,60 +414,6 @@ class ApiService {
         return response.data?.status === 'ok';
     }
 
-    async fetchCustomerProfile(token: string) {
-        return this.request<CustomerProfilePayload>('/customer/profile', { token });
-    }
-
-    async updateCustomerProfile(token: string, body: CustomerProfileUpdatePayload) {
-        return this.request<CustomerProfilePayload>('/customer/profile', {
-            method: 'PUT',
-            token,
-            body
-        });
-    }
-
-    async changeCustomerPassword(token: string, body: CustomerPasswordChangePayload) {
-        return this.request<{ status: string }>('/customer/password', {
-            method: 'PATCH',
-            token,
-            body
-        });
-    }
-
-    async fetchCustomerWarrantiesPaged(token: string, params?: { page?: number; size?: number }) {
-        return this.request<PagedPayload<CustomerWarrantySummaryPayload>>('/customer/warranties/page', {
-            token,
-            params
-        });
-    }
-
-    async fetchCustomerNotificationsPaged(token: string, params?: { page?: number; size?: number }) {
-        return this.request<PagedPayload<CustomerNotificationPayload>>('/customer/notifications/page', {
-            token,
-            params
-        });
-    }
-
-    async markCustomerNotificationRead(token: string, id: number) {
-        return this.request<CustomerNotificationPayload>(`/customer/notifications/${id}/read`, {
-            method: 'PATCH',
-            token
-        });
-    }
-
-    async markCustomerNotificationUnread(token: string, id: number) {
-        return this.request<CustomerNotificationPayload>(`/customer/notifications/${id}/unread`, {
-            method: 'PATCH',
-            token
-        });
-    }
-
-    async markAllCustomerNotificationsRead(token: string) {
-        return this.request<{ status: string; updatedCount: number }>('/customer/notifications/read-all', {
-            method: 'PATCH',
-            token
-        });
-    }
 }
 
 export const apiService = new ApiService();

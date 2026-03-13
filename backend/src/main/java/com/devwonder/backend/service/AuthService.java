@@ -4,12 +4,10 @@ import com.devwonder.backend.dto.auth.AuthResponse;
 import com.devwonder.backend.dto.auth.AuthUserResponse;
 import com.devwonder.backend.dto.auth.LoginRequest;
 import com.devwonder.backend.dto.auth.RefreshTokenRequest;
-import com.devwonder.backend.dto.auth.RegisterCustomerRequest;
 import com.devwonder.backend.dto.auth.RegisterDealerRequest;
 import com.devwonder.backend.dto.auth.RegisterDealerResponse;
 import com.devwonder.backend.entity.Account;
 import com.devwonder.backend.entity.Admin;
-import com.devwonder.backend.entity.Customer;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Role;
 import com.devwonder.backend.entity.enums.CustomerStatus;
@@ -18,7 +16,6 @@ import com.devwonder.backend.exception.ConflictException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.exception.UnauthorizedException;
 import com.devwonder.backend.repository.AccountRepository;
-import com.devwonder.backend.repository.CustomerRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.RoleRepository;
 import com.devwonder.backend.security.JWTUtils;
@@ -43,7 +40,6 @@ public class AuthService {
 
     private final AuthenticationManager authenticationManager;
     private final AccountRepository accountRepository;
-    private final CustomerRepository customerRepository;
     private final DealerRepository dealerRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
@@ -145,43 +141,6 @@ public class AuthService {
         dealerAccountLifecycleService.sendApplicationReceivedEmail(saved);
         RegisterDealerResponse response = new RegisterDealerResponse(saved.getId(), saved.getUsername(), "created");
         webSocketEventPublisher.publishDealerRegistrationFromAuth(response);
-        return response;
-    }
-
-    public AuthResponse registerCustomer(RegisterCustomerRequest request) {
-        String username = normalize(request.username());
-        if (username == null) {
-            throw new BadRequestException("username is required");
-        }
-        if (accountRepository.existsByUsername(username)) {
-            throw new ConflictException("Username already exists");
-        }
-        AccountValidationSupport.assertStrongPassword(request.password(), "password");
-
-        String normalizedPhone = normalize(request.phone());
-        AccountValidationSupport.assertVietnamPhone(normalizedPhone, "phone");
-        if (customerRepository.existsByPhone(normalizedPhone)) {
-            throw new ConflictException("Phone already exists");
-        }
-
-        String normalizedEmail = AccountValidationSupport.normalizeEmail(request.email());
-        if (normalizedEmail != null && accountRepository.existsByEmailIgnoreCase(normalizedEmail)) {
-            throw new ConflictException("Email already exists");
-        }
-
-        Customer customer = new Customer();
-        customer.setUsername(username);
-        customer.setPassword(passwordEncoder.encode(request.password()));
-        customer.setFullName(normalize(request.fullName()));
-        customer.setPhone(normalizedPhone);
-        customer.setEmail(normalizedEmail);
-        customer.setRoles(new HashSet<>(Set.of(resolveRole("CUSTOMER", "Default customer role"))));
-
-        Customer saved = customerRepository.save(customer);
-        String accessToken = jwtUtils.generateToken(saved);
-        String refreshToken = jwtUtils.generateRefreshToken(new HashMap<>(), saved);
-        AuthResponse response = buildAuthResponse(saved, accessToken, refreshToken);
-        webSocketEventPublisher.publishLoginConfirmed(saved.getUsername(), response.user());
         return response;
     }
 

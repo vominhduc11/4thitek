@@ -2,6 +2,7 @@ const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '')
 const CANONICAL_API_BASE_URL = 'https://api.4thitek.vn/api/v1'
 
 const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value)
+const isLocalHostname = (value: string) => /^(localhost|127(?:\.\d{1,3}){3}|0\.0\.0\.0)$/i.test(value)
 
 const ensureLeadingSlash = (value: string) => (value.startsWith('/') ? value : `/${value}`)
 
@@ -34,8 +35,46 @@ const readRuntimeApiBaseUrl = () => {
   return window.__APP_CONFIG__?.apiBaseUrl?.trim() ?? ''
 }
 
+const readWindowHostname = () => {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+
+  const hostname = window.location?.hostname?.trim()
+  if (hostname) {
+    return hostname
+  }
+
+  const origin = window.location?.origin?.trim() ?? ''
+  if (!origin) {
+    return ''
+  }
+
+  try {
+    return new URL(origin).hostname
+  } catch {
+    return ''
+  }
+}
+
+const shouldPreferEnvApiBaseUrl = (runtimeValue: string, envValue: string) => {
+  if (!envValue) {
+    return false
+  }
+
+  if (import.meta.env.DEV) {
+    return true
+  }
+
+  return Boolean(runtimeValue) && isLocalHostname(readWindowHostname())
+}
+
 const rawApiBaseUrl = (() => {
-  const trimmed = readRuntimeApiBaseUrl() || (import.meta.env.VITE_API_BASE_URL ?? '').trim()
+  const runtimeApiBaseUrl = readRuntimeApiBaseUrl()
+  const envApiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').trim()
+  const trimmed = shouldPreferEnvApiBaseUrl(runtimeApiBaseUrl, envApiBaseUrl)
+    ? envApiBaseUrl
+    : runtimeApiBaseUrl || envApiBaseUrl
   if (!trimmed || isPlaceholderHost(trimmed)) {
     return CANONICAL_API_BASE_URL
   }

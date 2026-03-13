@@ -1,14 +1,10 @@
-import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { FiLogOut, FiMenu, FiSearch, FiUser } from 'react-icons/fi';
+import { FiMenu, FiSearch } from 'react-icons/fi';
 import { motion, Variants } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useSearchModal } from '@/context/SearchModalContext';
 import { Z_INDEX } from '@/constants/zIndex';
 import { useLanguage } from '@/context/LanguageContext';
-import { useAuth } from '@/context/AuthContext';
-import { useLoginModal } from '@/context/LoginModalContext';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 
 const headerVariants: Variants = {
@@ -31,17 +27,10 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuClick }: HeaderProps) {
-    const router = useRouter();
     const [scrollY, setScrollY] = useState(0);
     const [isHydrated, setIsHydrated] = useState(false);
     const { openSearch } = useSearchModal();
-    const { t, language } = useLanguage();
-    const { isAuthenticated, isHydrated: authHydrated, logout } = useAuth();
-    const { openLoginModal } = useLoginModal();
-
-    const accountLabel = language === 'vi' ? 'Tai khoan' : 'Account';
-    const loginLabel = language === 'vi' ? 'Dang nhap' : 'Sign in';
-    const logoutLabel = language === 'vi' ? 'Dang xuat' : 'Sign out';
+    const { t } = useLanguage();
 
     useEffect(() => {
         setIsHydrated(true);
@@ -95,55 +84,17 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     <FiMenu size={24} className="sm:w-8 sm:h-8" color="#27b2fc" />
                 </button>
                 <Link href="/" className="transition-all duration-300 ease-out cursor-pointer" style={logoStyle}>
-                    <Image
-                        width={142}
-                        height={32}
-                        sizes="142px"
-                        priority
+                    <img
                         src="/logo-4t.png"
                         alt={t('brand.logoAlt')}
-                        className="h-6 sm:h-8 w-auto hover:scale-105 transition-transform duration-200"
+                        width={142}
+                        height={32}
+                        className="w-[106px] sm:w-[142px] h-auto hover:scale-105 transition-transform duration-200"
                     />
                 </Link>
             </motion.div>
 
             <motion.div variants={searchVariants} className="flex items-center gap-2 sm:gap-3">
-                {authHydrated && (
-                    <>
-                        {isAuthenticated ? (
-                            <>
-                                <Link
-                                    href="/account"
-                                    className="hidden sm:inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:border-[#4FC8FF]/60 hover:text-[#4FC8FF]"
-                                >
-                                    <FiUser className="h-4 w-4" />
-                                    <span>{accountLabel}</span>
-                                </Link>
-                                <button
-                                    type="button"
-                                    onClick={async () => {
-                                        await logout();
-                                        router.replace('/');
-                                        router.refresh();
-                                    }}
-                                    className="hidden sm:inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-rose-400/40 hover:text-rose-200"
-                                >
-                                    <FiLogOut className="h-4 w-4" />
-                                    <span>{logoutLabel}</span>
-                                </button>
-                            </>
-                        ) : (
-                            <button
-                                type="button"
-                                onClick={() => openLoginModal('/account')}
-                                className="hidden sm:inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:border-[#4FC8FF]/60 hover:text-[#4FC8FF]"
-                            >
-                                <FiUser className="h-4 w-4" />
-                                <span>{loginLabel}</span>
-                            </button>
-                        )}
-                    </>
-                )}
                 <button
                     onClick={openSearch}
                     className="p-1.5 sm:p-2 rounded transition-all duration-200 hover:bg-white/10"

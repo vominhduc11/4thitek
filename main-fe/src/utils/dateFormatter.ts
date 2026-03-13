@@ -3,6 +3,18 @@
  * Returns consistent format between server and client
  */
 
+const DISPLAY_TIME_ZONE = 'Asia/Ho_Chi_Minh';
+
+const formatWithDisplayTimeZone = (
+    date: Date,
+    locale: string,
+    options: Intl.DateTimeFormatOptions
+) =>
+    date.toLocaleDateString(locale, {
+        ...options,
+        timeZone: DISPLAY_TIME_ZONE
+    });
+
 export function formatDate(
     dateString: string,
     locale: string = 'vi-VN',
@@ -20,17 +32,7 @@ export function formatDate(
             return dateString; // Return original string if invalid
         }
 
-        // For SSR compatibility, we can use a simpler format
-        if (typeof window === 'undefined') {
-            // Server-side: use simple format
-            const day = date.getDate().toString().padStart(2, '0');
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const year = date.getFullYear();
-            return `${day}/${month}/${year}`;
-        }
-
-        // Client-side: use localized format
-        return date.toLocaleDateString(locale, options);
+        return formatWithDisplayTimeZone(date, locale, options);
     } catch (error) {
         console.error('Error formatting date:', error);
         return dateString;
@@ -45,20 +47,17 @@ export function formatDateSafe(dateString: string, isHydrated: boolean = true, l
             return dateString;
         }
 
-        // Use simple format until hydrated
-        if (!isHydrated) {
-            const day = date.getDate().toString().padStart(2, '0');
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const year = date.getFullYear();
-            return `${day}/${month}/${year}`;
-        }
-
-        // After hydration, use localized format
-        return date.toLocaleDateString(locale, {
+        const formatOptions: Intl.DateTimeFormatOptions = {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric'
-        });
+        };
+
+        if (!isHydrated) {
+            return formatWithDisplayTimeZone(date, locale, formatOptions);
+        }
+
+        return formatWithDisplayTimeZone(date, locale, formatOptions);
     } catch (error) {
         console.error('Error formatting date:', error);
         return dateString;

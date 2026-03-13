@@ -87,13 +87,6 @@ public class UploadController {
                 requireAnyAuthority(account, "USER");
                 yield actorScopedFolder("avatars/dealers", account);
             }
-            case "customer-avatars" -> {
-                if (isAdmin(account)) {
-                    yield adminScopedFolder("avatars/customers", account);
-                }
-                requireAnyAuthority(account, "CUSTOMER");
-                yield actorScopedFolder("avatars/customers", account);
-            }
             case "payment-proofs" -> {
                 if (isAdmin(account)) {
                     yield adminScopedFolder("payments/proofs", account);
@@ -160,15 +153,6 @@ public class UploadController {
             }
             requireAnyAuthority(account, "USER");
             requireOwnedPath(normalized, actorScopedFolder("avatars/dealers", account));
-            return;
-        }
-
-        if (normalized.startsWith("avatars/customers/")) {
-            if (isAdmin(account)) {
-                return;
-            }
-            requireAnyAuthority(account, "CUSTOMER");
-            requireOwnedPath(normalized, actorScopedFolder("avatars/customers", account));
             return;
         }
 

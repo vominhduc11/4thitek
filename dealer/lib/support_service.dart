@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'api_config.dart';
 import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
+import 'utils.dart';
 
 class DealerSupportTicketRecord {
   const DealerSupportTicketRecord({
@@ -212,14 +213,10 @@ class SupportService {
       subject: json['subject']?.toString() ?? '',
       message: json['message']?.toString() ?? '',
       adminReply: _parseOptionalString(json['adminReply']),
-      createdAt:
-          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
-          DateTime.now(),
-      updatedAt:
-          DateTime.tryParse(json['updatedAt']?.toString() ?? '') ??
-          DateTime.now(),
-      resolvedAt: DateTime.tryParse(json['resolvedAt']?.toString() ?? ''),
-      closedAt: DateTime.tryParse(json['closedAt']?.toString() ?? ''),
+      createdAt: parseApiDateTime(json['createdAt']) ?? DateTime.now(),
+      updatedAt: parseApiDateTime(json['updatedAt']) ?? DateTime.now(),
+      resolvedAt: parseApiDateTime(json['resolvedAt']),
+      closedAt: parseApiDateTime(json['closedAt']),
     );
   }
 

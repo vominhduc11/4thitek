@@ -17,19 +17,10 @@ public interface WarrantyRegistrationRepository extends JpaRepository<WarrantyRe
     List<WarrantyRegistration> findByDealerIdOrderByCreatedAtDesc(Long dealerId);
     Page<WarrantyRegistration> findByDealerId(Long dealerId, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"productSerial", "productSerial.product", "dealer"})
-    List<WarrantyRegistration> findByCustomerIdOrderByWarrantyEndDesc(Long customerId);
-
-    @EntityGraph(attributePaths = {"productSerial", "productSerial.product", "dealer"})
-    Page<WarrantyRegistration> findByCustomerId(Long customerId, Pageable pageable);
-
-    @EntityGraph(attributePaths = {"productSerial", "productSerial.product", "dealer"})
-    Optional<WarrantyRegistration> findByIdAndCustomerId(Long id, Long customerId);
-
-    @EntityGraph(attributePaths = {"productSerial", "productSerial.product", "customer", "order"})
+    @EntityGraph(attributePaths = {"productSerial", "productSerial.product", "order"})
     Optional<WarrantyRegistration> findByIdAndDealerId(Long id, Long dealerId);
 
     @Override
-    @EntityGraph(attributePaths = {"productSerial", "productSerial.product", "customer", "dealer", "order"})
+    @EntityGraph(attributePaths = {"productSerial", "productSerial.product", "dealer", "order"})
     Page<WarrantyRegistration> findAll(Pageable pageable);
 }

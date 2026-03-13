@@ -5,7 +5,6 @@ export type UploadCategory =
   | 'blogs'
   | 'avatars'
   | 'dealer-avatars'
-  | 'customer-avatars'
   | 'payment-proofs'
 
 type ApiResponse<T> = {

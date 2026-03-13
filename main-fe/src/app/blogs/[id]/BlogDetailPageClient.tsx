@@ -7,6 +7,7 @@ import type { ApiBlogBlock, BlogPost } from '@/types/blog';
 import { formatDateSafe } from '@/utils/dateFormatter';
 import { useLanguage } from '@/context/LanguageContext';
 import { buildBlogPath } from '@/lib/slug';
+import { useHydration } from '@/hooks/useHydration';
 
 interface BlogDetailPageClientProps {
     post: BlogPost;
@@ -15,6 +16,7 @@ interface BlogDetailPageClientProps {
 
 export default function BlogDetailPageClient({ post, relatedPosts }: BlogDetailPageClientProps) {
     const { t, locale } = useLanguage();
+    const isHydrated = useHydration();
     const blocks: ApiBlogBlock[] = post.introductionBlocks || [];
 
     return (
@@ -24,7 +26,7 @@ export default function BlogDetailPageClient({ post, relatedPosts }: BlogDetailP
                 <div className="ml-0 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
                     <p className="text-sm text-[#4FC8FF] uppercase tracking-[0.2em]">{post.category.name}</p>
                     <h1 className="mt-3 text-3xl sm:text-4xl font-bold text-white">{post.title}</h1>
-                    <p className="mt-3 text-sm text-gray-400">{formatDateSafe(post.publishedAt, true, locale)}</p>
+                    <p className="mt-3 text-sm text-gray-400">{formatDateSafe(post.publishedAt, isHydrated, locale)}</p>
                 </div>
             </section>
 

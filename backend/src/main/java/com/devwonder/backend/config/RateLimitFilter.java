@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.web.cors.CorsUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
@@ -43,6 +44,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
         if (!properties.enabled()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        if (CorsUtils.isPreFlightRequest(request)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -79,21 +85,29 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private LimitRule resolveRule(HttpServletRequest request) {
         String path = request.getRequestURI();
         if (path.startsWith("/api/auth/login") || path.startsWith("/api/v1/auth/login")) {
-            return new LimitRule("auth", properties.authRequests(), properties.authWindowSeconds());
+            return rule("auth", properties.authRequests(), properties.authWindowSeconds(), 10, 60);
         }
         if (path.startsWith("/api/auth/forgot-password") || path.startsWith("/api/v1/auth/forgot-password")) {
-            return new LimitRule("password-reset", properties.passwordResetRequests(), properties.passwordResetWindowSeconds());
+            return rule("password-reset", properties.passwordResetRequests(), properties.passwordResetWindowSeconds(), 5, 300);
         }
         if (path.startsWith("/api/warranty/check/") || path.startsWith("/api/v1/warranty/check/")) {
-            return new LimitRule("warranty", properties.warrantyLookupRequests(), properties.warrantyLookupWindowSeconds());
+            return rule("warranty", properties.warrantyLookupRequests(), properties.warrantyLookupWindowSeconds(), 30, 60);
         }
         if (path.startsWith("/api/upload/") || path.startsWith("/api/v1/upload/")) {
-            return new LimitRule("upload", properties.uploadRequests(), properties.uploadWindowSeconds());
+            return rule("upload", properties.uploadRequests(), properties.uploadWindowSeconds(), 20, 60);
         }
         if (path.startsWith("/api/webhooks/sepay") || path.startsWith("/api/v1/webhooks/sepay")) {
-            return new LimitRule("webhook", properties.webhookRequests(), properties.webhookWindowSeconds());
+            return rule("webhook", properties.webhookRequests(), properties.webhookWindowSeconds(), 120, 60);
         }
         return null;
+    }
+
+    private LimitRule rule(String bucketKey, int requestLimit, long windowSeconds, int defaultLimit, long defaultWindowSeconds) {
+        return new LimitRule(
+                bucketKey,
+                requestLimit > 0 ? requestLimit : defaultLimit,
+                windowSeconds > 0 ? windowSeconds : defaultWindowSeconds
+        );
     }
 
     private String clientKey(HttpServletRequest request) {

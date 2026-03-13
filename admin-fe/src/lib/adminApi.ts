@@ -248,7 +248,6 @@ export type BackendWarrantyResponse = {
   productSku?: string | null
   dealerId?: number | null
   dealerName?: string | null
-  customerId?: number | null
   customerName?: string | null
   customerEmail?: string | null
   customerPhone?: string | null
@@ -268,7 +267,6 @@ export type BackendSerialResponse = {
   productSku?: string | null
   dealerId?: number | null
   dealerName?: string | null
-  customerId?: number | null
   customerName?: string | null
   orderId?: number | null
   orderCode?: string | null
@@ -282,7 +280,6 @@ export type BackendSerialImportRequest = {
   serials: string[]
   status?: BackendProductSerialStatus
   dealerId?: number
-  customerId?: number
   orderId?: number
   warehouseId?: string
   warehouseName?: string
@@ -302,7 +299,7 @@ export type BackendNotificationResponse = {
 }
 
 export type BackendNotificationCreateRequest = {
-  audience: 'DEALERS' | 'CUSTOMERS' | 'ALL_ACCOUNTS' | 'ACCOUNTS'
+  audience: 'DEALERS' | 'ALL_ACCOUNTS' | 'ACCOUNTS'
   title: string
   content: string
   type?: BackendNotifyType
