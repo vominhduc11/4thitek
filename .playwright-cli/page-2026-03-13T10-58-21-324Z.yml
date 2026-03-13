@@ -1,0 +1,48 @@
+- generic [ref=e2]:
+  - main [ref=e39]:
+    - generic [ref=e40]:
+      - img "4ThiTek" [ref=e42]
+      - img [ref=e44]
+      - paragraph [ref=e47]: Security setup
+      - heading "Đổi mật khẩu lần đầu" [level=1] [ref=e48]
+      - paragraph [ref=e49]: Tài khoản quản trị cần cập nhật mật khẩu trước khi tiếp tục sử dụng hệ thống.
+    - generic [ref=e50]:
+      - generic [ref=e51]:
+        - text: Mật khẩu hiện tại
+        - generic [ref=e52]:
+          - img
+          - textbox "Mật khẩu hiện tại" [ref=e53]:
+            - /placeholder: Nhập mật khẩu hiện tại
+      - generic [ref=e54]:
+        - text: Mật khẩu mới
+        - generic [ref=e55]:
+          - img
+          - textbox "Mật khẩu mới" [ref=e56]:
+            - /placeholder: Tối thiểu 8 ký tự
+      - generic [ref=e57]:
+        - text: Xác nhận mật khẩu mới
+        - generic [ref=e58]:
+          - img
+          - textbox "Xác nhận mật khẩu mới" [ref=e59]:
+            - /placeholder: Nhập lại mật khẩu mới
+      - button "Cập nhật mật khẩu" [ref=e60]
+      - button "Đăng xuất" [ref=e61]:
+        - img [ref=e62]
+        - text: Đăng xuất
+  - generic:
+    - status [ref=e65]:
+      - generic [ref=e66]:
+        - img [ref=e67]
+        - generic [ref=e70]:
+          - paragraph [ref=e71]: Auth
+          - paragraph [ref=e72]: Đăng nhập thành công
+        - button "Dismiss" [ref=e73]:
+          - img [ref=e74]
+    - status [ref=e77]:
+      - generic [ref=e78]:
+        - img [ref=e79]
+        - generic [ref=e81]:
+          - paragraph [ref=e82]: Products
+          - paragraph [ref=e83]: Password change required before accessing admin resources
+        - button "Dismiss" [ref=e84]:
+          - img [ref=e85]

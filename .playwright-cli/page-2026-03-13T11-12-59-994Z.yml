@@ -1,0 +1,133 @@
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - banner [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - generic [ref=e9]:
+            - paragraph [ref=e10]: Admin workspace
+            - heading "Operations control panel" [level=1] [ref=e11]
+            - paragraph [ref=e12]: Monitor commerce, inventory, after-sales, and internal access from one place.
+          - button "Open navigation menu" [ref=e13]:
+            - img [ref=e14]
+        - generic [ref=e15]:
+          - generic [ref=e16]:
+            - img
+            - combobox "Search orders, SKUs, dealers, or posts..." [ref=e17]
+          - generic [ref=e18]:
+            - button "Dark" [ref=e19]:
+              - img [ref=e20]
+              - generic [ref=e22]: Dark
+            - button "Switch language" [ref=e23]:
+              - img [ref=e24]
+              - generic [ref=e28]: EN
+            - button "Alerts" [ref=e30]:
+              - img [ref=e31]
+              - generic [ref=e34]: Alerts
+            - button "Account" [ref=e36]:
+              - img [ref=e37]
+              - generic [ref=e41]: Account
+    - main [ref=e42]:
+      - status [ref=e49]:
+        - generic [ref=e50]: Loading content
+  - generic [ref=e57]:
+    - button "Close navigation menu" [ref=e58]:
+      - img [ref=e59]
+    - complementary [ref=e62]:
+      - generic [ref=e63]:
+        - img "4ThiTek" [ref=e64]
+        - generic [ref=e65]:
+          - generic [ref=e66]:
+            - text: Admin Portal
+            - img [ref=e67]
+          - paragraph [ref=e69]: Admin workspace
+      - generic [ref=e70]:
+        - generic [ref=e71]:
+          - img [ref=e73]
+          - text: Operations control panel
+        - paragraph [ref=e76]: Monitor commerce, inventory, after-sales, and internal access from one place.
+      - navigation [ref=e77]:
+        - generic [ref=e78]:
+          - button "Overview 2" [ref=e79]:
+            - generic [ref=e80]: Overview
+            - generic [ref=e81]:
+              - generic [ref=e82]: "2"
+              - img [ref=e83]
+          - generic [ref=e85]:
+            - link "Overview" [ref=e86] [cursor=pointer]:
+              - /url: /
+              - generic [ref=e87]:
+                - img [ref=e89]
+                - generic [ref=e94]: Overview
+              - img [ref=e95]
+            - link "Reports" [ref=e97] [cursor=pointer]:
+              - /url: /reports
+              - generic [ref=e98]:
+                - img [ref=e100]
+                - generic [ref=e103]: Reports
+              - img [ref=e104]
+        - generic [ref=e106]:
+          - button "Commerce 5" [ref=e107]:
+            - generic [ref=e108]: Commerce
+            - generic [ref=e109]:
+              - generic [ref=e110]: "5"
+              - img [ref=e111]
+          - generic [ref=e113]:
+            - link "Products" [ref=e114] [cursor=pointer]:
+              - /url: /products
+              - generic [ref=e115]:
+                - img [ref=e117]
+                - generic [ref=e121]: Products
+              - img [ref=e122]
+            - link "Orders" [ref=e124] [cursor=pointer]:
+              - /url: /orders
+              - generic [ref=e125]:
+                - img [ref=e127]
+                - generic [ref=e131]: Orders
+              - img [ref=e132]
+            - link "Dealers" [ref=e134] [cursor=pointer]:
+              - /url: /dealers
+              - generic [ref=e135]:
+                - img [ref=e137]
+                - generic [ref=e141]: Dealers
+              - img [ref=e142]
+            - link "Wholesale discounts" [ref=e144] [cursor=pointer]:
+              - /url: /discounts
+              - generic [ref=e145]:
+                - img [ref=e147]
+                - generic [ref=e151]: Wholesale discounts
+              - img [ref=e152]
+            - link "Posts" [ref=e154] [cursor=pointer]:
+              - /url: /blogs
+              - generic [ref=e155]:
+                - img [ref=e157]
+                - generic [ref=e159]: Posts
+              - img [ref=e160]
+        - button "After-sales 4" [ref=e163]:
+          - generic [ref=e164]: After-sales
+          - generic [ref=e165]:
+            - generic [ref=e166]: "4"
+            - img [ref=e167]
+        - generic [ref=e169]:
+          - button "System 2" [ref=e170]:
+            - generic [ref=e171]: System
+            - generic [ref=e172]:
+              - generic [ref=e173]: "2"
+              - img [ref=e174]
+          - generic [ref=e176]:
+            - link "Users" [ref=e177] [cursor=pointer]:
+              - /url: /users
+              - generic [ref=e178]:
+                - img [ref=e180]
+                - generic [ref=e185]: Users
+              - img [ref=e186]
+            - link "Settings" [ref=e188] [cursor=pointer]:
+              - /url: /settings
+              - generic [ref=e189]:
+                - img [ref=e191]
+                - generic [ref=e194]: Settings
+              - img [ref=e195]
+      - generic [ref=e197]:
+        - generic [ref=e200]: System online
+        - generic [ref=e201]:
+          - paragraph [ref=e202]: Account
+          - paragraph [ref=e203]: owner@4thitek.vn

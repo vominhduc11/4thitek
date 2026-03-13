@@ -1,0 +1,11 @@
+[   23966ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ http://localhost:8080/api/admin/orders:0
+[   23966ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ http://localhost:8080/api/admin/products:0
+[   23966ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ http://localhost:8080/api/admin/blogs:0
+[   23966ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ http://localhost:8080/api/admin/discount-rules:0
+[   23966ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ http://localhost:8080/api/admin/users:0
+[   23966ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ http://localhost:8080/api/admin/dealers/accounts:0
+[   24979ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ http://localhost:8080/api/admin/orders:0
+[   24979ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ http://localhost:8080/api/admin/users:0
+[   24979ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ http://localhost:8080/api/admin/dealers/accounts:0
+[   24980ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ http://localhost:8080/api/admin/blogs:0
+[   24981ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ http://localhost:8080/api/admin/discount-rules:0

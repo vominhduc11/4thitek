@@ -1,0 +1,95 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e3]:
+    - link "4T HITEK" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - img "4T HITEK" [ref=e6]
+    - generic [ref=e7]:
+      - button "Tìm kiếm" [ref=e8]:
+        - img [ref=e9]
+      - button "🇻🇳 Tiếng Việt" [ref=e13]:
+        - img [ref=e14]
+        - generic [ref=e17]: 🇻🇳 Tiếng Việt
+        - img [ref=e18]
+  - complementary [ref=e20]:
+    - button [ref=e22]:
+      - img [ref=e23]
+    - generic [ref=e24]:
+      - link [ref=e25] [cursor=pointer]:
+        - /url: https://www.facebook.com/profile.php?id=100063441473042
+        - img [ref=e26]
+      - link [ref=e28] [cursor=pointer]:
+        - /url: https://www.youtube.com/@4thitek
+        - img [ref=e29]
+  - generic [ref=e32]:
+    - navigation [ref=e38]:
+      - list [ref=e39]:
+        - listitem [ref=e40]:
+          - link "Trang Chủ" [ref=e41] [cursor=pointer]:
+            - /url: /
+          - generic [ref=e42]: /
+        - listitem [ref=e43]:
+          - generic [ref=e44]: Kiểm Tra Bảo Hành
+    - generic [ref=e47]:
+      - heading "Nhập thông tin kiểm tra" [level=2] [ref=e48]
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - generic [ref=e51]: Số Serial * *
+          - textbox "Số Serial * *" [ref=e52]:
+            - /placeholder: Nhập số serial sản phẩm
+          - paragraph [ref=e53]: Số serial thường được in trên nhãn sản phẩm hoặc hộp đựng
+        - button "Kiểm tra bảo hành" [ref=e56]
+      - generic [ref=e57]:
+        - heading "Lưu ý:" [level=3] [ref=e58]
+        - list [ref=e59]:
+          - listitem [ref=e60]: • Số serial là bắt buộc để kiểm tra bảo hành
+          - listitem [ref=e61]: • Thông tin bảo hành sẽ hiển thị ngay sau khi kiểm tra
+          - listitem [ref=e62]: • Liên hệ bộ phận hỗ trợ nếu gặp vấn đề
+  - contentinfo [ref=e67]:
+    - generic [ref=e68]:
+      - generic [ref=e69]:
+        - heading "Công Ty" [level=3] [ref=e70]
+        - list [ref=e71]:
+          - listitem [ref=e72]:
+            - link "Về Chúng Tôi" [ref=e73] [cursor=pointer]:
+              - /url: /about
+          - listitem [ref=e74]:
+            - link "Chứng Nhận Đại Lý Độc Quyền" [ref=e75] [cursor=pointer]:
+              - /url: /certification
+          - listitem [ref=e76]:
+            - link "Tai nghe" [ref=e77] [cursor=pointer]:
+              - /url: /products
+          - listitem [ref=e78]:
+            - link "Liên Hệ" [ref=e79] [cursor=pointer]:
+              - /url: /contact
+      - generic [ref=e80]:
+        - heading "Đại Lý" [level=3] [ref=e81]
+        - list [ref=e82]:
+          - listitem [ref=e83]:
+            - link "Thông Tin Đại Lý" [ref=e84] [cursor=pointer]:
+              - /url: /become_our_reseller#dealer-network
+          - listitem [ref=e85]:
+            - link "Trở Thành Đại Lý" [ref=e86] [cursor=pointer]:
+              - /url: /become_our_reseller
+      - generic [ref=e87]:
+        - heading "Khác" [level=3] [ref=e88]
+        - list [ref=e89]:
+          - listitem [ref=e90]:
+            - link "Kiểm Tra Bảo Hành" [ref=e91] [cursor=pointer]:
+              - /url: /warranty-check
+          - listitem [ref=e92]:
+            - link "Chính Sách" [ref=e93] [cursor=pointer]:
+              - /url: /policy
+          - listitem [ref=e94]:
+            - link "Blog" [ref=e95] [cursor=pointer]:
+              - /url: /blogs
+    - separator
+    - generic [ref=e96]:
+      - paragraph [ref=e97]: Bản quyền © 2023 4T HITEK Tất cả quyền được bảo lưu.
+      - generic "Bộ chọn ngôn ngữ" [ref=e98]:
+        - button "VN" [ref=e99]
+        - button "EN" [ref=e100]
+  - alert [ref=e101]
+  - button "Open Next.js Dev Tools" [ref=e107] [cursor=pointer]:
+    - img [ref=e108]

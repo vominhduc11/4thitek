@@ -1,0 +1,32 @@
+
+> 4thitek-main@1.0.0 dev
+> next dev --turbopack --hostname 127.0.0.1 --port 3000
+
+   ▲ Next.js 15.3.5 (Turbopack)
+   - Local:        http://127.0.0.1:3000
+   - Network:      http://127.0.0.1:3000
+
+ ✓ Starting...
+ ✓ Ready in 723ms
+ ○ Compiling /warranty-check ...
+ ✓ Compiled /warranty-check in 1707ms
+ GET /warranty-check 200 in 1982ms
+ ✓ Compiled in 195ms
+ GET /warranty-check 200 in 235ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1237ms
+ GET / 200 in 1326ms
+ ✓ Compiled in 124ms
+ ✓ Compiled in 114ms
+ ✓ Compiled in 99ms
+ ✓ Compiled / in 6ms
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 535ms
+ ✓ Compiled /favicon.ico in 244ms
+ ✓ Compiled in 100ms
+   ▲ Next.js 15.3.5 (Turbopack)
+   - Local:        http://127.0.0.1:3000
+   - Network:      http://127.0.0.1:3000
+
+ ✓ Starting...
+ ✓ Ready in 741ms
