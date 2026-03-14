@@ -26,6 +26,7 @@ import com.devwonder.backend.service.DealerPortalService;
 import com.devwonder.backend.service.PublicApiService;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 @SpringBootTest
 class DealerSerialWarrantyGuardTests {
@@ -59,6 +61,9 @@ class DealerSerialWarrantyGuardTests {
 
     @Autowired
     private PublicApiService publicApiService;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void setUp() {
@@ -113,6 +118,33 @@ class DealerSerialWarrantyGuardTests {
     }
 
     @Test
+    void dealerCannotImportSerialsBeforeOrderShips() {
+        Dealer dealer = dealerRepository.save(createDealer("serial-status-guard@example.com"));
+        Product product = productRepository.save(createProduct("SKU-SERIAL-4", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(
+                dealer,
+                product,
+                1,
+                "SERIAL-ORDER-STATUS-1",
+                OrderStatus.PENDING
+        ));
+
+        assertThatThrownBy(() -> dealerPortalService.importSerials(
+                dealer.getUsername(),
+                new CreateDealerSerialBatchRequest(
+                        product.getId(),
+                        order.getId(),
+                        ProductSerialStatus.AVAILABLE,
+                        "main",
+                        "Kho",
+                        List.of("SERIAL-X-04")
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("shipping or completed order");
+    }
+
+    @Test
     void dealerCannotActivateWarrantyForUnassignedSerial() {
         Dealer dealer = dealerRepository.save(createDealer("warranty-owner-guard@example.com"));
         Product product = productRepository.save(createProduct("SKU-WARRANTY-1", BigDecimal.valueOf(100_000)));
@@ -138,12 +170,40 @@ class DealerSerialWarrantyGuardTests {
     }
 
     @Test
-    void dealerCannotActivateDefectiveSerialForWarranty() {
-        Dealer dealer = dealerRepository.save(createDealer("warranty-defective-guard@example.com"));
-        Product product = productRepository.save(createProduct("SKU-WARRANTY-2", BigDecimal.valueOf(100_000)));
+    void dealerCannotActivateWarrantyWithoutLinkedOrder() {
+        Dealer dealer = dealerRepository.save(createDealer("warranty-order-link-guard@example.com"));
+        Product product = productRepository.save(createProduct("SKU-WARRANTY-8", BigDecimal.valueOf(100_000)));
         ProductSerial productSerial = new ProductSerial();
         productSerial.setProduct(product);
         productSerial.setDealer(dealer);
+        productSerial.setSerial("SERIAL-WARRANTY-8");
+        productSerial.setStatus(ProductSerialStatus.AVAILABLE);
+        ProductSerial savedSerial = productSerialRepository.save(productSerial);
+
+        assertThatThrownBy(() -> dealerPortalService.activateWarranty(
+                dealer.getUsername(),
+                new CreateWarrantyRegistrationRequest(
+                        savedSerial.getId(),
+                        "Customer No Order",
+                        "no-order@example.com",
+                        "0912345680",
+                        "124 Warranty Street",
+                        LocalDate.of(2026, 3, 1)
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("shipping or completed order");
+    }
+
+    @Test
+    void dealerCannotActivateDefectiveSerialForWarranty() {
+        Dealer dealer = dealerRepository.save(createDealer("warranty-defective-guard@example.com"));
+        Product product = productRepository.save(createProduct("SKU-WARRANTY-2", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-DEFECTIVE"));
+        ProductSerial productSerial = new ProductSerial();
+        productSerial.setProduct(product);
+        productSerial.setDealer(dealer);
+        productSerial.setOrder(order);
         productSerial.setSerial("SERIAL-WARRANTY-2");
         productSerial.setStatus(ProductSerialStatus.DEFECTIVE);
         ProductSerial savedSerial = productSerialRepository.save(productSerial);
@@ -164,10 +224,53 @@ class DealerSerialWarrantyGuardTests {
     }
 
     @Test
+    void dealerCannotActivateWarrantyBeforeOrderShips() {
+        Dealer dealer = dealerRepository.save(createDealer("warranty-status-guard@example.com"));
+        Product product = productRepository.save(createProduct("SKU-WARRANTY-9", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(
+                dealer,
+                product,
+                1,
+                "SERIAL-ORDER-STATUS-2",
+                OrderStatus.PENDING
+        ));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-WARRANTY-9",
+                ProductSerialStatus.AVAILABLE
+        ));
+
+        assertThatThrownBy(() -> dealerPortalService.activateWarranty(
+                dealer.getUsername(),
+                new CreateWarrantyRegistrationRequest(
+                        serial.getId(),
+                        "Customer Pending",
+                        "pending@example.com",
+                        "0912345681",
+                        "125 Warranty Street",
+                        LocalDate.of(2026, 3, 1)
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("shipping or completed order");
+    }
+
+    @Test
     void expiredWarrantyActivationMarksSerialAsSold() {
         Dealer dealer = dealerRepository.save(createDealer("warranty-expired-status@example.com"));
         Product product = productRepository.save(createProduct("SKU-WARRANTY-3", BigDecimal.valueOf(100_000)));
         Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-3"));
+        Instant orderCreatedAt = LocalDate.now(WarrantyDateSupport.APP_ZONE)
+                .minusMonths(19)
+                .atStartOfDay(WarrantyDateSupport.APP_ZONE)
+                .toInstant();
+        jdbcTemplate.update(
+                "update orders set created_at = ? where id = ?",
+                Timestamp.from(orderCreatedAt),
+                order.getId()
+        );
         ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
                 dealer,
                 order,
@@ -184,7 +287,7 @@ class DealerSerialWarrantyGuardTests {
                         "expired@example.com",
                         "0912345688",
                         "789 Warranty Street",
-                        LocalDate.now().minusMonths(18)
+                        LocalDate.now(WarrantyDateSupport.APP_ZONE).minusMonths(18)
                 )
         );
 
@@ -221,6 +324,62 @@ class DealerSerialWarrantyGuardTests {
 
         Instant expectedStart = purchaseDate.atStartOfDay(WarrantyDateSupport.APP_ZONE).toInstant();
         assertThat(response.warrantyStart()).isEqualTo(expectedStart);
+    }
+
+    @Test
+    void dealerCannotActivateWarrantyWithFuturePurchaseDate() {
+        Dealer dealer = dealerRepository.save(createDealer("warranty-future-date@example.com"));
+        Product product = productRepository.save(createProduct("SKU-WARRANTY-6", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-6"));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-WARRANTY-6",
+                ProductSerialStatus.AVAILABLE
+        ));
+
+        assertThatThrownBy(() -> dealerPortalService.activateWarranty(
+                dealer.getUsername(),
+                new CreateWarrantyRegistrationRequest(
+                        serial.getId(),
+                        "Customer Future",
+                        "future@example.com",
+                        "0912345691",
+                        "303 Warranty Street",
+                        LocalDate.now(WarrantyDateSupport.APP_ZONE).plusDays(1)
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("purchaseDate cannot be in the future");
+    }
+
+    @Test
+    void dealerCannotActivateWarrantyBeforeOrderDate() {
+        Dealer dealer = dealerRepository.save(createDealer("warranty-before-order@example.com"));
+        Product product = productRepository.save(createProduct("SKU-WARRANTY-7", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-7"));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-WARRANTY-7",
+                ProductSerialStatus.AVAILABLE
+        ));
+
+        assertThatThrownBy(() -> dealerPortalService.activateWarranty(
+                dealer.getUsername(),
+                new CreateWarrantyRegistrationRequest(
+                        serial.getId(),
+                        "Customer Before",
+                        "before@example.com",
+                        "0912345692",
+                        "404 Warranty Street",
+                        LocalDate.now(WarrantyDateSupport.APP_ZONE).minusDays(1)
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("purchaseDate cannot be earlier than order date");
     }
 
     @Test
@@ -282,10 +441,14 @@ class DealerSerialWarrantyGuardTests {
     }
 
     private Order createOrder(Dealer dealer, Product product, int quantity, String orderCode) {
+        return createOrder(dealer, product, quantity, orderCode, OrderStatus.SHIPPING);
+    }
+
+    private Order createOrder(Dealer dealer, Product product, int quantity, String orderCode, OrderStatus status) {
         Order order = new Order();
         order.setDealer(dealer);
         order.setOrderCode(orderCode);
-        order.setStatus(OrderStatus.PENDING);
+        order.setStatus(status);
         order.setPaymentMethod(PaymentMethod.BANK_TRANSFER);
         order.setPaymentStatus(PaymentStatus.PENDING);
         order.setPaidAmount(BigDecimal.ZERO);

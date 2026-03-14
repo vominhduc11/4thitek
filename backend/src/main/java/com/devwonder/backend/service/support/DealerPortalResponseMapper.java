@@ -76,6 +76,7 @@ public final class DealerPortalResponseMapper {
                 order.getNote(),
                 order.getCreatedAt(),
                 order.getUpdatedAt(),
+                order.getCompletedAt(),
                 items
         );
     }

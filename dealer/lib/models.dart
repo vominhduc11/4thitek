@@ -217,10 +217,10 @@ int bulkDiscountPercentForCart({
   required Iterable<CartItem> items,
   required List<BulkDiscountRule> rules,
 }) {
-  final stats = _buildBulkDiscountStats(
-    items.map((item) => (productId: item.product.id, quantity: item.quantity)),
-  );
-  return _resolveBulkDiscountPercent(stats, rules);
+  return _resolveBulkDiscountPricing(
+    items: items,
+    rules: rules,
+  ).discountPercent;
 }
 
 BulkDiscountTarget? nextBulkDiscountTargetForCart({
@@ -234,28 +234,40 @@ BulkDiscountTarget? nextBulkDiscountTargetForCart({
     return null;
   }
 
-  final candidates =
-      rules.where((rule) {
-        final minQuantity = rule.minQuantity;
-        if (minQuantity == null || minQuantity <= stats.totalItems) {
-          return false;
-        }
-        if (rule.productId == null) {
-          return true;
-        }
-        return stats.singleProductId != null &&
-            stats.singleProductId == rule.productId;
-      }).toList()..sort((a, b) {
-        final minCompare = (a.minQuantity ?? 0).compareTo(b.minQuantity ?? 0);
-        if (minCompare != 0) return minCompare;
-        return (a.percent).compareTo(b.percent);
-      });
+  BulkDiscountRule? nextRule;
+  int? nextAdditionalQuantity;
+  for (final rule in rules) {
+    final minQuantity = rule.minQuantity;
+    if (minQuantity == null) {
+      continue;
+    }
+    if (rule.productId != null &&
+        !stats.productQuantities.containsKey(rule.productId)) {
+      continue;
+    }
 
-  if (candidates.isEmpty) {
+    final currentQuantity = _quantityForRule(rule, stats);
+    if (currentQuantity <= 0 || minQuantity <= currentQuantity) {
+      continue;
+    }
+
+    final additionalQuantity = minQuantity - currentQuantity;
+    if (nextRule == null ||
+        _isBetterNextDiscountTarget(
+          candidate: rule,
+          best: nextRule,
+          candidateAdditionalQuantity: additionalQuantity,
+          bestAdditionalQuantity: nextAdditionalQuantity!,
+        )) {
+      nextRule = rule;
+      nextAdditionalQuantity = additionalQuantity;
+    }
+  }
+
+  if (nextRule == null) {
     return null;
   }
 
-  final nextRule = candidates.first;
   return BulkDiscountTarget(
     targetQuantity: nextRule.minQuantity ?? stats.totalItems,
     percent: nextRule.percent,
@@ -264,11 +276,44 @@ BulkDiscountTarget? nextBulkDiscountTargetForCart({
   );
 }
 
+int currentQuantityForBulkDiscountTarget({
+  required BulkDiscountTarget target,
+  required Iterable<CartItem> items,
+}) {
+  final stats = _buildBulkDiscountStats(
+    items.map((item) => (productId: item.product.id, quantity: item.quantity)),
+  );
+  if (target.productId == null) {
+    return stats.totalItems;
+  }
+  return stats.productQuantities[target.productId] ?? 0;
+}
+
+int remainingQuantityForBulkDiscountTarget({
+  required BulkDiscountTarget target,
+  required Iterable<CartItem> items,
+}) {
+  final remaining =
+      target.targetQuantity -
+      currentQuantityForBulkDiscountTarget(target: target, items: items);
+  if (remaining <= 0) {
+    return 0;
+  }
+  return remaining;
+}
+
 int bulkDiscountAmount({required int subtotal, required int discountPercent}) {
   if (subtotal <= 0 || discountPercent <= 0) {
     return 0;
   }
   return (subtotal * discountPercent / 100).round();
+}
+
+int bulkDiscountAmountForCart({
+  required Iterable<CartItem> items,
+  required List<BulkDiscountRule> rules,
+}) {
+  return _resolveBulkDiscountPricing(items: items, rules: rules).discountAmount;
 }
 
 const int kVatPercent = 10;
@@ -298,6 +343,7 @@ class Order {
     required this.shippingFee,
     required this.items,
     this.paidAmount = 0,
+    this.completedAt,
     this.note,
     this.subtotalOverride,
     this.discountPercentOverride,
@@ -318,6 +364,7 @@ class Order {
   final int shippingFee;
   final List<OrderLineItem> items;
   final int paidAmount;
+  final DateTime? completedAt;
   final String? note;
   final int? subtotalOverride;
   final int? discountPercentOverride;
@@ -372,6 +419,7 @@ class Order {
     int? shippingFee,
     List<OrderLineItem>? items,
     int? paidAmount,
+    DateTime? completedAt,
     String? note,
     int? subtotalOverride,
     int? discountPercentOverride,
@@ -392,6 +440,7 @@ class Order {
       shippingFee: shippingFee ?? this.shippingFee,
       items: items ?? this.items,
       paidAmount: paidAmount ?? this.paidAmount,
+      completedAt: completedAt ?? this.completedAt,
       note: note ?? this.note,
       subtotalOverride: subtotalOverride ?? this.subtotalOverride,
       discountPercentOverride:
@@ -450,57 +499,203 @@ typedef _BulkDiscountLine = ({String productId, int quantity});
 class _BulkDiscountStats {
   const _BulkDiscountStats({
     required this.totalItems,
+    required this.productQuantities,
     required this.singleProductId,
   });
 
   final int totalItems;
+  final Map<String, int> productQuantities;
   final String? singleProductId;
 }
 
 _BulkDiscountStats _buildBulkDiscountStats(Iterable<_BulkDiscountLine> lines) {
   final productIds = <String>{};
+  final productQuantities = <String, int>{};
   var totalItems = 0;
   for (final line in lines) {
     final safeQuantity = line.quantity < 0 ? 0 : line.quantity;
     totalItems += safeQuantity;
     if (line.productId.trim().isNotEmpty && safeQuantity > 0) {
       productIds.add(line.productId);
+      productQuantities.update(
+        line.productId,
+        (quantity) => quantity + safeQuantity,
+        ifAbsent: () => safeQuantity,
+      );
     }
   }
   return _BulkDiscountStats(
     totalItems: totalItems,
+    productQuantities: Map<String, int>.unmodifiable(productQuantities),
     singleProductId: productIds.length == 1 ? productIds.first : null,
   );
 }
 
-int _resolveBulkDiscountPercent(
-  _BulkDiscountStats stats,
-  List<BulkDiscountRule> rules,
-) {
+class _BulkDiscountPricing {
+  const _BulkDiscountPricing({
+    required this.discountPercent,
+    required this.discountAmount,
+  });
+
+  final int discountPercent;
+  final int discountAmount;
+}
+
+_BulkDiscountPricing _resolveBulkDiscountPricing({
+  required Iterable<CartItem> items,
+  required List<BulkDiscountRule> rules,
+}) {
+  final itemList = items.toList(growable: false);
+  final stats = _buildBulkDiscountStats(
+    itemList.map(
+      (item) => (productId: item.product.id, quantity: item.quantity),
+    ),
+  );
   if (stats.totalItems <= 0 || rules.isEmpty) {
-    return 0;
+    return const _BulkDiscountPricing(discountPercent: 0, discountAmount: 0);
   }
-  for (final rule in rules) {
-    if (_matchesBulkDiscountRule(rule, stats)) {
-      return rule.percent < 0 ? 0 : rule.percent;
+
+  final globalRule = _selectBestMatchingRule(
+    rules.where((rule) => rule.productId == null),
+    quantity: stats.totalItems,
+  );
+  final productRules = <String, BulkDiscountRule>{};
+  for (final entry in stats.productQuantities.entries) {
+    final matchedRule = _selectBestMatchingRule(
+      rules.where((rule) => rule.productId == entry.key),
+      quantity: entry.value,
+    );
+    if (matchedRule != null) {
+      productRules[entry.key] = matchedRule;
     }
   }
-  return 0;
+
+  var subtotal = 0;
+  var discountAmount = 0;
+  for (final item in itemList) {
+    final safeQuantity = item.quantity < 0 ? 0 : item.quantity;
+    if (safeQuantity <= 0) {
+      continue;
+    }
+    final lineSubtotal = item.product.price * safeQuantity;
+    subtotal += lineSubtotal;
+    final matchedRule = productRules[item.product.id] ?? globalRule;
+    if (matchedRule == null) {
+      continue;
+    }
+    discountAmount += bulkDiscountAmount(
+      subtotal: lineSubtotal,
+      discountPercent: matchedRule.percent,
+    );
+  }
+
+  return _BulkDiscountPricing(
+    discountPercent: _resolveBulkDiscountPercentForSubtotal(
+      subtotal: subtotal,
+      discountAmount: discountAmount,
+    ),
+    discountAmount: discountAmount,
+  );
+}
+
+int _resolveBulkDiscountPercentForSubtotal({
+  required int subtotal,
+  required int discountAmount,
+}) {
+  if (subtotal <= 0 || discountAmount <= 0) {
+    return 0;
+  }
+  return (discountAmount * 100 / subtotal).round();
 }
 
 bool _matchesBulkDiscountRule(BulkDiscountRule rule, _BulkDiscountStats stats) {
-  if (stats.totalItems <= 0) {
+  final quantity = _quantityForRule(rule, stats);
+  if (quantity <= 0) {
     return false;
   }
-  if (rule.minQuantity != null && stats.totalItems < rule.minQuantity!) {
+  if (rule.minQuantity != null && quantity < rule.minQuantity!) {
     return false;
   }
-  if (rule.maxQuantity != null && stats.totalItems > rule.maxQuantity!) {
+  if (rule.maxQuantity != null && quantity > rule.maxQuantity!) {
     return false;
   }
+  return true;
+}
+
+int _quantityForRule(BulkDiscountRule rule, _BulkDiscountStats stats) {
   if (rule.productId == null) {
+    return stats.totalItems;
+  }
+  return stats.productQuantities[rule.productId] ?? 0;
+}
+
+BulkDiscountRule? _selectBestMatchingRule(
+  Iterable<BulkDiscountRule> rules, {
+  required int quantity,
+}) {
+  BulkDiscountRule? bestRule;
+  for (final rule in rules) {
+    if (!_matchesQuantity(rule, quantity)) {
+      continue;
+    }
+    if (bestRule == null || _compareDiscountRulePriority(rule, bestRule) < 0) {
+      bestRule = rule;
+    }
+  }
+  return bestRule;
+}
+
+bool _matchesQuantity(BulkDiscountRule rule, int quantity) {
+  if (quantity <= 0) {
+    return false;
+  }
+  if (rule.minQuantity != null && quantity < rule.minQuantity!) {
+    return false;
+  }
+  if (rule.maxQuantity != null && quantity > rule.maxQuantity!) {
+    return false;
+  }
+  return true;
+}
+
+int _compareDiscountRulePriority(BulkDiscountRule a, BulkDiscountRule b) {
+  final minCompare = (b.minQuantity ?? 0).compareTo(a.minQuantity ?? 0);
+  if (minCompare != 0) {
+    return minCompare;
+  }
+  final percentCompare = b.percent.compareTo(a.percent);
+  if (percentCompare != 0) {
+    return percentCompare;
+  }
+  final maxA = a.maxQuantity ?? 1 << 30;
+  final maxB = b.maxQuantity ?? 1 << 30;
+  return maxA.compareTo(maxB);
+}
+
+bool _isBetterNextDiscountTarget({
+  required BulkDiscountRule candidate,
+  required BulkDiscountRule best,
+  required int candidateAdditionalQuantity,
+  required int bestAdditionalQuantity,
+}) {
+  final additionalCompare = candidateAdditionalQuantity.compareTo(
+    bestAdditionalQuantity,
+  );
+  if (additionalCompare != 0) {
+    return additionalCompare < 0;
+  }
+
+  final percentCompare = candidate.percent.compareTo(best.percent);
+  if (percentCompare != 0) {
+    return percentCompare > 0;
+  }
+
+  if (candidate.productId != null && best.productId == null) {
     return true;
   }
-  return stats.singleProductId != null &&
-      stats.singleProductId == rule.productId;
+  if (candidate.productId == null && best.productId != null) {
+    return false;
+  }
+
+  return _compareDiscountRulePriority(candidate, best) < 0;
 }

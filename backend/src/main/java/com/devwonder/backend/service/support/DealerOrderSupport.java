@@ -3,6 +3,7 @@ package com.devwonder.backend.service.support;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.enums.PaymentMethod;
+import com.devwonder.backend.exception.BadRequestException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -35,6 +36,14 @@ public final class DealerOrderSupport {
             return 0;
         }
         return Math.max(0, shippingFee);
+    }
+
+    public static int resolveDealerShippingFee(Integer shippingFee) {
+        int resolved = safeShippingFee(shippingFee);
+        if (resolved != 0) {
+            throw new BadRequestException("shippingFee is controlled by the server");
+        }
+        return 0;
     }
 
     public static String buildOrderCode(Long dealerId) {

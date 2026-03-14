@@ -4,9 +4,11 @@ import com.devwonder.backend.dto.warranty.CreateWarrantyRegistrationRequest;
 import com.devwonder.backend.dto.warranty.WarrantyRegistrationResponse;
 import com.devwonder.backend.config.CacheNames;
 import com.devwonder.backend.entity.Dealer;
+import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
 import com.devwonder.backend.entity.WarrantyRegistration;
+import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.entity.enums.WarrantyStatus;
 import com.devwonder.backend.exception.BadRequestException;
@@ -143,12 +145,25 @@ public class DealerWarrantyManagementService {
             Long forcedDealerId
     ) {
         Dealer dealer = resolveDealer(forcedDealerId, productSerial);
+        assertWarrantyEligibleOrder(productSerial.getOrder());
         if (productSerial.getStatus() == ProductSerialStatus.DEFECTIVE) {
             throw new BadRequestException("Defective serial cannot be activated for warranty");
         }
         LocalDate purchaseDate = request.purchaseDate();
         if (purchaseDate == null) {
             throw new BadRequestException("purchaseDate is required");
+        }
+        LocalDate today = LocalDate.now(WarrantyDateSupport.APP_ZONE);
+        if (purchaseDate.isAfter(today)) {
+            throw new BadRequestException("purchaseDate cannot be in the future");
+        }
+        if (productSerial.getOrder() != null && productSerial.getOrder().getCreatedAt() != null) {
+            LocalDate orderDate = productSerial.getOrder().getCreatedAt()
+                    .atZone(WarrantyDateSupport.APP_ZONE)
+                    .toLocalDate();
+            if (purchaseDate.isBefore(orderDate)) {
+                throw new BadRequestException("purchaseDate cannot be earlier than order date");
+            }
         }
 
         String customerName = normalize(request.customerName());
@@ -197,6 +212,16 @@ public class DealerWarrantyManagementService {
         productSerial.setDealer(dealer);
         productSerial.setStatus(resolveSerialStatus(nextStatus));
         productSerialRepository.save(productSerial);
+    }
+
+    private void assertWarrantyEligibleOrder(Order order) {
+        if (order == null) {
+            throw new BadRequestException("Warranty activation requires a shipping or completed order");
+        }
+        OrderStatus status = order.getStatus();
+        if (status != OrderStatus.SHIPPING && status != OrderStatus.COMPLETED) {
+            throw new BadRequestException("Warranty activation requires a shipping or completed order");
+        }
     }
 
     private Dealer resolveDealer(Long forcedDealerId, ProductSerial productSerial) {

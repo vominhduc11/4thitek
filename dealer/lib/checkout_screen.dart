@@ -462,6 +462,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   );
                                   return;
                                 }
+                                final projectedOutstandingDebt =
+                                    orderController.totalOutstandingDebt +
+                                    total;
+                                if (projectedOutstandingDebt >
+                                    _profile.creditLimit) {
+                                  _showSnackBar(
+                                    'Vuot han muc cong no. Cong no du kien ${formatVnd(projectedOutstandingDebt)} lon hon han muc ${formatVnd(_profile.creditLimit)}.',
+                                  );
+                                  return;
+                                }
                                 final confirmed = await _showDebtConfirmDialog(
                                   context,
                                   amount: total,

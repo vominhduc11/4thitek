@@ -23,21 +23,31 @@ class CartController extends ChangeNotifier {
   }
 
   static const Duration _cartApiLatency = Duration(milliseconds: 700);
+  static const Duration _remoteRequestTimeout = Duration(seconds: 12);
   static const int vatPercent = kVatPercent;
 
   final Product? Function(String productId)? _productLookup;
   late final AuthStorage _authStorage;
   late final http.Client _client;
   final Map<String, CartItem> _items = <String, CartItem>{};
+  final Map<String, CartItem> _lastSyncedItems = <String, CartItem>{};
+  final Map<String, int> _pendingSyncCounts = <String, int>{};
   List<BulkDiscountRule> _discountRules = const <BulkDiscountRule>[];
   List<CartItem> _sortedItemsCache = const <CartItem>[];
   bool _itemsCacheDirty = true;
+  Future<void> _remoteSyncQueue = Future<void>.value();
+  int _localMutationVersion = 0;
 
   Future<void> load() async {
+    final loadMutationVersion = _localMutationVersion;
     await _loadRemoteDiscountRules(notify: false);
-    final loadedRemote = await _loadRemoteCart(notify: false);
-    if (!loadedRemote) {
+    final loadedRemote = await _loadRemoteCart(
+      notify: false,
+      expectedMutationVersion: loadMutationVersion,
+    );
+    if (!loadedRemote && loadMutationVersion == _localMutationVersion) {
       _replaceItems(const <CartItem>[]);
+      _replaceLastSyncedItems(const <CartItem>[]);
     }
     notifyListeners();
   }
@@ -53,6 +63,8 @@ class CartController extends ChangeNotifier {
   }
 
   bool get isEmpty => _items.isEmpty;
+
+  bool get isSyncing => _pendingSyncCounts.isNotEmpty;
 
   int get totalItems {
     return _items.values.fold<int>(0, (total, item) => total + item.quantity);
@@ -77,7 +89,7 @@ class CartController extends ChangeNotifier {
       bulkDiscountPercentForCart(items: _items.values, rules: _discountRules);
 
   int get discountAmount =>
-      bulkDiscountAmount(subtotal: subtotal, discountPercent: discountPercent);
+      bulkDiscountAmountForCart(items: _items.values, rules: _discountRules);
 
   int get totalAfterDiscount => subtotal - discountAmount;
 
@@ -87,6 +99,10 @@ class CartController extends ChangeNotifier {
 
   int quantityFor(String productId) {
     return _items[productId]?.quantity ?? 0;
+  }
+
+  bool isSyncingProduct(String productId) {
+    return (_pendingSyncCounts[productId] ?? 0) > 0;
   }
 
   int remainingStockFor(Product product) {
@@ -158,6 +174,7 @@ class CartController extends ChangeNotifier {
       return true;
     }
     return _commitChange(
+      affectedProductIds: <String>[productId],
       applyLocal: () => _items.remove(productId),
       remoteSync: () async {
         await _removeRemoteCartItem(productId);
@@ -178,6 +195,7 @@ class CartController extends ChangeNotifier {
     if (next < minQty) next = minQty;
 
     return _commitChange(
+      affectedProductIds: <String>[product.id],
       applyLocal: () {
         _items[product.id] = CartItem(product: product, quantity: next);
       },
@@ -189,6 +207,7 @@ class CartController extends ChangeNotifier {
     bool syncRemote = true,
     bool rollbackOnFailure = true,
   }) async {
+    final affectedProductIds = _items.keys.toList(growable: false);
     if (_items.isEmpty) {
       if (!syncRemote || !await _canUseRemoteApi()) {
         return true;
@@ -202,6 +221,7 @@ class CartController extends ChangeNotifier {
     }
 
     return _commitChange(
+      affectedProductIds: affectedProductIds,
       applyLocal: _items.clear,
       remoteSync: syncRemote
           ? () async {
@@ -213,17 +233,22 @@ class CartController extends ChangeNotifier {
     );
   }
 
-  Future<bool> _loadRemoteCart({bool notify = true}) async {
+  Future<bool> _loadRemoteCart({
+    bool notify = true,
+    int? expectedMutationVersion,
+  }) async {
     final token = await _readAccessToken();
     if (token == null) {
       return false;
     }
 
     try {
-      final response = await _client.get(
-        Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/cart')),
-        headers: _authorizedHeaders(token),
-      );
+      final response = await _client
+          .get(
+            Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/cart')),
+            headers: _authorizedHeaders(token),
+          )
+          .timeout(_remoteRequestTimeout);
       final payload = _decodeBody(response.body);
       if (response.statusCode >= 400) {
         throw Exception(_extractErrorMessage(payload));
@@ -243,7 +268,12 @@ class CartController extends ChangeNotifier {
           nextItems.add(item);
         }
       }
+      if (expectedMutationVersion != null &&
+          expectedMutationVersion != _localMutationVersion) {
+        return true;
+      }
       _replaceItems(nextItems);
+      _replaceLastSyncedItems(nextItems);
       if (notify) {
         notifyListeners();
       }
@@ -261,10 +291,12 @@ class CartController extends ChangeNotifier {
     }
 
     try {
-      final response = await _client.get(
-        Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/discount-rules')),
-        headers: _authorizedHeaders(token),
-      );
+      final response = await _client
+          .get(
+            Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/discount-rules')),
+            headers: _authorizedHeaders(token),
+          )
+          .timeout(_remoteRequestTimeout);
       final payload = _decodeBody(response.body);
       if (response.statusCode >= 400) {
         throw Exception(_extractErrorMessage(payload));
@@ -291,12 +323,14 @@ class CartController extends ChangeNotifier {
   }
 
   Future<bool> _commitChange({
+    Iterable<String> affectedProductIds = const <String>[],
     required void Function() applyLocal,
     Future<CartItem?> Function()? remoteSync,
     bool rollbackOnFailure = true,
   }) async {
-    final previous = Map<String, CartItem>.from(_items);
     applyLocal();
+    final localSnapshot = _copyItems(_items);
+    final mutationVersion = ++_localMutationVersion;
     _markItemsDirty();
     notifyListeners();
 
@@ -305,33 +339,45 @@ class CartController extends ChangeNotifier {
     }
     if (!await _canUseRemoteApi()) {
       if (rollbackOnFailure) {
-        _items
-          ..clear()
-          ..addAll(previous);
-        _markItemsDirty();
-        notifyListeners();
+        _restoreLastSyncedItems();
       }
       return false;
     }
 
-    try {
-      final remoteItem = await remoteSync();
-      if (remoteItem != null) {
-        _items[remoteItem.product.id] = remoteItem;
-        _markItemsDirty();
-        notifyListeners();
-      }
-      return true;
-    } catch (_) {
-      if (rollbackOnFailure) {
-        _items
-          ..clear()
-          ..addAll(previous);
-        _markItemsDirty();
-        notifyListeners();
-      }
-      return false;
+    final result = Completer<bool>();
+    final pendingProductIds = affectedProductIds.toSet();
+    if (pendingProductIds.isNotEmpty) {
+      _updatePendingSyncCounts(pendingProductIds, delta: 1);
+      notifyListeners();
     }
+
+    _remoteSyncQueue = _remoteSyncQueue.catchError((_) {}).then((_) async {
+      try {
+        final remoteItem = await remoteSync();
+        final syncedSnapshot = _snapshotWithRemoteItem(
+          localSnapshot,
+          remoteItem,
+        );
+        _replaceLastSyncedItemsFromMap(syncedSnapshot);
+        if (remoteItem != null && mutationVersion == _localMutationVersion) {
+          _items[remoteItem.product.id] = remoteItem;
+          _markItemsDirty();
+          notifyListeners();
+        }
+        result.complete(true);
+      } catch (_) {
+        if (rollbackOnFailure && mutationVersion == _localMutationVersion) {
+          _restoreLastSyncedItems();
+        }
+        result.complete(false);
+      } finally {
+        if (pendingProductIds.isNotEmpty) {
+          _updatePendingSyncCounts(pendingProductIds, delta: -1);
+          notifyListeners();
+        }
+      }
+    });
+    return result.future;
   }
 
   Future<CartItem?> _upsertRemoteCartItem(Product product, int quantity) async {
@@ -341,14 +387,16 @@ class CartController extends ChangeNotifier {
       throw StateError('Invalid product id: ${product.id}');
     }
 
-    final response = await _client.put(
-      Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/cart/items')),
-      headers: _authorizedJsonHeaders(token),
-      body: jsonEncode(<String, dynamic>{
-        'productId': productId,
-        'quantity': quantity,
-      }),
-    );
+    final response = await _client
+        .put(
+          Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/cart/items')),
+          headers: _authorizedJsonHeaders(token),
+          body: jsonEncode(<String, dynamic>{
+            'productId': productId,
+            'quantity': quantity,
+          }),
+        )
+        .timeout(_remoteRequestTimeout);
 
     final payload = _decodeBody(response.body);
     if (response.statusCode >= 400) {
@@ -369,12 +417,16 @@ class CartController extends ChangeNotifier {
       throw StateError('Invalid product id: $productId');
     }
 
-    final response = await _client.delete(
-      Uri.parse(
-        DealerApiConfig.resolveUrl('/api/dealer/cart/items/$numericProductId'),
-      ),
-      headers: _authorizedHeaders(token),
-    );
+    final response = await _client
+        .delete(
+          Uri.parse(
+            DealerApiConfig.resolveUrl(
+              '/api/dealer/cart/items/$numericProductId',
+            ),
+          ),
+          headers: _authorizedHeaders(token),
+        )
+        .timeout(_remoteRequestTimeout);
     final payload = _decodeBody(response.body);
     if (response.statusCode >= 400) {
       throw Exception(_extractErrorMessage(payload));
@@ -383,10 +435,12 @@ class CartController extends ChangeNotifier {
 
   Future<void> _clearRemoteCart() async {
     final token = await _requireAccessToken();
-    final response = await _client.delete(
-      Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/cart')),
-      headers: _authorizedHeaders(token),
-    );
+    final response = await _client
+        .delete(
+          Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/cart')),
+          headers: _authorizedHeaders(token),
+        )
+        .timeout(_remoteRequestTimeout);
     final payload = _decodeBody(response.body);
     if (response.statusCode >= 400) {
       throw Exception(_extractErrorMessage(payload));
@@ -539,6 +593,53 @@ class CartController extends ChangeNotifier {
         items.map((item) => MapEntry<String, CartItem>(item.product.id, item)),
       );
     _markItemsDirty();
+  }
+
+  void _replaceLastSyncedItems(Iterable<CartItem> items) {
+    _lastSyncedItems
+      ..clear()
+      ..addEntries(
+        items.map((item) => MapEntry<String, CartItem>(item.product.id, item)),
+      );
+  }
+
+  void _replaceLastSyncedItemsFromMap(Map<String, CartItem> items) {
+    _lastSyncedItems
+      ..clear()
+      ..addAll(items);
+  }
+
+  Map<String, CartItem> _copyItems(Map<String, CartItem> items) {
+    return Map<String, CartItem>.from(items);
+  }
+
+  Map<String, CartItem> _snapshotWithRemoteItem(
+    Map<String, CartItem> snapshot,
+    CartItem? remoteItem,
+  ) {
+    if (remoteItem == null) {
+      return snapshot;
+    }
+    return <String, CartItem>{...snapshot, remoteItem.product.id: remoteItem};
+  }
+
+  void _restoreLastSyncedItems() {
+    _items
+      ..clear()
+      ..addAll(_lastSyncedItems);
+    _markItemsDirty();
+    notifyListeners();
+  }
+
+  void _updatePendingSyncCounts(Set<String> productIds, {required int delta}) {
+    for (final productId in productIds) {
+      final nextCount = (_pendingSyncCounts[productId] ?? 0) + delta;
+      if (nextCount <= 0) {
+        _pendingSyncCounts.remove(productId);
+      } else {
+        _pendingSyncCounts[productId] = nextCount;
+      }
+    }
   }
 
   void _markItemsDirty() {

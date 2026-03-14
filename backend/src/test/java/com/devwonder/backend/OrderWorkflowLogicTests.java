@@ -13,10 +13,12 @@ import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Notify;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.Product;
+import com.devwonder.backend.entity.ProductSerial;
 import com.devwonder.backend.entity.enums.DiscountRuleStatus;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
+import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.entity.enums.StaffUserStatus;
 import com.devwonder.backend.repository.AdminRepository;
 import com.devwonder.backend.repository.BulkDiscountRepository;
@@ -27,6 +29,7 @@ import com.devwonder.backend.repository.DealerSupportTicketRepository;
 import com.devwonder.backend.repository.NotifyRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductRepository;
+import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.service.AdminManagementService;
 import com.devwonder.backend.service.DealerPortalService;
 import java.math.BigDecimal;
@@ -63,6 +66,9 @@ class OrderWorkflowLogicTests {
     private ProductRepository productRepository;
 
     @Autowired
+    private ProductSerialRepository productSerialRepository;
+
+    @Autowired
     private BulkDiscountRepository bulkDiscountRepository;
 
     @Autowired
@@ -78,6 +84,7 @@ class OrderWorkflowLogicTests {
     void setUp() {
         notifyRepository.deleteAll();
         dealerSupportTicketRepository.deleteAll();
+        productSerialRepository.deleteAll();
         orderRepository.deleteAll();
         bulkDiscountRepository.deleteAll();
         productRepository.deleteAll();
@@ -136,6 +143,29 @@ class OrderWorkflowLogicTests {
         assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.CANCELLED);
         assertThat(orderRepository.findById(order.getId()).orElseThrow().getPaymentStatus())
                 .isEqualTo(PaymentStatus.CANCELLED);
+    }
+
+    @Test
+    void adminCancellationDetachesLegacyNonWarrantySerials() {
+        Dealer dealer = dealerRepository.save(createDealer("admin-cancel-serial@example.com"));
+        Product product = productRepository.save(createProduct("SKU-CANCEL-SERIAL-ADMIN", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, OrderStatus.PENDING, "WF-CANCEL-SERIAL-ADMIN"));
+        ProductSerial serial = productSerialRepository.save(createSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-CANCEL-ADMIN-1",
+                ProductSerialStatus.AVAILABLE
+        ));
+
+        adminManagementService.updateOrderStatus(
+                order.getId(),
+                new UpdateDealerOrderStatusRequest(OrderStatus.CANCELLED)
+        );
+
+        ProductSerial savedSerial = productSerialRepository.findById(serial.getId()).orElseThrow();
+        assertThat(savedSerial.getOrder()).isNull();
+        assertThat(savedSerial.getStatus()).isEqualTo(ProductSerialStatus.AVAILABLE);
     }
 
     @Test
@@ -306,6 +336,43 @@ class OrderWorkflowLogicTests {
     }
 
     @Test
+    void dealerCancellationDetachesLegacyNonWarrantySerials() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-cancel-serial@example.com"));
+        Product product = productRepository.save(createProduct("SKU-CANCEL-SERIAL-DEALER", BigDecimal.valueOf(100_000), 5));
+
+        var createdOrder = dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer receiver",
+                        "456 Cancel Serial Street",
+                        "0900000000",
+                        0,
+                        "Legacy serial cleanup",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
+                )
+        );
+        Order order = orderRepository.findById(createdOrder.id()).orElseThrow();
+        ProductSerial serial = productSerialRepository.save(createSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-CANCEL-DEALER-1",
+                ProductSerialStatus.DEFECTIVE
+        ));
+
+        dealerPortalService.updateOrderStatus(
+                dealer.getUsername(),
+                createdOrder.id(),
+                new UpdateDealerOrderStatusRequest(OrderStatus.CANCELLED)
+        );
+
+        ProductSerial savedSerial = productSerialRepository.findById(serial.getId()).orElseThrow();
+        assertThat(savedSerial.getOrder()).isNull();
+        assertThat(savedSerial.getStatus()).isEqualTo(ProductSerialStatus.DEFECTIVE);
+    }
+
+    @Test
     void mixedOrderAppliesProductSpecificDiscountPerMatchingLine() {
         Dealer dealer = dealerRepository.save(createDealer("mixed-discount@example.com"));
         Product discountedProduct = productRepository.save(createProduct("SKU-MIX-1", BigDecimal.valueOf(100_000)));
@@ -359,6 +426,27 @@ class OrderWorkflowLogicTests {
         assertThat(response.subtotal()).isEqualByComparingTo("100000");
         assertThat(response.items()).hasSize(1);
         assertThat(response.items().get(0).unitPrice()).isEqualByComparingTo("100000");
+    }
+
+    @Test
+    void dealerPayloadCannotOverrideServerShippingFee() {
+        Dealer dealer = dealerRepository.save(createDealer("shipping-fee-guard@example.com"));
+        Product product = productRepository.save(createProduct("SKU-SHIP-1", BigDecimal.valueOf(100_000)));
+
+        assertThatThrownBy(() -> dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer receiver",
+                        "123 Shipping Street",
+                        "0900000000",
+                        25_000,
+                        "Client shipping fee should be ignored",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("shippingFee is controlled by the server");
     }
 
     @Test
@@ -592,5 +680,21 @@ class OrderWorkflowLogicTests {
         admin.setRoleTitle("Ops");
         admin.setUserStatus(StaffUserStatus.ACTIVE);
         return admin;
+    }
+
+    private ProductSerial createSerial(
+            Dealer dealer,
+            Order order,
+            Product product,
+            String serialValue,
+            ProductSerialStatus status
+    ) {
+        ProductSerial serial = new ProductSerial();
+        serial.setDealer(dealer);
+        serial.setOrder(order);
+        serial.setProduct(product);
+        serial.setSerial(serialValue);
+        serial.setStatus(status);
+        return serial;
     }
 }

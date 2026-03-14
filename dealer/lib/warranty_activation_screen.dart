@@ -636,10 +636,18 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
 
   Future<void> _pickPurchaseDate() async {
     final now = DateUtils.dateOnly(DateTime.now());
+    final order = OrderScope.of(context).findById(widget.orderId);
+    final minimumDate = order == null
+        ? DateTime(now.year - 5, 1, 1)
+        : _minimumPurchaseDateForOrder(order);
+    final effectiveFirstDate = minimumDate.isAfter(now) ? now : minimumDate;
+    final effectiveInitialDate = _purchaseDate.isBefore(effectiveFirstDate)
+        ? effectiveFirstDate
+        : (_purchaseDate.isAfter(now) ? now : _purchaseDate);
     final picked = await showDatePicker(
       context: context,
-      initialDate: _purchaseDate.isAfter(now) ? now : _purchaseDate,
-      firstDate: DateTime(now.year - 5, 1, 1),
+      initialDate: effectiveInitialDate,
+      firstDate: effectiveFirstDate,
       lastDate: now,
       helpText: 'Chon ngay mua',
     );
@@ -655,6 +663,23 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     return order.receiverName.trim().isNotEmpty ||
         order.receiverPhone.trim().isNotEmpty ||
         order.receiverAddress.trim().isNotEmpty;
+  }
+
+  DateTime _minimumPurchaseDateForOrder(Order order) {
+    return DateUtils.dateOnly(order.createdAt.toLocal());
+  }
+
+  String? _validatePurchaseDateForOrder(Order order) {
+    final normalizedPurchaseDate = DateUtils.dateOnly(_purchaseDate);
+    final minimumDate = _minimumPurchaseDateForOrder(order);
+    final today = DateUtils.dateOnly(DateTime.now());
+    if (normalizedPurchaseDate.isBefore(minimumDate)) {
+      return 'Ngay mua khong duoc truoc ngay dat hang ${formatDate(minimumDate)}.';
+    }
+    if (normalizedPurchaseDate.isAfter(today)) {
+      return 'Ngay mua khong duoc sau ngay hom nay.';
+    }
+    return null;
   }
 
   Future<void> _scanSerialForItem(
@@ -862,6 +887,12 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
 
     if (!isValidEmailAddress(customerEmail)) {
       _showSnackBar('Vui long nhap email hop le.');
+      return;
+    }
+
+    final purchaseDateError = _validatePurchaseDateForOrder(order);
+    if (purchaseDateError != null) {
+      _showSnackBar(purchaseDateError);
       return;
     }
 

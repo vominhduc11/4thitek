@@ -80,7 +80,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _handleAddToCart(CartController cart) async {
-    if (_isAddingToCart) {
+    if (_isAddingToCart || cart.isSyncingProduct(_currentProduct.id)) {
       return;
     }
     final remainingStock = cart.remainingStockFor(_currentProduct);
@@ -148,7 +148,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _handleBuyNow(CartController cart) async {
-    if (_isBuyingNow) {
+    if (_isBuyingNow || cart.isSyncingProduct(_currentProduct.id)) {
       return;
     }
     final remainingStock = cart.remainingStockFor(_currentProduct);
@@ -304,7 +304,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   String? _buildActionDisabledReason({
     required int remainingStock,
     required int suggestedAddQuantity,
+    required bool isSyncingProduct,
   }) {
+    if (isSyncingProduct) {
+      return 'Đang đồng bộ giỏ hàng cho sản phẩm này';
+    }
     if (remainingStock <= 0) {
       return 'S\u1ea3n ph\u1ea9m \u0111\u00e3 h\u1ebft h\u00e0ng';
     }
@@ -344,6 +348,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final cart = CartScope.of(context);
+    final isSyncingProduct = cart.isSyncingProduct(_currentProduct.id);
     final remainingStock = cart.remainingStockFor(_currentProduct);
     final quantityInCart = cart.quantityFor(_currentProduct.id);
     final suggestedAddQuantity = cart.suggestedAddQuantity(_currentProduct);
@@ -399,6 +404,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final addToCartDisabledReason = _buildActionDisabledReason(
       remainingStock: remainingStock,
       suggestedAddQuantity: suggestedAddQuantity,
+      isSyncingProduct: isSyncingProduct,
     );
     final buyNowDisabledReason = addToCartDisabledReason;
     final fallbackBarHeight = isSmallMobile
@@ -445,10 +451,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 isSmallMobile: isSmallMobile,
                 isAddingToCart: _isAddingToCart,
                 isBuyingNow: _isBuyingNow,
-                onAddToCart: suggestedAddQuantity > 0 && !_isAddingToCart
+                isSyncingProduct: isSyncingProduct,
+                onAddToCart:
+                    suggestedAddQuantity > 0 &&
+                        !_isAddingToCart &&
+                        !isSyncingProduct
                     ? () => _handleAddToCart(cart)
                     : null,
-                onBuyNow: suggestedAddQuantity > 0 && !_isBuyingNow
+                onBuyNow:
+                    suggestedAddQuantity > 0 &&
+                        !_isBuyingNow &&
+                        !isSyncingProduct
                     ? () => _handleBuyNow(cart)
                     : null,
               ),
@@ -1789,6 +1802,7 @@ class _BottomActionBar extends StatelessWidget {
     required this.isSmallMobile,
     required this.isAddingToCart,
     required this.isBuyingNow,
+    required this.isSyncingProduct,
     required this.onAddToCart,
     required this.onBuyNow,
   });
@@ -1803,6 +1817,7 @@ class _BottomActionBar extends StatelessWidget {
   final bool isSmallMobile;
   final bool isAddingToCart;
   final bool isBuyingNow;
+  final bool isSyncingProduct;
   final VoidCallback? onAddToCart;
   final VoidCallback? onBuyNow;
 
@@ -1835,7 +1850,7 @@ class _BottomActionBar extends StatelessWidget {
 
     final addButton = OutlinedButton(
       onPressed: onAddToCart,
-      child: isAddingToCart
+      child: isAddingToCart || isSyncingProduct
           ? const SizedBox(
               width: 20,
               height: 20,
@@ -1845,7 +1860,7 @@ class _BottomActionBar extends StatelessWidget {
     );
     final buyButton = ElevatedButton(
       onPressed: onBuyNow,
-      child: isBuyingNow
+      child: isBuyingNow || isSyncingProduct
           ? const SizedBox(
               width: 20,
               height: 20,

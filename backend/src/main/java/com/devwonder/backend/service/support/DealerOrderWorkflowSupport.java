@@ -29,6 +29,7 @@ public class DealerOrderWorkflowSupport {
 
     private final OrderRepository orderRepository;
     private final OrderInventorySupport orderInventorySupport;
+    private final ProductSerialOrderSupport productSerialOrderSupport;
     private final DealerOrderNotificationSupport dealerOrderNotificationSupport;
 
     public DealerOrderResponse createOrder(
@@ -45,7 +46,7 @@ public class DealerOrderWorkflowSupport {
         order.setReceiverName(DealerRequestSupport.defaultIfBlank(request.receiverName(), dealer.getBusinessName()));
         order.setReceiverAddress(DealerRequestSupport.defaultIfBlank(request.receiverAddress(), dealer.getAddressLine()));
         order.setReceiverPhone(DealerRequestSupport.defaultIfBlank(request.receiverPhone(), dealer.getPhone()));
-        order.setShippingFee(DealerOrderSupport.safeShippingFee(request.shippingFee()));
+        order.setShippingFee(DealerOrderSupport.resolveDealerShippingFee(request.shippingFee()));
         order.setNote(DealerRequestSupport.normalize(request.note()));
         order.setPaidAmount(BigDecimal.ZERO);
 
@@ -90,6 +91,7 @@ public class DealerOrderWorkflowSupport {
         }
         if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
             orderInventorySupport.restoreStock(order);
+            productSerialOrderSupport.releaseNonWarrantySerials(order);
         }
         if (request.status() == OrderStatus.CANCELLED
                 && DealerOrderSupport.zeroIfNull(order.getPaidAmount()).compareTo(BigDecimal.ZERO) <= 0) {

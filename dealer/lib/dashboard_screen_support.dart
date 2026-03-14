@@ -68,6 +68,11 @@ _DashboardSnapshot _buildDashboardSnapshot({
     periodStart,
     periodEndExclusive,
   );
+  final periodRevenueOrders = _dashboardFilterRevenueOrdersByPeriod(
+    orders,
+    periodStart,
+    periodEndExclusive,
+  );
   final activationWindowDays = timeFilter == _DashboardTimeFilter.month
       ? 30
       : 90;
@@ -75,7 +80,10 @@ _DashboardSnapshot _buildDashboardSnapshot({
   return _DashboardSnapshot(
     periodAnchor: periodAnchor,
     periodOrders: periodOrders,
-    monthlyRevenue: _buildMonthlyRevenue(periodOrders, year: periodAnchor.year),
+    monthlyRevenue: _buildMonthlyRevenue(
+      periodRevenueOrders,
+      year: periodAnchor.year,
+    ),
     activationWindowDays: activationWindowDays,
     activationSeries: _buildActivationSeries(
       days: activationWindowDays,
@@ -94,7 +102,10 @@ _DashboardSnapshot _buildDashboardSnapshot({
       periodAnchor,
       timeFilter,
     ),
-    periodRevenue: periodOrders.fold<int>(0, (sum, order) => sum + order.total),
+    periodRevenue: periodRevenueOrders.fold<int>(
+      0,
+      (sum, order) => sum + order.total,
+    ),
     periodOrderCount: periodOrders.length,
     periodCompletedOrderCount: periodOrders
         .where((order) => order.status == OrderStatus.completed)
@@ -107,7 +118,13 @@ _DashboardSnapshot _buildDashboardSnapshot({
 }
 
 int _calculateTotalOutstandingDebt(List<Order> orders) {
-  return orders.fold<int>(0, (sum, order) => sum + order.outstandingAmount);
+  return orders
+      .where(
+        (order) =>
+            order.paymentMethod == OrderPaymentMethod.debt &&
+            order.status != OrderStatus.cancelled,
+      )
+      .fold<int>(0, (sum, order) => sum + order.outstandingAmount);
 }
 
 class _DashboardLowStockItem {
@@ -314,6 +331,27 @@ List<Order> _dashboardFilterOrdersByPeriod(
     final createdAt = order.createdAt;
     return !createdAt.isBefore(start) && createdAt.isBefore(endExclusive);
   }).toList();
+}
+
+List<Order> _dashboardFilterRevenueOrdersByPeriod(
+  List<Order> orders,
+  DateTime start,
+  DateTime endExclusive,
+) {
+  return orders.where((order) {
+    final revenueAt = _orderRevenueTimestamp(order);
+    if (revenueAt == null) {
+      return false;
+    }
+    return !revenueAt.isBefore(start) && revenueAt.isBefore(endExclusive);
+  }).toList();
+}
+
+DateTime? _orderRevenueTimestamp(Order order) {
+  if (order.status != OrderStatus.completed) {
+    return null;
+  }
+  return order.completedAt ?? order.createdAt;
 }
 
 Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({

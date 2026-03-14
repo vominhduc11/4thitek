@@ -28,6 +28,7 @@ public record DealerOrderResponse(
         String note,
         Instant createdAt,
         Instant updatedAt,
+        Instant completedAt,
         List<DealerOrderItemResponse> items
 ) {
 }

@@ -44,8 +44,8 @@ public class DealerSerialSupport {
         if (order == null) {
             throw new BadRequestException("orderId is required");
         }
-        if (order.getStatus() == OrderStatus.CANCELLED) {
-            throw new BadRequestException("Cannot import serials for a cancelled order");
+        if (order.getStatus() != OrderStatus.SHIPPING && order.getStatus() != OrderStatus.COMPLETED) {
+            throw new BadRequestException("Serial import requires a shipping or completed order");
         }
 
         Product product = productRepository.findById(request.productId())

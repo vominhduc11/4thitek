@@ -57,6 +57,7 @@ import com.devwonder.backend.service.support.DealerPaymentSupport;
 import com.devwonder.backend.service.support.OrderInventorySupport;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import com.devwonder.backend.service.support.OrderStatusTransitionPolicy;
+import com.devwonder.backend.service.support.ProductSerialOrderSupport;
 import com.devwonder.backend.service.support.ProductSerialResponseMapper;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
 import java.math.BigDecimal;
@@ -105,6 +106,7 @@ public class AdminManagementService {
     private final DealerPaymentSupport dealerPaymentSupport;
     private final WebSocketEventPublisher webSocketEventPublisher;
     private final OrderInventorySupport orderInventorySupport;
+    private final ProductSerialOrderSupport productSerialOrderSupport;
 
     @Value("${sepay.enabled:false}")
     private boolean sepayEnabled;
@@ -192,6 +194,7 @@ public class AdminManagementService {
         applyCompletedAt(order, request.status(), previousStatus);
         if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
             orderInventorySupport.restoreStock(order);
+            productSerialOrderSupport.releaseNonWarrantySerials(order);
         }
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));

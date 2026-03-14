@@ -28,6 +28,7 @@ class CartScreen extends StatelessWidget {
     final cart = CartScope.of(context);
     final items = cart.items;
     final hasAnyOrderableItems = items.any((item) => item.product.stock > 0);
+    final isCartSyncing = cart.isSyncing;
     final discountPercent = cart.discountPercent;
     final discountAmount = cart.discountAmount;
     final totalAfterDiscount = cart.totalAfterDiscount;
@@ -164,17 +165,25 @@ class CartScreen extends StatelessWidget {
         ),
       ]);
 
-      if (nextDiscountTarget != null &&
-          nextDiscountTarget.targetQuantity > cart.totalItems) {
+      final nextDiscountRemaining = nextDiscountTarget == null
+          ? 0
+          : remainingQuantityForBulkDiscountTarget(
+              target: nextDiscountTarget,
+              items: items,
+            );
+      final nextDiscountProductName = nextDiscountTarget?.productId == null
+          ? null
+          : _productNameForDiscountTarget(items, nextDiscountTarget!);
+      if (nextDiscountTarget != null && nextDiscountRemaining > 0) {
         rows.addAll([
           const SizedBox(height: 6),
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
               texts.buyMoreHint(
-                targetQuantity: nextDiscountTarget.targetQuantity,
+                remainingQuantity: nextDiscountRemaining,
                 targetPercent: nextDiscountTarget.percent,
-                current: cart.totalItems,
+                productName: nextDiscountProductName,
               ),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colors.onSurfaceVariant,
@@ -221,6 +230,9 @@ class CartScreen extends StatelessWidget {
                         const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final item = items[index];
+                      final isSyncingItem = cart.isSyncingProduct(
+                        item.product.id,
+                      );
                       final canIncrease =
                           cart.suggestedAddQuantity(item.product) > 0;
                       const minQty = 1;
@@ -228,58 +240,107 @@ class CartScreen extends StatelessWidget {
                       final isWide = isTablet || isLandscapePhone;
                       final quantitySpinBox = SizedBox(
                         width: quantityFieldWidth,
-                        child: SpinBox(
-                          min: minQty.toDouble(),
-                          max: maxQty.toDouble(),
-                          value: item.quantity.toDouble(),
-                          step: 1,
-                          decimals: 0,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 8,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(
-                                color: colors.outlineVariant,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(
-                                color: colors.primary,
-                                width: 1.5,
-                              ),
-                            ),
-                          ),
-                          onChanged: (val) => unawaited(
-                            cart.setQuantity(item.product, val.round()),
-                          ),
-                        ),
-                      );
-                      final deleteButton = IconButton(
-                        icon: const Icon(Icons.delete_outline, size: 20),
-                        color: const Color(0xFFDC2626),
-                        tooltip: texts.deleteTooltip,
-                        onPressed: () => unawaited(removeItemWithUndo(item)),
-                      );
-                      final stockWarning = !canIncrease
-                          ? <Widget>[
-                              const SizedBox(height: 4),
-                              Text(
-                                texts.maxStockReached,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: colors.error,
-                                  fontWeight: FontWeight.w600,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            IgnorePointer(
+                              ignoring: isSyncingItem,
+                              child: Opacity(
+                                opacity: isSyncingItem ? 0.7 : 1,
+                                child: SpinBox(
+                                  min: minQty.toDouble(),
+                                  max: maxQty.toDouble(),
+                                  value: item.quantity.toDouble(),
+                                  step: 1,
+                                  decimals: 0,
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 8,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: colors.outlineVariant,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: colors.primary,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                  ),
+                                  onChanged: (val) => unawaited(
+                                    cart.setQuantity(item.product, val.round()),
+                                  ),
                                 ),
                               ),
-                            ]
-                          : <Widget>[];
+                            ),
+                            if (isSyncingItem)
+                              Positioned(
+                                right: 10,
+                                child: SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: colors.primary,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                      final deleteButton = isSyncingItem
+                          ? SizedBox(
+                              width: 40,
+                              height: 40,
+                              child: Center(
+                                child: SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: colors.primary,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 20),
+                              color: const Color(0xFFDC2626),
+                              tooltip: texts.deleteTooltip,
+                              onPressed: () =>
+                                  unawaited(removeItemWithUndo(item)),
+                            );
+                      final statusHints = <Widget>[
+                        if (!canIncrease) ...<Widget>[
+                          const SizedBox(height: 4),
+                          Text(
+                            texts.maxStockReached,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colors.error,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                        if (isSyncingItem) ...<Widget>[
+                          const SizedBox(height: 4),
+                          Text(
+                            texts.syncingItemHint,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ];
                       return FadeSlideIn(
                         key: ValueKey(item.product.id),
                         delay: Duration(milliseconds: 30 * index),
@@ -289,7 +350,9 @@ class CartScreen extends StatelessWidget {
                           hint: texts.cartItemHint,
                           child: Dismissible(
                             key: ValueKey('dismiss-${item.product.id}'),
-                            direction: DismissDirection.endToStart,
+                            direction: isSyncingItem
+                                ? DismissDirection.none
+                                : DismissDirection.endToStart,
                             confirmDismiss: (_) => confirmDismiss(item),
                             background: Container(
                               alignment: Alignment.centerRight,
@@ -394,7 +457,7 @@ class CartScreen extends StatelessWidget {
                                                             .onSurfaceVariant,
                                                       ),
                                                 ),
-                                                ...stockWarning,
+                                                ...statusHints,
                                               ],
                                             ),
                                           ),
@@ -465,7 +528,7 @@ class CartScreen extends StatelessWidget {
                                                                 .onSurfaceVariant,
                                                           ),
                                                     ),
-                                                    ...stockWarning,
+                                                    ...statusHints,
                                                   ],
                                                 ),
                                               ),
@@ -592,10 +655,24 @@ class CartScreen extends StatelessWidget {
                               ),
                             ),
                           ),
+                        if (isCartSyncing)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                texts.syncingBeforeCheckoutHint,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colors.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: hasAnyOrderableItems
+                            onPressed: hasAnyOrderableItems && !isCartSyncing
                                 ? () {
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
@@ -605,7 +682,23 @@ class CartScreen extends StatelessWidget {
                                     );
                                   }
                                 : null,
-                            child: Text(texts.checkoutButton),
+                            child: isCartSyncing
+                                ? Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.2,
+                                          color: colors.onPrimary,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(texts.syncingCheckoutButton),
+                                    ],
+                                  )
+                                : Text(texts.checkoutButton),
                           ),
                         ),
                       ],
@@ -684,9 +777,14 @@ class _CartTexts {
   String get totalPaymentLabel =>
       isEnglish ? 'Total payment' : 'Tổng thanh toán';
   String get checkoutButton => isEnglish ? 'Checkout' : 'Thanh toán';
+  String get syncingCheckoutButton =>
+      isEnglish ? 'Syncing cart...' : 'Đang đồng bộ giỏ hàng...';
   String get checkoutUnavailableHint => isEnglish
       ? 'No available products for checkout.'
       : 'Không có sản phẩm khả dụng để thanh toán.';
+  String get syncingBeforeCheckoutHint => isEnglish
+      ? 'Wait for cart sync to finish before checkout.'
+      : 'Vui lòng chờ đồng bộ giỏ hàng hoàn tất trước khi thanh toán.';
 
   String removedFromCart(String productName) => isEnglish
       ? 'Removed $productName from cart'
@@ -715,21 +813,28 @@ class _CartTexts {
   String skuLabel(String sku) => 'SKU: $sku';
   String get maxStockReached =>
       isEnglish ? 'Reached maximum stock' : 'Đã đạt tồn kho tối đa';
+  String get syncingItemHint =>
+      isEnglish ? 'Syncing quantity...' : 'Đang đồng bộ số lượng...';
   String get discontinuedProduct => isEnglish
       ? 'Product is temporarily unavailable'
       : 'Sản phẩm tạm ngưng phân phối';
 
   String buyMoreHint({
-    required int targetQuantity,
+    required int remainingQuantity,
     required int targetPercent,
-    required int current,
+    String? productName,
   }) {
-    final remaining = targetQuantity - current;
     final target = targetPercent;
     if (isEnglish) {
-      return 'Buy $remaining more products to get $targetPercent% off.';
+      if (productName != null && productName.trim().isNotEmpty) {
+        return 'Buy $remainingQuantity more of "$productName" to get $targetPercent% off.';
+      }
+      return 'Buy $remainingQuantity more products to get $targetPercent% off.';
     }
-    return 'Mua thêm $remaining sản phẩm để giảm $target%.';
+    if (productName != null && productName.trim().isNotEmpty) {
+      return 'Mua thêm $remainingQuantity sản phẩm "$productName" để giảm $target%.';
+    }
+    return 'Mua thêm $remainingQuantity sản phẩm để giảm $target%.';
   }
 
   String get emptyTitle =>
@@ -739,4 +844,20 @@ class _CartTexts {
       : 'Hãy thêm sản phẩm để bắt đầu đặt hàng.';
   String get continueShoppingButton =>
       isEnglish ? 'Continue shopping' : 'Tiếp tục mua hàng';
+}
+
+String? _productNameForDiscountTarget(
+  List<CartItem> items,
+  BulkDiscountTarget target,
+) {
+  final productId = target.productId;
+  if (productId == null) {
+    return null;
+  }
+  for (final item in items) {
+    if (item.product.id == productId) {
+      return item.product.name;
+    }
+  }
+  return null;
 }

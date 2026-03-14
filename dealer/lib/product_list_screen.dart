@@ -137,7 +137,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 child: _buildStickyFilterBar(
                   context,
                   isTablet: isTablet,
-                  cartTotalItems: cart.totalItems,
+                  cart: cart,
                 ),
               ),
             ),
@@ -362,7 +362,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   Widget _buildDiscountBanner(
     BuildContext context, {
-    required int totalItems,
+    required CartController cart,
     required bool isTablet,
   }) {
     final theme = Theme.of(context);
@@ -393,7 +393,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
           SizedBox(width: iconSpacing),
           Expanded(
             child: Text(
-              _discountBannerMessage(totalItems),
+              _discountBannerMessage(cart),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style:
@@ -411,20 +411,37 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
-  String _discountBannerMessage(int totalItems) {
-    if (totalItems >= 20) {
-      return 'Đã đạt mức chiết khấu tối đa 20%';
+  String _discountBannerMessage(CartController cart) {
+    final nextTarget = cart.nextDiscountTarget;
+    if (nextTarget == null) {
+      if (cart.discountPercent > 0) {
+        return 'Đã đạt mức chiết khấu hiện tại ${cart.discountPercent}%';
+      }
+      return 'Chiết khấu số lượng sẽ áp dụng tự động khi đủ điều kiện';
     }
-    if (totalItems >= 10) {
-      return 'Đã đạt 10% - Mua thêm ${20 - totalItems} SP để lên 20%';
+
+    final remaining = remainingQuantityForBulkDiscountTarget(
+      target: nextTarget,
+      items: cart.items,
+    );
+    if (remaining <= 0) {
+      if (cart.discountPercent > 0) {
+        return 'Đã đạt mức chiết khấu hiện tại ${cart.discountPercent}%';
+      }
+      return 'Chiết khấu số lượng sẽ áp dụng tự động khi đủ điều kiện';
     }
-    return 'Mua thêm ${10 - totalItems} SP để đạt chiết khấu 10%';
+
+    final productName = _productNameForDiscountTarget(cart.items, nextTarget);
+    if (productName != null && productName.trim().isNotEmpty) {
+      return 'Mua thêm $remaining sản phẩm "$productName" để đạt chiết khấu ${nextTarget.percent}%';
+    }
+    return 'Mua thêm $remaining sản phẩm để đạt chiết khấu ${nextTarget.percent}%';
   }
 
   Widget _buildStickyFilterBar(
     BuildContext context, {
     required bool isTablet,
-    required int cartTotalItems,
+    required CartController cart,
   }) {
     final hasActiveFilters = _hasAnyFilters;
     final activeCount = _activeFilterCount;
@@ -457,11 +474,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildDiscountBanner(
-              context,
-              totalItems: cartTotalItems,
-              isTablet: isTablet,
-            ),
+            _buildDiscountBanner(context, cart: cart, isTablet: isTablet),
             const SizedBox(height: 8),
             TextField(
               controller: _searchController,
@@ -722,10 +735,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
     bool isGridLayout = false,
   }) {
     final delay = Duration(milliseconds: 30 * (index % _pageSize));
+    final isSyncingProduct = cart.isSyncingProduct(product.id);
     final isAddingToCart = _addingProductIds.contains(product.id);
+    final isBusy = isAddingToCart || isSyncingProduct;
     final remainingStock = cart.remainingStockFor(product);
     final suggestedAddQuantity = cart.suggestedAddQuantity(product);
-    final canAddToCart = suggestedAddQuantity > 0 && !isAddingToCart;
+    final canAddToCart = suggestedAddQuantity > 0 && !isBusy;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final imageSize = isTablet ? 80.0 : 64.0;
@@ -890,7 +905,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
                         Widget buildQuantityButton() {
                           return Tooltip(
-                            message: 'Chọn số lượng',
+                            message: isSyncingProduct
+                                ? 'Đang đồng bộ giỏ hàng'
+                                : 'Chọn số lượng',
                             child: OutlinedButton(
                               onPressed: canAddToCart
                                   ? () => _handleAddToCart(
@@ -905,7 +922,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                   horizontal: 10,
                                 ),
                               ),
-                              child: const Icon(Icons.tune, size: 18),
+                              child: isSyncingProduct
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.tune, size: 18),
                             ),
                           );
                         }
@@ -932,7 +957,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                   ? theme.colorScheme.onSecondaryContainer
                                   : null,
                             ),
-                            child: isAddingToCart
+                            child: isBusy
                                 ? const SizedBox(
                                     width: 18,
                                     height: 18,
@@ -1039,7 +1064,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
     Product product, {
     bool openQuantityDialog = false,
   }) async {
-    if (_addingProductIds.contains(product.id)) {
+    if (_addingProductIds.contains(product.id) ||
+        cart.isSyncingProduct(product.id)) {
       return;
     }
     final remainingStock = cart.remainingStockFor(product);
@@ -1313,3 +1339,19 @@ class _ProductCardSkeleton extends StatelessWidget {
 enum StockFilter { all, inStock, lowStock, outOfStock }
 
 enum SortOption { none, priceAsc, priceDesc, nameAsc }
+
+String? _productNameForDiscountTarget(
+  List<CartItem> items,
+  BulkDiscountTarget target,
+) {
+  final productId = target.productId;
+  if (productId == null) {
+    return null;
+  }
+  for (final item in items) {
+    if (item.product.id == productId) {
+      return item.product.name;
+    }
+  }
+  return null;
+}

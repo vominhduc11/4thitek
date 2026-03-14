@@ -2766,10 +2766,11 @@ List<_MonthRevenue> _buildMonthlyRevenue(
 }) {
   final values = List<int>.filled(12, 0);
   for (final order in orders) {
-    if (order.createdAt.year != year) {
+    final revenueAt = _orderRevenueTimestamp(order);
+    if (revenueAt == null || revenueAt.year != year) {
       continue;
     }
-    values[order.createdAt.month - 1] += order.total;
+    values[revenueAt.month - 1] += order.total;
   }
 
   return [

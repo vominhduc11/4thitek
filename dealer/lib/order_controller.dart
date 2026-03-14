@@ -411,6 +411,7 @@ class OrderController extends ChangeNotifier {
     return Order(
       id: orderCode,
       createdAt: parseApiDateTime(json['createdAt']) ?? DateTime.now(),
+      completedAt: parseApiDateTime(json['completedAt']),
       status: _mapRemoteOrderStatus(json['status']?.toString()),
       paymentMethod: _mapRemotePaymentMethod(json['paymentMethod']?.toString()),
       paymentStatus: _mapRemotePaymentStatus(json['paymentStatus']?.toString()),
