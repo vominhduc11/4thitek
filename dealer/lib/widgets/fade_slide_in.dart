@@ -43,15 +43,21 @@ class _FadeSlideInState extends State<FadeSlideIn>
       _controller.value = 1;
       return;
     }
-    if (widget.delay == Duration.zero) {
-      _controller.forward();
-    } else {
-      Future<void>.delayed(widget.delay, () {
-        if (mounted) {
-          _controller.forward();
-        }
-      });
-    }
+    // Check disableAnimations after the first frame (context not available in initState).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (MediaQuery.of(context).disableAnimations) {
+        _controller.value = 1;
+        return;
+      }
+      if (widget.delay == Duration.zero) {
+        _controller.forward();
+      } else {
+        Future<void>.delayed(widget.delay, () {
+          if (mounted) _controller.forward();
+        });
+      }
+    });
   }
 
   @override

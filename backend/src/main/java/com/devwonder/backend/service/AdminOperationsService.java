@@ -175,7 +175,7 @@ public class AdminOperationsService {
 
         Set<String> uniqueSerials = new LinkedHashSet<>();
         for (String rawSerial : request.serials()) {
-            String serial = requireNonBlank(rawSerial, "serial");
+            String serial = requireNonBlank(rawSerial, "serial").toUpperCase(Locale.ROOT);
             if (!uniqueSerials.add(serial)) {
                 continue;
             }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLanguage } from '@/context/LanguageContext';
@@ -15,20 +15,27 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
     const { t } = useLanguage();
     const [serialNumber, setSerialNumber] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [validationError, setValidationError] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!serialNumber.trim()) {
-            alert(t('warrantyCheck.form.alertSerial'));
+            setValidationError(t('warrantyCheck.form.alertSerial'));
             return;
         }
 
+        setValidationError(null);
         setIsLoading(true);
         try {
             await onSubmit({ serialNumber });
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSerialNumber(e.target.value);
+        if (validationError) setValidationError(null);
     };
 
     return (
@@ -53,6 +60,7 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
+                noValidate
             >
                 <motion.div
                     initial={{ opacity: 0, x: -20 }}
@@ -60,20 +68,43 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                     transition={{ duration: 0.5, delay: 0.4 }}
                 >
                     <label htmlFor="serialNumber" className="block text-sm font-medium text-gray-300 mb-2">
-                        {t('warrantyCheck.form.serialNumberRequired')} <span className="text-red-500">*</span>
+                        {t('warrantyCheck.form.serialNumberRequired')} <span className="text-red-500" aria-hidden="true">*</span>
                     </label>
                     <Input
                         id="serialNumber"
                         type="text"
                         value={serialNumber}
-                        onChange={(e) => setSerialNumber(e.target.value)}
+                        onChange={handleChange}
                         placeholder={t('warrantyCheck.form.serialNumberPlaceholder')}
                         required
-                        className="w-full transition-all duration-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-400"
+                        aria-required="true"
+                        aria-invalid={validationError ? 'true' : 'false'}
+                        aria-describedby={validationError ? 'serial-error' : 'serial-helper'}
+                        className={`w-full transition-all duration-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-400 ${
+                            validationError ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
+                        }`}
                     />
-                    <p className="text-xs sm:text-sm text-gray-400 mt-1">
-                        {t('warrantyCheck.form.serialNumberHelper')}
-                    </p>
+                    <AnimatePresence mode="wait">
+                        {validationError ? (
+                            <motion.p
+                                id="serial-error"
+                                role="alert"
+                                key="error"
+                                className="text-xs sm:text-sm text-red-400 mt-1 flex items-center gap-1"
+                                initial={{ opacity: 0, y: -4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -4 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <span aria-hidden="true">⚠</span>
+                                {validationError}
+                            </motion.p>
+                        ) : (
+                            <p id="serial-helper" className="text-xs sm:text-sm text-gray-400 mt-1">
+                                {t('warrantyCheck.form.serialNumberHelper')}
+                            </p>
+                        )}
+                    </AnimatePresence>
                 </motion.div>
 
                 <motion.div
@@ -105,34 +136,11 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                 transition={{ duration: 0.5, delay: 0.6 }}
             >
                 <h3 className="font-semibold text-gray-300 mb-2">{t('warrantyCheck.form.notes.title')}</h3>
-                <motion.ul
-                    className="text-sm text-gray-400 space-y-1"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 0.7 }}
-                >
-                    <motion.li
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: 0.8 }}
-                    >
-                        {t('warrantyCheck.form.notes.serialRequired')}
-                    </motion.li>
-                    <motion.li
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: 0.9 }}
-                    >
-                        {t('warrantyCheck.form.notes.infoDisplay')}
-                    </motion.li>
-                    <motion.li
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: 1.0 }}
-                    >
-                        {t('warrantyCheck.form.notes.contactSupport')}
-                    </motion.li>
-                </motion.ul>
+                <ul className="text-sm text-gray-400 space-y-1">
+                    <li>{t('warrantyCheck.form.notes.serialRequired')}</li>
+                    <li>{t('warrantyCheck.form.notes.infoDisplay')}</li>
+                    <li>{t('warrantyCheck.form.notes.contactSupport')}</li>
+                </ul>
             </motion.div>
         </motion.div>
     );

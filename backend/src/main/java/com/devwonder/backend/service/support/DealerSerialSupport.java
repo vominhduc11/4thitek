@@ -18,6 +18,7 @@ import com.devwonder.backend.repository.ProductSerialRepository;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -56,7 +57,7 @@ public class DealerSerialSupport {
         }
         Set<String> uniqueSerials = new LinkedHashSet<>();
         for (String rawSerial : request.serials()) {
-            String serial = DealerRequestSupport.requireNonBlank(rawSerial, "serial");
+            String serial = DealerRequestSupport.requireNonBlank(rawSerial, "serial").toUpperCase(Locale.ROOT);
             if (!uniqueSerials.add(serial)) {
                 continue;
             }

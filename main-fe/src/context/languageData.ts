@@ -574,6 +574,7 @@ export const translations = {
                 status: {
                     active: 'Active',
                     expired: 'Expired',
+                    void: 'Voided',
                     invalid: 'Invalid'
                 },
                 fields: {
@@ -1380,6 +1381,7 @@ export const translations = {
                 status: {
                     active: 'Còn bảo hành',
                     expired: 'Hết bảo hành',
+                    void: 'Đã vô hiệu',
                     invalid: 'Không hợp lệ'
                 },
                 fields: {

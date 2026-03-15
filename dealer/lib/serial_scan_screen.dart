@@ -101,10 +101,12 @@ class _SerialScanScreenState extends State<SerialScanScreen>
     });
     HapticFeedback.mediumImpact();
     Future<void>.delayed(_scanSuccessDelay, () {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       Navigator.of(context).pop(value);
+    });
+    // Fade out the success flash after a short display.
+    Future<void>.delayed(const Duration(milliseconds: 1200), () {
+      if (mounted) setState(() => _showSuccessFlash = false);
     });
   }
 
@@ -583,21 +585,38 @@ class _SerialScanScreenState extends State<SerialScanScreen>
                     );
                   },
                   overlayBuilder: (context, overlayConstraints) {
-                    return AnimatedBuilder(
-                      animation: _scanLineController,
-                      builder: (context, child) {
-                        return CustomPaint(
-                          size: overlayConstraints.biggest,
-                          painter: _ScannerOverlayPainter(
-                            scanWindow: scanWindow,
-                            frameRadius: _scanFrameRadius,
-                            scanLineProgress: Curves.easeInOut.transform(
-                              _scanLineController.value,
+                    return Stack(
+                      children: [
+                        AnimatedBuilder(
+                          animation: _scanLineController,
+                          builder: (context, child) {
+                            return CustomPaint(
+                              size: overlayConstraints.biggest,
+                              painter: _ScannerOverlayPainter(
+                                scanWindow: scanWindow,
+                                frameRadius: _scanFrameRadius,
+                                scanLineProgress: Curves.easeInOut.transform(
+                                  _scanLineController.value,
+                                ),
+                                showSuccessFlash: false,
+                              ),
+                            );
+                          },
+                        ),
+                        AnimatedOpacity(
+                          opacity: _showSuccessFlash ? 1.0 : 0.0,
+                          duration: const Duration(milliseconds: 250),
+                          child: CustomPaint(
+                            size: overlayConstraints.biggest,
+                            painter: _ScannerOverlayPainter(
+                              scanWindow: scanWindow,
+                              frameRadius: _scanFrameRadius,
+                              scanLineProgress: 0,
+                              showSuccessFlash: true,
                             ),
-                            showSuccessFlash: _showSuccessFlash,
                           ),
-                        );
-                      },
+                        ),
+                      ],
                     );
                   },
                 ),

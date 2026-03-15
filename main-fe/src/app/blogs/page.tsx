@@ -1,6 +1,16 @@
+import type { Metadata } from 'next';
 import BlogsPageClient from './BlogsPageClient';
 import { mapBlogSummaryToPost } from '@/lib/contentMappers';
 import { publicApiServer } from '@/lib/publicApiServer';
+import { createBaseMetadata } from '@/lib/seo';
+
+export const metadata: Metadata = createBaseMetadata({
+    locale: 'vi',
+    path: '/blogs',
+    title: 'Tin tức & Bài viết - 4ThiTek',
+    description: 'Cập nhật tin tức mới nhất về tai nghe SCS, hướng dẫn sử dụng, đánh giá sản phẩm và các bài viết chuyên sâu từ 4ThiTek.',
+    keywords: ['tin tức tai nghe SCS', '4ThiTek blog', 'đánh giá tai nghe', 'hướng dẫn tai nghe SCS']
+});
 
 interface BlogsPageProps {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;

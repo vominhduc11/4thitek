@@ -4,51 +4,60 @@ import Image from 'next/image';
 import { motion, Variants } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAnimationConfig } from '@/hooks/useReducedMotion';
 import type { SimpleProduct } from '@/types/product';
 
 const HERO_VIDEO = '/videos/motorbike-road-trip-2022-07-26-01-49-02-utc.mp4';
 
-const videoVariants: Variants = {
-    hidden: { scale: 1.04, opacity: 0 },
-    visible: { scale: 1, opacity: 1, transition: { duration: 0.8, ease: 'easeOut' } }
-};
+const makeVideoVariants = (animate: boolean): Variants => ({
+    hidden: animate ? { scale: 1.04, opacity: 0 } : { opacity: 0 },
+    visible: animate
+        ? { scale: 1, opacity: 1, transition: { duration: 0.8, ease: 'easeOut' } }
+        : { opacity: 1, transition: { duration: 0.5 } }
+});
 
-const overlayVariants: Variants = {
+const makeOverlayVariants = (): Variants => ({
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { duration: 0.5 } }
-};
+});
 
-const titleVariants: Variants = {
-    hidden: { y: -40, opacity: 0, scale: 0.95 },
+const makeTitleVariants = (animate: boolean): Variants => ({
+    hidden: { y: animate ? -40 : 0, opacity: 0, scale: animate ? 0.95 : 1 },
     visible: {
         y: 0,
         opacity: 1,
         scale: 1,
-        transition: { duration: 0.7, delay: 0.15, type: 'spring', stiffness: 100, damping: 15 }
+        transition: animate
+            ? { duration: 0.7, delay: 0.15, type: 'spring', stiffness: 100, damping: 15 }
+            : { duration: 0.4 }
     }
-};
+});
 
-const productVariants: Variants = {
-    hidden: { scale: 0.9, opacity: 0, y: 24 },
+const makeProductVariants = (animate: boolean): Variants => ({
+    hidden: { scale: animate ? 0.9 : 1, opacity: 0, y: animate ? 24 : 0 },
     visible: {
         scale: 1,
         opacity: 1,
         y: 0,
-        transition: { duration: 0.8, delay: 0.3, type: 'spring', stiffness: 90, damping: 14 }
+        transition: animate
+            ? { duration: 0.8, delay: 0.3, type: 'spring', stiffness: 90, damping: 14 }
+            : { duration: 0.4 }
     }
-};
+});
 
-const contentVariants: Variants = {
-    hidden: { y: 32, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { duration: 0.6, delay: 0.45 } }
-};
+const makeContentVariants = (animate: boolean): Variants => ({
+    hidden: { y: animate ? 32 : 0, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.6, delay: animate ? 0.45 : 0 } }
+});
 
-const buttonVariants: Variants = {
-    hidden: { scale: 0.96, opacity: 0 },
+const makeButtonVariants = (animate: boolean): Variants => ({
+    hidden: { scale: animate ? 0.96 : 1, opacity: 0 },
     visible: {
         scale: 1,
         opacity: 1,
-        transition: { duration: 0.5, delay: 0.65, type: 'spring', stiffness: 160 }
+        transition: animate
+            ? { duration: 0.5, delay: 0.65, type: 'spring', stiffness: 160 }
+            : { duration: 0.3 }
     },
     hover: {
         scale: 1.04,
@@ -57,7 +66,7 @@ const buttonVariants: Variants = {
         transition: { duration: 0.2 }
     },
     tap: { scale: 0.97 }
-};
+});
 
 interface HeroSectionProps {
     initialProduct?: SimpleProduct | null;
@@ -80,9 +89,17 @@ const formatProductTitle = (title: string) => {
 export default function HeroSection({ initialProduct = null }: HeroSectionProps) {
     const router = useRouter();
     const { t } = useLanguage();
+    const { enableInfiniteAnimations, enableDecorativeAnimations } = useAnimationConfig();
     const product = initialProduct;
     const displayName = product?.name || t('products.title');
     const displayImage = product?.image || '';
+
+    const videoVariants = makeVideoVariants(enableDecorativeAnimations);
+    const overlayVariants = makeOverlayVariants();
+    const titleVariants = makeTitleVariants(enableDecorativeAnimations);
+    const productVariants = makeProductVariants(enableDecorativeAnimations);
+    const contentVariants = makeContentVariants(enableDecorativeAnimations);
+    const buttonVariants = makeButtonVariants(enableDecorativeAnimations);
 
     return (
         <section
@@ -182,17 +199,19 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                 </motion.button>
             </motion.div>
 
-            {[
-                { left: '12%', top: '24%', delay: '0s' },
-                { left: '32%', top: '68%', delay: '0.4s' },
-                { left: '78%', top: '38%', delay: '0.8s' }
-            ].map((particle, index) => (
-                <div
-                    key={index}
-                    className="absolute h-2 w-2 animate-float-slow rounded-full bg-blue-400 opacity-60"
-                    style={{ left: particle.left, top: particle.top, animationDelay: particle.delay }}
-                />
-            ))}
+            {enableInfiniteAnimations &&
+                [
+                    { left: '12%', top: '24%', delay: '0s' },
+                    { left: '32%', top: '68%', delay: '0.4s' },
+                    { left: '78%', top: '38%', delay: '0.8s' }
+                ].map((particle, index) => (
+                    <div
+                        key={index}
+                        className="absolute h-2 w-2 animate-float-slow rounded-full bg-blue-400 opacity-60"
+                        style={{ left: particle.left, top: particle.top, animationDelay: particle.delay }}
+                        aria-hidden="true"
+                    />
+                ))}
         </section>
     );
 }

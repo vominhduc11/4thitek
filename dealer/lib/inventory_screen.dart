@@ -153,7 +153,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   void _jumpToTop() {
     if (_scrollController.hasClients) {
-      _scrollController.jumpTo(0);
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
     }
   }
 

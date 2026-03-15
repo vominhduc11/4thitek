@@ -7,7 +7,7 @@ import {
     SearchCombinedResponse
 } from '@/types/api';
 import { WarrantyCheckData } from '@/types/warranty';
-import { API_BASE_URL, API_ENDPOINTS } from '@/constants/api';
+import { API_BASE_URL, API_DEFAULTS, API_ENDPOINTS } from '@/constants/api';
 
 type Language = 'en' | 'vi';
 
@@ -116,6 +116,7 @@ class ApiService {
     private async request<T>(path: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
         const { method = 'GET', token, body, params, cache, revalidate, signal } = options;
         const isPublicGet = method === 'GET' && !token && body === undefined;
+
         const requestInit: RequestInit & { next?: { revalidate: number } } = {
             method,
             headers: {
@@ -124,31 +125,48 @@ class ApiService {
                 ...(body === undefined ? {} : { 'Content-Type': 'application/json' })
             },
             body: body === undefined ? undefined : JSON.stringify(body),
-            cache: cache ?? (isPublicGet ? 'force-cache' : 'no-store'),
-            signal
+            cache: cache ?? (isPublicGet ? 'force-cache' : 'no-store')
         };
         if (typeof window === 'undefined' && isPublicGet && revalidate !== undefined) {
             requestInit.next = { revalidate };
         }
 
-        const response = await fetch(`${API_BASE_URL}${this.buildPath(path, params)}`, requestInit);
+        // Merge caller's signal with a timeout abort controller
+        const timeoutMs = API_DEFAULTS.TIMEOUTS.DEFAULT;
+        const timeoutController = new AbortController();
+        const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
 
-        let payload: ApiResponse<T> | null = null;
+        if (signal) {
+            signal.addEventListener('abort', () => timeoutController.abort());
+        }
+        requestInit.signal = timeoutController.signal;
+
         try {
-            payload = (await response.json()) as ApiResponse<T>;
-        } catch {
-            payload = null;
-        }
+            const response = await fetch(`${API_BASE_URL}${this.buildPath(path, params)}`, requestInit);
+            clearTimeout(timeoutId);
 
-        if (!response.ok || payload?.success === false) {
-            throw new Error(payload?.error || `Request failed: ${response.status}`);
-        }
+            let payload: ApiResponse<T> | null = null;
+            try {
+                payload = (await response.json()) as ApiResponse<T>;
+            } catch {
+                payload = null;
+            }
 
-        return {
-            success: true,
-            data: payload?.data ?? null,
-            error: payload?.error
-        };
+            if (!response.ok || payload?.success === false) {
+                const statusCode = response.status;
+                const errorMsg = payload?.error || `Request failed: ${statusCode}`;
+                throw Object.assign(new Error(errorMsg), { statusCode });
+            }
+
+            return {
+                success: true,
+                data: payload?.data ?? null,
+                error: payload?.error
+            };
+        } catch (err) {
+            clearTimeout(timeoutId);
+            throw err;
+        }
     }
 
     private toProductListItem(product: ProductSummaryPayload) {

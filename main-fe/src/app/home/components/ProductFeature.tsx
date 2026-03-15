@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import AvoidSidebar from '@/components/layout/AvoidSidebar';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAnimationConfig } from '@/hooks/useReducedMotion';
 import { apiService } from '@/services/apiService';
 import { parseImageUrl } from '@/utils/media';
 
@@ -35,23 +36,21 @@ export type CarouselDirection = -1 | 0 | 1;
 export type AnimationVariant = 'enter' | 'center' | 'exit' | 'hidden' | 'visible' | 'hover' | 'tap';
 
 // Animation Variants Configuration
+// NOTE: No rotateY/3D transforms - too expensive on mobile, causes jank
 export const imageVariants = {
     enter: (direction: number) => ({
-        x: direction > 0 ? 300 : -300,
+        x: direction > 0 ? 200 : -200,
         opacity: 0,
-        rotateY: direction > 0 ? 35 : -35,
         scale: 0.95
     }),
     center: {
         x: 0,
         opacity: 1,
-        rotateY: 0,
         scale: 1
     },
     exit: (direction: number) => ({
-        x: direction < 0 ? 300 : -300,
+        x: direction < 0 ? 200 : -200,
         opacity: 0,
-        rotateY: direction < 0 ? 35 : -35,
         scale: 0.95
     })
 } as const;
@@ -116,6 +115,7 @@ export default function ProductFeature() {
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
     const { t } = useLanguage();
+    const { enableComplexAnimations } = useAnimationConfig();
 
     useEffect(() => {
         const fetchFeaturedItems = async () => {
@@ -137,8 +137,7 @@ export default function ProductFeature() {
                 );
                 setFeaturedItems(items);
                 setActiveIndex(0);
-            } catch (error) {
-                console.error('Error fetching featured products:', error);
+            } catch {
                 setFeaturedItems([]);
             } finally {
                 setIsLoading(false);
@@ -269,15 +268,13 @@ export default function ProductFeature() {
                                         initial="enter"
                                         animate="center"
                                         exit="exit"
-                                        whileHover={{ scale: 1.12 }}
+                                        whileHover={enableComplexAnimations ? { scale: 1.08 } : undefined}
                                         transition={{
-                                            x: { type: 'spring', stiffness: 300, damping: 30 },
-                                            opacity: { duration: 0.3 },
-                                            scale: { duration: 0.4 },
-                                            rotateY: { duration: 0.4 }
+                                            x: { type: 'tween', duration: 0.35, ease: 'easeInOut' },
+                                            opacity: { duration: 0.25 },
+                                            scale: { duration: 0.35 }
                                         }}
                                         className="absolute inset-0 h-full w-full object-contain"
-                                        style={{ perspective: '1000px' }}
                                     />
                                 </AnimatePresence>
                             ) : (

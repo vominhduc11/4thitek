@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { FiMenu, FiSearch } from 'react-icons/fi';
 import { motion, Variants } from 'framer-motion';
@@ -77,19 +78,20 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <motion.div className="flex items-center gap-3 sm:gap-4" variants={logoVariants}>
                 <button
                     onClick={onMenuClick}
-                    className="p-1.5 sm:p-2 rounded transition-all duration-200 hover:bg-white/10 sm:hidden"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded transition-all duration-200 hover:bg-white/10 sm:hidden"
                     aria-label={t('common.openMenu')}
                     suppressHydrationWarning
                 >
-                    <FiMenu size={24} className="sm:w-8 sm:h-8" color="#27b2fc" />
+                    <FiMenu size={24} color="#27b2fc" />
                 </button>
                 <Link href="/" className="transition-all duration-300 ease-out cursor-pointer" style={logoStyle}>
-                    <img
+                    <Image
                         src="/logo-4t.png"
                         alt={t('brand.logoAlt')}
                         width={142}
                         height={32}
                         className="w-[106px] sm:w-[142px] h-auto hover:scale-105 transition-transform duration-200"
+                        priority
                     />
                 </Link>
             </motion.div>
@@ -97,11 +99,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <motion.div variants={searchVariants} className="flex items-center gap-2 sm:gap-3">
                 <button
                     onClick={openSearch}
-                    className="p-1.5 sm:p-2 rounded transition-all duration-200 hover:bg-white/10"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded transition-all duration-200 hover:bg-white/10"
                     aria-label={t('common.search')}
                     suppressHydrationWarning
                 >
-                    <FiSearch size={20} className="sm:w-5 sm:h-5" color="#fff" />
+                    <FiSearch size={20} color="#fff" />
                 </button>
                 <LanguageSwitcher />
             </motion.div>

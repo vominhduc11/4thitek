@@ -23,25 +23,36 @@ const PURIFY_CONFIG = {
 };
 
 /**
+ * Server-side HTML sanitizer: strips the most dangerous XSS patterns.
+ * DOMPurify requires a browser DOM, so this protects the initial SSR HTML payload.
+ * DOMPurify runs on the client for thorough sanitization during hydration.
+ */
+function serverSanitizeHtml(dirty: string): string {
+    return dirty
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, '')
+        .replace(/(href|src|action)\s*=\s*(?:"javascript:[^"]*"|'javascript:[^']*'|javascript:[^\s>]*)/gi, '')
+        .replace(/\bsrc\s*=\s*(?:"data:(?!image\/)[^"]*"|'data:(?!image\/)[^']*')/gi, '');
+}
+
+/**
  * Sanitizes HTML content to prevent XSS attacks
  * @param dirty - Raw HTML string that may contain malicious content
  * @returns Sanitized HTML string safe for rendering
  */
 export function sanitizeHtml(dirty: string): string {
-    if (typeof window === 'undefined') {
-        // Server-side rendering - return as is (will be sanitized on client)
-        return dirty;
-    }
-
     if (!dirty || typeof dirty !== 'string') {
         return '';
+    }
+
+    if (typeof window === 'undefined') {
+        return serverSanitizeHtml(dirty);
     }
 
     try {
         return DOMPurify.sanitize(dirty, PURIFY_CONFIG);
     } catch (error) {
         console.error('HTML sanitization failed:', error);
-        // Fallback: strip all HTML tags if sanitization fails
         return dirty.replace(/<[^>]*>/g, '');
     }
 }
@@ -52,12 +63,12 @@ export function sanitizeHtml(dirty: string): string {
  * @returns Sanitized HTML string safe for rendering
  */
 export function sanitizeBlogContent(dirty: string): string {
-    if (typeof window === 'undefined') {
-        return dirty;
-    }
-
     if (!dirty || typeof dirty !== 'string') {
         return '';
+    }
+
+    if (typeof window === 'undefined') {
+        return serverSanitizeHtml(dirty);
     }
 
     const blogConfig = {

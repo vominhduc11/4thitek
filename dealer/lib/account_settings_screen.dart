@@ -33,7 +33,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   bool _isUploadingAvatar = false;
   bool _hasUnsavedChanges = false;
   bool _didLoadInitialData = false;
-  String _initialSnapshot = '';
+  int _initialSnapshot = 0;
   String? _avatarUrl;
 
   List<TextEditingController> get _editableControllers => [
@@ -397,13 +397,13 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
     final screenTitle = isEnglish ? 'Account settings' : 'Cài đặt tài khoản';
     final resetTooltip = isEnglish ? 'Reset to defaults' : 'Đặt lại mặc định';
-    final avatarTitle = isEnglish ? 'Avatar' : 'Anh dai dien';
+    final avatarTitle = isEnglish ? 'Avatar' : 'Ảnh đại diện';
     final avatarHint = isEnglish
         ? 'Upload a dealer avatar for profile screens.'
         : 'Tải ảnh đại diện cho hồ sơ đại lý.';
     final uploadAvatarLabel = isEnglish ? 'Upload avatar' : 'Tải avatar';
-    final replaceAvatarLabel = isEnglish ? 'Replace avatar' : 'Doi avatar';
-    final removeAvatarLabel = isEnglish ? 'Remove avatar' : 'Xoa avatar';
+    final replaceAvatarLabel = isEnglish ? 'Replace avatar' : 'Đổi avatar';
+    final removeAvatarLabel = isEnglish ? 'Remove avatar' : 'Xóa avatar';
     final companyTitle = isEnglish
         ? 'Business information'
         : 'Thông tin doanh nghiệp';

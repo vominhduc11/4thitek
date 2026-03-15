@@ -416,11 +416,19 @@ class NotificationController extends ChangeNotifier {
     final existingIndex = _notices.indexWhere((entry) => entry.id == notice.id);
     if (existingIndex >= 0) {
       _notices[existingIndex] = notice;
+      // Re-sort only if the timestamp changed (existing entry updated).
+      _notices.sort((left, right) => right.createdAt.compareTo(left.createdAt));
     } else {
-      _notices.add(notice);
+      // Insert in sorted position (descending by createdAt) to avoid full sort.
+      int insertAt = _notices.length;
+      for (int i = 0; i < _notices.length; i++) {
+        if (_notices[i].createdAt.compareTo(notice.createdAt) <= 0) {
+          insertAt = i;
+          break;
+        }
+      }
+      _notices.insert(insertAt, notice);
     }
-
-    _notices.sort((left, right) => right.createdAt.compareTo(left.createdAt));
     _remoteNoticeIds[notice.id] = remoteId;
     if (_parseBool(payload['isRead'])) {
       _readIds.add(notice.id);

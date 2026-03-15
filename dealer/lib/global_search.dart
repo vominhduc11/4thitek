@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'models.dart';
@@ -64,6 +66,19 @@ class _GlobalSearchDelegate extends SearchDelegate<void> {
   final List<Product> products;
   final List<Order> orders;
 
+  Timer? _debounceTimer;
+  String _debouncedQuery = '';
+
+  void _scheduleSearch() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (_debouncedQuery != query.trim()) {
+        _debouncedQuery = query.trim();
+        notifyListeners();
+      }
+    });
+  }
+
   @override
   String get searchFieldLabel => 'Tìm sản phẩm, mã đơn, tên khách...';
 
@@ -93,7 +108,8 @@ class _GlobalSearchDelegate extends SearchDelegate<void> {
 
   @override
   Widget buildSuggestions(BuildContext context) {
-    if (query.trim().isEmpty) {
+    _scheduleSearch();
+    if (_debouncedQuery.isEmpty) {
       return const _SearchHintState();
     }
     return _buildResultList(context);
@@ -101,11 +117,12 @@ class _GlobalSearchDelegate extends SearchDelegate<void> {
 
   @override
   Widget buildResults(BuildContext context) {
+    _debouncedQuery = query.trim();
     return _buildResultList(context);
   }
 
   Widget _buildResultList(BuildContext context) {
-    final items = _search(query);
+    final items = _search(_debouncedQuery);
     if (items.isEmpty) {
       return const _SearchEmptyState();
     }

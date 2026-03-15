@@ -316,7 +316,7 @@ class CartScreen extends StatelessWidget {
                             )
                           : IconButton(
                               icon: const Icon(Icons.delete_outline, size: 20),
-                              color: const Color(0xFFDC2626),
+                              color: colors.error,
                               tooltip: texts.deleteTooltip,
                               onPressed: () =>
                                   unawaited(removeItemWithUndo(item)),
@@ -360,7 +360,7 @@ class CartScreen extends StatelessWidget {
                               alignment: Alignment.centerRight,
                               padding: const EdgeInsets.only(right: 20),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFDC2626),
+                                color: colors.error,
                                 borderRadius: BorderRadius.circular(18),
                               ),
                               child: const Icon(

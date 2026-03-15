@@ -25,6 +25,7 @@ class OrderController extends ChangeNotifier {
   }
 
   final List<Order> _orders;
+  final Map<String, Order> _orderById = <String, Order>{};
   final List<DebtPaymentRecord> _paymentHistory;
   final Product? Function(String productId)? _productLookup;
   late final AuthStorage _authStorage;
@@ -146,8 +147,7 @@ class OrderController extends ChangeNotifier {
   }
 
   Future<bool> updateOrderStatus(String orderId, OrderStatus status) async {
-    final index = _orders.indexWhere((order) => order.id == orderId);
-    if (index < 0) {
+    if (!_orderById.containsKey(orderId)) {
       return false;
     }
 
@@ -193,12 +193,11 @@ class OrderController extends ChangeNotifier {
     String? proofFileName,
     OrderPaymentMethod? method,
   }) async {
-    final index = _orders.indexWhere((order) => order.id == orderId);
-    if (index < 0) {
+    final current = _orderById[orderId];
+    if (current == null) {
       return false;
     }
 
-    final current = _orders[index];
     final outstanding = current.outstandingAmount;
     if (outstanding <= 0) {
       return false;
@@ -386,6 +385,7 @@ class OrderController extends ChangeNotifier {
   }
 
   void _replaceOrder(Order nextOrder) {
+    _orderById[nextOrder.id] = nextOrder;
     final index = _orders.indexWhere((order) => order.id == nextOrder.id);
     if (index >= 0) {
       _orders[index] = nextOrder;
@@ -620,6 +620,9 @@ class OrderController extends ChangeNotifier {
     _orders
       ..clear()
       ..addAll(orders);
+    _orderById
+      ..clear()
+      ..addEntries(_orders.map((o) => MapEntry(o.id, o)));
     _markOrdersDirty();
   }
 

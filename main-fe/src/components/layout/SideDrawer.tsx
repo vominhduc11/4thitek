@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { FiX } from 'react-icons/fi';
 import { FaFacebookF, FaYoutube } from 'react-icons/fa';
@@ -54,6 +54,21 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
             modalManager.closeModal('side-drawer');
         };
     }, [isOpen]);
+
+    // Close on Escape key
+    const handleKeyDown = useCallback(
+        (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isOpen) {
+                onClose();
+            }
+        },
+        [isOpen, onClose]
+    );
+
+    useEffect(() => {
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [handleKeyDown]);
 
     // Animation variants
     const backdropVariants: Variants = {
@@ -123,12 +138,15 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
 
                     {/* Drawer */}
                     <motion.aside
-                        className="fixed top-0 left-0 h-screen w-auto flex shadow-2xl max-w-[95vw] xs:max-w-[90vw] sm:max-w-[85vw] md:max-w-[80vw] lg:max-w-none"
+                        className="fixed top-0 left-0 h-screen w-auto flex shadow-2xl max-w-[85vw] sm:max-w-[75vw] lg:max-w-none"
                         style={{ zIndex: Z_INDEX.DRAWER }}
                         variants={drawerVariants}
                         initial="hidden"
                         animate="visible"
                         exit="exit"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={t('nav.navigation')}
                     >
                         {/* Narrow Side */}
                         <motion.div
@@ -139,13 +157,13 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                         >
                             <motion.button
                                 aria-label={t('common.closeMenu')}
-                                className="text-gray-400 hover:text-white hover:bg-white/10 p-1.5 sm:p-2 md:p-2.5 lg:p-2 xl:p-2.5 rounded-lg"
+                                className="text-gray-400 hover:text-white hover:bg-white/10 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg"
                                 onClick={onClose}
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.95 }}
                                 transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                             >
-                                <FiX size={16} className="sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-5 lg:h-5 xl:w-6 xl:h-6" />
+                                <FiX size={20} />
                             </motion.button>
 
                             <div className="flex flex-col gap-4 sm:gap-6 md:gap-8 lg:gap-6 xl:gap-8">
@@ -215,7 +233,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                 <motion.li variants={staggerItem}>
                                     <motion.button
                                         onClick={handleHomeNavigation}
-                                        className="block text-xs sm:text-sm md:text-base lg:text-sm xl:text-base font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2 md:py-3 lg:py-2 xl:py-3 w-full text-left"
+                                        className="block text-sm sm:text-base font-medium uppercase tracking-wider hover:text-white py-3 min-h-[44px] w-full text-left flex items-center"
                                         whileHover={{ x: 4, color: '#ffffff' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                     >
@@ -226,7 +244,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                 <motion.li variants={staggerItem}>
                                     <motion.button
                                         onClick={handleProductsNavigation}
-                                        className="block text-xs sm:text-sm md:text-base lg:text-sm xl:text-base font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2 md:py-3 lg:py-2 xl:py-3 w-full text-left"
+                                        className="block text-sm sm:text-base font-medium uppercase tracking-wider hover:text-white py-3 min-h-[44px] w-full text-left flex items-center"
                                         whileHover={{ x: 4, color: '#ffffff' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                     >
@@ -241,7 +259,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                             onClose();
                                             router.push('/about');
                                         }}
-                                        className="block text-xs sm:text-sm md:text-base lg:text-sm xl:text-base font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2 md:py-3 lg:py-2 xl:py-3 w-full text-left"
+                                        className="block text-sm sm:text-base font-medium uppercase tracking-wider hover:text-white py-3 min-h-[44px] w-full text-left flex items-center"
                                         whileHover={{ x: 4, color: '#ffffff' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                     >
@@ -256,7 +274,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                             onClose();
                                             router.push('/become_our_reseller#dealer-network');
                                         }}
-                                        className="block text-xs sm:text-sm md:text-base lg:text-sm xl:text-base font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2 md:py-3 lg:py-2 xl:py-3 w-full text-left"
+                                        className="block text-sm sm:text-base font-medium uppercase tracking-wider hover:text-white py-3 min-h-[44px] w-full text-left flex items-center"
                                         whileHover={{ x: 4, color: '#ffffff' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                     >
@@ -269,7 +287,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                 <motion.li variants={staggerItem}>
                                     <motion.button
                                         onClick={handleBlogNavigation}
-                                        className="block text-xs sm:text-sm md:text-base lg:text-sm xl:text-base font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2 md:py-3 lg:py-2 xl:py-3 w-full text-left"
+                                        className="block text-sm sm:text-base font-medium uppercase tracking-wider hover:text-white py-3 min-h-[44px] w-full text-left flex items-center"
                                         whileHover={{ x: 4, color: '#ffffff' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                     >
@@ -284,7 +302,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                             onClose();
                                             router.push('/contact');
                                         }}
-                                        className="block text-xs sm:text-sm md:text-base lg:text-sm xl:text-base font-medium uppercase tracking-wider hover:text-white py-1.5 sm:py-2 md:py-3 lg:py-2 xl:py-3 w-full text-left"
+                                        className="block text-sm sm:text-base font-medium uppercase tracking-wider hover:text-white py-3 min-h-[44px] w-full text-left flex items-center"
                                         whileHover={{ x: 4, color: '#ffffff' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                     >

@@ -60,7 +60,7 @@ public class AdminWriteSupport {
             product.setStock(Math.max(0, request.stock()));
         }
         if (request.warrantyPeriod() != null) {
-            product.setWarrantyPeriod(Math.max(0, request.warrantyPeriod()));
+            product.setWarrantyPeriod(Math.min(120, Math.max(0, request.warrantyPeriod())));
         }
         if (request.showOnHomepage() != null) {
             product.setShowOnHomepage(request.showOnHomepage());

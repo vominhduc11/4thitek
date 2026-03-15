@@ -55,6 +55,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   _DashboardTimeFilter _timeFilter = _DashboardTimeFilter.month;
   DateTime _selectedPeriod = DateTime.now();
 
+  // Snapshot cache — avoids recomputation when inputs haven't changed.
+  _DashboardSnapshot? _cachedSnapshot;
+  List<Order>? _lastSnapshotOrders;
+  List<WarrantyActivationRecord>? _lastSnapshotActivations;
+  _DashboardTimeFilter? _lastSnapshotFilter;
+  DateTime? _lastSnapshotPeriod;
+
   @override
   void initState() {
     super.initState();
@@ -135,13 +142,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
       warrantyController: warrantyCtrl,
     );
     final now = DateTime.now();
-    final snapshot = _buildDashboardSnapshot(
-      orders: orderController.orders,
-      activations: warrantyCtrl.activations,
-      timeFilter: _timeFilter,
-      selectedPeriod: _selectedPeriod,
-      now: now,
-    );
+    final snapshotOrders = orderController.orders;
+    final snapshotActivations = warrantyCtrl.activations;
+    if (_cachedSnapshot == null ||
+        !identical(_lastSnapshotOrders, snapshotOrders) ||
+        !identical(_lastSnapshotActivations, snapshotActivations) ||
+        _lastSnapshotFilter != _timeFilter ||
+        _lastSnapshotPeriod != _selectedPeriod) {
+      _lastSnapshotOrders = snapshotOrders;
+      _lastSnapshotActivations = snapshotActivations;
+      _lastSnapshotFilter = _timeFilter;
+      _lastSnapshotPeriod = _selectedPeriod;
+      _cachedSnapshot = _buildDashboardSnapshot(
+        orders: snapshotOrders,
+        activations: snapshotActivations,
+        timeFilter: _timeFilter,
+        selectedPeriod: _selectedPeriod,
+        now: now,
+      );
+    }
+    final snapshot = _cachedSnapshot!;
     final periodAnchor = snapshot.periodAnchor;
     final periodOrders = snapshot.periodOrders;
     final monthlyRevenue = snapshot.monthlyRevenue;
@@ -491,10 +511,11 @@ class _OverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const revenueAccent = Color(0xFF38BDF8);
-    const debtAccent = Color(0xFFF59E0B);
-    const orderAccent = Color(0xFF22C55E);
-    const completionRateAccent = Color(0xFF14B8A6);
+    final cs = Theme.of(context).colorScheme;
+    final revenueAccent = cs.primary;
+    final debtAccent = cs.error;
+    final orderAccent = cs.secondary;
+    final completionRateAccent = cs.tertiary;
     final completionRate = periodOrders == 0
         ? 0
         : ((periodCompletedOrders / periodOrders) * 100).round();
@@ -1213,7 +1234,7 @@ class _RecentOrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final statusColor = _statusColor(order.status);
+    final statusColor = _statusColor(order.status, Theme.of(context).colorScheme);
 
     return Card(
       elevation: 0,
@@ -1693,6 +1714,7 @@ class _OrderStatusDistributionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final totals = _computeStatusTotals(orders);
     final totalCount = totals.values.fold<int>(0, (sum, v) => sum + v);
     final showEmpty = totalCount == 0;
@@ -1772,13 +1794,13 @@ class _OrderStatusDistributionCard extends StatelessWidget {
                       count: count,
                       ratio: ratio,
                       percent: percent,
-                      color: _statusColor(status),
+                      color: _statusColor(status, colorScheme),
                       onTap: () => _showStatusDetailSheet(
                         context: context,
                         status: status,
                         orders: statusOrders,
                         totalCount: totalCount,
-                        color: _statusColor(status),
+                        color: _statusColor(status, colorScheme),
                       ),
                     ),
                   );
@@ -2943,18 +2965,18 @@ List<_WarrantyStatusStat> _buildWarrantyStatuses(
   ];
 }
 
-Color _statusColor(OrderStatus status) {
+Color _statusColor(OrderStatus status, ColorScheme colorScheme) {
   switch (status) {
     case OrderStatus.pendingApproval:
-      return const Color(0xFFC2410C);
+      return colorScheme.tertiary;
     case OrderStatus.approved:
-      return const Color(0xFF2563EB);
+      return colorScheme.primary;
     case OrderStatus.shipping:
-      return const Color(0xFF7C3AED);
+      return colorScheme.secondary;
     case OrderStatus.completed:
-      return const Color(0xFF15803D);
+      return colorScheme.primaryContainer;
     case OrderStatus.cancelled:
-      return const Color(0xFF94A3B8);
+      return colorScheme.outline;
   }
 }
 

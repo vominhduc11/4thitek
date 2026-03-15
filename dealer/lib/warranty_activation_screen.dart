@@ -877,22 +877,20 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     final customerPhone = _phoneController.text.trim();
     final customerAddress = _addressController.text.trim();
 
+    final preErrors = <String>[];
     if (customerName.isEmpty ||
         customerEmail.isEmpty ||
         customerPhone.isEmpty ||
         customerAddress.isEmpty) {
-      _showSnackBar('Vui lòng nhập đầy đủ thông tin khách hàng.');
-      return;
+      preErrors.add('Vui lòng nhập đầy đủ thông tin khách hàng.');
     }
-
-    if (!isValidEmailAddress(customerEmail)) {
-      _showSnackBar('Vui long nhap email hop le.');
-      return;
+    if (customerEmail.isNotEmpty && !isValidEmailAddress(customerEmail)) {
+      preErrors.add('Vui lòng nhập email hợp lệ.');
     }
-
     final purchaseDateError = _validatePurchaseDateForOrder(order);
-    if (purchaseDateError != null) {
-      _showSnackBar(purchaseDateError);
+    if (purchaseDateError != null) preErrors.add(purchaseDateError);
+    if (preErrors.isNotEmpty) {
+      _showSnackBar(preErrors.join('\n'));
       return;
     }
 

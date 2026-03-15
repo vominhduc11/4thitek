@@ -24,9 +24,9 @@ export function useReducedMotion() {
 
         // Detect low-end device based on hardware concurrency and memory
         const nav = window.navigator as Navigator & { hardwareConcurrency?: number; deviceMemory?: number };
-        const hardwareConcurrency = nav.hardwareConcurrency || 1;
-        const deviceMemory = nav.deviceMemory || 1;
-        
+        const hardwareConcurrency = typeof nav.hardwareConcurrency === 'number' ? nav.hardwareConcurrency : 4;
+        const deviceMemory = typeof nav.deviceMemory === 'number' ? nav.deviceMemory : 4;
+
         setIsLowEndDevice(hardwareConcurrency <= 2 || deviceMemory <= 2);
 
         // Window resize listener for mobile detection
@@ -42,8 +42,11 @@ export function useReducedMotion() {
         };
     }, []);
 
-    // Determine if animations should be reduced
-    const shouldReduceAnimations = prefersReducedMotion || (isMobile && isLowEndDevice);
+    // Determine if animations should be reduced:
+    // - always reduce if user explicitly set prefers-reduced-motion
+    // - reduce on low-end devices regardless of mobile/desktop
+    // - reduce on mobile regardless of device tier (battery + performance)
+    const shouldReduceAnimations = prefersReducedMotion || isLowEndDevice || isMobile;
 
     return {
         prefersReducedMotion,

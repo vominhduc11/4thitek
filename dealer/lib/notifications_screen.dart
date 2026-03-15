@@ -357,7 +357,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
       if (!launched && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('KhĂ´ng má»Ÿ Ä‘Æ°á»£c liĂªn káº¿t.')),
+          const SnackBar(content: Text(‘Không mở được liên kết.’)),
         );
       }
       return launched;

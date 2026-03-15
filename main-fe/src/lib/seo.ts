@@ -1,22 +1,33 @@
 import type { Metadata } from 'next';
 import { buildCanonicalUrl, SITE_NAME, SITE_URL, type SupportedLocale } from './site';
 
+const DEFAULT_OG_IMAGE = `${SITE_URL}/logo.png`;
+
 export const createBaseMetadata = ({
     locale,
     path,
     title,
-    description
+    description,
+    image,
+    keywords
 }: {
     locale: SupportedLocale;
     path: string;
     title: string;
     description: string;
+    image?: string;
+    keywords?: string[];
 }): Metadata => ({
     metadataBase: new URL(SITE_URL),
     title,
     description,
+    ...(keywords && keywords.length > 0 ? { keywords } : {}),
     alternates: {
-        canonical: buildCanonicalUrl(path)
+        canonical: buildCanonicalUrl(path),
+        languages: {
+            'vi': `${SITE_URL}${path}`,
+            'en': `${SITE_URL}${path}`
+        }
     },
     openGraph: {
         title,
@@ -24,12 +35,22 @@ export const createBaseMetadata = ({
         url: buildCanonicalUrl(path),
         siteName: SITE_NAME,
         locale: locale === 'vi' ? 'vi_VN' : 'en_US',
-        type: 'website'
+        alternateLocale: locale === 'vi' ? 'en_US' : 'vi_VN',
+        type: 'website',
+        images: [
+            {
+                url: image ?? DEFAULT_OG_IMAGE,
+                width: 1200,
+                height: 630,
+                alt: title
+            }
+        ]
     },
     twitter: {
         card: 'summary_large_image',
         title,
-        description
+        description,
+        images: [image ?? DEFAULT_OG_IMAGE]
     }
 });
 
@@ -40,6 +61,35 @@ export const organizationJsonLd = () => ({
     url: SITE_URL,
     logo: `${SITE_URL}/logo.png`,
     sameAs: [SITE_URL]
+});
+
+export const localBusinessJsonLd = () => ({
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    name: SITE_NAME,
+    url: SITE_URL,
+    logo: `${SITE_URL}/logo.png`,
+    description: 'Nhà phân phối chính hãng tai nghe SCS tại Việt Nam',
+    address: {
+        '@type': 'PostalAddress',
+        addressCountry: 'VN'
+    },
+    contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'customer service',
+        availableLanguage: ['Vietnamese', 'English']
+    }
+});
+
+export const breadcrumbJsonLd = (items: { name: string; url: string }[]) => ({
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: item.name,
+        item: item.url
+    }))
 });
 
 export const websiteJsonLd = () => ({

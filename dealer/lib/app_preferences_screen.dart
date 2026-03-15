@@ -200,11 +200,11 @@ class AppPreferencesScreen extends StatelessWidget {
                             segments: const [
                               ButtonSegment<String>(
                                 value: 'vi',
-                                label: Text('VI'),
+                                label: Text('Tiếng Việt'),
                               ),
                               ButtonSegment<String>(
                                 value: 'en',
-                                label: Text('EN'),
+                                label: Text('English'),
                               ),
                             ],
                             selected: <String>{settings.locale.languageCode},

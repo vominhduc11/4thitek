@@ -4,7 +4,7 @@ import Analytics from '@/components/analytics/Analytics';
 import ClientLayout from '@/components/layout/ClientLayout';
 import AppProviders from '@/components/providers/AppProviders';
 import JsonLd from '@/components/seo/JsonLd';
-import { createBaseMetadata, organizationJsonLd, websiteJsonLd } from '@/lib/seo';
+import { createBaseMetadata, localBusinessJsonLd, organizationJsonLd, websiteJsonLd } from '@/lib/seo';
 import { SITE_NAME } from '@/lib/site';
 import './globals.css';
 
@@ -26,8 +26,9 @@ export const metadata: Metadata = {
     ...createBaseMetadata({
         locale: 'vi',
         path: '/',
-        title: '4ThiTek - Tai nghe SCS chinh hang',
-        description: 'Website chinh thuc cua 4ThiTek tai Viet Nam. Xem san pham, kiem tra bao hanh va dang ky tro thanh dai ly.'
+        title: '4ThiTek - Tai nghe SCS chính hãng',
+        description: 'Website chính thức của 4ThiTek tại Việt Nam. Xem sản phẩm tai nghe SCS chính hãng, kiểm tra bảo hành và đăng ký trở thành đại lý.',
+        keywords: ['4ThiTek', 'tai nghe SCS', 'tai nghe chính hãng', 'SCS headset', 'đại lý tai nghe', 'bảo hành tai nghe']
     }),
     applicationName: SITE_NAME,
     authors: [{ name: SITE_NAME }],
@@ -50,7 +51,7 @@ export default function RootLayout({
                 >
                     Skip to main content
                 </a>
-                <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
+                <JsonLd data={[organizationJsonLd(), websiteJsonLd(), localBusinessJsonLd()]} />
                 <Analytics />
                 <AppProviders>
                     <ClientLayout>{children}</ClientLayout>

@@ -167,7 +167,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const BrandAppBarTitle('Thanh toan'),
+        title: const BrandAppBarTitle('Thanh toán'),
         actions: const [GlobalSearchIconButton()],
       ),
       body: Center(
@@ -199,7 +199,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Nguoi lien he: ${_profile.contactName}',
+                        'Người liên hệ: ${_profile.contactName}',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),

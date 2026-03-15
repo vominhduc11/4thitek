@@ -73,12 +73,22 @@ class _SkeletonBoxState extends State<SkeletonBox>
 }
 
 class _SlidingGradientTransform extends GradientTransform {
-  const _SlidingGradientTransform({required this.slidePercent});
+  _SlidingGradientTransform({required this.slidePercent});
 
   final double slidePercent;
 
+  // Cache to avoid Matrix4 allocation on every paint call.
+  Matrix4? _cachedMatrix;
+  double? _cachedWidth;
+
   @override
   Matrix4? transform(Rect bounds, {TextDirection? textDirection}) {
-    return Matrix4.translationValues(bounds.width * slidePercent, 0, 0);
+    if (_cachedMatrix == null || _cachedWidth != bounds.width) {
+      _cachedWidth = bounds.width;
+      _cachedMatrix = Matrix4.translationValues(
+        bounds.width * slidePercent, 0, 0,
+      );
+    }
+    return _cachedMatrix;
   }
 }

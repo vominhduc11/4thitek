@@ -34,10 +34,12 @@ class _LazyNetworkImageState extends State<LazyNetworkImage> {
 
   bool _shouldLoad = false;
   bool _isScheduled = false;
+  String? _normalizedUrl;
 
   @override
   void initState() {
     super.initState();
+    _normalizedUrl = _normalizeUrl(widget.url);
     _scheduleLoad();
   }
 
@@ -45,6 +47,7 @@ class _LazyNetworkImageState extends State<LazyNetworkImage> {
   void didUpdateWidget(covariant LazyNetworkImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.url != widget.url) {
+      _normalizedUrl = _normalizeUrl(widget.url);
       _shouldLoad = false;
       _scheduleLoad();
     }
@@ -113,7 +116,7 @@ class _LazyNetworkImageState extends State<LazyNetworkImage> {
 
   @override
   Widget build(BuildContext context) {
-    final normalizedUrl = _normalizeUrl(widget.url);
+    final normalizedUrl = _normalizedUrl;
 
     if (normalizedUrl == null) {
       return SizedBox(

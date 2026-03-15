@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiArrowUpRight } from 'react-icons/fi';
 import Image from 'next/image';
 import Link from 'next/link';
-import clsx from 'clsx';
 import type { SimpleProduct } from '@/types/product';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
@@ -57,18 +56,8 @@ interface ProductGridProps {
 }
 
 export default function ProductGrid({ products }: ProductGridProps) {
-    const [hoveredProductId, setHoveredProductId] = useState<string | null>(null);
     const { t } = useLanguage();
     const animationConfig = useAnimationConfig();
-
-    // Optimized event handlers
-    const handleProductHover = useCallback((productId: string | null) => {
-        setHoveredProductId(productId);
-    }, []);
-
-    const handleProductLeave = useCallback(() => {
-        setHoveredProductId(null);
-    }, []);
 
     const renderProductCard = useCallback((product: SimpleProduct, index: number) => {
         return (
@@ -87,34 +76,20 @@ export default function ProductGrid({ products }: ProductGridProps) {
             >
                 <Link href={`/products/${product.id}`}>
                     <motion.div
-                        className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-all duration-500 cursor-pointer group overflow-hidden h-[380px] sm:h-[420px] md:h-[460px] lg:h-[480px] xl:h-[500px] 2xl:h-[620px] 3xl:h-[680px] 4xl:h-[720px] 5xl:h-[800px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/40 shadow-lg hover:shadow-2xl hover:shadow-[#4FC8FF]/20 backdrop-blur-sm"
-                        onMouseEnter={() => handleProductHover(product.id)}
-                        onMouseLeave={handleProductLeave}
-                        whileHover={{
-                            y: -8,
-                            scale: 1.02,
-                            boxShadow: '0 20px 40px rgba(79, 200, 255, 0.15), 0 0 30px rgba(79, 200, 255, 0.1)',
-                            transition: { duration: 0.3, ease: 'easeOut' }
-                        }}
-                        whileTap={{ scale: 0.98 }}
+                        className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-colors duration-300 cursor-pointer group overflow-hidden h-[380px] sm:h-[420px] md:h-[460px] lg:h-[480px] xl:h-[500px] 2xl:h-[620px] 3xl:h-[680px] 4xl:h-[720px] 5xl:h-[800px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/40 shadow-lg backdrop-blur-sm"
+                        whileHover={
+                            animationConfig.enableComplexAnimations
+                                ? {
+                                      y: -6,
+                                      boxShadow: '0 16px 32px rgba(79, 200, 255, 0.15)',
+                                      transition: { duration: 0.25, ease: 'easeOut' }
+                                  }
+                                : undefined
+                        }
+                        whileTap={{ scale: 0.99 }}
                     >
-                    {hoveredProductId === product.id && (
-                        <motion.div
-                            className="absolute inset-0 -z-10 hidden sm:block bg-[radial-gradient(circle_at_center,_rgba(79,200,255,0.18),_transparent_65%)]"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.25 }}
-                        />
-                    )}
-
-                    <motion.div
+                    <div
                         className="absolute left-2 xs:left-3 sm:left-4 md:left-6 top-2 xs:top-3 sm:top-4 z-20"
-                        whileHover={{
-                            color: '#4FC8FF',
-                            scale: 1.05,
-                            transition: { duration: 0.3 }
-                        }}
                     >
                         <div
                             className="font-bold text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl 3xl:text-3xl uppercase tracking-wider xs:tracking-widest text-gray-400 group-hover:text-[#4FC8FF] transition-colors duration-300"
@@ -125,13 +100,9 @@ export default function ProductGrid({ products }: ProductGridProps) {
                         >
                             {t('products.featured.product')}
                         </div>
-                    </motion.div>
+                    </div>
 
-                    <motion.div
-                        className="flex justify-center items-center py-4 sm:py-5 md:py-6 lg:py-6 xl:py-6 2xl:py-8 3xl:py-10 4xl:py-12 5xl:py-16 px-4 sm:px-5 md:px-6 lg:px-6 xl:px-6 2xl:px-8 3xl:px-10 4xl:px-12 5xl:px-16 z-10 relative"
-                        whileHover={{ scale: 1.03 }}
-                        transition={{ duration: 0.3 }}
-                    >
+                    <div className="flex justify-center items-center py-4 sm:py-5 md:py-6 lg:py-6 xl:py-6 2xl:py-8 3xl:py-10 4xl:py-12 5xl:py-16 px-4 sm:px-5 md:px-6 lg:px-6 xl:px-6 2xl:px-8 3xl:px-10 4xl:px-12 5xl:px-16 z-10 relative">
                         <motion.div
                             key={`product-${product.id}`}
                             initial={{ opacity: 0, scale: 0.9 }}
@@ -142,71 +113,37 @@ export default function ProductGrid({ products }: ProductGridProps) {
                             <ProductImageWithFallback
                                 src={product.image || ''}
                                 alt={product.name}
-                                className="w-[140px] h-[140px] sm:w-[160px] sm:h-[160px] md:w-[180px] md:h-[180px] lg:w-[200px] lg:h-[200px] xl:w-[220px] xl:h-[220px] 2xl:w-[280px] 2xl:h-[280px] 3xl:w-[320px] 3xl:h-[320px] 4xl:w-[360px] 4xl:h-[360px] 5xl:w-[400px] 5xl:h-[400px] object-contain transition-opacity duration-200 ease-out"
+                                className="w-[140px] h-[140px] sm:w-[160px] sm:h-[160px] md:w-[180px] md:h-[180px] lg:w-[200px] lg:h-[200px] xl:w-[220px] xl:h-[220px] 2xl:w-[280px] 2xl:h-[280px] 3xl:w-[320px] 3xl:h-[320px] 4xl:w-[360px] 4xl:h-[360px] 5xl:w-[400px] 5xl:h-[400px] object-contain"
                             />
                         </motion.div>
-                    </motion.div>
+                    </div>
 
-                    <motion.div
-                        className="px-4 sm:px-5 md:px-6 lg:px-6 xl:px-6 2xl:px-8 3xl:px-10 4xl:px-12 5xl:px-16 pb-6 sm:pb-7 md:pb-8 lg:pb-8 xl:pb-8 2xl:pb-8 3xl:pb-10 4xl:pb-12 5xl:pb-16 pt-2 sm:pt-3 md:pt-3 lg:pt-3 xl:pt-3 2xl:pt-4 3xl:pt-5 4xl:pt-6 5xl:pt-8 z-10 relative flex flex-col h-full"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.3 + index * 0.05 }}
-                    >
-                            <motion.h3
-                                className="text-white font-bold text-base sm:text-lg md:text-xl lg:text-xl xl:text-2xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl 5xl:text-5xl mb-2 sm:mb-3 md:mb-3 lg:mb-3 xl:mb-3 2xl:mb-4 3xl:mb-5 4xl:mb-6 5xl:mb-8 font-sans h-[2.5rem] sm:h-[3rem] md:h-[3rem] lg:h-[3rem] xl:h-[3rem] 2xl:h-[3.5rem] 3xl:h-[4rem] 4xl:h-[4.5rem] 5xl:h-[5rem] flex items-center cursor-pointer"
-                                whileHover={{
-                                    color: '#4FC8FF',
-                                    scale: 1.02,
-                                    transition: { duration: 0.3 }
-                                }}
-                            >
-                                <span className="line-clamp-2">{product.name}</span>
-                            </motion.h3>
-                        <p className="text-gray-300 text-xs sm:text-sm md:text-sm lg:text-sm xl:text-base 2xl:text-base 3xl:text-lg 4xl:text-xl leading-relaxed mb-2 sm:mb-3 md:mb-3 lg:mb-3 xl:mb-4 2xl:mb-5 3xl:mb-6 4xl:mb-7 font-sans line-clamp-2">
+                    <div className="px-4 sm:px-5 md:px-6 lg:px-6 xl:px-6 2xl:px-8 3xl:px-10 4xl:px-12 5xl:px-16 pb-6 sm:pb-7 md:pb-8 2xl:pb-8 3xl:pb-10 4xl:pb-12 5xl:pb-16 pt-2 sm:pt-3 2xl:pt-4 3xl:pt-5 4xl:pt-6 5xl:pt-8 z-10 relative flex flex-col h-full">
+                        <h3 className="text-white font-bold text-base sm:text-lg md:text-xl lg:text-xl xl:text-2xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl 5xl:text-5xl mb-2 sm:mb-3 2xl:mb-4 3xl:mb-5 4xl:mb-6 5xl:mb-8 font-sans min-h-[2.5rem] sm:min-h-[3rem] 2xl:min-h-[3.5rem] flex items-center cursor-pointer group-hover:text-[#4FC8FF] transition-colors duration-300">
+                            <span className="line-clamp-2">{product.name}</span>
+                        </h3>
+                        <p className="text-gray-300 text-xs sm:text-sm xl:text-base 3xl:text-lg 4xl:text-xl leading-relaxed mb-2 sm:mb-3 xl:mb-4 2xl:mb-5 3xl:mb-6 4xl:mb-7 font-sans line-clamp-2">
                             {product.description}
                         </p>
 
-                        <div className="flex justify-end mt-auto pt-2 sm:pt-3 lg:pt-2 xl:pt-3 3xl:pt-4 4xl:pt-5">
-                                <motion.div
-                                    whileHover={{
-                                        scale: 1.15,
-                                        rotate: 45,
-                                        color: '#4FC8FF'
-                                    }}
-                                    transition={{ duration: 0.3 }}
-                                    className="p-3 sm:p-3 lg:p-2 xl:p-3 2xl:p-4 3xl:p-5 4xl:p-6 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
-                                >
-                                    <FiArrowUpRight
-                                        size={20}
-                                        className={clsx(
-                                            'transition-colors w-4 h-4 sm:w-5 sm:h-5 lg:w-4 lg:h-4 xl:w-5 xl:h-5 2xl:w-6 2xl:h-6 3xl:w-7 3xl:h-7 4xl:w-8 4xl:h-8',
-                                            hoveredProductId === product.id ? 'text-blue-400' : 'text-gray-500'
-                                        )}
-                                    />
-                                </motion.div>
+                        <div className="flex justify-end mt-auto pt-2 sm:pt-3">
+                            <div className="p-2 sm:p-3 rounded-full group-hover:bg-white/10 transition-colors cursor-pointer">
+                                <FiArrowUpRight
+                                    size={20}
+                                    className="w-4 h-4 sm:w-5 sm:h-5 2xl:w-6 2xl:h-6 3xl:w-7 3xl:h-7 text-gray-500 group-hover:text-blue-400 transition-colors duration-300"
+                                />
+                            </div>
                         </div>
-                    </motion.div>
+                    </div>
 
-                        <motion.div
-                            className="absolute inset-0 border-2 border-transparent group-hover:border-[#4FC8FF]/50 transition-all duration-500 pointer-events-none"
-                            whileHover={{
-                                boxShadow: 'inset 0 0 40px rgba(79, 200, 255, 0.2), 0 0 50px rgba(79, 200, 255, 0.15)'
-                            }}
-                        />
-
-                        {/* Glow effect on hover */}
-                        <motion.div
-                            className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                            style={{
-                                background: 'radial-gradient(circle at center, rgba(79, 200, 255, 0.1) 0%, transparent 70%)'
-                            }}
-                        />
+                        {/* Glow overlay on hover - CSS only, no JS animation */}
+                        <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[radial-gradient(circle_at_center,_rgba(79,200,255,0.08),_transparent_65%)]" />
+                        <div className="absolute inset-0 border-2 border-transparent group-hover:border-[#4FC8FF]/40 transition-colors duration-300 pointer-events-none" />
                     </motion.div>
                 </Link>
             </motion.div>
         );
-    }, [hoveredProductId, handleProductHover, handleProductLeave, t, animationConfig]);
+    }, [t, animationConfig]);
 
     return (
         <div className="w-full overflow-visible">

@@ -296,25 +296,25 @@ class _InventoryProductDetailScreenState
                               _InventoryMetric(
                                 label: 'Tồn kho',
                                 value: '$availableCount',
-                                color: const Color(0xFF047857),
+                                color: colorScheme.primary,
                                 icon: Icons.inventory_2_outlined,
                               ),
                               _InventoryMetric(
                                 label: 'Đã nhập',
                                 value: '$importedCount',
-                                color: const Color(0xFF1D4ED8),
+                                color: colorScheme.secondary,
                                 icon: Icons.south_west_rounded,
                               ),
                               _InventoryMetric(
                                 label: 'Đã bán',
                                 value: '$soldCount',
-                                color: const Color(0xFFB45309),
+                                color: colorScheme.tertiary,
                                 icon: Icons.north_east_rounded,
                               ),
                               _InventoryMetric(
                                 label: 'Lỗi',
                                 value: '$defectiveCount',
-                                color: const Color(0xFFB91C1C),
+                                color: colorScheme.error,
                                 icon: Icons.error_outline_rounded,
                               ),
                             ];
@@ -367,7 +367,7 @@ class _InventoryProductDetailScreenState
                               }
                             : null,
                         style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(120, 46),
+                          minimumSize: const Size(120, 48),
                           padding: const EdgeInsets.symmetric(horizontal: 14),
                           textStyle: const TextStyle(
                             fontWeight: FontWeight.w700,
@@ -387,7 +387,7 @@ class _InventoryProductDetailScreenState
                         );
                       },
                       style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(120, 46),
+                        minimumSize: const Size(120, 48),
                         padding: const EdgeInsets.symmetric(horizontal: 14),
                         foregroundColor: colorScheme.onSurfaceVariant,
                         side: BorderSide(

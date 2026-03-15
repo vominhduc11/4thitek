@@ -267,7 +267,7 @@ class _SupportScreenState extends State<SupportScreen> {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 120),
                 child: SectionCard(
-                  title: isEnglish ? 'Recent requests' : 'Yeu cau gan day',
+                  title: isEnglish ? 'Recent requests' : 'Yêu cầu gần đây',
                   child: SupportTicketHistory(
                     isEnglish: isEnglish,
                     items: _ticketHistory,

@@ -258,7 +258,7 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, errorInfo
             case 'expired':
                 return t('warrantyCheck.result.status.expired');
             case 'void':
-                return locale === 'vi' ? 'Da vo hieu' : 'Voided';
+                return t('warrantyCheck.result.status.void');
             case 'invalid':
                 return t('warrantyCheck.result.status.invalid');
             default:

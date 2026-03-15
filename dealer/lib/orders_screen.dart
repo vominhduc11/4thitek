@@ -281,12 +281,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   void _syncOrderSnapshot(List<Order> orders) {
-    final snapshot = orders
-        .map(
-          (order) =>
-              '${order.id}|${order.status.index}|${order.paymentStatus.index}|${order.paidAmount}',
-        )
-        .join(';');
+    final snapshot = Object.hashAll(
+      orders.map(
+        (o) => Object.hash(o.id, o.status, o.paymentStatus, o.paidAmount),
+      ),
+    ).toString();
     if (!_hasInitializedSnapshot) {
       _hasInitializedSnapshot = true;
       _lastOrderSnapshot = snapshot;

@@ -479,7 +479,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _searchController,
-              onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 isDense: true,
                 hintText: 'Tìm theo tên hoặc SKU...',
