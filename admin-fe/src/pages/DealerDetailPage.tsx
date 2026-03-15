@@ -27,7 +27,7 @@ import {
 } from '../components/ui-kit'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
 
-const DEALER_STATUS_OPTIONS: DealerStatus[] = ['active', 'under_review', 'needs_attention']
+const DEALER_STATUS_OPTIONS: DealerStatus[] = ['active', 'under_review', 'suspended']
 const DEALER_TIERS: DealerTier[] = ['platinum', 'gold', 'silver', 'bronze']
 
 function DealerDetailPage() {
@@ -267,7 +267,7 @@ function DealerDetailPage() {
                 message: t('Chuyển đại lý này sang trạng thái "{status}"?', {
                   status: dealerStatusLabel[next],
                 }),
-                tone: next === 'needs_attention' ? 'warning' : 'info',
+                tone: next === 'suspended' ? 'danger' : 'info',
                 confirmLabel: dealerStatusLabel[next],
               })
 

@@ -3,7 +3,7 @@ export type PaymentMethod = 'bank_transfer' | 'debt' | null
 export type PaymentStatus = 'pending' | 'paid' | 'debt_recorded' | 'cancelled' | 'failed'
 export type BlogStatus = 'published' | 'scheduled' | 'draft'
 export type DealerTier = 'platinum' | 'gold' | 'silver' | 'bronze'
-export type DealerStatus = 'active' | 'under_review' | 'needs_attention'
+export type DealerStatus = 'active' | 'under_review' | 'suspended'
 export type UserStatus = 'active' | 'pending'
 export type RuleStatus = 'active' | 'pending' | 'draft'
 

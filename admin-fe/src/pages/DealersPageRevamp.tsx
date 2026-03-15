@@ -35,7 +35,7 @@ const DEALER_STATUS_OPTIONS: Array<{ value: 'all' | DealerStatus; label: string 
   { value: 'all', label: 'All' },
   { value: 'active', label: dealerStatusLabel.active },
   { value: 'under_review', label: dealerStatusLabel.under_review },
-  { value: 'needs_attention', label: dealerStatusLabel.needs_attention },
+  { value: 'suspended', label: dealerStatusLabel.suspended },
 ]
 
 const copyByLanguage = {
@@ -48,7 +48,7 @@ const copyByLanguage = {
     totalDealers: 'Tổng đại lý',
     activeDealers: 'Đã kích hoạt',
     underReview: 'Chờ duyệt',
-    needsAttention: 'Cần bổ sung',
+    suspended: 'Tạm khóa',
     totalRevenue: 'Tổng doanh thu',
     emptyTitle: 'Không có đại lý',
     emptyMessage: 'Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.',
@@ -74,7 +74,7 @@ const copyByLanguage = {
     totalDealers: 'Total dealers',
     activeDealers: 'Active',
     underReview: 'Under review',
-    needsAttention: 'Needs attention',
+    suspended: 'Suspended',
     totalRevenue: 'Total revenue',
     emptyTitle: 'No dealers found',
     emptyMessage: 'Try adjusting filters or your search keywords.',
@@ -124,7 +124,7 @@ function DealersPageRevamp() {
   const stats = useMemo(() => {
     const active = dealers.filter((item) => item.status === 'active').length
     const underReview = dealers.filter((item) => item.status === 'under_review').length
-    const attention = dealers.filter((item) => item.status === 'needs_attention').length
+    const attention = dealers.filter((item) => item.status === 'suspended').length
     const totalRevenue = dealers.reduce((sum, item) => sum + item.revenue, 0)
     return { active, underReview, attention, totalRevenue }
   }, [dealers])
@@ -184,7 +184,7 @@ function DealersPageRevamp() {
         <StatCard icon={Users} label={copy.totalDealers} value={dealers.length} />
         <StatCard icon={CheckCircle2} label={copy.activeDealers} value={stats.active} tone="success" />
         <StatCard icon={Clock3} label={copy.underReview} value={stats.underReview} tone="info" />
-        <StatCard icon={Bell} label={copy.needsAttention} value={stats.attention} tone="warning" />
+        <StatCard icon={Bell} label={copy.suspended} value={stats.attention} tone="danger" />
       </div>
       <p className="mt-3 text-sm text-[var(--muted)]">
         {copy.totalRevenue}:{' '}

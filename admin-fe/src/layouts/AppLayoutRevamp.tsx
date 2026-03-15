@@ -363,7 +363,7 @@ function AppLayoutRevamp() {
       (item) => !item.isDeleted && item.stock > 0 && item.stock < 20,
     ).length
     const scheduledPosts = posts.filter((item) => item.status === 'scheduled').length
-    const dealerAttention = dealers.filter((item) => item.status === 'needs_attention').length
+    const dealerAttention = dealers.filter((item) => item.status === 'suspended').length
     const pendingUsers = users.filter((item) => item.status === 'pending').length
 
     if (pendingOrders > 0) {

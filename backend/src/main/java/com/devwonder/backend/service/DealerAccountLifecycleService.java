@@ -78,7 +78,7 @@ public class DealerAccountLifecycleService {
     private String loginBlockedMessage(CustomerStatus status) {
         return switch (status) {
             case UNDER_REVIEW -> "Tài khoản đại lý đang chờ duyệt. Vui lòng đợi email cập nhật từ 4ThiTek.";
-            case NEEDS_ATTENTION -> "Hồ sơ đại lý cần bổ sung thông tin. Vui lòng kiểm tra email cập nhật từ 4ThiTek.";
+            case SUSPENDED -> "Tài khoản đại lý của bạn đã bị tạm khóa. Vui lòng liên hệ 4ThiTek để biết thêm chi tiết.";
             case ACTIVE -> "Tài khoản đại lý đã sẵn sàng.";
         };
     }
@@ -87,7 +87,7 @@ public class DealerAccountLifecycleService {
         return switch (status) {
             case ACTIVE -> appMessageSupport.get("notification.dealer.lifecycle.active.title");
             case UNDER_REVIEW -> appMessageSupport.get("notification.dealer.lifecycle.under_review.title");
-            case NEEDS_ATTENTION -> appMessageSupport.get("notification.dealer.lifecycle.needs_attention.title");
+            case SUSPENDED -> appMessageSupport.get("notification.dealer.lifecycle.suspended.title");
         };
     }
 
@@ -95,7 +95,7 @@ public class DealerAccountLifecycleService {
         return switch (status) {
             case ACTIVE -> appMessageSupport.get("notification.dealer.lifecycle.active.content");
             case UNDER_REVIEW -> appMessageSupport.get("notification.dealer.lifecycle.under_review.content");
-            case NEEDS_ATTENTION -> appMessageSupport.get("notification.dealer.lifecycle.needs_attention.content");
+            case SUSPENDED -> appMessageSupport.get("notification.dealer.lifecycle.suspended.content");
         };
     }
 
@@ -103,7 +103,7 @@ public class DealerAccountLifecycleService {
         return switch (status) {
             case ACTIVE -> "4ThiTek đã phê duyệt tài khoản đại lý";
             case UNDER_REVIEW -> "4ThiTek đang xem xét hồ sơ đại lý";
-            case NEEDS_ATTENTION -> "4ThiTek yêu cầu bổ sung hồ sơ đại lý";
+            case SUSPENDED -> "4ThiTek đã tạm khóa tài khoản đại lý";
         };
     }
 
@@ -128,11 +128,11 @@ public class DealerAccountLifecycleService {
                     Trân trọng,
                     4ThiTek
                     """.formatted(greetingName);
-            case NEEDS_ATTENTION -> """
+            case SUSPENDED -> """
                     Xin chào %s,
 
-                    Hồ sơ đại lý của bạn đang cần bổ sung thông tin trước khi kích hoạt.
-                    Vui lòng kiểm tra lại thông tin đã gửi và liên hệ đội ngũ 4ThiTek nếu bạn cần hỗ trợ thêm.
+                    Tài khoản đại lý của bạn đã bị tạm khóa và không thể đăng nhập ứng dụng Dealer.
+                    Vui lòng liên hệ đội ngũ 4ThiTek để biết thêm chi tiết và được hỗ trợ.
 
                     Trân trọng,
                     4ThiTek

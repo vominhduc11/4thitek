@@ -146,8 +146,8 @@ export const mapBackendDealerAccountStatus = (
   switch (status) {
     case 'UNDER_REVIEW':
       return 'under_review'
-    case 'NEEDS_ATTENTION':
-      return 'needs_attention'
+    case 'SUSPENDED':
+      return 'suspended'
     default:
       return 'active'
   }
@@ -157,8 +157,8 @@ export const toBackendDealerAccountStatus = (status: DealerStatus): BackendDeale
   switch (status) {
     case 'under_review':
       return 'UNDER_REVIEW'
-    case 'needs_attention':
-      return 'NEEDS_ATTENTION'
+    case 'suspended':
+      return 'SUSPENDED'
     default:
       return 'ACTIVE'
   }

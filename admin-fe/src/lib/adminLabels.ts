@@ -70,19 +70,19 @@ export const dealerTierTone: Record<DealerTier, BadgeTone> = {
 export const dealerStatusLabel: Record<DealerStatus, string> = {
   active: 'Đã kích hoạt',
   under_review: 'Chờ duyệt hồ sơ',
-  needs_attention: 'Cần bổ sung hồ sơ',
+  suspended: 'Tạm khóa',
 }
 
 export const dealerStatusTone: Record<DealerStatus, BadgeTone> = {
   active: 'success',
   under_review: 'info',
-  needs_attention: 'warning',
+  suspended: 'danger',
 }
 
 export const dealerStatusDescription: Record<DealerStatus, string> = {
   active: 'Đại lý đã được phê duyệt và có thể đăng nhập ứng dụng dealer.',
   under_review: 'Hồ sơ đang chờ admin xác minh trước khi kích hoạt.',
-  needs_attention: 'Hồ sơ cần bổ sung thêm thông tin trước khi duyệt.',
+  suspended: 'Tài khoản đại lý đã bị tạm khóa, không thể đăng nhập ứng dụng dealer.',
 }
 
 export const userStatusLabel: Record<UserStatus, string> = {
