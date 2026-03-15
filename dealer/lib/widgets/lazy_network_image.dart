@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 typedef LazyImagePlaceholderBuilder = Widget Function(BuildContext context);
@@ -9,7 +10,7 @@ class LazyNetworkImage extends StatefulWidget {
     this.width,
     this.height,
     this.fit = BoxFit.cover,
-    this.filterQuality = FilterQuality.low,
+    this.filterQuality = FilterQuality.medium,
     this.placeholderBuilder,
     this.errorBuilder,
     this.deferDuringScroll = true,
@@ -100,7 +101,7 @@ class _LazyNetworkImageState extends State<LazyNetworkImage> {
   Widget _buildPlaceholder(BuildContext context) {
     return widget.placeholderBuilder?.call(context) ??
         Container(
-          color: const Color(0xFFF0F3FA),
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           alignment: Alignment.center,
           child: const SizedBox(
             width: 18,
@@ -133,53 +134,24 @@ class _LazyNetworkImageState extends State<LazyNetworkImage> {
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final pixelRatio = MediaQuery.devicePixelRatioOf(context);
-        final cacheWidth = _resolveCacheDimension(
-          explicitDimension: widget.width,
-          constrainedDimension: constraints.maxWidth,
-          pixelRatio: pixelRatio,
-        );
-        final cacheHeight = _resolveCacheDimension(
-          explicitDimension: widget.height,
-          constrainedDimension: constraints.maxHeight,
-          pixelRatio: pixelRatio,
-        );
-
-        return Image.network(
-          normalizedUrl,
-          width: widget.width,
-          height: widget.height,
-          fit: widget.fit,
-          filterQuality: widget.filterQuality,
-          cacheWidth: cacheWidth,
-          cacheHeight: cacheHeight,
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) {
-              return child;
-            }
-            return _buildPlaceholder(context);
-          },
-          errorBuilder: (context, error, stackTrace) {
-            return _buildError(context, error, stackTrace);
-          },
-        );
-      },
+    return CachedNetworkImage(
+      imageUrl: normalizedUrl,
+      width: widget.width,
+      height: widget.height,
+      fit: widget.fit,
+      filterQuality: widget.filterQuality,
+      fadeInDuration: const Duration(milliseconds: 200),
+      fadeOutDuration: const Duration(milliseconds: 100),
+      placeholder: (context, url) => SizedBox(
+        width: widget.width,
+        height: widget.height,
+        child: _buildPlaceholder(context),
+      ),
+      errorWidget: (context, url, error) => SizedBox(
+        width: widget.width,
+        height: widget.height,
+        child: _buildError(context, error),
+      ),
     );
-  }
-
-  int? _resolveCacheDimension({
-    required double? explicitDimension,
-    required double constrainedDimension,
-    required double pixelRatio,
-  }) {
-    final rawDimension = explicitDimension != null && explicitDimension.isFinite
-        ? explicitDimension
-        : (constrainedDimension.isFinite ? constrainedDimension : null);
-    if (rawDimension == null || rawDimension <= 0) {
-      return null;
-    }
-    return (rawDimension * pixelRatio).round();
   }
 }

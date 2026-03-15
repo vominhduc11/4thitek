@@ -46,7 +46,7 @@ const isLocalBlobUrl = (value?: string) =>
 const imageUrlCache = new Map<string, string>()
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 const VIDEO_FILE_NOTICE =
-  'T\u1ea3i t\u1ec7p video ch\u01b0a \u0111\u01b0\u1ee3c h\u1ed7 tr\u1ee3. Vui l\u00f2ng d\u00f9ng URL video.'
+  'Tải tệp video chưa được hỗ trợ. Vui lòng dùng URL video.'
 
 type ProductDraft = {
   name: string
@@ -683,7 +683,7 @@ function ProductDetailPage() {
     if (file.size > MAX_IMAGE_BYTES) {
       setDescriptionImageErrors((prev) => ({
         ...prev,
-        [index]: t('\u1ea2nh t\u1ed1i \u0111a 10MB'),
+        [index]: t('Ảnh tối đa 10MB'),
       }))
       return
     }
@@ -714,7 +714,7 @@ function ProductDetailPage() {
     if (oversized) {
       setDescriptionImageErrors((prev) => ({
         ...prev,
-        [index]: t('\u1ea2nh t\u1ed1i \u0111a 10MB'),
+        [index]: t('Ảnh tối đa 10MB'),
       }))
     }
     const validFiles = fileList.filter((file) => file.size <= MAX_IMAGE_BYTES)
@@ -748,7 +748,7 @@ function ProductDetailPage() {
     if (file.size > MAX_IMAGE_BYTES) {
       setDescriptionImageErrors((prev) => ({
         ...prev,
-        [index]: t('\u1ea2nh t\u1ed1i \u0111a 10MB'),
+        [index]: t('Ảnh tối đa 10MB'),
       }))
       return
     }
@@ -1305,7 +1305,7 @@ function ProductDetailPage() {
                 </div>
                 <div className="sm:col-span-2">
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    {t('\u1ea2nh URL')}
+                    {t('Ảnh URL')}
                   </label>
                   <input
                     className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
@@ -1325,10 +1325,10 @@ function ProductDetailPage() {
                           handleMainImageFile(event.target.files?.[0] ?? null)
                         }
                       />
-                      {t('T\u1ea3i \u1ea3nh')}
+                      {t('Tải ảnh')}
                     </label>
                     <p className="text-xs text-slate-500">
-                      {t('Ho\u1eb7c nh\u1eadp URL th\u1ee7 c\u00f4ng')}
+                      {t('Hoặc nhập URL thủ công')}
                     </p>
                   </div>
                 </div>
@@ -1811,7 +1811,7 @@ function ProductDetailPage() {
                         <span className="sr-only">{t('URL video')}</span>
                         <input
                           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                          placeholder={t('Nh\u1eadp URL video YouTube ho\u1eb7c file video c\u00f4ng khai')}
+                          placeholder={t('Nhập URL video YouTube hoặc file video công khai')}
                           value={item.url ?? ''}
                           onChange={(event) => {
                             const nextDescriptions = [...draft.descriptions]
@@ -1824,7 +1824,7 @@ function ProductDetailPage() {
                         <span className="sr-only">{t('Chú thích video')}</span>
                         <input
                           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                          placeholder={t('Nh\u1eadp ch\u00fa th\u00edch')}
+                          placeholder={t('Nhập chú thích')}
                           value={item.caption ?? ''}
                           onChange={(event) => {
                             const nextDescriptions = [...draft.descriptions]
@@ -1845,7 +1845,7 @@ function ProductDetailPage() {
                               setDraft({ ...draft, descriptions: nextDescriptions })
                             }}
                           >
-                            {t('X\u00f3a video')}
+                            {t('Xóa video')}
                           </button>
                         </div>
                       )}
@@ -1945,7 +1945,7 @@ function ProductDetailPage() {
                     <span className="sr-only">{t('URL video')}</span>
                     <input
                       className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                      placeholder={t('Nh\u1eadp URL video YouTube ho\u1eb7c file video c\u00f4ng khai')}
+                      placeholder={t('Nhập URL video YouTube hoặc file video công khai')}
                       value={video.url}
                       onChange={(event) => {
                         const nextVideos = [...draft.videos]
@@ -1966,7 +1966,7 @@ function ProductDetailPage() {
                           setDraft({ ...draft, videos: nextVideos })
                         }}
                       >
-                        {t('X\u00f3a video')}
+                        {t('Xóa video')}
                       </button>
                     </div>
                   )}

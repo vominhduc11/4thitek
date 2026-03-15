@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_spinbox/flutter_spinbox.dart';
 
 import 'app_settings_controller.dart';
@@ -47,6 +48,7 @@ class CartScreen extends StatelessWidget {
         : (isLandscapePhone ? 136.0 : 128.0);
 
     Future<void> removeItemWithUndo(CartItem item) async {
+      HapticFeedback.lightImpact();
       final removedQty = item.quantity;
       final didRemove = await cart.remove(item.product.id);
       if (!context.mounted) {

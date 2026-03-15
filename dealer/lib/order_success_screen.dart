@@ -42,76 +42,103 @@ class OrderSuccessScreen extends StatelessWidget {
           constraints: BoxConstraints(maxWidth: maxWidth),
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-            child: FadeSlideIn(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TweenAnimationBuilder<double>(
-                    tween: Tween<double>(begin: 0.9, end: 1.0),
-                    duration: const Duration(milliseconds: 420),
-                    curve: Curves.easeOutBack,
-                    child: Icon(
-                      Icons.check_circle_outline,
-                      size: 72,
-                      color: successColor,
-                    ),
-                    builder: (context, value, child) {
-                      return Transform.scale(scale: value, child: child);
-                    },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0.4, end: 1.0),
+                  duration: const Duration(milliseconds: 480),
+                  curve: Curves.easeOutBack,
+                  child: Icon(
+                    Icons.check_circle_outline,
+                    size: 72,
+                    color: successColor,
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Đơn hàng đã được ghi nhận',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                    textAlign: TextAlign.center,
+                  builder: (context, value, child) {
+                    return Opacity(
+                      opacity: value.clamp(0.0, 1.0),
+                      child: Transform.scale(scale: value, child: child),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 200),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Đơn hàng đã được ghi nhận',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Mã đơn hàng: $orderId',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Mã đơn hàng: $orderId',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
+                ),
+                const SizedBox(height: 20),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 350),
+                  child: Text(
                     statusNote,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 20),
-                  _SummaryCard(
+                ),
+                const SizedBox(height: 20),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 500),
+                  child: _SummaryCard(
                     itemCount: itemCount,
                     totalPrice: totalPrice,
                     paymentMethod: order?.paymentMethod.label,
                     paymentStatus: order?.paymentStatus.label,
                     note: order?.note,
                   ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (_) => OrderDetailScreen(orderId: orderId),
-                        ),
-                        (route) => route.isFirst,
-                      );
-                    },
-                    child: const Text('Xem chi tiết đơn hàng'),
+                ),
+                const SizedBox(height: 24),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 650),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  OrderDetailScreen(orderId: orderId),
+                            ),
+                            (route) => route.isFirst,
+                          );
+                        },
+                        child: const Text('Xem chi tiết đơn hàng'),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton(
+                        onPressed: () {
+                          Navigator.of(
+                            context,
+                          ).popUntil((route) => route.isFirst);
+                        },
+                        child: const Text('Tiếp tục mua hàng'),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  OutlinedButton(
-                    onPressed: () {
-                      Navigator.of(context).popUntil((route) => route.isFirst);
-                    },
-                    child: const Text('Tiep tuc mua hang'),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -165,14 +192,14 @@ class _SummaryCard extends StatelessWidget {
             const SizedBox(height: 8),
             if (paymentMethod != null) ...[
               _SummaryRow(
-                label: 'Phuong thuc thanh toan',
+                label: 'Phương thức thanh toán',
                 value: paymentMethod!,
               ),
               const SizedBox(height: 8),
             ],
             if (paymentStatus != null) ...[
               _SummaryRow(
-                label: 'Trang thai thanh toan',
+                label: 'Trạng thái thanh toán',
                 value: paymentStatus!,
               ),
               const SizedBox(height: 8),
@@ -182,7 +209,7 @@ class _SummaryCard extends StatelessWidget {
               const SizedBox(height: 8),
             ],
             _SummaryRow(
-              label: 'Tong thanh toan',
+              label: 'Tổng thanh toán',
               value: formatVnd(totalPrice),
               isEmphasis: true,
             ),

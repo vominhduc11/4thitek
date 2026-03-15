@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_spinbox/flutter_spinbox.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
@@ -1108,6 +1109,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       if (!didAdd) {
         return;
       }
+      HapticFeedback.lightImpact();
       _showAddedToCartSnackBar(addQuantity);
     } finally {
       if (mounted) {

@@ -259,6 +259,25 @@ const writeAlertIds = (ids: Set<string>) => {
   }
 }
 
+const NAV_GROUP_STORAGE_KEY = 'admin_nav_groups'
+
+const loadNavGroups = (): Record<NavGroupId, boolean> => {
+  try {
+    const raw = window.localStorage.getItem(NAV_GROUP_STORAGE_KEY)
+    if (!raw) return { overview: true, commerce: true, service: false, system: false }
+    const parsed = JSON.parse(raw) as unknown
+    if (typeof parsed === 'object' && parsed !== null) {
+      return {
+        overview: (parsed as Record<string, boolean>).overview ?? true,
+        commerce: (parsed as Record<string, boolean>).commerce ?? true,
+        service: (parsed as Record<string, boolean>).service ?? false,
+        system: (parsed as Record<string, boolean>).system ?? false,
+      }
+    }
+  } catch { /* ignore */ }
+  return { overview: true, commerce: true, service: false, system: false }
+}
+
 function AppLayoutRevamp() {
   const { language } = useLanguage()
   const copy = copyByLanguage[language]
@@ -277,12 +296,15 @@ function AppLayoutRevamp() {
   const [globalQuery, setGlobalQuery] = useState('')
   const [showAllSearchResults, setShowAllSearchResults] = useState(false)
   const [activeSearchIndex, setActiveSearchIndex] = useState(-1)
-  const [openGroups, setOpenGroups] = useState<Record<NavGroupId, boolean>>({
-    overview: true,
-    commerce: true,
-    service: false,
-    system: false,
-  })
+  const [openGroups, setOpenGroups] = useState<Record<NavGroupId, boolean>>(loadNavGroups)
+
+  const toggleGroup = useCallback((group: NavGroupId) => {
+    setOpenGroups((prev) => {
+      const next = { ...prev, [group]: !prev[group] }
+      try { window.localStorage.setItem(NAV_GROUP_STORAGE_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+      return next
+    })
+  }, [])
   const [readAlertIds, setReadAlertIds] = useState<Set<string>>(() => loadReadAlertIds())
 
   const alertsRef = useRef<HTMLDivElement | null>(null)
@@ -744,12 +766,7 @@ function AppLayoutRevamp() {
           <section key={group.id} className="rounded-3xl border border-white/10 bg-white/5 px-3 py-3">
             <button
               className="flex w-full items-center justify-between gap-3 px-2 py-2 text-left text-xs font-semibold uppercase tracking-[0.25em] text-slate-400"
-              onClick={() =>
-                setOpenGroups((current) => ({
-                  ...current,
-                  [group.id]: !current[group.id],
-                }))
-              }
+              onClick={() => toggleGroup(group.id)}
               type="button"
             >
               <span>{group.label}</span>
@@ -764,7 +781,9 @@ function AppLayoutRevamp() {
                 )}
               </span>
             </button>
-            {openGroups[group.id] ? (
+            <div
+              className={`overflow-hidden transition-all duration-200 ${openGroups[group.id] ? 'max-h-96' : 'max-h-0'}`}
+            >
               <div className="mt-2 space-y-1.5">
                 {group.items.map((item) => {
                   const Icon = item.icon
@@ -793,7 +812,7 @@ function AppLayoutRevamp() {
                   )
                 })}
               </div>
-            ) : null}
+            </div>
           </section>
         ))}
       </nav>

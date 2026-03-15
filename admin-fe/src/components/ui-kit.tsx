@@ -174,7 +174,7 @@ export const StatCard = ({
   icon: Icon,
   tone = 'neutral',
 }: StatCardProps) => (
-  <div className={softCardClass}>
+  <div className={`${softCardClass} animate-[card-enter_0.6s_ease_both]`}>
     <div className="flex items-center justify-between">
       <span className={labelClass}>{label}</span>
       {Icon && <Icon className={cx('h-4 w-4', statToneClass[tone])} />}
@@ -243,7 +243,7 @@ export const ErrorState = ({
   title,
   message,
   onRetry,
-  retryLabel = 'Thu lai',
+  retryLabel = 'Thử lại',
 }: ErrorStateProps) => (
   <div
     className="rounded-3xl border border-rose-200 bg-rose-50/80 px-6 py-10 text-center"
@@ -273,7 +273,7 @@ export const LoadingRows = ({ rows = 4 }: LoadingRowsProps) => (
     {Array.from({ length: rows }).map((_, index) => (
       <div
         key={`skeleton-row-${index}`}
-        className="h-16 animate-pulse rounded-2xl bg-slate-200/70 dark:bg-slate-700/40"
+        className="h-16 animate-pulse rounded-2xl bg-gradient-to-r from-slate-200/70 via-slate-100 to-slate-200/70 dark:from-slate-700/40 dark:via-slate-600/30 dark:to-slate-700/40"
       />
     ))}
   </div>

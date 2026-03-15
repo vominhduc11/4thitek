@@ -52,7 +52,10 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
       title: options?.title,
       variant: options?.variant ?? 'success',
     }
-    setToasts((prev) => [...prev, item])
+    setToasts((prev) => {
+      const trimmed = prev.length >= 4 ? prev.slice(1) : prev
+      return [...trimmed, item]
+    })
 
     const duration = options?.durationMs ?? 2800
     window.setTimeout(() => {
@@ -78,7 +81,7 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
           const Icon = iconByVariant[toast.variant]
           return (
             <div
-              className={`pointer-events-auto rounded-2xl border p-3 shadow-[0_16px_32px_rgba(15,23,42,0.18)] backdrop-blur ${cardByVariant[toast.variant]}`}
+              className={`pointer-events-auto rounded-2xl border p-3 shadow-[0_16px_32px_rgba(15,23,42,0.18)] backdrop-blur animate-[card-enter_0.25s_ease_both] ${cardByVariant[toast.variant]}`}
               key={toast.id}
               role="status"
             >

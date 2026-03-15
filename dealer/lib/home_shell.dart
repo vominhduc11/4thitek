@@ -20,7 +20,7 @@ class DealerHomeShell extends StatefulWidget {
 class _DealerHomeShellState extends State<DealerHomeShell> {
   static const _onboardingSeenKey = 'onboarding_seen_v1';
 
-  int _currentIndex = 2;
+  int _currentIndex = 0;
   final PageStorageBucket _pageStorageBucket = PageStorageBucket();
 
   @override

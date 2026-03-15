@@ -58,30 +58,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _loadDashboardState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadDashboardState();
+      }
+    });
   }
 
-  Future<void> _loadDashboardState() async {
+  void _loadDashboardState() {
     setState(() {
-      _loadState = _DashboardLoadState.loading;
+      _loadState = _DashboardLoadState.ready;
       _loadErrorMessage = null;
     });
-    try {
-      await Future.delayed(const Duration(milliseconds: 450));
-      if (!mounted) {
-        return;
-      }
-      setState(() => _loadState = _DashboardLoadState.ready);
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _loadState = _DashboardLoadState.error;
-        _loadErrorMessage =
-            'Đã xảy ra lỗi khi tải dữ liệu tổng quan. Vui lòng thử lại.';
-      });
-    }
   }
 
   void _openCreateOrderFlow() {
@@ -429,7 +417,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           constraints: const BoxConstraints(
             maxWidth: _maxDashboardContentWidth,
           ),
-          child: content,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: KeyedSubtree(
+              key: ValueKey(_loadState),
+              child: content,
+            ),
+          ),
         ),
       ),
     );

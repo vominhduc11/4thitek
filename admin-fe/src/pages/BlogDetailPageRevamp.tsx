@@ -26,9 +26,9 @@ const BLOG_STATUS_ORDER: BlogStatus[] = ['published', 'scheduled', 'draft']
 
 const statusLabelsByLanguage = {
   vi: {
-    published: '\u0110\u00e3 \u0111\u0103ng',
-    scheduled: 'H\u1eb9n gi\u1edd',
-    draft: 'B\u1ea3n nh\u00e1p',
+    published: 'Đã đăng',
+    scheduled: 'Hẹn giờ',
+    draft: 'Bản nháp',
   },
   en: {
     published: 'Published',
@@ -39,30 +39,30 @@ const statusLabelsByLanguage = {
 
 const copyByLanguage = {
   vi: {
-    back: 'V\u1ec1 danh s\u00e1ch b\u00e0i vi\u1ebft',
-    loadTitle: 'Kh\u00f4ng th\u1ec3 t\u1ea3i b\u00e0i vi\u1ebft',
-    loadFallback: 'Kh\u00f4ng t\u1ea3i \u0111\u01b0\u1ee3c chi ti\u1ebft b\u00e0i vi\u1ebft',
-    notFoundTitle: 'Kh\u00f4ng t\u00ecm th\u1ea5y b\u00e0i vi\u1ebft',
-    notFoundMessage: 'B\u00e0i {id} kh\u00f4ng t\u1ed3n t\u1ea1i ho\u1eb7c \u0111\u00e3 b\u1ecb x\u00f3a.',
-    summaryFallback: 'Ch\u01b0a c\u00f3 t\u00f3m t\u1eaft cho b\u00e0i vi\u1ebft n\u00e0y.',
-    uncategorized: 'Ch\u01b0a ph\u00e2n lo\u1ea1i',
-    summaryLabel: 'T\u00f3m t\u1eaft',
-    statusTitle: 'C\u1eadp nh\u1eadt tr\u1ea1ng th\u00e1i',
+    back: 'Về danh sách bài viết',
+    loadTitle: 'Không thể tải bài viết',
+    loadFallback: 'Không tải được chi tiết bài viết',
+    notFoundTitle: 'Không tìm thấy bài viết',
+    notFoundMessage: 'Bài {id} không tồn tại hoặc đã bị xóa.',
+    summaryFallback: 'Chưa có tóm tắt cho bài viết này.',
+    uncategorized: 'Chưa phân loại',
+    summaryLabel: 'Tóm tắt',
+    statusTitle: 'Cập nhật trạng thái',
     statusHelp:
-      'Thay \u0111\u1ed5i tr\u1ea1ng th\u00e1i hi\u1ec3n th\u1ecb c\u1ee7a b\u00e0i vi\u1ebft trong khu v\u1ef1c qu\u1ea3n tr\u1ecb.',
-    changeStatusTitle: 'X\u00e1c nh\u1eadn \u0111\u1ed5i tr\u1ea1ng th\u00e1i',
+      'Thay đổi trạng thái hiển thị của bài viết trong khu vực quản trị.',
+    changeStatusTitle: 'Xác nhận đổi trạng thái',
     changeStatusMessage:
-      'B\u1ea1n c\u00f3 ch\u1eafc mu\u1ed1n chuy\u1ec3n b\u00e0i vi\u1ebft n\u00e0y sang tr\u1ea1ng th\u00e1i "{status}" kh\u00f4ng?',
-    updateFailed: 'Kh\u00f4ng c\u1eadp nh\u1eadt \u0111\u01b0\u1ee3c b\u00e0i vi\u1ebft',
-    metaLabel: 'C\u1eadp nh\u1eadt l\u1ea7n cu\u1ed1i',
-    deleteTitle: 'X\u00f3a b\u00e0i vi\u1ebft',
+      'Bạn có chắc muốn chuyển bài viết này sang trạng thái "{status}" không?',
+    updateFailed: 'Không cập nhật được bài viết',
+    metaLabel: 'Cập nhật lần cuối',
+    deleteTitle: 'Xóa bài viết',
     deleteMessage:
-      'H\u00e0nh \u0111\u1ed9ng n\u00e0y s\u1ebd x\u00f3a b\u00e0i vi\u1ebft kh\u1ecfi h\u1ec7 th\u1ed1ng qu\u1ea3n tr\u1ecb.',
+      'Hành động này sẽ xóa bài viết khỏi hệ thống quản trị.',
     deleteHelp:
-      'Ch\u1ec9 x\u00f3a khi b\u1ea1n ch\u1eafc ch\u1eafn b\u00e0i vi\u1ebft kh\u00f4ng c\u00f2n \u0111\u01b0\u1ee3c s\u1eed d\u1ee5ng.',
-    confirmDelete: 'X\u00f3a b\u00e0i',
-    deleteLabel: 'X\u00f3a b\u00e0i',
-    deleteFailed: 'Kh\u00f4ng x\u00f3a \u0111\u01b0\u1ee3c b\u00e0i vi\u1ebft',
+      'Chỉ xóa khi bạn chắc chắn bài viết không còn được sử dụng.',
+    confirmDelete: 'Xóa bài',
+    deleteLabel: 'Xóa bài',
+    deleteFailed: 'Không xóa được bài viết',
   },
   en: {
     back: 'Back to posts',

@@ -625,6 +625,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return;
     }
 
+    HapticFeedback.mediumImpact();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => OrderSuccessScreen(

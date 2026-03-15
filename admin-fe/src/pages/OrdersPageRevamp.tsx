@@ -27,48 +27,41 @@ import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import { getAllowedOrderStatuses, orderStatusLabel, orderStatusTone } from '../lib/adminLabels'
 import { formatCurrency } from '../lib/formatters'
 
-const ORDER_STATUS_OPTIONS: Array<{ value: 'all' | OrderStatus; label: string }> = [
-  { value: 'all', label: 'All' },
-  { value: 'pending', label: orderStatusLabel.pending },
-  { value: 'packing', label: orderStatusLabel.packing },
-  { value: 'delivering', label: orderStatusLabel.delivering },
-  { value: 'completed', label: orderStatusLabel.completed },
-  { value: 'cancelled', label: orderStatusLabel.cancelled },
-]
-
 const canDeleteOrder = (status: OrderStatus) => status === 'cancelled'
 
 const copyByLanguage = {
   vi: {
-    title: '\u0110\u01a1n h\u00e0ng',
+    title: 'Đơn hàng',
+    allStatuses: 'Tất cả',
     description:
-      'Theo d\u00f5i x\u1eed l\u00fd \u0111\u01a1n, x\u00e1c nh\u1eadn tr\u1ea1ng th\u00e1i v\u00e0 \u01b0u ti\u00ean giao h\u00e0ng.',
-    searchLabel: 'T\u00ecm \u0111\u01a1n h\u00e0ng',
-    searchPlaceholder: 'T\u00ecm m\u00e3 \u0111\u01a1n ho\u1eb7c \u0111\u1ea1i l\u00fd...',
-    totalOrders: 'T\u1ed5ng \u0111\u01a1n',
-    pendingOrders: 'Ch\u1edd x\u1eed l\u00fd',
-    deliveringOrders: '\u0110ang giao',
-    emptyTitle: 'Kh\u00f4ng c\u00f3 \u0111\u01a1n h\u00e0ng',
-    emptyMessage: 'Th\u1eed \u0111i\u1ec1u ch\u1ec9nh b\u1ed9 l\u1ecdc ho\u1eb7c t\u1eeb kh\u00f3a t\u00ecm ki\u1ebfm.',
-    loadTitle: 'Kh\u00f4ng th\u1ec3 t\u1ea3i \u0111\u01a1n h\u00e0ng',
-    loadFallback: 'Kh\u00f4ng t\u1ea3i \u0111\u01b0\u1ee3c danh s\u00e1ch \u0111\u01a1n h\u00e0ng',
-    orderCode: 'M\u00e3 \u0111\u01a1n',
-    dealer: '\u0110\u1ea1i l\u00fd',
-    total: 'T\u1ed5ng gi\u00e1 tr\u1ecb',
-    status: 'Tr\u1ea1ng th\u00e1i',
-    actions: 'Thao t\u00e1c',
-    changeStatusTitle: 'X\u00e1c nh\u1eadn \u0111\u1ed5i tr\u1ea1ng th\u00e1i',
+      'Theo dõi xử lý đơn, xác nhận trạng thái và ưu tiên giao hàng.',
+    searchLabel: 'Tìm đơn hàng',
+    searchPlaceholder: 'Tìm mã đơn hoặc đại lý...',
+    totalOrders: 'Tổng đơn',
+    pendingOrders: 'Chờ xử lý',
+    deliveringOrders: 'Đang giao',
+    emptyTitle: 'Không có đơn hàng',
+    emptyMessage: 'Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.',
+    loadTitle: 'Không thể tải đơn hàng',
+    loadFallback: 'Không tải được danh sách đơn hàng',
+    orderCode: 'Mã đơn',
+    dealer: 'Đại lý',
+    total: 'Tổng giá trị',
+    status: 'Trạng thái',
+    actions: 'Thao tác',
+    changeStatusTitle: 'Xác nhận đổi trạng thái',
     changeStatusMessage:
-      'B\u1ea1n c\u00f3 ch\u1eafc mu\u1ed1n chuy\u1ec3n \u0111\u01a1n n\u00e0y sang tr\u1ea1ng th\u00e1i "{status}" kh\u00f4ng?',
-    deleteTitle: 'X\u00f3a \u0111\u01a1n h\u00e0ng',
-    deleteMessage: 'H\u00e0nh \u0111\u1ed9ng n\u00e0y s\u1ebd x\u00f3a \u0111\u01a1n h\u00e0ng kh\u1ecfi danh s\u00e1ch qu\u1ea3n tr\u1ecb.',
-    confirmDelete: 'X\u00f3a \u0111\u01a1n',
-    updateFailed: 'Kh\u00f4ng c\u1eadp nh\u1eadt \u0111\u01b0\u1ee3c \u0111\u01a1n h\u00e0ng',
-    deleteFailed: 'Kh\u00f4ng x\u00f3a \u0111\u01b0\u1ee3c \u0111\u01a1n h\u00e0ng',
-    deleteLabel: 'X\u00f3a',
+      'Bạn có chắc muốn chuyển đơn này sang trạng thái "{status}" không?',
+    deleteTitle: 'Xóa đơn hàng',
+    deleteMessage: 'Hành động này sẽ xóa đơn hàng khỏi danh sách quản trị.',
+    confirmDelete: 'Xóa đơn',
+    updateFailed: 'Không cập nhật được đơn hàng',
+    deleteFailed: 'Không xóa được đơn hàng',
+    deleteLabel: 'Xóa',
   },
   en: {
     title: 'Orders',
+    allStatuses: 'All',
     description: 'Track the order queue, confirm status changes, and prioritize delivery.',
     searchLabel: 'Search orders',
     searchPlaceholder: 'Search by order code or dealer...',
@@ -98,6 +91,14 @@ const copyByLanguage = {
 function OrdersPageRevamp() {
   const { language } = useLanguage()
   const copy = copyByLanguage[language]
+  const ORDER_STATUS_OPTIONS: Array<{ value: 'all' | OrderStatus; label: string }> = [
+    { value: 'all', label: copy.allStatuses },
+    { value: 'pending', label: orderStatusLabel.pending },
+    { value: 'packing', label: orderStatusLabel.packing },
+    { value: 'delivering', label: orderStatusLabel.delivering },
+    { value: 'completed', label: orderStatusLabel.completed },
+    { value: 'cancelled', label: orderStatusLabel.cancelled },
+  ]
   const { notify } = useToast()
   const navigate = useNavigate()
   const { orders, ordersState, deleteOrder, updateOrderStatus, reloadResource } = useAdminData()

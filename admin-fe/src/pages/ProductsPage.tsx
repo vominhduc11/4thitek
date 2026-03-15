@@ -201,12 +201,12 @@ const moveIndexedRecord = <T,>(record: Record<number, T>, fromIndex: number, toI
 }
 
 const suggestedSpecificationLabels = [
-  'K\u00edch th\u01b0\u1edbc',
-  'Tr\u1ecdng l\u01b0\u1ee3ng',
-  'Ch\u1ea5t li\u1ec7u',
-  'C\u00f4ng su\u1ea5t',
-  '\u0110i\u1ec7n \u00e1p',
-  'B\u1ea3o h\u00e0nh',
+  'Kích thước',
+  'Trọng lượng',
+  'Chất liệu',
+  'Công suất',
+  'Điện áp',
+  'Bảo hành',
 ]
 
 const sanitizeDescriptionItem = (item: DescriptionItem): DescriptionItem | null => {
@@ -845,12 +845,12 @@ function ProductsPage() {
     }
 
     return confirm({
-      title: t('Thay th\u1ebf d\u1eef li\u1ec7u hi\u1ec7n t\u1ea1i?'),
+      title: t('Thay thế dữ liệu hiện tại?'),
       message: t(
-        'M\u1eabu s\u1ebd ghi \u0111\u00e8 n\u1ed9i dung b\u1ea1n \u0111ang nh\u1eadp trong m\u1ee5c n\u00e0y.',
+        'Mẫu sẽ ghi đè nội dung bạn đang nhập trong mục này.',
       ),
-      confirmLabel: t('Ghi \u0111\u00e8'),
-      cancelLabel: t('Gi\u1eef l\u1ea1i'),
+      confirmLabel: t('Ghi đè'),
+      cancelLabel: t('Giữ lại'),
       tone: 'warning',
     })
   }
@@ -1027,7 +1027,7 @@ function ProductsPage() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        t('Kh\u00f4ng th\u1ec3 t\u1ea3i \u1ea3nh l\u00ean. Vui l\u00f2ng th\u1eed l\u1ea1i.'),
+        t('Không thể tải ảnh lên. Vui lòng thử lại.'),
       )
       setDescriptionImageErrors((prev) => ({
         ...prev,
@@ -1070,7 +1070,7 @@ function ProductsPage() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        t('Kh\u00f4ng th\u1ec3 t\u1ea3i \u1ea3nh l\u00ean. Vui l\u00f2ng th\u1eed l\u1ea1i.'),
+        t('Không thể tải ảnh lên. Vui lòng thử lại.'),
       )
       setDescriptionImageErrors((prev) => ({
         ...prev,
@@ -1111,7 +1111,7 @@ function ProductsPage() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        t('Kh\u00f4ng th\u1ec3 t\u1ea3i \u1ea3nh l\u00ean. Vui l\u00f2ng th\u1eed l\u1ea1i.'),
+        t('Không thể tải ảnh lên. Vui lòng thử lại.'),
       )
       setDescriptionImageErrors((prev) => ({
         ...prev,
@@ -1181,10 +1181,10 @@ function ProductsPage() {
     }
     if (isCreateFormDirty) {
       const approved = await confirm({
-        title: t('\u0110\u00f3ng bi\u1ec3u m\u1eabu t\u1ea1o s\u1ea3n ph\u1ea9m?'),
-        message: t('M\u1ecdi thay \u0111\u1ed5i ch\u01b0a l\u01b0u s\u1ebd b\u1ecb m\u1ea5t.'),
-        confirmLabel: t('Ti\u1ebfp t\u1ee5c \u0111\u00f3ng'),
-        cancelLabel: t('\u1ede l\u1ea1i'),
+        title: t('Đóng biểu mẫu tạo sản phẩm?'),
+        message: t('Mọi thay đổi chưa lưu sẽ bị mất.'),
+        confirmLabel: t('Tiếp tục đóng'),
+        cancelLabel: t('Ở lại'),
         tone: 'warning',
       })
       if (!approved) {
@@ -1309,7 +1309,7 @@ function ProductsPage() {
         }
         focusCreateField(firstErrorField)
       }, 0)
-      notify(t('Vui l\u00f2ng ki\u1ec3m tra l\u1ea1i c\u00e1c tr\u01b0\u1eddng b\u1eaft bu\u1ed9c'), {
+      notify(t('Vui lòng kiểm tra lại các trường bắt buộc'), {
         title: 'Products',
         variant: 'error',
       })
@@ -1398,7 +1398,7 @@ function ProductsPage() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        t('Kh\u00f4ng th\u1ec3 x\u1eed l\u00fd t\u1ec7p \u0111\u00e3 ch\u1ecdn'),
+        t('Không thể xử lý tệp đã chọn'),
       )
       setImageError(message)
       setSelectedImageName('')
@@ -1729,7 +1729,7 @@ function ProductsPage() {
             onClick={() => setShowAdvancedFilters((prev) => !prev)}
           >
             <SlidersHorizontal className="h-4 w-4" />
-            {showAdvancedFilters ? t('\u1ea8n b\u1ed9 l\u1ecdc') : t('B\u1ed9 l\u1ecdc n\u00e2ng cao')}
+            {showAdvancedFilters ? t('Ẩn bộ lọc') : t('Bộ lọc nâng cao')}
           </button>
           <button
             className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
@@ -1737,7 +1737,7 @@ function ProductsPage() {
             onClick={resetFilters}
           >
             <RotateCcw className="h-4 w-4" />
-            {t('\u0110\u1eb7t l\u1ea1i')}
+            {t('Đặt lại')}
           </button>
           {showAdvancedFilters && (
             <div className="flex w-full flex-wrap gap-2">
@@ -1814,7 +1814,7 @@ function ProductsPage() {
               const csv = [header, ...rows]
                 .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
                 .join('\n')
-              const csvContent = `\ufeff${csv}`
+              const csvContent = `﻿${csv}`
               const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
               const url = URL.createObjectURL(blob)
               const link = document.createElement('a')
@@ -1879,9 +1879,9 @@ function ProductsPage() {
 
       <div className="mt-6 grid gap-3">
         <div className="hidden items-center gap-3 rounded-2xl border border-slate-200/70 bg-[var(--surface-muted)] px-4 py-3 text-xs uppercase tracking-[0.2em] text-slate-400 md:grid md:grid-cols-[2fr_1fr_0.9fr]">
-          <span>{t('S\u1ea3n ph\u1ea9m')}</span>
-          <span>{t('Tr\u1ea1ng th\u00e1i')}</span>
-          <span>{t('Thao t\u00e1c')}</span>
+          <span>{t('Sản phẩm')}</span>
+          <span>{t('Trạng thái')}</span>
+          <span>{t('Thao tác')}</span>
         </div>
         {listContent}
       </div>
@@ -1994,7 +1994,7 @@ function ProductsPage() {
 
                         {isCreateFormDirty ? (
               <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800" role="status">
-                {t('B\u1ea1n c\u00f3 thay \u0111\u1ed5i ch\u01b0a l\u01b0u trong bi\u1ec3u m\u1eabu t\u1ea1o s\u1ea3n ph\u1ea9m.')}
+                {t('Bạn có thay đổi chưa lưu trong biểu mẫu tạo sản phẩm.')}
               </div>
             ) : null}
 
@@ -2031,7 +2031,7 @@ function ProductsPage() {
                       </label>
                       <label className="text-sm text-slate-700">
                         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                          {t('Th\u1eddi h\u1ea1n b\u1ea3o h\u00e0nh (th\u00e1ng)')}
+                          {t('Thời hạn bảo hành (tháng)')}
                         </span>
                         <input
                           ref={warrantyInputRef}
@@ -2039,7 +2039,7 @@ function ProductsPage() {
                           aria-invalid={Boolean(errors.warrantyPeriod)}
                           inputMode="numeric"
                           autoComplete="off"
-                          placeholder={t('Nh\u1eadp s\u1ed1 th\u00e1ng b\u1ea3o h\u00e0nh')}
+                          placeholder={t('Nhập số tháng bảo hành')}
                           className={`mt-2 w-full rounded-xl border px-3 py-2 text-sm ${errors.warrantyPeriod ? 'border-rose-300' : 'border-slate-200'}`}
                           value={newProduct.warrantyPeriod}
                           onChange={(e) =>
@@ -2267,7 +2267,7 @@ function ProductsPage() {
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
                         {selectedImageName && (
                           <span>
-                            {t('\u0110\u00e3 ch\u1ecdn')}{': '}
+                            {t('Đã chọn')}{': '}
                             <span className="font-semibold text-slate-800">{selectedImageName}</span>
                           </span>
                         )}
@@ -2278,7 +2278,7 @@ function ProductsPage() {
                             className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-2 py-1 text-[11px] font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
                           >
                             <X className="h-3 w-3" />
-                            {t('\u0058\u00f3a \u1ea3nh')}
+                            {t('Xóa ảnh')}
                           </button>
                         )}
                       </div>
@@ -2294,11 +2294,11 @@ function ProductsPage() {
                           className="absolute right-2 top-2 inline-flex min-h-11 items-center gap-1 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 shadow-sm opacity-100 transition hover:border-rose-300 hover:text-rose-700 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
                         >
                           <X className="h-3 w-3" />
-                          {t('\u0058\u00f3a \u1ea3nh')}
+                          {t('Xóa ảnh')}
                         </button>
                         <img
                           src={imagePreviewUrl || resolveBackendAssetUrl(newProduct.imageUrl)}
-                          alt={t('\u0058em tr\u01b0\u1edbc')}
+                          alt={t('Xem trước')}
                           className="h-40 w-full object-cover"
                           onError={(ev) => ((ev.target as HTMLImageElement).style.display = 'none')}
                         />
@@ -2378,7 +2378,7 @@ function ProductsPage() {
                             className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
                             onClick={() => moveDescriptionItem(idx, -1)}
                           >
-                            {t('L\u00ean')}
+                            {t('Lên')}
                           </button>
                           <button
                             type="button"
@@ -2386,7 +2386,7 @@ function ProductsPage() {
                             className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
                             onClick={() => moveDescriptionItem(idx, 1)}
                           >
-                            {t('Xu\u1ed1ng')}
+                            {t('Xuống')}
                           </button>
                           <button
                             type="button"
@@ -2590,7 +2590,7 @@ function ProductsPage() {
                         <div className="grid gap-2 md:grid-cols-[1.4fr_1fr]">
                           <input
                             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                            placeholder={t('Nh\u1eadp URL video YouTube ho\u1eb7c file video c\u00f4ng khai')}
+                            placeholder={t('Nhập URL video YouTube hoặc file video công khai')}
                             value={d.url ?? ''}
                             onChange={(e) => {
                               const copy = [...newProduct.descriptions]
@@ -2600,7 +2600,7 @@ function ProductsPage() {
                           />
                           <input
                             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                            placeholder={t('Nh\u1eadp ch\u00fa th\u00edch')}
+                            placeholder={t('Nhập chú thích')}
                             value={d.caption ?? ''}
                             onChange={(e) => {
                               const copy = [...newProduct.descriptions]
@@ -2629,7 +2629,7 @@ function ProductsPage() {
                                   setNewProduct({ ...newProduct, descriptions: copy })
                                 }}
                               >
-                                {t('X\u00f3a video')}
+                                {t('Xóa video')}
                               </button>
                             </div>
                           ) : null}
@@ -2743,7 +2743,7 @@ function ProductsPage() {
                           className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
                           onClick={() => moveSpecificationItem(idx, -1)}
                         >
-                          {t('L\u00ean')}
+                          {t('Lên')}
                         </button>
                         <button
                           type="button"
@@ -2751,7 +2751,7 @@ function ProductsPage() {
                           className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
                           onClick={() => moveSpecificationItem(idx, 1)}
                         >
-                          {t('Xu\u1ed1ng')}
+                          {t('Xuống')}
                         </button>
                         <button
                           type="button"
@@ -2850,7 +2850,7 @@ function ProductsPage() {
                           }}
                           aria-invalid={Boolean(productVideoErrors[idx])}
                           className={`w-full rounded-lg border px-3 py-2 text-sm ${productVideoErrors[idx] ? 'border-rose-300' : 'border-slate-200'}`}
-                          placeholder={t('Nh\u1eadp URL video YouTube ho\u1eb7c file video c\u00f4ng khai')}
+                          placeholder={t('Nhập URL video YouTube hoặc file video công khai')}
                           value={v.url}
                           onChange={(e) => {
                             const copy = [...newProduct.videos]
@@ -2930,7 +2930,7 @@ function ProductsPage() {
                               })
                             }}
                           >
-                            {t('X\u00f3a video')}
+                            {t('Xóa video')}
                           </button>
                         </div>
                       ) : null}
@@ -2941,7 +2941,7 @@ function ProductsPage() {
                           className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
                           onClick={() => moveVideoItem(idx, -1)}
                         >
-                          {t('L\u00ean')}
+                          {t('Lên')}
                         </button>
                         <button
                           type="button"
@@ -2949,7 +2949,7 @@ function ProductsPage() {
                           className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
                           onClick={() => moveVideoItem(idx, 1)}
                         >
-                          {t('Xu\u1ed1ng')}
+                          {t('Xuống')}
                         </button>
                         <button
                           type="button"
@@ -3016,7 +3016,7 @@ function ProductsPage() {
                     void requestCloseModal()
                   }}
                 >
-                  {t('H\u1ee7y')}
+                  {t('Hủy')}
                 </button>
                 <button
                   type="button"
@@ -3027,10 +3027,10 @@ function ProductsPage() {
                   {isCreating ? (
                     <>
                       <RotateCcw className="h-4 w-4 animate-spin" />
-                      {t('\u0110ang t\u1ea1o...')}
+                      {t('Đang tạo...')}
                     </>
                   ) : (
-                    t('T\u1ea1o')
+                    t('Tạo')
                   )}
                 </button>
               </div>
