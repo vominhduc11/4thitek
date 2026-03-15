@@ -1,7 +1,6 @@
 import type {
   BlogStatus,
   DealerStatus,
-  DealerTier,
   OrderStatus,
   RuleStatus,
   UserStatus,
@@ -51,20 +50,6 @@ export const blogStatusTone: Record<BlogStatus, BadgeTone> = {
   published: 'success',
   scheduled: 'info',
   draft: 'warning',
-}
-
-export const dealerTierLabel: Record<DealerTier, string> = {
-  platinum: 'Bạch kim',
-  gold: 'Vàng',
-  silver: 'Bạc',
-  bronze: 'Đồng',
-}
-
-export const dealerTierTone: Record<DealerTier, BadgeTone> = {
-  platinum: 'info',
-  gold: 'warning',
-  silver: 'neutral',
-  bronze: 'danger',
 }
 
 export const dealerStatusLabel: Record<DealerStatus, string> = {

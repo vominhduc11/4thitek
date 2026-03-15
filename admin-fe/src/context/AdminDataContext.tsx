@@ -42,7 +42,6 @@ import {
   mapOrder,
   mapUser,
   toBackendDealerAccountStatus,
-  toBackendDealerAccountTier,
   toBackendOrderStatus,
   toBackendPaymentMethod,
   toBackendRuleStatus,
@@ -64,13 +63,13 @@ import {
   type UserStatus,
 } from './adminDataTypes'
 
+
 export type {
   AppSettings,
   BlogPost,
   BlogStatus,
   Dealer,
   DealerStatus,
-  DealerTier,
   DiscountRule,
   Order,
   OrderStatus,
@@ -120,7 +119,7 @@ type AdminDataContextValue = {
   dealersState: AdminResourceState
   updateDealer: (
     id: string,
-    payload: Pick<Dealer, 'tier' | 'creditLimit'>,
+    payload: Pick<Dealer, 'creditLimit'>,
   ) => Promise<void>
   updateDealerStatus: (id: string, status: DealerStatus) => Promise<void>
   users: StaffUser[]
@@ -518,7 +517,6 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const updated = await updateAdminDealerAccount(token, Number(id), {
-      tier: toBackendDealerAccountTier(payload.tier),
       creditLimit: payload.creditLimit,
     })
     setDealers((previous) => previous.map((item) => (item.id === id ? mapDealer(updated) : item)))

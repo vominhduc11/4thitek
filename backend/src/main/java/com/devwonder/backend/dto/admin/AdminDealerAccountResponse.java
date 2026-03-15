@@ -1,7 +1,6 @@
 package com.devwonder.backend.dto.admin;
 
 import com.devwonder.backend.entity.enums.CustomerStatus;
-import com.devwonder.backend.entity.enums.DealerTier;
 import java.math.BigDecimal;
 import java.time.Instant;
 
@@ -10,7 +9,6 @@ public record AdminDealerAccountResponse(
         String name,
         String businessName,
         String contactName,
-        DealerTier tier,
         CustomerStatus status,
         Integer orders,
         Instant lastOrderAt,

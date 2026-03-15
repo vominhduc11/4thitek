@@ -5,7 +5,6 @@ import type {
   BackendBlogUpsertRequest,
   BackendDealerAccountResponse,
   BackendDealerAccountStatus,
-  BackendDealerAccountTier,
   BackendDiscountRuleResponse,
   BackendDiscountRuleStatus,
   BackendOrderResponse,
@@ -21,7 +20,6 @@ import type {
   BlogStatus,
   Dealer,
   DealerStatus,
-  DealerTier,
   DiscountRule,
   Order,
   OrderStatus,
@@ -111,32 +109,6 @@ export const toBackendBlogStatus = (status: BlogStatus): BackendBlogStatus => {
       return 'SCHEDULED'
     default:
       return 'DRAFT'
-  }
-}
-
-export const mapBackendDealerAccountTier = (tier?: BackendDealerAccountTier | null): DealerTier => {
-  switch (tier) {
-    case 'PLATINUM':
-      return 'platinum'
-    case 'SILVER':
-      return 'silver'
-    case 'BRONZE':
-      return 'bronze'
-    default:
-      return 'gold'
-  }
-}
-
-export const toBackendDealerAccountTier = (tier: DealerTier): BackendDealerAccountTier => {
-  switch (tier) {
-    case 'platinum':
-      return 'PLATINUM'
-    case 'silver':
-      return 'SILVER'
-    case 'bronze':
-      return 'BRONZE'
-    default:
-      return 'GOLD'
   }
 }
 
@@ -247,7 +219,6 @@ export const mapDealer = (dealer: BackendDealerAccountResponse): Dealer => ({
   name: dealer.name || dealer.businessName || dealer.contactName || '',
   businessName: dealer.businessName || dealer.name || '',
   contactName: dealer.contactName || dealer.businessName || dealer.name || '',
-  tier: mapBackendDealerAccountTier(dealer.tier),
   status: mapBackendDealerAccountStatus(dealer.status),
   orders: Number(dealer.orders ?? 0),
   lastOrderAt: dealer.lastOrderAt || '',

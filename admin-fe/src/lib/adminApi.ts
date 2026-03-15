@@ -26,7 +26,6 @@ export type BackendBlogStatus = 'DRAFT' | 'SCHEDULED' | 'PUBLISHED'
 export type BackendOrderStatus = 'PENDING' | 'CONFIRMED' | 'SHIPPING' | 'COMPLETED' | 'CANCELLED'
 export type BackendPaymentMethod = 'BANK_TRANSFER' | 'DEBT'
 export type BackendPaymentStatus = 'PENDING' | 'PAID' | 'DEBT_RECORDED' | 'CANCELLED' | 'FAILED'
-export type BackendDealerAccountTier = 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE'
 export type BackendDealerAccountStatus = 'ACTIVE' | 'UNDER_REVIEW' | 'SUSPENDED'
 export type BackendStaffUserStatus = 'ACTIVE' | 'PENDING'
 export type BackendDiscountRuleStatus = 'ACTIVE' | 'PENDING' | 'DRAFT'
@@ -130,7 +129,6 @@ export type BackendDealerAccountResponse = {
   name: string
   businessName?: string | null
   contactName?: string | null
-  tier?: BackendDealerAccountTier | null
   status?: BackendDealerAccountStatus | null
   orders?: number | null
   lastOrderAt?: string | null
@@ -144,7 +142,6 @@ export type BackendDealerAccountUpsertRequest = {
   name: string
   businessName?: string
   contactName?: string
-  tier?: BackendDealerAccountTier
   status?: BackendDealerAccountStatus
   revenue?: number
   creditLimit?: number
@@ -153,7 +150,6 @@ export type BackendDealerAccountUpsertRequest = {
 }
 
 export type BackendDealerAccountUpdateRequest = {
-  tier: BackendDealerAccountTier
   creditLimit?: number
 }
 

@@ -313,7 +313,6 @@ class DealerOnboardingFlowTests {
         adminManagementService.updateDealerAccount(
                 dealer.getId(),
                 new AdminDealerAccountUpdateRequest(
-                        dealer.getDealerTier(),
                         BigDecimal.valueOf(100_000_000)
                 )
         );

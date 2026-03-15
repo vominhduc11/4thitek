@@ -8,7 +8,6 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
 import com.devwonder.backend.entity.enums.CustomerStatus;
-import com.devwonder.backend.entity.enums.DealerTier;
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
@@ -59,10 +58,6 @@ public class Dealer extends Account {
 
     @Column(name = "credit_limit")
     private BigDecimal creditLimit;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "customer_tier")
-    private DealerTier dealerTier;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "customer_status")

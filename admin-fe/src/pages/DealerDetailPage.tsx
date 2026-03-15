@@ -1,15 +1,13 @@
 import { ArrowLeft, Phone, UserCircle } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useAdminData, type DealerStatus, type DealerTier } from '../context/AdminDataContext'
+import { useAdminData, type DealerStatus } from '../context/AdminDataContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import {
   dealerStatusDescription,
   dealerStatusLabel,
   dealerStatusTone,
-  dealerTierLabel,
-  dealerTierTone,
 } from '../lib/adminLabels'
 import { formatCurrency, formatDateTime } from '../lib/formatters'
 import {
@@ -28,7 +26,6 @@ import {
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
 
 const DEALER_STATUS_OPTIONS: DealerStatus[] = ['active', 'under_review', 'suspended']
-const DEALER_TIERS: DealerTier[] = ['platinum', 'gold', 'silver', 'bronze']
 
 function DealerDetailPage() {
   const { id = '' } = useParams()
@@ -39,7 +36,6 @@ function DealerDetailPage() {
   const { confirm, confirmDialog } = useConfirmDialog()
   const dealer = dealers.find((item) => item.id === dealerId)
   const [form, setForm] = useState({
-    tier: 'gold' as DealerTier,
     creditLimit: '',
   })
   const [formErrors, setFormErrors] = useState<Partial<Record<'creditLimit', string>>>({})
@@ -48,8 +44,7 @@ function DealerDetailPage() {
     () =>
       Boolean(
         dealer &&
-          (form.tier !== dealer.tier ||
-            form.creditLimit !== (dealer.creditLimit > 0 ? String(dealer.creditLimit) : '')),
+          form.creditLimit !== (dealer.creditLimit > 0 ? String(dealer.creditLimit) : ''),
       ),
     [dealer, form],
   )
@@ -78,7 +73,6 @@ function DealerDetailPage() {
       return
     }
     setForm({
-      tier: dealer.tier,
       creditLimit: dealer.creditLimit > 0 ? String(dealer.creditLimit) : '',
     })
   }, [dealer])
@@ -125,7 +119,6 @@ function DealerDetailPage() {
     setIsSavingProfile(true)
     try {
       await updateDealer(dealer.id, {
-        tier: form.tier,
         creditLimit,
       })
       setFormErrors({})
@@ -151,7 +144,6 @@ function DealerDetailPage() {
           {t('Về đại lý')}
         </Link>
         <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge tone={dealerTierTone[dealer.tier]}>{dealerTierLabel[dealer.tier]}</StatusBadge>
           <StatusBadge tone={dealerStatusTone[dealer.status]}>{dealerStatusLabel[dealer.status]}</StatusBadge>
         </div>
       </div>
@@ -264,21 +256,6 @@ function DealerDetailPage() {
             <p className="text-sm font-semibold text-slate-900">{t('Cài đặt tài khoản đại lý')}</p>
             <div className="mt-3 grid gap-3">
               <label className="space-y-2">
-                <span className={labelClass}>{t('Hạng đại lý')}</span>
-                <select
-                  aria-label={t('Hạng đại lý')}
-                  className={`${inputClass} bg-white text-slate-700`}
-                  onChange={(event) => updateFormField('tier', event.target.value as DealerTier)}
-                  value={form.tier}
-                >
-                  {DEALER_TIERS.map((tier) => (
-                    <option key={tier} value={tier}>
-                      {dealerTierLabel[tier]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="space-y-2">
                 <span className={labelClass}>{t('Hạn mức công nợ (VND)')}</span>
                 <input
                   aria-describedby={formErrors.creditLimit ? 'dealer-credit-error' : undefined}
@@ -307,7 +284,6 @@ function DealerDetailPage() {
                 <GhostButton
                   onClick={() => {
                     setForm({
-                      tier: dealer.tier,
                       creditLimit: dealer.creditLimit > 0 ? String(dealer.creditLimit) : '',
                     })
                     setFormErrors({})

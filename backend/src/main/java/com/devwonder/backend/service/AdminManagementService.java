@@ -30,7 +30,6 @@ import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.Role;
 import com.devwonder.backend.entity.enums.CustomerStatus;
-import com.devwonder.backend.entity.enums.DealerTier;
 import com.devwonder.backend.entity.enums.DiscountRuleStatus;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.StaffUserStatus;
@@ -330,7 +329,6 @@ public class AdminManagementService {
     public AdminDealerAccountResponse updateDealerAccount(Long id, AdminDealerAccountUpdateRequest request) {
         Dealer dealer = dealerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Dealer account not found"));
-        dealer.setDealerTier(request.tier());
         dealer.setCreditLimit(requireNonNegativeAmount(request.creditLimit(), "creditLimit"));
         Dealer saved = dealerRepository.save(dealer);
         return AdminResponseMapper.toDealerAccountResponse(saved, activeDiscountRules());

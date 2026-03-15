@@ -26,8 +26,6 @@ import {
   dealerStatusDescription,
   dealerStatusLabel,
   dealerStatusTone,
-  dealerTierLabel,
-  dealerTierTone,
 } from '../lib/adminLabels'
 import { formatCurrency, formatDateTime } from '../lib/formatters'
 
@@ -54,7 +52,6 @@ const copyByLanguage = {
     emptyMessage: 'Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.',
     loadTitle: 'Không thể tải đại lý',
     loadFallback: 'Không tải được danh sách đại lý',
-    tier: 'Hạng',
     status: 'Trạng thái',
     orders: 'Đơn hàng',
     revenueShort: 'Doanh thu',
@@ -80,7 +77,6 @@ const copyByLanguage = {
     emptyMessage: 'Try adjusting filters or your search keywords.',
     loadTitle: 'Unable to load dealers',
     loadFallback: 'Could not load the dealer list',
-    tier: 'Tier',
     status: 'Status',
     orders: 'Orders',
     revenueShort: 'Revenue',
@@ -218,12 +214,6 @@ function DealersPageRevamp() {
                     </div>
                     <div className="mt-4 grid gap-2 text-sm text-[var(--ink)]">
                       <div className="flex items-center justify-between">
-                        <span className={tableMetaClass}>{copy.tier}</span>
-                        <StatusBadge tone={dealerTierTone[dealer.tier]}>
-                          {dealerTierLabel[dealer.tier]}
-                        </StatusBadge>
-                      </div>
-                      <div className="flex items-center justify-between">
                         <span className={tableMetaClass}>{copy.orders}</span>
                         <span>{dealer.orders}</span>
                       </div>
@@ -290,7 +280,6 @@ function DealersPageRevamp() {
                 <thead>
                   <tr className={tableHeadClass}>
                     <th className="px-3 py-2 font-semibold">{copy.title}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.tier}</th>
                     <th className="px-3 py-2 font-semibold">{copy.status}</th>
                     <th className="px-3 py-2 font-semibold">{copy.orders}</th>
                     <th className="px-3 py-2 font-semibold">{copy.revenueShort}</th>
@@ -311,11 +300,6 @@ function DealersPageRevamp() {
                           {dealer.id} · {dealer.email}
                         </p>
                         <p className={tableMetaClass}>{dealer.contactName}</p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <StatusBadge tone={dealerTierTone[dealer.tier]}>
-                          {dealerTierLabel[dealer.tier]}
-                        </StatusBadge>
                       </td>
                       <td className="px-3 py-3">
                         <StatusBadge tone={dealerStatusTone[dealer.status]}>

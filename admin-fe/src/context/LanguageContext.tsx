@@ -151,7 +151,6 @@ const translations: Record<Language, TranslationMap> = {
     '87% doanh thu tháng này': "87% of this month's revenue",
     'Cần chăm sóc': 'Needs attention',
     'Không mua trong 14 ngày': 'No purchases in 14 days',
-    'Hạng': 'Tier',
     'Lần mua gần nhất': 'Last purchase',
     'Doanh thu': 'Revenue',
     'Doanh thu hôm nay': "Today's revenue",
