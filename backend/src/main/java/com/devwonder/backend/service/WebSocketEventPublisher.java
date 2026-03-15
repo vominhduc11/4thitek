@@ -26,4 +26,12 @@ public class WebSocketEventPublisher {
     public void publishDealerRegistrationFromAuth(Object payload) {
         messagingTemplate.convertAndSend("/topic/dealer-registrations", payload);
     }
+
+    public void publishAdminNewOrder(Object payload) {
+        messagingTemplate.convertAndSend("/topic/admin/new-orders", payload);
+    }
+
+    public void publishAdminNewSupportTicket(Object payload) {
+        messagingTemplate.convertAndSend("/topic/admin/support-tickets", payload);
+    }
 }

@@ -12,6 +12,10 @@ public class AsyncMailService {
 
     private final MailService mailService;
 
+    public boolean isEnabled() {
+        return mailService.isEnabled();
+    }
+
     @Async("mailTaskExecutor")
     public void sendText(String to, String subject, String body) {
         try {

@@ -21,9 +21,12 @@ import com.devwonder.backend.service.support.AccountValidationSupport;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,9 +39,13 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class DealerWarrantyManagementService {
 
+    private static final Logger log = LoggerFactory.getLogger(DealerWarrantyManagementService.class);
+    private static final DateTimeFormatter WARRANTY_DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
     private final WarrantyRegistrationRepository warrantyRegistrationRepository;
     private final ProductSerialRepository productSerialRepository;
     private final DealerRepository dealerRepository;
+    private final AsyncMailService asyncMailService;
 
     @Transactional(readOnly = true)
     public List<WarrantyRegistrationResponse> list(Long dealerId) {
@@ -94,6 +101,7 @@ public class DealerWarrantyManagementService {
         WarrantyRegistration registration = new WarrantyRegistration();
         apply(registration, request, productSerial, forcedDealerId);
         WarrantyRegistration saved = warrantyRegistrationRepository.save(registration);
+        sendWarrantyConfirmationEmailIfPossible(saved, productSerial);
         return toResponse(saved);
     }
 
@@ -310,6 +318,44 @@ public class DealerWarrantyManagementService {
             return "WAR-" + (serial.isBlank() ? suffix.toUpperCase() : serial.toUpperCase());
         }
         return "WAR-" + suffix.toUpperCase() + "-" + productSerialId;
+    }
+
+    private void sendWarrantyConfirmationEmailIfPossible(WarrantyRegistration saved, ProductSerial productSerial) {
+        String recipient = normalize(saved.getCustomerEmail());
+        if (recipient == null || !asyncMailService.isEnabled()) {
+            return;
+        }
+        String customerName = saved.getCustomerName() != null ? saved.getCustomerName() : "Quý khách";
+        String warrantyCode = saved.getWarrantyCode() != null ? saved.getWarrantyCode() : "";
+        String productName = productSerial.getProduct() != null && productSerial.getProduct().getName() != null
+                ? productSerial.getProduct().getName()
+                : productSerial.getSerial();
+        String startDate = formatInstant(saved.getWarrantyStart());
+        String endDate = formatInstant(saved.getWarrantyEnd());
+        String subject = "4ThiTek — Xác nhận đăng ký bảo hành " + warrantyCode;
+        String body = """
+                Xin chào %s,
+
+                Sản phẩm của bạn đã được đăng ký bảo hành thành công.
+
+                Sản phẩm: %s
+                Mã bảo hành: %s
+                Ngày bắt đầu: %s
+                Ngày hết hạn: %s
+
+                Vui lòng lưu giữ thông tin này để được hỗ trợ khi cần thiết.
+
+                Trân trọng,
+                4ThiTek
+                """.formatted(customerName, productName, warrantyCode, startDate, endDate);
+        asyncMailService.sendText(recipient, subject, body);
+    }
+
+    private String formatInstant(Instant instant) {
+        if (instant == null) {
+            return "";
+        }
+        return WARRANTY_DATE_FMT.format(instant.atZone(WarrantyDateSupport.APP_ZONE).toLocalDate());
     }
 
     private String normalize(String value) {

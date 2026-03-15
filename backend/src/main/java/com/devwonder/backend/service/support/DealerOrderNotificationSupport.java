@@ -7,19 +7,25 @@ import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.enums.NotifyType;
 import com.devwonder.backend.entity.enums.StaffUserStatus;
 import com.devwonder.backend.repository.AdminRepository;
+import com.devwonder.backend.service.MailService;
 import com.devwonder.backend.service.NotificationService;
 import java.util.Locale;
 import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class DealerOrderNotificationSupport {
 
+    private static final Logger log = LoggerFactory.getLogger(DealerOrderNotificationSupport.class);
+
     private final AdminRepository adminRepository;
     private final NotificationService notificationService;
     private final AppMessageSupport appMessageSupport;
+    private final MailService mailService;
 
     public void notifyOrderCreated(Dealer dealer, Order order) {
         notificationService.create(new CreateNotifyRequest(
@@ -29,6 +35,44 @@ public class DealerOrderNotificationSupport {
                 NotifyType.ORDER,
                 "/orders/" + order.getOrderCode()
         ));
+        sendOrderConfirmationEmailIfPossible(dealer, order);
+    }
+
+    private void sendOrderConfirmationEmailIfPossible(Dealer dealer, Order order) {
+        String recipient = normalize(dealer.getEmail());
+        if (recipient == null || !mailService.isEnabled()) {
+            return;
+        }
+        try {
+            String orderCode = firstNonBlank(order.getOrderCode(), "#" + order.getId());
+            String subject = "4ThiTek xác nhận đơn hàng " + orderCode;
+            String body = """
+                    Xin chào %s,
+
+                    Đơn hàng %s của bạn đã được tiếp nhận thành công.
+                    Chúng tôi sẽ xử lý và thông báo cho bạn khi có cập nhật mới.
+
+                    Cảm ơn bạn đã tin tưởng sử dụng dịch vụ của 4ThiTek.
+
+                    Trân trọng,
+                    4ThiTek
+                    """.formatted(resolveDisplayName(dealer), orderCode);
+            mailService.sendText(recipient, subject, body);
+        } catch (RuntimeException ex) {
+            log.warn("Could not send order confirmation email to {}", normalize(dealer.getEmail()), ex);
+        }
+    }
+
+    private String resolveDisplayName(Dealer dealer) {
+        String contactName = normalize(dealer.getContactName());
+        if (contactName != null) {
+            return contactName;
+        }
+        String businessName = normalize(dealer.getBusinessName());
+        if (businessName != null) {
+            return businessName;
+        }
+        return "đối tác";
     }
 
     public void notifyPaymentRecorded(Dealer dealer, Order order, BigDecimal amount) {
@@ -82,5 +126,13 @@ public class DealerOrderNotificationSupport {
             }
         }
         return "";
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

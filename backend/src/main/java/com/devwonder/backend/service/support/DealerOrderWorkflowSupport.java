@@ -11,9 +11,11 @@ import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
+import com.devwonder.backend.dto.realtime.AdminNewOrderEvent;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.OrderRepository;
+import com.devwonder.backend.service.WebSocketEventPublisher;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -31,6 +33,7 @@ public class DealerOrderWorkflowSupport {
     private final OrderInventorySupport orderInventorySupport;
     private final ProductSerialOrderSupport productSerialOrderSupport;
     private final DealerOrderNotificationSupport dealerOrderNotificationSupport;
+    private final WebSocketEventPublisher webSocketEventPublisher;
 
     public DealerOrderResponse createOrder(
             Dealer dealer,
@@ -72,6 +75,13 @@ public class DealerOrderWorkflowSupport {
         assertCreditLimitAvailable(dealer, order, activeDiscountRules);
 
         Order saved = orderRepository.save(order);
+        webSocketEventPublisher.publishAdminNewOrder(new AdminNewOrderEvent(
+                saved.getId(),
+                saved.getOrderCode(),
+                dealer.getId(),
+                dealer.getBusinessName(),
+                saved.getCreatedAt()
+        ));
         dealerOrderNotificationSupport.notifyOrderCreated(dealer, saved);
         return DealerPortalResponseMapper.toOrderResponse(saved, activeDiscountRules);
     }

@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'app_settings_controller.dart';
 import 'breakpoints.dart';
+import 'notification_controller.dart';
 import 'support_service.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
@@ -40,6 +41,7 @@ class _SupportScreenState extends State<SupportScreen> {
   bool _isLoadingMoreTickets = false;
   bool _hasMoreTickets = true;
   bool _isSubmitting = false;
+  int _handledSupportEventVersion = 0;
 
   static const _hotline = '1900 1234';
   static const _supportEmail = 'support@4thitek.vn';
@@ -52,6 +54,18 @@ class _SupportScreenState extends State<SupportScreen> {
     _supportService = SupportService();
     _loadLatestTicket();
     _loadTicketHistory();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final notificationController = NotificationScope.of(context);
+    final version = notificationController.incomingSupportEventVersion;
+    if (version != _handledSupportEventVersion) {
+      _handledSupportEventVersion = version;
+      _loadLatestTicket();
+      _loadTicketHistory();
+    }
   }
 
   @override

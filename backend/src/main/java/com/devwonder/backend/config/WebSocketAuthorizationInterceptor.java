@@ -65,6 +65,20 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
             return;
         }
 
+        if ("/topic/admin/new-orders".equals(destination)) {
+            if (!isAdmin) {
+                throw new AccessDeniedException("Access denied: Only ADMIN or SUPER_ADMIN can subscribe to new orders");
+            }
+            return;
+        }
+
+        if ("/topic/admin/support-tickets".equals(destination)) {
+            if (!isAdmin) {
+                throw new AccessDeniedException("Access denied: Only ADMIN or SUPER_ADMIN can subscribe to support tickets");
+            }
+            return;
+        }
+
         throw new AccessDeniedException("Access denied to unknown subscription destination: " + destination);
     }
 

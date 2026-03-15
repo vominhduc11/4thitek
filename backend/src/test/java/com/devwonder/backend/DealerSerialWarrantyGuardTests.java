@@ -308,7 +308,7 @@ class DealerSerialWarrantyGuardTests {
                 "SERIAL-WARRANTY-5",
                 ProductSerialStatus.AVAILABLE
         ));
-        LocalDate purchaseDate = LocalDate.of(2026, 3, 14);
+        LocalDate purchaseDate = LocalDate.now(WarrantyDateSupport.APP_ZONE);
 
         var response = dealerPortalService.activateWarranty(
                 dealer.getUsername(),

@@ -47,7 +47,9 @@
       "Bash(cd:*)",
       "Bash(flutter test:*)",
       "Bash(python:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(node:*)",
+      "Bash(./mvnw compile:*)"
     ]
   }
 }

@@ -17,6 +17,7 @@ class NotificationController extends ChangeNotifier {
     AuthStorage? authStorage,
     http.Client? client,
     Future<void> Function()? onOrderSignal,
+    void Function(String, String, String)? onOrderStatusEvent,
   }) : _notices = <DistributorNotice>[] {
     _authStorage = authStorage ?? AuthStorage();
     _client = DealerAuthClient(
@@ -24,6 +25,7 @@ class NotificationController extends ChangeNotifier {
       inner: client ?? http.Client(),
     );
     _onOrderSignal = onOrderSignal;
+    _onOrderStatusEvent = onOrderStatusEvent;
     _authStorage.sessionEvents.addListener(_handleSessionEvent);
   }
 
@@ -32,7 +34,9 @@ class NotificationController extends ChangeNotifier {
   late final AuthStorage _authStorage;
   late final http.Client _client;
   late final Future<void> Function()? _onOrderSignal;
+  late final void Function(String orderCode, String status, String paymentStatus)? _onOrderStatusEvent;
   final ValueNotifier<int> _incomingNoticeEventVersion = ValueNotifier<int>(0);
+  final ValueNotifier<int> _incomingSupportEventVersion = ValueNotifier<int>(0);
   final List<DistributorNotice> _notices;
   final Set<String> _readIds = <String>{};
   final Map<String, int> _remoteNoticeIds = <String, int>{};
@@ -65,6 +69,10 @@ class NotificationController extends ChangeNotifier {
   ValueListenable<int> get incomingNoticeEvents => _incomingNoticeEventVersion;
 
   int get incomingNoticeEventVersion => _incomingNoticeEventVersion.value;
+
+  ValueListenable<int> get incomingSupportEvents => _incomingSupportEventVersion;
+
+  int get incomingSupportEventVersion => _incomingSupportEventVersion.value;
 
   DistributorNotice? get latestIncomingNotice => _latestIncomingNotice;
 
@@ -441,6 +449,9 @@ class NotificationController extends ChangeNotifier {
     if (notice.type == NoticeType.order) {
       unawaited(_emitOrderSignal());
     }
+    if (notice.link != null && notice.link!.startsWith('/support')) {
+      _incomingSupportEventVersion.value = _incomingSupportEventVersion.value + 1;
+    }
   }
 
   void _handleOrderStatusFrame(int connectionId, StompFrame frame) {
@@ -449,8 +460,16 @@ class NotificationController extends ChangeNotifier {
     }
 
     final payload = _decodeBody(frame.body ?? '');
-    if (payload.isEmpty) {
-      unawaited(_emitOrderSignal());
+    final orderCode = payload['orderCode']?.toString();
+    final status = payload['status']?.toString();
+    final paymentStatus = payload['paymentStatus']?.toString();
+
+    if (orderCode != null &&
+        orderCode.isNotEmpty &&
+        status != null &&
+        status.isNotEmpty &&
+        _onOrderStatusEvent != null) {
+      _onOrderStatusEvent(orderCode, status, paymentStatus ?? '');
       return;
     }
 
@@ -592,6 +611,7 @@ class NotificationController extends ChangeNotifier {
     _authStorage.sessionEvents.removeListener(_handleSessionEvent);
     _stopRealtimeConnection();
     _incomingNoticeEventVersion.dispose();
+    _incomingSupportEventVersion.dispose();
     _client.close();
     super.dispose();
   }

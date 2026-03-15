@@ -60,6 +60,8 @@ import com.devwonder.backend.service.support.ProductSerialOrderSupport;
 import com.devwonder.backend.service.support.ProductSerialResponseMapper;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
 import java.math.BigDecimal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.YearMonth;
@@ -82,6 +84,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AdminManagementService {
 
+    private static final Logger log = LoggerFactory.getLogger(AdminManagementService.class);
     private static final String TEMP_PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#$%";
     private static final int TEMP_PASSWORD_LENGTH = 12;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -374,7 +377,35 @@ public class AdminManagementService {
         admin.setUserStatus(request.status() == null ? StaffUserStatus.PENDING : request.status());
         admin.setRequireLoginEmailConfirmation(Boolean.TRUE);
         admin.setRoles(new HashSet<>(List.of(resolveRole("ADMIN", "Admin role"))));
-        return AdminResponseMapper.toStaffUserResponse(adminRepository.save(admin), temporaryPassword);
+        Admin saved = adminRepository.save(admin);
+        sendWelcomeEmailIfPossible(saved, identity.username(), temporaryPassword);
+        return AdminResponseMapper.toStaffUserResponse(saved, temporaryPassword);
+    }
+
+    private void sendWelcomeEmailIfPossible(Admin admin, String username, String temporaryPassword) {
+        String recipient = admin.getEmail();
+        if (recipient == null || recipient.isBlank() || !mailService.isEnabled()) {
+            return;
+        }
+        try {
+            String subject = "4ThiTek — Tài khoản quản trị của bạn đã được tạo";
+            String body = """
+                    Xin chào %s,
+
+                    Tài khoản quản trị hệ thống 4ThiTek của bạn đã được tạo thành công.
+
+                    Tên đăng nhập: %s
+                    Mật khẩu tạm thời: %s
+
+                    Vui lòng đăng nhập và đổi mật khẩu ngay khi có thể để đảm bảo an toàn tài khoản.
+
+                    Trân trọng,
+                    4ThiTek
+                    """.formatted(admin.getDisplayName() != null ? admin.getDisplayName() : username, username, temporaryPassword);
+            mailService.sendText(recipient, subject, body);
+        } catch (RuntimeException ex) {
+            log.warn("Could not send welcome email to new staff user {}", username, ex);
+        }
     }
 
     @Transactional

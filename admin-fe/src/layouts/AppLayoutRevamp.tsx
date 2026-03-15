@@ -38,6 +38,7 @@ import { useLanguage } from '../context/LanguageContext'
 import { useProducts } from '../context/ProductsContext'
 import { useToast } from '../context/ToastContext'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
+import { useAdminWebSocket } from '../hooks/useAdminWebSocket'
 
 type NavGroupId = 'overview' | 'commerce' | 'service' | 'system'
 
@@ -137,6 +138,11 @@ const copyByLanguage = {
       dealerAttention: 'Hoàn tất xác minh để tránh ảnh hưởng kích hoạt dealer app.',
       pendingUsers: 'Duyệt quyền truy cập cho tài khoản nội bộ mới.',
     },
+    ws: {
+      newOrder: 'Đơn hàng mới từ {dealer}',
+      newDealer: 'Đại lý mới đăng ký: {username}',
+      newTicket: 'Ticket hỗ trợ mới từ {dealer}',
+    },
   },
   en: {
     product: 'Product',
@@ -201,6 +207,11 @@ const copyByLanguage = {
       scheduledPosts: 'Review content before automatic publishing time.',
       dealerAttention: 'Complete verification to avoid dealer-app activation delays.',
       pendingUsers: 'Approve access for newly invited internal users.',
+    },
+    ws: {
+      newOrder: 'New order from {dealer}',
+      newDealer: 'New dealer registered: {username}',
+      newTicket: 'New support ticket from {dealer}',
     },
   },
 } as const
@@ -281,11 +292,11 @@ const loadNavGroups = (): Record<NavGroupId, boolean> => {
 function AppLayoutRevamp() {
   const { language } = useLanguage()
   const copy = copyByLanguage[language]
-  const { user, logout, hasRole } = useAuth()
+  const { user, logout, hasRole, accessToken } = useAuth()
   const { notify } = useToast()
   const navigate = useNavigate()
   const location = useLocation()
-  const { orders, dealers, posts, discountRules, users } = useAdminData()
+  const { orders, dealers, posts, discountRules, users, reloadResource } = useAdminData()
   const { products } = useProducts()
 
   const [theme, setTheme] = useState<'light' | 'dark'>(getStoredTheme() ?? getPreferredTheme())
@@ -297,6 +308,29 @@ function AppLayoutRevamp() {
   const [showAllSearchResults, setShowAllSearchResults] = useState(false)
   const [activeSearchIndex, setActiveSearchIndex] = useState(-1)
   const [openGroups, setOpenGroups] = useState<Record<NavGroupId, boolean>>(loadNavGroups)
+
+  useAdminWebSocket(accessToken, {
+    onNewOrder: (event) => {
+      void reloadResource('orders', { force: true })
+      notify(interpolate(copy.ws.newOrder, { dealer: event.dealerName }), {
+        title: copy.order,
+        variant: 'info',
+      })
+    },
+    onNewDealer: (event) => {
+      void reloadResource('dealers', { force: true })
+      notify(interpolate(copy.ws.newDealer, { username: event.username }), {
+        title: copy.dealer,
+        variant: 'info',
+      })
+    },
+    onNewSupportTicket: (event) => {
+      notify(interpolate(copy.ws.newTicket, { dealer: event.dealerName }), {
+        title: copy.nav.support,
+        variant: 'info',
+      })
+    },
+  })
 
   const toggleGroup = useCallback((group: NavGroupId) => {
     setOpenGroups((prev) => {

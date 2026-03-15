@@ -1,6 +1,8 @@
 package com.devwonder.backend.service;
 
 import com.devwonder.backend.dto.dealer.CreateDealerSupportTicketRequest;
+import com.devwonder.backend.dto.realtime.AdminNewSupportTicketEvent;
+import com.devwonder.backend.service.WebSocketEventPublisher;
 import com.devwonder.backend.dto.dealer.DealerSupportTicketResponse;
 import com.devwonder.backend.dto.notify.CreateNotifyRequest;
 import com.devwonder.backend.entity.Dealer;
@@ -26,6 +28,7 @@ public class DealerSupportTicketService {
     private final DealerSupportTicketRepository dealerSupportTicketRepository;
     private final NotificationService notificationService;
     private final AppMessageSupport appMessageSupport;
+    private final WebSocketEventPublisher webSocketEventPublisher;
 
     @Transactional(readOnly = true)
     public DealerSupportTicketResponse getLatestTicket(String username) {
@@ -56,6 +59,16 @@ public class DealerSupportTicketService {
         ticket.setMessage(request.message().trim());
 
         DealerSupportTicket saved = dealerSupportTicketRepository.save(ticket);
+        webSocketEventPublisher.publishAdminNewSupportTicket(new AdminNewSupportTicketEvent(
+                saved.getId(),
+                saved.getTicketCode(),
+                dealer.getId(),
+                dealer.getBusinessName(),
+                saved.getCategory(),
+                saved.getPriority(),
+                saved.getSubject(),
+                saved.getCreatedAt()
+        ));
         notificationService.create(new CreateNotifyRequest(
                 dealer.getId(),
                 appMessageSupport.get("notification.support.created.title"),
