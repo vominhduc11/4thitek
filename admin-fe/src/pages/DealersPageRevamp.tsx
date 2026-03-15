@@ -1,28 +1,24 @@
-import { Bell, CheckCircle2, Clock3, UserPlus, Users } from 'lucide-react'
+import { Bell, CheckCircle2, Clock3, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   EmptyState,
   ErrorState,
-  GhostButton,
   LoadingRows,
   PagePanel,
-  PrimaryButton,
   SearchInput,
   StatCard,
   StatusBadge,
   bodyTextClass,
   cardTitleClass,
-  formCardClass,
   inputClass,
-  labelClass,
   tableActionSelectClass,
   tableCardClass,
   tableHeadClass,
   tableMetaClass,
   tableRowClass,
 } from '../components/ui-kit'
-import { useAdminData, type DealerStatus, type DealerTier } from '../context/AdminDataContext'
+import { useAdminData, type DealerStatus } from '../context/AdminDataContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
@@ -42,8 +38,6 @@ const DEALER_STATUS_OPTIONS: Array<{ value: 'all' | DealerStatus; label: string 
   { value: 'needs_attention', label: dealerStatusLabel.needs_attention },
 ]
 
-const DEALER_TIERS: DealerTier[] = ['platinum', 'gold', 'silver', 'bronze']
-
 const copyByLanguage = {
   vi: {
     title: 'Đại lý',
@@ -51,24 +45,11 @@ const copyByLanguage = {
       'Quản lý hồ sơ đại lý, hạn mức và trạng thái kích hoạt tài khoản.',
     searchLabel: 'Tìm đại lý',
     searchPlaceholder: 'Tìm theo tên, mã hoặc email...',
-    addDealer: 'Thêm đại lý',
     totalDealers: 'Tổng đại lý',
     activeDealers: 'Đã kích hoạt',
     underReview: 'Chờ duyệt',
     needsAttention: 'Cần bổ sung',
     totalRevenue: 'Tổng doanh thu',
-    createTitle: 'Thêm đại lý mới',
-    dealerName: 'Tên đại lý',
-    contactName: 'Người liên hệ',
-    email: 'Email',
-    phone: 'Số điện thoại',
-    revenue: 'Doanh thu hiện tại (VND)',
-    creditLimit: 'Hạn mức công nợ (VND)',
-    save: 'Lưu đại lý',
-    cancel: 'Hủy',
-    nameRequired:
-      'Vui lòng nhập đầy đủ tên đại lý, người liên hệ, email và số điện thoại.',
-    numberInvalid: 'Doanh thu và hạn mức phải là số không âm.',
     emptyTitle: 'Không có đại lý',
     emptyMessage: 'Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.',
     loadTitle: 'Không thể tải đại lý',
@@ -90,23 +71,11 @@ const copyByLanguage = {
     description: 'Manage dealer profiles, credit limits, and account activation status.',
     searchLabel: 'Search dealers',
     searchPlaceholder: 'Search by name, code, or email...',
-    addDealer: 'Add dealer',
     totalDealers: 'Total dealers',
     activeDealers: 'Active',
     underReview: 'Under review',
     needsAttention: 'Needs attention',
     totalRevenue: 'Total revenue',
-    createTitle: 'Create dealer',
-    dealerName: 'Dealer name',
-    contactName: 'Contact person',
-    email: 'Email',
-    phone: 'Phone',
-    revenue: 'Current revenue (VND)',
-    creditLimit: 'Credit limit (VND)',
-    save: 'Save dealer',
-    cancel: 'Cancel',
-    nameRequired: 'Dealer name, contact person, email, and phone are required.',
-    numberInvalid: 'Revenue and credit limit must be non-negative numbers.',
     emptyTitle: 'No dealers found',
     emptyMessage: 'Try adjusting filters or your search keywords.',
     loadTitle: 'Unable to load dealers',
@@ -129,22 +98,11 @@ function DealersPageRevamp() {
   const copy = copyByLanguage[language]
   const navigate = useNavigate()
   const { notify } = useToast()
-  const { dealers, dealersState, addDealer, updateDealerStatus, reloadResource } = useAdminData()
+  const { dealers, dealersState, updateDealerStatus, reloadResource } = useAdminData()
   const { confirm, confirmDialog } = useConfirmDialog()
 
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | DealerStatus>('all')
-  const [showCreateForm, setShowCreateForm] = useState(false)
-  const [formError, setFormError] = useState('')
-  const [form, setForm] = useState({
-    businessName: '',
-    contactName: '',
-    tier: 'gold' as DealerTier,
-    email: '',
-    phone: '',
-    revenue: '',
-    creditLimit: '',
-  })
   const toolbarSearchClass = 'w-full sm:max-w-sm lg:w-72 xl:w-80'
 
   const normalizedQuery = query.trim().toLowerCase()
@@ -170,45 +128,6 @@ function DealersPageRevamp() {
     const totalRevenue = dealers.reduce((sum, item) => sum + item.revenue, 0)
     return { active, underReview, attention, totalRevenue }
   }, [dealers])
-
-  const handleCreate = async () => {
-    setFormError('')
-    const revenue = Number(form.revenue || 0)
-    const creditLimit = Number(form.creditLimit || 0)
-    if (!form.businessName.trim() || !form.contactName.trim() || !form.email.trim() || !form.phone.trim()) {
-      setFormError(copy.nameRequired)
-      return
-    }
-    if (Number.isNaN(revenue) || Number.isNaN(creditLimit) || revenue < 0 || creditLimit < 0) {
-      setFormError(copy.numberInvalid)
-      return
-    }
-
-    try {
-      await addDealer({
-        businessName: form.businessName,
-        contactName: form.contactName,
-        tier: form.tier,
-        email: form.email,
-        phone: form.phone,
-        revenue,
-        creditLimit,
-        orders: 0,
-      })
-      setShowCreateForm(false)
-      setForm({
-        businessName: '',
-        contactName: '',
-        tier: 'gold',
-        email: '',
-        phone: '',
-        revenue: '',
-        creditLimit: '',
-      })
-    } catch (error) {
-      setFormError(error instanceof Error ? error.message : copy.loadFallback)
-    }
-  }
 
   if (dealersState.status === 'loading' || dealersState.status === 'idle') {
     return (
@@ -258,14 +177,6 @@ function DealersPageRevamp() {
               </option>
             ))}
           </select>
-          <PrimaryButton
-            className="w-full sm:w-auto"
-            icon={<UserPlus className="h-4 w-4" />}
-            onClick={() => setShowCreateForm((value) => !value)}
-            type="button"
-          >
-            {copy.addDealer}
-          </PrimaryButton>
         </div>
       </div>
 
@@ -279,101 +190,6 @@ function DealersPageRevamp() {
         {copy.totalRevenue}:{' '}
         <span className="font-semibold text-[var(--accent)]">{formatCurrency(stats.totalRevenue)}</span>
       </p>
-
-      {showCreateForm ? (
-        <div className={`${formCardClass} mt-6`}>
-          <p className="text-sm font-semibold text-[var(--ink)]">{copy.createTitle}</p>
-          <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <label className="space-y-2">
-              <span className={labelClass}>{copy.dealerName}</span>
-              <input
-                className={inputClass}
-                onChange={(event) => setForm((previous) => ({ ...previous, businessName: event.target.value }))}
-                value={form.businessName}
-              />
-            </label>
-            <label className="space-y-2">
-              <span className={labelClass}>{copy.contactName}</span>
-              <input
-                className={inputClass}
-                onChange={(event) => setForm((previous) => ({ ...previous, contactName: event.target.value }))}
-                value={form.contactName}
-              />
-            </label>
-            <label className="space-y-2">
-              <span className={labelClass}>{copy.tier}</span>
-              <select
-                aria-label={copy.tier}
-                className={inputClass}
-                onChange={(event) =>
-                  setForm((previous) => ({ ...previous, tier: event.target.value as DealerTier }))
-                }
-                value={form.tier}
-              >
-                {DEALER_TIERS.map((tier) => (
-                  <option key={tier} value={tier}>
-                    {dealerTierLabel[tier]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-2">
-              <span className={labelClass}>{copy.email}</span>
-              <input
-                className={inputClass}
-                onChange={(event) => setForm((previous) => ({ ...previous, email: event.target.value }))}
-                type="email"
-                value={form.email}
-              />
-            </label>
-            <label className="space-y-2">
-              <span className={labelClass}>{copy.phone}</span>
-              <input
-                className={inputClass}
-                onChange={(event) => setForm((previous) => ({ ...previous, phone: event.target.value }))}
-                value={form.phone}
-              />
-            </label>
-            <label className="space-y-2 md:col-span-2">
-              <span className={labelClass}>{copy.revenue}</span>
-              <input
-                className={inputClass}
-                min="0"
-                onChange={(event) =>
-                  setForm((previous) => ({ ...previous, revenue: event.target.value }))
-                }
-                type="number"
-                value={form.revenue}
-              />
-            </label>
-            <label className="space-y-2 md:col-span-2">
-              <span className={labelClass}>{copy.creditLimit}</span>
-              <input
-                className={inputClass}
-                min="0"
-                onChange={(event) =>
-                  setForm((previous) => ({ ...previous, creditLimit: event.target.value }))
-                }
-                type="number"
-                value={form.creditLimit}
-              />
-            </label>
-          </div>
-          {formError ? <p className="mt-2 text-sm text-rose-600">{formError}</p> : null}
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <PrimaryButton className="w-full sm:w-auto" onClick={handleCreate} type="button">
-              {copy.save}
-            </PrimaryButton>
-            <GhostButton
-              className="w-full sm:w-auto"
-              onClick={() => setShowCreateForm(false)}
-              type="button"
-            >
-              {copy.cancel}
-            </GhostButton>
-          </div>
-        </div>
-      ) : null}
 
       <div className="mt-6">
         {filteredDealers.length === 0 ? (

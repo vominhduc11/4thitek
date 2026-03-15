@@ -602,17 +602,6 @@ export const fetchAdminDealerAccounts = (token: string) =>
     100,
   )
 
-export const createAdminDealerAccount = (
-  token: string,
-  body: BackendDealerAccountUpsertRequest,
-) =>
-  authorizedJsonRequest<BackendDealerAccountResponse>({
-    path: '/admin/dealers/accounts',
-    token,
-    method: 'POST',
-    body,
-  })
-
 export const updateAdminDealerAccount = (
   token: string,
   id: number,

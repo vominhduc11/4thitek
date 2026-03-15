@@ -15,7 +15,6 @@ import { useAuth } from './AuthContext'
 import { useToast } from './ToastContext'
 import {
   createAdminBlog,
-  createAdminDealerAccount,
   createAdminDiscountRule,
   createAdminUser,
   deleteAdminBlog,
@@ -119,10 +118,6 @@ type AdminDataContextValue = {
   deletePost: (id: string) => Promise<void>
   dealers: Dealer[]
   dealersState: AdminResourceState
-  addDealer: (
-    payload: Pick<Dealer, 'businessName' | 'contactName' | 'tier' | 'email' | 'phone'> &
-      Partial<Pick<Dealer, 'revenue' | 'orders' | 'creditLimit'>>,
-  ) => Promise<Dealer>
   updateDealer: (
     id: string,
     payload: Pick<Dealer, 'businessName' | 'contactName' | 'tier' | 'email' | 'phone' | 'creditLimit'>,
@@ -504,25 +499,6 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.posts })
   }
 
-  const addDealer: AdminDataContextValue['addDealer'] = async (payload) => {
-    const token = requireToken()
-    const created = await createAdminDealerAccount(token, {
-      name: payload.businessName.trim(),
-      businessName: payload.businessName.trim(),
-      contactName: payload.contactName.trim(),
-      tier: toBackendDealerAccountTier(payload.tier),
-      email: payload.email.trim(),
-      phone: payload.phone.trim(),
-      revenue: payload.revenue,
-      creditLimit: payload.creditLimit,
-      status: 'ACTIVE',
-    })
-    const nextDealer = mapDealer(created)
-    setDealers((previous) => [nextDealer, ...previous])
-    await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.dealers })
-    return nextDealer
-  }
-
   const updateDealerStatus: AdminDataContextValue['updateDealerStatus'] = async (id, status) => {
     const token = requireToken()
     const updated = await updateAdminDealerAccountStatus(
@@ -631,7 +607,6 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     deletePost,
     dealers,
     dealersState: resourceStates.dealers,
-    addDealer,
     updateDealer,
     updateDealerStatus,
     users,
