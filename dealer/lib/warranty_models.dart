@@ -90,20 +90,3 @@ class ImportedSerialRecord {
   }
 }
 
-class WarrantySerialImportResult {
-  const WarrantySerialImportResult({
-    required this.addedCount,
-    required this.duplicateCount,
-    required this.invalidCount,
-    required this.overLimitCount,
-    this.errorMessage,
-  });
-
-  final int addedCount;
-  final int duplicateCount;
-  final int invalidCount;
-  final int overLimitCount;
-  final String? errorMessage;
-
-  bool get hasError => errorMessage != null && errorMessage!.trim().isNotEmpty;
-}

@@ -266,14 +266,6 @@ public class DealerController {
         return ResponseEntity.ok(ApiResponse.success(dealerPortalService.getSerials(extractUsername(authentication))));
     }
 
-    @PostMapping("/serials/import")
-    public ResponseEntity<ApiResponse<List<DealerProductSerialResponse>>> importSerials(
-            Authentication authentication,
-            @Valid @RequestBody CreateDealerSerialBatchRequest request
-    ) {
-        return ResponseEntity.ok(ApiResponse.success(dealerPortalService.importSerials(extractUsername(authentication), request)));
-    }
-
     @PatchMapping("/serials/{id}/status")
     public ResponseEntity<ApiResponse<DealerProductSerialResponse>> updateSerialStatus(
             Authentication authentication,

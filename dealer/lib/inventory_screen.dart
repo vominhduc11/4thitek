@@ -589,13 +589,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           onTap: () => onSelect('export'),
                         ),
                         const SizedBox(height: 8),
-                        _QuickActionSheetItem(
-                          icon: Icons.inventory_2_outlined,
-                          title: 'Nhập hàng từ PO',
-                          subtitle: 'Nhận thêm hàng vào kho',
-                          tone: _QuickActionTone.secondary,
-                          onTap: () => onSelect('import'),
-                        ),
                         const SizedBox(height: 12),
                         const Divider(height: 1, thickness: 1),
                         const SizedBox(height: 12),
@@ -626,9 +619,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       return;
     }
     switch (action) {
-      case 'import':
-        await _handleImportSerials(orderController);
-        return;
       case 'scan':
         await _handleScanSerial(orderController);
         return;
@@ -648,33 +638,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
         );
         return;
     }
-  }
-
-  Future<void> _handleImportSerials(OrderController orderController) async {
-    final warrantyController = WarrantyScope.of(context);
-    final options = _buildSerialImportOptions(
-      orderController: orderController,
-      warrantyController: warrantyController,
-    );
-    if (options.isEmpty) {
-      _showSnackBar('Không co dong PO nao san sang de nhap serial.');
-      return;
-    }
-
-    final result = await showModalBottomSheet<_SerialImportSheetResult>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      requestFocus: true,
-      builder: (_) => _SerialImportSheet(
-        options: options,
-        warrantyController: warrantyController,
-      ),
-    );
-    if (!mounted || result == null) {
-      return;
-    }
-    _showSnackBar(result.message);
   }
 
   Future<void> _handleScanSerial(OrderController orderController) async {
@@ -868,50 +831,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  List<_SerialImportTargetOption> _buildSerialImportOptions({
-    required OrderController orderController,
-    required WarrantyController warrantyController,
-  }) {
-    final options = <_SerialImportTargetOption>[];
-    for (final order in orderController.orders) {
-      if (!_canImportSerialsFromOrder(order)) {
-        continue;
-      }
-      for (final item in order.items) {
-        final importedCount = warrantyController
-            .importedSerialCountForOrderItem(order.id, item.product.id);
-        final remainingCount = item.quantity - importedCount;
-        if (remainingCount <= 0) {
-          continue;
-        }
-        options.add(
-          _SerialImportTargetOption(
-            orderId: order.id,
-            orderCreatedAt: order.createdAt,
-            productId: item.product.id,
-            productName: item.product.name,
-            productSku: item.product.sku,
-            orderedQuantity: item.quantity,
-            importedQuantity: importedCount,
-            remainingQuantity: remainingCount,
-          ),
-        );
-      }
-    }
-    options.sort((a, b) {
-      final byDate = b.orderCreatedAt.compareTo(a.orderCreatedAt);
-      if (byDate != 0) {
-        return byDate;
-      }
-      return a.productName.toLowerCase().compareTo(b.productName.toLowerCase());
-    });
-    return options;
-  }
-
-  bool _canImportSerialsFromOrder(Order order) {
-    return order.status == OrderStatus.shipping ||
-        order.status == OrderStatus.completed;
-  }
 }
 
 class _MainExportOrderOption {
@@ -924,341 +843,6 @@ class _MainExportOrderOption {
   final String orderId;
   final int availableSerials;
   final DateTime createdAt;
-}
-
-class _SerialImportTargetOption {
-  const _SerialImportTargetOption({
-    required this.orderId,
-    required this.orderCreatedAt,
-    required this.productId,
-    required this.productName,
-    required this.productSku,
-    required this.orderedQuantity,
-    required this.importedQuantity,
-    required this.remainingQuantity,
-  });
-
-  final String orderId;
-  final DateTime orderCreatedAt;
-  final String productId;
-  final String productName;
-  final String productSku;
-  final int orderedQuantity;
-  final int importedQuantity;
-  final int remainingQuantity;
-
-  String get dropdownLabel => '$orderId • $productName';
-}
-
-class _SerialImportSheetResult {
-  const _SerialImportSheetResult({required this.message});
-
-  final String message;
-}
-
-class _SerialImportSheet extends StatefulWidget {
-  const _SerialImportSheet({
-    required this.options,
-    required this.warrantyController,
-  });
-
-  final List<_SerialImportTargetOption> options;
-  final WarrantyController warrantyController;
-
-  @override
-  State<_SerialImportSheet> createState() => _SerialImportSheetState();
-}
-
-class _SerialImportSheetState extends State<_SerialImportSheet> {
-  final TextEditingController _serialsController = TextEditingController();
-  final TextEditingController _warehouseIdController = TextEditingController(
-    text: 'main',
-  );
-  final TextEditingController _warehouseNameController = TextEditingController(
-    text: 'Kho',
-  );
-
-  late _SerialImportTargetOption _selectedOption;
-  bool _isSubmitting = false;
-  String? _errorMessage;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedOption = widget.options.first;
-  }
-
-  @override
-  void dispose() {
-    _serialsController.dispose();
-    _warehouseIdController.dispose();
-    _warehouseNameController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    final serials = _parseSerials(_serialsController.text);
-    if (serials.isEmpty) {
-      setState(() {
-        _errorMessage = 'Nhập ít nhất 1 serial.';
-      });
-      return;
-    }
-
-    setState(() {
-      _isSubmitting = true;
-      _errorMessage = null;
-    });
-
-    final result = await widget.warrantyController.importSerials(
-      orderId: _selectedOption.orderId,
-      productId: _selectedOption.productId,
-      productName: _selectedOption.productName,
-      productSku: _selectedOption.productSku,
-      serials: serials,
-      maxToAdd: _selectedOption.remainingQuantity,
-      warehouseId: _warehouseIdController.text,
-      warehouseName: _warehouseNameController.text,
-    );
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _isSubmitting = false;
-      _errorMessage = result.errorMessage;
-    });
-
-    if (result.hasError) {
-      return;
-    }
-
-    Navigator.of(context).pop(
-      _SerialImportSheetResult(
-        message: _buildResultMessage(result, _selectedOption),
-      ),
-    );
-  }
-
-  List<String> _parseSerials(String raw) {
-    return raw
-        .split(RegExp(r'[\s,;]+'))
-        .map((value) => value.trim())
-        .where((value) => value.isNotEmpty)
-        .toList(growable: false);
-  }
-
-  String _buildResultMessage(
-    WarrantySerialImportResult result,
-    _SerialImportTargetOption option,
-  ) {
-    final parts = <String>[];
-    if (result.addedCount > 0) {
-      parts.add('Đã thêm ${result.addedCount} serial');
-    } else {
-      parts.add('Không co serial moi duoc them');
-    }
-    if (result.duplicateCount > 0) {
-      parts.add('${result.duplicateCount} trung');
-    }
-    if (result.invalidCount > 0) {
-      parts.add('${result.invalidCount} không hợp lệ');
-    }
-    if (result.overLimitCount > 0) {
-      parts.add('${result.overLimitCount} vuot so luong');
-    }
-    return '${parts.join(', ')} cho ${option.productSku}.';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(16, 4, 16, 16 + bottomInset),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Nhập serial từ PO',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: colorScheme.onSurface,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Chọn đơn, sản phẩm và dán danh sách serial để đồng bộ vào kho.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<_SerialImportTargetOption>(
-                initialValue: _selectedOption,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'Dong PO',
-                  prefixIcon: Icon(Icons.receipt_long_outlined),
-                ),
-                items: widget.options
-                    .map(
-                      (option) => DropdownMenuItem<_SerialImportTargetOption>(
-                        value: option,
-                        child: Text(
-                          option.dropdownLabel,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: _isSubmitting
-                    ? null
-                    : (value) {
-                        if (value == null) {
-                          return;
-                        }
-                        setState(() {
-                          _selectedOption = value;
-                        });
-                      },
-              ),
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.45,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: colorScheme.outlineVariant.withValues(alpha: 0.6),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _selectedOption.productName,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: colorScheme.onSurface,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Don ${_selectedOption.orderId} • ${_selectedOption.productSku}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Da nhap ${_selectedOption.importedQuantity}/${_selectedOption.orderedQuantity} • Con ${_selectedOption.remainingQuantity} serial',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurface,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _serialsController,
-                enabled: !_isSubmitting,
-                textCapitalization: TextCapitalization.characters,
-                minLines: 5,
-                maxLines: 8,
-                decoration: const InputDecoration(
-                  labelText: 'Danh sách serial',
-                  alignLabelWithHint: true,
-                  hintText: 'Mỗi dòng 1 serial hoặc tách bằng dấu phẩy',
-                  prefixIcon: Icon(Icons.qr_code_2_outlined),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Serial được tự động chuẩn hóa, bỏ qua dòng trống, trùng và số lượng vượt mức cho phép.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _warehouseIdController,
-                      enabled: !_isSubmitting,
-                      decoration: const InputDecoration(
-                        labelText: 'Warehouse ID',
-                        prefixIcon: Icon(Icons.tag_outlined),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _warehouseNameController,
-                      enabled: !_isSubmitting,
-                      decoration: const InputDecoration(
-                        labelText: 'Warehouse name',
-                        prefixIcon: Icon(Icons.warehouse_outlined),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (_errorMessage != null &&
-                  _errorMessage!.trim().isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _errorMessage!,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colorScheme.error,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  TextButton(
-                    onPressed: _isSubmitting
-                        ? null
-                        : () => Navigator.of(context).pop(),
-                    child: const Text('Dong'),
-                  ),
-                  const Spacer(),
-                  FilledButton.icon(
-                    onPressed: _isSubmitting ? null : _submit,
-                    icon: _isSubmitting
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.inventory_2_outlined),
-                    label: Text(
-                      _isSubmitting ? 'Đang import...' : 'Import serial',
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class InventorySummary {
@@ -1284,7 +868,6 @@ class InventoryProductItem {
     required this.defectiveQuantity,
     required this.latestImportedAt,
     required this.orderIds,
-    required this.warehouseNames,
     required this.serialSearchIndex,
   });
 
@@ -1295,7 +878,6 @@ class InventoryProductItem {
   final int defectiveQuantity;
   final DateTime latestImportedAt;
   final Set<String> orderIds;
-  final Map<String, String> warehouseNames;
   final String serialSearchIndex;
 
   InventoryStockStatus get stockStatus {
@@ -1327,7 +909,6 @@ List<InventoryProductItem> _buildInventoryItems({
             importedQuantity: 0,
             latestImportedAt: order.createdAt,
             orderIds: <String>{},
-            warehouseNames: <String, String>{'main': 'Kho'},
             serials: <String>{},
           );
       current.importedQuantity += item.quantity;
@@ -1348,7 +929,6 @@ List<InventoryProductItem> _buildInventoryItems({
     if (current == null || !current.orderIds.contains(record.orderId)) {
       continue;
     }
-    current.warehouseNames[record.warehouseId] = record.warehouseName;
     if (record.importedAt.isAfter(current.latestImportedAt)) {
       current.latestImportedAt = record.importedAt;
     }
@@ -1387,7 +967,6 @@ List<InventoryProductItem> _buildInventoryItems({
           defectiveQuantity: entry.serialDefective,
           latestImportedAt: entry.latestImportedAt,
           orderIds: entry.orderIds,
-          warehouseNames: entry.warehouseNames,
           serialSearchIndex: entry.serials.join(' '),
         );
       })
@@ -1466,7 +1045,6 @@ class _InventoryAccumulator {
     required this.importedQuantity,
     required this.latestImportedAt,
     required this.orderIds,
-    required this.warehouseNames,
     required this.serials,
   });
 
@@ -1474,7 +1052,6 @@ class _InventoryAccumulator {
   int importedQuantity;
   DateTime latestImportedAt;
   final Set<String> orderIds;
-  final Map<String, String> warehouseNames;
   final Set<String> serials;
   int serialAvailable = 0;
   int serialSold = 0;

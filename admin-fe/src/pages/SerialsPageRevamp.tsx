@@ -102,8 +102,6 @@ const copyByLanguage = {
     loadFallback: 'Hệ thống chưa lấy được danh sách serial.',
     importTitle: 'Import danh sách serial',
     serialList: 'Danh sách serial',
-    warehouseId: 'Mã kho',
-    warehouseName: 'Tên kho',
     dealerId: 'ID đại lý',
     orderId: 'ID đơn hàng',
     save: 'Thực hiện import',
@@ -137,8 +135,6 @@ const copyByLanguage = {
     loadFallback: 'The serial list could not be loaded.',
     importTitle: 'Import serial list',
     serialList: 'Serial list',
-    warehouseId: 'Warehouse ID',
-    warehouseName: 'Warehouse name',
     dealerId: 'Dealer ID',
     orderId: 'Order ID',
     save: 'Run import',
@@ -177,8 +173,6 @@ function SerialsPageRevamp() {
     status: 'AVAILABLE' as BackendProductSerialStatus,
     dealerId: '',
     orderId: '',
-    warehouseId: 'main',
-    warehouseName: 'Kho tổng',
   })
 
   const loadData = useCallback(async (nextPage: number) => {
@@ -290,17 +284,13 @@ function SerialsPageRevamp() {
         status: form.status,
         dealerId: form.dealerId ? Number(form.dealerId) : undefined,
         orderId: form.orderId ? Number(form.orderId) : undefined,
-        warehouseId: form.warehouseId.trim() || undefined,
-        warehouseName: form.warehouseName.trim() || undefined,
-      })
+        })
       setForm({
         productId: '',
         serials: '',
         status: 'AVAILABLE',
         dealerId: '',
         orderId: '',
-        warehouseId: 'main',
-        warehouseName: 'Kho tổng',
       })
       setShowImport(false)
       setPage(0)
@@ -412,22 +402,6 @@ function SerialsPageRevamp() {
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="space-y-2">
-              <span className={labelClass}>{copy.warehouseId}</span>
-              <input
-                className={inputClass}
-                value={form.warehouseId}
-                onChange={(event) => setForm((current) => ({ ...current, warehouseId: event.target.value }))}
-              />
-            </label>
-            <label className="space-y-2">
-              <span className={labelClass}>{copy.warehouseName}</span>
-              <input
-                className={inputClass}
-                value={form.warehouseName}
-                onChange={(event) => setForm((current) => ({ ...current, warehouseName: event.target.value }))}
-              />
             </label>
             <label className="space-y-2">
               <span className={labelClass}>{copy.dealerId}</span>

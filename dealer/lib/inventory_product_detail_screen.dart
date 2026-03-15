@@ -927,7 +927,7 @@ class _SerialTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '$statusLabel • ${record.warehouseName}',
+                    statusLabel,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: color.withValues(alpha: 0.84),
                       fontSize: 12,
