@@ -265,7 +265,7 @@ public class DealerPortalService {
     @Transactional
     public List<DealerProductSerialResponse> importSerials(String username, CreateDealerSerialBatchRequest request) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
-        Order order = dealerPortalLookupSupport.resolveDealerOrder(dealer.getId(), request.orderId());
+        Order order = dealerPortalLookupSupport.resolveDealerOrderForUpdate(dealer.getId(), request.orderId());
         return dealerSerialSupport.importSerials(
                 dealer,
                 order,

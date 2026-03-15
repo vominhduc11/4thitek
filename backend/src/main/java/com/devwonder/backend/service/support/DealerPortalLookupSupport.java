@@ -42,6 +42,13 @@ public class DealerPortalLookupSupport {
         return requireDealerOrder(dealerId, orderId);
     }
 
+    public Order resolveDealerOrderForUpdate(Long dealerId, Long orderId) {
+        if (orderId == null) {
+            return null;
+        }
+        return requireDealerOrderForUpdate(dealerId, orderId);
+    }
+
     public void validateDealerOwnership(Long dealerId, Long orderId) {
         if (orderId != null) {
             requireDealerOrder(dealerId, orderId);

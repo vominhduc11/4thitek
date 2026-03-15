@@ -255,7 +255,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           title: const Text('Ghi nhan cong no'),
                           subtitle: Text(
                             _canUseDebtPayment
-                                ? 'Don duoc tao ngay va cong vao tong cong no hien tai.'
+                                ? 'Han muc con lai: ${formatVnd((_profile.creditLimit - orderController.totalOutstandingDebt).clamp(0, _profile.creditLimit))} / ${formatVnd(_profile.creditLimit)}.'
                                 : 'Can duoc cap han muc cong no truoc khi dung tuy chon nay.',
                           ),
                         ),
@@ -425,6 +425,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         label: 'Tong cong',
                         value: formatVnd(total),
                         isEmphasis: true,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Lưu ý: Giá thực tế trong đơn được tính theo giá hiện hành tại thời điểm đặt hàng, có thể khác nếu giá sản phẩm thay đổi từ lần tải gần nhất.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
                     ],
                   ),

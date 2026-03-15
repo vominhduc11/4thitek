@@ -29,11 +29,21 @@ class WarrantyActivationRecord {
 
   DateTime get startsAt => purchaseDate;
 
-  DateTime get expiresAt => DateTime(
-    purchaseDate.year,
-    purchaseDate.month + warrantyMonths,
-    purchaseDate.day,
-  );
+  // Mirrors Java LocalDate.plusMonths(): clamps day to last day of target month
+  // instead of overflowing into the next month (e.g. Jan 31 + 1 = Feb 28, not Mar 3).
+  DateTime get expiresAt {
+    final target = DateTime(
+      purchaseDate.year,
+      purchaseDate.month + warrantyMonths,
+      1,
+    );
+    final lastDay = DateTime(target.year, target.month + 1, 0).day;
+    return DateTime(
+      target.year,
+      target.month,
+      purchaseDate.day.clamp(1, lastDay),
+    );
+  }
 }
 
 class ImportedSerialRecord {

@@ -104,24 +104,6 @@ class WarrantyController extends ChangeNotifier {
     return serials;
   }
 
-  void markSerialDefective({required String serial, required bool defective}) {
-    final normalized = _normalizeSerial(serial);
-    if (!_containsImportedSerial(normalized)) {
-      return;
-    }
-    if (_activatedSerialSet().contains(normalized)) {
-      return;
-    }
-    final changed = _applyLocalDefectiveState(
-      normalizedSerial: normalized,
-      defective: defective,
-    );
-    if (changed) {
-      unawaited(_persist());
-      notifyListeners();
-    }
-  }
-
   Future<String?> setSerialDefective({
     required String serial,
     required bool defective,

@@ -41,4 +41,61 @@ void main() {
     expect(laterActivation.purchaseDate, DateTime(2026, 3, 1));
     expect(laterActivation.expiresAt, DateTime(2027, 3, 1));
   });
+
+  group('expiresAt clamps day to end of month (mirrors Java LocalDate.plusMonths)', () {
+    WarrantyActivationRecord _record({
+      required DateTime purchaseDate,
+      required int warrantyMonths,
+    }) {
+      return WarrantyActivationRecord(
+        orderId: 'O1',
+        productId: 'P1',
+        productName: 'Speaker',
+        productSku: 'SKU-1',
+        serial: 'SN-1',
+        customerName: 'Test',
+        customerEmail: 'test@test.com',
+        customerPhone: '0123456789',
+        customerAddress: 'Addr',
+        warrantyMonths: warrantyMonths,
+        activatedAt: purchaseDate,
+        purchaseDate: purchaseDate,
+      );
+    }
+
+    test('Jan 31 + 1 month = Feb 28 (non-leap year)', () {
+      expect(
+        _record(purchaseDate: DateTime(2026, 1, 31), warrantyMonths: 1).expiresAt,
+        DateTime(2026, 2, 28),
+      );
+    });
+
+    test('Jan 31 + 1 month = Feb 29 (leap year)', () {
+      expect(
+        _record(purchaseDate: DateTime(2028, 1, 31), warrantyMonths: 1).expiresAt,
+        DateTime(2028, 2, 29),
+      );
+    });
+
+    test('Mar 31 + 1 month = Apr 30', () {
+      expect(
+        _record(purchaseDate: DateTime(2026, 3, 31), warrantyMonths: 1).expiresAt,
+        DateTime(2026, 4, 30),
+      );
+    });
+
+    test('Dec 31 + 12 months = Dec 31 (no clamping needed)', () {
+      expect(
+        _record(purchaseDate: DateTime(2026, 12, 31), warrantyMonths: 12).expiresAt,
+        DateTime(2027, 12, 31),
+      );
+    });
+
+    test('Mar 1 + 12 months = Mar 1 (no clamping needed)', () {
+      expect(
+        _record(purchaseDate: DateTime(2026, 3, 1), warrantyMonths: 12).expiresAt,
+        DateTime(2027, 3, 1),
+      );
+    });
+  });
 }
