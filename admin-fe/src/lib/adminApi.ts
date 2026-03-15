@@ -152,6 +152,11 @@ export type BackendDealerAccountUpsertRequest = {
   phone: string
 }
 
+export type BackendDealerAccountUpdateRequest = {
+  tier: BackendDealerAccountTier
+  creditLimit?: number
+}
+
 export type BackendStaffUserResponse = {
   id: number
   name: string
@@ -605,7 +610,7 @@ export const fetchAdminDealerAccounts = (token: string) =>
 export const updateAdminDealerAccount = (
   token: string,
   id: number,
-  body: BackendDealerAccountUpsertRequest,
+  body: BackendDealerAccountUpdateRequest,
 ) =>
   authorizedJsonRequest<BackendDealerAccountResponse>({
     path: `/admin/dealers/accounts/${id}`,

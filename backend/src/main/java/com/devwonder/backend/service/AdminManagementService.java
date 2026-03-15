@@ -4,7 +4,7 @@ import com.devwonder.backend.dto.admin.AdminBlogResponse;
 import com.devwonder.backend.dto.admin.AdminBlogUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminDashboardResponse;
 import com.devwonder.backend.dto.admin.AdminDealerAccountResponse;
-import com.devwonder.backend.dto.admin.AdminDealerAccountUpsertRequest;
+import com.devwonder.backend.dto.admin.AdminDealerAccountUpdateRequest;
 import com.devwonder.backend.dto.admin.AdminDealerResponse;
 import com.devwonder.backend.dto.admin.AdminDiscountRuleResponse;
 import com.devwonder.backend.dto.admin.AdminDiscountRuleUpsertRequest;
@@ -327,79 +327,12 @@ public class AdminManagementService {
 
     @Transactional
     @CacheEvict(cacheNames = {CacheNames.ADMIN_DASHBOARD, CacheNames.PUBLIC_DEALERS}, allEntries = true)
-    public AdminDealerAccountResponse createDealerAccount(AdminDealerAccountUpsertRequest request) {
-        String email = requireEmail(request.email());
-        String phone = requireNonBlank(request.phone(), "phone");
-        accountRepository.findByUsername(email).ifPresent(existing -> {
-            throw new ConflictException("Email already exists");
-        });
-        if (accountRepository.findByEmailIgnoreCase(email).isPresent()) {
-            throw new ConflictException("Email already exists");
-        }
-        if (dealerRepository.existsByPhoneAndIdNot(phone, -1L)) {
-            throw new ConflictException("Phone already exists");
-        }
-
-        Dealer dealer = new Dealer();
-        ensureDealerProvisioningEmailAvailable(email);
-        String temporaryPassword = generateTemporaryPassword();
-        String businessName = resolveBusinessName(request, null);
-        String contactName = resolveContactName(request, null, businessName);
-        dealer.setBusinessName(businessName);
-        dealer.setContactName(contactName);
-        dealer.setUsername(email);
-        dealer.setEmail(email);
-        dealer.setPhone(phone);
-        dealer.setPassword(passwordEncoder.encode(temporaryPassword));
-        dealer.setDealerTier(request.tier() == null ? DealerTier.GOLD : request.tier());
-        dealer.setCustomerStatus(request.status() == null ? CustomerStatus.ACTIVE : request.status());
-        dealer.setCreditLimit(requireNonNegativeAmount(request.creditLimit(), "creditLimit"));
-        dealer.setRoles(new HashSet<>(List.of(resolveRole("USER", "Dealer role"))));
-        Dealer savedDealer = dealerRepository.save(dealer);
-        sendDealerProvisioningEmail(savedDealer, temporaryPassword);
-        return AdminResponseMapper.toDealerAccountResponse(savedDealer, activeDiscountRules());
-    }
-
-    @Transactional
-    @CacheEvict(cacheNames = {CacheNames.ADMIN_DASHBOARD, CacheNames.PUBLIC_DEALERS}, allEntries = true)
-    public AdminDealerAccountResponse updateDealerAccount(Long id, AdminDealerAccountUpsertRequest request) {
+    public AdminDealerAccountResponse updateDealerAccount(Long id, AdminDealerAccountUpdateRequest request) {
         Dealer dealer = dealerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Dealer account not found"));
-        CustomerStatus previousStatus = dealer.getCustomerStatus();
-        String email = requireEmail(request.email());
-        String phone = requireNonBlank(request.phone(), "phone");
-        accountRepository.findByUsername(email)
-                .filter(existing -> !existing.getId().equals(id))
-                .ifPresent(existing -> {
-                    throw new ConflictException("Email already exists");
-                });
-        accountRepository.findByEmailIgnoreCase(email)
-                .filter(existing -> !existing.getId().equals(id))
-                .ifPresent(existing -> {
-                    throw new ConflictException("Email already exists");
-                });
-        if (dealerRepository.existsByPhoneAndIdNot(phone, id)) {
-            throw new ConflictException("Phone already exists");
-        }
-
-        String businessName = resolveBusinessName(request, dealer);
-        String contactName = resolveContactName(request, dealer, businessName);
-        dealer.setBusinessName(businessName);
-        dealer.setContactName(contactName);
-        dealer.setUsername(email);
-        dealer.setEmail(email);
-        dealer.setPhone(phone);
-        if (request.tier() != null) {
-            dealer.setDealerTier(request.tier());
-        }
-        if (request.status() != null) {
-            dealer.setCustomerStatus(request.status());
-        }
+        dealer.setDealerTier(request.tier());
         dealer.setCreditLimit(requireNonNegativeAmount(request.creditLimit(), "creditLimit"));
         Dealer saved = dealerRepository.save(dealer);
-        if (request.status() != null && request.status() != previousStatus) {
-            dealerAccountLifecycleService.notifyDealerStatusChanged(saved, previousStatus);
-        }
         return AdminResponseMapper.toDealerAccountResponse(saved, activeDiscountRules());
     }
 
@@ -595,15 +528,6 @@ public class AdminManagementService {
         return new AdminDashboardSupport.TopProductStat(name, units);
     }
 
-    private void ensureDealerProvisioningEmailAvailable(String email) {
-        if (!mailService.isEnabled()) {
-            throw new BadRequestException("Email service must be configured to provision dealer accounts");
-        }
-        if (AccountValidationSupport.normalizeEmail(email) == null) {
-            throw new BadRequestException("email must not be blank");
-        }
-    }
-
     private String generateTemporaryPassword() {
         StringBuilder builder = new StringBuilder(TEMP_PASSWORD_LENGTH);
         for (int i = 0; i < TEMP_PASSWORD_LENGTH; i++) {
@@ -611,77 +535,6 @@ public class AdminManagementService {
             builder.append(TEMP_PASSWORD_CHARS.charAt(index));
         }
         return builder.toString();
-    }
-
-    private void sendDealerProvisioningEmail(Dealer dealer, String temporaryPassword) {
-        String email = normalize(dealer.getEmail());
-        if (email == null) {
-            throw new BadRequestException("Dealer email is required to send initial password");
-        }
-        String dealerName = firstNonBlank(dealer.getBusinessName(), dealer.getContactName(), dealer.getUsername(), "đại lý");
-        String username = firstNonBlank(dealer.getUsername(), email);
-        String subject = "Tài khoản đại lý 4ThiTek đã được tạo";
-        String body = """
-                Xin chào %s,
-
-                Tài khoản đại lý 4ThiTek của bạn đã được tạo bởi quản trị viên.
-
-                Tên đăng nhập: %s
-                Mật khẩu tạm thời: %s
-
-                Vui lòng đăng nhập và đổi mật khẩu ngay sau lần đăng nhập đầu tiên.
-                """.formatted(dealerName, username, temporaryPassword);
-        mailService.sendText(email, subject, body.trim());
-    }
-
-    private String requireEmail(String value) {
-        String email = AccountValidationSupport.normalizeEmail(value);
-        if (email == null) {
-            throw new BadRequestException("email must not be blank");
-        }
-        return email;
-    }
-
-    private String resolveBusinessName(AdminDealerAccountUpsertRequest request, Dealer existingDealer) {
-        String explicitBusinessName = normalize(request.businessName());
-        if (explicitBusinessName != null) {
-            return explicitBusinessName;
-        }
-        String legacyName = normalize(request.name());
-        if (legacyName != null) {
-            return legacyName;
-        }
-        if (existingDealer != null) {
-            String existingBusinessName = normalize(existingDealer.getBusinessName());
-            if (existingBusinessName != null) {
-                return existingBusinessName;
-            }
-        }
-        throw new BadRequestException("businessName must not be blank");
-    }
-
-    private String resolveContactName(
-            AdminDealerAccountUpsertRequest request,
-            Dealer existingDealer,
-            String businessName
-    ) {
-        String explicitContactName = normalize(request.contactName());
-        if (explicitContactName != null) {
-            return explicitContactName;
-        }
-        if (normalize(request.businessName()) == null) {
-            String legacyName = normalize(request.name());
-            if (legacyName != null) {
-                return legacyName;
-            }
-        }
-        if (existingDealer != null) {
-            String existingContactName = normalize(existingDealer.getContactName());
-            if (existingContactName != null) {
-                return existingContactName;
-            }
-        }
-        return businessName;
     }
 
     private void applyCompletedAt(Order order, OrderStatus nextStatus, OrderStatus previousStatus) {

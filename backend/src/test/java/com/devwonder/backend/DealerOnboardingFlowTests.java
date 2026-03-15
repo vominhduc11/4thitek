@@ -7,8 +7,8 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.devwonder.backend.dto.admin.AdminDealerAccountUpdateRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminDealerAccountStatusRequest;
-import com.devwonder.backend.dto.admin.AdminDealerAccountUpsertRequest;
 import com.devwonder.backend.dto.auth.LoginRequest;
 import com.devwonder.backend.dto.auth.RefreshTokenRequest;
 import com.devwonder.backend.dto.auth.RegisterDealerRequest;
@@ -292,7 +292,7 @@ class DealerOnboardingFlowTests {
     }
 
     @Test
-    void genericDealerAccountUpdateAlsoNotifiesWhenStatusChanges() {
+    void updateDealerAccountTierAndCreditLimit() {
         authService.registerDealer(new RegisterDealerRequest(
                 "dealer.lifecycle@example.com",
                 "DealerPass#123",
@@ -309,30 +309,16 @@ class DealerOnboardingFlowTests {
                 null
         ));
         Dealer dealer = dealerRepository.findByUsername("dealer.lifecycle@example.com").orElseThrow();
-        notifyRepository.deleteAll();
-        reset(javaMailSender);
-        when(javaMailSender.createMimeMessage()).thenReturn(
-                new MimeMessage(Session.getInstance(new Properties()))
-        );
 
         adminManagementService.updateDealerAccount(
                 dealer.getId(),
-                new AdminDealerAccountUpsertRequest(
-                        "Dealer Lifecycle",
+                new AdminDealerAccountUpdateRequest(
                         dealer.getDealerTier(),
-                        CustomerStatus.ACTIVE,
-                        null,
-                        BigDecimal.ZERO,
-                        "dealer.lifecycle@example.com",
-                        "0912345602",
-                        null,
-                        null
+                        BigDecimal.valueOf(100_000_000)
                 )
         );
 
-        List<Notify> notices = notifyRepository.findByAccountIdOrderByCreatedAtDesc(dealer.getId());
-        assertThat(notices).hasSize(1);
-        assertThat(notices.get(0).getTitle()).isNotBlank();
-        verify(javaMailSender).send(any(MimeMessage.class));
+        Dealer updated = dealerRepository.findById(dealer.getId()).orElseThrow();
+        assertThat(updated.getCreditLimit()).isEqualByComparingTo(BigDecimal.valueOf(100_000_000));
     }
 }

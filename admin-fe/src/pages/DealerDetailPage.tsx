@@ -39,63 +39,29 @@ function DealerDetailPage() {
   const { confirm, confirmDialog } = useConfirmDialog()
   const dealer = dealers.find((item) => item.id === dealerId)
   const [form, setForm] = useState({
-    businessName: '',
-    contactName: '',
     tier: 'gold' as DealerTier,
-    email: '',
-    phone: '',
     creditLimit: '',
   })
-  const [formErrors, setFormErrors] = useState<
-    Partial<Record<'businessName' | 'contactName' | 'email' | 'phone' | 'creditLimit', string>>
-  >({})
+  const [formErrors, setFormErrors] = useState<Partial<Record<'creditLimit', string>>>({})
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const isDirty = useMemo(
     () =>
       Boolean(
         dealer &&
-          (form.businessName !== dealer.businessName ||
-            form.contactName !== dealer.contactName ||
-            form.tier !== dealer.tier ||
-            form.email !== dealer.email ||
-            form.phone !== dealer.phone ||
+          (form.tier !== dealer.tier ||
             form.creditLimit !== (dealer.creditLimit > 0 ? String(dealer.creditLimit) : '')),
       ),
     [dealer, form],
   )
 
   const validateForm = (value: typeof form) => {
-    const errors: Partial<Record<'businessName' | 'contactName' | 'email' | 'phone' | 'creditLimit', string>> =
-      {}
-
-    if (!value.businessName.trim()) {
-      errors.businessName = t('Vui lòng nhập tên đại lý.')
-    }
-
-    if (!value.contactName.trim()) {
-      errors.contactName = t('Vui lòng nhập người liên hệ.')
-    }
-
-    if (!value.email.trim()) {
-      errors.email = t('Vui lòng nhập email.')
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.email.trim())) {
-      errors.email = t('Email không hợp lệ.')
-    }
-
-    const phoneDigits = value.phone.replace(/\D/g, '')
-    if (!value.phone.trim()) {
-      errors.phone = t('Vui lòng nhập số điện thoại.')
-    } else if (phoneDigits.length < 8 || phoneDigits.length > 15) {
-      errors.phone = t('Số điện thoại không hợp lệ.')
-    }
-
+    const errors: Partial<Record<'creditLimit', string>> = {}
     if (value.creditLimit.trim()) {
       const nextCreditLimit = Number(value.creditLimit)
       if (Number.isNaN(nextCreditLimit) || nextCreditLimit < 0) {
         errors.creditLimit = t('Hạn mức công nợ phải là số không âm.')
       }
     }
-
     return errors
   }
 
@@ -112,11 +78,7 @@ function DealerDetailPage() {
       return
     }
     setForm({
-      businessName: dealer.businessName,
-      contactName: dealer.contactName,
       tier: dealer.tier,
-      email: dealer.email,
-      phone: dealer.phone,
       creditLimit: dealer.creditLimit > 0 ? String(dealer.creditLimit) : '',
     })
   }, [dealer])
@@ -163,11 +125,7 @@ function DealerDetailPage() {
     setIsSavingProfile(true)
     try {
       await updateDealer(dealer.id, {
-        businessName: form.businessName.trim(),
-        contactName: form.contactName.trim(),
         tier: form.tier,
-        email: form.email.trim(),
-        phone: form.phone.trim(),
         creditLimit,
       })
       setFormErrors({})
@@ -303,38 +261,8 @@ function DealerDetailPage() {
           <p className="mt-3 text-xs text-slate-500">{dealerStatusDescription[dealer.status]}</p>
 
           <div className="mt-6 border-t border-slate-200 pt-5">
-            <p className="text-sm font-semibold text-slate-900">{t('Cập nhật thông tin đại lý')}</p>
+            <p className="text-sm font-semibold text-slate-900">{t('Cài đặt tài khoản đại lý')}</p>
             <div className="mt-3 grid gap-3">
-              <label className="space-y-2">
-                <span className={labelClass}>{t('Tên đại lý')}</span>
-                <input
-                  aria-describedby={formErrors.businessName ? 'dealer-business-name-error' : undefined}
-                  aria-invalid={Boolean(formErrors.businessName)}
-                  className={`${inputClass} bg-white text-slate-700 ${formErrors.businessName ? 'border-rose-300' : ''}`}
-                  onChange={(event) => updateFormField('businessName', event.target.value)}
-                  value={form.businessName}
-                />
-                {formErrors.businessName ? (
-                  <FieldErrorMessage className={fieldErrorClass} id="dealer-business-name-error">
-                    {formErrors.businessName}
-                  </FieldErrorMessage>
-                ) : null}
-              </label>
-              <label className="space-y-2">
-                <span className={labelClass}>{t('Người liên hệ')}</span>
-                <input
-                  aria-describedby={formErrors.contactName ? 'dealer-contact-name-error' : undefined}
-                  aria-invalid={Boolean(formErrors.contactName)}
-                  className={`${inputClass} bg-white text-slate-700 ${formErrors.contactName ? 'border-rose-300' : ''}`}
-                  onChange={(event) => updateFormField('contactName', event.target.value)}
-                  value={form.contactName}
-                />
-                {formErrors.contactName ? (
-                  <FieldErrorMessage className={fieldErrorClass} id="dealer-contact-name-error">
-                    {formErrors.contactName}
-                  </FieldErrorMessage>
-                ) : null}
-              </label>
               <label className="space-y-2">
                 <span className={labelClass}>{t('Hạng đại lý')}</span>
                 <select
@@ -349,37 +277,6 @@ function DealerDetailPage() {
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className="space-y-2">
-                <span className={labelClass}>Email</span>
-                <input
-                  aria-describedby={formErrors.email ? 'dealer-email-error' : undefined}
-                  aria-invalid={Boolean(formErrors.email)}
-                  className={`${inputClass} bg-white text-slate-700 ${formErrors.email ? 'border-rose-300' : ''}`}
-                  onChange={(event) => updateFormField('email', event.target.value)}
-                  type="email"
-                  value={form.email}
-                />
-                {formErrors.email ? (
-                  <FieldErrorMessage className={fieldErrorClass} id="dealer-email-error">
-                    {formErrors.email}
-                  </FieldErrorMessage>
-                ) : null}
-              </label>
-              <label className="space-y-2">
-                <span className={labelClass}>{t('Số điện thoại')}</span>
-                <input
-                  aria-describedby={formErrors.phone ? 'dealer-phone-error' : undefined}
-                  aria-invalid={Boolean(formErrors.phone)}
-                  className={`${inputClass} bg-white text-slate-700 ${formErrors.phone ? 'border-rose-300' : ''}`}
-                  onChange={(event) => updateFormField('phone', event.target.value)}
-                  value={form.phone}
-                />
-                {formErrors.phone ? (
-                  <FieldErrorMessage className={fieldErrorClass} id="dealer-phone-error">
-                    {formErrors.phone}
-                  </FieldErrorMessage>
-                ) : null}
               </label>
               <label className="space-y-2">
                 <span className={labelClass}>{t('Hạn mức công nợ (VND)')}</span>
@@ -404,17 +301,13 @@ function DealerDetailPage() {
                 onClick={() => void handleSaveProfile()}
                 type="button"
               >
-                {isSavingProfile ? t('Đang lưu...') : t('Lưu thông tin')}
+                {isSavingProfile ? t('Đang lưu...') : t('Lưu thay đổi')}
               </PrimaryButton>
               {isDirty ? (
                 <GhostButton
                   onClick={() => {
                     setForm({
-                      businessName: dealer.businessName,
-                      contactName: dealer.contactName,
                       tier: dealer.tier,
-                      email: dealer.email,
-                      phone: dealer.phone,
                       creditLimit: dealer.creditLimit > 0 ? String(dealer.creditLimit) : '',
                     })
                     setFormErrors({})

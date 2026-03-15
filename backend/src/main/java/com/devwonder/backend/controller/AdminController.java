@@ -5,7 +5,7 @@ import com.devwonder.backend.dto.admin.AdminBlogResponse;
 import com.devwonder.backend.dto.admin.AdminBlogUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminDashboardResponse;
 import com.devwonder.backend.dto.admin.AdminDealerAccountResponse;
-import com.devwonder.backend.dto.admin.AdminDealerAccountUpsertRequest;
+import com.devwonder.backend.dto.admin.AdminDealerAccountUpdateRequest;
 import com.devwonder.backend.dto.admin.AdminDealerResponse;
 import com.devwonder.backend.dto.admin.AdminDiscountRuleResponse;
 import com.devwonder.backend.dto.admin.AdminDiscountRuleUpsertRequest;
@@ -301,17 +301,10 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "createdAt")));
     }
 
-    @PostMapping("/dealers/accounts")
-    public ResponseEntity<ApiResponse<AdminDealerAccountResponse>> createDealerAccount(
-            @Valid @RequestBody AdminDealerAccountUpsertRequest request
-    ) {
-        return ResponseEntity.ok(ApiResponse.success(adminManagementService.createDealerAccount(request)));
-    }
-
     @PutMapping("/dealers/accounts/{id}")
     public ResponseEntity<ApiResponse<AdminDealerAccountResponse>> updateDealerAccount(
             @PathVariable("id") Long id,
-            @Valid @RequestBody AdminDealerAccountUpsertRequest request
+            @Valid @RequestBody AdminDealerAccountUpdateRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.updateDealerAccount(id, request)));
     }

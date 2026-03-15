@@ -120,7 +120,7 @@ type AdminDataContextValue = {
   dealersState: AdminResourceState
   updateDealer: (
     id: string,
-    payload: Pick<Dealer, 'businessName' | 'contactName' | 'tier' | 'email' | 'phone' | 'creditLimit'>,
+    payload: Pick<Dealer, 'tier' | 'creditLimit'>,
   ) => Promise<void>
   updateDealerStatus: (id: string, status: DealerStatus) => Promise<void>
   users: StaffUser[]
@@ -518,13 +518,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const updated = await updateAdminDealerAccount(token, Number(id), {
-      name: payload.businessName.trim(),
-      businessName: payload.businessName.trim(),
-      contactName: payload.contactName.trim(),
       tier: toBackendDealerAccountTier(payload.tier),
-      status: toBackendDealerAccountStatus(current.status),
-      email: payload.email.trim(),
-      phone: payload.phone.trim(),
       creditLimit: payload.creditLimit,
     })
     setDealers((previous) => previous.map((item) => (item.id === id ? mapDealer(updated) : item)))
