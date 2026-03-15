@@ -33,7 +33,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   bool _isUploadingAvatar = false;
   bool _hasUnsavedChanges = false;
   bool _didLoadInitialData = false;
-  int _initialSnapshot = 0;
+  String _initialSnapshot = '';
   String? _avatarUrl;
 
   List<TextEditingController> get _editableControllers => [

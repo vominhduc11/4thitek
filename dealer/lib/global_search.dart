@@ -74,7 +74,7 @@ class _GlobalSearchDelegate extends SearchDelegate<void> {
     _debounceTimer = Timer(const Duration(milliseconds: 300), () {
       if (_debouncedQuery != query.trim()) {
         _debouncedQuery = query.trim();
-        notifyListeners();
+        showSuggestions(launchContext);
       }
     });
   }
