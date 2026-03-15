@@ -100,7 +100,8 @@ public final class OrderPricingSupport {
                 }
                 BigDecimal lineSubtotal = zeroIfNull(item.getUnitPrice()).multiply(BigDecimal.valueOf(quantity));
                 BulkDiscount appliedRule = productRules.getOrDefault(item.getProduct().getId(), globalRule);
-                int percent = appliedRule == null ? 0 : normalizePercent(appliedRule.getDiscountPercent());
+                int percent = (appliedRule == null || appliedRule.getDiscountPercent() == null)
+                        ? 0 : normalizePercent(appliedRule.getDiscountPercent());
                 if (percent <= 0) {
                     continue;
                 }

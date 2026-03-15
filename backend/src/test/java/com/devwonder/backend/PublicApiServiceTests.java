@@ -13,6 +13,7 @@ import com.devwonder.backend.entity.enums.PublishStatus;
 import com.devwonder.backend.entity.enums.WarrantyStatus;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.exception.ResourceNotFoundException;
+import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
@@ -44,10 +45,14 @@ class PublicApiServiceTests {
     @Autowired
     private DealerRepository dealerRepository;
 
+    @Autowired
+    private OrderRepository orderRepository;
+
     @BeforeEach
     void setUp() {
         warrantyRegistrationRepository.deleteAll();
         productSerialRepository.deleteAll();
+        orderRepository.deleteAll();
         productRepository.deleteAll();
         dealerRepository.deleteAll();
     }

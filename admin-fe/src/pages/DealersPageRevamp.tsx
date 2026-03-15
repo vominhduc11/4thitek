@@ -184,7 +184,7 @@ function DealersPageRevamp() {
         <StatCard icon={Users} label={copy.totalDealers} value={dealers.length} />
         <StatCard icon={CheckCircle2} label={copy.activeDealers} value={stats.active} tone="success" />
         <StatCard icon={Clock3} label={copy.underReview} value={stats.underReview} tone="info" />
-        <StatCard icon={Bell} label={copy.suspended} value={stats.attention} tone="danger" />
+        <StatCard icon={Bell} label={copy.suspended} value={stats.attention} tone="warning" />
       </div>
       <p className="mt-3 text-sm text-[var(--muted)]">
         {copy.totalRevenue}:{' '}
