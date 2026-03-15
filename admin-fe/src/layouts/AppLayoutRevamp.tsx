@@ -311,14 +311,14 @@ function AppLayoutRevamp() {
 
   useAdminWebSocket(accessToken, {
     onNewOrder: (event) => {
-      void reloadResource('orders', { force: true })
+      void reloadResource('orders')
       notify(interpolate(copy.ws.newOrder, { dealer: event.dealerName }), {
         title: copy.order,
         variant: 'info',
       })
     },
     onNewDealer: (event) => {
-      void reloadResource('dealers', { force: true })
+      void reloadResource('dealers')
       notify(interpolate(copy.ws.newDealer, { username: event.username }), {
         title: copy.dealer,
         variant: 'info',
