@@ -53,12 +53,12 @@ export default function Newsroom({ initialBlogs = [] }: NewsroomProps) {
                     <span className="mt-2 block text-xs text-white/70 sm:text-sm">{t('newsroom.tagline')}</span>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {blogs.map((post, index) => (
                         <motion.button
                             key={post.id}
                             type="button"
-                            className="group relative h-64 overflow-hidden rounded-lg bg-black/10 text-left sm:h-72 md:h-80"
+                            className="group relative h-72 overflow-hidden rounded-lg bg-black/10 text-left sm:h-80 lg:h-96"
                             initial={{ opacity: 0, y: 48 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true, amount: 0.3 }}

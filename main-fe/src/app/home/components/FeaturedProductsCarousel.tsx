@@ -27,7 +27,7 @@ export default function FeaturedProductsCarousel({
     initialIndex = 0
 }: FeaturedProductsCarouselProps) {
     const { t } = useLanguage();
-    const { enableComplexAnimations, enableInfiniteAnimations, duration, ease } = useAnimationConfig();
+    const { enableComplexAnimations, duration, ease } = useAnimationConfig();
     const [products] = useState(initialProducts);
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -170,11 +170,9 @@ export default function FeaturedProductsCarousel({
                                         >
                                             {t('products.featured.discoveryNow')}
                                         </Link>
-                                        {enableInfiniteAnimations && (
-                                            <span className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-slate-300">
-                                                {currentIndex + 1} / {products.length}
-                                            </span>
-                                        )}
+                                        <span className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-slate-300">
+                                            {currentIndex + 1} / {products.length}
+                                        </span>
                                     </div>
                                 </div>
                             </motion.div>
