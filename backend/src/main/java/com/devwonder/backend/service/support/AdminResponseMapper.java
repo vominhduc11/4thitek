@@ -4,6 +4,7 @@ import com.devwonder.backend.dto.admin.AdminBlogResponse;
 import com.devwonder.backend.dto.admin.AdminDealerAccountResponse;
 import com.devwonder.backend.dto.admin.AdminDealerResponse;
 import com.devwonder.backend.dto.admin.AdminDiscountRuleResponse;
+import com.devwonder.backend.dto.admin.AdminOrderItemResponse;
 import com.devwonder.backend.dto.admin.AdminOrderResponse;
 import com.devwonder.backend.dto.admin.AdminProductResponse;
 import com.devwonder.backend.dto.admin.AdminStaffUserResponse;
@@ -13,6 +14,7 @@ import com.devwonder.backend.entity.BulkDiscount;
 import com.devwonder.backend.entity.CategoryBlog;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
+import com.devwonder.backend.entity.OrderItem;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.DiscountRuleStatus;
@@ -28,7 +30,7 @@ public final class AdminResponseMapper {
     private AdminResponseMapper() {
     }
 
-    public static AdminProductResponse toProductResponse(Product product) {
+    public static AdminProductResponse toProductResponse(Product product, int availableStock) {
         return new AdminProductResponse(
                 product.getId(),
                 product.getSku(),
@@ -39,7 +41,7 @@ public final class AdminResponseMapper {
                 product.getVideos(),
                 product.getSpecifications(),
                 product.getRetailPrice(),
-                product.getStock(),
+                availableStock,
                 product.getWarrantyPeriod(),
                 product.getShowOnHomepage(),
                 product.getIsFeatured(),
@@ -56,6 +58,12 @@ public final class AdminResponseMapper {
 
     public static AdminOrderResponse toOrderResponse(Order order, List<BulkDiscount> rules) {
         Dealer dealer = order.getDealer();
+        List<AdminOrderItemResponse> orderItems = order.getOrderItems() == null
+                ? List.of()
+                : order.getOrderItems().stream()
+                        .filter(item -> item != null && item.getProduct() != null)
+                        .map(AdminResponseMapper::toOrderItemResponse)
+                        .toList();
         return new AdminOrderResponse(
                 order.getId(),
                 order.getOrderCode(),
@@ -70,7 +78,19 @@ public final class AdminResponseMapper {
                 OrderPricingSupport.computeTotalAmount(order, rules),
                 countOrderItems(order),
                 order.getReceiverAddress(),
-                order.getNote()
+                order.getNote(),
+                orderItems
+        );
+    }
+
+    private static AdminOrderItemResponse toOrderItemResponse(OrderItem item) {
+        Product product = item.getProduct();
+        return new AdminOrderItemResponse(
+                product.getId(),
+                product.getSku(),
+                product.getName(),
+                item.getQuantity(),
+                item.getUnitPrice()
         );
     }
 

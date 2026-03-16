@@ -14,7 +14,6 @@ public record AdminProductUpsertRequest(
         List<Map<String, Object>> videos,
         List<Map<String, Object>> specifications,
         BigDecimal retailPrice,
-        Integer stock,
         Integer warrantyPeriod,
         Boolean showOnHomepage,
         Boolean isFeatured,

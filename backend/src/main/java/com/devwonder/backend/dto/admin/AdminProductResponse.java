@@ -16,7 +16,7 @@ public record AdminProductResponse(
         List<Map<String, Object>> videos,
         List<Map<String, Object>> specifications,
         BigDecimal retailPrice,
-        Integer stock,
+        Integer availableStock,
         Integer warrantyPeriod,
         Boolean showOnHomepage,
         Boolean isFeatured,

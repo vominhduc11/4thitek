@@ -2,10 +2,12 @@ import { ArrowLeft } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAdminData, type OrderStatus } from '../context/AdminDataContext'
+import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { getAllowedOrderStatuses, orderStatusLabel, orderStatusTone } from '../lib/adminLabels'
 import { formatCurrency, formatDateTime } from '../lib/formatters'
+import { assignAdminOrderSerials } from '../lib/adminApi'
 import {
   EmptyState,
   ErrorState,
@@ -30,12 +32,15 @@ function OrderDetailPage() {
   const { t } = useLanguage()
   const { notify } = useToast()
   const { confirm, confirmDialog } = useConfirmDialog()
+  const { accessToken } = useAuth()
   const { orders, ordersState, updateOrderStatus, recordOrderPayment, deleteOrder, reloadResource } =
     useAdminData()
   const [paymentAmount, setPaymentAmount] = useState('')
   const [transactionCode, setTransactionCode] = useState('')
   const [paymentNote, setPaymentNote] = useState('')
   const [paymentError, setPaymentError] = useState('')
+  const [serialInputs, setSerialInputs] = useState<Record<number, string>>({})
+  const [serialSubmitting, setSerialSubmitting] = useState(false)
 
   const order = orders.find((item) => item.id === decodedId)
   const initialPaymentAmount =
@@ -441,6 +446,72 @@ function OrderDetailPage() {
           </div>
         </div>
       </div>
+
+      {order.status !== 'cancelled' && order.status !== 'completed' && order.orderItems.length > 0 && (
+        <div className="mt-6 rounded-3xl border border-sky-200 bg-sky-50/60 p-5">
+          <p className="text-sm font-semibold text-sky-900">{t('Gán serial sản phẩm')}</p>
+          <p className="mt-1 text-xs text-sky-700">
+            {t('Nhập serial (mỗi dòng một serial) cho từng sản phẩm trong đơn.')}
+          </p>
+          <div className="mt-4 space-y-4">
+            {order.orderItems.map((item) => (
+              <div key={item.productId}>
+                <label className="block text-xs font-semibold text-slate-700">
+                  {item.productName} <span className="text-slate-400">({item.productSku})</span>{' '}
+                  &times; {item.quantity}
+                </label>
+                <textarea
+                  className="mt-1 min-h-20 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  placeholder={t('Mỗi serial trên một dòng...')}
+                  value={serialInputs[item.productId] ?? ''}
+                  onChange={(e) =>
+                    setSerialInputs((prev) => ({ ...prev, [item.productId]: e.target.value }))
+                  }
+                />
+              </div>
+            ))}
+          </div>
+          <PrimaryButton
+            className="mt-4"
+            disabled={serialSubmitting}
+            type="button"
+            onClick={async () => {
+              if (!accessToken) return
+              const assignments = order.orderItems
+                .map((item) => ({
+                  productId: item.productId,
+                  serials: (serialInputs[item.productId] ?? '')
+                    .split('\n')
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                }))
+                .filter((a) => a.serials.length > 0)
+
+              if (assignments.length === 0) {
+                notify(t('Chưa nhập serial nào'), { title: t('Gán serial'), variant: 'error' })
+                return
+              }
+
+              setSerialSubmitting(true)
+              try {
+                await assignAdminOrderSerials(accessToken, Number(order.id), { assignments })
+                notify(t('Đã gán serial thành công'), { title: t('Gán serial'), variant: 'success' })
+                setSerialInputs({})
+              } catch (error) {
+                notify(error instanceof Error ? error.message : t('Không gán được serial'), {
+                  title: t('Gán serial'),
+                  variant: 'error',
+                })
+              } finally {
+                setSerialSubmitting(false)
+              }
+            }}
+          >
+            {serialSubmitting ? t('Đang xử lý...') : t('Gán serial')}
+          </PrimaryButton>
+        </div>
+      )}
+
       {confirmDialog}
     </PagePanel>
   )

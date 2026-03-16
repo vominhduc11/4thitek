@@ -199,6 +199,13 @@ export const mapOrder = (order: BackendOrderResponse): Order => {
     address: order.address || '',
     note: order.note || '',
     createdAt: order.createdAt || '',
+    orderItems: (order.orderItems ?? []).map((item) => ({
+      productId: item.productId,
+      productSku: item.productSku,
+      productName: item.productName,
+      quantity: Number(item.quantity ?? 0),
+      unitPrice: parseFiniteNumber(item.unitPrice),
+    })),
   }
 }
 

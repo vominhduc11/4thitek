@@ -33,7 +33,7 @@ const deriveStatus = (product: Product): Product['status'] => {
   if (product.publishStatus !== 'PUBLISHED' || product.isDeleted) {
     return 'Draft'
   }
-  if (product.stock < 20) return 'Low Stock'
+  if (product.availableStock < 20) return 'Low Stock'
   return 'Active'
 }
 
@@ -99,7 +99,7 @@ const mapResponseToProduct = (product: BackendProductResponse): Product =>
     shortDescription: product.shortDescription || '',
     status: 'Draft',
     publishStatus: product.publishStatus === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT',
-    stock: Number(product.stock ?? 0),
+    availableStock: Number(product.availableStock ?? 0),
     retailPrice: Number(product.retailPrice ?? 0),
     warrantyPeriod: product.warrantyPeriod == null ? null : Number(product.warrantyPeriod),
     image:
@@ -153,9 +153,7 @@ const toUpsertPayload = (payload: Partial<Product>): BackendProductUpsertRequest
   ) {
     request.warrantyPeriod = Number(payload.warrantyPeriod)
   }
-  if ('stock' in payload && payload.stock !== undefined) {
-    request.stock = Number(payload.stock ?? 0)
-  }
+  // availableStock is read-only (derived from serial count), never sent in upsert requests
   if ('showOnHomepage' in payload && payload.showOnHomepage !== undefined) {
     request.showOnHomepage = payload.showOnHomepage
   }

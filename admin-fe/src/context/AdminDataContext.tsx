@@ -72,6 +72,7 @@ export type {
   DealerStatus,
   DiscountRule,
   Order,
+  OrderItem,
   OrderStatus,
   RuleStatus,
   StaffUser,

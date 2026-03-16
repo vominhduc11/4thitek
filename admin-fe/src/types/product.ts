@@ -7,7 +7,7 @@ export type Product = {
   shortDescription: string
   status: 'Active' | 'Low Stock' | 'Draft'
   publishStatus: PublishStatus
-  stock: number
+  availableStock: number
   retailPrice: number
   warrantyPeriod: number | null
   image: string

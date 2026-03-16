@@ -1,5 +1,6 @@
 package com.devwonder.backend.service;
 
+import com.devwonder.backend.dto.admin.AdminAssignOrderSerialsRequest;
 import com.devwonder.backend.dto.admin.AdminBlogResponse;
 import com.devwonder.backend.dto.admin.AdminBlogUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminDashboardResponse;
@@ -27,11 +28,14 @@ import com.devwonder.backend.entity.Blog;
 import com.devwonder.backend.entity.BulkDiscount;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
+import com.devwonder.backend.entity.OrderItem;
 import com.devwonder.backend.entity.Product;
+import com.devwonder.backend.entity.ProductSerial;
 import com.devwonder.backend.entity.Role;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.DiscountRuleStatus;
 import com.devwonder.backend.entity.enums.OrderStatus;
+import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.entity.enums.StaffUserStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ConflictException;
@@ -115,15 +119,17 @@ public class AdminManagementService {
 
     @Transactional(readOnly = true)
     public List<AdminProductResponse> getProducts() {
+        Map<Long, Integer> serialCounts = buildSerialCountMap();
         return productRepository.findByIsDeletedFalseOrderByUpdatedAtDesc().stream()
-                .map(AdminResponseMapper::toProductResponse)
+                .map(p -> AdminResponseMapper.toProductResponse(p, serialCounts.getOrDefault(p.getId(), 0)))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public Page<AdminProductResponse> getProducts(Pageable pageable) {
+        Map<Long, Integer> serialCounts = buildSerialCountMap();
         return productRepository.findByIsDeletedFalse(pageable)
-                .map(AdminResponseMapper::toProductResponse);
+                .map(p -> AdminResponseMapper.toProductResponse(p, serialCounts.getOrDefault(p.getId(), 0)));
     }
 
     @Transactional
@@ -136,7 +142,8 @@ public class AdminManagementService {
     public AdminProductResponse createProduct(AdminProductUpsertRequest request) {
         Product product = new Product();
         adminWriteSupport.applyProduct(product, request, true);
-        return AdminResponseMapper.toProductResponse(productRepository.save(product));
+        Product saved = productRepository.save(product);
+        return AdminResponseMapper.toProductResponse(saved, 0);
     }
 
     @Transactional
@@ -150,7 +157,10 @@ public class AdminManagementService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
         adminWriteSupport.applyProduct(product, request, false);
-        return AdminResponseMapper.toProductResponse(productRepository.save(product));
+        Product saved = productRepository.save(product);
+        int availableStock = (int) productSerialRepository.countByProductIdAndDealerIsNullAndStatus(
+                saved.getId(), com.devwonder.backend.entity.enums.ProductSerialStatus.AVAILABLE);
+        return AdminResponseMapper.toProductResponse(saved, availableStock);
     }
 
     @Transactional
@@ -195,7 +205,6 @@ public class AdminManagementService {
         order.setStatus(request.status());
         applyCompletedAt(order, request.status(), previousStatus);
         if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
-            orderInventorySupport.restoreStock(order);
             productSerialOrderSupport.releaseNonWarrantySerials(order);
         }
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
@@ -204,6 +213,71 @@ public class AdminManagementService {
         adminOrderNotificationSupport.notifyStatusChange(saved, previousStatus);
         publishOrderStatusRealtime(saved, previousStatus);
         return AdminResponseMapper.toOrderResponse(saved, activeDiscountRules);
+    }
+
+    @Transactional
+    public List<DealerProductSerialResponse> assignOrderSerials(Long orderId, AdminAssignOrderSerialsRequest request) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new BadRequestException("Cannot assign serials to a cancelled order");
+        }
+        if (order.getDealer() == null) {
+            throw new BadRequestException("Order has no associated dealer");
+        }
+
+        // Build map of productId → orderedQuantity for validation
+        java.util.Map<Long, Integer> orderedQty = new java.util.HashMap<>();
+        if (order.getOrderItems() != null) {
+            for (OrderItem item : order.getOrderItems()) {
+                if (item != null && item.getProduct() != null) {
+                    orderedQty.merge(item.getProduct().getId(),
+                            item.getQuantity() == null ? 0 : item.getQuantity(), Integer::sum);
+                }
+            }
+        }
+
+        // Build map of productId → already-assigned serial count for this order
+        java.util.Map<Long, Long> alreadyAssigned = new java.util.HashMap<>();
+        for (ProductSerial existing : productSerialRepository.findByOrderId(orderId)) {
+            if (existing.getProduct() != null) {
+                alreadyAssigned.merge(existing.getProduct().getId(), 1L, Long::sum);
+            }
+        }
+
+        List<ProductSerial> toSave = new java.util.ArrayList<>();
+        for (AdminAssignOrderSerialsRequest.LineAssignment line : request.assignments()) {
+            Long productId = line.productId();
+            int ordered = orderedQty.getOrDefault(productId, 0);
+            if (ordered <= 0) {
+                throw new BadRequestException("Product " + productId + " is not part of this order");
+            }
+            long existingCount = alreadyAssigned.getOrDefault(productId, 0L);
+            if (existingCount + line.serials().size() > ordered) {
+                throw new BadRequestException("Serial count for product " + productId + " exceeds ordered quantity");
+            }
+            for (String serialValue : line.serials()) {
+                String normalizedSerial = serialValue.trim().toUpperCase(java.util.Locale.ROOT);
+                ProductSerial serial = productSerialRepository.findBySerialIgnoreCase(normalizedSerial)
+                        .orElseThrow(() -> new ResourceNotFoundException("Serial not found: " + normalizedSerial));
+                if (serial.getDealer() != null) {
+                    throw new BadRequestException("Serial " + normalizedSerial + " is already assigned to a dealer");
+                }
+                if (serial.getStatus() != ProductSerialStatus.AVAILABLE) {
+                    throw new BadRequestException("Serial " + normalizedSerial + " is not available");
+                }
+                if (serial.getProduct() == null || !serial.getProduct().getId().equals(productId)) {
+                    throw new BadRequestException("Serial " + normalizedSerial + " does not belong to product " + productId);
+                }
+                serial.setDealer(order.getDealer());
+                serial.setOrder(order);
+                toSave.add(serial);
+            }
+        }
+
+        return productSerialRepository.saveAll(toSave).stream()
+                .map(ProductSerialResponseMapper::toDealerProductSerialResponse)
+                .toList();
     }
 
     @Transactional
@@ -533,6 +607,17 @@ public class AdminManagementService {
 
     private List<BulkDiscount> activeDiscountRules() {
         return bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
+    }
+
+    private Map<Long, Integer> buildSerialCountMap() {
+        Map<Long, Integer> counts = new java.util.HashMap<>();
+        for (Object[] row : productSerialRepository.countAvailableGroupByProduct(
+                com.devwonder.backend.entity.enums.ProductSerialStatus.AVAILABLE)) {
+            Long productId = (Long) row[0];
+            Long count = (Long) row[1];
+            counts.put(productId, count.intValue());
+        }
+        return counts;
     }
 
     private void applyDiscountRuleRange(BulkDiscount rule, String rangeLabel) {

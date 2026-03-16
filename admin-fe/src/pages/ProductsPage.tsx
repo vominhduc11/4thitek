@@ -58,7 +58,6 @@ type NewProductDraft = {
   videos: ProductVideoItem[]
   retailPrice: string
   warrantyPeriod: string
-  stock: string
   publishStatus: 'DRAFT' | 'PUBLISHED'
   isFeatured: boolean
   showOnHomepage: boolean
@@ -73,14 +72,13 @@ type DescriptionItem = {
   gallery?: GalleryItem[]
 }
 
-type CreateProductErrorField = 'name' | 'sku' | 'retailPrice' | 'warrantyPeriod' | 'stock' | 'videos'
+type CreateProductErrorField = 'name' | 'sku' | 'retailPrice' | 'warrantyPeriod' | 'videos'
 
 const createProductErrorFieldOrder: CreateProductErrorField[] = [
   'name',
   'sku',
   'retailPrice',
   'warrantyPeriod',
-  'stock',
   'videos',
 ]
 
@@ -92,7 +90,6 @@ const createProductErrorTabMap: Record<
   sku: 'basic',
   retailPrice: 'basic',
   warrantyPeriod: 'basic',
-  stock: 'basic',
   videos: 'videos',
 }
 
@@ -259,7 +256,6 @@ const createInitialNewProduct = (): NewProductDraft => ({
   videos: [],
   retailPrice: '',
   warrantyPeriod: '12',
-  stock: '',
   publishStatus: 'DRAFT' as 'DRAFT' | 'PUBLISHED',
   isFeatured: false,
   showOnHomepage: false,
@@ -355,7 +351,7 @@ function ProductsPage() {
     videos: null,
   })
   const retailPriceInputRef = useRef<HTMLInputElement | null>(null)
-  const stockInputRef = useRef<HTMLInputElement | null>(null)
+
   const retailPriceCaretRef = useRef<number | null>(null)
   const [selectedImageName, setSelectedImageName] = useState('')
   const [imagePreviewUrl, setImagePreviewUrl] = useState('')
@@ -386,7 +382,7 @@ function ProductsPage() {
   } = useMemo(() => {
     const activeProductsList = products.filter((product) => !product.isDeleted && product.status === 'Active')
     const lowStockProductsList = products.filter(
-      (product) => !product.isDeleted && product.stock > 0 && product.stock < 20,
+      (product) => !product.isDeleted && product.availableStock > 0 && product.availableStock < 20,
     )
     const draftProductsList = products.filter((product) => !product.isDeleted && product.status === 'Draft')
 
@@ -423,8 +419,8 @@ function ProductsPage() {
         acc.all += 1
         if (product.status === 'Active') acc.active += 1
         if (product.status === 'Draft') acc.draft += 1
-        if (product.stock === 0) acc.outOfStock += 1
-        if (product.stock > 0 && product.stock < 20) acc.lowStock += 1
+        if (product.availableStock === 0) acc.outOfStock += 1
+        if (product.availableStock > 0 && product.availableStock < 20) acc.lowStock += 1
         return acc
       },
       {
@@ -442,9 +438,9 @@ function ProductsPage() {
         case 'active':
           return !product.isDeleted && product.status === 'Active'
         case 'lowStock':
-          return !product.isDeleted && product.stock > 0 && product.stock < 20
+          return !product.isDeleted && product.availableStock > 0 && product.availableStock < 20
         case 'outOfStock':
-          return !product.isDeleted && product.stock === 0
+          return !product.isDeleted && product.availableStock === 0
         case 'draft':
           return !product.isDeleted && product.status === 'Draft'
         case 'deleted':
@@ -539,8 +535,7 @@ function ProductsPage() {
           errors.name ||
           errors.sku ||
           errors.retailPrice ||
-          errors.warrantyPeriod ||
-          errors.stock,
+          errors.warrantyPeriod,
       ),
       description: Object.keys(descriptionImageErrors).length > 0,
       specs: false,
@@ -746,10 +741,7 @@ function ProductsPage() {
         : ''
     }
 
-    const stockNum = Number(draft.stock || 0)
-    return Number.isNaN(stockNum) || stockNum < 0 || !Number.isInteger(stockNum)
-      ? t('Tồn kho phải là số nguyên không âm')
-      : ''
+    return ''
   }
 
   const setCreateFieldError = (
@@ -831,9 +823,7 @@ function ProductsPage() {
             ? skuInputRef.current
             : field === 'retailPrice'
               ? retailPriceInputRef.current
-              : field === 'stock'
-                ? stockInputRef.current
-                : null
+              : null
 
     target?.focus()
     target?.scrollIntoView({ block: 'center', behavior: 'smooth' })
@@ -1224,7 +1214,6 @@ function ProductsPage() {
 
     const priceNum = Number(newProduct.retailPrice)
     const warrantyPeriodNum = Number(newProduct.warrantyPeriod)
-    const stockNum = Number(newProduct.stock || 0)
 
     newProduct.videos.forEach((video, index) => {
       const message = getProductVideoError(video)
@@ -1350,7 +1339,6 @@ function ProductsPage() {
           shortDescription: newProduct.shortDescription.trim(),
           retailPrice: priceNum || 0,
           warrantyPeriod: warrantyPeriodNum,
-          stock: stockNum,
           publishStatus: newProduct.publishStatus,
           isFeatured: newProduct.isFeatured,
           showOnHomepage: newProduct.showOnHomepage,
@@ -1579,7 +1567,7 @@ function ProductsPage() {
                 {formatPriceVND(product.retailPrice || 0)}
               </span>
               <span className="px-2 text-slate-300">|</span>
-              <span>{t('Tồn')}: {product.stock > 999 ? '999+' : product.stock}</span>
+              <span>{t('Tồn')}: {product.availableStock > 999 ? '999+' : product.availableStock}</span>
             </p>
           </div>
         </div>
@@ -1806,7 +1794,7 @@ function ProductsPage() {
                 p.name,
                 p.sku,
                 p.retailPrice ?? 0,
-                p.stock,
+                p.availableStock,
                 p.publishStatus,
                 p.isFeatured ? t('Có') : t('Không'),
                 p.showOnHomepage ? t('Có') : t('Không')
@@ -2197,34 +2185,6 @@ function ProductsPage() {
                         {errors.retailPrice && (
                           <p className="mt-1 text-xs text-red-500">{errors.retailPrice}</p>
                         )}
-                      </label>
-                      <label className="text-sm text-slate-700">
-                        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                          {t('Tồn kho')}
-                        </span>
-                        <input
-                          ref={stockInputRef}
-                          type="text"
-                          aria-invalid={Boolean(errors.stock)}
-                          inputMode="numeric"
-                          autoComplete="off"
-                          placeholder={t('Nhập tồn kho')}
-                          className={`mt-2 w-full rounded-xl border px-3 py-2 text-sm ${errors.stock ? 'border-rose-300' : 'border-slate-200'}`}
-                          value={newProduct.stock}
-                          onChange={(e) =>
-                            setNewProduct({ ...newProduct, stock: toDigitsOnly(e.target.value) })
-                          }
-                          onBlur={(e) =>
-                            validateCreateFieldOnBlur('stock', {
-                              ...newProduct,
-                              stock: toDigitsOnly(e.target.value),
-                            })
-                          }
-                        />
-                        <p className="mt-1 text-xs text-slate-500">
-                          {t('Để trống nếu muốn mặc định tồn kho ban đầu là 0.')}
-                        </p>
-                        {errors.stock && <p className="mt-1 text-xs text-red-500">{errors.stock}</p>}
                       </label>
                       <label className="text-sm text-slate-700">
                         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">

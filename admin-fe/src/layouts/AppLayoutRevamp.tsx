@@ -394,7 +394,7 @@ function AppLayoutRevamp() {
     const items: AlertItem[] = []
     const pendingOrders = orders.filter((item) => item.status === 'pending').length
     const lowStockProducts = products.filter(
-      (item) => !item.isDeleted && item.stock > 0 && item.stock < 20,
+      (item) => !item.isDeleted && item.availableStock > 0 && item.availableStock < 20,
     ).length
     const scheduledPosts = posts.filter((item) => item.status === 'scheduled').length
     const dealerAttention = dealers.filter((item) => item.status === 'suspended').length

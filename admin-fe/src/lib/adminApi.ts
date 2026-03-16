@@ -48,7 +48,7 @@ export type BackendProductResponse = {
   videos?: Array<Record<string, unknown>> | null
   specifications?: Array<Record<string, unknown>> | null
   retailPrice?: number | string | null
-  stock?: number | null
+  availableStock?: number | null
   warrantyPeriod?: number | null
   showOnHomepage?: boolean | null
   isFeatured?: boolean | null
@@ -67,7 +67,6 @@ export type BackendProductUpsertRequest = {
   videos?: Array<Record<string, unknown>>
   specifications?: Array<Record<string, unknown>>
   retailPrice?: number
-  stock?: number
   warrantyPeriod?: number
   showOnHomepage?: boolean
   isFeatured?: boolean
@@ -107,6 +106,14 @@ export type BackendCategory = {
   name: string
 }
 
+export type BackendOrderItemResponse = {
+  productId: number
+  productSku: string
+  productName: string
+  quantity?: number | null
+  unitPrice?: number | string | null
+}
+
 export type BackendOrderResponse = {
   id: number
   orderCode: string
@@ -122,6 +129,7 @@ export type BackendOrderResponse = {
   note?: string | null
   createdAt?: string | null
   updatedAt?: string | null
+  orderItems?: BackendOrderItemResponse[] | null
 }
 
 export type BackendDealerAccountResponse = {
@@ -590,6 +598,25 @@ export const deleteAdminOrder = (token: string, id: number) =>
     path: `/admin/orders/${id}`,
     token,
     method: 'DELETE',
+  })
+
+export type AdminAssignOrderSerialsRequest = {
+  assignments: Array<{
+    productId: number
+    serials: string[]
+  }>
+}
+
+export const assignAdminOrderSerials = (
+  token: string,
+  orderId: number,
+  body: AdminAssignOrderSerialsRequest,
+) =>
+  authorizedJsonRequest<BackendSerialResponse[]>({
+    path: `/admin/orders/${orderId}/assign-serials`,
+    token,
+    method: 'POST',
+    body,
   })
 
 export const fetchAdminDealerAccounts = (token: string) =>

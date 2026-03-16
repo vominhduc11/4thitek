@@ -1,6 +1,7 @@
 package com.devwonder.backend.controller;
 
 import com.devwonder.backend.dto.ApiResponse;
+import com.devwonder.backend.dto.admin.AdminAssignOrderSerialsRequest;
 import com.devwonder.backend.dto.admin.AdminBlogResponse;
 import com.devwonder.backend.dto.admin.AdminBlogUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminDashboardResponse;
@@ -133,6 +134,14 @@ public class AdminController {
             @Valid @RequestBody UpdateDealerOrderStatusRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.updateOrderStatus(id, request)));
+    }
+
+    @PostMapping("/orders/{id}/assign-serials")
+    public ResponseEntity<ApiResponse<List<DealerProductSerialResponse>>> assignOrderSerials(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody AdminAssignOrderSerialsRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(adminManagementService.assignOrderSerials(id, request)));
     }
 
     @PostMapping("/orders/{id}/payments")

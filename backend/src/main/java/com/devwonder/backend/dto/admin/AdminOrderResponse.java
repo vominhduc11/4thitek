@@ -5,6 +5,7 @@ import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 public record AdminOrderResponse(
         Long id,
@@ -20,6 +21,7 @@ public record AdminOrderResponse(
         BigDecimal totalAmount,
         Integer itemCount,
         String address,
-        String note
+        String note,
+        List<AdminOrderItemResponse> orderItems
 ) {
 }

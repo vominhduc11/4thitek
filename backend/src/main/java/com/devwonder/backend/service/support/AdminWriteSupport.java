@@ -56,9 +56,6 @@ public class AdminWriteSupport {
         if (request.retailPrice() != null) {
             product.setRetailPrice(request.retailPrice());
         }
-        if (request.stock() != null) {
-            product.setStock(Math.max(0, request.stock()));
-        }
         if (request.warrantyPeriod() != null) {
             product.setWarrantyPeriod(Math.min(120, Math.max(0, request.warrantyPeriod())));
         }

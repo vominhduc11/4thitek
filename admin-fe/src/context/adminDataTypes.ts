@@ -6,6 +6,14 @@ export type DealerStatus = 'active' | 'under_review' | 'suspended'
 export type UserStatus = 'active' | 'pending'
 export type RuleStatus = 'active' | 'pending' | 'draft'
 
+export type OrderItem = {
+  productId: number
+  productSku: string
+  productName: string
+  quantity: number
+  unitPrice: number
+}
+
 export type Order = {
   id: string
   dealer: string
@@ -19,6 +27,7 @@ export type Order = {
   address: string
   note: string
   createdAt: string
+  orderItems: OrderItem[]
 }
 
 export type BlogPost = {

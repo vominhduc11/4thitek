@@ -53,7 +53,6 @@ type ProductDraft = {
   publishStatus: Product['publishStatus']
   retailPrice: string
   warrantyPeriod: string
-  stock: string
   shortDescription: string
   image: string
   specifications: SpecificationItem[]
@@ -94,7 +93,6 @@ const buildDraft = (product: Product): ProductDraft => ({
   publishStatus: product.publishStatus,
   retailPrice: String(product.retailPrice ?? 0),
   warrantyPeriod: product.warrantyPeriod == null ? '' : String(product.warrantyPeriod),
-  stock: String(product.stock),
   shortDescription: product.shortDescription,
   image: getImageUrl(product.image),
   specifications: parseSpecifications(product.specifications),
@@ -314,7 +312,6 @@ function ProductDetailPage() {
   const validateDraft = useCallback((value: ProductDraft) => {
     const errors: Record<string, string> = {}
     const retailPrice = Number(value.retailPrice)
-    const stock = Number(value.stock)
     const warrantyPeriod = Number(value.warrantyPeriod)
 
     if (!value.name.trim()) {
@@ -322,9 +319,6 @@ function ProductDetailPage() {
     }
     if (Number.isNaN(retailPrice) || retailPrice < 0) {
       errors.retailPrice = t('Giá bán lẻ phải là số không âm')
-    }
-    if (Number.isNaN(stock) || stock < 0 || !Number.isInteger(stock)) {
-      errors.stock = t('Tồn kho phải là số nguyên không âm')
     }
     if (Number.isNaN(warrantyPeriod) || warrantyPeriod <= 0 || !Number.isInteger(warrantyPeriod)) {
       errors.warrantyPeriod = t('Thời hạn bảo hành phải là số nguyên dương')
@@ -453,7 +447,6 @@ function ProductDetailPage() {
       return
     }
 
-    const nextStock = Number(draft.stock)
     const nextRetailPrice = Number(draft.retailPrice)
     const nextWarrantyPeriod = Number(draft.warrantyPeriod)
     const cleanedSpecifications = draft.specifications
@@ -519,7 +512,6 @@ function ProductDetailPage() {
         publishStatus: draft.publishStatus,
         retailPrice: nextRetailPrice,
         warrantyPeriod: nextWarrantyPeriod,
-        stock: Number.isNaN(nextStock) ? product.stock : nextStock,
         shortDescription: draft.shortDescription.trim(),
         image: draft.image.trim() || productPlaceholder,
         descriptions: JSON.stringify(cleanedDescriptions),
@@ -1177,7 +1169,7 @@ function ProductDetailPage() {
                 {t('Tồn kho')}
               </p>
               <p className="mt-2 text-2xl font-semibold text-slate-900">
-                {product.stock}
+                {product.availableStock}
               </p>
               <p className="text-xs text-slate-500">
                 {t('Cập nhật {date}', { date: formatDisplayDate(product.updatedAt) })}
@@ -1235,29 +1227,6 @@ function ProductDetailPage() {
                   {draftErrors.retailPrice ? (
                     <FieldErrorMessage id="product-detail-price-error">
                       {draftErrors.retailPrice}
-                    </FieldErrorMessage>
-                  ) : null}
-                </div>
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    {t('Tồn kho')}
-                  </label>
-                  <input
-                    aria-describedby={draftErrors.stock ? 'product-detail-stock-error' : undefined}
-                    aria-invalid={Boolean(draftErrors.stock)}
-                    className={`mt-2 w-full rounded-2xl border bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 ${
-                      draftErrors.stock ? 'border-rose-300' : 'border-slate-200'
-                    }`}
-                    type="number"
-                    min="0"
-                    value={draft.stock}
-                    onChange={(event) =>
-                      setDraft({ ...draft, stock: event.target.value })
-                    }
-                  />
-                  {draftErrors.stock ? (
-                    <FieldErrorMessage id="product-detail-stock-error">
-                      {draftErrors.stock}
                     </FieldErrorMessage>
                   ) : null}
                 </div>
