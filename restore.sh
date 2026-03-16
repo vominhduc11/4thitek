@@ -27,6 +27,8 @@ echo "===================================="
 
 echo "Restoring PostgreSQL..."
 
+docker compose exec -T $POSTGRES_CONTAINER psql -U $POSTGRES_USER postgres \
+  -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$POSTGRES_DB' AND pid <> pg_backend_pid();"
 docker compose exec $POSTGRES_CONTAINER dropdb -U $POSTGRES_USER $POSTGRES_DB || true
 docker compose exec $POSTGRES_CONTAINER createdb -U $POSTGRES_USER $POSTGRES_DB
 
@@ -41,14 +43,14 @@ echo "PostgreSQL restore completed"
 
 echo "Restoring MinIO..."
 
-docker compose stop backend || true
+docker compose stop backend minio || true
 
 docker run --rm \
   -v $MINIO_VOLUME:/data \
   -v $(pwd)/$BACKUP_DIR:/backup \
   alpine sh -c "rm -rf /data/* && tar xzf /backup/minio.tar.gz -C /data"
 
-docker compose start backend
+docker compose start minio backend
 
 echo "MinIO restore completed"
 
