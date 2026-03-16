@@ -51,11 +51,11 @@ function LoginPage() {
 
     const result = await login({ username, password, remember })
     if (!result.ok) {
-      setError(result.message ?? 'Đăng nhập thất bại')
+      setError(result.message ?? t('Đăng nhập thất bại'))
       return
     }
 
-    notify('Đăng nhập thành công', { title: 'Auth', variant: 'success' })
+    notify(t('Đăng nhập thành công'), { title: 'Auth', variant: 'success' })
     navigate(target, { replace: true })
   }
 
@@ -181,7 +181,7 @@ function LoginPage() {
             type="submit"
             disabled={isLoggingIn}
           >
-            {isLoggingIn ? 'Đang đăng nhập...' : t('Đăng nhập')}
+            {isLoggingIn ? t('Đang đăng nhập...') : t('Đăng nhập')}
           </button>
 
           <p className="text-center text-xs text-slate-500">

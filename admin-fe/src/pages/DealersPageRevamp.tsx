@@ -29,13 +29,6 @@ import {
 } from '../lib/adminLabels'
 import { formatCurrency, formatDateTime } from '../lib/formatters'
 
-const DEALER_STATUS_OPTIONS: Array<{ value: 'all' | DealerStatus; label: string }> = [
-  { value: 'all', label: 'All' },
-  { value: 'active', label: dealerStatusLabel.active },
-  { value: 'under_review', label: dealerStatusLabel.under_review },
-  { value: 'suspended', label: dealerStatusLabel.suspended },
-]
-
 const copyByLanguage = {
   vi: {
     title: 'Đại lý',
@@ -90,8 +83,14 @@ const copyByLanguage = {
 } as const
 
 function DealersPageRevamp() {
-  const { language } = useLanguage()
+  const { language, t } = useLanguage()
   const copy = copyByLanguage[language]
+  const DEALER_STATUS_OPTIONS: Array<{ value: 'all' | DealerStatus; label: string }> = [
+    { value: 'all', label: t('Tất cả') },
+    { value: 'active', label: copy.activeDealers },
+    { value: 'under_review', label: copy.underReview },
+    { value: 'suspended', label: copy.suspended },
+  ]
   const navigate = useNavigate()
   const { notify } = useToast()
   const { dealers, dealersState, updateDealerStatus, reloadResource } = useAdminData()
@@ -209,7 +208,7 @@ function DealersPageRevamp() {
                         <p className={tableMetaClass}>{dealer.contactName}</p>
                       </div>
                       <StatusBadge tone={dealerStatusTone[dealer.status]}>
-                        {dealerStatusLabel[dealer.status]}
+                        {t(dealerStatusLabel[dealer.status])}
                       </StatusBadge>
                     </div>
                     <div className="mt-4 grid gap-2 text-sm text-[var(--ink)]">
@@ -229,7 +228,7 @@ function DealersPageRevamp() {
                       </div>
                     </div>
                   </button>
-                  <p className={`${tableMetaClass} mt-3`}>{dealerStatusDescription[dealer.status]}</p>
+                  <p className={`${tableMetaClass} mt-3`}>{t(dealerStatusDescription[dealer.status])}</p>
                   <select
                     aria-label={`${copy.status} ${dealer.id}`}
                     className={`mt-4 w-full ${tableActionSelectClass}`}
@@ -243,10 +242,10 @@ function DealersPageRevamp() {
                         title: copy.confirmStatusTitle,
                         message: copy.confirmStatusMessage.replace(
                           '{status}',
-                          dealerStatusLabel[next],
+                          t(dealerStatusLabel[next]),
                         ),
                         tone: 'warning',
-                        confirmLabel: dealerStatusLabel[next],
+                        confirmLabel: t(dealerStatusLabel[next]),
                       })
 
                       if (!approved) {
@@ -303,9 +302,9 @@ function DealersPageRevamp() {
                       </td>
                       <td className="px-3 py-3">
                         <StatusBadge tone={dealerStatusTone[dealer.status]}>
-                          {dealerStatusLabel[dealer.status]}
+                          {t(dealerStatusLabel[dealer.status])}
                         </StatusBadge>
-                        <p className={`mt-1 ${tableMetaClass}`}>{dealerStatusDescription[dealer.status]}</p>
+                        <p className={`mt-1 ${tableMetaClass}`}>{t(dealerStatusDescription[dealer.status])}</p>
                       </td>
                       <td className="px-3 py-3">
                         <div className="text-sm text-[var(--ink)]">{dealer.orders}</div>
@@ -334,10 +333,10 @@ function DealersPageRevamp() {
                               title: copy.confirmStatusTitle,
                               message: copy.confirmStatusMessage.replace(
                                 '{status}',
-                                dealerStatusLabel[next],
+                                t(dealerStatusLabel[next]),
                               ),
                               tone: 'warning',
-                              confirmLabel: dealerStatusLabel[next],
+                              confirmLabel: t(dealerStatusLabel[next]),
                             })
 
                             if (!approved) {

@@ -10,6 +10,7 @@ import AppLayout from './layouts/AppLayout'
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const ProductsPage = lazy(() => import('./pages/ProductsPage'))
 const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage'))
+const CreateProductPage = lazy(() => import('./pages/CreateProductPage'))
 const OrdersPage = lazy(() => import('./pages/OrdersPage'))
 const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage'))
 const BlogsPage = lazy(() => import('./pages/BlogsPage'))
@@ -55,6 +56,7 @@ function App() {
         <Route element={<AdminShell />}>
           <Route index element={renderLazyElement(DashboardPage)} />
           <Route path="/products" element={renderLazyElement(ProductsPage)} />
+          <Route path="/products/new" element={renderLazyElement(CreateProductPage)} />
           <Route
             path="/products/:sku"
             element={renderLazyElement(ProductDetailPage)}

@@ -4,10 +4,12 @@ import { useNavigate } from 'react-router-dom'
 import logoCard from '../assets/images/logo-4t.png'
 import { changeAdminPassword } from '../lib/adminApi'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 
 function ChangePasswordPage() {
   const navigate = useNavigate()
+  const { t } = useLanguage()
   const { notify } = useToast()
   const { accessToken, completePasswordChange, logout } = useAuth()
 
@@ -22,19 +24,19 @@ function ChangePasswordPage() {
     setError('')
 
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setError('Vui lòng nhập đầy đủ thông tin.')
+      setError(t('Vui lòng nhập đầy đủ thông tin.'))
       return
     }
     if (newPassword.length < 8) {
-      setError('Mật khẩu mới phải có ít nhất 8 ký tự.')
+      setError(t('Mật khẩu mới phải có ít nhất 8 ký tự.'))
       return
     }
     if (newPassword !== confirmPassword) {
-      setError('Xác nhận mật khẩu không khớp.')
+      setError(t('Xác nhận mật khẩu không khớp.'))
       return
     }
     if (!accessToken) {
-      setError('Phiên đăng nhập không còn hợp lệ.')
+      setError(t('Phiên đăng nhập không còn hợp lệ.'))
       return
     }
 
@@ -45,11 +47,11 @@ function ChangePasswordPage() {
         newPassword,
       })
       completePasswordChange()
-      notify('Mật khẩu đã được cập nhật.', { title: 'Security', variant: 'success' })
+      notify(t('Mật khẩu đã được cập nhật.'), { title: 'Security', variant: 'success' })
       navigate('/', { replace: true })
     } catch (submitError) {
       setError(
-        submitError instanceof Error ? submitError.message : 'Không thể cập nhật mật khẩu.',
+        submitError instanceof Error ? submitError.message : t('Không thể cập nhật mật khẩu.'),
       )
     } finally {
       setIsSubmitting(false)
@@ -79,16 +81,16 @@ function ChangePasswordPage() {
           <p className="mt-4 text-xs uppercase tracking-[0.35em] text-sky-200/70">
             Security setup
           </p>
-          <h1 className="mt-2 text-2xl font-semibold text-white">Đổi mật khẩu lần đầu</h1>
+          <h1 className="mt-2 text-2xl font-semibold text-white">{t('Đổi mật khẩu lần đầu')}</h1>
           <p className="mt-2 text-sm text-slate-300">
-            Tài khoản quản trị cần cập nhật mật khẩu trước khi tiếp tục sử dụng hệ thống.
+            {t('Tài khoản quản trị cần cập nhật mật khẩu trước khi tiếp tục sử dụng hệ thống.')}
           </p>
         </header>
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <div>
             <label className="text-sm font-semibold text-slate-200" htmlFor="current-password">
-              Mật khẩu hiện tại
+              {t('Mật khẩu hiện tại')}
             </label>
             <div className="relative mt-2">
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
@@ -97,7 +99,7 @@ function ChangePasswordPage() {
                 autoComplete="current-password"
                 className="w-full rounded-2xl border border-white/10 bg-white/5 px-10 py-3 text-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                 onChange={(event) => setCurrentPassword(event.target.value)}
-                placeholder="Nhập mật khẩu hiện tại"
+                placeholder={t('Nhập mật khẩu hiện tại')}
                 type="password"
                 value={currentPassword}
               />
@@ -106,7 +108,7 @@ function ChangePasswordPage() {
 
           <div>
             <label className="text-sm font-semibold text-slate-200" htmlFor="new-password">
-              Mật khẩu mới
+              {t('Mật khẩu mới')}
             </label>
             <div className="relative mt-2">
               <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
@@ -115,7 +117,7 @@ function ChangePasswordPage() {
                 autoComplete="new-password"
                 className="w-full rounded-2xl border border-white/10 bg-white/5 px-10 py-3 text-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                 onChange={(event) => setNewPassword(event.target.value)}
-                placeholder="Tối thiểu 8 ký tự"
+                placeholder={t('Tối thiểu 8 ký tự')}
                 type="password"
                 value={newPassword}
               />
@@ -124,7 +126,7 @@ function ChangePasswordPage() {
 
           <div>
             <label className="text-sm font-semibold text-slate-200" htmlFor="confirm-password">
-              Xác nhận mật khẩu mới
+              {t('Xác nhận mật khẩu mới')}
             </label>
             <div className="relative mt-2">
               <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
@@ -133,7 +135,7 @@ function ChangePasswordPage() {
                 autoComplete="new-password"
                 className="w-full rounded-2xl border border-white/10 bg-white/5 px-10 py-3 text-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder="Nhập lại mật khẩu mới"
+                placeholder={t('Nhập lại mật khẩu mới')}
                 type="password"
                 value={confirmPassword}
               />
@@ -147,7 +149,7 @@ function ChangePasswordPage() {
             disabled={isSubmitting}
             type="submit"
           >
-            {isSubmitting ? 'Đang cập nhật...' : 'Cập nhật mật khẩu'}
+            {isSubmitting ? t('Đang cập nhật...') : t('Cập nhật mật khẩu')}
           </button>
 
           <button
@@ -159,7 +161,7 @@ function ChangePasswordPage() {
             type="button"
           >
             <LogOut className="h-4 w-4" />
-            Đăng xuất
+            {t('Đăng xuất')}
           </button>
         </form>
       </main>

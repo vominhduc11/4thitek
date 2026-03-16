@@ -1,6 +1,6 @@
 ﻿import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   Archive,
   Eye,
@@ -308,7 +308,7 @@ const formatNumberInput = (value: string) => {
 }
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
-const ITEMS_PER_PAGE = 8
+const ITEMS_PER_PAGE = 15
 
 const modalStyles: Styles = {
   overlay: {
@@ -331,6 +331,7 @@ const modalStyles: Styles = {
 
 function ProductsPage() {
   const { t } = useLanguage()
+  const navigate = useNavigate()
   const { notify } = useToast()
   const { accessToken } = useAuth()
   const { confirm, confirmDialog } = useConfirmDialog()
@@ -350,6 +351,10 @@ function ProductsPage() {
   const [filterHomepage, setFilterHomepage] = useState<HomepageFilter>('all')
   const [showModal, setShowModal] = useState(false)
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
+  type SortField = 'name' | 'retailPrice' | 'availableStock' | 'updatedAt'
+  type SortDir = 'asc' | 'desc'
+  const [sortField, setSortField] = useState<SortField>('updatedAt')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
   const imageInputRef = useRef<HTMLInputElement | null>(null)
   const nameInputRef = useRef<HTMLInputElement | null>(null)
   const warrantyInputRef = useRef<HTMLInputElement | null>(null)
@@ -466,14 +471,28 @@ function ProductsPage() {
       }
     })
 
+    const sortedProducts = [...filteredByTab].sort((a, b) => {
+      let comparison = 0
+      if (sortField === 'name') {
+        comparison = a.name.localeCompare(b.name, 'vi')
+      } else if (sortField === 'retailPrice') {
+        comparison = (a.retailPrice ?? 0) - (b.retailPrice ?? 0)
+      } else if (sortField === 'availableStock') {
+        comparison = (a.availableStock ?? 0) - (b.availableStock ?? 0)
+      } else {
+        comparison = new Date(a.updatedAt ?? 0).getTime() - new Date(b.updatedAt ?? 0).getTime()
+      }
+      return sortDir === 'asc' ? comparison : -comparison
+    })
+
     return {
       activeProducts: activeProductsList,
       lowStockProducts: lowStockProductsList,
       draftProducts: draftProductsList,
-      visibleProducts: filteredByTab,
+      visibleProducts: sortedProducts,
       filterCounts: counts,
     }
-  }, [filter, filterFeatured, filterHomepage, normalizedSearch, products])
+  }, [filter, filterFeatured, filterHomepage, normalizedSearch, products, sortField, sortDir])
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -1178,14 +1197,6 @@ function ProductsPage() {
     }
   }
 
-  const openCreateModal = () => {
-    if (createUploadedAssetUrlsRef.current.size > 0) {
-      void cleanupCreateUploadedAssets(Array.from(createUploadedAssetUrlsRef.current))
-    }
-    resetCreateForm()
-    setShowModal(true)
-  }
-
   const closeModal = () => {
     resetCreateForm()
     setShowModal(false)
@@ -1498,6 +1509,16 @@ function ProductsPage() {
       if (!approved) {
         return
       }
+    } else {
+      const approved = await confirm({
+        title: t('Xuất bản sản phẩm'),
+        message: t('Xuất bản "{name}"?', { name: product.name }),
+        tone: 'info',
+        confirmLabel: t('Xuất bản'),
+      })
+      if (!approved) {
+        return
+      }
     }
     try {
       await togglePublishStatus(product.sku)
@@ -1623,18 +1644,19 @@ function ProductsPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2 md:justify-end">
           <Link
-            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-[var(--accent)] hover:text-slate-900 hover:shadow-[0_12px_24px_rgba(15,23,42,0.12)]"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl border border-slate-200 px-2 text-slate-700 transition hover:border-[var(--accent)] hover:text-slate-900 hover:shadow-[0_12px_24px_rgba(15,23,42,0.12)]"
             to={`/products/${product.sku}`}
             aria-label={t('Chi tiết')}
             title={t('Chi tiết')}
           >
             <Eye className="h-4 w-4" />
+            <span className="hidden sm:inline">{t('Chi tiết')}</span>
           </Link>
           <button
             className={
               product.isDeleted
-                ? 'inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-emerald-200 text-emerald-700 transition hover:border-emerald-400'
-                : 'inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-amber-200 text-amber-700 transition hover:border-amber-400'
+                ? 'inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl border border-emerald-200 px-2 text-emerald-700 transition hover:border-emerald-400'
+                : 'inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl border border-amber-200 px-2 text-amber-700 transition hover:border-amber-400'
             }
             type="button"
             onClick={() => handleArchiveToggle(product)}
@@ -1654,12 +1676,13 @@ function ProductsPage() {
             ) : (
               <Archive className="h-4 w-4" />
             )}
+            <span className="hidden sm:inline">{product.isDeleted ? t('Khôi phục') : t('Ẩn')}</span>
           </button>
           <button
             className={
               product.isDeleted
-                ? 'inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-rose-200 text-rose-700 transition hover:border-rose-400'
-                : 'inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-400'
+                ? 'inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl border border-rose-200 px-2 text-rose-700 transition hover:border-rose-400'
+                : 'inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl border border-slate-200 px-2 text-slate-400'
             }
             type="button"
             onClick={() => handleDelete(product.sku)}
@@ -1668,10 +1691,11 @@ function ProductsPage() {
             title={
               product.isDeleted
                 ? t('Xóa vĩnh viễn')
-                : t('Chỉ xóa vĩnh viễn được khi đã ẩn sản phẩm')
+                : t('Cần ẩn sản phẩm trước khi xóa vĩnh viễn')
             }
           >
             <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">{t('Xóa')}</span>
           </button>
         </div>
       </div>
@@ -1824,7 +1848,7 @@ function ProductsPage() {
           <button
             className={primaryButtonClass}
             type="button"
-            onClick={openCreateModal}
+            onClick={() => navigate('/products/new')}
           >
             <Plus className="h-4 w-4" />
             {t('Thêm sản phẩm')}
@@ -1869,6 +1893,39 @@ function ProductsPage() {
           </span>
           <span className="text-slate-500">{t('Đang kinh doanh')}</span>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 mt-3">
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('Sắp xếp')}:</span>
+        {([
+          ['updatedAt', t('Mới nhất')],
+          ['name', t('Tên')],
+          ['retailPrice', t('Giá')],
+          ['availableStock', t('Tồn kho')],
+        ] as [SortField, string][]).map(([field, label]) => (
+          <button
+            key={field}
+            type="button"
+            onClick={() => {
+              if (sortField === field) {
+                setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+              } else {
+                setSortField(field)
+                setSortDir('desc')
+              }
+            }}
+            className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-xs font-semibold transition ${
+              sortField === field
+                ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-[var(--accent)] hover:text-[var(--accent)]'
+            }`}
+          >
+            {label}
+            {sortField === field && (
+              <span className="text-[10px]">{sortDir === 'asc' ? '↑' : '↓'}</span>
+            )}
+          </button>
+        ))}
       </div>
 
       <div className="mt-6 grid gap-3">

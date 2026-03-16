@@ -195,6 +195,12 @@ const toPlainText = (value: string) =>
 
 const formatCurrency = (value: number) => currencyFormatter.format(value)
 
+const toDigitsOnly = (value: string) => value.replace(/\D/g, '')
+const formatNumberInput = (value: string) => {
+  if (!value) return ''
+  return value.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+}
+
 function ProductDetailPage() {
   const { sku } = useParams()
   const navigate = useNavigate()
@@ -968,7 +974,7 @@ function ProductDetailPage() {
                     )
                   }
                 }}
-                title={product.isFeatured ? t('Bỏ nổi bật') : t('Đánh dấu nổi bật')}
+                title={`${product.isFeatured ? t('Bỏ nổi bật') : t('Đánh dấu nổi bật')} — ${t('Cập nhật ngay không cần lưu')}`}
                 className={
                   'inline-flex items-center gap-1 rounded-full px-3 py-1 font-semibold transition ' +
                   (product.isFeatured
@@ -992,7 +998,7 @@ function ProductDetailPage() {
                     )
                   }
                 }}
-                title={product.showOnHomepage ? t('Bỏ khỏi trang chủ') : t('Hiển thị trang chủ')}
+                title={`${product.showOnHomepage ? t('Bỏ khỏi trang chủ') : t('Hiển thị trang chủ')} — ${t('Cập nhật ngay không cần lưu')}`}
                 className={
                   'inline-flex items-center gap-1 rounded-full px-3 py-1 font-semibold transition ' +
                   (product.showOnHomepage
@@ -1243,21 +1249,26 @@ function ProductDetailPage() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    {t('Retail price')}
+                    {t('Giá bán lẻ')}
                   </label>
-                  <input
-                    aria-describedby={draftErrors.retailPrice ? 'product-detail-price-error' : undefined}
-                    aria-invalid={Boolean(draftErrors.retailPrice)}
-                    className={`mt-2 w-full rounded-2xl border bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 ${
-                      draftErrors.retailPrice ? 'border-rose-300' : 'border-slate-200'
-                    }`}
-                    type="number"
-                    min="0"
-                    value={draft.retailPrice}
-                    onChange={(event) =>
-                      setDraft({ ...draft, retailPrice: event.target.value })
-                    }
-                  />
+                  <div className="relative">
+                    <input
+                      aria-describedby={draftErrors.retailPrice ? 'product-detail-price-error' : undefined}
+                      aria-invalid={Boolean(draftErrors.retailPrice)}
+                      className={`mt-2 w-full rounded-2xl border bg-slate-50 px-3 py-2 pr-14 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 ${
+                        draftErrors.retailPrice ? 'border-rose-300' : 'border-slate-200'
+                      }`}
+                      type="text"
+                      inputMode="numeric"
+                      value={formatNumberInput(toDigitsOnly(draft.retailPrice))}
+                      onChange={(event) => {
+                        const digits = toDigitsOnly(event.target.value)
+                        setDraft((prev) => prev ? { ...prev, retailPrice: digits } : prev)
+                      }}
+                      placeholder="0"
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">VND</span>
+                  </div>
                   {draftErrors.retailPrice ? (
                     <FieldErrorMessage id="product-detail-price-error">
                       {draftErrors.retailPrice}
@@ -1266,7 +1277,7 @@ function ProductDetailPage() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    {t('Warranty period (months)')}
+                    {t('Thời hạn bảo hành (tháng)')}
                   </label>
                   <input
                     aria-describedby={draftErrors.warrantyPeriod ? 'product-detail-warranty-error' : undefined}
@@ -1308,17 +1319,9 @@ function ProductDetailPage() {
                 </div>
                 <div className="sm:col-span-2">
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    {t('Ảnh URL')}
+                    {t('Ảnh sản phẩm')}
                   </label>
-                  <input
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
-                    value={draft.image}
-                    onChange={(event) => {
-                      setMainImagePreviewUrl('')
-                      setDraft({ ...draft, image: event.target.value })
-                    }}
-                  />
-                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
                     <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
                       <input
                         type="file"
@@ -1330,10 +1333,18 @@ function ProductDetailPage() {
                       />
                       {t('Tải ảnh')}
                     </label>
-                    <p className="text-xs text-slate-500">
-                      {t('Hoặc nhập URL thủ công')}
-                    </p>
                   </div>
+                  <p className="mt-2 text-xs text-slate-500">
+                    {t('Hoặc nhập URL thủ công')}
+                  </p>
+                  <input
+                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
+                    value={draft.image}
+                    onChange={(event) => {
+                      setMainImagePreviewUrl('')
+                      setDraft({ ...draft, image: event.target.value })
+                    }}
+                  />
                 </div>
               </div>
 

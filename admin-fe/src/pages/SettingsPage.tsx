@@ -1,6 +1,7 @@
 import { Bell, Save, Shield } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useAdminData } from '../context/AdminDataContext'
+import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { ErrorState, GhostButton, LoadingRows, PagePanel, PrimaryButton, inputClass } from '../components/ui-kit'
 
@@ -13,6 +14,7 @@ function SettingsPage() {
     updateSettings,
     reloadResource,
   } = useAdminData()
+  const { t } = useLanguage()
   const { notify } = useToast()
   const [draft, setDraft] = useState(settings)
   const isDirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(settings), [draft, settings])
@@ -33,8 +35,8 @@ function SettingsPage() {
     return (
       <PagePanel>
         <ErrorState
-          title="Khong the tai cai dat"
-          message={settingsState.error || 'Khong tai duoc cai dat'}
+          title={t('Không thể tải cài đặt')}
+          message={settingsState.error || t('Không tải được cài đặt')}
           onRetry={() => void reloadResource('settings')}
         />
       </PagePanel>
@@ -45,9 +47,9 @@ function SettingsPage() {
     <PagePanel>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">Cai dat</h3>
+          <h3 className="text-lg font-semibold text-slate-900">{t('Cài đặt')}</h3>
           <p className="text-sm text-slate-500">
-            Cau hinh bao mat, thong bao va chinh sach mac dinh.
+            {t('Cấu hình bảo mật, thông báo và chính sách mặc định.')}
           </p>
         </div>
         <PrimaryButton
@@ -56,9 +58,9 @@ function SettingsPage() {
           onClick={async () => {
             try {
               await updateSettings(draft)
-              notify('Da luu cai dat he thong', { title: 'Settings', variant: 'success' })
+              notify(t('Đã lưu cài đặt hệ thống'), { title: 'Settings', variant: 'success' })
             } catch (error) {
-              notify(error instanceof Error ? error.message : 'Khong luu duoc cai dat', {
+              notify(error instanceof Error ? error.message : t('Không lưu được cài đặt'), {
                 title: 'Settings',
                 variant: 'error',
               })
@@ -66,18 +68,18 @@ function SettingsPage() {
           }}
           type="button"
         >
-          {isSettingsSaving ? 'Dang luu...' : 'Luu thay doi'}
+          {isSettingsSaving ? t('Đang lưu...') : t('Lưu thay đổi')}
         </PrimaryButton>
         {isDirty ? (
           <GhostButton onClick={() => setDraft(settings)} type="button">
-            Hoan tac thay doi
+            {t('Hoàn tác thay đổi')}
           </GhostButton>
         ) : null}
       </div>
 
       {isDirty ? (
         <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800" role="status">
-          Ban co thay doi chua luu trong cai dat he thong.
+          {t('Bạn có thay đổi chưa lưu trong cài đặt hệ thống.')}
         </div>
       ) : null}
 
@@ -85,15 +87,15 @@ function SettingsPage() {
         <section className="rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] p-5">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
             <Shield className="h-4 w-4 text-[var(--accent-strong)]" />
-            Bao mat
+            {t('Bảo mật')}
           </div>
 
           <div className="mt-4 space-y-3">
             <label className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
               <div>
-                <p className="text-sm font-semibold text-slate-900">Xac nhan email</p>
+                <p className="text-sm font-semibold text-slate-900">{t('Xác nhận email')}</p>
                 <p className="text-xs text-slate-500">
-                  Yeu cau admin xac nhan dang nhap qua email.
+                  {t('Yêu cầu admin xác nhận đăng nhập qua email.')}
                 </p>
               </div>
               <input
@@ -108,8 +110,8 @@ function SettingsPage() {
 
             <label className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
               <div>
-                <p className="text-sm font-semibold text-slate-900">Het phien dang nhap</p>
-                <p className="text-xs text-slate-500">Tu dong dang xuat sau so phut cau hinh.</p>
+                <p className="text-sm font-semibold text-slate-900">{t('Hết phiên đăng nhập')}</p>
+                <p className="text-xs text-slate-500">{t('Tự động đăng xuất sau {n} phút.', { n: draft.sessionTimeoutMinutes })}</p>
               </div>
               <select
                 aria-label="Session timeout"
@@ -122,10 +124,10 @@ function SettingsPage() {
                 }
                 value={draft.sessionTimeoutMinutes}
               >
-                <option value={15}>15 phut</option>
-                <option value={30}>30 phut</option>
-                <option value={45}>45 phut</option>
-                <option value={60}>60 phut</option>
+                <option value={15}>{t('{n} phút', { n: 15 })}</option>
+                <option value={30}>{t('{n} phút', { n: 30 })}</option>
+                <option value={45}>{t('{n} phút', { n: 45 })}</option>
+                <option value={60}>{t('{n} phút', { n: 60 })}</option>
               </select>
             </label>
           </div>
@@ -134,13 +136,13 @@ function SettingsPage() {
         <section className="rounded-3xl border border-slate-200/70 bg-[var(--surface-muted)] p-5">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
             <Bell className="h-4 w-4 text-[var(--accent-cool)]" />
-            Thong bao
+            {t('Thông báo')}
           </div>
           <div className="mt-4 space-y-3">
             <label className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
               <div>
-                <p className="text-sm font-semibold text-slate-900">Canh bao don hang</p>
-                <p className="text-xs text-slate-500">Thong bao khi co don hang gia tri cao.</p>
+                <p className="text-sm font-semibold text-slate-900">{t('Cảnh báo đơn hàng')}</p>
+                <p className="text-xs text-slate-500">{t('Thông báo khi có đơn hàng giá trị cao.')}</p>
               </div>
               <input
                 checked={draft.orderAlerts}
@@ -154,8 +156,8 @@ function SettingsPage() {
 
             <label className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
               <div>
-                <p className="text-sm font-semibold text-slate-900">Canh bao ton kho</p>
-                <p className="text-xs text-slate-500">Gui thong bao khi ton kho thap.</p>
+                <p className="text-sm font-semibold text-slate-900">{t('Cảnh báo tồn kho')}</p>
+                <p className="text-xs text-slate-500">{t('Gửi thông báo khi tồn kho thấp.')}</p>
               </div>
               <input
                 checked={draft.inventoryAlerts}

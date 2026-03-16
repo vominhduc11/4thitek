@@ -28,13 +28,6 @@ import {
   tableRowClass,
 } from '../components/ui-kit'
 
-const RULE_STATUS_OPTIONS: Array<{ value: 'all' | RuleStatus; label: string }> = [
-  { value: 'all', label: 'All' },
-  { value: 'active', label: ruleStatusLabel.active },
-  { value: 'pending', label: ruleStatusLabel.pending },
-  { value: 'draft', label: ruleStatusLabel.draft },
-]
-
 const copyByLanguage = {
   vi: {
     title: 'Chiết khấu sỉ',
@@ -91,8 +84,14 @@ const copyByLanguage = {
 } as const
 
 function WholesaleDiscountsPageRevamp() {
-  const { language } = useLanguage()
+  const { language, t } = useLanguage()
   const copy = copyByLanguage[language]
+  const RULE_STATUS_OPTIONS: Array<{ value: 'all' | RuleStatus; label: string }> = [
+    { value: 'all', label: t('Tất cả') },
+    { value: 'active', label: copy.active },
+    { value: 'pending', label: copy.pending },
+    { value: 'draft', label: t(ruleStatusLabel.draft) },
+  ]
   const { notify } = useToast()
   const { confirm, confirmDialog } = useConfirmDialog()
   const { discountRules, discountRulesState, addDiscountRule, updateDiscountRuleStatus, reloadResource } =
@@ -287,7 +286,7 @@ function WholesaleDiscountsPageRevamp() {
                       <p className="font-semibold text-[var(--ink)]">{rule.label}</p>
                       <p className={tableMetaClass}>{rule.id}</p>
                     </div>
-                    <StatusBadge tone={ruleStatusTone[rule.status]}>{ruleStatusLabel[rule.status]}</StatusBadge>
+                    <StatusBadge tone={ruleStatusTone[rule.status]}>{t(ruleStatusLabel[rule.status])}</StatusBadge>
                   </div>
                   <div className="mt-4 grid gap-2 text-sm">
                     <div className="flex justify-between gap-3">
@@ -312,9 +311,9 @@ function WholesaleDiscountsPageRevamp() {
                       if (next === rule.status) return
                       const approved = await confirm({
                         title: copy.confirmTitle,
-                        message: copy.confirmMessage.replace('{status}', ruleStatusLabel[next]),
+                        message: copy.confirmMessage.replace('{status}', t(ruleStatusLabel[next])),
                         tone: next === 'draft' ? 'info' : 'warning',
-                        confirmLabel: ruleStatusLabel[next],
+                        confirmLabel: t(ruleStatusLabel[next]),
                       })
                       if (!approved) {
                         event.currentTarget.value = rule.status
@@ -362,7 +361,7 @@ function WholesaleDiscountsPageRevamp() {
                       <td className="px-3 py-3">{rule.range}</td>
                       <td className="px-3 py-3 font-semibold text-[var(--accent)]">{rule.percent}%</td>
                       <td className="px-3 py-3">
-                        <StatusBadge tone={ruleStatusTone[rule.status]}>{ruleStatusLabel[rule.status]}</StatusBadge>
+                        <StatusBadge tone={ruleStatusTone[rule.status]}>{t(ruleStatusLabel[rule.status])}</StatusBadge>
                       </td>
                       <td className="px-3 py-3 text-sm">{formatDateTime(rule.updatedAt)}</td>
                       <td className="rounded-r-2xl px-3 py-3">
@@ -375,9 +374,9 @@ function WholesaleDiscountsPageRevamp() {
                             if (next === rule.status) return
                             const approved = await confirm({
                               title: copy.confirmTitle,
-                              message: copy.confirmMessage.replace('{status}', ruleStatusLabel[next]),
+                              message: copy.confirmMessage.replace('{status}', t(ruleStatusLabel[next])),
                               tone: next === 'draft' ? 'info' : 'warning',
-                              confirmLabel: ruleStatusLabel[next],
+                              confirmLabel: t(ruleStatusLabel[next]),
                             })
                             if (!approved) {
                               event.currentTarget.value = rule.status

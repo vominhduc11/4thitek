@@ -144,7 +144,7 @@ function DealerDetailPage() {
           {t('Về đại lý')}
         </Link>
         <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge tone={dealerStatusTone[dealer.status]}>{dealerStatusLabel[dealer.status]}</StatusBadge>
+          <StatusBadge tone={dealerStatusTone[dealer.status]}>{t(dealerStatusLabel[dealer.status])}</StatusBadge>
         </div>
       </div>
 
@@ -215,10 +215,10 @@ function DealerDetailPage() {
               const approved = await confirm({
                 title: t('Xác nhận đổi trạng thái'),
                 message: t('Chuyển đại lý này sang trạng thái "{status}"?', {
-                  status: dealerStatusLabel[next],
+                  status: t(dealerStatusLabel[next]),
                 }),
                 tone: next === 'suspended' ? 'danger' : 'info',
-                confirmLabel: dealerStatusLabel[next],
+                confirmLabel: t(dealerStatusLabel[next]),
               })
 
               if (!approved) {
@@ -228,7 +228,7 @@ function DealerDetailPage() {
 
               try {
                 await updateDealerStatus(dealer.id, next)
-                notify(t('Cập nhật {id} -> {status}', { id: dealer.id, status: dealerStatusLabel[next] }), {
+                notify(t('Cập nhật {id} -> {status}', { id: dealer.id, status: t(dealerStatusLabel[next]) }), {
                   title: t('Đại lý'),
                   variant: 'info',
                 })
@@ -246,11 +246,11 @@ function DealerDetailPage() {
           >
             {DEALER_STATUS_OPTIONS.map((status) => (
               <option key={status} value={status}>
-                {dealerStatusLabel[status]}
+                {t(dealerStatusLabel[status])}
               </option>
             ))}
           </select>
-          <p className="mt-3 text-xs text-slate-500">{dealerStatusDescription[dealer.status]}</p>
+          <p className="mt-3 text-xs text-slate-500">{t(dealerStatusDescription[dealer.status])}</p>
 
           <div className="mt-6 border-t border-slate-200 pt-5">
             <p className="text-sm font-semibold text-slate-900">{t('Cài đặt tài khoản đại lý')}</p>

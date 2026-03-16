@@ -75,7 +75,7 @@ const copyByLanguage = {
 } as const
 
 function UsersPageRevamp() {
-  const { language } = useLanguage()
+  const { language, t } = useLanguage()
   const copy = copyByLanguage[language]
   const { notify } = useToast()
   const { confirm, confirmDialog } = useConfirmDialog()
@@ -238,7 +238,7 @@ function UsersPageRevamp() {
                       {user.id} · {user.role}
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <StatusBadge tone={userStatusTone[user.status]}>{userStatusLabel[user.status]}</StatusBadge>
+                      <StatusBadge tone={userStatusTone[user.status]}>{t(userStatusLabel[user.status])}</StatusBadge>
                       <select
                         aria-label={`${copy.title} ${user.id}`}
                         className={tableActionSelectClass}
@@ -249,9 +249,9 @@ function UsersPageRevamp() {
 
                           const approved = await confirm({
                             title: copy.confirmTitle,
-                            message: copy.confirmMessage.replace('{status}', userStatusLabel[next]),
+                            message: copy.confirmMessage.replace('{status}', t(userStatusLabel[next])),
                             tone: next === 'pending' ? 'warning' : 'info',
-                            confirmLabel: userStatusLabel[next],
+                            confirmLabel: t(userStatusLabel[next]),
                           })
                           if (!approved) {
                             event.currentTarget.value = user.status
@@ -270,7 +270,7 @@ function UsersPageRevamp() {
                       >
                         {USER_STATUS_OPTIONS.map((option) => (
                           <option key={`${user.id}-${option}`} value={option}>
-                            {userStatusLabel[option]}
+                            {t(userStatusLabel[option])}
                           </option>
                         ))}
                       </select>

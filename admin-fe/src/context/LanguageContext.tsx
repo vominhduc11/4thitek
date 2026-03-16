@@ -348,6 +348,59 @@ const translations: Record<Language, TranslationMap> = {
     'Đã cập nhật bao bì và tối ưu đường âm cho lô sản xuất 2026.':
       'Updated packaging and optimized audio curve for the 2026 production batch.',
     'Video': 'Videos',
+    // ChangePasswordPage
+    'Đổi mật khẩu lần đầu': 'First-time password change',
+    'Tài khoản quản trị cần cập nhật mật khẩu trước khi tiếp tục sử dụng hệ thống.':
+      'Admin account must update password before continuing.',
+    'Mật khẩu hiện tại': 'Current password',
+    'Nhập mật khẩu hiện tại': 'Enter current password',
+    'Mật khẩu mới': 'New password',
+    'Tối thiểu 8 ký tự': 'Minimum 8 characters',
+    'Xác nhận mật khẩu mới': 'Confirm new password',
+    'Nhập lại mật khẩu mới': 'Re-enter new password',
+    'Vui lòng nhập đầy đủ thông tin.': 'Please fill in all required fields.',
+    'Mật khẩu mới phải có ít nhất 8 ký tự.': 'New password must be at least 8 characters.',
+    'Xác nhận mật khẩu không khớp.': 'Passwords do not match.',
+    'Phiên đăng nhập không còn hợp lệ.': 'Session is no longer valid.',
+    'Mật khẩu đã được cập nhật.': 'Password has been updated.',
+    'Không thể cập nhật mật khẩu.': 'Unable to update password.',
+    'Đang cập nhật...': 'Updating...',
+    'Cập nhật mật khẩu': 'Update password',
+    'Đăng xuất': 'Sign out',
+    // LoginPage
+    'Đăng nhập thất bại': 'Sign-in failed',
+    'Đăng nhập thành công': 'Signed in successfully',
+    'Đang đăng nhập...': 'Signing in...',
+    'Vui lòng nhập tên đăng nhập': 'Please enter username',
+    'Vui lòng nhập mật khẩu': 'Please enter password',
+    // SettingsPage
+    'Không thể tải cài đặt': 'Unable to load settings',
+    'Không tải được cài đặt': 'Failed to load settings',
+    'Đã lưu cài đặt hệ thống': 'System settings saved',
+    'Không lưu được cài đặt': 'Failed to save settings',
+    'Đang lưu...': 'Saving...',
+    'Hoàn tác thay đổi': 'Discard changes',
+    'Bạn có thay đổi chưa lưu trong cài đặt hệ thống.':
+      'You have unsaved changes in system settings.',
+    'Tự động đăng xuất sau {n} phút.': 'Auto sign-out after {n} minutes.',
+    '{n} phút': '{n} minutes',
+    // adminLabels – dealer
+    'Đã kích hoạt': 'Activated',
+    'Chờ duyệt hồ sơ': 'Pending review',
+    'Tạm khóa': 'Suspended',
+    'Đại lý đã được phê duyệt và có thể đăng nhập ứng dụng dealer.':
+      'The dealer has been approved and can sign in to the dealer app.',
+    'Hồ sơ đang chờ admin xác minh trước khi kích hoạt.':
+      'Profile is pending admin verification before activation.',
+    'Tài khoản đại lý đã bị tạm khóa, không thể đăng nhập ứng dụng dealer.':
+      'Dealer account has been suspended and cannot sign in to the dealer app.',
+    'Sắp xếp': 'Sort',
+    'Mới nhất': 'Latest',
+    'Ẩn': 'Hide',
+    'Cần ẩn sản phẩm trước khi xóa vĩnh viễn': 'Archive the product first before permanently deleting',
+    'Xuất bản sản phẩm': 'Publish product',
+    'Xuất bản "{name}"?': 'Publish "{name}"?',
+    'Cập nhật ngay không cần lưu': 'Updates immediately without saving',
   },
 }
 

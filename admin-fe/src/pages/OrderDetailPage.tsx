@@ -159,7 +159,7 @@ function OrderDetailPage() {
           <ArrowLeft className="h-4 w-4" />
           {t('Về đơn hàng')}
         </Link>
-        <StatusBadge tone={orderStatusTone[order.status]}>{orderStatusLabel[order.status]}</StatusBadge>
+        <StatusBadge tone={orderStatusTone[order.status]}>{t(orderStatusLabel[order.status])}</StatusBadge>
       </div>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
@@ -214,10 +214,10 @@ function OrderDetailPage() {
                 const approved = await confirm({
                   title: t('Xác nhận đổi trạng thái'),
                   message: t('Chuyển đơn này sang "{status}"?', {
-                    status: orderStatusLabel[next],
+                    status: t(orderStatusLabel[next]),
                   }),
                   tone: next === 'cancelled' ? 'danger' : 'warning',
-                  confirmLabel: orderStatusLabel[next],
+                  confirmLabel: t(orderStatusLabel[next]),
                 })
 
                 if (!approved) {
@@ -227,7 +227,7 @@ function OrderDetailPage() {
 
                 try {
                   await updateOrderStatus(order.id, next)
-                  notify(t('Đơn {id} -> {status}', { id: order.id, status: orderStatusLabel[next] }), {
+                  notify(t('Đơn {id} -> {status}', { id: order.id, status: t(orderStatusLabel[next]) }), {
                     title: t('Đơn hàng'),
                     variant: 'info',
                   })
@@ -242,7 +242,7 @@ function OrderDetailPage() {
             >
               {getAllowedOrderStatuses(order.status).map((status) => (
                 <option key={status} value={status}>
-                  {orderStatusLabel[status]}
+                  {t(orderStatusLabel[status])}
                 </option>
               ))}
             </select>

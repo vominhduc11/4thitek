@@ -89,15 +89,15 @@ const copyByLanguage = {
 } as const
 
 function OrdersPageRevamp() {
-  const { language } = useLanguage()
+  const { language, t } = useLanguage()
   const copy = copyByLanguage[language]
   const ORDER_STATUS_OPTIONS: Array<{ value: 'all' | OrderStatus; label: string }> = [
     { value: 'all', label: copy.allStatuses },
-    { value: 'pending', label: orderStatusLabel.pending },
-    { value: 'packing', label: orderStatusLabel.packing },
-    { value: 'delivering', label: orderStatusLabel.delivering },
-    { value: 'completed', label: orderStatusLabel.completed },
-    { value: 'cancelled', label: orderStatusLabel.cancelled },
+    { value: 'pending', label: t(orderStatusLabel.pending) },
+    { value: 'packing', label: t(orderStatusLabel.packing) },
+    { value: 'delivering', label: t(orderStatusLabel.delivering) },
+    { value: 'completed', label: t(orderStatusLabel.completed) },
+    { value: 'cancelled', label: t(orderStatusLabel.cancelled) },
   ]
   const { notify } = useToast()
   const navigate = useNavigate()
@@ -142,9 +142,9 @@ function OrdersPageRevamp() {
 
     const approved = await confirm({
       title: copy.changeStatusTitle,
-      message: copy.changeStatusMessage.replace('{status}', orderStatusLabel[nextStatus]),
+      message: copy.changeStatusMessage.replace('{status}', t(orderStatusLabel[nextStatus])),
       tone: nextStatus === 'cancelled' ? 'danger' : 'warning',
-      confirmLabel: orderStatusLabel[nextStatus],
+      confirmLabel: t(orderStatusLabel[nextStatus]),
     })
 
     if (!approved) {
@@ -263,7 +263,7 @@ function OrdersPageRevamp() {
                         <p className={tableMetaClass}>{order.dealer}</p>
                       </div>
                       <StatusBadge tone={orderStatusTone[order.status]}>
-                        {orderStatusLabel[order.status]}
+                        {t(orderStatusLabel[order.status])}
                       </StatusBadge>
                     </div>
                     <p className="mt-4 text-sm font-semibold text-[var(--accent)]">
@@ -288,7 +288,7 @@ function OrdersPageRevamp() {
                     >
                       {getAllowedOrderStatuses(order.status).map((option) => (
                         <option key={`${order.id}-${option}`} value={option}>
-                          {orderStatusLabel[option]}
+                          {t(orderStatusLabel[option])}
                         </option>
                       ))}
                     </select>
@@ -335,7 +335,7 @@ function OrdersPageRevamp() {
                       </td>
                       <td className="px-3 py-3">
                         <StatusBadge tone={orderStatusTone[order.status]}>
-                          {orderStatusLabel[order.status]}
+                          {t(orderStatusLabel[order.status])}
                         </StatusBadge>
                       </td>
                       <td
@@ -360,7 +360,7 @@ function OrdersPageRevamp() {
                           >
                             {getAllowedOrderStatuses(order.status).map((option) => (
                               <option key={`${order.id}-${option}`} value={option}>
-                                {orderStatusLabel[option]}
+                                {t(orderStatusLabel[option])}
                               </option>
                             ))}
                           </select>
