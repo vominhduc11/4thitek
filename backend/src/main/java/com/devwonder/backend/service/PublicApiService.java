@@ -48,6 +48,15 @@ public class PublicApiService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(CacheNames.PUBLIC_FEATURED_PRODUCTS)
+    public List<PublicProductSummaryResponse> getFeaturedProducts() {
+        return productRepository.findTop6ByIsDeletedFalseAndIsFeaturedTrueAndPublishStatusOrderByUpdatedAtDesc(PublishStatus.PUBLISHED)
+                .stream()
+                .map(this::toSummary)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     @Cacheable(CacheNames.PUBLIC_PRODUCTS)
     public List<PublicProductSummaryResponse> getProducts() {
         return productRepository.findByIsDeletedFalseAndPublishStatusOrderByNameAsc(PublishStatus.PUBLISHED)

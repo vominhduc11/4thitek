@@ -39,6 +39,10 @@ export const publicApiServer = {
         fetchEnvelope<
             Array<{ id: number | string; name: string; sku?: string; shortDescription: string; image: string; price?: number }>
         >(API_ENDPOINTS.PRODUCT.PRODUCTS_HOMEPAGE, 60),
+    fetchFeaturedProducts: () =>
+        fetchEnvelope<
+            Array<{ id: number | string; name: string; sku?: string; shortDescription: string; image: string; price?: number }>
+        >(API_ENDPOINTS.PRODUCT.PRODUCTS_FEATURED, 60),
     fetchProducts: () =>
         fetchEnvelope<
             Array<{ id: number | string; name: string; sku?: string; shortDescription: string; image: string; price?: number }>

@@ -137,6 +137,7 @@ public class AdminManagementService {
             CacheNames.ADMIN_DASHBOARD,
             CacheNames.PUBLIC_PRODUCTS,
             CacheNames.PUBLIC_HOMEPAGE_PRODUCTS,
+            CacheNames.PUBLIC_FEATURED_PRODUCTS,
             CacheNames.PUBLIC_PRODUCT_BY_ID
     }, allEntries = true)
     public AdminProductResponse createProduct(AdminProductUpsertRequest request) {
@@ -151,6 +152,7 @@ public class AdminManagementService {
             CacheNames.ADMIN_DASHBOARD,
             CacheNames.PUBLIC_PRODUCTS,
             CacheNames.PUBLIC_HOMEPAGE_PRODUCTS,
+            CacheNames.PUBLIC_FEATURED_PRODUCTS,
             CacheNames.PUBLIC_PRODUCT_BY_ID
     }, allEntries = true)
     public AdminProductResponse updateProduct(Long id, AdminProductUpsertRequest request) {
@@ -168,6 +170,7 @@ public class AdminManagementService {
             CacheNames.ADMIN_DASHBOARD,
             CacheNames.PUBLIC_PRODUCTS,
             CacheNames.PUBLIC_HOMEPAGE_PRODUCTS,
+            CacheNames.PUBLIC_FEATURED_PRODUCTS,
             CacheNames.PUBLIC_PRODUCT_BY_ID
     }, allEntries = true)
     public void deleteProduct(Long id) {

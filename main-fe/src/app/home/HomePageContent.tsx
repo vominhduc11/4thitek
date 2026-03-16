@@ -3,12 +3,16 @@ import { mapBlogSummaryToPost, mapProductSummaryToSimpleProduct } from '@/lib/co
 import { publicApiServer } from '@/lib/publicApiServer';
 
 export default async function HomePageContent() {
-    const [productsResponse, blogsResponse] = await Promise.all([
+    const [productsResponse, featuredProductsResponse, blogsResponse] = await Promise.all([
         publicApiServer.fetchHomepageProducts(),
+        publicApiServer.fetchFeaturedProducts(),
         publicApiServer.fetchHomepageBlogs()
     ]);
 
     const products = (productsResponse.data ?? [])
+        .map((product) => mapProductSummaryToSimpleProduct(product))
+        .filter((product): product is NonNullable<typeof product> => product !== null);
+    const featuredProducts = (featuredProductsResponse.data ?? [])
         .map((product) => mapProductSummaryToSimpleProduct(product))
         .filter((product): product is NonNullable<typeof product> => product !== null);
     const blogs = (blogsResponse.data ?? [])
@@ -25,7 +29,7 @@ export default async function HomePageContent() {
 
             <div className="h-16 bg-gradient-to-b from-[#0c131d] to-[#013A5E]"></div>
 
-            <FeaturedProductsCarousel products={products} />
+            <FeaturedProductsCarousel products={featuredProducts} />
 
             <div className="h-16 bg-gradient-to-b from-[#032B4A] to-[#001A35]"></div>
 

@@ -33,6 +33,11 @@ public class PublicController {
         return ResponseEntity.ok(ApiResponse.success(publicApiService.getHomepageProducts()));
     }
 
+    @GetMapping("/product/products/featured")
+    public ResponseEntity<ApiResponse<List<PublicProductSummaryResponse>>> featuredProducts() {
+        return ResponseEntity.ok(ApiResponse.success(publicApiService.getFeaturedProducts()));
+    }
+
     @GetMapping("/product/products")
     public ResponseEntity<ApiResponse<List<PublicProductSummaryResponse>>> products() {
         return ResponseEntity.ok(ApiResponse.success(publicApiService.getProducts()));

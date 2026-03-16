@@ -58,6 +58,7 @@ export const API_ENDPOINTS = {
         BASE: '/product',
         PRODUCTS: '/product/products',
         PRODUCTS_HOMEPAGE: '/product/products/homepage',
+        PRODUCTS_FEATURED: '/product/products/featured',
         PRODUCTS_SEARCH: '/product/products/search',
         PRODUCTS_RELATED: (id: string) => `/product/products/related/${id}`,
         PRODUCT_BY_ID: (id: string) => `/product/${id}`
