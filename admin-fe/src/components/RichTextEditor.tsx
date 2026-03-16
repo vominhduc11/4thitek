@@ -3,12 +3,17 @@ import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
 
 // Register divider (horizontal rule) blot once
-const BlockEmbed = Quill.import('blots/block/embed') as typeof Quill
+const BlockEmbed = Quill.import('blots/block/embed') as {
+  new (...args: unknown[]): unknown
+  blotName: string
+  tagName: string
+}
 class DividerBlot extends BlockEmbed {
   static blotName = 'divider'
   static tagName = 'hr'
 }
-Quill.register(DividerBlot)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+Quill.register(DividerBlot as any)
 
 type RichTextEditorProps = {
   value: string
