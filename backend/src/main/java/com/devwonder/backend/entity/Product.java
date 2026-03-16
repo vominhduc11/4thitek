@@ -38,10 +38,10 @@ public class Product {
     @Column(name = "sku", unique = true)
     private String sku;
 
-    @Column(name = "name")
+    @Column(name = "name", columnDefinition = "text")
     private String name;
 
-    @Column(name = "short_description")
+    @Column(name = "short_description", columnDefinition = "text")
     private String shortDescription;
 
     @JdbcTypeCode(SqlTypes.JSON)

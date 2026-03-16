@@ -1307,11 +1307,15 @@ function ProductDetailPage() {
                 </label>
                 <textarea
                   className="mt-2 min-h-[110px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
+                  maxLength={500}
                   value={draft.shortDescription}
                   onChange={(event) =>
                     setDraft({ ...draft, shortDescription: event.target.value })
                   }
                 />
+                <p className="mt-0.5 text-right text-xs text-slate-400">
+                  {draft.shortDescription.length}/500
+                </p>
               </div>
 
             </form>

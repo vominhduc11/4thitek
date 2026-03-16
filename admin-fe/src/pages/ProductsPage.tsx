@@ -2097,11 +2097,15 @@ function ProductsPage() {
                           className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
                           placeholder={t('Nhập mô tả ngắn')}
                           rows={3}
+                          maxLength={500}
                           value={newProduct.shortDescription}
                           onChange={(e) =>
                             setNewProduct({ ...newProduct, shortDescription: e.target.value })
                           }
                         />
+                        <p className="mt-0.5 text-right text-xs text-slate-400">
+                          {newProduct.shortDescription.length}/500
+                        </p>
                         <p className="mt-1 text-xs text-slate-500">
                           {t(
                             'Đoạn này dùng cho phần tóm tắt ngắn. Nội dung đầy đủ được xây dựng ở tab "Mô tả chi tiết".',
