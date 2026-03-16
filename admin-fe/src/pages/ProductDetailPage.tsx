@@ -955,18 +955,54 @@ function ProductDetailPage() {
                   ? t('Đã xóa')
                   : t(publishStatusLabelMap[product.publishStatus])}
               </span>
-              {product.isFeatured && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-3 py-1 font-semibold text-amber-700">
-                  <CheckCircle className="h-3.5 w-3.5" />
-                  {t('Nổi bật')}
-                </span>
-              )}
-              {product.showOnHomepage && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 px-3 py-1 font-semibold text-blue-700">
-                  <CheckCircle className="h-3.5 w-3.5" />
-                  {t('Trang chủ')}
-                </span>
-              )}
+              <button
+                type="button"
+                disabled={product.isDeleted}
+                onClick={async () => {
+                  try {
+                    await updateProduct(product.sku, { isFeatured: !product.isFeatured })
+                  } catch (error) {
+                    notify(
+                      error instanceof Error ? error.message : t('Không thể cập nhật'),
+                      { title: 'Products', variant: 'error' },
+                    )
+                  }
+                }}
+                title={product.isFeatured ? t('Bỏ nổi bật') : t('Đánh dấu nổi bật')}
+                className={
+                  'inline-flex items-center gap-1 rounded-full px-3 py-1 font-semibold transition ' +
+                  (product.isFeatured
+                    ? 'bg-amber-500/15 text-amber-700 hover:bg-amber-500/25'
+                    : 'bg-slate-900/5 text-slate-400 hover:bg-amber-500/10 hover:text-amber-600')
+                }
+              >
+                <CheckCircle className="h-3.5 w-3.5" />
+                {t('Nổi bật')}
+              </button>
+              <button
+                type="button"
+                disabled={product.isDeleted}
+                onClick={async () => {
+                  try {
+                    await updateProduct(product.sku, { showOnHomepage: !product.showOnHomepage })
+                  } catch (error) {
+                    notify(
+                      error instanceof Error ? error.message : t('Không thể cập nhật'),
+                      { title: 'Products', variant: 'error' },
+                    )
+                  }
+                }}
+                title={product.showOnHomepage ? t('Bỏ khỏi trang chủ') : t('Hiển thị trang chủ')}
+                className={
+                  'inline-flex items-center gap-1 rounded-full px-3 py-1 font-semibold transition ' +
+                  (product.showOnHomepage
+                    ? 'bg-blue-500/15 text-blue-700 hover:bg-blue-500/25'
+                    : 'bg-slate-900/5 text-slate-400 hover:bg-blue-500/10 hover:text-blue-600')
+                }
+              >
+                <CheckCircle className="h-3.5 w-3.5" />
+                {t('Trang chủ')}
+              </button>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
               <span className="rounded-full bg-slate-900/5 px-3 py-1 font-semibold">

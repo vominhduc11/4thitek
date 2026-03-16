@@ -3,7 +3,6 @@ import type { ChangeEvent } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Archive,
-  CheckCircle,
   Eye,
   FileDown,
   Package,
@@ -1590,26 +1589,32 @@ function ProductsPage() {
           </div>
         </div>
         <div>
-          <span
+          <button
+            type="button"
             className={
-              'inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ' +
+              'inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold transition ' +
               (product.isDeleted
-                ? 'bg-slate-200 text-slate-600'
+                ? 'cursor-default bg-slate-200 text-slate-600'
                 : product.publishStatus === 'PUBLISHED'
-                  ? 'bg-emerald-500/15 text-emerald-700'
-                  : product.publishStatus === 'DRAFT'
-                    ? 'bg-slate-900/5 text-slate-700'
-                    : 'bg-slate-200 text-slate-600')
+                  ? 'bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25'
+                  : 'bg-slate-900/5 text-slate-700 hover:bg-slate-900/10')
+            }
+            disabled={product.isDeleted}
+            onClick={() => !product.isDeleted && handlePublishToggle(product)}
+            title={
+              product.isDeleted
+                ? undefined
+                : product.publishStatus === 'DRAFT'
+                  ? t('Xuất bản')
+                  : t('Hủy xuất bản')
             }
           >
             {product.isDeleted
               ? t('Đã xóa')
               : product.publishStatus === 'PUBLISHED'
                 ? t('Đã xuất bản')
-                : product.publishStatus === 'DRAFT'
-                  ? t('Bản nháp')
-                  : t('Đã xóa')}
-          </span>
+                : t('Bản nháp')}
+          </button>
         </div>
         <div className="flex flex-wrap items-center gap-2 md:justify-end">
           <Link
@@ -1620,28 +1625,6 @@ function ProductsPage() {
           >
             <Eye className="h-4 w-4" />
           </Link>
-          <button
-            className={
-              product.publishStatus === 'DRAFT' && !product.isDeleted
-                ? 'inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-[var(--accent-soft)] bg-[var(--accent-soft)] text-[var(--accent-strong)] transition hover:border-[var(--accent)]'
-                : 'inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:border-[var(--accent)] hover:text-[var(--accent)]'
-            }
-            type="button"
-            onClick={() => handlePublishToggle(product)}
-            disabled={product.isDeleted}
-            aria-label={
-              product.publishStatus === 'DRAFT'
-                ? t('Xuất bản')
-                : t('Hủy xuất bản')
-            }
-            title={
-              product.publishStatus === 'DRAFT'
-                ? t('Xuất bản')
-                : t('Hủy xuất bản')
-            }
-          >
-            <CheckCircle className="h-4 w-4" />
-          </button>
           <button
             className={
               product.isDeleted
