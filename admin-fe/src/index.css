@@ -130,6 +130,32 @@
   .modal-form .richtext-editor .ql-editor.ql-blank::before {
     color: var(--muted);
   }
+
+  .modal-form .richtext-editor .ql-toolbar .ql-divider::before {
+    content: '―';
+    font-size: 0.875rem;
+    line-height: 1;
+    color: var(--muted);
+  }
+
+  .modal-form .richtext-editor .ql-editor hr {
+    border: none;
+    border-top: 2px solid var(--border);
+    margin: 1rem 0;
+  }
+}
+
+.richtext-editor .ql-toolbar .ql-divider::before {
+  content: '―';
+  font-size: 0.875rem;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.richtext-editor .ql-editor hr {
+  border: none;
+  border-top: 2px solid var(--border);
+  margin: 1rem 0;
 }
 
 @media (min-width: 1024px) {

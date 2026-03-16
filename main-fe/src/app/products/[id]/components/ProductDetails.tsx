@@ -14,7 +14,7 @@ import { useLanguage } from '@/context/LanguageContext';
 // }
 
 interface ContentItem {
-    type: 'title' | 'list_text' | 'image' | 'images' | 'text' | 'video';
+    type: 'list_text' | 'image' | 'images' | 'text' | 'video';
     content?: string;
     link?: string;
     images?: Array<{ url: string; public_id: string }>;
@@ -60,12 +60,6 @@ export default function ProductDetails({ description, content, descriptions }: P
     const { t } = useLanguage();
     const renderContent = (item: ContentItem, index: number) => {
         switch (item.type) {
-            case 'title':
-                return (
-                    <div key={index} className="w-full">
-                        <h3 className="text-lg md:text-xl lg:text-2xl xl:text-3xl 2xl:text-3xl 3xl:text-5xl 4xl:text-6xl 5xl:text-7xl font-bold text-white mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10 5xl:mb-12">{item.content}</h3>
-                    </div>
-                );
             case 'list_text':
                 return (
                     <div key={index} className="text-justify">
@@ -186,12 +180,6 @@ export default function ProductDetails({ description, content, descriptions }: P
         const videoUrl = pickString(typedItem.url, typedItem.videoUrl);
         const galleryUrls = normalizeGalleryUrls(typedItem);
         switch (typedItem.type) {
-            case 'title':
-                return (
-                    <div key={index} className="w-full">
-                        <h3 className="text-lg md:text-xl lg:text-2xl xl:text-3xl 2xl:text-3xl 3xl:text-5xl 4xl:text-6xl 5xl:text-7xl font-bold text-white mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10 5xl:mb-12">{typedItem.text}</h3>
-                    </div>
-                );
             case 'description':
                 return (
                     <div key={index} className="text-justify">

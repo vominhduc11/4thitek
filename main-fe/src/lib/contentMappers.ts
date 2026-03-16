@@ -319,13 +319,7 @@ export function mapProductDetailToViewModel(
             : { ...EMPTY_PRODUCT_SPECIFICATIONS };
 
     const description = productData.description || productData.shortDescription;
-    const features = descriptions
-        .filter((entry) => (entry as { type?: string }).type === 'title')
-        .map((entry, index) => ({
-            id: `feature-${index}`,
-            title: (entry as { text: string }).text,
-            description: (entry as { text: string }).text
-        }));
+    const features: { id: string; title: string; description: string }[] = [];
     const highlights = descriptions
         .filter((entry) => (entry as { type?: string }).type === 'description')
         .map((entry) => (entry as { text: string }).text);

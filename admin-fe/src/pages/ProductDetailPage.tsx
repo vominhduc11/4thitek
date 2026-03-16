@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import productPlaceholder from '../assets/product-placeholder.svg'
 import { ProductVideoPreview } from '../components/ProductVideoPreview'
+import Quill from 'quill'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { FieldErrorMessage } from '../components/ui-kit'
 import { useAuth } from '../context/AuthContext'
@@ -61,7 +62,7 @@ type ProductDraft = {
 }
 
 type DescriptionItem = {
-  type: 'title' | 'description' | 'image' | 'gallery' | 'video'
+  type: 'description' | 'image' | 'gallery' | 'video'
   text?: string
   url?: string
   caption?: string
@@ -370,18 +371,27 @@ function ProductDetailPage() {
 
   const descriptionEditorModules = useMemo(
     () => ({
-      toolbar: [
-        [{ header: [1, 2, 3, false] }],
-        ['bold', 'italic', 'link'],
-        [{ list: 'ordered' }, { list: 'bullet' }],
-        ['clean'],
-      ],
+      toolbar: {
+        container: [
+          [{ header: [1, 2, 3, false] }],
+          ['bold', 'italic', 'link'],
+          [{ list: 'ordered' }, { list: 'bullet' }],
+          ['divider', 'clean'],
+        ],
+        handlers: {
+          divider(this: { quill: Quill }) {
+            const range = this.quill.getSelection(true)
+            this.quill.insertEmbed(range.index, 'divider', true, 'user')
+            this.quill.setSelection(range.index + 1, 0, 'silent')
+          },
+        },
+      },
     }),
     [],
   )
 
   const descriptionEditorFormats = useMemo(
-    () => ['header', 'bold', 'italic', 'link', 'list'],
+    () => ['header', 'bold', 'italic', 'link', 'list', 'divider'],
     [],
   )
 
@@ -457,7 +467,7 @@ function ProductDetailPage() {
       .filter((spec) => spec.label || spec.value)
     const cleanedDescriptions = draft.descriptions
       .map((item) => {
-        if (item.type === 'title' || item.type === 'description') {
+        if (item.type === 'description') {
           const text = String(item.text || '').trim()
           return { type: item.type, text }
         }
@@ -479,7 +489,7 @@ function ProductDetailPage() {
         return item
       })
       .filter((item) => {
-        if (item.type === 'title' || item.type === 'description') {
+        if (item.type === 'description') {
           return !!item.text
         }
         if (item.type === 'image' || item.type === 'video') {
@@ -590,7 +600,6 @@ function ProductDetailPage() {
   }
 
   const descriptionTypeOptions: Array<{ id: DescriptionItem['type']; label: string }> = [
-    { id: 'title', label: t('Tiêu đề') },
     { id: 'description', label: t('Mô tả') },
     { id: 'image', label: t('Hình ảnh') },
     { id: 'gallery', label: t('Nhiều hình ảnh') },
@@ -604,7 +613,7 @@ function ProductDetailPage() {
       const current = nextDescriptions[index] ?? { type: nextType }
       const nextItem: DescriptionItem = { type: nextType }
 
-      if (nextType === 'title' || nextType === 'description') {
+      if (nextType === 'description') {
         nextItem.text = current.text ?? ''
       }
       if (nextType === 'image' || nextType === 'video') {
@@ -811,14 +820,6 @@ function ProductDetailPage() {
   }
 
   const renderDescriptionItem = (item: DescriptionItem, index: number) => {
-    if (item.type === 'title') {
-      return (
-        <h5 key={`desc-title-${index}`} className="text-base font-semibold text-slate-900">
-          {item.text || t('Tiêu đề')}
-        </h5>
-      )
-    }
-
     if (item.type === 'description') {
       const content = toPlainText(item.text ?? '')
       return (
@@ -1449,7 +1450,6 @@ function ProductDetailPage() {
                   setDraft({
                     ...draft,
                     descriptions: [
-                      { type: 'title', text: '' },
                       { type: 'description', text: '' },
                       { type: 'image', url: '', caption: '' },
                       { type: 'gallery', gallery: [] },
@@ -1508,21 +1508,6 @@ function ProductDetailPage() {
                       {t('Xóa')}
                     </button>
                   </div>
-                  {item.type === 'title' && (
-                    <label className="block">
-                      <span className="sr-only">{t('Tiêu đề mô tả')}</span>
-                      <input
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        value={item.text ?? ''}
-                        onChange={(event) => {
-                          const nextDescriptions = [...draft.descriptions]
-                          nextDescriptions[index] = { ...nextDescriptions[index], text: event.target.value }
-                          setDraft({ ...draft, descriptions: nextDescriptions })
-                        }}
-                        placeholder={t('Nhập tiêu đề')}
-                      />
-                    </label>
-                  )}
                   {item.type === 'description' && (
                     <div className="richtext-editor">
                       <RichTextEditor

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import Modal, { type Styles } from 'react-modal'
 import { ProductVideoPreview } from '../components/ProductVideoPreview'
+import Quill from 'quill'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { ErrorState, LoadingRows, PaginationNav } from '../components/ui-kit'
 import { useAuth } from '../context/AuthContext'
@@ -65,7 +66,7 @@ type NewProductDraft = {
 }
 
 type DescriptionItem = {
-  type: 'title' | 'description' | 'image' | 'gallery' | 'video'
+  type: 'description' | 'image' | 'gallery' | 'video'
   text?: string
   url?: string
   caption?: string
@@ -94,7 +95,6 @@ const createProductErrorTabMap: Record<
 }
 
 const createDescriptionTemplate = (): DescriptionItem[] => [
-  { type: 'title', text: '' },
   { type: 'description', text: '' },
   { type: 'image', url: '', caption: '' },
   { type: 'gallery', gallery: [] },
@@ -103,7 +103,6 @@ const createDescriptionTemplate = (): DescriptionItem[] => [
 
 const createDescriptionBlock = (type: DescriptionItem['type']): DescriptionItem => {
   switch (type) {
-    case 'title':
     case 'description':
       return { type, text: '' }
     case 'image':
@@ -207,7 +206,7 @@ const suggestedSpecificationLabels = [
 ]
 
 const sanitizeDescriptionItem = (item: DescriptionItem): DescriptionItem | null => {
-  if (item.type === 'title' || item.type === 'description') {
+  if (item.type === 'description') {
     const text = item.text?.trim() ?? ''
     return text ? { type: item.type, text } : null
   }
@@ -899,7 +898,6 @@ function ProductsPage() {
     label: string
     addLabel: string
   }> = [
-    { id: 'title', label: t('Tiêu đề'), addLabel: t('+ Tiêu đề') },
     { id: 'description', label: t('Mô tả'), addLabel: t('+ Mô tả') },
     { id: 'image', label: t('Hình ảnh'), addLabel: t('+ Hình ảnh') },
     { id: 'gallery', label: t('Nhiều hình ảnh'), addLabel: t('+ Nhiều hình ảnh') },
@@ -911,18 +909,27 @@ function ProductsPage() {
 
   const descriptionEditorModules = useMemo(
     () => ({
-      toolbar: [
-        [{ header: [1, 2, 3, false] }],
-        ['bold', 'italic', 'link'],
-        [{ list: 'ordered' }, { list: 'bullet' }],
-        ['clean'],
-      ],
+      toolbar: {
+        container: [
+          [{ header: [1, 2, 3, false] }],
+          ['bold', 'italic', 'link'],
+          [{ list: 'ordered' }, { list: 'bullet' }],
+          ['divider', 'clean'],
+        ],
+        handlers: {
+          divider(this: { quill: Quill }) {
+            const range = this.quill.getSelection(true)
+            this.quill.insertEmbed(range.index, 'divider', true, 'user')
+            this.quill.setSelection(range.index + 1, 0, 'silent')
+          },
+        },
+      },
     }),
     [],
   )
 
   const descriptionEditorFormats = useMemo(
-    () => ['header', 'bold', 'italic', 'link', 'list'],
+    () => ['header', 'bold', 'italic', 'link', 'list', 'divider'],
     [],
   )
 
@@ -2354,21 +2361,6 @@ function ProductsPage() {
                           </button>
                         </div>
                       </div>
-                      {d.type === 'title' && (
-                        <label className="block">
-                          <span className="sr-only">{t('Tiêu đề mô tả')}</span>
-                          <input
-                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                            value={d.text ?? ''}
-                            onChange={(e) => {
-                              const copy = [...newProduct.descriptions]
-                              copy[idx] = { ...copy[idx], text: e.target.value }
-                              setNewProduct({ ...newProduct, descriptions: copy })
-                            }}
-                            placeholder={t('Nhập tiêu đề')}
-                          />
-                        </label>
-                      )}
                       {d.type === 'description' && (
                         <div className="richtext-editor">
                           <RichTextEditor

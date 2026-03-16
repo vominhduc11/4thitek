@@ -2,6 +2,14 @@ import { useEffect, useRef } from 'react'
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
 
+// Register divider (horizontal rule) blot once
+const BlockEmbed = Quill.import('blots/block/embed') as typeof Quill
+class DividerBlot extends BlockEmbed {
+  static blotName = 'divider'
+  static tagName = 'hr'
+}
+Quill.register(DividerBlot)
+
 type RichTextEditorProps = {
   value: string
   onChange: (value: string) => void
