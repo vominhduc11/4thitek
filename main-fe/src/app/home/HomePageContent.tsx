@@ -3,14 +3,10 @@ import { mapBlogSummaryToPost, mapProductSummaryToSimpleProduct } from '@/lib/co
 import { publicApiServer } from '@/lib/publicApiServer';
 
 export default async function HomePageContent() {
-    const [productsResponse, featuredProductsResponse, blogsResponse] = await Promise.all([
-        publicApiServer.fetchHomepageProducts(),
+    const [featuredProductsResponse, blogsResponse] = await Promise.all([
         publicApiServer.fetchFeaturedProducts(),
         publicApiServer.fetchHomepageBlogs()
     ]);
-
-    const firstProduct = productsResponse.data?.[0] ?? null;
-    const heroProduct = firstProduct ? (mapProductSummaryToSimpleProduct(firstProduct) ?? null) : null;
 
     const featuredProducts = (featuredProductsResponse.data ?? [])
         .map((product) => mapProductSummaryToSimpleProduct(product))
@@ -22,7 +18,7 @@ export default async function HomePageContent() {
 
     return (
         <div className="relative">
-            <HeroSection initialProduct={heroProduct} />
+            <HeroSection initialProduct={featuredProducts[0] ?? null} />
 
             <ProductSeries />
 
