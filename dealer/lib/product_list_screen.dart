@@ -254,6 +254,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
         return;
       }
 
+      final catalogError = _productCatalog?.errorMessage;
+      if (catalogError != null) {
+        _pagingController.error = catalogError;
+        return;
+      }
+
       final products = _applyFilters();
       final start = pageKey;
       final end = math.min(start + _pageSize, products.length);
