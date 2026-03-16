@@ -38,11 +38,11 @@ export const publicApiServer = {
     fetchHomepageProducts: () =>
         fetchEnvelope<
             Array<{ id: number | string; name: string; sku?: string; shortDescription: string; image: string; price?: number }>
-        >(API_ENDPOINTS.PRODUCT.PRODUCTS_HOMEPAGE, 3600),
+        >(API_ENDPOINTS.PRODUCT.PRODUCTS_HOMEPAGE, 60),
     fetchProducts: () =>
         fetchEnvelope<
             Array<{ id: number | string; name: string; sku?: string; shortDescription: string; image: string; price?: number }>
-        >(API_ENDPOINTS.PRODUCT.PRODUCTS, 3600),
+        >(API_ENDPOINTS.PRODUCT.PRODUCTS, 60),
     fetchProductById: (id: string) =>
         fetchEnvelope<{
             id: number | string;
@@ -54,7 +54,7 @@ export const publicApiServer = {
             videos: string;
             descriptions?: string;
             price?: number;
-        }>(API_ENDPOINTS.PRODUCT.PRODUCT_BY_ID(id), 3600),
+        }>(API_ENDPOINTS.PRODUCT.PRODUCT_BY_ID(id), 60),
     fetchHomepageBlogs: () =>
         fetchEnvelope<
             Array<{ id: number | string; title: string; description: string; image: string; category: string; createdAt: string }>

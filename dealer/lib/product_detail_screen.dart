@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:flutter_spinbox/flutter_spinbox.dart';
 import 'package:chewie/chewie.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -1107,12 +1108,44 @@ class _DescriptionItemView extends StatelessWidget {
         if (text.isEmpty) {
           return const SizedBox.shrink();
         }
-        return Text(
-          text,
-          style: textTheme.bodyMedium?.copyWith(
-            color: colors.onSurface,
-            height: 1.55,
-          ),
+        return Html(
+          data: text,
+          style: {
+            'body': Style(
+              margin: Margins.zero,
+              padding: HtmlPaddings.zero,
+              fontSize: FontSize(textTheme.bodyMedium?.fontSize ?? 14),
+              lineHeight: const LineHeight(1.55),
+              color: colors.onSurface,
+            ),
+            'p': Style(margin: Margins.only(bottom: 8)),
+            'h1': Style(
+              fontSize: FontSize(textTheme.headlineSmall?.fontSize ?? 22),
+              fontWeight: FontWeight.w700,
+              margin: Margins.only(bottom: 8, top: 12),
+            ),
+            'h2': Style(
+              fontSize: FontSize(textTheme.titleLarge?.fontSize ?? 18),
+              fontWeight: FontWeight.w700,
+              margin: Margins.only(bottom: 8, top: 12),
+            ),
+            'h3': Style(
+              fontSize: FontSize(textTheme.titleMedium?.fontSize ?? 16),
+              fontWeight: FontWeight.w700,
+              margin: Margins.only(bottom: 6, top: 10),
+            ),
+            'hr': Style(
+              border: Border(
+                top: BorderSide(color: colors.outlineVariant, width: 1.5),
+              ),
+              margin: Margins.symmetric(vertical: 12),
+            ),
+            'strong': Style(fontWeight: FontWeight.w700),
+            'a': Style(color: colors.primary),
+            'ul': Style(margin: Margins.only(bottom: 8, left: 16)),
+            'ol': Style(margin: Margins.only(bottom: 8, left: 16)),
+            'li': Style(margin: Margins.only(bottom: 4)),
+          },
         );
       case ProductDescriptionType.image:
         if (url.isEmpty && caption.isEmpty) {
