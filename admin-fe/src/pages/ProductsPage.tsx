@@ -5,6 +5,7 @@ import {
   Archive,
   Eye,
   FileDown,
+  GripVertical,
   Package,
   Plus,
   RotateCcw,
@@ -366,6 +367,8 @@ function ProductsPage() {
   const retailPriceInputRef = useRef<HTMLInputElement | null>(null)
 
   const retailPriceCaretRef = useRef<number | null>(null)
+  const descriptionDragIndexRef = useRef<number | null>(null)
+  const specDragIndexRef = useRef<number | null>(null)
   const [selectedImageName, setSelectedImageName] = useState('')
   const [imagePreviewUrl, setImagePreviewUrl] = useState('')
   const [imageError, setImageError] = useState('')
@@ -733,7 +736,7 @@ function ProductsPage() {
         return t('Vui lòng nhập SKU')
       }
 
-      return products.some((product) => product.sku === normalizedSku) ? t('SKU đã tồn tại') : ''
+      return products.some((product) => product.sku.toLowerCase() === normalizedSku.toLowerCase()) ? t('SKU đã tồn tại') : ''
     }
 
     if (field === 'retailPrice') {
@@ -747,11 +750,13 @@ function ProductsPage() {
 
     if (field === 'warrantyPeriod') {
       const warrantyPeriodNum = Number(draft.warrantyPeriod)
-      return Number.isNaN(warrantyPeriodNum) ||
-        warrantyPeriodNum <= 0 ||
-        !Number.isInteger(warrantyPeriodNum)
-        ? t('Thời hạn bảo hành phải là số nguyên dương')
-        : ''
+      if (Number.isNaN(warrantyPeriodNum) || warrantyPeriodNum <= 0 || !Number.isInteger(warrantyPeriodNum)) {
+        return t('Thời hạn bảo hành phải là số nguyên dương')
+      }
+      if (warrantyPeriodNum > 120) {
+        return t('Tối đa 120 tháng')
+      }
+      return ''
     }
 
     return ''
@@ -1919,10 +1924,10 @@ function ProductsPage() {
 
             <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label={t('Các tab sản phẩm')}>
               {[
-                { id: 'basic', label: 'Thông tin' },
-                { id: 'description', label: 'Mô tả chi tiết' },
-                { id: 'specs', label: 'Thông số' },
-                { id: 'videos', label: 'Video' },
+                { id: 'basic', label: 'Thông tin', errorTitle: 'Thiếu tên, SKU hoặc giá bán' },
+                { id: 'description', label: 'Mô tả chi tiết', errorTitle: 'Có lỗi ở ảnh mô tả' },
+                { id: 'specs', label: 'Thông số', errorTitle: 'Có lỗi ở thông số' },
+                { id: 'videos', label: 'Video', errorTitle: 'URL video không hợp lệ' },
               ].map((tab) => {
                 const tabId = tab.id as typeof activeTab
                 const isTabActive = activeTab === tabId
@@ -1944,6 +1949,7 @@ function ProductsPage() {
                     aria-selected={isTabActive}
                     aria-controls={`product-tabpanel-${tab.id}`}
                     tabIndex={isTabActive ? 0 : -1}
+                    title={tabHasError ? t(tab.errorTitle) : undefined}
                     onKeyDown={(event) => {
                       const currentIndex = tabOrder.indexOf(activeTab)
                       let nextIndex = currentIndex
@@ -2028,7 +2034,7 @@ function ProductsPage() {
                           aria-invalid={Boolean(errors.warrantyPeriod)}
                           inputMode="numeric"
                           autoComplete="off"
-                          placeholder={t('Nhập số tháng bảo hành')}
+                          placeholder="12"
                           className={`mt-2 w-full rounded-xl border px-3 py-2 text-sm ${errors.warrantyPeriod ? 'border-rose-300' : 'border-slate-200'}`}
                           value={newProduct.warrantyPeriod}
                           onChange={(e) =>
@@ -2326,15 +2332,45 @@ function ProductsPage() {
                   </div>
                 ) : (
                   newProduct.descriptions.map((d, idx) => (
-                    <div key={idx} className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
+                    <div
+                      key={idx}
+                      className="space-y-3 rounded-xl border border-slate-200 bg-white p-3"
+                      draggable
+                      onDragStart={() => {
+                        descriptionDragIndexRef.current = idx
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        const fromIdx = descriptionDragIndexRef.current
+                        if (fromIdx === null || fromIdx === idx) return
+                        setNewProduct((prev) => ({
+                          ...prev,
+                          descriptions: moveListItem(prev.descriptions, fromIdx, idx),
+                        }))
+                        setDescriptionImageErrors((prev) => moveIndexedRecord(prev, fromIdx, idx))
+                        descriptionDragIndexRef.current = null
+                      }}
+                    >
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="space-y-1">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                            {t('Khối')} {idx + 1}
-                          </p>
-                          <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
-                            {getDescriptionBlockLabel(d.type)}
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="cursor-grab text-slate-300 active:cursor-grabbing"
+                            aria-hidden="true"
+                            title={t('Kéo để sắp xếp')}
+                          >
+                            <GripVertical className="h-4 w-4" />
                           </span>
+                          <div className="space-y-1">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                              {t('Khối')} {idx + 1}
+                            </p>
+                            <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                              {getDescriptionBlockLabel(d.type)}
+                            </span>
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
@@ -2588,6 +2624,16 @@ function ProductsPage() {
                     </div>
                   ))
                 )}
+                {newProduct.descriptions.length > 0 && newProduct.descriptions.some((item) => {
+                  if (item.type === 'description') return !(item.text ?? '').trim()
+                  if (item.type === 'image' || item.type === 'video') return !(item.url ?? '').trim()
+                  if (item.type === 'gallery') return (item.gallery ?? []).every((g) => !g.url.trim())
+                  return false
+                }) && (
+                  <p className="text-xs italic text-slate-400">
+                    {t('Các khối trống sẽ bị bỏ qua khi lưu.')}
+                  </p>
+                )}
                 {newProduct.descriptions.length > 0 && (
                   <div className="flex flex-wrap gap-2 pt-1">
                     {descriptionBlockOptions.map((option) => (
@@ -2659,7 +2705,34 @@ function ProductsPage() {
                   </div>
                 ) : (
                   newProduct.specifications.map((s, idx) => (
-                    <div key={idx} className="grid gap-2 md:grid-cols-[1fr_1fr_auto] md:items-center">
+                    <div
+                      key={idx}
+                      className="grid gap-2 md:grid-cols-[auto_1fr_1fr_auto] md:items-center"
+                      draggable
+                      onDragStart={() => {
+                        specDragIndexRef.current = idx
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        const fromIdx = specDragIndexRef.current
+                        if (fromIdx === null || fromIdx === idx) return
+                        setNewProduct((prev) => ({
+                          ...prev,
+                          specifications: moveListItem(prev.specifications, fromIdx, idx),
+                        }))
+                        specDragIndexRef.current = null
+                      }}
+                    >
+                      <span
+                        className="hidden cursor-grab self-center text-slate-300 active:cursor-grabbing md:flex"
+                        aria-hidden="true"
+                        title={t('Kéo để sắp xếp')}
+                      >
+                        <GripVertical className="h-4 w-4" />
+                      </span>
                       <label className="block">
                         <span className="sr-only">{t('Nhãn thông số')}</span>
                         <input
