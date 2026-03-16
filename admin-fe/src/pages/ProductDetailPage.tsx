@@ -86,7 +86,6 @@ type VideoDraftItem = {
   title: string
   descriptions: string
   url: string
-  type: string
 }
 
 const buildDraft = (product: Product): ProductDraft => ({
@@ -137,7 +136,6 @@ const parseVideoItems = (value: string): VideoDraftItem[] =>
     title: String(item.title ?? '').trim(),
     descriptions: String(item.descriptions ?? item.description ?? '').trim(),
     url: String(item.url ?? (item as { videoUrl?: string }).videoUrl ?? '').trim(),
-    type: String(item.type ?? 'tutorial'),
   }))
 
 const parseDescriptionItems = (value: string): DescriptionItem[] =>
@@ -508,7 +506,6 @@ function ProductDetailPage() {
           const rawUrl = String(video.url || '').trim()
           return isLocalBlobUrl(rawUrl) ? '' : rawUrl
         })(),
-        type: video.type || 'tutorial',
       }))
       .filter((video) => video.title || video.descriptions || video.url)
     const retainedTrackedUrls = getDraftTrackedUploadUrls(draft)
@@ -1883,7 +1880,7 @@ function ProductDetailPage() {
                   onClick={() =>
                     setDraft({
                       ...draft,
-                      videos: [{ title: '', descriptions: '', url: '', type: 'tutorial' }],
+                      videos: [{ title: '', descriptions: '', url: '' }],
                     })
                   }
                 >
@@ -1986,7 +1983,7 @@ function ProductDetailPage() {
                     ...draft,
                     videos: [
                       ...draft.videos,
-                      { title: '', descriptions: '', url: '', type: 'tutorial' },
+                      { title: '', descriptions: '', url: '' },
                     ],
                   })
                 }

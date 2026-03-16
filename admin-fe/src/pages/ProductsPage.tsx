@@ -47,7 +47,6 @@ type ProductVideoItem = {
   title: string
   descriptions: string
   url: string
-  type: 'unboxing' | 'tutorial'
 }
 
 type NewProductDraft = {
@@ -114,12 +113,21 @@ const createDescriptionBlock = (type: DescriptionItem['type']): DescriptionItem 
 }
 
 const createSpecificationTemplate = () => [
-  { label: '', value: '' },
-  { label: '', value: '' },
+  { label: 'Driver', value: '' },
+  { label: 'Đáp tần', value: '' },
+  { label: 'Trở kháng', value: '' },
+  { label: 'Độ nhạy', value: '' },
+  { label: 'Cổng kết nối', value: '' },
+  { label: 'Kết nối không dây', value: '' },
+  { label: 'Thời lượng pin', value: '' },
+  { label: 'Chống ồn', value: '' },
+  { label: 'Micro', value: '' },
+  { label: 'Trọng lượng', value: '' },
+  { label: 'Bảo hành', value: '' },
 ]
 
 const createVideoTemplate = (): ProductVideoItem[] => [
-  { title: '', descriptions: '', url: '', type: 'tutorial' as const },
+  { title: '', descriptions: '', url: '' },
 ]
 
 const getErrorMessage = (error: unknown, fallback: string) =>
@@ -197,12 +205,19 @@ const moveIndexedRecord = <T,>(record: Record<number, T>, fromIndex: number, toI
 }
 
 const suggestedSpecificationLabels = [
-  'Kích thước',
+  'Driver',
+  'Đáp tần',
+  'Trở kháng',
+  'Độ nhạy',
+  'Cổng kết nối',
+  'Kết nối không dây',
+  'Thời lượng pin',
+  'Chống ồn',
+  'Micro',
   'Trọng lượng',
-  'Chất liệu',
-  'Công suất',
-  'Điện áp',
   'Bảo hành',
+  'Màu sắc',
+  'Chất liệu',
 ]
 
 const sanitizeDescriptionItem = (item: DescriptionItem): DescriptionItem | null => {
@@ -1252,7 +1267,6 @@ function ProductsPage() {
         title: video.title.trim(),
         descriptions: video.descriptions.trim(),
         url: video.url.trim(),
-        type: video.type,
       }))
       .filter((video) => video.title || video.descriptions || video.url)
 
@@ -2823,40 +2837,20 @@ function ProductsPage() {
                       {productVideoErrors[idx] && (
                         <p className="text-xs text-rose-500">{productVideoErrors[idx]}</p>
                       )}
-                      <div className="grid gap-2 md:grid-cols-[180px_1fr]">
-                        <label className="block">
-                          <span className="sr-only">{t('Loại video')}</span>
-                          <select
-                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                            value={v.type}
-                            onChange={(e) => {
-                              const copy = [...newProduct.videos]
-                              copy[idx] = {
-                                ...copy[idx],
-                                type: e.target.value as 'unboxing' | 'tutorial',
-                              }
-                              setNewProduct({ ...newProduct, videos: copy })
-                            }}
-                          >
-                            <option value="tutorial">{t('Hướng dẫn')}</option>
-                            <option value="unboxing">{t('Mở hộp')}</option>
-                          </select>
-                        </label>
-                        <label className="block">
-                          <span className="sr-only">{t('Mô tả video')}</span>
-                          <textarea
-                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                            placeholder={t('Nhập mô tả')}
-                            rows={2}
-                            value={v.descriptions}
-                            onChange={(e) => {
-                              const copy = [...newProduct.videos]
-                              copy[idx] = { ...copy[idx], descriptions: e.target.value }
-                              setNewProduct({ ...newProduct, videos: copy })
-                            }}
-                          />
-                        </label>
-                      </div>
+                      <label className="block">
+                        <span className="sr-only">{t('Mô tả video')}</span>
+                        <textarea
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                          placeholder={t('Nhập mô tả')}
+                          rows={2}
+                          value={v.descriptions}
+                          onChange={(e) => {
+                            const copy = [...newProduct.videos]
+                            copy[idx] = { ...copy[idx], descriptions: e.target.value }
+                            setNewProduct({ ...newProduct, videos: copy })
+                          }}
+                        />
+                      </label>
                       {debouncedProductVideoUrls[idx] &&
                       isValidRemoteUrl(debouncedProductVideoUrls[idx]) ? (
                         <div className="group relative overflow-hidden rounded-lg border border-slate-200">
