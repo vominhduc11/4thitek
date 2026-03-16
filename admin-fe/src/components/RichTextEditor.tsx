@@ -3,11 +3,9 @@ import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
 
 // Register divider (horizontal rule) blot once
-const BlockEmbed = Quill.import('blots/block/embed') as {
-  new (...args: unknown[]): unknown
-  blotName: string
-  tagName: string
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const BlockEmbed = Quill.import('blots/block/embed') as any
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
 class DividerBlot extends BlockEmbed {
   static blotName = 'divider'
   static tagName = 'hr'

@@ -1862,7 +1862,6 @@ function ProductDetailPage() {
                         title: '',
                         descriptions: '',
                         url: '',
-                        type: 'tutorial',
                       },
                     ],
                   })
