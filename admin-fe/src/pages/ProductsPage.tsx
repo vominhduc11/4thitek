@@ -1202,7 +1202,6 @@ function ProductsPage() {
       'sku',
       'retailPrice',
       'warrantyPeriod',
-      'stock',
     ]
 
     basicFields.forEach((field) => {
@@ -1257,7 +1256,6 @@ function ProductsPage() {
       firstVideoErrorIndex,
       priceNum,
       sanitizedDescriptions,
-      stockNum,
       sanitizedSpecifications,
       sanitizedVideos,
       warrantyPeriodNum,
@@ -1278,7 +1276,6 @@ function ProductsPage() {
       sanitizedDescriptions,
       sanitizedSpecifications,
       sanitizedVideos,
-      stockNum,
       warrantyPeriodNum,
     } = validateCreateProduct()
 
