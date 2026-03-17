@@ -290,7 +290,9 @@ export default function ProductDetails({ description, content, descriptions }: P
             {/* Brand dot-grid texture */}
             <div className="absolute inset-0 bg-dot-grid opacity-15 pointer-events-none" />
             <div className="relative z-10 mx-auto max-w-[1800px] px-4 py-8 pb-4">
-
+                <h2 className="mb-6 text-xl font-bold text-white md:mb-8 md:text-2xl lg:text-3xl xl:text-4xl">
+                    {t('products.detail.breadcrumbs.productDetails')}
+                </h2>
 
                 <div className="mb-10 md:mb-14">
                     <div className="flex flex-col space-y-6">

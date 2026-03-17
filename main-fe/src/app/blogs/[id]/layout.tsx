@@ -9,15 +9,16 @@ export async function generateStaticParams() {
     const response = await publicApiServer.fetchBlogs();
     return (response.data ?? []).flatMap((blog) => {
         const id = String(blog.id).trim();
-        return id
-            ? [
-                  {
-                      id: `${id}-${slugify(blog.title)}`
-                  }
-              ]
-            : [];
+        if (!id) return [];
+        const slug = slugify(blog.title);
+        return [
+            {
+                id: slug ? `${id}-${slug}` : id
+            }
+        ];
     });
 }
+
 
 export async function generateMetadata({
     params
