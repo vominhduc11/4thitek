@@ -107,7 +107,7 @@ export default function ProductHero({
 
                 {/* Edge gradient vignettes — simplified (2 divs not 10) */}
                 <div className="absolute inset-x-0 top-0 z-10 h-40 bg-gradient-to-b from-black to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 z-10 h-56 bg-gradient-to-t from-black to-transparent md:h-80" />
+                <div className="absolute inset-x-0 bottom-0 z-10 h-56 bg-gradient-to-t from-[#0c131d] via-[#0c131d]/80 to-transparent md:h-80 lg:h-[420px]" />
                 <div className="absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-black to-transparent" style={{ clipPath: 'ellipse(100% 70% at 0% 50%)' }} />
                 <div className="absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-black to-transparent" style={{ clipPath: 'ellipse(100% 70% at 100% 50%)' }} />
             </div>

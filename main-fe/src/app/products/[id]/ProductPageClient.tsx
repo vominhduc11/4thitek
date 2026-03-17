@@ -209,22 +209,26 @@ export default function ProductPageClient({
             >
                 <AvoidSidebar>
                     <nav
-                        className="flex items-center px-4"
+                        className="flex items-center justify-center gap-1 px-4 py-2"
                         aria-label={t('products.detail.selectSection')}
                     >
-                        {breadcrumbItems.map((item) => (
-                            <button
-                                key={item.label}
-                                type="button"
-                                onClick={() => handleBreadcrumbClick(item)}
-                                className={`relative px-4 py-3 text-sm font-medium transition-colors duration-200 ${
-                                    activeBreadcrumb === item.label
-                                        ? 'text-white after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:bg-cyan-400 after:rounded-t'
-                                        : 'text-gray-400 hover:text-gray-200'
-                                }`}
-                            >
-                                {item.label}
-                            </button>
+                        {breadcrumbItems.map((item, index) => (
+                            <div key={item.label} className="flex items-center">
+                                <button
+                                    type="button"
+                                    onClick={() => handleBreadcrumbClick(item)}
+                                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-200 ${
+                                        activeBreadcrumb === item.label
+                                            ? 'text-cyan-400'
+                                            : 'text-gray-400 hover:text-white'
+                                    }`}
+                                >
+                                    {item.label}
+                                </button>
+                                {index < breadcrumbItems.length - 1 && (
+                                    <span className="text-gray-700 text-xs select-none">/</span>
+                                )}
+                            </div>
                         ))}
                     </nav>
                 </AvoidSidebar>
