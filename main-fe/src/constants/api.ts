@@ -111,14 +111,6 @@ export const API_DEFAULTS = {
         }
     },
 
-    // Default limits
-    LIMITS: {
-        HOMEPAGE_BLOGS: 6,
-        HOMEPAGE_PRODUCTS: 4,
-        SEARCH_RESULTS: 10,
-        RELATED_ITEMS: 4,
-        PAGINATION: 20
-    }
 } as const;
 
 // HTTP Status Codes
