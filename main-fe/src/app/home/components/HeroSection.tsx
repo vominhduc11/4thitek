@@ -147,7 +147,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
 
                 {/* Title */}
                 <motion.h1
-                    className="w-full text-center sm:text-left text-2xl leading-tight text-white xs:text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl"
+                    className="w-full text-center sm:text-left text-2xl leading-tight text-white xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl"
                     variants={titleVariants} initial="hidden" animate="visible"
                     title={displayName}
                 >

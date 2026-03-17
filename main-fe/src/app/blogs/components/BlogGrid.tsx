@@ -83,8 +83,8 @@ const BlogGrid = memo(function BlogGrid({ blogs }: BlogGridProps) {
     }, [blogs, isHydrated, locale, getCategoryDisplay, getCategoryColor]);
 
     return (
-        <div className="ml-0 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 5xl:px-24 py-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6 5xl:grid-cols-8 gap-6 lg:gap-8 2xl:gap-10 3xl:gap-12 4xl:gap-16 5xl:gap-20">
+        <div className="ml-0 sm:ml-16 md:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 py-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-6 lg:gap-8 2xl:gap-10 3xl:gap-12">
                 {processedBlogs.map((blog, index) => (
                     <motion.article
                         key={blog.id}
@@ -152,7 +152,7 @@ const BlogGrid = memo(function BlogGrid({ blogs }: BlogGridProps) {
                                 </div>
 
                                 {/* Title */}
-                                <h3 className="text-lg sm:text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl font-bold text-white mb-3 2xl:mb-4 3xl:mb-5 4xl:mb-6 line-clamp-2 leading-tight group-hover:text-[#4FC8FF] transition-colors duration-300">
+                                <h3 className="text-lg sm:text-xl 2xl:text-2xl 3xl:text-3xl font-bold text-white mb-3 2xl:mb-4 3xl:mb-5 line-clamp-2 leading-tight group-hover:text-[#4FC8FF] transition-colors duration-300">
                                     {blog.title}
                                 </h3>
 
@@ -205,7 +205,7 @@ const BlogGrid = memo(function BlogGrid({ blogs }: BlogGridProps) {
                                 />
                             </svg>
                         </div>
-                        <h3 className="text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl font-bold text-white mb-4 2xl:mb-5 3xl:mb-6 4xl:mb-7">
+                        <h3 className="text-xl 2xl:text-2xl 3xl:text-3xl font-bold text-white mb-4 2xl:mb-5 3xl:mb-6">
                             {t('blog.grid.emptyTitle')}
                         </h3>
                         <p className="text-gray-400">

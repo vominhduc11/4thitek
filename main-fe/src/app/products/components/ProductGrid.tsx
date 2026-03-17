@@ -76,7 +76,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
             >
                 <Link href={`/products/${product.id}`}>
                     <motion.div
-                        className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-colors duration-300 cursor-pointer group overflow-hidden rounded-xl min-h-[380px] sm:min-h-[420px] md:min-h-[460px] lg:min-h-[480px] xl:min-h-[500px] 2xl:min-h-[560px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/40 shadow-lg backdrop-blur-sm"
+                        className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-colors duration-300 cursor-pointer group overflow-hidden rounded-xl min-h-[320px] sm:min-h-[360px] md:min-h-[400px] lg:min-h-[440px] xl:min-h-[480px] 2xl:min-h-[520px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/40 shadow-lg backdrop-blur-sm"
                         whileHover={
                             animationConfig.enableComplexAnimations
                                 ? {

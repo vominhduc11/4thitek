@@ -14,7 +14,7 @@ export default function WarrantyHero() {
     return (
         <HeroSection
             breadcrumbItems={breadcrumbItems}
-            breadcrumbWrapperClassName="ml-0 sm:ml-20 px-1 sm:px-2 md:px-2 lg:px-3 xl:px-4 2xl:px-6"
+            breadcrumbWrapperClassName="ml-0 sm:ml-16 md:ml-20 px-1 sm:px-2 md:px-2 lg:px-3 xl:px-4 2xl:px-6"
         />
     );
 }

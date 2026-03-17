@@ -81,7 +81,7 @@ export default function FilterSidebar({
             <motion.div
                 className={`${
                     isOpen
-                        ? 'fixed lg:static inset-y-0 right-0 w-80 2xl:w-96 3xl:w-[28rem] 4xl:w-[32rem] lg:w-full bg-[#0c131d]/95 lg:bg-transparent backdrop-blur-sm lg:backdrop-blur-none border-l lg:border-l-0 border-gray-700/50 z-50 lg:z-auto overflow-y-auto lg:overflow-visible'
+                        ? 'fixed lg:static inset-y-0 right-0 w-80 2xl:w-96 3xl:w-[28rem] lg:w-full bg-[#0c131d]/95 lg:bg-transparent backdrop-blur-sm lg:backdrop-blur-none border-l lg:border-l-0 border-gray-700/50 z-50 lg:z-auto overflow-y-auto lg:overflow-visible'
                         : 'hidden lg:block'
                 }`}
                 initial={false}
@@ -91,7 +91,7 @@ export default function FilterSidebar({
                 }}
                 transition={{ type: 'tween', duration: 0.3 }}
             >
-                <div className="bg-gradient-to-b from-gray-900/50 to-gray-800/30 backdrop-blur-sm rounded-2xl 3xl:rounded-3xl border border-gray-700/30 lg:border-gray-700/50 p-6 2xl:p-8 3xl:p-10 4xl:p-12 h-fit">
+                <div className="bg-gradient-to-b from-gray-900/50 to-gray-800/30 backdrop-blur-sm rounded-2xl 3xl:rounded-3xl border border-gray-700/30 lg:border-gray-700/50 p-6 2xl:p-8 3xl:p-10 h-fit">
                     <FilterHeader
                         filteredCount={filteredCount}
                         totalCount={totalCount}

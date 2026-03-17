@@ -24,7 +24,7 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
         return (
             <section id="product-details" className="relative min-h-screen">
                 <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-10">
-                    <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-4xl 3xl:text-6xl 4xl:text-7xl font-bold mb-6 md:mb-8 text-white">
+                    <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 3xl:text-6xl font-bold mb-6 md:mb-8 text-white">
                         {t('products.videos.title')}
                     </h2>
                     <div className="bg-gray-900/50 rounded-2xl border border-gray-700/50 p-6 text-center">
@@ -45,7 +45,7 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
     return (
         <section id="product-details" className="relative min-h-screen">
             <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-10">
-                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-4xl 3xl:text-6xl 4xl:text-7xl font-bold mb-6 md:mb-8 text-white">
+                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 3xl:text-6xl font-bold mb-6 md:mb-8 text-white">
                     {t('products.videos.title')}
                 </h2>
 
@@ -67,10 +67,10 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                                 )}
                             </div>
                             <div className="p-4 md:p-6">
-                                <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-2xl 2xl:text-2xl 3xl:text-4xl 4xl:text-5xl font-bold text-white mb-2">
+                                <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-2xl 3xl:text-4xl font-bold text-white mb-2">
                                     {featuredVideo.title || t('products.videos.featuredTitle').replace('{name}', productName || '')}
                                 </h3>
-                                <p className="text-gray-400 text-sm sm:text-base md:text-lg lg:text-xl xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">
+                                <p className="text-gray-400 text-sm sm:text-base md:text-lg lg:text-xl xl:text-xl 3xl:text-3xl">
                                     {featuredVideo.description || t('products.videos.featuredDescription')}
                                 </p>
                             </div>
@@ -103,16 +103,16 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                                             </div>
                                         )}
                                         {video.duration && (
-                                            <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl px-2 py-1 rounded pointer-events-none">
+                                            <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 3xl:text-2xl px-2 py-1 rounded pointer-events-none">
                                                 {video.duration}
                                             </div>
                                         )}
                                     </div>
                                     <div className="p-4">
-                                        <h4 className="text-white font-medium mb-2 group-hover:text-blue-400 transition-colors line-clamp-2 text-sm sm:text-base md:text-lg lg:text-xl xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">
+                                        <h4 className="text-white font-medium mb-2 group-hover:text-blue-400 transition-colors line-clamp-2 text-sm sm:text-base md:text-lg lg:text-xl xl:text-xl 3xl:text-3xl">
                                             {video.title}
                                         </h4>
-                                        <p className="text-gray-400 text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl line-clamp-2">
+                                        <p className="text-gray-400 text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 3xl:text-2xl line-clamp-2">
                                             {video.description || t('products.videos.videoAbout').replace('{title}', video.title)}
                                         </p>
                                     </div>
@@ -149,16 +149,16 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                                                     </div>
                                                 )}
                                                 {video.duration && (
-                                                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl px-2 py-1 rounded pointer-events-none">
+                                                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 3xl:text-2xl px-2 py-1 rounded pointer-events-none">
                                                         {video.duration}
                                                     </div>
                                                 )}
                                             </div>
                                             <div className="p-4 flex-1">
-                                                <h4 className="text-white font-medium mb-2 group-hover:text-blue-400 transition-colors line-clamp-2 text-sm sm:text-base md:text-lg lg:text-xl xl:text-xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl">
+                                                <h4 className="text-white font-medium mb-2 group-hover:text-blue-400 transition-colors line-clamp-2 text-sm sm:text-base md:text-lg lg:text-xl xl:text-xl 3xl:text-3xl">
                                                     {video.title}
                                                 </h4>
-                                                <p className="text-gray-400 text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl line-clamp-2">
+                                                <p className="text-gray-400 text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 3xl:text-2xl line-clamp-2">
                                                     {video.description || t('products.videos.videoAbout').replace('{title}', video.title)}
                                                 </p>
                                             </div>

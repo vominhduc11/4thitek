@@ -17,7 +17,7 @@ export default function ProductWarranty() {
     return (
         <section id="product-details" className="relative min-h-screen">
             <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-10">
-                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-4xl 3xl:text-6xl 4xl:text-7xl font-bold mb-6 md:mb-8 text-white">
+                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 3xl:text-6xl font-bold mb-6 md:mb-8 text-white">
                     {t('products.warranty.title')}
                 </h2>
 
@@ -27,10 +27,10 @@ export default function ProductWarranty() {
                         <div className="w-24 h-24 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                             <span className="text-4xl">🛡️</span>
                         </div>
-                        <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl 2xl:text-3xl 3xl:text-5xl 4xl:text-6xl font-bold text-white mb-2">
+                        <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl 3xl:text-5xl font-bold text-white mb-2">
                             {t('products.warranty.overview.title')}
                         </h3>
-                        <p className="text-gray-300 text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 3xl:text-3xl 4xl:text-4xl">
+                        <p className="text-gray-300 text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 3xl:text-3xl">
                             {t('products.warranty.overview.description')}
                         </p>
                     </div>
@@ -48,7 +48,7 @@ export default function ProductWarranty() {
                             {coveredItems.map((item) => (
                                 <li key={item} className="flex items-start gap-3">
                                     <span className="text-green-400 mt-1">•</span>
-                                    <span className="text-xs sm:text-sm md:text-base lg:text-base xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl">
+                                    <span className="text-xs sm:text-sm md:text-base lg:text-base xl:text-lg 3xl:text-2xl">
                                         {item}
                                     </span>
                                 </li>
@@ -66,7 +66,7 @@ export default function ProductWarranty() {
                             {notCoveredItems.map((item) => (
                                 <li key={item} className="flex items-start gap-3">
                                     <span className="text-red-400 mt-1">•</span>
-                                    <span className="text-xs sm:text-sm md:text-base lg:text-base xl:text-lg 2xl:text-lg 3xl:text-2xl 4xl:text-3xl">
+                                    <span className="text-xs sm:text-sm md:text-base lg:text-base xl:text-lg 3xl:text-2xl">
                                         {item}
                                     </span>
                                 </li>

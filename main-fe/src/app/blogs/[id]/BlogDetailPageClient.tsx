@@ -23,7 +23,7 @@ export default function BlogDetailPageClient({ post, relatedPosts }: BlogDetailP
         <div className="min-h-screen bg-[#0c131d] text-white flex flex-col">
             <BlogDetailHero />
             <section className="bg-[#0c131d] w-full -mt-16 pt-16 pb-8">
-                <div className="ml-0 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
+                <div className="ml-0 sm:ml-16 md:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
                     <p className="text-sm text-[#4FC8FF] uppercase tracking-[0.2em]">{post.category.name}</p>
                     <h1 className="mt-3 text-3xl sm:text-4xl font-bold text-white">{post.title}</h1>
                     <p className="mt-3 text-sm text-gray-400">{formatDateSafe(post.publishedAt, isHydrated, locale)}</p>
@@ -31,7 +31,7 @@ export default function BlogDetailPageClient({ post, relatedPosts }: BlogDetailP
             </section>
 
             <section className="bg-[#0c131d] pb-8">
-                <div className="ml-0 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
+                <div className="ml-0 sm:ml-16 md:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
                     <div className="relative w-full h-[330px] sm:h-[430px] lg:h-[530px] overflow-hidden rounded-3xl border border-white/10 bg-[#101827]">
                         {post.featuredImage ? (
                             <Image src={post.featuredImage} alt={post.title} fill className="object-cover" />
@@ -41,7 +41,7 @@ export default function BlogDetailPageClient({ post, relatedPosts }: BlogDetailP
             </section>
 
             <section className="bg-[#0c131d] py-12">
-                <div className="ml-0 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
+                <div className="ml-0 sm:ml-16 md:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
                     <div className="grid grid-cols-1 lg:grid-cols-10 gap-8">
                         <article className="lg:col-span-7 rounded-3xl border border-white/10 bg-[#111827] p-6 prose prose-invert max-w-none">
                             <p className="text-lg text-gray-300">{post.excerpt}</p>

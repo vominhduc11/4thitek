@@ -124,9 +124,9 @@ export default function ProductHero({
             </div>
 
             {/* Vertical "PRODUCT" label — left side, desktop only */}
-            <div className="absolute left-4 top-1/2 z-30 hidden -translate-y-1/2 sm:block md:left-8 xl:left-12 2xl:left-20 3xl:left-32 4xl:left-40">
+            <div className="absolute left-4 top-1/2 z-30 hidden -translate-y-1/2 sm:block md:left-8 xl:left-12 3xl:left-32">
                 <div
-                    className="text-xs font-black uppercase tracking-[0.3em] text-white/50 md:text-sm lg:text-base 2xl:text-xl 4xl:text-2xl"
+                    className="text-xs font-black uppercase tracking-[0.3em] text-white/50 md:text-sm lg:text-base 3xl:text-xl"
                     style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
                 >
                     {t('products.detail.productLabel')}
@@ -134,8 +134,8 @@ export default function ProductHero({
             </div>
 
             {/* Main content */}
-            <div className="relative z-10 mx-auto w-full max-w-5xl 2xl:max-w-7xl 3xl:max-w-[1600px] 4xl:max-w-[2000px] 5xl:max-w-[2400px] px-4 text-center pt-40 pb-8 md:pt-56 md:pb-64 lg:pt-0 lg:pb-0">
-                <div className="flex flex-col items-center gap-6 md:gap-10 2xl:gap-16 4xl:gap-24">
+            <div className="relative z-10 mx-auto w-full max-w-5xl min-[1400px]:max-w-6xl 2xl:max-w-[1300px] 3xl:max-w-[1600px] px-4 text-center pt-40 pb-8 sm:pb-32 md:pt-56 md:pb-64 lg:pt-0 lg:pb-0 xl:pb-52 2xl:pb-60 3xl:pb-64">
+                <div className="flex flex-col items-center gap-6 md:gap-10 3xl:gap-16">
                     {/* Title */}
                     <AnimatePresence mode="wait">
                         <motion.h1
@@ -144,34 +144,34 @@ export default function ProductHero({
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 10 }}
                             transition={{ duration: 0.4, ease: "easeOut" }}
-                            className="max-w-2xl 2xl:max-w-4xl 3xl:max-w-6xl 4xl:max-w-7xl 5xl:max-w-[90%] px-4 text-2xl font-extrabold leading-tight text-white sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl 2xl:text-5xl 3xl:text-6xl 4xl:text-7xl 5xl:text-9xl tracking-tight"
+                            className="max-w-2xl 2xl:max-w-3xl 3xl:max-w-6xl px-4 text-2xl font-extrabold leading-tight text-white sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl 2xl:text-[2.75rem] 3xl:text-6xl tracking-tight"
                         >
                             {product.name}
                         </motion.h1>
                     </AnimatePresence>
 
                     {/* Product image + Action buttons side by side on lg+ */}
-                    <div className="flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-16 xl:gap-24 2xl:gap-32 3xl:gap-40 4xl:gap-56 w-full">
+                    <div className="flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-16 xl:gap-24 min-[1400px]:gap-28 3xl:gap-40 w-full">
                         {/* Shuffle button - Left side on lg+ */}
-                        <div className="hidden lg:block w-40 xl:w-48 2xl:w-64 flex-shrink-0 text-right">
+                        <div className="hidden lg:block w-40 xl:w-48 flex-shrink-0 text-right">
                             <motion.button
                                 onClick={handleShuffleProduct}
                                 disabled={isShuffling}
-                                className={`inline-flex h-14 w-14 2xl:h-20 2xl:w-20 4xl:h-28 4xl:w-28 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-md transition-all duration-300 hover:border-cyan-400/50 hover:bg-white/10 hover:shadow-[0_0_30px_rgba(34,211,238,0.2)] ${isShuffling ? 'cursor-not-allowed opacity-40' : ''}`}
+                                className={`inline-flex h-14 w-14 3xl:h-20 3xl:w-20 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-md transition-all duration-300 hover:border-cyan-400/50 hover:bg-white/10 hover:shadow-[0_0_30px_rgba(34,211,238,0.2)] ${isShuffling ? 'cursor-not-allowed opacity-40' : ''}`}
                                 title={t('products.detail.viewOtherProducts')}
                                 whileHover={{ scale: 1.1, y: -2 }}
                                 whileTap={{ scale: 0.95 }}
                             >
                                 {isShuffling ? (
-                                    <div className="h-5 w-5 2xl:h-8 2xl:w-8 rounded-full border-2 2xl:border-4 border-cyan-400 border-t-transparent animate-spin" />
+                                    <div className="h-5 w-5 3xl:h-8 3xl:w-8 rounded-full border-2 3xl:border-4 border-cyan-400 border-t-transparent animate-spin" />
                                 ) : (
-                                    <CiShuffle className="h-6 w-6 2xl:h-10 2xl:w-10 4xl:h-14 4xl:w-14 text-white/80 transition-colors pointer-events-none group-hover:text-cyan-400" />
+                                    <CiShuffle className="h-6 w-6 3xl:h-10 3xl:w-10 text-white/80 transition-colors pointer-events-none group-hover:text-cyan-400" />
                                 )}
                             </motion.button>
                         </div>
 
                         {/* Product image */}
-                        <div className="relative mx-auto lg:mx-0 h-48 w-full max-w-[280px] sm:h-64 sm:max-w-sm md:h-72 md:max-w-md lg:h-80 lg:max-w-lg xl:h-96 xl:max-w-xl 2xl:h-[500px] 2xl:max-w-2xl 3xl:h-[600px] 3xl:max-w-3xl 4xl:h-[700px] 4xl:max-w-4xl 5xl:h-[900px] 5xl:max-w-5xl flex-shrink-0">
+                        <div className="relative mx-auto lg:mx-0 h-48 w-full max-w-[280px] sm:h-64 sm:max-w-sm md:h-72 md:max-w-md lg:h-80 lg:max-w-lg xl:h-96 xl:max-w-xl min-[1400px]:h-[440px] min-[1400px]:max-w-[580px] 3xl:h-[600px] 3xl:max-w-3xl flex-shrink-0">
                             {/* Mobile decorative glow behind image */}
                             <div className="absolute inset-0 bg-cyan-500/10 blur-[80px] rounded-full lg:hidden" />
                             
@@ -187,29 +187,29 @@ export default function ProductHero({
                                     <ProductImageWithFallback
                                         src={product.images?.[0]?.url || ''}
                                         alt={product.name}
-                                        className="relative h-full w-full drop-shadow-[0_20px_60px_rgba(0,0,0,0.6)] 2xl:drop-shadow-[0_40px_100px_rgba(0,0,0,0.7)]"
+                                        className="relative h-full w-full drop-shadow-[0_20px_60px_rgba(0,0,0,0.6)] 3xl:drop-shadow-[0_40px_100px_rgba(0,0,0,0.7)]"
                                     />
                                 </motion.div>
                             </AnimatePresence>
                         </div>
 
                         {/* Find retailer button - Right side on lg+ */}
-                        <div className="hidden lg:block w-40 xl:w-48 2xl:w-64 flex-shrink-0 text-left">
+                        <div className="hidden lg:block w-40 xl:w-48 flex-shrink-0 text-left">
                             <motion.button
                                 onClick={handleFindRetailer}
-                                className="inline-flex items-center gap-3 2xl:gap-5 rounded-full border border-cyan-400/30 bg-cyan-400/5 px-8 py-4 2xl:px-12 2xl:py-6 4xl:px-16 4xl:py-8 text-sm 2xl:text-xl 4xl:text-3xl font-bold uppercase tracking-widest text-white backdrop-blur-md transition-all duration-300 hover:border-cyan-400 hover:bg-cyan-400/10 hover:shadow-[0_0_40px_rgba(34,211,238,0.25)]"
+                                className="inline-flex items-center gap-3 3xl:gap-5 rounded-full border border-cyan-400/30 bg-cyan-400/5 px-8 py-4 3xl:px-12 3xl:py-6 text-sm 3xl:text-xl font-bold uppercase tracking-widest text-white backdrop-blur-md transition-all duration-300 hover:border-cyan-400 hover:bg-cyan-400/10 hover:shadow-[0_0_40px_rgba(34,211,238,0.25)]"
                                 whileHover={{ scale: 1.05, y: -2 }}
                                 whileTap={{ scale: 0.95 }}
                             >
                                 <span className="whitespace-nowrap">{t('products.detail.findRetailer')}</span>
-                                <svg className="h-4 w-4 2xl:h-6 2xl:w-6 4xl:h-10 4xl:w-10 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="h-4 w-4 3xl:h-6 3xl:w-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                 </svg>
                             </motion.button>
                         </div>
 
                         {/* Mobile Action buttons (shown only on < lg) */}
-                        <div className="flex lg:hidden items-center justify-center w-full max-w-xs sm:max-w-sm gap-3 mt-6">
+                        <div className="flex lg:hidden items-center justify-center w-full max-w-xs sm:max-w-sm gap-3">
                             <motion.button
                                 onClick={handleShuffleProduct}
                                 disabled={isShuffling}
@@ -245,12 +245,12 @@ export default function ProductHero({
                 <div className="hidden md:block">
                     <motion.div
                         id="hero-breadcrumb"
-                        className="absolute bottom-36 left-0 right-0 z-20 md:bottom-36 lg:bottom-48 xl:bottom-60 2xl:bottom-72 3xl:bottom-80 4xl:bottom-96 5xl:bottom-[120px]"
+                        className="absolute bottom-36 left-0 right-0 z-20 lg:bottom-56 xl:bottom-44 2xl:bottom-52 3xl:bottom-56"
                         initial={{ opacity: 0, y: 30, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         transition={{ duration: 1.2, ease: 'easeOut', delay: 0.8 }}
                     >
-                    <div className="relative mx-auto max-w-[1800px] 3xl:max-w-[2400px] 5xl:max-w-[3000px] px-4">
+                    <div className="relative mx-auto max-w-[1800px] 3xl:max-w-[2400px] px-4">
                         {/* Left decorative line */}
                         <motion.div
                             className="absolute top-1/2 left-4 h-px"
@@ -276,7 +276,7 @@ export default function ProductHero({
                             }}
                         />
                         <motion.nav
-                            className="relative z-20 flex items-center justify-center gap-1 md:gap-2 2xl:gap-6 4xl:gap-10"
+                            className="relative z-20 flex items-center justify-center gap-1 md:gap-2 3xl:gap-6"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.8, ease: 'easeOut', delay: 1.4 }}
@@ -291,7 +291,7 @@ export default function ProductHero({
                                 >
                                     <motion.button
                                         onClick={() => onBreadcrumbClick(item)}
-                                        className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200 md:px-4 md:py-2 md:text-base 2xl:text-2xl 4xl:text-4xl ${
+                                        className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200 md:px-4 md:py-2 md:text-base 3xl:text-2xl ${
                                             activeBreadcrumb === item.label
                                                 ? 'text-cyan-400'
                                                 : 'text-gray-400 hover:text-white'
@@ -303,7 +303,7 @@ export default function ProductHero({
                                     </motion.button>
                                     {index < breadcrumbItems.length - 1 && (
                                         <motion.span
-                                            className="text-gray-600 text-xs 2xl:text-xl select-none"
+                                            className="text-gray-600 text-xs 3xl:text-xl select-none"
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
                                             transition={{ delay: 1.8 + index * 0.1 }}

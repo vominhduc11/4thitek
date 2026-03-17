@@ -37,7 +37,7 @@ export default function Pagination({
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
     return (
-        <div className="ml-0 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 py-8 sm:py-12">
+        <div className="ml-0 sm:ml-16 md:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 py-8 sm:py-12">
             <div className="px-4 sm:px-6 lg:px-8">
                 <motion.div
                     className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 lg:gap-8 relative"
@@ -91,7 +91,7 @@ export default function Pagination({
                     >
                         {/* First Page */}
                         <motion.button
-                            className="p-2 text-white/40 hover:text-white/70 transition-colors duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="p-2.5 sm:p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/40 hover:text-white/70 transition-colors duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             disabled={currentPage === 1}
@@ -103,7 +103,7 @@ export default function Pagination({
 
                         {/* Previous Page */}
                         <motion.button
-                            className="p-2 text-white/40 hover:text-white/70 transition-colors duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="p-2.5 sm:p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/40 hover:text-white/70 transition-colors duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             disabled={currentPage === 1}
@@ -130,7 +130,7 @@ export default function Pagination({
 
                         {/* Next Page */}
                         <motion.button
-                            className="p-2 text-white/40 hover:text-white/70 transition-colors duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="p-2.5 sm:p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/40 hover:text-white/70 transition-colors duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             disabled={currentPage === totalPages}
@@ -142,7 +142,7 @@ export default function Pagination({
 
                         {/* Last Page */}
                         <motion.button
-                            className="p-2 text-white/40 hover:text-white/70 transition-colors duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="p-2.5 sm:p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/40 hover:text-white/70 transition-colors duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             disabled={currentPage === totalPages}
@@ -163,7 +163,7 @@ export default function Pagination({
                 >
                     <div className="flex items-center space-x-2">
                         <motion.button
-                            className="p-2 text-white/40 disabled:opacity-30"
+                            className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/40 disabled:opacity-30"
                             whileTap={{ scale: 0.9 }}
                             disabled={currentPage === 1}
                             onClick={() => onPageChange(currentPage - 1)}
@@ -179,7 +179,7 @@ export default function Pagination({
                         </span>
 
                         <motion.button
-                            className="p-2 text-white/40 disabled:opacity-30"
+                            className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/40 disabled:opacity-30"
                             whileTap={{ scale: 0.9 }}
                             disabled={currentPage === totalPages}
                             onClick={() => onPageChange(currentPage + 1)}

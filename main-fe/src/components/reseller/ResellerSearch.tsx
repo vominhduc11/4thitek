@@ -107,7 +107,7 @@ export default function ResellerSearch({
                 </p>
 
                 <div className="rounded-lg bg-[#1a2332] p-4 sm:p-6">
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
                         <div>
                             <label className="mb-2 block text-sm font-medium text-gray-300">
                                 <FiMapPin className="mr-1 inline h-4 w-4" />

@@ -50,13 +50,13 @@ export default function GlobalError({ reset }: { reset: () => void }) {
                     <FiAlertTriangle size={76} className="hidden lg:block text-red-400" />
                 </motion.span>
                 <motion.h1
-                    className="text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl 3xl:text-8xl 4xl:text-9xl 5xl:text-[6rem] font-bold text-red-300 mb-2 text-center"
+                    className="text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl 3xl:text-8xl font-bold text-red-300 mb-2 text-center"
                     variants={titleVariants}
                 >
                     {t('errors.global.title')}
                 </motion.h1>
                 <motion.p
-                    className="text-gray-400 text-sm xs:text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl 2xl:text-4xl 3xl:text-5xl 4xl:text-6xl 5xl:text-7xl text-center mb-5"
+                    className="text-gray-400 text-sm xs:text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl 2xl:text-4xl 3xl:text-5xl text-center mb-5"
                     variants={descVariants}
                 >
                     {t('errors.global.message')}

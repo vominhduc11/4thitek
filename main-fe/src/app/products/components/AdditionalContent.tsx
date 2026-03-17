@@ -27,7 +27,7 @@ export default function AdditionalContent({ selectedPosition, productCount }: Ad
 
     return (
         <motion.div
-            className="ml-0 sm:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 mt-12 sm:mt-16 mb-16"
+            className="ml-0 sm:ml-16 md:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 mt-12 sm:mt-16 mb-16"
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}

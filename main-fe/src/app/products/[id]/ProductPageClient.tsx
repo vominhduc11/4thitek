@@ -266,7 +266,7 @@ export default function ProductPageClient({
 
             {/* Section content + related products */}
             <AvoidSidebar>
-                <div className="relative z-30 -mt-[clamp(5rem,12vw,14rem)] bg-transparent">
+                <div className="relative z-30 -mt-20 md:-mt-24 lg:-mt-32 xl:-mt-40 2xl:-mt-44 3xl:-mt-52 bg-transparent">
                     <div id="product-details" className="overflow-hidden">
                         <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
                     </div>

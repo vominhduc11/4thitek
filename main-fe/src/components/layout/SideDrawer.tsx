@@ -203,7 +203,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
 
                         {/* Main Navigation */}
                         <motion.nav
-                            className="w-56 xs:w-64 sm:w-80 md:w-96 bg-gradient-to-b from-[#1e2631] to-[#151e2b] text-gray-300 px-3 xs:px-4 sm:px-8 md:px-10 py-5 xs:py-6 sm:py-10 md:py-12 relative border-r border-gray-700/30"
+                            className="w-56 xs:w-64 sm:w-72 md:w-80 lg:w-96 bg-gradient-to-b from-[#1e2631] to-[#151e2b] text-gray-300 px-3 xs:px-4 sm:px-6 md:px-8 lg:px-10 py-5 xs:py-6 sm:py-8 md:py-10 lg:py-12 relative border-r border-gray-700/30"
                             initial={{ opacity: 0, x: -50 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.2, duration: 0.4 }}

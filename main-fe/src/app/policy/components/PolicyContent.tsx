@@ -16,10 +16,10 @@ interface PolicyContentProps {
 
 // Helper function to render content with translations
 const renderSectionContent = (contentData: PolicySectionContent) => {
-    const baseClass = "leading-normal text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl";
-    const paragraphClass = `mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10 ${baseClass}`;
-    const listClass = `list-disc list-inside mb-4 2xl:mb-6 3xl:mb-8 4xl:mb-10 space-y-2 2xl:space-y-3 3xl:space-y-4 4xl:space-y-5 ${baseClass}`;
-    const strongClass = "text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl";
+    const baseClass = "leading-normal text-base 2xl:text-lg 3xl:text-xl";
+    const paragraphClass = `mb-4 2xl:mb-6 3xl:mb-8 ${baseClass}`;
+    const listClass = `list-disc list-inside mb-4 2xl:mb-6 3xl:mb-8 space-y-2 2xl:space-y-3 3xl:space-y-4 ${baseClass}`;
+    const strongClass = "text-base 2xl:text-lg 3xl:text-xl";
 
     return (
         <>

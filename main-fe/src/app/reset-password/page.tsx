@@ -172,7 +172,7 @@ function ResetPasswordContent() {
 
     return (
         <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(0,212,255,0.18),_rgba(12,19,29,0.96)_42%,_#05070b_100%)] text-white">
-            <div className="ml-0 sm:ml-20 flex min-h-screen items-center px-4 py-16 sm:px-6 md:px-8 lg:px-12">
+            <div className="ml-0 sm:ml-16 md:ml-20 flex min-h-screen items-center px-4 py-16 sm:px-6 md:px-8 lg:px-12">
                 <div className="grid w-full max-w-6xl gap-8 lg:grid-cols-[1.05fr_0.95fr]">
                     <section className="rounded-[2rem] border border-white/10 bg-white/5 p-8 shadow-[0_24px_90px_rgba(0,0,0,0.35)] backdrop-blur">
                         <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">4ThiTek Account</p>
@@ -366,7 +366,7 @@ function ResetPasswordContent() {
 function ResetPasswordFallback() {
     return (
         <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(0,212,255,0.18),_rgba(12,19,29,0.96)_42%,_#05070b_100%)] text-white">
-            <div className="ml-0 sm:ml-20 flex min-h-screen items-center justify-center px-4 py-16 sm:px-6 md:px-8 lg:px-12">
+            <div className="ml-0 sm:ml-16 md:ml-20 flex min-h-screen items-center justify-center px-4 py-16 sm:px-6 md:px-8 lg:px-12">
                 <div className="rounded-3xl border border-white/10 bg-[#111827]/80 px-8 py-10 text-center shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
                     <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-cyan-300"></div>
                     <p className="mt-4 text-sm text-slate-300">Loading reset form...</p>

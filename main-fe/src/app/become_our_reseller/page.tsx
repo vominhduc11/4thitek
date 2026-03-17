@@ -414,11 +414,11 @@ export default function BecomeOurReseller() {
             {/* Hero Section */}
             <Hero
                 breadcrumbItems={breadcrumbItems}
-                breadcrumbWrapperClassName="ml-0 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20"
+                breadcrumbWrapperClassName="ml-0 sm:ml-16 md:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20"
             />
 
             {/* Application Form Section */}
-            <section className="ml-0 sm:ml-20 py-8 sm:py-12 md:py-16 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
+            <section className="ml-0 sm:ml-16 md:ml-20 py-8 sm:py-12 md:py-16 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
                 <div className="max-w-4xl mx-auto">
                     <motion.div
                         className="text-center mb-12"
@@ -504,7 +504,7 @@ export default function BecomeOurReseller() {
                                             </p>
                                         )}
                                         
-                                        <div className={`grid grid-cols-1 md:grid-cols-2 ${ultraWideSpacing['grid-gap-md']}`}>
+                                        <div className={`grid grid-cols-1 sm:grid-cols-2 ${ultraWideSpacing['grid-gap-md']}`}>
                                             {/* Company Name */}
                                             <div className="md:col-span-2">
                                                 <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
@@ -751,7 +751,7 @@ export default function BecomeOurReseller() {
                 </div>
             </section>
 
-            <section className="ml-0 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
+            <section className="ml-0 sm:ml-16 md:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
                 <div className="mx-auto max-w-6xl">
                     <DealerNetworkSection />
                 </div>
