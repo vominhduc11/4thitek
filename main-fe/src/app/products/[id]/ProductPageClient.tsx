@@ -199,7 +199,7 @@ export default function ProductPageClient({
                 </AvoidSidebar>
             </motion.div>
 
-            {/* Desktop breadcrumb nav (md+) — sticky, always visible, replaces hero breadcrumb that was hidden behind content */}
+            {/* Desktop section tab nav (md+) — sticky, always visible */}
             <motion.div
                 className="sticky top-[72px] hidden border-b border-gray-800/50 bg-[#0c131d]/95 backdrop-blur-sm md:block"
                 style={{ zIndex: Z_INDEX.STICKY }}
@@ -208,28 +208,24 @@ export default function ProductPageClient({
                 transition={{ duration: 0.35, ease: 'easeOut' }}
             >
                 <AvoidSidebar>
-                    <div className="flex items-center justify-between px-4 py-2">
+                    <div className="flex items-center justify-between px-4">
                         <nav
-                            className="flex items-center gap-1"
+                            className="flex items-center"
                             aria-label={t('products.detail.selectSection')}
                         >
-                            {breadcrumbItems.map((item, index) => (
-                                <div key={item.label} className="flex items-center">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleBreadcrumbClick(item)}
-                                        className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-200 ${
-                                            activeBreadcrumb === item.label
-                                                ? 'text-cyan-400'
-                                                : 'text-gray-400 hover:text-white'
-                                        }`}
-                                    >
-                                        {item.label}
-                                    </button>
-                                    {index < breadcrumbItems.length - 1 && (
-                                        <span className="text-gray-700 text-xs select-none">/</span>
-                                    )}
-                                </div>
+                            {breadcrumbItems.map((item) => (
+                                <button
+                                    key={item.label}
+                                    type="button"
+                                    onClick={() => handleBreadcrumbClick(item)}
+                                    className={`relative px-4 py-3 text-sm font-medium transition-colors duration-200 ${
+                                        activeBreadcrumb === item.label
+                                            ? 'text-white after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:bg-cyan-400 after:rounded-t'
+                                            : 'text-gray-400 hover:text-gray-200'
+                                    }`}
+                                >
+                                    {item.label}
+                                </button>
                             ))}
                         </nav>
                         <a
