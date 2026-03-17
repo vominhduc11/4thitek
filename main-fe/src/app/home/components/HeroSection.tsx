@@ -85,14 +85,14 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
             {/* Background video (desktop) */}
             <motion.video
                 src={HERO_VIDEO}
-                className="absolute inset-0 hidden h-full w-full object-cover md:block"
+                className="absolute inset-0 hidden h-full w-full object-cover sm:block"
                 autoPlay loop muted playsInline preload="none" poster="/logo-4t.png"
                 variants={videoVariants} initial="hidden" animate="visible"
                 aria-hidden="true"
             />
 
             {/* Mobile gradient background */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(79,200,255,0.22),_transparent_45%),linear-gradient(180deg,_#0c131d_0%,_#07101a_55%,_#03070d_100%)] md:hidden" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(79,200,255,0.22),_transparent_45%),linear-gradient(180deg,_#0c131d_0%,_#07101a_55%,_#03070d_100%)] sm:hidden" />
 
             {/* Dark overlay */}
             <motion.div
