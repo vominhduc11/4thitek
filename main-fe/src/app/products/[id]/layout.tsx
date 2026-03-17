@@ -33,7 +33,9 @@ export async function generateMetadata({
         locale: 'vi',
         path: `/products/${id}`,
         title: `${product.name} | 4ThiTek`,
-        description: product.shortDescription || product.description || product.name
+        description: product.shortDescription || product.description || product.name,
+        image: parseImageUrl(product.image, '') || undefined,
+        keywords: ['tai nghe SCS', product.name, '4ThiTek', 'tai nghe chính hãng']
     });
 }
 
@@ -57,7 +59,8 @@ export default async function ProductLayout({
                             id,
                             name: product.name,
                             description: product.shortDescription || product.description || product.name,
-                            image: parseImageUrl(product.image, '')
+                            image: parseImageUrl(product.image, '') || undefined,
+                            price: product.price
                         })}
                     />
                 ) : null}

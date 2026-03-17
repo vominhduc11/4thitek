@@ -37,13 +37,6 @@ html {
     }
 }
 
-/* Custom easing for webkit browsers */
-@supports (scroll-behavior: smooth) {
-    html {
-        scroll-behavior: smooth;
-    }
-}
-
 /* Enhanced smooth scrolling for blog detail page */
 .scroll-smooth {
     scroll-behavior: smooth;
@@ -64,7 +57,7 @@ html {
     }
 }
 
-/* Global Custom Scrollbar */
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -88,72 +81,6 @@ html {
     box-shadow: 0 2px 8px rgba(79, 200, 255, 0.3);
 }
 
-/* Performance-optimized animations using CSS */
-@keyframes float-slow {
-    0%, 100% { transform: translate(0, 0); opacity: 0.3; }
-    25% { transform: translate(-10px, -20px); opacity: 0.5; }
-    50% { transform: translate(10px, 20px); opacity: 0.6; }
-    75% { transform: translate(-5px, -10px); opacity: 0.4; }
-}
-
-@keyframes float-medium {
-    0%, 100% { transform: translate(0, 0); opacity: 0.4; }
-    33% { transform: translate(10px, -15px); opacity: 0.7; }
-    66% { transform: translate(-8px, 15px); opacity: 0.8; }
-}
-
-@keyframes float-fast {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    50% { transform: translate(-5px, -8px) rotate(180deg); }
-}
-
-.animate-float-slow {
-    animation: float-slow 8s infinite ease-in-out;
-}
-
-.animate-float-medium {
-    animation: float-medium 6s infinite ease-in-out 2s;
-}
-
-.animate-float-fast {
-    animation: float-fast 4s infinite ease-in-out 1s;
-}
-
-/* Mobile performance optimization - Disable infinite float animations on mobile */
-@media (max-width: 768px) {
-    .animate-float-slow,
-    .animate-float-medium,
-    .animate-float-fast {
-        animation: none !important;
-    }
-}
-
-/* Respect user's reduced motion preference */
-@media (prefers-reduced-motion: reduce) {
-    .animate-float-slow,
-    .animate-float-medium,
-    .animate-float-fast,
-    .animate-pulse {
-        animation: none !important;
-    }
-    
-    * {
-        animation-duration: 0.001ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.001ms !important;
-    }
-}
-
-/* Performance optimization utilities */
-.gpu-accelerated {
-    transform: translateZ(0);
-    backface-visibility: hidden;
-}
-
-.animation-paused {
-    animation-play-state: paused !important;
-}
-
 ::-webkit-scrollbar-corner {
     background: rgba(26, 35, 50, 0.6);
 }
@@ -164,7 +91,6 @@ html {
     scrollbar-color: #4fc8ff rgba(26, 35, 50, 0.6);
 }
 
-/* Custom scrollbar for specific components */
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -191,7 +117,147 @@ html {
     scrollbar-color: #4fc8ff rgba(17, 24, 39, 0.8);
 }
 
-/* Ensure list markers show for rich text descriptions */
+/* ─── Brand-identity animations ─────────────────────────────────────────────── */
+
+/* Sound wave pulse — evokes audio/communication */
+@keyframes wave-pulse {
+    0%, 100% { opacity: 0.12; }
+    50%       { opacity: 0.28; }
+}
+
+.animate-wave-pulse {
+    animation: wave-pulse 4s ease-in-out infinite;
+}
+
+.animate-wave-pulse-delayed {
+    animation: wave-pulse 4s ease-in-out infinite 1.3s;
+}
+
+.animate-wave-pulse-slow {
+    animation: wave-pulse 6s ease-in-out infinite 0.7s;
+}
+
+/* Signal ring expand — evokes Bluetooth connectivity range */
+@keyframes signal-ring {
+    0%   { transform: scale(1);   opacity: 0.35; }
+    100% { transform: scale(2.2); opacity: 0;    }
+}
+
+.animate-signal-ring {
+    animation: signal-ring 2.8s ease-out infinite;
+}
+
+.animate-signal-ring-2 {
+    animation: signal-ring 2.8s ease-out infinite 0.9s;
+}
+
+.animate-signal-ring-3 {
+    animation: signal-ring 2.8s ease-out infinite 1.8s;
+}
+
+/* Dash flow — animated SVG strokes */
+@keyframes dash-flow {
+    from { stroke-dashoffset: 600; }
+    to   { stroke-dashoffset: 0;   }
+}
+
+.animate-dash-flow {
+    animation: dash-flow 8s linear infinite;
+}
+
+.animate-dash-flow-reverse {
+    animation: dash-flow 10s linear infinite reverse;
+}
+
+/* ─── Legacy float animations (kept for compatibility) ──────────────────────── */
+@keyframes float-slow {
+    0%, 100% { transform: translate(0, 0); opacity: 0.3; }
+    25% { transform: translate(-10px, -20px); opacity: 0.5; }
+    50% { transform: translate(10px, 20px); opacity: 0.6; }
+    75% { transform: translate(-5px, -10px); opacity: 0.4; }
+}
+
+@keyframes float-medium {
+    0%, 100% { transform: translate(0, 0); opacity: 0.4; }
+    33% { transform: translate(10px, -15px); opacity: 0.7; }
+    66% { transform: translate(-8px, 15px); opacity: 0.8; }
+}
+
+@keyframes float-fast {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    50% { transform: translate(-5px, -8px) rotate(180deg); }
+}
+
+.animate-float-slow   { animation: float-slow   8s infinite ease-in-out; }
+.animate-float-medium { animation: float-medium 6s infinite ease-in-out 2s; }
+.animate-float-fast   { animation: float-fast   4s infinite ease-in-out 1s; }
+
+/* Mobile: disable infinite decorative animations */
+@media (max-width: 768px) {
+    .animate-float-slow,
+    .animate-float-medium,
+    .animate-float-fast,
+    .animate-signal-ring,
+    .animate-signal-ring-2,
+    .animate-signal-ring-3,
+    .animate-dash-flow,
+    .animate-dash-flow-reverse {
+        animation: none !important;
+    }
+}
+
+/* Respect user's reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    .animate-float-slow,
+    .animate-float-medium,
+    .animate-float-fast,
+    .animate-wave-pulse,
+    .animate-wave-pulse-delayed,
+    .animate-wave-pulse-slow,
+    .animate-signal-ring,
+    .animate-signal-ring-2,
+    .animate-signal-ring-3,
+    .animate-dash-flow,
+    .animate-dash-flow-reverse,
+    .animate-pulse {
+        animation: none !important;
+    }
+
+    * {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+    }
+}
+
+/* ─── Dot-grid texture — evokes precision / technical network ───────────────── */
+.bg-dot-grid {
+    background-image: radial-gradient(circle, rgba(79, 200, 255, 0.12) 1px, transparent 1px);
+    background-size: 28px 28px;
+}
+
+/* ─── Subtle grain texture — premium hardware feel ──────────────────────────── */
+.bg-grain::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.025;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ─── Performance utilities ─────────────────────────────────────────────────── */
+.gpu-accelerated {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+.animation-paused {
+    animation-play-state: paused !important;
+}
+
+/* ─── Rich text ─────────────────────────────────────────────────────────────── */
 .description-content ul {
     list-style: disc;
     padding-left: 1.25rem;

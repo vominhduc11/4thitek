@@ -286,12 +286,13 @@ export default function ProductDetails({ description, content, descriptions }: P
     const hasDescriptionText = Boolean(description && description.trim());
 
     return (
-        <section className="relative z-[150] min-h-screen">
-            <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-[200]">
+        <section className="relative z-[150] min-h-screen bg-[#0a0f1a] bg-grain">
+            {/* Brand dot-grid texture */}
+            <div className="absolute inset-0 bg-dot-grid opacity-15 pointer-events-none" />
+            <div className="relative z-[200] mx-auto max-w-[1800px] px-4 py-8 pb-4">
 
 
-                {/* Product Description */}
-                <div className="mb-12 md:mb-16">
+                <div className="mb-10 md:mb-14">
                     <div className="flex flex-col space-y-6">
                         {hasDescriptions ? (
                             descriptions.map((item, index) => renderApiDescription(item, index))

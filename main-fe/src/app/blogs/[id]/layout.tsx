@@ -41,7 +41,9 @@ export async function generateMetadata({
         locale: 'vi',
         path: buildBlogPath(article.id, article.title),
         title: `${article.title} | 4ThiTek`,
-        description: article.description || article.title
+        description: article.description || article.title,
+        image: parseImageUrl(article.image, '') || undefined,
+        keywords: ['4ThiTek', 'tai nghe SCS', article.category, article.title].filter(Boolean) as string[]
     });
 }
 

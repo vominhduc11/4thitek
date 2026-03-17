@@ -9,7 +9,8 @@ export const createBaseMetadata = ({
     title,
     description,
     image,
-    keywords
+    keywords,
+    noindex = false
 }: {
     locale: SupportedLocale;
     path: string;
@@ -17,11 +18,13 @@ export const createBaseMetadata = ({
     description: string;
     image?: string;
     keywords?: string[];
+    noindex?: boolean;
 }): Metadata => ({
     metadataBase: new URL(SITE_URL),
     title,
     description,
     ...(keywords && keywords.length > 0 ? { keywords } : {}),
+    ...(noindex ? { robots: { index: false, follow: false } } : {}),
     alternates: {
         canonical: buildCanonicalUrl(path),
         languages: {
@@ -59,7 +62,17 @@ export const organizationJsonLd = () => ({
     '@type': 'Organization',
     name: SITE_NAME,
     url: SITE_URL,
-    logo: `${SITE_URL}/logo.png`,
+    logo: {
+        '@type': 'ImageObject',
+        url: `${SITE_URL}/logo.png`,
+        width: 200,
+        height: 60
+    },
+    contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'customer service',
+        availableLanguage: ['Vietnamese', 'English']
+    },
     sameAs: [SITE_URL]
 });
 
@@ -68,17 +81,25 @@ export const localBusinessJsonLd = () => ({
     '@type': 'LocalBusiness',
     name: SITE_NAME,
     url: SITE_URL,
-    logo: `${SITE_URL}/logo.png`,
+    logo: {
+        '@type': 'ImageObject',
+        url: `${SITE_URL}/logo.png`
+    },
+    image: `${SITE_URL}/logo.png`,
     description: 'Nhà phân phối chính hãng tai nghe SCS tại Việt Nam',
     address: {
         '@type': 'PostalAddress',
-        addressCountry: 'VN'
+        addressCountry: 'VN',
+        addressLocality: 'Việt Nam'
     },
     contactPoint: {
         '@type': 'ContactPoint',
         contactType: 'customer service',
         availableLanguage: ['Vietnamese', 'English']
-    }
+    },
+    priceRange: '$$',
+    currenciesAccepted: 'VND',
+    paymentAccepted: 'Cash, Credit Card, Bank Transfer'
 });
 
 export const breadcrumbJsonLd = (items: { name: string; url: string }[]) => ({
@@ -108,23 +129,43 @@ export const productJsonLd = ({
     id,
     name,
     description,
-    image
+    image,
+    sku,
+    price
 }: {
     id: string;
     name: string;
     description: string;
     image?: string;
+    sku?: string;
+    price?: number;
 }) => ({
     '@context': 'https://schema.org',
     '@type': 'Product',
     name,
     description,
     image: image ? [image] : undefined,
+    ...(sku ? { sku } : {}),
     brand: {
         '@type': 'Brand',
         name: SITE_NAME
     },
-    url: `${SITE_URL}/products/${id}`
+    url: `${SITE_URL}/products/${id}`,
+    ...(price
+        ? {
+              offers: {
+                  '@type': 'Offer',
+                  price,
+                  priceCurrency: 'VND',
+                  availability: 'https://schema.org/InStock',
+                  url: `${SITE_URL}/products/${id}`,
+                  seller: {
+                      '@type': 'Organization',
+                      name: SITE_NAME
+                  }
+              }
+          }
+        : {})
 });
 
 export const articleJsonLd = ({

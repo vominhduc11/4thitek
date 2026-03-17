@@ -26,14 +26,21 @@ export const metadata: Metadata = {
     ...createBaseMetadata({
         locale: 'vi',
         path: '/',
-        title: '4ThiTek - Tai nghe SCS chính hãng',
-        description: 'Website chính thức của 4ThiTek tại Việt Nam. Xem sản phẩm tai nghe SCS chính hãng, kiểm tra bảo hành và đăng ký trở thành đại lý.',
-        keywords: ['4ThiTek', 'tai nghe SCS', 'tai nghe chính hãng', 'SCS headset', 'đại lý tai nghe', 'bảo hành tai nghe']
+        title: '4ThiTek - Nhà phân phối tai nghe SCS chính hãng tại Việt Nam',
+        description: 'Website chính thức của 4ThiTek – nhà phân phối chính hãng tai nghe SCS tại Việt Nam. Khám phá sản phẩm, kiểm tra bảo hành và đăng ký trở thành đại lý.',
+        keywords: ['4ThiTek', 'tai nghe SCS', 'tai nghe chính hãng', 'SCS headset', 'đại lý tai nghe SCS', 'bảo hành tai nghe SCS', 'mua tai nghe SCS', 'SCS Vietnam']
     }),
     applicationName: SITE_NAME,
-    authors: [{ name: SITE_NAME }],
+    authors: [{ name: SITE_NAME, url: 'https://4thitek.vn' }],
+    creator: SITE_NAME,
+    publisher: SITE_NAME,
+    category: 'electronics',
     icons: {
-        icon: [{ url: '/logo.png', sizes: '32x32', type: 'image/png' }]
+        icon: [
+            { url: '/logo.png', sizes: '32x32', type: 'image/png' },
+            { url: '/logo.png', sizes: '16x16', type: 'image/png' }
+        ],
+        apple: [{ url: '/logo.png', sizes: '180x180', type: 'image/png' }]
     }
 };
 

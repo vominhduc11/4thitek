@@ -164,108 +164,61 @@ export default function ProductPageClient({
 
     return (
         <div className="min-h-screen bg-[#0a0f1a] text-white">
-            <div className="md:hidden">
-                <motion.div
-                    className="sticky top-[72px] z-[200] border-b border-gray-800/50 bg-[#0a0f1a]/95 py-3 backdrop-blur-sm"
-                    initial={{ opacity: 0, y: -12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, ease: 'easeOut' }}
-                >
-                    <AvoidSidebar>
-                        <div className="px-4">
-                            <div className="relative z-10">
-                                <select
-                                    value={activeBreadcrumb}
-                                    onChange={(event) => {
-                                        const selectedItem = breadcrumbItems.find((item) => item.label === event.target.value);
-                                        if (selectedItem) {
-                                            handleBreadcrumbClick(selectedItem);
-                                        }
-                                    }}
-                                    className="w-full appearance-none rounded-lg border border-gray-700 bg-gray-800/50 px-4 py-3 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                    aria-label={t('products.detail.selectSection')}
-                                >
-                                    {breadcrumbItems.map((item) => (
-                                        <option key={item.label} value={item.label} className="bg-gray-800 text-white">
-                                            {item.label}
-                                        </option>
-                                    ))}
-                                </select>
-                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                                    <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-                    </AvoidSidebar>
-                </motion.div>
-
+            {/* Mobile section selector */}
+            <motion.div
+                className="sticky top-[72px] z-[200] border-b border-gray-800/50 bg-[#0a0f1a]/95 py-3 backdrop-blur-sm md:hidden"
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+            >
                 <AvoidSidebar>
-                    <div className="pt-16">
-                        <ProductHero
-                            product={product}
-                            relatedProducts={relatedProducts}
-                            breadcrumbItems={breadcrumbItems}
-                            activeBreadcrumb={activeBreadcrumb}
-                            onBreadcrumbClick={handleBreadcrumbClick}
-                        />
-                    </div>
-                </AvoidSidebar>
-
-                <AvoidSidebar>
-                    <div className="relative z-30 -mt-[clamp(5rem,14vw,10rem)] bg-transparent">
-                        <div id="product-details" className="overflow-hidden">
-                            <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
-                        </div>
-                        <div className="pt-2">
-                            <RelatedProducts products={relatedProducts} />
+                    <div className="relative px-4">
+                        <select
+                            value={activeBreadcrumb}
+                            onChange={(event) => {
+                                const selectedItem = breadcrumbItems.find((item) => item.label === event.target.value);
+                                if (selectedItem) handleBreadcrumbClick(selectedItem);
+                            }}
+                            className="w-full appearance-none rounded-lg border border-gray-700 bg-gray-800/50 px-4 py-3 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                            aria-label={t('products.detail.selectSection')}
+                        >
+                            {breadcrumbItems.map((item) => (
+                                <option key={item.label} value={item.label} className="bg-gray-800 text-white">
+                                    {item.label}
+                                </option>
+                            ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
+                            <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
                         </div>
                     </div>
                 </AvoidSidebar>
-            </div>
+            </motion.div>
 
-            <div className="hidden md:block lg:hidden">
-                <div className="ml-16 md:ml-20">
-                    <ProductHero
-                        product={product}
-                        relatedProducts={relatedProducts}
-                        breadcrumbItems={breadcrumbItems}
-                        activeBreadcrumb={activeBreadcrumb}
-                        onBreadcrumbClick={handleBreadcrumbClick}
-                    />
-                </div>
+            {/* Hero — full bleed, AvoidSidebar handled inside ProductHero via its own wrapping */}
+            <AvoidSidebar>
+                <ProductHero
+                    product={product}
+                    relatedProducts={relatedProducts}
+                    breadcrumbItems={breadcrumbItems}
+                    activeBreadcrumb={activeBreadcrumb}
+                    onBreadcrumbClick={handleBreadcrumbClick}
+                />
+            </AvoidSidebar>
 
-                <div className="relative z-30 ml-16 -mt-[clamp(5rem,10vw,12rem)] bg-transparent md:ml-20">
+            {/* Section content + related products */}
+            <AvoidSidebar>
+                <div className="relative z-30 -mt-[clamp(5rem,12vw,14rem)] bg-transparent">
                     <div id="product-details" className="overflow-hidden">
                         <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
                     </div>
-                    <div className="pt-4">
+                    <div className="pt-2 md:pt-4">
                         <RelatedProducts products={relatedProducts} />
                     </div>
                 </div>
-            </div>
-
-            <div className="hidden lg:block">
-                <div className="ml-20">
-                    <ProductHero
-                        product={product}
-                        relatedProducts={relatedProducts}
-                        breadcrumbItems={breadcrumbItems}
-                        activeBreadcrumb={activeBreadcrumb}
-                        onBreadcrumbClick={handleBreadcrumbClick}
-                    />
-                </div>
-
-                <div className="relative z-30 ml-20 -mt-[clamp(6rem,10vw,18rem)] bg-transparent">
-                    <div id="product-details" className="overflow-hidden">
-                        <AnimatePresence mode="wait">{renderSectionContent()}</AnimatePresence>
-                    </div>
-                    <div className="pt-4">
-                        <RelatedProducts products={relatedProducts} />
-                    </div>
-                </div>
-            </div>
+            </AvoidSidebar>
         </div>
     );
 }

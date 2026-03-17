@@ -43,11 +43,11 @@ export default function Loading() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2, duration: 0.5 }}
                 >
-                    <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl 3xl:text-7xl 4xl:text-8xl 5xl:text-9xl font-bold text-white mb-2">
+                    <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
                         {t('home.loadingTitle')}
                     </h2>
                     <motion.p
-                        className="text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl 3xl:text-4xl 4xl:text-5xl 5xl:text-6xl"
+                        className="text-gray-300 text-sm sm:text-base"
                         initial={{ opacity: 0.5 }}
                         animate={{ opacity: 1 }}
                         transition={{

@@ -52,7 +52,15 @@ export const translations = {
                 notFound: 'Product not found',
                 backToProducts: 'Back to Products',
                 relatedProducts: 'RELATED PRODUCTS',
-                viewOtherProducts: 'View other related products'
+                viewOtherProducts: 'View other related products',
+                noRelatedProducts: 'No related products found.'
+            },
+            filter: {
+                priceFrom: 'Price from',
+                priceTo: 'Price to',
+                clearFilters: 'Clear filters',
+                noResults: 'No products found',
+                noResultsHint: 'Try adjusting your search query or price range to find what you\'re looking for.'
             }
         },
         reseller: {
@@ -611,7 +619,17 @@ export const translations = {
                 contact: 'Contact Us'
             },
             copyright: 'CopyRight © 2023 4T HITEK All Right Reserved.',
-            languageSelector: 'Vietnam'
+            languageSelector: 'Vietnam',
+            brand: {
+                tagline: 'Official exclusive distributor of SCS communication products in Vietnam.'
+            },
+            contact: {
+                title: 'Contact',
+                address: 'Ho Chi Minh City, Vietnam',
+                phone: '+84 909 123 456',
+                phoneRaw: '+84909123456',
+                email: 'info@4thitek.vn'
+            }
         },
         becomeReseller: {
             title: 'Become Our Reseller',
@@ -806,6 +824,27 @@ export const translations = {
                 timeoutError: 'Request timeout. Please try again.',
                 notFoundError: 'Resource not found'
             }
+        },
+        brandValues: {
+            eyebrow: 'OFFICIAL DISTRIBUTOR',
+            title: 'Why Choose 4ThiTek?',
+            subtitle: 'Exclusive official distributor of SCS products in Vietnam — backed by certification, warranty, and a nationwide reseller network.',
+            items: {
+                exclusive: {
+                    title: 'Exclusive Distributor',
+                    description: 'Officially certified by SCS as the sole exclusive distributor of authentic products in Vietnam.'
+                },
+                warranty: {
+                    title: 'Full Warranty Support',
+                    description: 'Every product comes with comprehensive warranty coverage and dedicated after-sales technical support.'
+                },
+                network: {
+                    title: 'Nationwide Reseller Network',
+                    description: 'A growing network of authorized dealers across Vietnam ensures easy access and professional service.'
+                }
+            },
+            findReseller: 'Find a Reseller',
+            becomeReseller: 'Become Our Reseller'
         }
     },
     vi: {
@@ -860,7 +899,15 @@ export const translations = {
                 notFound: 'Không tìm thấy sản phẩm',
                 backToProducts: 'Quay lại Sản phẩm',
                 relatedProducts: 'SẢN PHẨM LIÊN QUAN',
-                viewOtherProducts: 'Xem các sản phẩm liên quan khác'
+                viewOtherProducts: 'Xem các sản phẩm liên quan khác',
+                noRelatedProducts: 'Không có sản phẩm liên quan.'
+            },
+            filter: {
+                priceFrom: 'Giá từ',
+                priceTo: 'Giá đến',
+                clearFilters: 'Xóa bộ lọc',
+                noResults: 'Không tìm thấy sản phẩm',
+                noResultsHint: 'Hãy thử điều chỉnh từ khóa tìm kiếm hoặc khoảng giá để tìm sản phẩm phù hợp.'
             }
         },
         reseller: {
@@ -1418,7 +1465,17 @@ export const translations = {
                 contact: 'Liên Hệ'
             },
             copyright: 'Bản quyền © 2023 4T HITEK Tất cả quyền được bảo lưu.',
-            languageSelector: 'Việt Nam'
+            languageSelector: 'Việt Nam',
+            brand: {
+                tagline: 'Nhà phân phối độc quyền chính hãng sản phẩm truyền thông SCS tại Việt Nam.'
+            },
+            contact: {
+                title: 'Liên Hệ',
+                address: 'Thành phố Hồ Chí Minh, Việt Nam',
+                phone: '+84 909 123 456',
+                phoneRaw: '+84909123456',
+                email: 'info@4thitek.vn'
+            }
         },
         becomeReseller: {
             title: 'Trở Thành Đại Lý',
@@ -1613,6 +1670,27 @@ export const translations = {
                 timeoutError: 'Hết thời gian chờ yêu cầu. Vui lòng thử lại.',
                 notFoundError: 'Không tìm thấy tài nguyên'
             }
+        },
+        brandValues: {
+            eyebrow: 'NHÀ PHÂN PHỐI CHÍNH HÃNG',
+            title: 'Tại Sao Chọn 4ThiTek?',
+            subtitle: 'Nhà phân phối độc quyền chính hãng sản phẩm SCS tại Việt Nam — được chứng nhận, bảo hành đầy đủ và mạng lưới đại lý toàn quốc.',
+            items: {
+                exclusive: {
+                    title: 'Phân Phối Độc Quyền',
+                    description: 'Được SCS chứng nhận chính thức là nhà phân phối độc quyền sản phẩm chính hãng tại Việt Nam.'
+                },
+                warranty: {
+                    title: 'Bảo Hành Toàn Diện',
+                    description: 'Mỗi sản phẩm đều được bảo hành đầy đủ và hỗ trợ kỹ thuật sau bán hàng tận tâm.'
+                },
+                network: {
+                    title: 'Mạng Lưới Đại Lý Toàn Quốc',
+                    description: 'Mạng lưới đại lý ủy quyền ngày càng mở rộng khắp Việt Nam, đảm bảo dịch vụ chuyên nghiệp và tiện lợi.'
+                }
+            },
+            findReseller: 'Tìm Đại Lý',
+            becomeReseller: 'Trở Thành Đại Lý'
         }
     }
 };

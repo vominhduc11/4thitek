@@ -1,21 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
-import { Montserrat } from 'next/font/google';
 import Link from 'next/link';
 import AvoidSidebar from '@/components/layout/AvoidSidebar';
 import { useLanguage } from '@/context/LanguageContext';
 import type { SimpleProduct } from '@/types/product';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
-
-const montserrat = Montserrat({
-    subsets: ['latin', 'vietnamese'],
-    weight: ['700', '900'],
-    display: 'swap'
-});
 
 interface FeaturedProductsCarouselProps {
     products?: SimpleProduct[];
@@ -23,15 +16,15 @@ interface FeaturedProductsCarouselProps {
 }
 
 export default function FeaturedProductsCarousel({
-    products: initialProducts = [],
+    products = [],
     initialIndex = 0
 }: FeaturedProductsCarouselProps) {
     const { t } = useLanguage();
     const { enableComplexAnimations, duration, ease } = useAnimationConfig();
-    const [products] = useState(initialProducts);
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [touchStart, setTouchStart] = useState<number | null>(null);
     const [touchEnd, setTouchEnd] = useState<number | null>(null);
+    const sectionRef = useRef<HTMLElement>(null);
 
     useEffect(() => {
         if (!products.length) return;
@@ -52,7 +45,6 @@ export default function FeaturedProductsCarousel({
 
     const handleTouchEnd = () => {
         if (touchStart === null || touchEnd === null) return;
-
         const distance = touchStart - touchEnd;
         if (distance > 50) {
             nextProduct();
@@ -64,6 +56,15 @@ export default function FeaturedProductsCarousel({
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (!products.length) return;
+            // Only handle when no input/textarea/select is focused
+            const tag = (document.activeElement?.tagName ?? '').toLowerCase();
+            if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+            // Only handle when section is in viewport
+            if (sectionRef.current) {
+                const rect = sectionRef.current.getBoundingClientRect();
+                const inViewport = rect.top < window.innerHeight && rect.bottom > 0;
+                if (!inViewport) return;
+            }
             if (event.key === 'ArrowLeft') {
                 event.preventDefault();
                 prevProduct();
@@ -98,10 +99,26 @@ export default function FeaturedProductsCarousel({
 
     return (
         <AvoidSidebar>
-            <section className="relative overflow-hidden bg-gradient-to-b from-[#013A5E] to-[#032B4A] py-16 md:py-24">
+            <section
+                ref={sectionRef}
+                className="relative overflow-hidden bg-gradient-to-b from-[#013A5E] to-[#032B4A] py-16 md:py-24 bg-grain"
+            >
+                {/* Subtle diagonal lines — suggest road / path / motion */}
+                <div className="absolute inset-0 pointer-events-none opacity-[0.03]" aria-hidden="true">
+                    <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <pattern id="diagonal-lines" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+                                <line x1="0" y1="0" x2="0" y2="40" stroke="#4FC8FF" strokeWidth="1"/>
+                            </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#diagonal-lines)"/>
+                    </svg>
+                </div>
                 <div className="container relative z-10 mx-auto max-w-[1400px] px-4">
                     <div className="mb-16 text-center">
-                        <h2 className="text-[2rem] font-semibold text-[#E1F0FF]">{t('products.featured.carouselTitle')}</h2>
+                        <h2 className="text-[2rem] font-semibold text-[#E1F0FF]">
+                            {t('products.featured.carouselTitle')}
+                        </h2>
                     </div>
 
                     <div
@@ -157,7 +174,7 @@ export default function FeaturedProductsCarousel({
                                     <p className="mb-3 text-sm uppercase tracking-[0.3em] text-cyan-300">
                                         {t('products.featured.product')}
                                     </p>
-                                    <h3 className={`${montserrat.className} text-3xl font-black uppercase text-white sm:text-4xl lg:text-5xl`}>
+                                    <h3 className="text-3xl font-black uppercase text-white sm:text-4xl lg:text-5xl">
                                         {currentProduct.name}
                                     </h3>
                                     <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-200 sm:text-lg">
