@@ -167,7 +167,7 @@ export default function ProductPageClient({
         <div className="min-h-screen bg-[#0c131d] text-white flex flex-col">
             {/* Mobile section selector (< md) */}
             <motion.div
-                className="sticky top-[56px] border-b border-gray-800/50 bg-[#0c131d]/95 py-3 backdrop-blur-sm md:hidden sm:top-[72px]"
+                className="sticky top-[68px] border-b border-gray-800/50 bg-[#0c131d]/95 py-3 backdrop-blur-sm md:hidden sm:top-[76px]"
                 style={{ zIndex: Z_INDEX.STICKY }}
                 initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -201,7 +201,7 @@ export default function ProductPageClient({
 
             {/* Desktop section tab nav (md+) — sticky, always visible */}
             <motion.div
-                className="sticky top-[72px] hidden border-b border-gray-800/50 bg-[#0c131d]/95 backdrop-blur-sm md:block"
+                className="sticky top-[76px] hidden border-b border-gray-800/50 bg-[#0c131d]/95 backdrop-blur-sm md:block"
                 style={{ zIndex: Z_INDEX.STICKY }}
                 initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
