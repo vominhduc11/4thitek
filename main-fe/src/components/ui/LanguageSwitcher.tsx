@@ -53,7 +53,7 @@ export default function LanguageSwitcher() {
                 {isOpen && (
                     <>
                         {/* Backdrop */}
-                        <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+                        <div className="fixed inset-0 z-[999]" onClick={() => setIsOpen(false)} />
 
                         {/* Dropdown */}
                         <motion.div
@@ -61,7 +61,7 @@ export default function LanguageSwitcher() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.2 }}
-                            className="absolute top-full right-0 mt-2 w-48 bg-[#1a2332] border border-gray-700/50 rounded-lg shadow-xl z-20 overflow-hidden"
+                            className="absolute top-full right-0 mt-2 w-48 bg-[#1a2332] border border-gray-700/50 rounded-lg shadow-xl z-[1001] overflow-hidden"
                         >
                             {languages.map((lang, index) => (
                                 <motion.button

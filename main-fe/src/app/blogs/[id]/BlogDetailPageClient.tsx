@@ -20,7 +20,7 @@ export default function BlogDetailPageClient({ post, relatedPosts }: BlogDetailP
     const blocks: ApiBlogBlock[] = post.introductionBlocks || [];
 
     return (
-        <div className="min-h-screen bg-[#0c131d] text-white">
+        <div className="min-h-screen bg-[#0c131d] text-white flex flex-col">
             <BlogDetailHero />
             <section className="bg-[#0c131d] w-full -mt-16 pt-16 pb-8">
                 <div className="ml-0 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">

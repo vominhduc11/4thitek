@@ -150,7 +150,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                     >
                         {/* Narrow Side */}
                         <motion.div
-                            className="w-16 sm:w-20 md:w-24 lg:w-20 xl:w-24 flex flex-col justify-between items-center py-4 sm:py-6 md:py-8 lg:py-6 xl:py-8 bg-gradient-to-b from-[#1a2332] via-[#1e2631] to-[#0f1419] border-r border-gray-700/50"
+                            className="w-16 sm:w-20 flex flex-col justify-between items-center py-4 sm:py-6 md:py-8 bg-gradient-to-b from-[#1a2332] via-[#1e2631] to-[#0f1419] border-r border-gray-700/50"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.3, duration: 0.3 }}
@@ -166,9 +166,9 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                 <FiX size={20} />
                             </motion.button>
 
-                            <div className="flex flex-col gap-4 sm:gap-6 md:gap-8 lg:gap-6 xl:gap-8">
+                            <div className="flex flex-col gap-4 sm:gap-6 md:gap-8">
                                 <motion.div
-                                    className="text-gray-400 hover:text-blue-400 p-1.5 sm:p-2 md:p-2.5 lg:p-2 xl:p-2.5"
+                                    className="text-gray-400 hover:text-blue-400 p-1.5 sm:p-2 md:p-2.5"
                                     whileHover={{ scale: 1.2, color: '#60a5fa' }}
                                     transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                 >
@@ -179,11 +179,11 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                         aria-label={t('social.facebook')}
                                         className="block"
                                     >
-                                        <FaFacebookF size={14} className="sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
+                                        <FaFacebookF size={14} className="sm:w-4 sm:h-4 md:w-5 md:h-5" />
                                     </a>
                                 </motion.div>
                                 <motion.div
-                                    className="text-gray-400 hover:text-blue-400 p-1.5 sm:p-2 md:p-2.5 lg:p-2 xl:p-2.5"
+                                    className="text-gray-400 hover:text-blue-400 p-1.5 sm:p-2 md:p-2.5"
                                     whileHover={{ scale: 1.2, color: '#60a5fa' }}
                                     transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                 >
@@ -194,7 +194,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                         aria-label={t('social.youtube')}
                                         className="block"
                                     >
-                                        <FaYoutube size={14} className="sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
+                                        <FaYoutube size={14} className="sm:w-4 sm:h-4 md:w-5 md:h-5" />
                                     </a>
                                 </motion.div>
                             </div>
@@ -202,22 +202,22 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
 
                         {/* Main Navigation */}
                         <motion.nav
-                            className="w-56 xs:w-64 sm:w-80 md:w-96 lg:w-80 xl:w-96 bg-gradient-to-b from-[#1e2631] to-[#151e2b] text-gray-300 px-3 xs:px-4 sm:px-8 md:px-10 lg:px-8 xl:px-10 py-5 xs:py-6 sm:py-10 md:py-12 lg:py-10 xl:py-12 relative border-r border-gray-700/30"
+                            className="w-56 xs:w-64 sm:w-80 md:w-96 bg-gradient-to-b from-[#1e2631] to-[#151e2b] text-gray-300 px-3 xs:px-4 sm:px-8 md:px-10 py-5 xs:py-6 sm:py-10 md:py-12 relative border-r border-gray-700/30"
                             initial={{ opacity: 0, x: -50 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.2, duration: 0.4 }}
                         >
                             <motion.div
-                                className="mb-6 sm:mb-8 md:mb-10 lg:mb-8 xl:mb-10"
+                                className="mb-6 sm:mb-8 md:mb-10"
                                 initial={{ opacity: 0, y: -20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.4, duration: 0.3 }}
                             >
-                                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-xl xl:text-2xl font-bold text-white mb-2 md:mb-3 lg:mb-2 xl:mb-3">
+                                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-2 md:mb-3">
                                     {t('nav.navigation') || 'Navigation'}
                                 </h2>
                                 <motion.div
-                                    className="w-10 sm:w-12 md:w-14 lg:w-12 xl:w-14 h-0.5 md:h-1 lg:h-0.5 xl:h-1 bg-blue-500"
+                                    className="w-10 sm:w-12 md:w-14 h-0.5 md:h-1 bg-blue-500"
                                     initial={{ width: 0 }}
                                     animate={{ width: '2.5rem' }}
                                     transition={{ delay: 0.6, duration: 0.5, ease: 'easeOut' }}
@@ -225,7 +225,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                             </motion.div>
 
                             <motion.ul
-                                className="space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-4 xl:space-y-5"
+                                className="space-y-3 sm:space-y-4 md:space-y-5"
                                 variants={staggerContainer}
                                 initial="hidden"
                                 animate="visible"
@@ -313,12 +313,12 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                             </motion.ul>
 
                             <motion.div
-                                className="absolute bottom-[4.5rem] sm:bottom-20 md:bottom-24 lg:bottom-20 xl:bottom-24 right-4 sm:right-6 md:right-8 lg:right-6 xl:right-8 opacity-20 hidden sm:block"
+                                className="absolute bottom-[4.5rem] sm:bottom-20 md:bottom-24 right-4 sm:right-6 md:right-8 opacity-20 hidden sm:block"
                                 initial={{ opacity: 0, rotate: 0 }}
                                 animate={{ opacity: 0.2, rotate: 90 }}
                                 transition={{ delay: 0.8, duration: 0.5 }}
                             >
-                                <span className="text-4xl sm:text-6xl md:text-7xl lg:text-6xl xl:text-7xl font-black text-white uppercase origin-center select-none">
+                                <span className="text-4xl sm:text-6xl md:text-7xl font-black text-white uppercase origin-center select-none">
                                     {t('common.menu')}
                                 </span>
                             </motion.div>

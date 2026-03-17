@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import Breadcrumb from './Breadcrumb';
+import { Z_INDEX } from '@/constants/zIndex';
 
 interface BreadcrumbItem {
     label: string;
@@ -45,7 +46,7 @@ export default function Hero({
 
             {/* Breadcrumb - Aligned with content below */}
             {breadcrumbItems.length > 0 && (
-                <div className="absolute bottom-8 xs:bottom-10 sm:bottom-12 left-0 right-0 z-[110]">
+                <div className="absolute bottom-8 xs:bottom-10 sm:bottom-12 left-0 right-0" style={{ zIndex: Z_INDEX.STICKY }}>
                     <div className={breadcrumbWrapperClassName}>
                         <Breadcrumb items={breadcrumbItems} />
                     </div>

@@ -50,7 +50,8 @@
       "Bash(find:*)",
       "Bash(node:*)",
       "Bash(./mvnw compile:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

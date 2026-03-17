@@ -48,7 +48,7 @@ const Footer = () => {
                 {/* Top accent line */}
                 <div className="h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
 
-                <div className="px-6 sm:px-8 lg:px-12 xl:px-16 pt-12 pb-10">
+                <div className="px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 pt-12 pb-10">
                     {/* Main grid — logo col + 4 nav cols */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-10 lg:gap-8">
 
@@ -71,7 +71,7 @@ const Footer = () => {
                                     href={SOCIAL_URLS.FACEBOOK}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 text-gray-400 transition hover:border-cyan-400/50 hover:text-cyan-300 hover:bg-cyan-400/5"
+                                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-gray-400 transition hover:border-cyan-400/50 hover:text-cyan-300 hover:bg-cyan-400/5"
                                     aria-label="Facebook"
                                 >
                                     <FaFacebookF size={13} />
@@ -80,7 +80,7 @@ const Footer = () => {
                                     href={SOCIAL_URLS.YOUTUBE}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 text-gray-400 transition hover:border-cyan-400/50 hover:text-cyan-300 hover:bg-cyan-400/5"
+                                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-gray-400 transition hover:border-cyan-400/50 hover:text-cyan-300 hover:bg-cyan-400/5"
                                     aria-label="YouTube"
                                 >
                                     <FaYoutube size={14} />
@@ -89,7 +89,7 @@ const Footer = () => {
                                     href={SOCIAL_URLS.TIKTOK}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 text-gray-400 transition hover:border-cyan-400/50 hover:text-cyan-300 hover:bg-cyan-400/5"
+                                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-gray-400 transition hover:border-cyan-400/50 hover:text-cyan-300 hover:bg-cyan-400/5"
                                     aria-label="TikTok"
                                 >
                                     <FaTiktok size={13} />
@@ -140,11 +140,11 @@ const Footer = () => {
                             </h3>
                             <ul className="space-y-3 text-sm">
                                 <li className="flex items-start gap-2 text-gray-400">
-                                    <MapPinIcon className="h-4 w-4 mt-0.5 shrink-0 text-cyan-400/60" />
+                                    <MapPinIcon className="h-4 w-4 mt-0.5 shrink-0 text-cyan-400/80" />
                                     <span>{t('footer.contact.address')}</span>
                                 </li>
                                 <li className="flex items-center gap-2">
-                                    <PhoneIcon className="h-4 w-4 shrink-0 text-cyan-400/60" />
+                                    <PhoneIcon className="h-4 w-4 shrink-0 text-cyan-400/80" />
                                     <a
                                         href={`tel:${t('footer.contact.phoneRaw')}`}
                                         className={`${typographyComponents.footer.link} transition-colors`}
@@ -153,7 +153,7 @@ const Footer = () => {
                                     </a>
                                 </li>
                                 <li className="flex items-center gap-2">
-                                    <EnvelopeIcon className="h-4 w-4 shrink-0 text-cyan-400/60" />
+                                    <EnvelopeIcon className="h-4 w-4 shrink-0 text-cyan-400/80" />
                                     <a
                                         href={`mailto:${t('footer.contact.email')}`}
                                         className={`${typographyComponents.footer.link} transition-colors`}

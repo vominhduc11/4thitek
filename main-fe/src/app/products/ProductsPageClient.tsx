@@ -92,7 +92,7 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
                 <ProductsHero />
                 <ProductsSimpleHeader totalProducts={0} />
                 <AvoidSidebar>
-                    <main className="px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-8 flex justify-center">
+                    <main className="px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 py-8 flex justify-center">
                         <div className="w-full max-w-none">
                             <GridSkeleton count={8} columns={4} backgroundColor="#1e293b" foregroundColor="#334155" />
                         </div>
@@ -189,7 +189,7 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
 
             <section className="relative bg-transparent text-white pb-6">
                 <AvoidSidebar>
-                    <div className="px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 flex justify-center">
+                    <div className="px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 flex justify-center">
                         <div className="w-full max-w-3xl rounded-[28px] border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,8,23,0.22)] backdrop-blur md:p-6">
                             <div className="flex gap-4">
                                 <label className="block flex-1">
@@ -221,7 +221,7 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
             </section>
 
             <AvoidSidebar>
-                <main className="relative px-0 md:px-1 lg:px-2 xl:px-4 py-8">
+                <main className="relative px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 py-8">
                     {products.length === 0 && !loading ? (
                         <div className="flex flex-col items-center justify-center py-20 px-4">
                             <svg className="mx-auto mb-4 h-14 w-14 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

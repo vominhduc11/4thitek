@@ -163,10 +163,10 @@ export default function ProductPageClient({
     };
 
     return (
-        <div className="min-h-screen bg-[#0a0f1a] text-white">
+        <div className="min-h-screen bg-[#0c131d] text-white flex flex-col">
             {/* Mobile section selector (< md) */}
             <motion.div
-                className="sticky top-[56px] z-[200] border-b border-gray-800/50 bg-[#0a0f1a]/95 py-3 backdrop-blur-sm md:hidden sm:top-[72px]"
+                className="sticky top-[56px] z-[200] border-b border-gray-800/50 bg-[#0c131d]/95 py-3 backdrop-blur-sm md:hidden sm:top-[72px]"
                 initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
@@ -199,7 +199,7 @@ export default function ProductPageClient({
 
             {/* Desktop breadcrumb nav (md+) — sticky, always visible, replaces hero breadcrumb that was hidden behind content */}
             <motion.div
-                className="sticky top-[72px] z-[200] hidden border-b border-gray-800/50 bg-[#0a0f1a]/95 backdrop-blur-sm md:block"
+                className="sticky top-[72px] z-[200] hidden border-b border-gray-800/50 bg-[#0c131d]/95 backdrop-blur-sm md:block"
                 initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}

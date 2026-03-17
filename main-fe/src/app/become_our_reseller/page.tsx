@@ -410,15 +410,15 @@ export default function BecomeOurReseller() {
     ];
 
     return (
-        <div className="min-h-screen bg-[#0c131d]">
+        <div className="min-h-screen bg-[#0c131d] text-white flex flex-col">
             {/* Hero Section */}
             <Hero
                 breadcrumbItems={breadcrumbItems}
-                breadcrumbWrapperClassName="ml-0 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20"
+                breadcrumbWrapperClassName="ml-0 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20"
             />
 
             {/* Application Form Section */}
-            <section className="ml-0 sm:ml-20 py-16 px-4 sm:px-12 md:px-16 lg:px-20">
+            <section className="ml-0 sm:ml-20 py-8 sm:py-12 md:py-16 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
                 <div className="max-w-4xl mx-auto">
                     <motion.div
                         className="text-center mb-12"
@@ -751,7 +751,7 @@ export default function BecomeOurReseller() {
                 </div>
             </section>
 
-            <section className="ml-0 sm:ml-20 px-4 sm:px-12 md:px-16 lg:px-20">
+            <section className="ml-0 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
                 <div className="mx-auto max-w-6xl">
                     <DealerNetworkSection />
                 </div>

@@ -206,7 +206,7 @@ function SearchContent() {
     const noResultsSuggestions = (getTranslation('search.page.suggestions.noResults') as string[]) || [];
 
     return (
-        <div className="min-h-screen bg-[#0c131d] relative overflow-hidden">
+        <div className="min-h-screen bg-[#0c131d] text-white flex flex-col relative overflow-hidden">
             {/* Background Effects */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 {/* Gradient Orbs */}
@@ -222,12 +222,12 @@ function SearchContent() {
             {/* Hero Section */}
             <Hero
                 breadcrumbItems={breadcrumbItems}
-                breadcrumbWrapperClassName="ml-0 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20"
+                breadcrumbWrapperClassName="ml-0 sm:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20"
             />
 
             {/* Search Section */}
             <motion.section
-                className="ml-0 sm:ml-20 py-4 sm:py-6 lg:py-8 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20 relative"
+                className="ml-0 sm:ml-20 py-8 sm:py-12 md:py-16 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 relative"
                 initial="hidden"
                 animate="visible"
                 variants={containerVariants}

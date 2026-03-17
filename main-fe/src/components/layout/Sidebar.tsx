@@ -45,7 +45,8 @@ export default function Sidebar({ onMenuClick }: SidebarProps) {
                     href={SOCIAL_URLS.FACEBOOK}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-1.5 sm:p-2 rounded hover:bg-[#263040] transition flex items-center justify-center"
+                    aria-label="Facebook"
+                    className="p-2.5 sm:p-3 rounded hover:bg-[#263040] transition flex items-center justify-center"
                 >
                     <FaFacebookF size={14} className="sm:w-4.5 sm:h-4.5" color="#fff" />
                 </a>
@@ -53,7 +54,8 @@ export default function Sidebar({ onMenuClick }: SidebarProps) {
                     href={SOCIAL_URLS.YOUTUBE}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-1.5 sm:p-2 rounded hover:bg-[#263040] transition flex items-center justify-center"
+                    aria-label="YouTube"
+                    className="p-2.5 sm:p-3 rounded hover:bg-[#263040] transition flex items-center justify-center"
                 >
                     <FaYoutube size={14} className="sm:w-4.5 sm:h-4.5" color="#fff" />
                 </a>
