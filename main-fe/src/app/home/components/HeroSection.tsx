@@ -143,7 +143,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
             )}
 
             {/* Content: flexbox column */}
-            <div className="absolute inset-0 z-20 flex flex-col items-center sm:items-start sm:pl-24 justify-between pt-20 pb-12 px-4 sm:px-8">
+            <div className="absolute inset-0 z-20 flex flex-col items-center sm:items-start justify-between pt-20 pb-12 px-4 sm:pl-24 sm:pr-8 md:pl-28 md:pr-8 lg:pl-32 lg:pr-12 xl:pl-36 xl:pr-16 2xl:pl-40 2xl:pr-20">
 
                 {/* Title */}
                 <motion.h1
@@ -163,7 +163,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                         <Image
                             src={displayImage} alt={displayName}
                             width={384} height={216}
-                            className="max-h-[160px] xs:max-h-[200px] sm:max-h-[260px] md:max-h-[320px] lg:max-h-[380px] w-auto object-contain drop-shadow-2xl"
+                            className="max-h-[160px] xs:max-h-[200px] sm:max-h-[260px] md:max-h-[320px] lg:max-h-[380px] xl:max-h-[460px] 2xl:max-h-[540px] w-auto object-contain drop-shadow-2xl"
                             priority
                         />
                     ) : (
