@@ -116,6 +116,10 @@ export default function FeaturedProductsCarousel({
                 </div>
                 <div className="container relative z-10 mx-auto max-w-[1400px] px-4">
                     <div className="mb-16 text-center">
+                        {/* Cyan eyebrow — marks this as the curated/spotlight section */}
+                        <span className="mb-4 inline-block rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.3em] text-cyan-400">
+                            {t('products.featured.product')}
+                        </span>
                         <h2 className="text-[2rem] font-semibold text-[#E1F0FF]">
                             {t('products.featured.carouselTitle')}
                         </h2>
@@ -134,7 +138,7 @@ export default function FeaturedProductsCarousel({
                             type="button"
                             onClick={prevProduct}
                             className="absolute left-4 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/10 bg-black/30 p-3 text-white transition hover:border-cyan-300 hover:text-cyan-200"
-                            aria-label={t('common.previous')}
+                            aria-label={t('products.featured.prev')}
                         >
                             <ChevronLeftIcon className="h-5 w-5" />
                         </button>
@@ -143,7 +147,7 @@ export default function FeaturedProductsCarousel({
                             type="button"
                             onClick={nextProduct}
                             className="absolute right-4 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/10 bg-black/30 p-3 text-white transition hover:border-cyan-300 hover:text-cyan-200"
-                            aria-label={t('common.next')}
+                            aria-label={t('products.featured.next')}
                         >
                             <ChevronRightIcon className="h-5 w-5" />
                         </button>

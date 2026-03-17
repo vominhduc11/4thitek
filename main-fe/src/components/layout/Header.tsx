@@ -3,10 +3,19 @@ import Link from 'next/link';
 import { FiMenu, FiSearch } from 'react-icons/fi';
 import { motion, Variants } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useSearchModal } from '@/context/SearchModalContext';
 import { Z_INDEX } from '@/constants/zIndex';
 import { useLanguage } from '@/context/LanguageContext';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
+
+const NAV_LINKS = [
+    { href: '/products', key: 'nav.products' },
+    { href: '/about', key: 'nav.company' },
+    { href: '/become_our_reseller', key: 'nav.reseller' },
+    { href: '/blogs', key: 'nav.blog' },
+    { href: '/contact', key: 'nav.contact' }
+] as const;
 
 const headerVariants: Variants = {
     hidden: { y: -48, opacity: 0 },
@@ -32,6 +41,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     const [isHydrated, setIsHydrated] = useState(false);
     const { openSearch } = useSearchModal();
     const { t } = useLanguage();
+    const pathname = usePathname();
 
     useEffect(() => {
         setIsHydrated(true);
@@ -95,6 +105,26 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     />
                 </Link>
             </motion.div>
+
+            {/* Desktop nav — hidden on mobile, visible from lg breakpoint */}
+            <nav className="hidden lg:flex items-center gap-1" aria-label={t('nav.navigation')}>
+                {NAV_LINKS.map(({ href, key }) => {
+                    const isActive = pathname === href || pathname.startsWith(href + '/');
+                    return (
+                        <Link
+                            key={href}
+                            href={href}
+                            className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded transition-colors duration-200 ${
+                                isActive
+                                    ? 'text-[#4FC8FF]'
+                                    : 'text-gray-300 hover:text-white hover:bg-white/8'
+                            }`}
+                        >
+                            {t(key)}
+                        </Link>
+                    );
+                })}
+            </nav>
 
             <motion.div variants={searchVariants} className="flex items-center gap-2 sm:gap-3">
                 <button

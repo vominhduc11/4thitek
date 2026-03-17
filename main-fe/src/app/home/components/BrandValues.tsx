@@ -91,7 +91,7 @@ export default function BrandValues() {
                         transition={{ duration: 0.6, delay: 0.3 }}
                     >
                         <Link
-                            href="/reseller_infomation"
+                            href="/reseller_information"
                             className="inline-flex items-center gap-2 rounded-full bg-cyan-400 px-7 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
                         >
                             {t('brandValues.findReseller')}

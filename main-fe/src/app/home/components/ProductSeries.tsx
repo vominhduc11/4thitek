@@ -34,6 +34,10 @@ export default function ProductSeries({ initialProducts = [] }: ProductSeriesPro
                             transition={{ duration: 0.8 }}
                             viewport={{ once: true }}
                         >
+                            {/* Amber eyebrow — distinguishes this "browse all" section from the featured carousel */}
+                            <span className="mb-5 inline-block rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.3em] text-amber-400">
+                                {t('products.showcase.viewAll')}
+                            </span>
                             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
                                 {t('products.showcase.titlePrimary')}{' '}
                                 <span className="bg-gradient-to-r from-[#4FC8FF] to-[#00D4FF] bg-clip-text text-transparent">
@@ -91,7 +95,7 @@ export default function ProductSeries({ initialProducts = [] }: ProductSeriesPro
                                                     <h4 className={`text-xs font-medium mb-1 line-clamp-2 ${isSelected ? 'text-[#4FC8FF]' : 'text-gray-300 group-hover:text-white'}`}>
                                                         {product.name}
                                                     </h4>
-                                                    <p className="text-xs text-gray-500 line-clamp-1">{product.sku || '4ThiTek'}</p>
+                                                    <p className="text-xs text-gray-400 line-clamp-1">{product.sku || '4ThiTek'}</p>
                                                 </div>
                                             </motion.button>
                                         );
@@ -122,7 +126,7 @@ export default function ProductSeries({ initialProducts = [] }: ProductSeriesPro
                                                         href={`/products/${selectedProduct.id}`}
                                                         className="inline-flex items-center gap-2 rounded-full bg-[#00d4ff] px-6 py-3 font-semibold text-[#0c131d] transition hover:bg-[#38dfff]"
                                                     >
-                                                        {t('products.showcase.cta')}
+                                                        {t('products.showcase.viewDetails')}
                                                         <FiArrowRight className="h-4 w-4" />
                                                     </Link>
                                                 </div>

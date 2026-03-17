@@ -54,7 +54,7 @@ const makeButtonVariants = (animate: boolean): Variants => ({
             ? { duration: 0.5, delay: 0.65, type: 'spring', stiffness: 160 }
             : { duration: 0.3 }
     },
-    hover: { scale: 1.04, boxShadow: '0 10px 25px rgba(255,255,255,0.2)', borderColor: '#4FC8FF', transition: { duration: 0.2 } },
+    hover: { scale: 1.04, boxShadow: '0 10px 25px rgba(79,200,255,0.35)', transition: { duration: 0.2 } },
     tap: { scale: 0.97 }
 });
 
@@ -185,7 +185,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                         </p>
                     </div>
                     <motion.button
-                        className="min-w-[160px] rounded-full border border-white px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white hover:text-black sm:px-6 sm:py-3 sm:text-base"
+                        className="min-w-[160px] rounded-full bg-[#4FC8FF] px-4 py-2.5 text-sm font-semibold text-[#0c131d] transition hover:bg-[#38dfff] sm:px-6 sm:py-3 sm:text-base"
                         variants={buttonVariants} initial="hidden" animate="visible"
                         whileHover="hover" whileTap="tap"
                         onClick={() => product?.id ? router.push(`/products/${product.id}`) : router.push('/products')}
