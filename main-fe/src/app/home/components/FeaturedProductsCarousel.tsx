@@ -22,6 +22,7 @@ export default function FeaturedProductsCarousel({
     const { t } = useLanguage();
     const { enableComplexAnimations, duration, ease } = useAnimationConfig();
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
+    const [direction, setDirection] = useState(1);
     const [touchStart, setTouchStart] = useState<number | null>(null);
     const [touchEnd, setTouchEnd] = useState<number | null>(null);
     const sectionRef = useRef<HTMLElement>(null);
@@ -35,11 +36,13 @@ export default function FeaturedProductsCarousel({
 
     const nextProduct = useCallback(() => {
         if (!products.length) return;
+        setDirection(1);
         setCurrentIndex((prev) => (prev + 1) % products.length);
     }, [products.length]);
 
     const prevProduct = useCallback(() => {
         if (!products.length) return;
+        setDirection(-1);
         setCurrentIndex((prev) => (prev - 1 + products.length) % products.length);
     }, [products.length]);
 
@@ -153,12 +156,13 @@ export default function FeaturedProductsCarousel({
                             <ChevronRightIcon className="h-5 w-5" />
                         </button>
 
-                        <AnimatePresence mode="wait">
+                        <AnimatePresence mode="wait" custom={direction}>
                             <motion.div
                                 key={currentProduct.id}
-                                initial={{ opacity: 0, y: 18 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -18 }}
+                                custom={direction}
+                                initial={{ opacity: 0, x: direction * 80 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: direction * -80 }}
                                 transition={{ duration: transitionDuration, ease: transitionEase }}
                                 className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center"
                             >
