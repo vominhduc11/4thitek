@@ -48,25 +48,14 @@ function ProductImageWithFallback({ src, alt, className }: ProductImageWithFallb
     );
 }
 
-interface BreadcrumbItem {
-    label: string;
-    section: string;
-}
-
 interface ProductHeroProps {
     product: Product;
     relatedProducts?: Product[];
-    breadcrumbItems?: BreadcrumbItem[];
-    activeBreadcrumb?: string;
-    onBreadcrumbClick?: (item: BreadcrumbItem) => void;
 }
 
 export default function ProductHero({
     product,
-    relatedProducts = [],
-    breadcrumbItems = [],
-    activeBreadcrumb = '',
-    onBreadcrumbClick = () => {}
+    relatedProducts = []
 }: ProductHeroProps) {
     const { t } = useLanguage();
     const [isShuffling, setIsShuffling] = useState(false);
