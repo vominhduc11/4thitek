@@ -48,14 +48,25 @@ function ProductImageWithFallback({ src, alt, className }: ProductImageWithFallb
     );
 }
 
+interface BreadcrumbItem {
+    label: string;
+    section: string;
+}
+
 interface ProductHeroProps {
     product: Product;
     relatedProducts?: Product[];
+    breadcrumbItems?: BreadcrumbItem[];
+    activeBreadcrumb?: string;
+    onBreadcrumbClick?: (item: BreadcrumbItem) => void;
 }
 
 export default function ProductHero({
     product,
-    relatedProducts = []
+    relatedProducts = [],
+    breadcrumbItems = [],
+    activeBreadcrumb = '',
+    onBreadcrumbClick = () => {}
 }: ProductHeroProps) {
     const { t } = useLanguage();
     const [isShuffling, setIsShuffling] = useState(false);
@@ -107,7 +118,7 @@ export default function ProductHero({
 
                 {/* Edge gradient vignettes — simplified (2 divs not 10) */}
                 <div className="absolute inset-x-0 top-0 z-10 h-40 bg-gradient-to-b from-black to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 z-10 h-56 bg-gradient-to-t from-[#0c131d] via-[#0c131d]/80 to-transparent md:h-80 lg:h-[420px]" />
+                <div className="absolute inset-x-0 bottom-0 z-10 h-56 bg-gradient-to-t from-[#0c131d] to-[#0c131d]/0 md:h-80 lg:h-[420px]" />
                 <div className="absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-black to-transparent" style={{ clipPath: 'ellipse(100% 70% at 0% 50%)' }} />
                 <div className="absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-black to-transparent" style={{ clipPath: 'ellipse(100% 70% at 100% 50%)' }} />
             </div>
@@ -191,7 +202,82 @@ export default function ProductHero({
                 </div>
             </div>
 
-            {/* Breadcrumb nav moved to ProductPageClient sticky bar — was always hidden here due to z-30 content section */}
+            {/* Hero breadcrumb — bottom of hero, md+ only */}
+            {breadcrumbItems.length > 0 && (
+                <motion.div
+                    id="hero-breadcrumb"
+                    className="absolute bottom-20 left-0 right-0 z-20 hidden md:block md:bottom-28 lg:bottom-36 xl:bottom-44"
+                    initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 1.2, ease: 'easeOut', delay: 0.8 }}
+                >
+                    <div className="relative mx-auto max-w-[1800px] px-4">
+                        {/* Left decorative line */}
+                        <motion.div
+                            className="absolute top-1/2 left-4 h-px"
+                            initial={{ scaleX: 0, opacity: 0 }}
+                            animate={{ scaleX: 1, opacity: 1 }}
+                            transition={{ duration: 1.5, ease: 'easeOut', delay: 1.2 }}
+                            style={{
+                                width: 'calc(50% - clamp(260px, 32vw, 520px))',
+                                background: 'linear-gradient(to right, transparent, rgba(79,200,255,0.6))',
+                                transformOrigin: 'right center'
+                            }}
+                        />
+                        {/* Right decorative line */}
+                        <motion.div
+                            className="absolute top-1/2 right-4 h-px"
+                            initial={{ scaleX: 0, opacity: 0 }}
+                            animate={{ scaleX: 1, opacity: 1 }}
+                            transition={{ duration: 1.5, ease: 'easeOut', delay: 1.2 }}
+                            style={{
+                                width: 'calc(50% - clamp(260px, 32vw, 520px))',
+                                background: 'linear-gradient(to left, transparent, rgba(79,200,255,0.6))',
+                                transformOrigin: 'left center'
+                            }}
+                        />
+                        <motion.nav
+                            className="relative z-20 flex items-center justify-center gap-1 md:gap-2"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, ease: 'easeOut', delay: 1.4 }}
+                        >
+                            {breadcrumbItems.map((item, index) => (
+                                <motion.div
+                                    key={item.label}
+                                    className="flex items-center"
+                                    initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    transition={{ duration: 0.6, ease: 'easeOut', delay: 1.6 + index * 0.1 }}
+                                >
+                                    <motion.button
+                                        onClick={() => onBreadcrumbClick(item)}
+                                        className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200 md:px-4 md:py-2 md:text-base ${
+                                            activeBreadcrumb === item.label
+                                                ? 'text-cyan-400'
+                                                : 'text-gray-400 hover:text-white'
+                                        }`}
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                    >
+                                        {item.label}
+                                    </motion.button>
+                                    {index < breadcrumbItems.length - 1 && (
+                                        <motion.span
+                                            className="text-gray-600 text-xs select-none"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ delay: 1.8 + index * 0.1 }}
+                                        >
+                                            /
+                                        </motion.span>
+                                    )}
+                                </motion.div>
+                            ))}
+                        </motion.nav>
+                    </div>
+                </motion.div>
+            )}
         </motion.section>
     );
 }

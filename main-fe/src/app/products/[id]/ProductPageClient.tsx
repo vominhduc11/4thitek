@@ -239,6 +239,9 @@ export default function ProductPageClient({
                 <ProductHero
                     product={product}
                     relatedProducts={relatedProducts}
+                    breadcrumbItems={breadcrumbItems}
+                    activeBreadcrumb={activeBreadcrumb}
+                    onBreadcrumbClick={handleBreadcrumbClick}
                 />
             </AvoidSidebar>
 
