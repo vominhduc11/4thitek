@@ -55,16 +55,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
     const isProductDetail = /^\/products\/[^/]+/.test(pathname);
 
+    const effectiveScrollY = isProductDetail ? Math.max(scrollY, 320) : scrollY;
+
     const headerStyle = isHydrated
         ? {
-              backgroundColor: isProductDetail
-                  ? 'rgba(12,19,29,0.95)'
-                  : scrollY <= 0 ? 'transparent' : `rgba(12,19,29,${Math.min(scrollY / 400, 0.9)})`,
-              backdropFilter: (isProductDetail || scrollY > 20) ? `blur(${Math.min(Math.max(scrollY, 20) / 80, 10)}px)` : 'none',
-              borderBottom: isProductDetail
-                  ? '1px solid rgba(255,255,255,0.06)'
-                  : `1px solid rgba(255,255,255,${Math.min(scrollY / 200, 0.1)})`,
-              boxShadow: (isProductDetail || scrollY > 150) ? '0 4px 20px rgba(0,0,0,0.2)' : 'none'
+              backgroundColor: effectiveScrollY <= 0 ? 'transparent' : `rgba(12,19,29,${Math.min(effectiveScrollY / 400, 0.95)})`,
+              backdropFilter: effectiveScrollY > 20 ? `blur(${Math.min(effectiveScrollY / 80, 12)}px)` : 'none',
+              borderBottom: `1px solid rgba(255,255,255,${Math.min(effectiveScrollY / 200, 0.1)})`,
+              boxShadow: effectiveScrollY > 150 ? `0 4px 20px rgba(0,0,0,${Math.min(effectiveScrollY / 800, 0.25)})` : 'none'
           }
         : {
               backgroundColor: 'transparent',
