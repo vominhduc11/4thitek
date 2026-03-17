@@ -24,8 +24,6 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
     const [loading, setLoading] = useState(false);
     const [errorKey, setErrorKey] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [minPrice, setMinPrice] = useState('');
-    const [maxPrice, setMaxPrice] = useState('');
     const { t } = useLanguage();
     const activeRequestRef = useRef(0);
     const debouncedSearchQuery = useDebounce(searchQuery, 350);
@@ -37,14 +35,7 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
 
     useEffect(() => {
         const normalizedQuery = debouncedSearchQuery.trim();
-        const parsedMinPrice = minPrice.trim() ? Number(minPrice) : undefined;
-        const parsedMaxPrice = maxPrice.trim() ? Number(maxPrice) : undefined;
-        const safeMinPrice = parsedMinPrice !== undefined && Number.isFinite(parsedMinPrice) ? parsedMinPrice : undefined;
-        const safeMaxPrice = parsedMaxPrice !== undefined && Number.isFinite(parsedMaxPrice) ? parsedMaxPrice : undefined;
-        const hasFilters =
-            normalizedQuery.length > 0 ||
-            safeMinPrice !== undefined ||
-            safeMaxPrice !== undefined;
+        const hasFilters = normalizedQuery.length > 0;
 
         if (!hasFilters) {
             activeRequestRef.current += 1;
@@ -61,10 +52,7 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
         const fetchProducts = async () => {
             try {
                 setLoading(true);
-                const response = await apiService.searchProducts(normalizedQuery, 100, {
-                    minPrice: safeMinPrice,
-                    maxPrice: safeMaxPrice
-                }, controller.signal);
+                const response = await apiService.searchProducts(normalizedQuery, 100, {}, controller.signal);
 
                 if (activeRequestRef.current !== requestId || controller.signal.aborted) {
                     return;
@@ -94,9 +82,9 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
 
         void fetchProducts();
         return () => controller.abort();
-    }, [debouncedSearchQuery, initialProducts, maxPrice, minPrice]);
+    }, [debouncedSearchQuery, initialProducts]);
 
-    const hasActiveFilters = searchQuery.trim().length > 0 || minPrice.trim().length > 0 || maxPrice.trim().length > 0;
+    const hasActiveFilters = searchQuery.trim().length > 0;
 
     if (loading && products.length === 0) {
         return (
@@ -131,8 +119,6 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
                     setProducts(convertedProducts);
                     setErrorKey(null);
                     setSearchQuery('');
-                    setMinPrice('');
-                    setMaxPrice('');
                 });
             } catch (error) {
                 console.error('Retry failed:', error);
@@ -154,7 +140,9 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
                     animate={{ scale: 1 }}
                     transition={{ duration: 0.3 }}
                 >
-                    <div className="text-red-500 text-4xl mb-4">Warning</div>
+                    <svg className="mx-auto mb-4 h-12 w-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
                     <h3 className="text-lg font-semibold text-red-400 mb-2">{t('errors.products.loadFailed')}</h3>
                     <p className="text-gray-300 mb-6">{t(errorKey)}</p>
 
@@ -202,9 +190,9 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
             <section className="relative bg-transparent text-white pb-6">
                 <AvoidSidebar>
                     <div className="px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 flex justify-center">
-                        <div className="w-full max-w-6xl rounded-[28px] border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,8,23,0.22)] backdrop-blur md:p-6">
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-[1.6fr_0.8fr_0.8fr_auto]">
-                                <label className="block">
+                        <div className="w-full max-w-3xl rounded-[28px] border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,8,23,0.22)] backdrop-blur md:p-6">
+                            <div className="flex gap-4">
+                                <label className="block flex-1">
                                     <span className="mb-2 block text-xs uppercase tracking-[0.22em] text-slate-400">
                                         {t('common.search')}
                                     </span>
@@ -215,45 +203,17 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
                                         className="w-full rounded-2xl border border-white/10 bg-[#0c131d] px-4 py-3 text-white outline-none transition focus:border-cyan-400"
                                     />
                                 </label>
-                                <label className="block">
-                                    <span className="mb-2 block text-xs uppercase tracking-[0.22em] text-slate-400">
-                                        {t('products.filter.priceFrom')}
-                                    </span>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={minPrice}
-                                        onChange={(event) => setMinPrice(event.target.value)}
-                                        placeholder="0"
-                                        className="w-full rounded-2xl border border-white/10 bg-[#0c131d] px-4 py-3 text-white outline-none transition focus:border-cyan-400"
-                                    />
-                                </label>
-                                <label className="block">
-                                    <span className="mb-2 block text-xs uppercase tracking-[0.22em] text-slate-400">
-                                        {t('products.filter.priceTo')}
-                                    </span>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={maxPrice}
-                                        onChange={(event) => setMaxPrice(event.target.value)}
-                                        placeholder="0"
-                                        className="w-full rounded-2xl border border-white/10 bg-[#0c131d] px-4 py-3 text-white outline-none transition focus:border-cyan-400"
-                                    />
-                                </label>
-                                <div className="flex items-end">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setSearchQuery('');
-                                            setMinPrice('');
-                                            setMaxPrice('');
-                                        }}
-                                        className="w-full rounded-full border border-white/10 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-cyan-400 hover:text-cyan-200"
-                                    >
-                                        {t('products.filter.clearFilters')}
-                                    </button>
-                                </div>
+                                {hasActiveFilters && (
+                                    <div className="flex items-end">
+                                        <button
+                                            type="button"
+                                            onClick={() => setSearchQuery('')}
+                                            className="rounded-full border border-white/10 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-cyan-400 hover:text-cyan-200"
+                                        >
+                                            {t('products.filter.clearFilters')}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -272,7 +232,7 @@ export default function ProductsPageClient({ initialProducts }: ProductsPageClie
                             {hasActiveFilters && (
                                 <button
                                     type="button"
-                                    onClick={() => { setSearchQuery(''); setMinPrice(''); setMaxPrice(''); }}
+                                    onClick={() => setSearchQuery('')}
                                     className="rounded-full border border-cyan-400/30 px-5 py-2.5 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/10"
                                 >
                                     {t('products.filter.clearFilters')}

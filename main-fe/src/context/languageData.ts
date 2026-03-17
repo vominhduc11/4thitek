@@ -1788,7 +1788,10 @@ export const extraTranslations = {
                 mediaVideoTitle: 'Blog video',
                 noRelatedTitle: 'No related articles',
                 noRelatedBody: 'We could not find related articles right now.',
-                viewAll: 'View all articles'
+                viewAll: 'View all articles',
+                relatedPosts: 'Related Posts',
+                noRelated: 'No related articles at this time.',
+                viewAllProducts: 'View all products'
             },
             loadingTitle: 'Loading blog',
             loadingMessage: 'Fetching latest articles...'
@@ -2063,6 +2066,7 @@ export const extraTranslations = {
                 errorTitle: 'Unable to load product',
                 errorMessage: 'We could not load this product. Please try again.',
                 findRetailer: 'Find a Retailer',
+                requestQuote: 'Request a Quote',
                 loadingTitle: 'Loading product',
                 loadingMessage: 'Fetching product details...',
                 media: {
@@ -2302,6 +2306,11 @@ export const extraTranslations = {
                     message: 'Warranty expired on {date}.',
                     support: 'Contact support for service options.'
                 },
+                void: {
+                    title: 'Warranty Voided',
+                    description: 'This warranty has been voided and is no longer eligible for coverage.',
+                    contact: 'Contact support if you believe this is incorrect.'
+                },
                 sections: {
                     customerInfo: 'Customer Information',
                     productImage: 'Product Image',
@@ -2418,7 +2427,10 @@ export const extraTranslations = {
                 mediaVideoTitle: 'Video bài viết',
                 noRelatedTitle: 'Chưa có bài viết liên quan',
                 noRelatedBody: 'Không tìm thấy bài viết liên quan.',
-                viewAll: 'Xem tất cả bài viết'
+                viewAll: 'Xem tất cả bài viết',
+                relatedPosts: 'Bài viết liên quan',
+                noRelated: 'Chưa có bài viết liên quan.',
+                viewAllProducts: 'Xem tất cả sản phẩm'
             },
             loadingTitle: 'Đang tải blog',
             loadingMessage: 'Đang lấy các bài viết mới nhất...'
@@ -2693,6 +2705,7 @@ export const extraTranslations = {
                 errorTitle: 'Không thể tải sản phẩm',
                 errorMessage: 'Không thể tải sản phẩm này. Vui lòng thử lại.',
                 findRetailer: 'Tìm đại lý',
+                requestQuote: 'Liên hệ báo giá',
                 loadingTitle: 'Đang tải sản phẩm',
                 loadingMessage: 'Đang lấy thông tin sản phẩm...',
                 media: {
@@ -2931,6 +2944,11 @@ export const extraTranslations = {
                     title: 'Hết bảo hành',
                     message: 'Hết bảo hành vào ngày {date}.',
                     support: 'Liên hệ hỗ trợ để được tư vấn.'
+                },
+                void: {
+                    title: 'Bảo hành vô hiệu',
+                    description: 'Bảo hành này đã bị vô hiệu và không còn được áp dụng.',
+                    contact: 'Liên hệ hỗ trợ nếu bạn cho rằng đây là nhầm lẫn.'
                 },
                 sections: {
                     customerInfo: 'Thông tin khách hàng',

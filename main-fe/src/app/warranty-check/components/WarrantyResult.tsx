@@ -489,7 +489,7 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, errorInfo
                         transition={{ duration: 0.5, delay: 0.8 }}
                     >
                         <h3 className="font-semibold text-amber-400 mb-2">
-                            {locale === 'vi' ? 'Bao hanh vo hieu' : 'Warranty voided'}
+                            {t('warrantyCheck.result.void.title')}
                         </h3>
                         <motion.p
                             className="text-sm text-amber-300"
@@ -497,9 +497,7 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, errorInfo
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.5, delay: 0.9 }}
                         >
-                            {locale === 'vi'
-                                ? 'Bao hanh nay da bi vo hieu va khong con duoc ap dung.'
-                                : 'This warranty has been voided and is no longer eligible for coverage.'}
+                            {t('warrantyCheck.result.void.description')}
                         </motion.p>
                         <motion.p
                             className="text-sm text-amber-400 mt-2"
@@ -507,9 +505,7 @@ const WarrantyResult: React.FC<WarrantyResultProps> = ({ warrantyInfo, errorInfo
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.5, delay: 1.0 }}
                         >
-                            {locale === 'vi'
-                                ? 'Lien he ho tro neu ban can xac minh them.'
-                                : 'Contact support if you believe this is incorrect.'}
+                            {t('warrantyCheck.result.void.contact')}
                         </motion.p>
                     </motion.div>
                 )}

@@ -106,8 +106,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 </Link>
             </motion.div>
 
-            {/* Desktop nav — hidden on mobile, visible from lg breakpoint */}
-            <nav className="hidden lg:flex items-center gap-1" aria-label={t('nav.navigation')}>
+            {/* Desktop nav — hidden on mobile, visible from md breakpoint */}
+            <nav className="hidden md:flex items-center gap-1" aria-label={t('nav.navigation')}>
                 {NAV_LINKS.map(({ href, key }) => {
                     const isActive = pathname === href || pathname.startsWith(href + '/');
                     return (

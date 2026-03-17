@@ -114,6 +114,19 @@ export default function BlogDetailPageClient({ post, relatedPosts }: BlogDetailP
                                     )}
                                 </div>
                             </div>
+
+                            <div className="rounded-3xl border border-cyan-400/20 bg-cyan-400/5 p-5">
+                                <p className="text-sm font-semibold text-white mb-3">{t('blog.detail.viewAllProducts')}</p>
+                                <Link
+                                    href="/products"
+                                    className="flex items-center justify-between rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm font-medium text-cyan-300 transition hover:bg-cyan-400/20"
+                                >
+                                    <span>{t('blog.detail.viewAllProducts')}</span>
+                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </Link>
+                            </div>
                         </aside>
                     </div>
                 </div>

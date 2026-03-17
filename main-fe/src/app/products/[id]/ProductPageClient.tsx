@@ -205,29 +205,37 @@ export default function ProductPageClient({
                 transition={{ duration: 0.35, ease: 'easeOut' }}
             >
                 <AvoidSidebar>
-                    <nav
-                        className="flex items-center justify-center gap-1 px-4 py-2"
-                        aria-label={t('products.detail.selectSection')}
-                    >
-                        {breadcrumbItems.map((item, index) => (
-                            <div key={item.label} className="flex items-center">
-                                <button
-                                    type="button"
-                                    onClick={() => handleBreadcrumbClick(item)}
-                                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-200 ${
-                                        activeBreadcrumb === item.label
-                                            ? 'text-cyan-400'
-                                            : 'text-gray-400 hover:text-white'
-                                    }`}
-                                >
-                                    {item.label}
-                                </button>
-                                {index < breadcrumbItems.length - 1 && (
-                                    <span className="text-gray-700 text-xs select-none">/</span>
-                                )}
-                            </div>
-                        ))}
-                    </nav>
+                    <div className="flex items-center justify-between px-4 py-2">
+                        <nav
+                            className="flex items-center gap-1"
+                            aria-label={t('products.detail.selectSection')}
+                        >
+                            {breadcrumbItems.map((item, index) => (
+                                <div key={item.label} className="flex items-center">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleBreadcrumbClick(item)}
+                                        className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-200 ${
+                                            activeBreadcrumb === item.label
+                                                ? 'text-cyan-400'
+                                                : 'text-gray-400 hover:text-white'
+                                        }`}
+                                    >
+                                        {item.label}
+                                    </button>
+                                    {index < breadcrumbItems.length - 1 && (
+                                        <span className="text-gray-700 text-xs select-none">/</span>
+                                    )}
+                                </div>
+                            ))}
+                        </nav>
+                        <a
+                            href="/contact"
+                            className="rounded-full bg-cyan-400 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-950 transition hover:bg-cyan-300"
+                        >
+                            {t('products.detail.requestQuote')}
+                        </a>
+                    </div>
                 </AvoidSidebar>
             </motion.div>
 
