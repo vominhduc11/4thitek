@@ -191,12 +191,11 @@ export default function ProductPageClient({
                 />
             </AvoidSidebar>
 
-            {/* Mobile section selector (< md) — sticky after hero */}
+            {/* Mobile section selector (< md) */}
             <motion.div
-                className="sticky top-[68px] border-b border-gray-800/50 bg-[#0c131d]/95 py-3 backdrop-blur-sm md:hidden sm:top-[76px]"
+                className="fixed left-0 right-0 top-[68px] border-b border-gray-800/50 bg-[#0c131d]/95 py-3 backdrop-blur-sm md:hidden sm:top-[76px]"
                 style={{ zIndex: Z_INDEX.STICKY }}
-                initial={{ opacity: 0, y: -12 }}
-                animate={{ opacity: showStickyNav ? 1 : 0, y: showStickyNav ? 0 : -12, pointerEvents: showStickyNav ? 'auto' : 'none' }}
+                animate={{ opacity: showStickyNav ? 1 : 0, y: showStickyNav ? 0 : -8, pointerEvents: showStickyNav ? 'auto' : 'none' }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
             >
                 <AvoidSidebar>
@@ -225,11 +224,11 @@ export default function ProductPageClient({
                 </AvoidSidebar>
             </motion.div>
 
-            {/* Desktop section tab nav (md+) — sticky after hero */}
+            {/* Desktop section tab nav (md+) */}
             <motion.div
-                className="sticky top-[76px] hidden border-b border-gray-800/50 bg-[#0c131d]/95 backdrop-blur-sm md:block"
+                className="fixed left-0 right-0 top-[76px] hidden border-b border-gray-800/50 bg-[#0c131d]/95 backdrop-blur-sm md:block"
                 style={{ zIndex: Z_INDEX.STICKY }}
-                animate={{ opacity: showStickyNav ? 1 : 0, y: showStickyNav ? 0 : -12, pointerEvents: showStickyNav ? 'auto' : 'none' }}
+                animate={{ opacity: showStickyNav ? 1 : 0, y: showStickyNav ? 0 : -8, pointerEvents: showStickyNav ? 'auto' : 'none' }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
             >
                 <AvoidSidebar>
