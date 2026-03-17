@@ -164,9 +164,9 @@ export default function ProductPageClient({
 
     return (
         <div className="min-h-screen bg-[#0a0f1a] text-white">
-            {/* Mobile section selector */}
+            {/* Mobile section selector (< md) */}
             <motion.div
-                className="sticky top-[72px] z-[200] border-b border-gray-800/50 bg-[#0a0f1a]/95 py-3 backdrop-blur-sm md:hidden"
+                className="sticky top-[56px] z-[200] border-b border-gray-800/50 bg-[#0a0f1a]/95 py-3 backdrop-blur-sm md:hidden sm:top-[72px]"
                 initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
@@ -194,6 +194,40 @@ export default function ProductPageClient({
                             </svg>
                         </div>
                     </div>
+                </AvoidSidebar>
+            </motion.div>
+
+            {/* Desktop breadcrumb nav (md+) — sticky, always visible, replaces hero breadcrumb that was hidden behind content */}
+            <motion.div
+                className="sticky top-[72px] z-[200] hidden border-b border-gray-800/50 bg-[#0a0f1a]/95 backdrop-blur-sm md:block"
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+            >
+                <AvoidSidebar>
+                    <nav
+                        className="flex items-center justify-center gap-1 px-4 py-2"
+                        aria-label={t('products.detail.selectSection')}
+                    >
+                        {breadcrumbItems.map((item, index) => (
+                            <div key={item.label} className="flex items-center">
+                                <button
+                                    type="button"
+                                    onClick={() => handleBreadcrumbClick(item)}
+                                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-200 ${
+                                        activeBreadcrumb === item.label
+                                            ? 'text-cyan-400'
+                                            : 'text-gray-400 hover:text-white'
+                                    }`}
+                                >
+                                    {item.label}
+                                </button>
+                                {index < breadcrumbItems.length - 1 && (
+                                    <span className="text-gray-700 text-xs select-none">/</span>
+                                )}
+                            </div>
+                        ))}
+                    </nav>
                 </AvoidSidebar>
             </motion.div>
 

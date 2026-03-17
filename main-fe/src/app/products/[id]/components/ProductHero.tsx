@@ -199,46 +199,7 @@ export default function ProductHero({
                 </div>
             </div>
 
-            {/* Breadcrumb navigation — sticky React nav, md+ only */}
-            {breadcrumbItems.length > 0 && (
-                <motion.div
-                    id="hero-breadcrumb"
-                    className="absolute bottom-20 left-0 right-0 z-20 hidden md:block md:bottom-28 lg:bottom-36 xl:bottom-44"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 0.8 }}
-                >
-                    <div className="relative mx-auto max-w-4xl px-4">
-                        {/* Decorative lines */}
-                        <div className="absolute top-1/2 left-4 h-px -translate-y-1/2"
-                            style={{ width: 'calc(50% - 280px)', background: 'linear-gradient(to right, transparent, rgba(79,200,255,0.5))' }} />
-                        <div className="absolute top-1/2 right-4 h-px -translate-y-1/2"
-                            style={{ width: 'calc(50% - 280px)', background: 'linear-gradient(to left, transparent, rgba(79,200,255,0.5))' }} />
-
-                        <nav className="relative z-20 flex items-center justify-center gap-1 md:gap-2">
-                            {breadcrumbItems.map((item, index) => (
-                                <div key={item.label} className="flex items-center">
-                                    <motion.button
-                                        onClick={() => onBreadcrumbClick(item)}
-                                        className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors md:px-4 md:py-2 md:text-base ${
-                                            activeBreadcrumb === item.label
-                                                ? 'text-cyan-400'
-                                                : 'text-gray-400 hover:text-white'
-                                        }`}
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                    >
-                                        {item.label}
-                                    </motion.button>
-                                    {index < breadcrumbItems.length - 1 && (
-                                        <span className="text-gray-600 text-sm">/</span>
-                                    )}
-                                </div>
-                            ))}
-                        </nav>
-                    </div>
-                </motion.div>
-            )}
+            {/* Breadcrumb nav moved to ProductPageClient sticky bar — was always hidden here due to z-30 content section */}
         </motion.section>
     );
 }
