@@ -191,8 +191,8 @@ class ApiService {
         };
     }
 
-    async fetchHomepageProducts(): Promise<ApiResponse<ProductListResponse['data']>> {
-        const response = await this.request<ProductSummaryPayload[]>(API_ENDPOINTS.PRODUCT.PRODUCTS_HOMEPAGE, {
+    async fetchNewProducts(): Promise<ApiResponse<ProductListResponse['data']>> {
+        const response = await this.request<ProductSummaryPayload[]>(API_ENDPOINTS.PRODUCT.PRODUCTS_NEW, {
             revalidate: 3600
         });
         return {
@@ -252,8 +252,8 @@ class ApiService {
         return { success: true, data: related };
     }
 
-    async fetchHomepageBlogs(): Promise<ApiResponse<BlogListResponse['data']>> {
-        const response = await this.request<BlogSummaryPayload[]>(API_ENDPOINTS.BLOG.BLOGS_HOMEPAGE, {
+    async fetchLatestBlogs(): Promise<ApiResponse<BlogListResponse['data']>> {
+        const response = await this.request<BlogSummaryPayload[]>(API_ENDPOINTS.BLOG.BLOGS_LATEST, {
             revalidate: 1800
         });
         return {

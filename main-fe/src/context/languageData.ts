@@ -2027,12 +2027,12 @@ export const extraTranslations = {
             },
             showcase: {
                 categoryLabel: 'Category',
-                description: 'Explore standout models across our lineup.',
+                description: 'The newest SCS products, freshly released and ready for every ride.',
                 keyFeatures: 'Key Features',
                 ratingLabel: 'Rating',
-                titleHighlight: 'Showcase',
-                titlePrimary: 'Product',
-                viewAll: 'View all products',
+                titleHighlight: 'Arrivals',
+                titlePrimary: 'New',
+                viewAll: 'NEW ARRIVALS',
                 viewDetails: 'View details',
                 warrantyLabel: 'Warranty'
             },
@@ -2666,12 +2666,12 @@ export const extraTranslations = {
             },
             showcase: {
                 categoryLabel: 'Danh mục',
-                description: 'Khám phá các mẫu nổi bật trong danh mục của chúng tôi.',
+                description: 'Những sản phẩm SCS mới nhất vừa ra mắt, sẵn sàng đồng hành trên mọi hành trình.',
                 keyFeatures: 'Tính năng nổi bật',
                 ratingLabel: 'Đánh giá',
-                titleHighlight: 'Sản phẩm',
-                titlePrimary: 'Bộ sưu tập',
-                viewAll: 'Xem tất cả',
+                titleHighlight: 'Mới Ra Mắt',
+                titlePrimary: 'Sản Phẩm',
+                viewAll: 'SẢN PHẨM MỚI',
                 viewDetails: 'Xem chi tiết',
                 warrantyLabel: 'Bảo hành'
             },

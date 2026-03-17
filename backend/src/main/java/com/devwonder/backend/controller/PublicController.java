@@ -28,8 +28,8 @@ public class PublicController {
         return ResponseEntity.ok(ApiResponse.success(Map.of("status", "ok")));
     }
 
-    @GetMapping("/product/products/homepage")
-    public ResponseEntity<ApiResponse<List<PublicProductSummaryResponse>>> homepageProducts() {
+    @GetMapping("/product/products/new")
+    public ResponseEntity<ApiResponse<List<PublicProductSummaryResponse>>> newProducts() {
         return ResponseEntity.ok(ApiResponse.success(publicApiService.getHomepageProducts()));
     }
 

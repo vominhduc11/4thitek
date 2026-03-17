@@ -13,7 +13,7 @@ import {
   SlidersHorizontal,
   Trash2,
   Star,
-  Home,
+  Sparkles,
   X,
 } from 'lucide-react'
 import Modal, { type Styles } from 'react-modal'
@@ -1591,12 +1591,12 @@ function ProductsPage() {
                 )}
                 {product.showOnHomepage && (
                   <span
-                    aria-label={t('Trang chủ')}
+                    aria-label={t('Mới ra mắt')}
                     className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/15 text-blue-700"
                     role="img"
-                    title={t('Trang chủ')}
+                    title={t('Mới ra mắt')}
                   >
-                    <Home aria-hidden="true" className="h-3 w-3" />
+                    <Sparkles aria-hidden="true" className="h-3 w-3" />
                   </span>
                 )}
               </div>
@@ -1773,9 +1773,9 @@ function ProductsPage() {
                 value={filterHomepage}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterHomepage(e.target.value as HomepageFilter)}
               >
-                <option value="all">{t('Trang chủ: Tất cả')}</option>
-                <option value="homepage">{t('Trang chủ')}</option>
-                <option value="nonHomepage">{t('Không ở trang chủ')}</option>
+                <option value="all">{t('Mới ra mắt: Tất cả')}</option>
+                <option value="homepage">{t('Mới ra mắt')}</option>
+                <option value="nonHomepage">{t('Không phải mới')}</option>
               </select>
             </div>
           )}

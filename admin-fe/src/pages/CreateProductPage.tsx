@@ -1226,7 +1226,7 @@ function CreateProductPage() {
                         setNewProduct({ ...newProduct, showOnHomepage: e.target.checked })
                       }
                     />
-                    {t('Trang chủ')}
+                    {t('Mới ra mắt')}
                   </label>
                 </div>
               </div>

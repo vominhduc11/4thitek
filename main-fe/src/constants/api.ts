@@ -45,7 +45,7 @@ export const API_ENDPOINTS = {
     BLOG: {
         BASE: '/blog',
         BLOGS: '/blog/blogs',
-        BLOGS_HOMEPAGE: '/blog/blogs/homepage',
+        BLOGS_LATEST: '/blog/blogs/latest',
         BLOGS_SEARCH: '/blog/blogs/search',
         BLOGS_RELATED: (id: string) => `/blog/blogs/related/${id}`,
         BLOG_BY_ID: (id: string) => `/blog/${id}`,
@@ -57,7 +57,7 @@ export const API_ENDPOINTS = {
     PRODUCT: {
         BASE: '/product',
         PRODUCTS: '/product/products',
-        PRODUCTS_HOMEPAGE: '/product/products/homepage',
+        PRODUCTS_NEW: '/product/products/new',
         PRODUCTS_FEATURED: '/product/products/featured',
         PRODUCTS_SEARCH: '/product/products/search',
         PRODUCTS_RELATED: (id: string) => `/product/products/related/${id}`,

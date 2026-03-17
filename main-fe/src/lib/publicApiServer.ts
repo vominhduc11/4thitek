@@ -35,10 +35,10 @@ async function fetchEnvelope<T>(path: string, revalidate: number): Promise<Envel
 }
 
 export const publicApiServer = {
-    fetchHomepageProducts: () =>
+    fetchNewProducts: () =>
         fetchEnvelope<
             Array<{ id: number | string; name: string; sku?: string; shortDescription: string; image: string; price?: number }>
-        >(API_ENDPOINTS.PRODUCT.PRODUCTS_HOMEPAGE, 60),
+        >(API_ENDPOINTS.PRODUCT.PRODUCTS_NEW, 60),
     fetchFeaturedProducts: () =>
         fetchEnvelope<
             Array<{ id: number | string; name: string; sku?: string; shortDescription: string; image: string; price?: number }>
@@ -59,10 +59,10 @@ export const publicApiServer = {
             descriptions?: string;
             price?: number;
         }>(API_ENDPOINTS.PRODUCT.PRODUCT_BY_ID(id), 60),
-    fetchHomepageBlogs: () =>
+    fetchLatestBlogs: () =>
         fetchEnvelope<
             Array<{ id: number | string; title: string; description: string; image: string; category: string; createdAt: string }>
-        >(API_ENDPOINTS.BLOG.BLOGS_HOMEPAGE, 1800),
+        >(API_ENDPOINTS.BLOG.BLOGS_LATEST, 1800),
     fetchBlogs: () =>
         fetchEnvelope<Array<{ id: number | string; title: string; description: string; image: string; category: string; createdAt: string }>>(
             API_ENDPOINTS.BLOG.BLOGS,

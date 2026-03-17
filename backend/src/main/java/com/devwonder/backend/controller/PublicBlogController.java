@@ -21,8 +21,8 @@ public class PublicBlogController {
 
     private final PublicBlogService publicBlogService;
 
-    @GetMapping("/blogs/homepage")
-    public ResponseEntity<ApiResponse<List<PublicBlogSummaryResponse>>> homepage() {
+    @GetMapping("/blogs/latest")
+    public ResponseEntity<ApiResponse<List<PublicBlogSummaryResponse>>> latestBlogs() {
         return ResponseEntity.ok(ApiResponse.success(publicBlogService.getHomepageBlogs()));
     }
 

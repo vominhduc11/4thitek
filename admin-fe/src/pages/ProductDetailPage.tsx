@@ -998,7 +998,7 @@ function ProductDetailPage() {
                     )
                   }
                 }}
-                title={`${product.showOnHomepage ? t('Bỏ khỏi trang chủ') : t('Hiển thị trang chủ')} — ${t('Cập nhật ngay không cần lưu')}`}
+                title={`${product.showOnHomepage ? t('Bỏ khỏi mới ra mắt') : t('Đánh dấu mới ra mắt')} — ${t('Cập nhật ngay không cần lưu')}`}
                 className={
                   'inline-flex items-center gap-1 rounded-full px-3 py-1 font-semibold transition ' +
                   (product.showOnHomepage
@@ -1007,7 +1007,7 @@ function ProductDetailPage() {
                 }
               >
                 <CheckCircle className="h-3.5 w-3.5" />
-                {t('Trang chủ')}
+                {t('Mới ra mắt')}
               </button>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
