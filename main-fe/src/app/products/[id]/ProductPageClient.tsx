@@ -165,7 +165,18 @@ export default function ProductPageClient({
 
     return (
         <div className="min-h-screen bg-[#0c131d] text-white flex flex-col">
-            {/* Mobile section selector (< md) */}
+            {/* Hero first — no flow space consumed before it, video fills from top */}
+            <AvoidSidebar>
+                <ProductHero
+                    product={product}
+                    relatedProducts={relatedProducts}
+                    breadcrumbItems={breadcrumbItems}
+                    activeBreadcrumb={activeBreadcrumb}
+                    onBreadcrumbClick={handleBreadcrumbClick}
+                />
+            </AvoidSidebar>
+
+            {/* Mobile section selector (< md) — sticky after hero */}
             <motion.div
                 className="sticky top-[68px] border-b border-gray-800/50 bg-[#0c131d]/95 py-3 backdrop-blur-sm md:hidden sm:top-[76px]"
                 style={{ zIndex: Z_INDEX.STICKY }}
@@ -199,7 +210,7 @@ export default function ProductPageClient({
                 </AvoidSidebar>
             </motion.div>
 
-            {/* Desktop section tab nav (md+) — sticky, always visible */}
+            {/* Desktop section tab nav (md+) — sticky after hero */}
             <motion.div
                 className="sticky top-[76px] hidden border-b border-gray-800/50 bg-[#0c131d]/95 backdrop-blur-sm md:block"
                 style={{ zIndex: Z_INDEX.STICKY }}
@@ -233,17 +244,6 @@ export default function ProductPageClient({
                     </nav>
                 </AvoidSidebar>
             </motion.div>
-
-            {/* Hero — full bleed, AvoidSidebar handled inside ProductHero via its own wrapping */}
-            <AvoidSidebar>
-                <ProductHero
-                    product={product}
-                    relatedProducts={relatedProducts}
-                    breadcrumbItems={breadcrumbItems}
-                    activeBreadcrumb={activeBreadcrumb}
-                    onBreadcrumbClick={handleBreadcrumbClick}
-                />
-            </AvoidSidebar>
 
             {/* Section content + related products */}
             <AvoidSidebar>
