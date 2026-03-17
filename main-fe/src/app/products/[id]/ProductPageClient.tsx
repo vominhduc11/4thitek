@@ -1,6 +1,6 @@
 'use client';
 
-import { startTransition, useMemo, useState } from 'react';
+import { startTransition, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import ProductDetails from '@/app/products/[id]/components/ProductDetails';
 import ProductHero from '@/app/products/[id]/components/ProductHero';
@@ -78,6 +78,21 @@ export default function ProductPageClient({
 
     const [activeBreadcrumb, setActiveBreadcrumb] = useState(breadcrumbItems[0]?.label || '');
     const [currentSection, setCurrentSection] = useState('details');
+    const [showStickyNav, setShowStickyNav] = useState(false);
+
+    useEffect(() => {
+        const el = document.getElementById('hero-breadcrumb');
+        if (!el) {
+            setShowStickyNav(true);
+            return;
+        }
+        const observer = new IntersectionObserver(
+            ([entry]) => setShowStickyNav(!entry.isIntersecting),
+            { threshold: 0 }
+        );
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
 
     const renderSectionContent = () => {
         switch (currentSection) {
@@ -181,8 +196,8 @@ export default function ProductPageClient({
                 className="sticky top-[68px] border-b border-gray-800/50 bg-[#0c131d]/95 py-3 backdrop-blur-sm md:hidden sm:top-[76px]"
                 style={{ zIndex: Z_INDEX.STICKY }}
                 initial={{ opacity: 0, y: -12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, ease: 'easeOut' }}
+                animate={{ opacity: showStickyNav ? 1 : 0, y: showStickyNav ? 0 : -12, pointerEvents: showStickyNav ? 'auto' : 'none' }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
             >
                 <AvoidSidebar>
                     <div className="relative px-4">
@@ -214,9 +229,8 @@ export default function ProductPageClient({
             <motion.div
                 className="sticky top-[76px] hidden border-b border-gray-800/50 bg-[#0c131d]/95 backdrop-blur-sm md:block"
                 style={{ zIndex: Z_INDEX.STICKY }}
-                initial={{ opacity: 0, y: -12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, ease: 'easeOut' }}
+                animate={{ opacity: showStickyNav ? 1 : 0, y: showStickyNav ? 0 : -12, pointerEvents: showStickyNav ? 'auto' : 'none' }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
             >
                 <AvoidSidebar>
                     <nav
