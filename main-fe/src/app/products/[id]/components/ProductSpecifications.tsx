@@ -26,7 +26,7 @@ export default function ProductSpecifications({ specifications = [] }: ProductSp
     const finalSpecs = displaySpecs;
 
     return (
-        <section id="product-details" className="relative bg-[#0c131d] py-10 md:py-14">
+        <section id="product-details" className="relative py-10 md:py-14">
             {/* Brand dot-grid texture */}
             <div className="absolute inset-0 bg-dot-grid opacity-20 pointer-events-none" />
             <div className="relative z-10 mx-auto max-w-[1800px] px-4">

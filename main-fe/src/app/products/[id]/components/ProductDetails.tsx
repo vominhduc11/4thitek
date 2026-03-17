@@ -286,7 +286,7 @@ export default function ProductDetails({ description, content, descriptions }: P
     const hasDescriptionText = Boolean(description && description.trim());
 
     return (
-        <section className="relative min-h-screen bg-[#0c131d] bg-grain">
+        <section className="relative min-h-screen">
             {/* Brand dot-grid texture */}
             <div className="absolute inset-0 bg-dot-grid opacity-15 pointer-events-none" />
             <div className="relative z-10 mx-auto max-w-[1800px] px-4 py-8 pb-4">

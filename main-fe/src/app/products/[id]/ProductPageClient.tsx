@@ -168,13 +168,19 @@ export default function ProductPageClient({
     };
 
     const handleBreadcrumbClick = (item: { label: string; section: string }) => {
-        if (activeBreadcrumb === item.label) {
-            return;
+        if (activeBreadcrumb !== item.label) {
+            setActiveBreadcrumb(item.label);
+            startTransition(() => {
+                setCurrentSection(item.section);
+            });
         }
 
-        setActiveBreadcrumb(item.label);
-        startTransition(() => {
-            setCurrentSection(item.section);
+        requestAnimationFrame(() => {
+            const el = document.getElementById('product-details');
+            if (!el) return;
+            const navOffset = showStickyNav ? 76 + 44 : 76;
+            const top = el.getBoundingClientRect().top + window.scrollY - navOffset;
+            window.scrollTo({ top, behavior: 'smooth' });
         });
     };
 
