@@ -171,7 +171,7 @@ export default function ProductHero({
                     </div>
 
                     {/* Action buttons */}
-                    <div className="flex items-center justify-center gap-3">
+                    <div className="flex items-center justify-between w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl">
                         <motion.button
                             onClick={handleShuffleProduct}
                             disabled={isShuffling}
