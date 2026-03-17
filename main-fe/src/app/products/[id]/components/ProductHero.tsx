@@ -206,7 +206,7 @@ export default function ProductHero({
             {breadcrumbItems.length > 0 && (
                 <motion.div
                     id="hero-breadcrumb"
-                    className="absolute bottom-20 left-0 right-0 z-20 hidden md:block md:bottom-28 lg:bottom-36 xl:bottom-44"
+                    className="absolute bottom-28 left-0 right-0 z-20 hidden md:block md:bottom-36 lg:bottom-48 xl:bottom-60 2xl:bottom-72"
                     initial={{ opacity: 0, y: 30, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ duration: 1.2, ease: 'easeOut', delay: 0.8 }}
