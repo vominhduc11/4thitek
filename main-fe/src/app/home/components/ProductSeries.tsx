@@ -57,7 +57,7 @@ export default function ProductSeries({ initialProducts = [] }: ProductSeriesPro
                         ) : (
                             <>
                                 <motion.div
-                                    className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-16"
+                                    className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-16"
                                     initial={{ opacity: 0, y: 20 }}
                                     whileInView={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.6, delay: 0.2 }}

@@ -59,7 +59,7 @@ export default function BrandValues() {
                     </motion.div>
 
                     {/* Value cards */}
-                    <div className="mx-auto mb-14 grid max-w-5xl gap-5 sm:grid-cols-3">
+                    <div className="mx-auto mb-14 grid max-w-5xl gap-5 sm:grid-cols-2 md:grid-cols-3">
                         {ITEMS.map(({ icon: Icon, key }, index) => (
                             <motion.div
                                 key={key}
