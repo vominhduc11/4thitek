@@ -53,12 +53,18 @@ export default function Header({ onMenuClick }: HeaderProps) {
         }
     }, []);
 
+    const isProductDetail = /^\/products\/[^/]+/.test(pathname);
+
     const headerStyle = isHydrated
         ? {
-              backgroundColor: scrollY <= 0 ? 'transparent' : `rgba(12,19,29,${Math.min(scrollY / 400, 0.9)})`,
-              backdropFilter: scrollY > 20 ? `blur(${Math.min(scrollY / 80, 10)}px)` : 'none',
-              borderBottom: `1px solid rgba(255,255,255,${Math.min(scrollY / 200, 0.1)})`,
-              boxShadow: scrollY > 150 ? '0 4px 20px rgba(0,0,0,0.2)' : 'none'
+              backgroundColor: isProductDetail
+                  ? 'rgba(12,19,29,0.95)'
+                  : scrollY <= 0 ? 'transparent' : `rgba(12,19,29,${Math.min(scrollY / 400, 0.9)})`,
+              backdropFilter: (isProductDetail || scrollY > 20) ? `blur(${Math.min(Math.max(scrollY, 20) / 80, 10)}px)` : 'none',
+              borderBottom: isProductDetail
+                  ? '1px solid rgba(255,255,255,0.06)'
+                  : `1px solid rgba(255,255,255,${Math.min(scrollY / 200, 0.1)})`,
+              boxShadow: (isProductDetail || scrollY > 150) ? '0 4px 20px rgba(0,0,0,0.2)' : 'none'
           }
         : {
               backgroundColor: 'transparent',
