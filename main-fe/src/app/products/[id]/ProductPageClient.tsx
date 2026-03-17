@@ -10,6 +10,7 @@ import ProductWarranty from '@/app/products/[id]/components/ProductWarranty';
 import RelatedProducts from '@/app/products/[id]/components/RelatedProducts';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { useLanguage } from '@/context/LanguageContext';
+import { Z_INDEX } from '@/constants/zIndex';
 import { mapProductDetailToViewModel, mapProductSummaryToProductCard } from '@/lib/contentMappers';
 
 interface ProductPageClientProps {
@@ -166,7 +167,8 @@ export default function ProductPageClient({
         <div className="min-h-screen bg-[#0c131d] text-white flex flex-col">
             {/* Mobile section selector (< md) */}
             <motion.div
-                className="sticky top-[56px] z-[200] border-b border-gray-800/50 bg-[#0c131d]/95 py-3 backdrop-blur-sm md:hidden sm:top-[72px]"
+                className="sticky top-[56px] border-b border-gray-800/50 bg-[#0c131d]/95 py-3 backdrop-blur-sm md:hidden sm:top-[72px]"
+                style={{ zIndex: Z_INDEX.STICKY }}
                 initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
@@ -199,7 +201,8 @@ export default function ProductPageClient({
 
             {/* Desktop breadcrumb nav (md+) — sticky, always visible, replaces hero breadcrumb that was hidden behind content */}
             <motion.div
-                className="sticky top-[72px] z-[200] hidden border-b border-gray-800/50 bg-[#0c131d]/95 backdrop-blur-sm md:block"
+                className="sticky top-[72px] hidden border-b border-gray-800/50 bg-[#0c131d]/95 backdrop-blur-sm md:block"
+                style={{ zIndex: Z_INDEX.STICKY }}
                 initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}

@@ -63,12 +63,12 @@ export default function ProductDetails({ description, content, descriptions }: P
             case 'list_text':
                 return (
                     <div key={index} className="text-justify">
-                        <ul className="space-y-3 2xl:space-y-4 3xl:space-y-5 4xl:space-y-6 5xl:space-y-8 list-disc list-inside text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl 5xl:text-5xl leading-relaxed">
+                        <ul className="space-y-3 2xl:space-y-4 3xl:space-y-5 4xl:space-y-6 5xl:space-y-8 list-disc list-inside text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 3xl:text-3xl 4xl:text-4xl 5xl:text-5xl leading-relaxed">
                             {item.content
                                 ?.split('\n')
                                 .filter((line) => line.trim())
                                 .map((line, lineIndex) => (
-                                    <li key={lineIndex} className="pl-2 2xl:pl-3 3xl:pl-4 4xl:pl-5 5xl:pl-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl 5xl:text-5xl">
+                                    <li key={lineIndex} className="pl-2 2xl:pl-3 3xl:pl-4 4xl:pl-5 5xl:pl-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 3xl:text-3xl 4xl:text-4xl 5xl:text-5xl">
                                         {line.trim()}
                                     </li>
                                 ))}
@@ -136,7 +136,7 @@ export default function ProductDetails({ description, content, descriptions }: P
             case 'text':
                 return (
                     <div key={index} className="text-justify">
-                        <p className="text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl leading-relaxed">{item.content}</p>
+                        <p className="text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 3xl:text-3xl 4xl:text-4xl leading-relaxed">{item.content}</p>
                     </div>
                 );
             case 'video':
@@ -184,7 +184,7 @@ export default function ProductDetails({ description, content, descriptions }: P
                 return (
                     <div key={index} className="text-justify">
                         <div
-                            className="description-content text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl leading-relaxed"
+                            className="description-content text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 3xl:text-3xl 4xl:text-4xl leading-relaxed"
                             dangerouslySetInnerHTML={{ __html: sanitizeHtml(typedItem.text || '') }}
                         />
                     </div>
@@ -286,10 +286,10 @@ export default function ProductDetails({ description, content, descriptions }: P
     const hasDescriptionText = Boolean(description && description.trim());
 
     return (
-        <section className="relative z-[150] min-h-screen bg-[#0a0f1a] bg-grain">
+        <section className="relative min-h-screen bg-[#0c131d] bg-grain">
             {/* Brand dot-grid texture */}
             <div className="absolute inset-0 bg-dot-grid opacity-15 pointer-events-none" />
-            <div className="relative z-[200] mx-auto max-w-[1800px] px-4 py-8 pb-4">
+            <div className="relative z-10 mx-auto max-w-[1800px] px-4 py-8 pb-4">
 
 
                 <div className="mb-10 md:mb-14">
@@ -300,7 +300,7 @@ export default function ProductDetails({ description, content, descriptions }: P
                             content.map((item, index) => renderContent(item, index))
                         ) : hasDescriptionText ? (
                             <div className="w-full bg-gray-900/50 rounded-2xl border border-gray-700/50 p-6">
-                                <p className="text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-xl 3xl:text-3xl 4xl:text-4xl leading-relaxed text-justify">
+                                <p className="text-gray-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 3xl:text-3xl 4xl:text-4xl leading-relaxed text-justify">
                                     {description}
                                 </p>
                                 <p className="text-gray-500 text-xs sm:text-sm mt-3">

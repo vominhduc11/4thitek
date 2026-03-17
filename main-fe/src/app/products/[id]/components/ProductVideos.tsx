@@ -22,8 +22,8 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
 
     if (videos.length === 0) {
         return (
-            <section id="product-details" className="relative z-[60] min-h-screen">
-                <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-[70]">
+            <section id="product-details" className="relative min-h-screen">
+                <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-10">
                     <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-4xl 3xl:text-6xl 4xl:text-7xl font-bold mb-6 md:mb-8 text-white">
                         {t('products.videos.title')}
                     </h2>
@@ -43,8 +43,8 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
     const featuredVideo = videos[0];
 
     return (
-        <section id="product-details" className="relative z-[60] min-h-screen">
-            <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-[70]">
+        <section id="product-details" className="relative min-h-screen">
+            <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-10">
                 <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-4xl 3xl:text-6xl 4xl:text-7xl font-bold mb-6 md:mb-8 text-white">
                     {t('products.videos.title')}
                 </h2>

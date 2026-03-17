@@ -90,14 +90,17 @@ export default function ProductHero({
                     loop
                     playsInline
                     preload="none"
-                    className="w-full h-full object-cover"
+                    className="hidden sm:block w-full h-full object-cover"
                     onCanPlay={() => videoRef.current?.play().catch(() => {})}
                 >
                     <source src="/videos/futuristic-background-2022-08-04-19-57-56-utc.mp4" type="video/mp4" />
                 </video>
 
-                {/* Fallback gradient */}
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-purple-900/20 to-black" />
+                {/* Mobile gradient background */}
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(79,200,255,0.22),_transparent_45%),linear-gradient(180deg,_#0c131d_0%,_#07101a_55%,_#03070d_100%)] sm:hidden" />
+
+                {/* Fallback gradient (desktop) */}
+                <div className="absolute inset-0 hidden sm:block bg-gradient-to-br from-blue-900/20 via-purple-900/20 to-black" />
 
                 {/* Dark overlay */}
                 <div className="absolute inset-0 bg-black/30" />

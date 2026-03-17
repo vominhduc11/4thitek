@@ -15,8 +15,8 @@ export default function ProductWarranty() {
         { badge: 'text-orange-400', bg: 'bg-orange-500/20' }
     ];
     return (
-        <section id="product-details" className="relative z-[60] min-h-screen">
-            <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-[70]">
+        <section id="product-details" className="relative min-h-screen">
+            <div className="container mx-auto max-w-[1800px] px-4 relative py-4 pb-2 pt-8 sm:-mt-8 md:-mt-8 z-10">
                 <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-4xl 3xl:text-6xl 4xl:text-7xl font-bold mb-6 md:mb-8 text-white">
                     {t('products.warranty.title')}
                 </h2>
@@ -30,7 +30,7 @@ export default function ProductWarranty() {
                         <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl 2xl:text-3xl 3xl:text-5xl 4xl:text-6xl font-bold text-white mb-2">
                             {t('products.warranty.overview.title')}
                         </h3>
-                        <p className="text-gray-300 text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 2xl:text-lg 3xl:text-3xl 4xl:text-4xl">
+                        <p className="text-gray-300 text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl 3xl:text-3xl 4xl:text-4xl">
                             {t('products.warranty.overview.description')}
                         </p>
                     </div>

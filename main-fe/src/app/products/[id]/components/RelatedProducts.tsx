@@ -15,7 +15,7 @@ export default function RelatedProducts({ products }: RelatedProductsProps) {
     const { t } = useLanguage();
 
     return (
-        <section className="bg-[#0a0f1a] py-12 md:py-16">
+        <section className="bg-[#0c131d] py-12 md:py-16">
             <div className="mx-auto max-w-[1800px] px-4">
                 <h2 className="mb-10 text-center text-xl font-bold text-white md:text-2xl lg:text-3xl xl:text-4xl">
                     {t('products.detail.relatedProducts')}
