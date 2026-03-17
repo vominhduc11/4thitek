@@ -130,7 +130,7 @@ export default function FeaturedProductsCarousel({
                     </div>
 
                     <div
-                        className="relative overflow-hidden rounded-[32px] border border-white/10 bg-black/25 p-6 backdrop-blur"
+                        className="group relative overflow-hidden rounded-[32px] border border-white/10 bg-black/25 p-6 backdrop-blur"
                         onTouchStart={(event) => {
                             setTouchEnd(null);
                             setTouchStart(event.targetTouches[0].clientX);
@@ -166,13 +166,13 @@ export default function FeaturedProductsCarousel({
                                 transition={{ duration: transitionDuration, ease: transitionEase }}
                                 className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center"
                             >
-                                <div className="relative mx-auto aspect-[4/3] w-full max-w-2xl overflow-hidden rounded-3xl bg-gradient-to-br from-white/10 to-white/5 p-6">
+                                <div className="relative mx-auto aspect-[4/3] w-full max-w-2xl overflow-hidden rounded-3xl bg-gradient-to-br from-white/10 to-white/5 p-6 transition-all duration-500 group-hover:scale-[1.03] group-hover:-translate-y-2 group-hover:shadow-[0_20px_50px_rgba(79,200,255,0.2)]">
                                     {currentProduct.image ? (
                                         <Image
                                             src={currentProduct.image}
                                             alt={currentProduct.name}
                                             fill
-                                            className="object-contain p-8"
+                                            className="object-contain p-8 transition-transform duration-700 group-hover:scale-110"
                                             sizes="(max-width: 1024px) 100vw, 50vw"
                                             priority={currentIndex === 0}
                                         />

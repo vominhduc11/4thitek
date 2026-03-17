@@ -38,6 +38,13 @@ const makeProductVariants = (animate: boolean): Variants => ({
         transition: animate
             ? { duration: 0.8, delay: 0.3, type: 'spring', stiffness: 90, damping: 14 }
             : { duration: 0.4 }
+    },
+    hover: {
+        scale: 1.06,
+        y: -15,
+        rotate: 1.5,
+        filter: 'brightness(1.1) drop-shadow(0 25px 35px rgba(79,200,255,0.3))',
+        transition: { duration: 0.4, ease: 'easeOut' }
     }
 });
 
@@ -79,7 +86,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
 
     return (
         <section
-            className="relative h-[clamp(28rem,72vw,75rem)] w-full overflow-hidden"
+            className="relative h-[clamp(28rem,72vw,100vh)] w-full overflow-hidden"
             aria-label={t('hero.ariaLabel').replace('{product}', displayName)}
         >
             {/* Background video (desktop) */}
@@ -92,7 +99,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
             />
 
             {/* Mobile gradient background */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(79,200,255,0.22),_transparent_45%),linear-gradient(180deg,_#0c131d_0%,_#07101a_55%,_#03070d_100%)] sm:hidden" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(79,200,255,0.22),_transparent_45%),linear-gradient(180deg,_#0c131d_0%,_#07101a_55%,_#03070d_100%)] sm:hidden bg-topo opacity-40" />
 
             {/* Dark overlay */}
             <motion.div
@@ -106,8 +113,11 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
             <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0c131d] to-transparent pointer-events-none z-10" />
 
             {/* ── Sound wave decoration — brand identity: audio communication ── */}
-            <div className="absolute bottom-[18%] right-6 z-10 hidden sm:block pointer-events-none" aria-hidden="true">
-                <svg width="260" height="56" viewBox="0 0 260 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <div className="absolute bottom-[15%] right-4 z-10 sm:right-6 pointer-events-none" aria-hidden="true">
+                <svg 
+                    width="260" height="56" viewBox="0 0 260 56" fill="none" xmlns="http://www.w3.org/2000/svg"
+                    className="w-[120px] h-auto sm:w-[200px] md:w-[260px] opacity-60 sm:opacity-100"
+                >
                     {/* Three layered sine waves, each with different amplitude — suggests audio frequency */}
                     <path
                         d="M0,28 C16,28 16,8 32,8 C48,8 48,48 64,48 C80,48 80,8 96,8 C112,8 112,48 128,48 C144,48 144,8 160,8 C176,8 176,48 192,48 C208,48 208,8 224,8 C240,8 240,48 260,48"
@@ -133,11 +143,11 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
 
             {/* ── Signal / Bluetooth connectivity rings around product ── */}
             {enableInfiniteAnimations && (
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none hidden md:block" aria-hidden="true">
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none hidden sm:block" aria-hidden="true">
                     <div className="relative flex items-center justify-center">
-                        <div className="absolute h-64 w-64 rounded-full border border-cyan-400/20 animate-signal-ring" />
-                        <div className="absolute h-64 w-64 rounded-full border border-cyan-400/20 animate-signal-ring-2" />
-                        <div className="absolute h-64 w-64 rounded-full border border-cyan-400/15 animate-signal-ring-3" />
+                        <div className="absolute h-[30vh] w-[30vh] min-h-[200px] min-w-[200px] rounded-full border border-cyan-400/20 animate-signal-ring group-hover:border-cyan-400/50 transition-colors duration-500" />
+                        <div className="absolute h-[30vh] w-[30vh] min-h-[200px] min-w-[200px] rounded-full border border-cyan-400/20 animate-signal-ring-2 group-hover:border-cyan-400/50 transition-colors duration-500" />
+                        <div className="absolute h-[30vh] w-[30vh] min-h-[200px] min-w-[200px] rounded-full border border-cyan-400/15 animate-signal-ring-3 group-hover:border-cyan-400/40 transition-colors duration-500" />
                     </div>
                 </div>
             )}
@@ -147,23 +157,26 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
 
                 {/* Title */}
                 <motion.h1
-                    className="w-full text-center sm:text-left text-2xl leading-tight text-white xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl"
+                    className="w-full text-center sm:text-left text-2xl leading-tight text-white xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl cursor-pointer hover:text-[#4FC8FF] transition-colors duration-300"
                     variants={titleVariants} initial="hidden" animate="visible"
                     title={displayName}
+                    onClick={() => product?.id ? router.push(`/products/${product.id}`) : router.push('/products')}
                 >
                     {displayName}
                 </motion.h1>
 
                 {/* Product image */}
                 <motion.div
-                    className="flex flex-1 items-center justify-center py-4 w-full"
+                    className="flex flex-1 items-center justify-center py-4 w-full cursor-pointer relative group"
                     variants={productVariants} initial="hidden" animate="visible"
+                    whileHover="hover"
+                    onClick={() => product?.id ? router.push(`/products/${product.id}`) : router.push('/products')}
                 >
                     {displayImage ? (
                         <Image
                             src={displayImage} alt={displayName}
                             width={384} height={216}
-                            className="max-h-[160px] xs:max-h-[200px] sm:max-h-[260px] md:max-h-[320px] lg:max-h-[380px] xl:max-h-[460px] 2xl:max-h-[540px] w-auto object-contain drop-shadow-2xl"
+                            className="max-h-[20vh] xs:max-h-[25vh] sm:max-h-[30vh] md:max-h-[35vh] lg:max-h-[40vh] xl:max-h-[45vh] 2xl:max-h-[50vh] w-auto object-contain drop-shadow-2xl"
                             priority
                         />
                     ) : (

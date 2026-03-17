@@ -19,17 +19,17 @@ export default function BrandValues() {
 
     return (
         <AvoidSidebar>
-            <section className="relative overflow-hidden bg-gradient-to-b from-[#060d16] to-[#001A35] py-16 sm:py-20 md:py-24 bg-grain" aria-labelledby="brand-values-heading">
+            <section className="group relative overflow-hidden bg-gradient-to-b from-[#060d16] to-[#001A35] py-16 sm:py-20 md:py-24 bg-grain" aria-labelledby="brand-values-heading">
 
                 {/* ── Signal connectivity rings — brand identity: Bluetooth range ── */}
                 {enableInfiniteAnimations && (
                     <div className="absolute right-[12%] top-1/2 -translate-y-1/2 pointer-events-none hidden lg:block" aria-hidden="true">
                         <div className="relative h-48 w-48 flex items-center justify-center">
-                            <div className="absolute h-full w-full rounded-full border border-amber-400/25 animate-signal-ring" />
-                            <div className="absolute h-full w-full rounded-full border border-amber-400/20 animate-signal-ring-2" />
-                            <div className="absolute h-full w-full rounded-full border border-amber-400/15 animate-signal-ring-3" />
+                            <div className="absolute h-full w-full rounded-full border border-amber-400/25 animate-signal-ring group-hover:border-amber-400/60 transition-colors duration-700" />
+                            <div className="absolute h-full w-full rounded-full border border-amber-400/20 animate-signal-ring-2 group-hover:border-amber-400/50 transition-colors duration-700" />
+                            <div className="absolute h-full w-full rounded-full border border-amber-400/15 animate-signal-ring-3 group-hover:border-amber-400/40 transition-colors duration-700" />
                             {/* Centre dot — signal source */}
-                            <div className="h-2 w-2 rounded-full bg-amber-400/60" />
+                            <div className="h-2 w-2 rounded-full bg-amber-400/60 transition-all duration-700 group-hover:scale-150 group-hover:bg-amber-400" />
                         </div>
                     </div>
                 )}
@@ -63,19 +63,19 @@ export default function BrandValues() {
                         {ITEMS.map(({ icon: Icon, key }, index) => (
                             <motion.div
                                 key={key}
-                                className="group rounded-2xl border border-white/8 bg-white/4 p-6 backdrop-blur-sm transition-colors hover:border-cyan-500/30 hover:bg-white/6"
+                                className="group/card relative rounded-2xl border border-white/8 bg-white/4 p-6 backdrop-blur-sm transition-all duration-500 hover:border-cyan-500/40 hover:bg-carbon hover:-translate-y-2 hover:shadow-[0_15px_30px_rgba(79,200,255,0.15)] overflow-hidden"
                                 initial={{ opacity: 0, y: 32 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.6, delay: index * 0.12 }}
                             >
-                                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400 transition-colors group-hover:bg-cyan-500/20">
-                                    <Icon className="h-6 w-6" />
+                                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400 transition-all duration-500 group-hover/card:bg-cyan-500/30 group-hover/card:scale-110 group-hover/card:shadow-[0_0_15px_rgba(79,200,255,0.4)]">
+                                    <Icon className="h-6 w-6 transition-transform duration-500 group-hover/card:rotate-12" />
                                 </div>
-                                <h3 className="mb-2 text-lg font-semibold text-white">
+                                <h3 className="mb-2 text-lg font-semibold text-white transition-colors duration-300 group-hover/card:text-cyan-300">
                                     {t(`brandValues.items.${key}.title`)}
                                 </h3>
-                                <p className="text-sm leading-relaxed text-gray-400">
+                                <p className="text-sm leading-relaxed text-gray-400 transition-colors duration-300 group-hover/card:text-gray-300">
                                     {t(`brandValues.items.${key}.description`)}
                                 </p>
                             </motion.div>

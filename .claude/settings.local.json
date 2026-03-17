@@ -51,7 +51,8 @@
       "Bash(node:*)",
       "Bash(./mvnw compile:*)",
       "Bash(git commit:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Read(//tmp/**)"
     ]
   }
 }

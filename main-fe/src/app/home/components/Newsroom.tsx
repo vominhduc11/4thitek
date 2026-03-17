@@ -40,7 +40,7 @@ export default function Newsroom({ initialBlogs = [] }: NewsroomProps) {
     return (
         <AvoidSidebar>
             <motion.section
-                className="relative overflow-hidden bg-gradient-to-b from-[#060d16] to-[#032d4c] py-16 sm:py-20 md:py-24 bg-grain"
+                className="relative overflow-hidden bg-gradient-to-b from-[#060d16] to-[#032d4c] py-16 sm:py-20 md:py-24 bg-grain bg-topo"
                 aria-labelledby="newsroom-heading"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}

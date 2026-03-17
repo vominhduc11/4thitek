@@ -70,7 +70,7 @@ export default function ProductSeries({ initialProducts = [] }: ProductSeriesPro
                                                 key={product.id}
                                                 type="button"
                                                 onClick={() => setSelectedProduct(product)}
-                                                className={`relative p-4 rounded-xl border transition-all duration-300 overflow-hidden group ${isSelected ? 'border-[#4FC8FF] bg-[#4FC8FF]/10' : 'border-gray-600 hover:border-[#4FC8FF]/50'}`}
+                                                className={`relative p-4 rounded-xl border transition-all duration-300 overflow-hidden group ${isSelected ? 'border-[#4FC8FF] bg-[#4FC8FF]/10' : 'border-gray-600 hover:border-[#4FC8FF]/50 bg-white/5 hover:bg-carbon'}`}
                                                 whileHover={{ scale: 1.05 }}
                                                 whileTap={{ scale: 0.95 }}
                                                 initial={{ opacity: 0, y: 20 }}

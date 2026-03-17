@@ -40,15 +40,21 @@ const Footer = () => {
         <AvoidSidebar>
             <motion.footer
                 ref={ref}
-                className="bg-[#0c131d] text-gray-300 border-t border-white/5"
+                className="relative bg-[#0c131d] text-gray-300 border-t border-white/5 overflow-hidden bg-topo"
                 variants={containerVariants}
                 initial="hidden"
                 animate={inView ? 'visible' : 'hidden'}
             >
-                {/* Top accent line */}
-                <div className="h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
+                {/* Subtle dark overlay for topo pattern */}
+                <div className="absolute inset-0 bg-[#0c131d]/60 pointer-events-none" />
 
-                <div className="px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 pt-12 pb-10">
+                {/* Top accent line — glowing cyan beam */}
+                <div className="relative h-[2px] w-full">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
+                    <div className="absolute inset-0 bg-cyan-400/20 blur-[2px]" />
+                </div>
+
+                <div className="relative z-10 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 pt-12 pb-10">
                     {/* Main grid — logo col + 4 nav cols */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-10 lg:gap-8">
 
@@ -66,33 +72,33 @@ const Footer = () => {
                             <p className="text-sm leading-relaxed text-gray-400 max-w-[220px] mb-6">
                                 {t('footer.brand.tagline')}
                             </p>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                                 <a
                                     href={SOCIAL_URLS.FACEBOOK}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-gray-400 transition hover:border-cyan-400/50 hover:text-cyan-300 hover:bg-cyan-400/5"
+                                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-gray-400 transition-all duration-300 hover:border-cyan-400 hover:text-cyan-400 hover:bg-cyan-400/10 hover:scale-110 hover:shadow-[0_0_15px_rgba(79,200,255,0.3)]"
                                     aria-label="Facebook"
                                 >
-                                    <FaFacebookF size={13} />
+                                    <FaFacebookF size={14} />
                                 </a>
                                 <a
                                     href={SOCIAL_URLS.YOUTUBE}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-gray-400 transition hover:border-cyan-400/50 hover:text-cyan-300 hover:bg-cyan-400/5"
+                                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-gray-400 transition-all duration-300 hover:border-cyan-400 hover:text-cyan-400 hover:bg-cyan-400/10 hover:scale-110 hover:shadow-[0_0_15px_rgba(79,200,255,0.3)]"
                                     aria-label="YouTube"
                                 >
-                                    <FaYoutube size={14} />
+                                    <FaYoutube size={15} />
                                 </a>
                                 <a
                                     href={SOCIAL_URLS.TIKTOK}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-gray-400 transition hover:border-cyan-400/50 hover:text-cyan-300 hover:bg-cyan-400/5"
+                                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-gray-400 transition-all duration-300 hover:border-cyan-400 hover:text-cyan-400 hover:bg-cyan-400/10 hover:scale-110 hover:shadow-[0_0_15px_rgba(79,200,255,0.3)]"
                                     aria-label="TikTok"
                                 >
-                                    <FaTiktok size={13} />
+                                    <FaTiktok size={14} />
                                 </a>
                             </div>
                         </motion.div>
