@@ -19,7 +19,7 @@ export default function BrandValues() {
 
     return (
         <AvoidSidebar>
-            <section className="relative overflow-hidden bg-gradient-to-b from-[#060d16] to-[#001A35] py-16 sm:py-20 md:py-24 bg-grain">
+            <section className="relative overflow-hidden bg-gradient-to-b from-[#060d16] to-[#001A35] py-16 sm:py-20 md:py-24 bg-grain" aria-labelledby="brand-values-heading">
 
                 {/* ── Signal connectivity rings — brand identity: Bluetooth range ── */}
                 {enableInfiniteAnimations && (
@@ -37,7 +37,7 @@ export default function BrandValues() {
                 {/* ── Dot-grid texture in background ── */}
                 <div className="absolute inset-0 bg-dot-grid opacity-30 pointer-events-none" />
 
-                <div className="relative z-10 px-4 sm:px-6 md:px-8">
+                <div className="relative z-10 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
                     {/* Section heading */}
                     <motion.div
                         className="mb-14 text-center"
@@ -50,7 +50,7 @@ export default function BrandValues() {
                         <span className="mb-4 inline-block rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.3em] text-amber-400">
                             {t('brandValues.eyebrow')}
                         </span>
-                        <h2 className="text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
+                        <h2 id="brand-values-heading" className="text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
                             {t('brandValues.title')}
                         </h2>
                         <p className="mx-auto mt-4 max-w-2xl text-base text-gray-400 sm:text-lg">

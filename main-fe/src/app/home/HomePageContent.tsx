@@ -6,7 +6,7 @@ import { publicApiServer } from '@/lib/publicApiServer';
 /** SVG wave divider — organic transition between sections */
 function WaveDivider({ fromColor, toColor }: { fromColor: string; toColor: string }) {
     return (
-        <div className="relative overflow-hidden" style={{ height: 72, background: toColor }} aria-hidden="true">
+        <div className="relative overflow-hidden h-10 sm:h-14 md:h-[72px] lg:h-20 xl:h-24" style={{ background: toColor }} aria-hidden="true">
             <svg
                 viewBox="0 0 1440 72"
                 preserveAspectRatio="none"
@@ -42,7 +42,7 @@ export default async function HomePageContent() {
         .filter((blog): blog is NonNullable<typeof blog> => blog !== null);
 
     return (
-        <div className="relative">
+        <div className="relative bg-[#0c131d] text-white">
             <HeroSection initialProduct={featuredProducts[0] ?? null} />
 
             <ProductSeries initialProducts={homepageProducts} />

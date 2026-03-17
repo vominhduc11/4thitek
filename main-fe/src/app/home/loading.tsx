@@ -6,7 +6,7 @@ import { useLanguage } from '@/context/LanguageContext';
 export default function Loading() {
     const { t } = useLanguage();
     return (
-        <div className="min-h-screen bg-[#0a0f1a] flex items-center justify-center px-4">
+        <div className="min-h-screen bg-[#0c131d] flex items-center justify-center px-4">
             <motion.div
                 className="bg-[#151e2b] rounded-2xl shadow-2xl p-8 sm:p-12 flex flex-col items-center space-y-6 border border-gray-700/50 max-w-md w-full"
                 initial={{ scale: 0.8, opacity: 0 }}

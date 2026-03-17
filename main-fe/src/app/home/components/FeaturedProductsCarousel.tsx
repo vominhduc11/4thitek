@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import Link from 'next/link';
-import AvoidSidebar from '@/components/layout/AvoidSidebar';
+import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { useLanguage } from '@/context/LanguageContext';
 import type { SimpleProduct } from '@/types/product';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
@@ -102,6 +102,7 @@ export default function FeaturedProductsCarousel({
             <section
                 ref={sectionRef}
                 className="relative overflow-hidden bg-gradient-to-b from-[#013A5E] to-[#032B4A] py-16 md:py-24 bg-grain"
+                aria-labelledby="featured-carousel-heading"
             >
                 {/* Subtle diagonal lines — suggest road / path / motion */}
                 <div className="absolute inset-0 pointer-events-none opacity-[0.03]" aria-hidden="true">
@@ -120,7 +121,7 @@ export default function FeaturedProductsCarousel({
                         <span className="mb-4 inline-block rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.3em] text-cyan-400">
                             {t('products.featured.product')}
                         </span>
-                        <h2 className="text-[2rem] font-semibold text-[#E1F0FF]">
+                        <h2 id="featured-carousel-heading" className="text-[2rem] font-semibold text-[#E1F0FF]">
                             {t('products.featured.carouselTitle')}
                         </h2>
                     </div>

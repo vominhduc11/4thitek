@@ -159,6 +159,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                 aria-label={t('common.closeMenu')}
                                 className="text-gray-400 hover:text-white hover:bg-white/10 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg"
                                 onClick={onClose}
+                                autoFocus
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.95 }}
                                 transition={{ type: 'spring', stiffness: 400, damping: 17 }}

@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { FiArrowUpRight } from 'react-icons/fi';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import type { BlogPost } from '@/types/blog';
 import { buildBlogPath } from '@/lib/slug';
@@ -26,7 +25,6 @@ interface NewsroomProps {
 }
 
 export default function Newsroom({ initialBlogs = [] }: NewsroomProps) {
-    const router = useRouter();
     const { t, locale } = useLanguage();
     const isHydrated = useHydration();
 
@@ -43,6 +41,7 @@ export default function Newsroom({ initialBlogs = [] }: NewsroomProps) {
         <AvoidSidebar>
             <motion.section
                 className="relative overflow-hidden bg-gradient-to-b from-[#060d16] to-[#032d4c] py-16 sm:py-20 md:py-24 bg-grain"
+                aria-labelledby="newsroom-heading"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 transition={{ duration: 0.8 }}
@@ -50,9 +49,9 @@ export default function Newsroom({ initialBlogs = [] }: NewsroomProps) {
             >
                 {/* Subtle dot-grid */}
                 <div className="absolute inset-0 bg-dot-grid opacity-20 pointer-events-none" />
-                <div className="px-4 sm:px-6 md:px-8">
+                <div className="px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
                     <div className="mb-8 text-center text-white sm:mb-10 md:mb-12">
-                        <h2 className="text-2xl font-semibold sm:text-3xl md:text-4xl lg:text-5xl">
+                        <h2 id="newsroom-heading" className="text-2xl font-semibold sm:text-3xl md:text-4xl lg:text-5xl">
                             {t('newsroom.title')}
                         </h2>
                         <p className="mt-3 text-sm uppercase tracking-wider sm:text-base">
@@ -124,14 +123,13 @@ export default function Newsroom({ initialBlogs = [] }: NewsroomProps) {
                     )}
 
                     <div className="mt-10 flex justify-center">
-                        <button
-                            type="button"
-                            onClick={() => router.push('/blogs')}
+                        <Link
+                            href="/blogs"
                             className="rounded-full border border-white/15 px-5 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white transition hover:border-cyan-300 hover:text-cyan-200"
                             aria-label={t('newsroom.exploreMoreAria')}
                         >
                             {t('newsroom.exploreMore')}
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </motion.section>

@@ -19,13 +19,13 @@ export default function ProductSeries({ initialProducts = [] }: ProductSeriesPro
 
     return (
         <AvoidSidebar>
-            <section className="bg-[#0c131d] text-white py-16 lg:py-24 relative overflow-hidden bg-grain">
+            <section className="bg-[#0c131d] text-white py-16 lg:py-24 relative overflow-hidden bg-grain" aria-labelledby="product-series-heading">
                 {/* Dot-grid background — precision / technical network identity */}
                 <div className="absolute inset-0 bg-dot-grid opacity-40 pointer-events-none" />
                 {/* Directional spotlight from top-left — single light source, not duplicated */}
                 <div className="absolute -top-32 -left-32 w-[600px] h-[600px] bg-[#4FC8FF]/6 rounded-full blur-[100px] pointer-events-none" />
 
-                <div className="px-4 sm:px-6 lg:px-8 relative z-10">
+                <div className="px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 relative z-10">
                     <div className="max-w-7xl mx-auto">
                         <motion.div
                             className="text-center mb-16"
@@ -38,7 +38,7 @@ export default function ProductSeries({ initialProducts = [] }: ProductSeriesPro
                             <span className="mb-5 inline-block rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.3em] text-amber-400">
                                 {t('products.showcase.viewAll')}
                             </span>
-                            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
+                            <h2 id="product-series-heading" className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
                                 {t('products.showcase.titlePrimary')}{' '}
                                 <span className="bg-gradient-to-r from-[#4FC8FF] to-[#00D4FF] bg-clip-text text-transparent">
                                     {t('products.showcase.titleHighlight')}
@@ -92,9 +92,9 @@ export default function ProductSeries({ initialProducts = [] }: ProductSeriesPro
                                                     )}
                                                 </div>
                                                 <div className="text-center">
-                                                    <h4 className={`text-xs font-medium mb-1 line-clamp-2 ${isSelected ? 'text-[#4FC8FF]' : 'text-gray-300 group-hover:text-white'}`}>
+                                                    <p className={`text-xs font-medium mb-1 line-clamp-2 ${isSelected ? 'text-[#4FC8FF]' : 'text-gray-300 group-hover:text-white'}`}>
                                                         {product.name}
-                                                    </h4>
+                                                    </p>
                                                     <p className="text-xs text-gray-400 line-clamp-1">{product.sku || '4ThiTek'}</p>
                                                 </div>
                                             </motion.button>
@@ -124,7 +124,7 @@ export default function ProductSeries({ initialProducts = [] }: ProductSeriesPro
                                                 <div className="flex flex-wrap gap-4">
                                                     <Link
                                                         href={`/products/${selectedProduct.id}`}
-                                                        className="inline-flex items-center gap-2 rounded-full bg-[#00d4ff] px-6 py-3 font-semibold text-[#0c131d] transition hover:bg-[#38dfff]"
+                                                        className="inline-flex items-center gap-2 rounded-full bg-[#4FC8FF] px-6 py-3 font-semibold text-[#0c131d] transition hover:bg-[#38dfff]"
                                                     >
                                                         {t('products.showcase.viewDetails')}
                                                         <FiArrowRight className="h-4 w-4" />

@@ -80,7 +80,6 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
     return (
         <section
             className="relative h-[clamp(28rem,72vw,75rem)] w-full overflow-hidden"
-            role="banner"
             aria-label={t('hero.ariaLabel').replace('{product}', displayName)}
         >
             {/* Background video (desktop) */}
