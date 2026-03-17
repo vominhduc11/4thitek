@@ -106,7 +106,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
             <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0c131d] to-transparent pointer-events-none z-10" />
 
             {/* ── Sound wave decoration — brand identity: audio communication ── */}
-            <div className="absolute bottom-[18%] right-6 z-10 hidden md:block pointer-events-none" aria-hidden="true">
+            <div className="absolute bottom-[18%] right-6 z-10 hidden sm:block pointer-events-none" aria-hidden="true">
                 <svg width="260" height="56" viewBox="0 0 260 56" fill="none" xmlns="http://www.w3.org/2000/svg">
                     {/* Three layered sine waves, each with different amplitude — suggests audio frequency */}
                     <path

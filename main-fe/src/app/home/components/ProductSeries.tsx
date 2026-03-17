@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiArrowRight, FiPackage } from 'react-icons/fi';
+import { FiArrowRight, FiHeadphones } from 'react-icons/fi';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useLanguage } from '@/context/LanguageContext';
@@ -88,7 +88,7 @@ export default function ProductSeries({ initialProducts = [] }: ProductSeriesPro
                                                             className="object-contain opacity-80 group-hover:opacity-100 transition-opacity"
                                                         />
                                                     ) : (
-                                                        <FiPackage className="h-10 w-10 text-gray-500" />
+                                                        <FiHeadphones className="h-10 w-10 text-gray-500" />
                                                     )}
                                                 </div>
                                                 <div className="text-center">
@@ -144,7 +144,7 @@ export default function ProductSeries({ initialProducts = [] }: ProductSeriesPro
                                                         />
                                                     ) : (
                                                         <div className="flex h-full w-full items-center justify-center rounded-3xl border border-dashed border-white/10 text-gray-500">
-                                                            <FiPackage className="h-12 w-12" />
+                                                            <FiHeadphones className="h-12 w-12" />
                                                         </div>
                                                     )}
                                                 </div>

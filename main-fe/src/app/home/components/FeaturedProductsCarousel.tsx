@@ -105,7 +105,7 @@ export default function FeaturedProductsCarousel({
                 aria-labelledby="featured-carousel-heading"
             >
                 {/* Subtle diagonal lines — suggest road / path / motion */}
-                <div className="absolute inset-0 pointer-events-none opacity-[0.03]" aria-hidden="true">
+                <div className="absolute inset-0 pointer-events-none opacity-[0.06]" aria-hidden="true">
                     <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
                         <defs>
                             <pattern id="diagonal-lines" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
@@ -175,14 +175,14 @@ export default function FeaturedProductsCarousel({
                                     ) : null}
                                 </div>
 
-                                <div className="text-center lg:text-left">
+                                <div className="flex flex-col justify-center text-center lg:text-left lg:min-h-[360px]">
                                     <p className="mb-3 text-sm uppercase tracking-[0.3em] text-cyan-300">
                                         {t('products.featured.product')}
                                     </p>
-                                    <h3 className="text-3xl font-black uppercase text-white sm:text-4xl lg:text-5xl">
+                                    <h3 className="line-clamp-2 text-3xl font-black uppercase text-white sm:text-4xl lg:text-5xl">
                                         {currentProduct.name}
                                     </h3>
-                                    <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-200 sm:text-lg">
+                                    <p className="mt-5 line-clamp-4 max-w-xl text-base leading-relaxed text-slate-200 sm:text-lg">
                                         {currentProduct.shortDescription}
                                     </p>
                                     <div className="mt-8 flex flex-wrap items-center justify-center gap-3 lg:justify-start">

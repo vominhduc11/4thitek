@@ -2,15 +2,15 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { FiShield, FiUsers, FiAward, FiArrowRight } from 'react-icons/fi';
+import { FiShield, FiMap, FiHeadphones, FiArrowRight } from 'react-icons/fi';
 import { useLanguage } from '@/context/LanguageContext';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
 
 const ITEMS = [
-    { icon: FiAward, key: 'exclusive' },
+    { icon: FiHeadphones, key: 'exclusive' },
     { icon: FiShield, key: 'warranty' },
-    { icon: FiUsers, key: 'network' }
+    { icon: FiMap, key: 'network' }
 ] as const;
 
 export default function BrandValues() {
@@ -25,11 +25,11 @@ export default function BrandValues() {
                 {enableInfiniteAnimations && (
                     <div className="absolute right-[12%] top-1/2 -translate-y-1/2 pointer-events-none hidden lg:block" aria-hidden="true">
                         <div className="relative h-48 w-48 flex items-center justify-center">
-                            <div className="absolute h-full w-full rounded-full border border-cyan-400/25 animate-signal-ring" />
-                            <div className="absolute h-full w-full rounded-full border border-cyan-400/20 animate-signal-ring-2" />
-                            <div className="absolute h-full w-full rounded-full border border-cyan-400/15 animate-signal-ring-3" />
+                            <div className="absolute h-full w-full rounded-full border border-amber-400/25 animate-signal-ring" />
+                            <div className="absolute h-full w-full rounded-full border border-amber-400/20 animate-signal-ring-2" />
+                            <div className="absolute h-full w-full rounded-full border border-amber-400/15 animate-signal-ring-3" />
                             {/* Centre dot — signal source */}
-                            <div className="h-2 w-2 rounded-full bg-cyan-400/60" />
+                            <div className="h-2 w-2 rounded-full bg-amber-400/60" />
                         </div>
                     </div>
                 )}
