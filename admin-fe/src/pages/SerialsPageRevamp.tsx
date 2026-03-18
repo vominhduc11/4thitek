@@ -397,7 +397,7 @@ function SerialsPageRevamp() {
         <StatCard icon={Barcode} label={copy.available} value={stats.available} tone="success" />
         <StatCard icon={Barcode} label={copy.sold} value={stats.sold} tone="neutral" />
         <StatCard icon={Barcode} label={copy.warranty} value={stats.warranty} tone="info" />
-        <StatCard icon={Barcode} label={copy.defective} value={stats.defective} tone="danger" />
+        <StatCard icon={Barcode} label={copy.defective} value={stats.defective} tone="warning" />
         <StatCard icon={Barcode} label={copy.returned} value={stats.returned} tone="warning" />
       </div>
 
