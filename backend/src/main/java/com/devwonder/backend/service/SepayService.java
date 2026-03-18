@@ -188,7 +188,6 @@ public class SepayService {
                     order.getOrderCode(),
                     order
             );
-            queueOrderStatusEventAfterCommit(order);
         }
 
         return WebhookResult.processed(
@@ -220,52 +219,16 @@ public class SepayService {
         }
     }
 
-<<<<<<< Updated upstream
     private void queuePaymentNotificationAfterCommit(Long dealerId, BigDecimal amount, String orderCode, Order order) {
-        String dealerUsername = order.getDealer().getUsername();
+        Dealer dealer = order.getDealer();
+        String dealerUsername = dealer.getUsername() != null && !dealer.getUsername().isBlank()
+                ? dealer.getUsername()
+                : dealer.getEmail();
         OrderStatus orderStatus = order.getStatus();
         PaymentStatus paymentStatus = order.getPaymentStatus();
         Long orderId = order.getId();
+        BigDecimal paidAmount = order.getPaidAmount();
         Instant updatedAt = order.getUpdatedAt();
-
-=======
-    private void queueOrderStatusEventAfterCommit(Order order) {
-        Dealer dealer = order.getDealer();
-        String username = dealer.getUsername() != null && !dealer.getUsername().isBlank()
-                ? dealer.getUsername()
-                : dealer.getEmail();
-        if (username == null || username.isBlank()) {
-            return;
-        }
-        DealerOrderStatusEvent event = new DealerOrderStatusEvent(
-                order.getId(),
-                firstNonBlank(order.getOrderCode(), String.valueOf(order.getId())),
-                order.getStatus(),
-                order.getStatus(),
-                order.getPaymentStatus(),
-                Instant.now()
-        );
-        Runnable task = () -> {
-            try {
-                webSocketEventPublisher.publishOrderStatusChanged(username, event);
-            } catch (RuntimeException ex) {
-                log.warn("Could not push order-status WebSocket event for order {}", order.getOrderCode(), ex);
-            }
-        };
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            task.run();
-            return;
-        }
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                task.run();
-            }
-        });
-    }
-
-    private void queuePaymentNotificationAfterCommit(Long dealerId, BigDecimal amount, String orderCode) {
->>>>>>> Stashed changes
         Runnable notificationTask = () -> {
             try {
                 notificationService.create(new CreateNotifyRequest(
@@ -285,7 +248,7 @@ public class SepayService {
             try {
                 webSocketEventPublisher.publishOrderStatusChanged(
                         dealerUsername,
-                        new DealerOrderStatusEvent(orderId, orderCode, orderStatus, orderStatus, paymentStatus, order.getPaidAmount(), updatedAt)
+                        new DealerOrderStatusEvent(orderId, orderCode, orderStatus, orderStatus, paymentStatus, paidAmount, updatedAt)
                 );
             } catch (RuntimeException ex) {
                 log.warn("Could not publish order status event for order {}", orderCode, ex);
