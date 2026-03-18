@@ -46,11 +46,6 @@ const SERIAL_STATUS_FILTER_OPTIONS: BackendProductSerialStatus[] = [
   'RETURNED',
 ]
 
-const SERIAL_IMPORT_STATUS_OPTIONS: BackendProductSerialStatus[] = [
-  'AVAILABLE',
-  'DEFECTIVE',
-  'SOLD',
-]
 
 const SERIAL_MANUAL_STATUS_OPTIONS: BackendProductSerialStatus[] = [
   'AVAILABLE',
