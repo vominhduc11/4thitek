@@ -613,6 +613,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         instructions: bankTransferInstructions,
         amount: createdOrder.total,
         content: createdOrder.id,
+        orderId: createdOrder.id,
+        orderController: orderController,
         onCopy: _copyToClipboard,
       );
       if (!mounted) {

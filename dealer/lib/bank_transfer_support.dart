@@ -8,6 +8,8 @@ import 'api_config.dart';
 import 'auth_storage.dart';
 import 'breakpoints.dart';
 import 'dealer_auth_client.dart';
+import 'models.dart';
+import 'order_controller.dart';
 import 'utils.dart';
 
 class BankTransferInstructions {
@@ -107,6 +109,8 @@ Future<void> showBankTransferInfoSheet({
   required BankTransferInstructions instructions,
   required int amount,
   required String content,
+  required String orderId,
+  required OrderController orderController,
   required Future<void> Function(String label, String value) onCopy,
 }) {
   return showModalBottomSheet<void>(
@@ -118,24 +122,55 @@ Future<void> showBankTransferInfoSheet({
         amount: amount,
         instructions: instructions,
         content: content,
+        orderId: orderId,
+        orderController: orderController,
         onCopy: onCopy,
       );
     },
   );
 }
 
-class _BankTransferInfoSheet extends StatelessWidget {
+class _BankTransferInfoSheet extends StatefulWidget {
   const _BankTransferInfoSheet({
     required this.amount,
     required this.instructions,
     required this.content,
+    required this.orderId,
+    required this.orderController,
     required this.onCopy,
   });
 
   final int amount;
   final BankTransferInstructions instructions;
   final String content;
+  final String orderId;
+  final OrderController orderController;
   final Future<void> Function(String label, String value) onCopy;
+
+  @override
+  State<_BankTransferInfoSheet> createState() => _BankTransferInfoSheetState();
+}
+
+class _BankTransferInfoSheetState extends State<_BankTransferInfoSheet> {
+  @override
+  void initState() {
+    super.initState();
+    widget.orderController.addListener(_onOrderChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.orderController.removeListener(_onOrderChanged);
+    super.dispose();
+  }
+
+  void _onOrderChanged() {
+    if (!mounted) return;
+    final order = widget.orderController.findById(widget.orderId);
+    if (order != null && order.paymentStatus == OrderPaymentStatus.paid) {
+      Navigator.of(context).pop();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -65,18 +65,26 @@ class OrderController extends ChangeNotifier {
   void applyOrderStatusEvent(
     String orderCode,
     String remoteStatus,
-    String remotePaymentStatus,
-  ) {
+    String remotePaymentStatus, {
+    int? paidAmount,
+  }) {
     final existing = _orderById[orderCode];
     if (existing == null) {
       return;
     }
     final newStatus = _mapRemoteOrderStatus(remoteStatus);
     final newPaymentStatus = _mapRemotePaymentStatus(remotePaymentStatus);
-    if (existing.status == newStatus && existing.paymentStatus == newPaymentStatus) {
+    final newPaidAmount = paidAmount ?? existing.paidAmount;
+    if (existing.status == newStatus &&
+        existing.paymentStatus == newPaymentStatus &&
+        existing.paidAmount == newPaidAmount) {
       return;
     }
-    _replaceOrder(existing.copyWith(status: newStatus, paymentStatus: newPaymentStatus));
+    _replaceOrder(existing.copyWith(
+      status: newStatus,
+      paymentStatus: newPaymentStatus,
+      paidAmount: newPaidAmount,
+    ));
     notifyListeners();
   }
 

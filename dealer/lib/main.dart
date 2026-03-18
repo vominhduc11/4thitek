@@ -81,7 +81,8 @@ class _DealerAppState extends State<DealerApp> {
     _notificationController = NotificationController(
       authStorage: _authStorage,
       onOrderSignal: _orderController.refresh,
-      onOrderStatusEvent: _orderController.applyOrderStatusEvent,
+      onOrderStatusEvent: (orderCode, status, paymentStatus, {int? paidAmount}) =>
+          _orderController.applyOrderStatusEvent(orderCode, status, paymentStatus, paidAmount: paidAmount),
     );
     _authStorage.sessionEvents.addListener(_handleSessionEvent);
     _notificationController.incomingNoticeEvents.addListener(

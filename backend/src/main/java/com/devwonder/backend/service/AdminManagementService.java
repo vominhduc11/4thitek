@@ -691,6 +691,7 @@ public class AdminManagementService {
                         previousStatus,
                         order.getStatus(),
                         order.getPaymentStatus(),
+                        order.getPaidAmount(),
                         order.getUpdatedAt()
                 )
         );

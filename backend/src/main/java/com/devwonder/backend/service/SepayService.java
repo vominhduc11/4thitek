@@ -2,6 +2,7 @@ package com.devwonder.backend.service;
 
 import com.devwonder.backend.dto.dealer.DealerBankTransferInstructionResponse;
 import com.devwonder.backend.dto.notify.CreateNotifyRequest;
+import com.devwonder.backend.dto.realtime.DealerOrderStatusEvent;
 import com.devwonder.backend.dto.webhook.SepayWebhookRequest;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.Payment;
@@ -54,6 +55,7 @@ public class SepayService {
     private final PaymentRepository paymentRepository;
     private final BulkDiscountRepository bulkDiscountRepository;
     private final NotificationService notificationService;
+    private final WebSocketEventPublisher webSocketEventPublisher;
     private final AppMessageSupport appMessageSupport;
 
     @Value("${sepay.enabled:false}")
@@ -84,47 +86,63 @@ public class SepayService {
 
     @Transactional
     public WebhookResult processWebhook(SepayWebhookRequest request, String providedToken) {
+        log.info("SePay webhook received: id={}, gateway={}, transferType={}, amount={}, transferContent='{}', referenceCode={}, transactionDate={}",
+                request.id(), request.gateway(), request.transferType(), request.transferAmount(),
+                request.transferContent(), request.referenceCode(), request.transactionDate());
+
         if (!sepayEnabled) {
+            log.warn("SePay webhook ignored: disabled");
             return WebhookResult.ignored("disabled", null, null, "SePay webhook is disabled");
         }
         validateWebhookToken(providedToken);
 
         BigDecimal amount = request.transferAmount();
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            log.warn("SePay webhook ignored: invalid_amount, amount={}", amount);
             return WebhookResult.ignored("invalid_amount", null, null, "Transfer amount is missing or invalid");
         }
         if (!isIncomingTransfer(request.transferType())) {
+            log.info("SePay webhook ignored: transfer_type={} is not incoming", request.transferType());
             return WebhookResult.ignored("ignored_transfer_type", null, null, "Transfer type is not incoming");
         }
 
         String orderCode = extractOrderCode(request);
         if (orderCode == null) {
+            log.warn("SePay webhook ignored: no order code found in content='{}', transferContent='{}'",
+                    request.content(), request.transferContent());
             return WebhookResult.ignored("order_not_found", null, null, "No order code found in transfer content");
         }
 
         Order order = orderRepository.findByOrderCodeIgnoreCaseForUpdate(orderCode)
                 .orElse(null);
         if (order == null) {
+            log.warn("SePay webhook ignored: order_not_found, orderCode={}", orderCode);
             return WebhookResult.ignored("order_not_found", orderCode, null, "Order does not exist");
         }
         if (Boolean.TRUE.equals(order.getIsDeleted())) {
+            log.warn("SePay webhook ignored: order_deleted, orderCode={}", orderCode);
             return WebhookResult.ignored("order_deleted", orderCode, null, "Order is deleted");
         }
         if (order.getPaymentMethod() != PaymentMethod.BANK_TRANSFER) {
+            log.warn("SePay webhook ignored: unsupported_payment_method={}, orderCode={}", order.getPaymentMethod(), orderCode);
             return WebhookResult.ignored("unsupported_payment_method", orderCode, null, "Order is not using bank transfer");
         }
         if (order.getStatus() == OrderStatus.CANCELLED) {
+            log.warn("SePay webhook ignored: order_cancelled, orderCode={}", orderCode);
             return WebhookResult.ignored("order_cancelled", orderCode, null, "Cancelled order cannot receive payment");
         }
         var activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
         BigDecimal totalAmount = OrderPricingSupport.computeTotalAmount(order, activeDiscountRules);
         BigDecimal outstandingAmount = remainingOutstandingAmount(order, totalAmount);
         if (outstandingAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            log.info("SePay webhook ignored: already_paid, orderCode={}", orderCode);
             return WebhookResult.duplicate("already_paid", orderCode, null, "Order is already fully paid");
         }
 
         BigDecimal normalizedAmount = amount.setScale(0, RoundingMode.HALF_UP);
         if (normalizedAmount.compareTo(outstandingAmount) > 0) {
+            log.warn("SePay webhook ignored: amount_exceeds_outstanding, orderCode={}, amount={}, outstanding={}",
+                    orderCode, normalizedAmount, outstandingAmount);
             return WebhookResult.ignored(
                     "amount_exceeds_outstanding",
                     orderCode,
@@ -134,6 +152,7 @@ public class SepayService {
         }
         String transactionCode = buildTransactionCode(request, orderCode, normalizedAmount);
         if (transactionCode != null && paymentRepository.existsByTransactionCodeIgnoreCase(transactionCode)) {
+            log.info("SePay webhook ignored: duplicate_transaction, orderCode={}, transactionCode={}", orderCode, transactionCode);
             return WebhookResult.duplicate("duplicate_transaction", orderCode, transactionCode, "Webhook transaction already processed");
         }
 
@@ -150,6 +169,7 @@ public class SepayService {
         try {
             savedPayment = paymentRepository.save(payment);
         } catch (DataIntegrityViolationException ex) {
+            log.info("SePay webhook ignored: duplicate_transaction (constraint), orderCode={}, transactionCode={}", orderCode, transactionCode);
             return WebhookResult.duplicate("duplicate_transaction", orderCode, transactionCode, "Webhook transaction already processed");
         }
 
@@ -157,11 +177,15 @@ public class SepayService {
         order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
         orderRepository.save(order);
 
+        log.info("SePay webhook processed: orderCode={}, transactionCode={}, amount={}, paymentStatus={}",
+                orderCode, savedPayment.getTransactionCode(), normalizedAmount, order.getPaymentStatus());
+
         if (order.getDealer() != null && order.getDealer().getId() != null) {
             queuePaymentNotificationAfterCommit(
                     order.getDealer().getId(),
                     payment.getAmount(),
-                    order.getOrderCode()
+                    order.getOrderCode(),
+                    order
             );
         }
 
@@ -194,7 +218,13 @@ public class SepayService {
         }
     }
 
-    private void queuePaymentNotificationAfterCommit(Long dealerId, BigDecimal amount, String orderCode) {
+    private void queuePaymentNotificationAfterCommit(Long dealerId, BigDecimal amount, String orderCode, Order order) {
+        String dealerUsername = order.getDealer().getUsername();
+        OrderStatus orderStatus = order.getStatus();
+        PaymentStatus paymentStatus = order.getPaymentStatus();
+        Long orderId = order.getId();
+        Instant updatedAt = order.getUpdatedAt();
+
         Runnable notificationTask = () -> {
             try {
                 notificationService.create(new CreateNotifyRequest(
@@ -210,6 +240,14 @@ public class SepayService {
                 ));
             } catch (RuntimeException ex) {
                 log.warn("Could not create SePay payment notification for order {}", orderCode, ex);
+            }
+            try {
+                webSocketEventPublisher.publishOrderStatusChanged(
+                        dealerUsername,
+                        new DealerOrderStatusEvent(orderId, orderCode, orderStatus, orderStatus, paymentStatus, order.getPaidAmount(), updatedAt)
+                );
+            } catch (RuntimeException ex) {
+                log.warn("Could not publish order status event for order {}", orderCode, ex);
             }
         };
 

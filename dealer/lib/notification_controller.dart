@@ -17,7 +17,7 @@ class NotificationController extends ChangeNotifier {
     AuthStorage? authStorage,
     http.Client? client,
     Future<void> Function()? onOrderSignal,
-    void Function(String, String, String)? onOrderStatusEvent,
+    void Function(String, String, String, {int? paidAmount})? onOrderStatusEvent,
   }) : _notices = <DistributorNotice>[] {
     _authStorage = authStorage ?? AuthStorage();
     _client = DealerAuthClient(
@@ -34,7 +34,7 @@ class NotificationController extends ChangeNotifier {
   late final AuthStorage _authStorage;
   late final http.Client _client;
   late final Future<void> Function()? _onOrderSignal;
-  late final void Function(String orderCode, String status, String paymentStatus)? _onOrderStatusEvent;
+  late final void Function(String orderCode, String status, String paymentStatus, {int? paidAmount})? _onOrderStatusEvent;
   final ValueNotifier<int> _incomingNoticeEventVersion = ValueNotifier<int>(0);
   final ValueNotifier<int> _incomingSupportEventVersion = ValueNotifier<int>(0);
   final List<DistributorNotice> _notices;
@@ -469,11 +469,20 @@ class NotificationController extends ChangeNotifier {
         status != null &&
         status.isNotEmpty &&
         _onOrderStatusEvent != null) {
-      _onOrderStatusEvent(orderCode, status, paymentStatus ?? '');
+      final paidAmount = _parseAmount(payload['paidAmount']);
+      _onOrderStatusEvent(orderCode, status, paymentStatus ?? '', paidAmount: paidAmount);
       return;
     }
 
     unawaited(_emitOrderSignal());
+  }
+
+  int? _parseAmount(Object? value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.round();
+    final parsed = double.tryParse(value.toString());
+    return parsed?.round();
   }
 
   void _stopRealtimeConnection() {

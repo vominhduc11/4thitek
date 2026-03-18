@@ -23,6 +23,7 @@ class OrderSuccessScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final order = OrderScope.of(context).findById(orderId);
+    final isPaid = order?.paymentStatus == OrderPaymentStatus.paid;
     final statusNote = _buildStatusNote(order);
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -86,6 +87,34 @@ class OrderSuccessScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (isPaid) ...[
+                  const SizedBox(height: 16),
+                  FadeSlideIn(
+                    delay: const Duration(milliseconds: 250),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: successColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: successColor.withValues(alpha: 0.4)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.check_circle, color: successColor, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Thanh toán đã được xác nhận!',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: successColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 350),
@@ -152,6 +181,9 @@ class OrderSuccessScreen extends StatelessWidget {
     }
     if (order.paymentMethod == OrderPaymentMethod.debt) {
       return 'Đơn đã được ghi nhận công nợ và đang chờ duyệt phía nhà phân phối.';
+    }
+    if (order.paymentStatus == OrderPaymentStatus.paid) {
+      return 'SePay đã ghi nhận thanh toán. Đơn hàng đang chờ duyệt phía nhà phân phối.';
     }
     return 'Đơn đã được tạo. Hãy chuyển khoản đúng mã đơn hàng, SePay webhook sẽ tự động cập nhật thanh toán khi ngân hàng ghi nhận giao dịch.';
   }
