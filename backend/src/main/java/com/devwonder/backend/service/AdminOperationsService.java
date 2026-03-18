@@ -208,7 +208,7 @@ public class AdminOperationsService {
             ProductSerial productSerial = new ProductSerial();
             productSerial.setSerial(serial);
             productSerial.setProduct(product);
-            productSerial.setDealer(dealer);
+            productSerial.setDealer(initialStatus == ProductSerialStatus.ASSIGNED ? null : dealer);
             productSerial.setOrder(order);
             productSerial.setStatus(initialStatus);
             productSerial.setWarehouseId(defaultIfBlank(request.warehouseId(), "main"));
