@@ -4,7 +4,6 @@ import {
   fetchAllAdminSerials,
   fetchAdminSerialsPaged,
   importAdminSerials,
-  updateAdminSerialStatus,
   type BackendProductSerialStatus,
   type BackendSerialResponse,
 } from '../lib/adminApi'
@@ -13,7 +12,6 @@ import { useLanguage } from '../context/LanguageContext'
 import { useProducts } from '../context/ProductsContext'
 import { useToast } from '../context/ToastContext'
 import { formatDateTime } from '../lib/formatters'
-import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import {
   EmptyState,
   ErrorState,
@@ -30,7 +28,6 @@ import {
   formCardClass,
   inputClass,
   labelClass,
-  tableActionSelectClass,
   tableCardClass,
   tableHeadClass,
   tableMetaClass,
@@ -45,21 +42,6 @@ const SERIAL_STATUS_FILTER_OPTIONS: BackendProductSerialStatus[] = [
   'WARRANTY',
   'RETURNED',
 ]
-
-const SERIAL_MANUAL_STATUS_OPTIONS: BackendProductSerialStatus[] = [
-  'AVAILABLE',
-  'DEFECTIVE',
-  'WARRANTY',
-]
-
-const getManualStatusOptions = (
-  currentStatus: BackendProductSerialStatus | null | undefined,
-): BackendProductSerialStatus[] => {
-  if (!currentStatus || SERIAL_MANUAL_STATUS_OPTIONS.includes(currentStatus)) {
-    return SERIAL_MANUAL_STATUS_OPTIONS
-  }
-  return [currentStatus, ...SERIAL_MANUAL_STATUS_OPTIONS]
-}
 
 const statusTone = {
   AVAILABLE: 'success',
@@ -102,8 +84,6 @@ const copyByLanguage = {
     serialsPlaceholder: 'Mỗi dòng một serial, hoặc phân cách bằng dấu phẩy.\nVí dụ:\nSN001\nSN002\nSN003',
     save: 'Thực hiện import',
     cancel: 'Hủy',
-    confirmTitle: 'Xác nhận đổi trạng thái serial',
-    confirmMessage: 'Chuyển serial này sang "{status}"?',
     importError: 'Vui lòng chọn sản phẩm và nhập ít nhất một serial hợp lệ.',
     formatError: 'Một số serial không đúng định dạng. Chỉ chấp nhận chữ, số, dấu gạch và tối thiểu 4 ký tự.',
     reload: 'Tải lại',
@@ -147,8 +127,6 @@ const copyByLanguage = {
     serialsPlaceholder: 'One serial per line, or comma-separated.\nExample:\nSN001\nSN002\nSN003',
     save: 'Run import',
     cancel: 'Cancel',
-    confirmTitle: 'Confirm serial status change',
-    confirmMessage: 'Change this serial to "{status}"?',
     importError: 'Select a product and enter at least one valid serial.',
     formatError: 'Some serials are invalid. Only letters, numbers, dashes, and at least 4 characters are allowed.',
     reload: 'Reload',
@@ -170,7 +148,6 @@ function SerialsPageRevamp() {
   const { accessToken } = useAuth()
   const { notify } = useToast()
   const { products } = useProducts()
-  const { confirm, confirmDialog } = useConfirmDialog()
   const [items, setItems] = useState<BackendSerialResponse[]>([])
   const [allItems, setAllItems] = useState<BackendSerialResponse[]>([])
   const [page, setPage] = useState(0)
@@ -307,28 +284,6 @@ function SerialsPageRevamp() {
       })
     } finally {
       setIsImporting(false)
-    }
-  }
-
-  const handleStatusChange = async (item: BackendSerialResponse, next: BackendProductSerialStatus) => {
-    if (next === item.status) return
-    const label = copy.statusLabels[next]
-    const approved = await confirm({
-      title: copy.confirmTitle,
-      message: copy.confirmMessage.replace('{status}', label),
-      tone: next === 'DEFECTIVE' ? 'danger' : 'warning',
-      confirmLabel: label,
-    })
-    if (!approved) return
-    try {
-      const updated = await updateAdminSerialStatus(accessToken!, item.id, next)
-      setItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
-      setAllItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
-    } catch (updateError) {
-      notify(updateError instanceof Error ? updateError.message : copy.loadFallback, {
-        title: copy.title,
-        variant: 'error',
-      })
     }
   }
 
@@ -483,20 +438,6 @@ function SerialsPageRevamp() {
                       <span className="text-right text-[var(--ink)]">{item.importedAt ? formatDateTime(item.importedAt) : '-'}</span>
                     </div>
                   </div>
-                  {item.status !== 'RETURNED' && item.status !== 'SOLD' && (
-                    <select
-                      aria-label={`${copy.status} ${item.id}`}
-                      className={`mt-4 w-full ${tableActionSelectClass}`}
-                      value={item.status ?? 'AVAILABLE'}
-                      onChange={(event) => void handleStatusChange(item, event.target.value as BackendProductSerialStatus)}
-                    >
-                      {getManualStatusOptions(item.status).map((status) => (
-                        <option key={`${item.id}-${status}`} value={status}>
-                          {copy.statusLabels[status]}
-                        </option>
-                      ))}
-                    </select>
-                  )}
                 </article>
               ))}
             </div>
@@ -529,24 +470,9 @@ function SerialsPageRevamp() {
                         <p className={tableMetaClass}>{item.customerName ?? '-'}</p>
                       </td>
                       <td className="px-3 py-3">
-                        {item.status === 'RETURNED' || item.status === 'SOLD' ? (
-                          <StatusBadge tone={statusTone[item.status ?? 'AVAILABLE']}>
-                            {copy.statusLabels[item.status ?? 'AVAILABLE']}
-                          </StatusBadge>
-                        ) : (
-                          <select
-                            aria-label={`${copy.status} ${item.id}`}
-                            className={tableActionSelectClass}
-                            value={item.status ?? 'AVAILABLE'}
-                            onChange={(event) => void handleStatusChange(item, event.target.value as BackendProductSerialStatus)}
-                          >
-                            {getManualStatusOptions(item.status).map((status) => (
-                              <option key={`${item.id}-${status}`} value={status}>
-                                {copy.statusLabels[status]}
-                              </option>
-                            ))}
-                          </select>
-                        )}
+                        <StatusBadge tone={statusTone[item.status ?? 'AVAILABLE']}>
+                          {copy.statusLabels[item.status ?? 'AVAILABLE']}
+                        </StatusBadge>
                       </td>
                       <td className="rounded-r-2xl px-3 py-3 text-sm">
                         {item.importedAt ? formatDateTime(item.importedAt) : '-'}
@@ -573,7 +499,6 @@ function SerialsPageRevamp() {
         />
       )}
 
-      {confirmDialog}
     </PagePanel>
   )
 }
