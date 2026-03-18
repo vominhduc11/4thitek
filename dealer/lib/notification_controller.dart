@@ -470,7 +470,7 @@ class NotificationController extends ChangeNotifier {
         status.isNotEmpty &&
         _onOrderStatusEvent != null) {
       final paidAmount = _parseAmount(payload['paidAmount']);
-      _onOrderStatusEvent(orderCode, status, paymentStatus ?? '', paidAmount: paidAmount);
+      _onOrderStatusEvent?.call(orderCode, status, paymentStatus ?? '', paidAmount: paidAmount);
       return;
     }
 
