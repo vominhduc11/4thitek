@@ -8,6 +8,8 @@ import 'api_config.dart';
 import 'auth_storage.dart';
 import 'breakpoints.dart';
 import 'dealer_auth_client.dart';
+import 'models.dart';
+import 'order_controller.dart';
 import 'utils.dart';
 
 class BankTransferInstructions {
@@ -256,6 +258,116 @@ class _BankTransferInfoSheetState extends State<_BankTransferInfoSheet> {
                       ),
                     ),
                   ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> showBankTransferWaitingSheet({
+  required BuildContext context,
+  required OrderController orderController,
+  required String orderId,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    requestFocus: true,
+    isDismissible: false,
+    enableDrag: false,
+    builder: (sheetContext) {
+      return _BankTransferWaitingSheet(
+        orderController: orderController,
+        orderId: orderId,
+      );
+    },
+  );
+}
+
+class _BankTransferWaitingSheet extends StatefulWidget {
+  const _BankTransferWaitingSheet({
+    required this.orderController,
+    required this.orderId,
+  });
+
+  final OrderController orderController;
+  final String orderId;
+
+  @override
+  State<_BankTransferWaitingSheet> createState() =>
+      _BankTransferWaitingSheetState();
+}
+
+class _BankTransferWaitingSheetState extends State<_BankTransferWaitingSheet> {
+  @override
+  void initState() {
+    super.initState();
+    widget.orderController.addListener(_onOrderChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.orderController.removeListener(_onOrderChanged);
+    super.dispose();
+  }
+
+  void _onOrderChanged() {
+    if (!mounted) return;
+    final order = widget.orderController.findById(widget.orderId);
+    if (order != null && order.paymentStatus == OrderPaymentStatus.paid) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isTablet = AppBreakpoints.isTablet(context);
+    final maxWidth = isTablet ? 760.0 : double.infinity;
+    return SafeArea(
+      child: SingleChildScrollView(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Đang chờ xác nhận thanh toán...',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'SePay đang đối soát giao dịch của bạn. Trang sẽ tự động chuyển khi xác nhận thành công.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Bỏ qua, đơn hàng đã được tạo'),
+                    ),
+                  ),
                 ],
               ),
             ),

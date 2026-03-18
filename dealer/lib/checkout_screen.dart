@@ -627,6 +627,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (!mounted) return;
 
     HapticFeedback.mediumImpact();
+
+    if (isBankTransfer) {
+      await showBankTransferWaitingSheet(
+        context: context,
+        orderController: orderController,
+        orderId: createdOrder.id,
+      );
+      if (!mounted) return;
+    }
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => OrderSuccessScreen(
