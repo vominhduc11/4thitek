@@ -171,8 +171,6 @@ function SerialsPageRevamp() {
     productId: '',
     serials: '',
     status: 'AVAILABLE' as BackendProductSerialStatus,
-    dealerId: '',
-    orderId: '',
   })
 
   const loadData = useCallback(async (nextPage: number) => {
@@ -282,15 +280,11 @@ function SerialsPageRevamp() {
         productId,
         serials,
         status: form.status,
-        dealerId: form.dealerId ? Number(form.dealerId) : undefined,
-        orderId: form.orderId ? Number(form.orderId) : undefined,
-        })
+      })
       setForm({
         productId: '',
         serials: '',
         status: 'AVAILABLE',
-        dealerId: '',
-        orderId: '',
       })
       setShowImport(false)
       setPage(0)
@@ -402,22 +396,6 @@ function SerialsPageRevamp() {
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="space-y-2">
-              <span className={labelClass}>{copy.dealerId}</span>
-              <input
-                className={inputClass}
-                value={form.dealerId}
-                onChange={(event) => setForm((current) => ({ ...current, dealerId: event.target.value }))}
-              />
-            </label>
-            <label className="space-y-2">
-              <span className={labelClass}>{copy.orderId}</span>
-              <input
-                className={inputClass}
-                value={form.orderId}
-                onChange={(event) => setForm((current) => ({ ...current, orderId: event.target.value }))}
-              />
             </label>
             <label className="space-y-2 md:col-span-2">
               <span className={labelClass}>{copy.serialList}</span>
