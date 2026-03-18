@@ -173,11 +173,8 @@ public class SepayService {
     }
 
     private void validateInstructionConfig() {
-        if (!sepayEnabled) {
-            throw new BadRequestException("SePay is not enabled");
-        }
         if (isBlank(bankName) || isBlank(accountNumber) || isBlank(accountHolder)) {
-            throw new BadRequestException("SePay bank transfer instructions are not configured");
+            throw new BadRequestException("Bank transfer instructions are not configured");
         }
     }
 

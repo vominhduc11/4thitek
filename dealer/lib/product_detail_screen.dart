@@ -852,8 +852,8 @@ class _QuickInfoSection extends StatelessWidget {
     final items = <_QuickInfoItemData>[
       _buildStatusItem(),
       _QuickInfoItemData(
-        label: 'T\u1ed3n kho c\u00f2n l\u1ea1i',
-        value: '$remainingStock/$stock',
+        label: 'T\u1ed3n kho',
+        value: quantityInCart > 0 ? '$remainingStock/$stock' : '$stock',
         icon: Icons.inventory_2_outlined,
         tone: remainingStock <= 0
             ? _QuickInfoTone.danger
