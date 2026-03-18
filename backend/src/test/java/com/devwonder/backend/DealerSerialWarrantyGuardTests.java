@@ -293,7 +293,7 @@ class DealerSerialWarrantyGuardTests {
 
         assertThat(response.status().name()).isEqualTo("EXPIRED");
         assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
-                .isEqualTo(ProductSerialStatus.SOLD);
+                .isEqualTo(ProductSerialStatus.ASSIGNED);
     }
 
     @Test
@@ -413,7 +413,7 @@ class DealerSerialWarrantyGuardTests {
 
         assertThat(warrantyRegistrationRepository.findById(warranty.id())).isEmpty();
         assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
-                .isEqualTo(ProductSerialStatus.SOLD);
+                .isEqualTo(ProductSerialStatus.ASSIGNED);
         assertThatThrownBy(() -> publicApiService.lookupWarranty(serial.getSerial()))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Warranty not found");

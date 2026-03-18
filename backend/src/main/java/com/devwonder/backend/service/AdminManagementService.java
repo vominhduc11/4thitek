@@ -210,6 +210,19 @@ public class AdminManagementService {
         if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
             productSerialOrderSupport.releaseNonWarrantySerials(order);
         }
+        if (request.status() == OrderStatus.COMPLETED && order.getDealer() != null) {
+            List<ProductSerial> orderSerials = productSerialRepository.findByOrderId(id);
+            java.util.List<ProductSerial> toUpdate = new java.util.ArrayList<>();
+            for (ProductSerial serial : orderSerials) {
+                if (serial.getDealer() == null) {
+                    serial.setDealer(order.getDealer());
+                    toUpdate.add(serial);
+                }
+            }
+            if (!toUpdate.isEmpty()) {
+                productSerialRepository.saveAll(toUpdate);
+            }
+        }
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
         Order saved = orderRepository.save(order);
@@ -272,9 +285,8 @@ public class AdminManagementService {
                 if (serial.getProduct() == null || !serial.getProduct().getId().equals(productId)) {
                     throw new BadRequestException("Serial " + normalizedSerial + " does not belong to product " + productId);
                 }
-                serial.setDealer(order.getDealer());
                 serial.setOrder(order);
-                serial.setStatus(ProductSerialStatus.SOLD);
+                serial.setStatus(ProductSerialStatus.ASSIGNED);
                 toSave.add(serial);
             }
         }

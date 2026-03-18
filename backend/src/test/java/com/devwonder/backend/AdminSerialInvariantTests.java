@@ -73,13 +73,13 @@ class AdminSerialInvariantTests {
                 product.getId(),
                 null,
                 null,
-                ProductSerialStatus.SOLD,
+                ProductSerialStatus.ASSIGNED,
                 "main",
                 "Kho tong",
                 List.of("ADMIN-SERIAL-1")
         )))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("SOLD status requires a linked order");
+                .hasMessageContaining("ASSIGNED status requires a linked order");
     }
 
     @Test
@@ -92,7 +92,7 @@ class AdminSerialInvariantTests {
                 order,
                 product,
                 "ADMIN-SERIAL-2",
-                ProductSerialStatus.SOLD
+                ProductSerialStatus.ASSIGNED
         ));
 
         assertThatThrownBy(() -> adminOperationsService.updateSerialStatus(

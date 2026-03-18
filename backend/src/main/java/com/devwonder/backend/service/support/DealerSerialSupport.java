@@ -30,7 +30,7 @@ public class DealerSerialSupport {
     private final ProductRepository productRepository;
 
     public List<DealerProductSerialResponse> getSerials(Long dealerId) {
-        return productSerialRepository.findByDealerIdOrderByImportedAtDesc(dealerId).stream()
+        return productSerialRepository.findDealerInventorySerials(dealerId).stream()
                 .map(ProductSerialResponseMapper::toDealerProductSerialResponse)
                 .toList();
     }
@@ -49,7 +49,7 @@ public class DealerSerialSupport {
 
         ProductSerialStatus currentStatus = productSerial.getStatus();
         if (currentStatus == ProductSerialStatus.WARRANTY
-                || currentStatus == ProductSerialStatus.SOLD
+                || currentStatus == ProductSerialStatus.ASSIGNED
                 || productSerial.getWarranty() != null) {
             throw new BadRequestException("Activated serial cannot change defective status");
         }

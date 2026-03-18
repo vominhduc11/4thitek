@@ -41,7 +41,7 @@ import {
 const SERIAL_STATUS_FILTER_OPTIONS: BackendProductSerialStatus[] = [
   'AVAILABLE',
   'DEFECTIVE',
-  'SOLD',
+  'ASSIGNED',
   'WARRANTY',
   'RETURNED',
 ]
@@ -49,7 +49,7 @@ const SERIAL_STATUS_FILTER_OPTIONS: BackendProductSerialStatus[] = [
 const statusTone = {
   AVAILABLE: 'success',
   DEFECTIVE: 'danger',
-  SOLD: 'neutral',
+  ASSIGNED: 'neutral',
   WARRANTY: 'info',
   RETURNED: 'warning',
 } as const
@@ -73,7 +73,7 @@ const copyByLanguage = {
     next: 'Tiếp',
     previous: 'Trước',
     available: 'Khả dụng',
-    sold: 'Đã bán',
+    sold: 'Đã gán',
     warranty: 'Bảo hành',
     defective: 'Hàng lỗi',
     returned: 'Trả lại',
@@ -105,7 +105,7 @@ const copyByLanguage = {
     statusLabels: {
       AVAILABLE: 'Khả dụng',
       DEFECTIVE: 'Hàng lỗi',
-      SOLD: 'Đã bán',
+      ASSIGNED: 'Đã gán',
       WARRANTY: 'Bảo hành',
       RETURNED: 'Trả lại',
     } as Record<BackendProductSerialStatus, string>,
@@ -126,7 +126,7 @@ const copyByLanguage = {
     next: 'Next',
     previous: 'Previous',
     available: 'Available',
-    sold: 'Sold',
+    sold: 'Assigned',
     warranty: 'Warranty',
     defective: 'Defective',
     returned: 'Returned',
@@ -158,7 +158,7 @@ const copyByLanguage = {
     statusLabels: {
       AVAILABLE: 'Available',
       DEFECTIVE: 'Defective',
-      SOLD: 'Sold',
+      ASSIGNED: 'Assigned',
       WARRANTY: 'Warranty',
       RETURNED: 'Returned',
     } as Record<BackendProductSerialStatus, string>,
@@ -254,7 +254,7 @@ function SerialsPageRevamp() {
   const stats = useMemo(
     () => ({
       available: allItems.filter((item) => item.status === 'AVAILABLE').length,
-      sold: allItems.filter((item) => item.status === 'SOLD').length,
+      sold: allItems.filter((item) => item.status === 'ASSIGNED').length,
       warranty: allItems.filter((item) => item.status === 'WARRANTY').length,
       defective: allItems.filter((item) => item.status === 'DEFECTIVE').length,
       returned: allItems.filter((item) => item.status === 'RETURNED').length,

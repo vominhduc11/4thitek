@@ -190,11 +190,11 @@ public class AdminOperationsService {
         ProductSerialStatus initialStatus = request.status() == null ? ProductSerialStatus.AVAILABLE : request.status();
         if (initialStatus != ProductSerialStatus.AVAILABLE
                 && initialStatus != ProductSerialStatus.DEFECTIVE
-                && initialStatus != ProductSerialStatus.SOLD) {
+                && initialStatus != ProductSerialStatus.ASSIGNED) {
             throw new BadRequestException("Unsupported serial import status");
         }
-        if (initialStatus == ProductSerialStatus.SOLD && order == null) {
-            throw new BadRequestException("SOLD status requires a linked order");
+        if (initialStatus == ProductSerialStatus.ASSIGNED && order == null) {
+            throw new BadRequestException("ASSIGNED status requires a linked order");
         }
         if (order != null) {
             long existingSerialCount = productSerialRepository.countByOrderIdAndProductId(order.getId(), product.getId());
@@ -450,7 +450,7 @@ public class AdminOperationsService {
         }
         return productSerial.getOrder() == null
                 ? ProductSerialStatus.AVAILABLE
-                : ProductSerialStatus.SOLD;
+                : ProductSerialStatus.ASSIGNED;
     }
 
     private void assertManualSerialStatusAllowed(ProductSerial productSerial, ProductSerialStatus nextStatus) {
@@ -469,9 +469,9 @@ public class AdminOperationsService {
             }
             return;
         }
-        if (nextStatus == ProductSerialStatus.SOLD) {
+        if (nextStatus == ProductSerialStatus.ASSIGNED) {
             if (productSerial.getOrder() == null) {
-                throw new BadRequestException("SOLD status requires a linked order");
+                throw new BadRequestException("ASSIGNED status requires a linked order");
             }
             if (warrantyStatus == WarrantyStatus.ACTIVE) {
                 throw new BadRequestException("Active warranty serial must remain in WARRANTY status");

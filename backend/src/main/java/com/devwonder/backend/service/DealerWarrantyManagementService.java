@@ -265,13 +265,13 @@ public class DealerWarrantyManagementService {
     private ProductSerialStatus resolveSerialStatus(WarrantyStatus warrantyStatus) {
         return warrantyStatus == WarrantyStatus.ACTIVE
                 ? ProductSerialStatus.WARRANTY
-                : ProductSerialStatus.SOLD;
+                : ProductSerialStatus.ASSIGNED;
     }
 
     private ProductSerialStatus resolveStatusAfterWarrantyDeletion(ProductSerial productSerial) {
         return productSerial.getOrder() == null
                 ? ProductSerialStatus.AVAILABLE
-                : ProductSerialStatus.SOLD;
+                : ProductSerialStatus.ASSIGNED;
     }
 
     private WarrantyRegistrationResponse toResponse(WarrantyRegistration registration) {

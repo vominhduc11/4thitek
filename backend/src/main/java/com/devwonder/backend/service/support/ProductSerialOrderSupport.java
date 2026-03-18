@@ -30,6 +30,7 @@ public class ProductSerialOrderSupport {
                 continue;
             }
             serial.setOrder(null);
+            serial.setDealer(null);
             if (serial.getStatus() != ProductSerialStatus.DEFECTIVE) {
                 serial.setStatus(ProductSerialStatus.AVAILABLE);
             }

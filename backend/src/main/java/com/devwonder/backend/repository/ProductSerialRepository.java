@@ -23,6 +23,10 @@ public interface ProductSerialRepository extends JpaRepository<ProductSerial, Lo
     @EntityGraph(attributePaths = {"product", "dealer", "order"})
     List<ProductSerial> findByDealerIdOrderByImportedAtDesc(Long dealerId);
 
+    @EntityGraph(attributePaths = {"product", "dealer", "order"})
+    @Query("SELECT ps FROM ProductSerial ps WHERE ps.dealer.id = :dealerId AND (ps.order IS NULL OR ps.order.status = com.devwonder.backend.entity.enums.OrderStatus.COMPLETED) ORDER BY ps.importedAt DESC")
+    List<ProductSerial> findDealerInventorySerials(@Param("dealerId") Long dealerId);
+
     @EntityGraph(attributePaths = {"product", "dealer", "order", "warranty"})
     Page<ProductSerial> findAllByOrderByImportedAtDesc(Pageable pageable);
 
