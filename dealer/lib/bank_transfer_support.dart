@@ -108,19 +108,21 @@ Future<bool?> showBankTransferInfoSheet({
   required int amount,
   required String content,
   required Future<void> Function(String label, String value) onCopy,
+  bool confirmMode = true,
 }) {
   return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     requestFocus: true,
-    isDismissible: false,
-    enableDrag: false,
+    isDismissible: !confirmMode,
+    enableDrag: !confirmMode,
     builder: (sheetContext) {
       return _BankTransferInfoSheet(
         amount: amount,
         instructions: instructions,
         content: content,
         onCopy: onCopy,
+        confirmMode: confirmMode,
       );
     },
   );
@@ -132,12 +134,14 @@ class _BankTransferInfoSheet extends StatefulWidget {
     required this.instructions,
     required this.content,
     required this.onCopy,
+    this.confirmMode = true,
   });
 
   final int amount;
   final BankTransferInstructions instructions;
   final String content;
   final Future<void> Function(String label, String value) onCopy;
+  final bool confirmMode;
 
   @override
   State<_BankTransferInfoSheet> createState() => _BankTransferInfoSheetState();
@@ -219,29 +223,39 @@ class _BankTransferInfoSheetState extends State<_BankTransferInfoSheet> {
                     onCopy: () => widget.onCopy('Nội dung chuyển khoản', widget.content),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: _isConfirming ? null : () => Navigator.of(context).pop(false),
-                          child: const Text('Hủy'),
+                  if (widget.confirmMode) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _isConfirming ? null : () => Navigator.of(context).pop(false),
+                            child: const Text('Hủy'),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 2,
-                        child: FilledButton(
-                          onPressed: _isConfirming
-                              ? null
-                              : () {
-                                  setState(() => _isConfirming = true);
-                                  Navigator.of(context).pop(true);
-                                },
-                          child: const Text('Xác nhận đã chuyển khoản'),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: FilledButton(
+                            onPressed: _isConfirming
+                                ? null
+                                : () {
+                                    setState(() => _isConfirming = true);
+                                    Navigator.of(context).pop(true);
+                                  },
+                            child: const Text('Xác nhận đã chuyển khoản'),
+                          ),
                         ),
+                      ],
+                    ),
+                  ] else ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Đóng'),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ],
               ),
             ),
