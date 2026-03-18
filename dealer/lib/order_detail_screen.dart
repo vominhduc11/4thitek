@@ -219,8 +219,9 @@ class OrderDetailScreen extends StatelessWidget {
             ? order.outstandingAmount
             : order.total,
         content: order.id,
+        orderId: order.id,
+        orderController: OrderScope.of(context),
         onCopy: (label, value) => _copyToClipboard(context, label, value),
-        confirmMode: false,
       );
     } catch (error) {
       if (!context.mounted) {

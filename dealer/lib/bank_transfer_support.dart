@@ -104,27 +104,27 @@ class BankTransferException implements Exception {
   String toString() => message;
 }
 
-Future<bool?> showBankTransferInfoSheet({
+Future<void> showBankTransferInfoSheet({
   required BuildContext context,
   required BankTransferInstructions instructions,
   required int amount,
   required String content,
+  required String orderId,
+  required OrderController orderController,
   required Future<void> Function(String label, String value) onCopy,
-  bool confirmMode = true,
 }) {
-  return showModalBottomSheet<bool>(
+  return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     requestFocus: true,
-    isDismissible: !confirmMode,
-    enableDrag: !confirmMode,
     builder: (sheetContext) {
       return _BankTransferInfoSheet(
         amount: amount,
         instructions: instructions,
         content: content,
+        orderId: orderId,
+        orderController: orderController,
         onCopy: onCopy,
-        confirmMode: confirmMode,
       );
     },
   );
@@ -135,22 +135,42 @@ class _BankTransferInfoSheet extends StatefulWidget {
     required this.amount,
     required this.instructions,
     required this.content,
+    required this.orderId,
+    required this.orderController,
     required this.onCopy,
-    this.confirmMode = true,
   });
 
   final int amount;
   final BankTransferInstructions instructions;
   final String content;
+  final String orderId;
+  final OrderController orderController;
   final Future<void> Function(String label, String value) onCopy;
-  final bool confirmMode;
 
   @override
   State<_BankTransferInfoSheet> createState() => _BankTransferInfoSheetState();
 }
 
 class _BankTransferInfoSheetState extends State<_BankTransferInfoSheet> {
-  bool _isConfirming = false;
+  @override
+  void initState() {
+    super.initState();
+    widget.orderController.addListener(_onOrderChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.orderController.removeListener(_onOrderChanged);
+    super.dispose();
+  }
+
+  void _onOrderChanged() {
+    if (!mounted) return;
+    final order = widget.orderController.findById(widget.orderId);
+    if (order != null && order.paymentStatus == OrderPaymentStatus.paid) {
+      Navigator.of(context).pop();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -181,22 +201,43 @@ class _BankTransferInfoSheetState extends State<_BankTransferInfoSheet> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Vui lòng chuyển khoản đúng số tiền và đúng nội dung bên dưới. Sau khi chuyển khoản xong, nhấn "Xác nhận đã chuyển khoản" để hoàn tất đặt hàng.',
+                    'Đơn hàng đã được tạo. Vui lòng chuyển khoản đúng số tiền và đúng nội dung bên dưới để SePay đối soát tự động.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: colors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: colors.primary.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Text(
+                      'Khi SePay gửi webhook thành công, hệ thống sẽ tự động cập nhật thanh toán cho đơn này. Bạn không cần tự xác nhận thanh toán trong app.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 14),
                   _BankTransferInfoRow(
                     label: 'Nhà cung cấp',
                     value: widget.instructions.provider,
-                    onCopy: () => widget.onCopy('Nhà cung cấp', widget.instructions.provider),
+                    onCopy: () =>
+                        widget.onCopy('Nhà cung cấp', widget.instructions.provider),
                   ),
                   const SizedBox(height: 10),
                   _BankTransferInfoRow(
                     label: 'Số tiền',
                     value: formatVnd(widget.amount),
-                    onCopy: () => widget.onCopy('Số tiền', widget.amount.toString()),
+                    onCopy: () =>
+                        widget.onCopy('Số tiền', widget.amount.toString()),
                   ),
                   const SizedBox(height: 10),
                   _BankTransferInfoRow(
@@ -216,156 +257,22 @@ class _BankTransferInfoSheetState extends State<_BankTransferInfoSheet> {
                   _BankTransferInfoRow(
                     label: 'Ngân hàng',
                     value: widget.instructions.bankName,
-                    onCopy: () => widget.onCopy('Ngân hàng', widget.instructions.bankName),
+                    onCopy: () =>
+                        widget.onCopy('Ngân hàng', widget.instructions.bankName),
                   ),
                   const SizedBox(height: 10),
                   _BankTransferInfoRow(
                     label: 'Nội dung',
                     value: widget.content,
-                    onCopy: () => widget.onCopy('Nội dung chuyển khoản', widget.content),
+                    onCopy: () =>
+                        widget.onCopy('Nội dung chuyển khoản', widget.content),
                   ),
                   const SizedBox(height: 16),
-                  if (widget.confirmMode) ...[
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: _isConfirming ? null : () => Navigator.of(context).pop(false),
-                            child: const Text('Hủy'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: FilledButton(
-                            onPressed: _isConfirming
-                                ? null
-                                : () {
-                                    setState(() => _isConfirming = true);
-                                    Navigator.of(context).pop(true);
-                                  },
-                            child: const Text('Xác nhận đã chuyển khoản'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ] else ...[
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('Đóng'),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-Future<void> showBankTransferWaitingSheet({
-  required BuildContext context,
-  required OrderController orderController,
-  required String orderId,
-}) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    requestFocus: true,
-    isDismissible: false,
-    enableDrag: false,
-    builder: (sheetContext) {
-      return _BankTransferWaitingSheet(
-        orderController: orderController,
-        orderId: orderId,
-      );
-    },
-  );
-}
-
-class _BankTransferWaitingSheet extends StatefulWidget {
-  const _BankTransferWaitingSheet({
-    required this.orderController,
-    required this.orderId,
-  });
-
-  final OrderController orderController;
-  final String orderId;
-
-  @override
-  State<_BankTransferWaitingSheet> createState() =>
-      _BankTransferWaitingSheetState();
-}
-
-class _BankTransferWaitingSheetState extends State<_BankTransferWaitingSheet> {
-  @override
-  void initState() {
-    super.initState();
-    widget.orderController.addListener(_onOrderChanged);
-  }
-
-  @override
-  void dispose() {
-    widget.orderController.removeListener(_onOrderChanged);
-    super.dispose();
-  }
-
-  void _onOrderChanged() {
-    if (!mounted) return;
-    final order = widget.orderController.findById(widget.orderId);
-    if (order != null && order.paymentStatus == OrderPaymentStatus.paid) {
-      Navigator.of(context).pop();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final isTablet = AppBreakpoints.isTablet(context);
-    final maxWidth = isTablet ? 760.0 : double.infinity;
-    return SafeArea(
-      child: SingleChildScrollView(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxWidth),
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: 24,
-                right: 24,
-                top: 24,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Đang chờ xác nhận thanh toán...',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'SePay đang đối soát giao dịch của bạn. Trang sẽ tự động chuyển khi xác nhận thành công.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
-                    child: OutlinedButton(
+                    child: FilledButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Bỏ qua, đơn hàng đã được tạo'),
+                      child: const Text('Đã hiểu'),
                     ),
                   ),
                 ],
