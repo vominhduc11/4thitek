@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import 'api_config.dart';
+import 'auth_storage.dart';
+import 'dealer_auth_client.dart';
 import 'models.dart';
 
 class ProductCatalogController extends ChangeNotifier {
-  ProductCatalogController({http.Client? client})
-    : _client = client ?? http.Client(),
+  ProductCatalogController({http.Client? client, AuthStorage? authStorage})
+    : _client = client ?? (authStorage != null ? DealerAuthClient(authStorage: authStorage) : http.Client()),
       _products = const <Product>[];
 
   final http.Client _client;
@@ -77,6 +79,47 @@ class ProductCatalogController extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<({List<Product> items, bool isLast})> fetchPage(int pageIndex, int pageSize) async {
+    if (!DealerApiConfig.isConfigured) {
+      return (items: const <Product>[], isLast: true);
+    }
+
+    final uri = Uri.parse(DealerApiConfig.resolveUrl('/api/product/products/page'))
+        .replace(queryParameters: {
+      'page': '$pageIndex',
+      'size': '$pageSize',
+    });
+
+    final response = await _client.get(
+      uri,
+      headers: const <String, String>{'Accept': 'application/json'},
+    );
+    final payload = _decodePayload(response.body);
+    if (response.statusCode >= 400) {
+      throw Exception(_extractErrorMessage(payload));
+    }
+
+    final data = payload['data'];
+    if (data is! Map<String, dynamic>) {
+      throw Exception('Invalid paginated product payload');
+    }
+
+    final rawItems = data['items'];
+    final items = (rawItems is List ? rawItems : const <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .map(_mapSummaryProduct)
+        .toList(growable: false);
+
+    // Update lookup cache so findById works for cart/orders
+    for (final product in items) {
+      _productsById[product.id] = product;
+    }
+
+    final totalPages = (data['totalPages'] as num?)?.toInt() ?? 1;
+    final currentPage = (data['page'] as num?)?.toInt() ?? 0;
+    return (items: items, isLast: currentPage >= totalPages - 1);
   }
 
   Future<Product> fetchDetail(String productId) async {

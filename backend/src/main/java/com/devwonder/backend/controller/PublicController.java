@@ -1,6 +1,7 @@
 package com.devwonder.backend.controller;
 
 import com.devwonder.backend.dto.ApiResponse;
+import com.devwonder.backend.dto.pagination.PagedResponse;
 import com.devwonder.backend.dto.publicapi.PublicDealerResponse;
 import com.devwonder.backend.dto.publicapi.PublicProductDetailResponse;
 import com.devwonder.backend.dto.publicapi.PublicProductSummaryResponse;
@@ -41,6 +42,13 @@ public class PublicController {
     @GetMapping("/product/products")
     public ResponseEntity<ApiResponse<List<PublicProductSummaryResponse>>> products() {
         return ResponseEntity.ok(ApiResponse.success(publicApiService.getProducts()));
+    }
+
+    @GetMapping("/product/products/page")
+    public ResponseEntity<ApiResponse<PagedResponse<PublicProductSummaryResponse>>> productsPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(ApiResponse.success(publicApiService.getProductsPaged(page, size)));
     }
 
     @GetMapping("/product/products/search")

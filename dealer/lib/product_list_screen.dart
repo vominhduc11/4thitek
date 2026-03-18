@@ -248,29 +248,45 @@ class _ProductListScreenState extends State<ProductListScreen> {
   Future<void> _fetchPage(int pageKey) async {
     final requestRevision = _queryRevision;
     try {
-      await _productCatalog?.load();
-      await Future.delayed(_apiLatency);
-      if (!mounted || requestRevision != _queryRevision) {
-        return;
-      }
-
-      final catalogError = _productCatalog?.errorMessage;
-      if (catalogError != null) {
-        _pagingController.error = catalogError;
-        return;
-      }
-
-      final products = _applyFilters();
-      final start = pageKey;
-      final end = math.min(start + _pageSize, products.length);
-      final newItems = start >= products.length
-          ? const <Product>[]
-          : products.sublist(start, end);
-      final isLastPage = end >= products.length;
-      if (isLastPage) {
-        _pagingController.appendLastPage(newItems);
+      if (!_hasAnyFilters) {
+        // Server-side pagination khi không có filter
+        final pageIndex = pageKey ~/ _pageSize;
+        final result = await _productCatalog?.fetchPage(pageIndex, _pageSize);
+        if (!mounted || requestRevision != _queryRevision) return;
+        if (result == null) {
+          _pagingController.appendLastPage(const []);
+          return;
+        }
+        final nextPageKey = (pageIndex + 1) * _pageSize;
+        if (result.isLast) {
+          _pagingController.appendLastPage(result.items);
+        } else {
+          _pagingController.appendPage(result.items, nextPageKey);
+        }
       } else {
-        _pagingController.appendPage(newItems, end);
+        // Client-side filter: load toàn bộ rồi lọc
+        await _productCatalog?.load();
+        await Future.delayed(_apiLatency);
+        if (!mounted || requestRevision != _queryRevision) return;
+
+        final catalogError = _productCatalog?.errorMessage;
+        if (catalogError != null) {
+          _pagingController.error = catalogError;
+          return;
+        }
+
+        final products = _applyFilters();
+        final start = pageKey;
+        final end = math.min(start + _pageSize, products.length);
+        final newItems = start >= products.length
+            ? const <Product>[]
+            : products.sublist(start, end);
+        final isLastPage = end >= products.length;
+        if (isLastPage) {
+          _pagingController.appendLastPage(newItems);
+        } else {
+          _pagingController.appendPage(newItems, end);
+        }
       }
     } catch (error) {
       _pagingController.error = error;

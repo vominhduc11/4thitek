@@ -60,8 +60,8 @@ class _DealerAppState extends State<DealerApp> {
   @override
   void initState() {
     super.initState();
-    _productCatalogController = ProductCatalogController();
     _authStorage = AuthStorage();
+    _productCatalogController = ProductCatalogController(authStorage: _authStorage);
     _cartController = CartController(
       productLookup: _productCatalogController.findById,
       authStorage: _authStorage,

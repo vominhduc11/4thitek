@@ -1,11 +1,14 @@
 package com.devwonder.backend.service;
 
+import com.devwonder.backend.dto.pagination.PagedResponse;
 import com.devwonder.backend.dto.publicapi.PublicDealerResponse;
 import com.devwonder.backend.dto.publicapi.PublicProductDetailResponse;
 import com.devwonder.backend.dto.publicapi.PublicProductSummaryResponse;
 import com.devwonder.backend.dto.publicapi.WarrantyLookupProductSerialResponse;
 import com.devwonder.backend.dto.publicapi.WarrantyLookupResponse;
 import com.devwonder.backend.config.CacheNames;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
@@ -148,6 +151,14 @@ public class PublicApiService {
         return WarrantyDateSupport.remainingDays(warrantyEnd);
     }
 
+    @Transactional(readOnly = true)
+    public PagedResponse<PublicProductSummaryResponse> getProductsPaged(int page, int size) {
+        var pageable = PageRequest.of(page, Math.min(size, 100), Sort.by("name").ascending());
+        var productPage = productRepository.findByIsDeletedFalseAndPublishStatusOrderByNameAsc(
+                PublishStatus.PUBLISHED, pageable);
+        return PagedResponse.from(productPage.map(this::toSummary), "name");
+    }
+
     private PublicProductSummaryResponse toSummary(Product product) {
         return new PublicProductSummaryResponse(
                 product.getId(),
@@ -155,7 +166,7 @@ public class PublicApiService {
                 product.getSku(),
                 product.getShortDescription(),
                 extractImage(product),
-                product.getRetailPrice() == null ? 0 : product.getRetailPrice().doubleValue(),
+                product.getRetailPrice() == null ? 0L : product.getRetailPrice().longValue(),
                 product.getStock() == null ? 0 : product.getStock(),
                 product.getWarrantyPeriod() == null ? 12 : product.getWarrantyPeriod()
         );
@@ -169,10 +180,10 @@ public class PublicApiService {
                 product.getShortDescription(),
                 extractDescriptionText(product),
                 extractImage(product),
-                product.getRetailPrice() == null ? 0 : product.getRetailPrice().doubleValue(),
-                toJson(product.getSpecifications()),
-                toJson(product.getVideos()),
-                toJson(product.getDescriptions()),
+                product.getRetailPrice() == null ? 0L : product.getRetailPrice().longValue(),
+                product.getSpecifications(),
+                product.getVideos(),
+                product.getDescriptions(),
                 product.getStock() == null ? 0 : product.getStock(),
                 product.getWarrantyPeriod() == null ? 12 : product.getWarrantyPeriod()
         );

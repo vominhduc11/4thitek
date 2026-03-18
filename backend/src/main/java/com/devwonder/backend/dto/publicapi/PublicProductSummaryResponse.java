@@ -6,7 +6,7 @@ public record PublicProductSummaryResponse(
         String sku,
         String shortDescription,
         String image,
-        double price,
+        long price,
         int stock,
         int warrantyMonths
 ) implements java.io.Serializable {

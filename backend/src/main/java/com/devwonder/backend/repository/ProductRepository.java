@@ -17,6 +17,7 @@ import jakarta.persistence.LockModeType;
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByIsDeletedFalseAndPublishStatusOrderByNameAsc(PublishStatus publishStatus);
+    Page<Product> findByIsDeletedFalseAndPublishStatusOrderByNameAsc(PublishStatus publishStatus, Pageable pageable);
     List<Product> findTop6ByIsDeletedFalseAndShowOnHomepageTrueAndPublishStatusOrderByUpdatedAtDesc(PublishStatus publishStatus);
     List<Product> findTop6ByIsDeletedFalseAndIsFeaturedTrueAndPublishStatusOrderByUpdatedAtDesc(PublishStatus publishStatus);
     Optional<Product> findByIdAndIsDeletedFalseAndPublishStatus(Long id, PublishStatus publishStatus);

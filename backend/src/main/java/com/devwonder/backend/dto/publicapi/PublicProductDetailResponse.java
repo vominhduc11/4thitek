@@ -7,10 +7,10 @@ public record PublicProductDetailResponse(
         String shortDescription,
         String description,
         String image,
-        double price,
-        String specifications,
-        String videos,
-        String descriptions,
+        long price,
+        Object specifications,
+        Object videos,
+        Object descriptions,
         int stock,
         int warrantyMonths
 ) implements java.io.Serializable {
