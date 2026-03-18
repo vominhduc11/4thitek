@@ -484,10 +484,6 @@ function SerialsPageRevamp() {
                       <span className="text-right text-[var(--ink)]">{item.dealerName ?? item.customerName ?? '-'}</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <span className={tableMetaClass}>{copy.warehouse}</span>
-                      <span className="text-right text-[var(--ink)]">{item.warehouseName ?? item.warehouseId ?? '-'}</span>
-                    </div>
-                    <div className="flex justify-between gap-3">
                       <span className={tableMetaClass}>{copy.importedAt}</span>
                       <span className="text-right text-[var(--ink)]">{item.importedAt ? formatDateTime(item.importedAt) : '-'}</span>
                     </div>
@@ -518,7 +514,6 @@ function SerialsPageRevamp() {
                     <th className="px-3 py-2 font-semibold">{copy.serialHeader}</th>
                     <th className="px-3 py-2 font-semibold">{copy.product}</th>
                     <th className="px-3 py-2 font-semibold">{copy.owner}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.warehouse}</th>
                     <th className="px-3 py-2 font-semibold">{copy.status}</th>
                     <th className="px-3 py-2 font-semibold">{copy.importedAt}</th>
                   </tr>
@@ -537,10 +532,6 @@ function SerialsPageRevamp() {
                       <td className="px-3 py-3">
                         <p>{item.dealerName ?? '-'}</p>
                         <p className={tableMetaClass}>{item.customerName ?? '-'}</p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <p>{item.warehouseName ?? '-'}</p>
-                        <p className={tableMetaClass}>{item.warehouseId ?? '-'}</p>
                       </td>
                       <td className="px-3 py-3">
                         {item.status === 'RETURNED' ? (
