@@ -228,40 +228,40 @@ class _BankTransferInfoSheetState extends State<_BankTransferInfoSheet> {
                   const SizedBox(height: 14),
                   _BankTransferInfoRow(
                     label: 'Nhà cung cấp',
-                    value: instructions.provider,
-                    onCopy: () => onCopy('Nhà cung cấp', instructions.provider),
+                    value: widget.instructions.provider,
+                    onCopy: () => widget.onCopy('Nhà cung cấp', widget.instructions.provider),
                   ),
                   const SizedBox(height: 10),
                   _BankTransferInfoRow(
                     label: 'Số tiền',
-                    value: formatVnd(amount),
-                    onCopy: () => onCopy('Số tiền', amount.toString()),
+                    value: formatVnd(widget.amount),
+                    onCopy: () => widget.onCopy('Số tiền', widget.amount.toString()),
                   ),
                   const SizedBox(height: 10),
                   _BankTransferInfoRow(
                     label: 'Chủ tài khoản',
-                    value: instructions.accountHolder,
+                    value: widget.instructions.accountHolder,
                     onCopy: () =>
-                        onCopy('Chủ tài khoản', instructions.accountHolder),
+                        widget.onCopy('Chủ tài khoản', widget.instructions.accountHolder),
                   ),
                   const SizedBox(height: 10),
                   _BankTransferInfoRow(
                     label: 'Số tài khoản',
-                    value: instructions.accountNumber,
+                    value: widget.instructions.accountNumber,
                     onCopy: () =>
-                        onCopy('Số tài khoản', instructions.accountNumber),
+                        widget.onCopy('Số tài khoản', widget.instructions.accountNumber),
                   ),
                   const SizedBox(height: 10),
                   _BankTransferInfoRow(
                     label: 'Ngân hàng',
-                    value: instructions.bankName,
-                    onCopy: () => onCopy('Ngân hàng', instructions.bankName),
+                    value: widget.instructions.bankName,
+                    onCopy: () => widget.onCopy('Ngân hàng', widget.instructions.bankName),
                   ),
                   const SizedBox(height: 10),
                   _BankTransferInfoRow(
                     label: 'Nội dung',
-                    value: content,
-                    onCopy: () => onCopy('Nội dung chuyển khoản', content),
+                    value: widget.content,
+                    onCopy: () => widget.onCopy('Nội dung chuyển khoản', widget.content),
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
