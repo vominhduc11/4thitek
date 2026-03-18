@@ -107,6 +107,8 @@ const copyByLanguage = {
     importError: 'Vui lòng chọn sản phẩm và nhập ít nhất một serial hợp lệ.',
     formatError: 'Một số serial không đúng định dạng. Chỉ chấp nhận chữ, số, dấu gạch và tối thiểu 4 ký tự.',
     reload: 'Tải lại',
+    loadingStats: 'Đang tải...',
+    importSuccess: 'Import thành công {count} serial.',
     statusLabels: {
       AVAILABLE: 'Khả dụng',
       DEFECTIVE: 'Hàng lỗi',
@@ -150,6 +152,8 @@ const copyByLanguage = {
     importError: 'Select a product and enter at least one valid serial.',
     formatError: 'Some serials are invalid. Only letters, numbers, dashes, and at least 4 characters are allowed.',
     reload: 'Reload',
+    loadingStats: 'Loading...',
+    importSuccess: 'Successfully imported {count} serial(s).',
     statusLabels: {
       AVAILABLE: 'Available',
       DEFECTIVE: 'Defective',
@@ -220,16 +224,10 @@ function SerialsPageRevamp() {
     }
   }, [accessToken, copy.loadFallback])
 
+  // Always load all items so stats are always accurate across all pages
   useEffect(() => {
-    if (!hasActiveFilters) {
-      setAllItems([])
-      setIsFilterLoading(false)
-      setError(null)
-      return
-    }
-
     void loadAllItems()
-  }, [hasActiveFilters, loadAllItems])
+  }, [loadAllItems])
 
   const sourceItems = hasActiveFilters ? allItems : items
 
@@ -254,21 +252,18 @@ function SerialsPageRevamp() {
 
   const stats = useMemo(
     () => ({
-      available: sourceItems.filter((item) => item.status === 'AVAILABLE').length,
-      sold: sourceItems.filter((item) => item.status === 'SOLD').length,
-      warranty: sourceItems.filter((item) => item.status === 'WARRANTY').length,
-      defective: sourceItems.filter((item) => item.status === 'DEFECTIVE').length,
-      returned: sourceItems.filter((item) => item.status === 'RETURNED').length,
+      available: allItems.filter((item) => item.status === 'AVAILABLE').length,
+      sold: allItems.filter((item) => item.status === 'SOLD').length,
+      warranty: allItems.filter((item) => item.status === 'WARRANTY').length,
+      defective: allItems.filter((item) => item.status === 'DEFECTIVE').length,
+      returned: allItems.filter((item) => item.status === 'RETURNED').length,
     }),
-    [sourceItems],
+    [allItems],
   )
 
   const handleReload = useCallback(async () => {
-    await loadData(page)
-    if (hasActiveFilters) {
-      await loadAllItems()
-    }
-  }, [hasActiveFilters, loadAllItems, loadData, page])
+    await Promise.all([loadData(page), loadAllItems()])
+  }, [loadAllItems, loadData, page])
 
   const handleImport = async () => {
     if (!accessToken) return
@@ -278,7 +273,7 @@ function SerialsPageRevamp() {
       .map((value) => value.trim())
       .filter(Boolean)
 
-    if (Number.isNaN(productId) || serials.length === 0) {
+    if (!form.productId || Number.isNaN(productId) || productId <= 0 || serials.length === 0) {
       notify(copy.importError, { title: copy.title, variant: 'error' })
       return
     }
@@ -290,7 +285,7 @@ function SerialsPageRevamp() {
 
     setIsImporting(true)
     try {
-      await importAdminSerials(accessToken, {
+      const imported = await importAdminSerials(accessToken, {
         productId,
         serials,
       })
@@ -300,10 +295,11 @@ function SerialsPageRevamp() {
       })
       setShowImport(false)
       setPage(0)
-      await loadData(0)
-      if (hasActiveFilters) {
-        await loadAllItems()
-      }
+      await Promise.all([loadData(0), loadAllItems()])
+      notify(copy.importSuccess.replace('{count}', String(imported.length)), {
+        title: copy.importTitle,
+        variant: 'success',
+      })
     } catch (importError) {
       notify(importError instanceof Error ? importError.message : copy.loadFallback, {
         title: copy.title,
@@ -393,11 +389,11 @@ function SerialsPageRevamp() {
 
       {/* Stats */}
       <div className="mt-6 grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-        <StatCard icon={Barcode} label={copy.available} value={stats.available} tone="success" />
-        <StatCard icon={Barcode} label={copy.sold} value={stats.sold} tone="neutral" />
-        <StatCard icon={Barcode} label={copy.warranty} value={stats.warranty} tone="info" />
-        <StatCard icon={Barcode} label={copy.defective} value={stats.defective} tone="warning" />
-        <StatCard icon={Barcode} label={copy.returned} value={stats.returned} tone="warning" />
+        <StatCard icon={Barcode} label={copy.available} value={isFilterLoading ? copy.loadingStats : stats.available} tone="success" />
+        <StatCard icon={Barcode} label={copy.sold} value={isFilterLoading ? copy.loadingStats : stats.sold} tone="neutral" />
+        <StatCard icon={Barcode} label={copy.warranty} value={isFilterLoading ? copy.loadingStats : stats.warranty} tone="info" />
+        <StatCard icon={Barcode} label={copy.defective} value={isFilterLoading ? copy.loadingStats : stats.defective} tone="warning" />
+        <StatCard icon={Barcode} label={copy.returned} value={isFilterLoading ? copy.loadingStats : stats.returned} tone="neutral" />
       </div>
 
       {/* Import form */}
@@ -444,10 +440,10 @@ function SerialsPageRevamp() {
       {/* Results area */}
       <div className="mt-6">
         {/* Filter loading inline */}
-        {isFilterLoading ? (
+        {isFilterLoading && hasActiveFilters ? (
           <div className="flex items-center justify-center gap-2 py-12 text-sm text-slate-500">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>{copy.searchLabel}...</span>
+            <span>{copy.loadingStats}</span>
           </div>
         ) : filteredItems.length === 0 ? (
           <EmptyState icon={Barcode} title={copy.emptyTitle} message={copy.emptyMessage} />
