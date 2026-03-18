@@ -356,7 +356,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
       switch (_stockFilter) {
         case StockFilter.inStock:
-          return product.stock > _lowStockThreshold;
+          return product.stock > 0;
         case StockFilter.lowStock:
           return product.stock > 0 && product.stock <= _lowStockThreshold;
         case StockFilter.outOfStock:
@@ -375,6 +375,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
         break;
       case SortOption.nameAsc:
         filtered.sort((a, b) => a.name.compareTo(b.name));
+        break;
+      case SortOption.nameDesc:
+        filtered.sort((a, b) => b.name.compareTo(a.name));
         break;
       case SortOption.none:
         break;
@@ -625,6 +628,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       SortOption.priceAsc => 'Giá thấp → cao',
       SortOption.priceDesc => 'Giá cao → thấp',
       SortOption.nameAsc => 'Tên A → Z',
+      SortOption.nameDesc => 'Tên Z → A',
       SortOption.none => 'Sắp xếp',
     };
 
@@ -642,6 +646,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
           child: Text('Giá cao → thấp'),
         ),
         PopupMenuItem(value: SortOption.nameAsc, child: Text('Tên A → Z')),
+        PopupMenuItem(value: SortOption.nameDesc, child: Text('Tên Z → A')),
       ],
       child: Container(
         constraints: const BoxConstraints(minHeight: 48),
@@ -1361,7 +1366,7 @@ class _ProductCardSkeleton extends StatelessWidget {
 
 enum StockFilter { all, inStock, lowStock, outOfStock }
 
-enum SortOption { none, priceAsc, priceDesc, nameAsc }
+enum SortOption { none, priceAsc, priceDesc, nameAsc, nameDesc }
 
 String? _productNameForDiscountTarget(
   List<CartItem> items,
