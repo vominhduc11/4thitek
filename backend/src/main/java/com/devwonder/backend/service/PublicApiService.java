@@ -17,14 +17,17 @@ import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.PublishStatus;
 import com.devwonder.backend.entity.enums.WarrantyStatus;
 import com.devwonder.backend.exception.ResourceNotFoundException;
+import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.ProductRepository;
+import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PublicApiService {
 
     private final ProductRepository productRepository;
+    private final ProductSerialRepository productSerialRepository;
     private final DealerRepository dealerRepository;
     private final WarrantyRegistrationRepository warrantyRegistrationRepository;
     private final ObjectMapper objectMapper;
@@ -44,27 +48,30 @@ public class PublicApiService {
     @Transactional(readOnly = true)
     @Cacheable(CacheNames.PUBLIC_HOMEPAGE_PRODUCTS)
     public List<PublicProductSummaryResponse> getHomepageProducts() {
+        var stockMap = buildAvailableSerialCountMap();
         return productRepository.findTop6ByIsDeletedFalseAndShowOnHomepageTrueAndPublishStatusOrderByUpdatedAtDesc(PublishStatus.PUBLISHED)
                 .stream()
-                .map(this::toSummary)
+                .map(p -> toSummary(p, stockMap))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     @Cacheable(CacheNames.PUBLIC_FEATURED_PRODUCTS)
     public List<PublicProductSummaryResponse> getFeaturedProducts() {
+        var stockMap = buildAvailableSerialCountMap();
         return productRepository.findTop6ByIsDeletedFalseAndIsFeaturedTrueAndPublishStatusOrderByUpdatedAtDesc(PublishStatus.PUBLISHED)
                 .stream()
-                .map(this::toSummary)
+                .map(p -> toSummary(p, stockMap))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     @Cacheable(CacheNames.PUBLIC_PRODUCTS)
     public List<PublicProductSummaryResponse> getProducts() {
+        var stockMap = buildAvailableSerialCountMap();
         return productRepository.findByIsDeletedFalseAndPublishStatusOrderByNameAsc(PublishStatus.PUBLISHED)
                 .stream()
-                .map(this::toSummary)
+                .map(p -> toSummary(p, stockMap))
                 .toList();
     }
 
@@ -76,6 +83,7 @@ public class PublicApiService {
             Double maxPrice
     ) {
         String normalizedQuery = normalize(query);
+        var stockMap = buildAvailableSerialCountMap();
 
         return productRepository.findByIsDeletedFalseAndPublishStatusOrderByNameAsc(PublishStatus.PUBLISHED)
                 .stream()
@@ -83,7 +91,7 @@ public class PublicApiService {
                 .filter(product -> matchesMinPrice(product, minPrice))
                 .filter(product -> matchesMaxPrice(product, maxPrice))
                 .sorted(Comparator.comparing(Product::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
-                .map(this::toSummary)
+                .map(p -> toSummary(p, stockMap))
                 .toList();
     }
 
@@ -92,7 +100,9 @@ public class PublicApiService {
     public PublicProductDetailResponse getProduct(Long id) {
         Product product = productRepository.findByIdAndIsDeletedFalseAndPublishStatus(id, PublishStatus.PUBLISHED)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-        return toDetail(product);
+        long availableStock = productSerialRepository.countByProductIdAndDealerIsNullAndStatus(
+                id, ProductSerialStatus.AVAILABLE);
+        return toDetail(product, availableStock);
     }
 
     @Transactional(readOnly = true)
@@ -153,13 +163,25 @@ public class PublicApiService {
 
     @Transactional(readOnly = true)
     public PagedResponse<PublicProductSummaryResponse> getProductsPaged(int page, int size) {
+        var stockMap = buildAvailableSerialCountMap();
         var pageable = PageRequest.of(page, Math.min(size, 100), Sort.by("name").ascending());
         var productPage = productRepository.findByIsDeletedFalseAndPublishStatusOrderByNameAsc(
                 PublishStatus.PUBLISHED, pageable);
-        return PagedResponse.from(productPage.map(this::toSummary), "name");
+        return PagedResponse.from(productPage.map(p -> toSummary(p, stockMap)), "name");
     }
 
-    private PublicProductSummaryResponse toSummary(Product product) {
+    private Map<Long, Integer> buildAvailableSerialCountMap() {
+        Map<Long, Integer> map = new HashMap<>();
+        for (Object[] row : productSerialRepository.countAvailableGroupByProduct(ProductSerialStatus.AVAILABLE)) {
+            Long productId = ((Number) row[0]).longValue();
+            int count = ((Number) row[1]).intValue();
+            map.put(productId, count);
+        }
+        return map;
+    }
+
+    private PublicProductSummaryResponse toSummary(Product product, Map<Long, Integer> stockMap) {
+        int stock = stockMap.getOrDefault(product.getId(), 0);
         return new PublicProductSummaryResponse(
                 product.getId(),
                 product.getName(),
@@ -167,12 +189,12 @@ public class PublicApiService {
                 product.getShortDescription(),
                 extractImage(product),
                 product.getRetailPrice() == null ? 0L : product.getRetailPrice().longValue(),
-                product.getStock() == null ? 0 : product.getStock(),
+                stock,
                 product.getWarrantyPeriod() == null ? 12 : product.getWarrantyPeriod()
         );
     }
 
-    private PublicProductDetailResponse toDetail(Product product) {
+    private PublicProductDetailResponse toDetail(Product product, long availableStock) {
         return new PublicProductDetailResponse(
                 product.getId(),
                 product.getName(),
@@ -184,7 +206,7 @@ public class PublicApiService {
                 product.getSpecifications(),
                 product.getVideos(),
                 product.getDescriptions(),
-                product.getStock() == null ? 0 : product.getStock(),
+                (int) availableStock,
                 product.getWarrantyPeriod() == null ? 12 : product.getWarrantyPeriod()
         );
     }
