@@ -1,4 +1,4 @@
-import { Barcode, RefreshCw, Upload } from 'lucide-react'
+import { Barcode, Loader2, RefreshCw, Upload } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   fetchAllAdminSerials,
@@ -46,7 +46,6 @@ const SERIAL_STATUS_FILTER_OPTIONS: BackendProductSerialStatus[] = [
   'RETURNED',
 ]
 
-
 const SERIAL_MANUAL_STATUS_OPTIONS: BackendProductSerialStatus[] = [
   'AVAILABLE',
   'DEFECTIVE',
@@ -83,6 +82,7 @@ const copyByLanguage = {
     all: 'Tất cả',
     import: 'Import serial',
     product: 'Sản phẩm',
+    serialHeader: 'Serial',
     owner: 'Sở hữu',
     warehouse: 'Kho',
     importedAt: 'Ngày nhập',
@@ -91,21 +91,30 @@ const copyByLanguage = {
     available: 'Khả dụng',
     sold: 'Đã bán',
     warranty: 'Bảo hành',
+    defective: 'Hàng lỗi',
+    returned: 'Trả lại',
+    results: 'kết quả',
     emptyTitle: 'Không có serial phù hợp',
     emptyMessage: 'Thử đổi bộ lọc hoặc import thêm serial.',
     loadTitle: 'Không tải được serial',
     loadFallback: 'Hệ thống chưa lấy được danh sách serial.',
     importTitle: 'Import danh sách serial',
     serialList: 'Danh sách serial',
-    dealerId: 'ID đại lý',
-    orderId: 'ID đơn hàng',
+    serialsPlaceholder: 'Mỗi dòng một serial, hoặc phân cách bằng dấu phẩy.\nVí dụ:\nSN001\nSN002\nSN003',
     save: 'Thực hiện import',
     cancel: 'Hủy',
     confirmTitle: 'Xác nhận đổi trạng thái serial',
-    confirmMessage: 'Chuyển serial này sang trạng thái "{status}"?',
+    confirmMessage: 'Chuyển serial này sang "{status}"?',
     importError: 'Vui lòng chọn sản phẩm và nhập ít nhất một serial hợp lệ.',
     formatError: 'Một số serial không đúng định dạng. Chỉ chấp nhận chữ, số, dấu gạch và tối thiểu 4 ký tự.',
     reload: 'Tải lại',
+    statusLabels: {
+      AVAILABLE: 'Khả dụng',
+      DEFECTIVE: 'Hàng lỗi',
+      SOLD: 'Đã bán',
+      WARRANTY: 'Bảo hành',
+      RETURNED: 'Trả lại',
+    } as Record<BackendProductSerialStatus, string>,
   },
   en: {
     title: 'Serials',
@@ -116,6 +125,7 @@ const copyByLanguage = {
     all: 'All',
     import: 'Import serials',
     product: 'Product',
+    serialHeader: 'Serial',
     owner: 'Owner',
     warehouse: 'Warehouse',
     importedAt: 'Imported',
@@ -124,14 +134,16 @@ const copyByLanguage = {
     available: 'Available',
     sold: 'Sold',
     warranty: 'Warranty',
+    defective: 'Defective',
+    returned: 'Returned',
+    results: 'results',
     emptyTitle: 'No matching serials',
     emptyMessage: 'Try another filter or import more serials.',
     loadTitle: 'Unable to load serials',
     loadFallback: 'The serial list could not be loaded.',
     importTitle: 'Import serial list',
     serialList: 'Serial list',
-    dealerId: 'Dealer ID',
-    orderId: 'Order ID',
+    serialsPlaceholder: 'One serial per line, or comma-separated.\nExample:\nSN001\nSN002\nSN003',
     save: 'Run import',
     cancel: 'Cancel',
     confirmTitle: 'Confirm serial status change',
@@ -139,6 +151,13 @@ const copyByLanguage = {
     importError: 'Select a product and enter at least one valid serial.',
     formatError: 'Some serials are invalid. Only letters, numbers, dashes, and at least 4 characters are allowed.',
     reload: 'Reload',
+    statusLabels: {
+      AVAILABLE: 'Available',
+      DEFECTIVE: 'Defective',
+      SOLD: 'Sold',
+      WARRANTY: 'Warranty',
+      RETURNED: 'Returned',
+    } as Record<BackendProductSerialStatus, string>,
   },
 } as const
 
@@ -239,6 +258,8 @@ function SerialsPageRevamp() {
       available: sourceItems.filter((item) => item.status === 'AVAILABLE').length,
       sold: sourceItems.filter((item) => item.status === 'SOLD').length,
       warranty: sourceItems.filter((item) => item.status === 'WARRANTY').length,
+      defective: sourceItems.filter((item) => item.status === 'DEFECTIVE').length,
+      returned: sourceItems.filter((item) => item.status === 'RETURNED').length,
     }),
     [sourceItems],
   )
@@ -294,7 +315,29 @@ function SerialsPageRevamp() {
     }
   }
 
-  if (isLoading || isFilterLoading) {
+  const handleStatusChange = async (item: BackendSerialResponse, next: BackendProductSerialStatus) => {
+    if (next === item.status) return
+    const label = copy.statusLabels[next]
+    const approved = await confirm({
+      title: copy.confirmTitle,
+      message: copy.confirmMessage.replace('{status}', label),
+      tone: next === 'DEFECTIVE' ? 'danger' : 'warning',
+      confirmLabel: label,
+    })
+    if (!approved) return
+    try {
+      const updated = await updateAdminSerialStatus(accessToken!, item.id, next)
+      setItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
+      setAllItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
+    } catch (updateError) {
+      notify(updateError instanceof Error ? updateError.message : copy.loadFallback, {
+        title: copy.title,
+        variant: 'error',
+      })
+    }
+  }
+
+  if (isLoading) {
     return (
       <PagePanel>
         <LoadingRows rows={6} />
@@ -312,6 +355,7 @@ function SerialsPageRevamp() {
 
   return (
     <PagePanel>
+      {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h3 className={cardTitleClass}>{copy.title}</h3>
@@ -335,7 +379,7 @@ function SerialsPageRevamp() {
             <option value="ALL">{copy.all}</option>
             {SERIAL_STATUS_FILTER_OPTIONS.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {copy.statusLabels[status]}
               </option>
             ))}
           </select>
@@ -348,12 +392,16 @@ function SerialsPageRevamp() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
+      {/* Stats */}
+      <div className="mt-6 grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <StatCard icon={Barcode} label={copy.available} value={stats.available} tone="success" />
         <StatCard icon={Barcode} label={copy.sold} value={stats.sold} tone="neutral" />
         <StatCard icon={Barcode} label={copy.warranty} value={stats.warranty} tone="info" />
+        <StatCard icon={Barcode} label={copy.defective} value={stats.defective} tone="danger" />
+        <StatCard icon={Barcode} label={copy.returned} value={stats.returned} tone="warning" />
       </div>
 
+      {/* Import form */}
       {showImport ? (
         <div className={`${formCardClass} mt-6`}>
           <p className="text-sm font-semibold text-[var(--ink)]">{copy.importTitle}</p>
@@ -377,6 +425,7 @@ function SerialsPageRevamp() {
               <span className={labelClass}>{copy.serialList}</span>
               <textarea
                 className={textareaClass}
+                placeholder={copy.serialsPlaceholder}
                 value={form.serials}
                 onChange={(event) => setForm((current) => ({ ...current, serials: event.target.value }))}
               />
@@ -393,21 +442,36 @@ function SerialsPageRevamp() {
         </div>
       ) : null}
 
+      {/* Results area */}
       <div className="mt-6">
-        {filteredItems.length === 0 ? (
+        {/* Filter loading inline */}
+        {isFilterLoading ? (
+          <div className="flex items-center justify-center gap-2 py-12 text-sm text-slate-500">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>{copy.searchLabel}...</span>
+          </div>
+        ) : filteredItems.length === 0 ? (
           <EmptyState icon={Barcode} title={copy.emptyTitle} message={copy.emptyMessage} />
         ) : (
           <>
+            {/* Results count when filtering */}
+            {hasActiveFilters && (
+              <p className="mb-3 text-sm text-slate-500">
+                {filteredItems.length} {copy.results}
+              </p>
+            )}
+
+            {/* Mobile cards */}
             <div className="grid gap-3 md:hidden">
               {filteredItems.map((item) => (
                 <article key={item.id} className={tableCardClass}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-[var(--ink)]">{item.serial}</p>
-                      <p className={tableMetaClass}>{item.orderCode ?? copy.orderId}</p>
+                      <p className={tableMetaClass}>{item.orderCode ?? '-'}</p>
                     </div>
                     <StatusBadge tone={statusTone[item.status ?? 'AVAILABLE']}>
-                      {item.status ?? 'AVAILABLE'}
+                      {copy.statusLabels[item.status ?? 'AVAILABLE']}
                     </StatusBadge>
                   </div>
                   <div className="mt-4 grid gap-2 text-sm">
@@ -428,51 +492,30 @@ function SerialsPageRevamp() {
                       <span className="text-right text-[var(--ink)]">{item.importedAt ? formatDateTime(item.importedAt) : '-'}</span>
                     </div>
                   </div>
-                  <select
-                    aria-label={`${copy.status} ${item.id}`}
-                    className={`mt-4 w-full ${tableActionSelectClass}`}
-                    disabled={item.status === 'RETURNED'}
-                    value={item.status ?? 'AVAILABLE'}
-                    onChange={async (event) => {
-                      const next = event.target.value as BackendProductSerialStatus
-                      if (next === item.status) return
-                      const approved = await confirm({
-                        title: copy.confirmTitle,
-                        message: copy.confirmMessage.replace('{status}', next),
-                        tone: next === 'DEFECTIVE' ? 'danger' : 'warning',
-                        confirmLabel: next,
-                      })
-                      if (!approved) {
-                        event.currentTarget.value = item.status ?? 'AVAILABLE'
-                        return
-                      }
-                      try {
-                        const updated = await updateAdminSerialStatus(accessToken!, item.id, next)
-                        setItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
-                        setAllItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
-                      } catch (updateError) {
-                        notify(updateError instanceof Error ? updateError.message : copy.loadFallback, {
-                          title: copy.title,
-                          variant: 'error',
-                        })
-                      }
-                    }}
-                  >
-                    {getManualStatusOptions(item.status).map((status) => (
-                      <option key={`${item.id}-${status}`} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
+                  {item.status !== 'RETURNED' && (
+                    <select
+                      aria-label={`${copy.status} ${item.id}`}
+                      className={`mt-4 w-full ${tableActionSelectClass}`}
+                      value={item.status ?? 'AVAILABLE'}
+                      onChange={(event) => void handleStatusChange(item, event.target.value as BackendProductSerialStatus)}
+                    >
+                      {getManualStatusOptions(item.status).map((status) => (
+                        <option key={`${item.id}-${status}`} value={status}>
+                          {copy.statusLabels[status]}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </article>
               ))}
             </div>
 
+            {/* Desktop table */}
             <div className="hidden overflow-x-auto md:block">
               <table className="min-w-full border-separate border-spacing-y-2">
                 <thead>
                   <tr className={tableHeadClass}>
-                    <th className="px-3 py-2 font-semibold">Serial</th>
+                    <th className="px-3 py-2 font-semibold">{copy.serialHeader}</th>
                     <th className="px-3 py-2 font-semibold">{copy.product}</th>
                     <th className="px-3 py-2 font-semibold">{copy.owner}</th>
                     <th className="px-3 py-2 font-semibold">{copy.warehouse}</th>
@@ -500,45 +543,24 @@ function SerialsPageRevamp() {
                         <p className={tableMetaClass}>{item.warehouseId ?? '-'}</p>
                       </td>
                       <td className="px-3 py-3">
-                        <StatusBadge tone={statusTone[item.status ?? 'AVAILABLE']}>
-                          {item.status ?? 'AVAILABLE'}
-                        </StatusBadge>
-                        <select
-                          aria-label={`${copy.status} ${item.id}`}
-                          className={`mt-2 w-full ${tableActionSelectClass}`}
-                          disabled={item.status === 'RETURNED'}
-                          value={item.status ?? 'AVAILABLE'}
-                          onChange={async (event) => {
-                            const next = event.target.value as BackendProductSerialStatus
-                            if (next === item.status) return
-                            const approved = await confirm({
-                              title: copy.confirmTitle,
-                              message: copy.confirmMessage.replace('{status}', next),
-                              tone: next === 'DEFECTIVE' ? 'danger' : 'warning',
-                              confirmLabel: next,
-                            })
-                            if (!approved) {
-                              event.currentTarget.value = item.status ?? 'AVAILABLE'
-                              return
-                            }
-                      try {
-                        const updated = await updateAdminSerialStatus(accessToken!, item.id, next)
-                        setItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
-                        setAllItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
-                      } catch (updateError) {
-                        notify(updateError instanceof Error ? updateError.message : copy.loadFallback, {
-                          title: copy.title,
-                                variant: 'error',
-                              })
-                            }
-                          }}
-                        >
-                          {getManualStatusOptions(item.status).map((status) => (
-                            <option key={`${item.id}-${status}`} value={status}>
-                              {status}
-                            </option>
-                          ))}
-                        </select>
+                        {item.status === 'RETURNED' ? (
+                          <StatusBadge tone={statusTone['RETURNED']}>
+                            {copy.statusLabels['RETURNED']}
+                          </StatusBadge>
+                        ) : (
+                          <select
+                            aria-label={`${copy.status} ${item.id}`}
+                            className={tableActionSelectClass}
+                            value={item.status ?? 'AVAILABLE'}
+                            onChange={(event) => void handleStatusChange(item, event.target.value as BackendProductSerialStatus)}
+                          >
+                            {getManualStatusOptions(item.status).map((status) => (
+                              <option key={`${item.id}-${status}`} value={status}>
+                                {copy.statusLabels[status]}
+                              </option>
+                            ))}
+                          </select>
+                        )}
                       </td>
                       <td className="rounded-r-2xl px-3 py-3 text-sm">
                         {item.importedAt ? formatDateTime(item.importedAt) : '-'}
@@ -552,7 +574,8 @@ function SerialsPageRevamp() {
         )}
       </div>
 
-      {!hasActiveFilters ? (
+      {/* Pagination (chỉ khi không filter) */}
+      {!hasActiveFilters && (
         <PaginationNav
           page={page}
           totalPages={totalPages}
@@ -562,7 +585,8 @@ function SerialsPageRevamp() {
           previousLabel={copy.previous}
           nextLabel={copy.next}
         />
-      ) : null}
+      )}
+
       {confirmDialog}
     </PagePanel>
   )
