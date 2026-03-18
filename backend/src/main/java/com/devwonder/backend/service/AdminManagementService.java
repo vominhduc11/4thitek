@@ -216,6 +216,7 @@ public class AdminManagementService {
             for (ProductSerial serial : orderSerials) {
                 if (serial.getDealer() == null) {
                     serial.setDealer(order.getDealer());
+                    serial.setStatus(ProductSerialStatus.AVAILABLE);
                     toUpdate.add(serial);
                 }
             }

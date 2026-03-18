@@ -218,7 +218,7 @@ public class DealerWarrantyManagementService {
         registration.setStatus(nextStatus);
 
         productSerial.setDealer(dealer);
-        productSerial.setStatus(resolveSerialStatus(nextStatus));
+        productSerial.setStatus(resolveSerialStatus(productSerial, nextStatus));
         productSerialRepository.save(productSerial);
     }
 
@@ -262,14 +262,19 @@ public class DealerWarrantyManagementService {
         return WarrantyDateSupport.isExpired(warrantyEnd) ? WarrantyStatus.EXPIRED : WarrantyStatus.ACTIVE;
     }
 
-    private ProductSerialStatus resolveSerialStatus(WarrantyStatus warrantyStatus) {
-        return warrantyStatus == WarrantyStatus.ACTIVE
-                ? ProductSerialStatus.WARRANTY
+    private ProductSerialStatus resolveSerialStatus(ProductSerial productSerial, WarrantyStatus warrantyStatus) {
+        if (warrantyStatus == WarrantyStatus.ACTIVE) {
+            return ProductSerialStatus.WARRANTY;
+        }
+        Order order = productSerial.getOrder();
+        return order == null || order.getStatus() == OrderStatus.COMPLETED
+                ? ProductSerialStatus.AVAILABLE
                 : ProductSerialStatus.ASSIGNED;
     }
 
     private ProductSerialStatus resolveStatusAfterWarrantyDeletion(ProductSerial productSerial) {
-        return productSerial.getOrder() == null
+        Order order = productSerial.getOrder();
+        return order == null || order.getStatus() == OrderStatus.COMPLETED
                 ? ProductSerialStatus.AVAILABLE
                 : ProductSerialStatus.ASSIGNED;
     }

@@ -448,7 +448,8 @@ public class AdminOperationsService {
         if (warrantyStatus == WarrantyStatus.ACTIVE) {
             return ProductSerialStatus.WARRANTY;
         }
-        return productSerial.getOrder() == null
+        Order order = productSerial.getOrder();
+        return order == null || order.getStatus() == OrderStatus.COMPLETED
                 ? ProductSerialStatus.AVAILABLE
                 : ProductSerialStatus.ASSIGNED;
     }
