@@ -1,4 +1,4 @@
-import { RefreshCw, ShieldCheck } from 'lucide-react'
+import { Loader2, RefreshCw, ShieldCheck, ShieldOff } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   fetchAllAdminWarranties,
@@ -25,38 +25,26 @@ import {
   bodyTextClass,
   cardTitleClass,
   inputClass,
-  tableActionSelectClass,
   tableCardClass,
   tableHeadClass,
   tableMetaClass,
   tableRowClass,
 } from '../components/ui-kit'
 
-const STATUS_OPTIONS: BackendWarrantyStatus[] = ['ACTIVE', 'EXPIRED', 'VOID']
+const STATUS_FILTER_OPTIONS: BackendWarrantyStatus[] = ['ACTIVE', 'EXPIRED', 'VOID']
 
 const statusTone = {
   ACTIVE: 'success',
   EXPIRED: 'warning',
-  VOID: 'danger',
+  VOID: 'neutral',
 } as const
-
-const getRemainingLabel = (
-  status: BackendWarrantyStatus | null | undefined,
-  remainingDays: number | null | undefined,
-  labels: { expired: string; days: string; notAvailable: string },
-) =>
-  status === 'VOID'
-    ? labels.notAvailable
-    : status === 'EXPIRED'
-    ? labels.expired
-    : `${remainingDays ?? 0} ${labels.days}`
 
 const copyByLanguage = {
   vi: {
     title: 'Bảo hành',
     description: 'Theo dõi thời hạn bảo hành, đại lý liên quan và xử lý ngoại lệ trực tiếp từ admin.',
     searchLabel: 'Tìm bảo hành',
-    searchPlaceholder: 'Tìm mã bảo hành, serial, khách hàng...',
+    searchPlaceholder: 'Tìm mã bảo hành, serial, khách hàng, đại lý...',
     status: 'Trạng thái',
     all: 'Tất cả',
     active: 'Đang hiệu lực',
@@ -66,51 +54,78 @@ const copyByLanguage = {
     product: 'Sản phẩm',
     customer: 'Khách hàng',
     dealer: 'Đại lý',
+    startDate: 'Ngày bắt đầu',
     endDate: 'Ngày hết hạn',
-    actions: 'Thao tác',
+    remaining: 'Còn lại',
+    days: 'ngày',
+    notAvailable: '-',
     emptyTitle: 'Không có bảo hành phù hợp',
     emptyMessage: 'Thử đổi bộ lọc hoặc tải lại dữ liệu.',
     loadTitle: 'Không tải được bảo hành',
     loadFallback: 'Hệ thống chưa lấy được danh sách bảo hành.',
-    confirmTitle: 'Xác nhận đổi trạng thái bảo hành',
-    confirmMessage: 'Chuyển bảo hành này sang trạng thái "{status}"?',
     next: 'Tiếp',
     previous: 'Trước',
-    remaining: 'Còn lại',
-    days: 'ngày',
-    notAvailable: 'Chưa có',
     reload: 'Tải lại',
+    loadingStats: 'Đang tải...',
+    results: 'kết quả',
+    voidWarranty: 'Hủy bảo hành',
+    confirmVoidTitle: 'Xác nhận hủy bảo hành',
+    confirmVoidMessage: 'Bảo hành "{code}" sẽ bị hủy vĩnh viễn. Khách hàng sẽ mất quyền bảo hành còn lại.',
+    statusLabels: {
+      ACTIVE: 'Đang hiệu lực',
+      EXPIRED: 'Hết hạn',
+      VOID: 'Đã hủy',
+    } as Record<BackendWarrantyStatus, string>,
   },
   en: {
     title: 'Warranties',
     description: 'Track warranty terms, linked dealers, and exception handling from one screen.',
     searchLabel: 'Search warranties',
-    searchPlaceholder: 'Search by warranty code, serial, or customer...',
+    searchPlaceholder: 'Search warranty code, serial, customer, dealer...',
     status: 'Status',
     all: 'All',
     active: 'Active',
     expired: 'Expired',
-    voided: 'Void',
+    voided: 'Voided',
     code: 'Warranty',
     product: 'Product',
     customer: 'Customer',
     dealer: 'Dealer',
+    startDate: 'Start date',
     endDate: 'End date',
-    actions: 'Actions',
+    remaining: 'Remaining',
+    days: 'days',
+    notAvailable: '-',
     emptyTitle: 'No warranties match',
     emptyMessage: 'Try changing filters or reload the data.',
     loadTitle: 'Unable to load warranties',
     loadFallback: 'The warranty list could not be loaded.',
-    confirmTitle: 'Confirm warranty status change',
-    confirmMessage: 'Change this warranty to "{status}"?',
     next: 'Next',
     previous: 'Previous',
-    remaining: 'Remaining',
-    days: 'days',
-    notAvailable: 'N/A',
     reload: 'Reload',
+    loadingStats: 'Loading...',
+    results: 'results',
+    voidWarranty: 'Void warranty',
+    confirmVoidTitle: 'Confirm void warranty',
+    confirmVoidMessage: 'Warranty "{code}" will be permanently voided. The customer will lose remaining warranty coverage.',
+    statusLabels: {
+      ACTIVE: 'Active',
+      EXPIRED: 'Expired',
+      VOID: 'Void',
+    } as Record<BackendWarrantyStatus, string>,
   },
 } as const
+
+const getRemainingLabel = (
+  status: BackendWarrantyStatus | null | undefined,
+  remainingDays: number | null | undefined,
+  labels: { expired: string; days: string; notAvailable: string },
+) =>
+  status === 'VOID'
+    ? labels.notAvailable
+    : status === 'EXPIRED' || (remainingDays ?? 0) <= 0
+    ? labels.expired
+    : `${remainingDays} ${labels.days}`
 
 function WarrantiesPageRevamp() {
   const { language } = useLanguage()
@@ -165,16 +180,10 @@ function WarrantiesPageRevamp() {
     }
   }, [accessToken, copy.loadFallback])
 
+  // Always load all items so stats are always accurate across all pages
   useEffect(() => {
-    if (!hasActiveFilters) {
-      setAllItems([])
-      setIsFilterLoading(false)
-      setError(null)
-      return
-    }
-
     void loadAllItems()
-  }, [hasActiveFilters, loadAllItems])
+  }, [loadAllItems])
 
   const sourceItems = hasActiveFilters ? allItems : items
 
@@ -186,7 +195,10 @@ function WarrantiesPageRevamp() {
         item.warrantyCode,
         item.serial,
         item.productName,
+        item.productSku,
         item.customerName,
+        item.customerEmail,
+        item.customerPhone,
         item.dealerName,
       ]
         .filter(Boolean)
@@ -198,21 +210,36 @@ function WarrantiesPageRevamp() {
 
   const stats = useMemo(
     () => ({
-      active: sourceItems.filter((item) => item.status === 'ACTIVE').length,
-      expired: sourceItems.filter((item) => item.status === 'EXPIRED').length,
-      voided: sourceItems.filter((item) => item.status === 'VOID').length,
+      active: allItems.filter((item) => item.status === 'ACTIVE').length,
+      expired: allItems.filter((item) => item.status === 'EXPIRED').length,
+      voided: allItems.filter((item) => item.status === 'VOID').length,
     }),
-    [sourceItems],
+    [allItems],
   )
 
   const handleReload = useCallback(async () => {
-    await loadData(page)
-    if (hasActiveFilters) {
-      await loadAllItems()
-    }
-  }, [hasActiveFilters, loadAllItems, loadData, page])
+    await Promise.all([loadData(page), loadAllItems()])
+  }, [loadAllItems, loadData, page])
 
-  if (isLoading || isFilterLoading) {
+  const handleVoidWarranty = async (item: BackendWarrantyResponse) => {
+    const code = item.warrantyCode ?? `#${item.id}`
+    const approved = await confirm({
+      title: copy.confirmVoidTitle,
+      message: copy.confirmVoidMessage.replace('{code}', code),
+      tone: 'danger',
+      confirmLabel: copy.voidWarranty,
+    })
+    if (!approved) return
+    try {
+      const updated = await updateAdminWarrantyStatus(accessToken!, item.id, 'VOID')
+      setItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
+      setAllItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
+    } catch (err) {
+      notify(err instanceof Error ? err.message : copy.loadFallback, { title: copy.title, variant: 'error' })
+    }
+  }
+
+  if (isLoading) {
     return (
       <PagePanel>
         <LoadingRows rows={6} />
@@ -230,6 +257,7 @@ function WarrantiesPageRevamp() {
 
   return (
     <PagePanel>
+      {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h3 className={cardTitleClass}>{copy.title}</h3>
@@ -251,9 +279,9 @@ function WarrantiesPageRevamp() {
             onChange={(event) => setStatusFilter(event.target.value as 'ALL' | BackendWarrantyStatus)}
           >
             <option value="ALL">{copy.all}</option>
-            {STATUS_OPTIONS.map((status) => (
+            {STATUS_FILTER_OPTIONS.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {copy.statusLabels[status]}
               </option>
             ))}
           </select>
@@ -263,17 +291,31 @@ function WarrantiesPageRevamp() {
         </div>
       </div>
 
+      {/* Stats */}
       <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <StatCard icon={ShieldCheck} label={copy.active} value={stats.active} tone="success" />
-        <StatCard icon={ShieldCheck} label={copy.expired} value={stats.expired} tone="warning" />
-        <StatCard icon={ShieldCheck} label={copy.voided} value={stats.voided} tone="warning" />
+        <StatCard icon={ShieldCheck} label={copy.active} value={isFilterLoading ? copy.loadingStats : stats.active} tone="success" />
+        <StatCard icon={ShieldCheck} label={copy.expired} value={isFilterLoading ? copy.loadingStats : stats.expired} tone="warning" />
+        <StatCard icon={ShieldCheck} label={copy.voided} value={isFilterLoading ? copy.loadingStats : stats.voided} tone="neutral" />
       </div>
 
+      {/* Results area */}
       <div className="mt-6">
-        {filteredItems.length === 0 ? (
+        {isFilterLoading && hasActiveFilters ? (
+          <div className="flex items-center justify-center gap-2 py-12 text-sm text-slate-500">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>{copy.loadingStats}</span>
+          </div>
+        ) : filteredItems.length === 0 ? (
           <EmptyState icon={ShieldCheck} title={copy.emptyTitle} message={copy.emptyMessage} />
         ) : (
           <>
+            {hasActiveFilters && (
+              <p className="mb-3 text-sm text-slate-500">
+                {filteredItems.length} {copy.results}
+              </p>
+            )}
+
+            {/* Mobile cards */}
             <div className="grid gap-3 md:hidden">
               {filteredItems.map((item) => (
                 <article key={item.id} className={tableCardClass}>
@@ -283,7 +325,7 @@ function WarrantiesPageRevamp() {
                       <p className={tableMetaClass}>{item.serial ?? copy.notAvailable}</p>
                     </div>
                     <StatusBadge tone={statusTone[item.status ?? 'ACTIVE']}>
-                      {item.status ?? 'ACTIVE'}
+                      {copy.statusLabels[item.status ?? 'ACTIVE']}
                     </StatusBadge>
                   </div>
                   <div className="mt-4 grid gap-2 text-sm">
@@ -293,11 +335,20 @@ function WarrantiesPageRevamp() {
                     </div>
                     <div className="flex justify-between gap-3">
                       <span className={tableMetaClass}>{copy.customer}</span>
-                      <span className="text-right text-[var(--ink)]">{item.customerName ?? copy.notAvailable}</span>
+                      <span className="text-right text-[var(--ink)]">
+                        {item.customerName ?? copy.notAvailable}
+                        {item.customerPhone ? ` · ${item.customerPhone}` : ''}
+                      </span>
                     </div>
                     <div className="flex justify-between gap-3">
                       <span className={tableMetaClass}>{copy.dealer}</span>
                       <span className="text-right text-[var(--ink)]">{item.dealerName ?? copy.notAvailable}</span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span className={tableMetaClass}>{copy.startDate}</span>
+                      <span className="text-right text-[var(--ink)]">
+                        {item.warrantyStart ? formatDateOnly(item.warrantyStart) : copy.notAvailable}
+                      </span>
                     </div>
                     <div className="flex justify-between gap-3">
                       <span className={tableMetaClass}>{copy.endDate}</span>
@@ -305,49 +356,28 @@ function WarrantiesPageRevamp() {
                         {item.warrantyEnd ? formatDateOnly(item.warrantyEnd) : copy.notAvailable}
                       </span>
                     </div>
+                    <div className="flex justify-between gap-3">
+                      <span className={tableMetaClass}>{copy.remaining}</span>
+                      <span className="text-right text-[var(--ink)]">
+                        {getRemainingLabel(item.status, item.remainingDays, copy)}
+                      </span>
+                    </div>
                   </div>
-                  <p className={`mt-3 ${tableMetaClass}`}>
-                    {copy.remaining}: {getRemainingLabel(item.status, item.remainingDays, copy)}
-                  </p>
-                  <select
-                    aria-label={`${copy.status} ${item.id}`}
-                    className={`mt-4 w-full ${tableActionSelectClass}`}
-                    value={item.status ?? 'ACTIVE'}
-                    onChange={async (event) => {
-                      const next = event.target.value as BackendWarrantyStatus
-                      if (next === item.status) return
-                      const approved = await confirm({
-                        title: copy.confirmTitle,
-                        message: copy.confirmMessage.replace('{status}', next),
-                        tone: next === 'VOID' ? 'danger' : 'warning',
-                        confirmLabel: next,
-                      })
-                      if (!approved) {
-                        event.currentTarget.value = item.status ?? 'ACTIVE'
-                        return
-                      }
-                      try {
-                        const updated = await updateAdminWarrantyStatus(accessToken!, item.id, next)
-                        setItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
-                        setAllItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
-                      } catch (updateError) {
-                        notify(updateError instanceof Error ? updateError.message : copy.loadFallback, {
-                          title: copy.title,
-                          variant: 'error',
-                        })
-                      }
-                    }}
-                  >
-                    {STATUS_OPTIONS.map((status) => (
-                      <option key={`${item.id}-${status}`} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
+                  {item.status !== 'VOID' && (
+                    <button
+                      type="button"
+                      onClick={() => void handleVoidWarranty(item)}
+                      className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl border border-rose-200 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-950"
+                    >
+                      <ShieldOff className="h-3.5 w-3.5" />
+                      {copy.voidWarranty}
+                    </button>
+                  )}
                 </article>
               ))}
             </div>
 
+            {/* Desktop table */}
             <div className="hidden overflow-x-auto md:block">
               <table className="min-w-full border-separate border-spacing-y-2">
                 <thead>
@@ -358,7 +388,7 @@ function WarrantiesPageRevamp() {
                     <th className="px-3 py-2 font-semibold">{copy.dealer}</th>
                     <th className="px-3 py-2 font-semibold">{copy.status}</th>
                     <th className="px-3 py-2 font-semibold">{copy.endDate}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.actions}</th>
+                    <th className="px-3 py-2" />
                   </tr>
                 </thead>
                 <tbody>
@@ -368,59 +398,41 @@ function WarrantiesPageRevamp() {
                         <p className="font-semibold text-[var(--ink)]">{item.warrantyCode ?? `#${item.id}`}</p>
                         <p className={tableMetaClass}>{item.serial ?? copy.notAvailable}</p>
                       </td>
-                      <td className="px-3 py-3">{item.productName ?? copy.notAvailable}</td>
+                      <td className="px-3 py-3">
+                        <p>{item.productName ?? copy.notAvailable}</p>
+                        <p className={tableMetaClass}>{item.productSku ?? ''}</p>
+                      </td>
                       <td className="px-3 py-3">
                         <p>{item.customerName ?? copy.notAvailable}</p>
-                        <p className={tableMetaClass}>{item.customerPhone ?? item.customerEmail ?? copy.notAvailable}</p>
+                        <p className={tableMetaClass}>{item.customerPhone ?? item.customerEmail ?? ''}</p>
                       </td>
                       <td className="px-3 py-3">{item.dealerName ?? copy.notAvailable}</td>
                       <td className="px-3 py-3">
                         <StatusBadge tone={statusTone[item.status ?? 'ACTIVE']}>
-                          {item.status ?? 'ACTIVE'}
+                          {copy.statusLabels[item.status ?? 'ACTIVE']}
                         </StatusBadge>
                         <p className={`mt-1 ${tableMetaClass}`}>
-                          {copy.remaining}: {getRemainingLabel(item.status, item.remainingDays, copy)}
+                          {getRemainingLabel(item.status, item.remainingDays, copy)}
                         </p>
                       </td>
                       <td className="px-3 py-3 text-sm">
-                        {item.warrantyEnd ? formatDateOnly(item.warrantyEnd) : copy.notAvailable}
+                        <p>{item.warrantyEnd ? formatDateOnly(item.warrantyEnd) : copy.notAvailable}</p>
+                        {item.warrantyStart && (
+                          <p className={tableMetaClass}>{copy.startDate}: {formatDateOnly(item.warrantyStart)}</p>
+                        )}
                       </td>
                       <td className="rounded-r-2xl px-3 py-3">
-                        <select
-                          aria-label={`${copy.status} ${item.id}`}
-                          className={tableActionSelectClass}
-                          value={item.status ?? 'ACTIVE'}
-                          onChange={async (event) => {
-                            const next = event.target.value as BackendWarrantyStatus
-                            if (next === item.status) return
-                            const approved = await confirm({
-                              title: copy.confirmTitle,
-                              message: copy.confirmMessage.replace('{status}', next),
-                              tone: next === 'VOID' ? 'danger' : 'warning',
-                              confirmLabel: next,
-                            })
-                            if (!approved) {
-                              event.currentTarget.value = item.status ?? 'ACTIVE'
-                              return
-                            }
-                      try {
-                        const updated = await updateAdminWarrantyStatus(accessToken!, item.id, next)
-                        setItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
-                        setAllItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
-                      } catch (updateError) {
-                        notify(updateError instanceof Error ? updateError.message : copy.loadFallback, {
-                          title: copy.title,
-                                variant: 'error',
-                              })
-                            }
-                          }}
-                        >
-                          {STATUS_OPTIONS.map((status) => (
-                            <option key={`${item.id}-${status}`} value={status}>
-                              {status}
-                            </option>
-                          ))}
-                        </select>
+                        {item.status !== 'VOID' && (
+                          <button
+                            type="button"
+                            title={copy.voidWarranty}
+                            onClick={() => void handleVoidWarranty(item)}
+                            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950"
+                          >
+                            <ShieldOff className="h-3.5 w-3.5" />
+                            {copy.voidWarranty}
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -431,7 +443,8 @@ function WarrantiesPageRevamp() {
         )}
       </div>
 
-      {!hasActiveFilters ? (
+      {/* Pagination (chỉ khi không filter) */}
+      {!hasActiveFilters && (
         <PaginationNav
           page={page}
           totalPages={totalPages}
@@ -441,7 +454,8 @@ function WarrantiesPageRevamp() {
           previousLabel={copy.previous}
           nextLabel={copy.next}
         />
-      ) : null}
+      )}
+
       {confirmDialog}
     </PagePanel>
   )
