@@ -49,7 +49,6 @@ const SERIAL_STATUS_FILTER_OPTIONS: BackendProductSerialStatus[] = [
 const SERIAL_MANUAL_STATUS_OPTIONS: BackendProductSerialStatus[] = [
   'AVAILABLE',
   'DEFECTIVE',
-  'SOLD',
   'WARRANTY',
 ]
 
@@ -488,7 +487,7 @@ function SerialsPageRevamp() {
                       <span className="text-right text-[var(--ink)]">{item.importedAt ? formatDateTime(item.importedAt) : '-'}</span>
                     </div>
                   </div>
-                  {item.status !== 'RETURNED' && (
+                  {item.status !== 'RETURNED' && item.status !== 'SOLD' && (
                     <select
                       aria-label={`${copy.status} ${item.id}`}
                       className={`mt-4 w-full ${tableActionSelectClass}`}
@@ -534,9 +533,9 @@ function SerialsPageRevamp() {
                         <p className={tableMetaClass}>{item.customerName ?? '-'}</p>
                       </td>
                       <td className="px-3 py-3">
-                        {item.status === 'RETURNED' ? (
-                          <StatusBadge tone={statusTone['RETURNED']}>
-                            {copy.statusLabels['RETURNED']}
+                        {item.status === 'RETURNED' || item.status === 'SOLD' ? (
+                          <StatusBadge tone={statusTone[item.status ?? 'AVAILABLE']}>
+                            {copy.statusLabels[item.status ?? 'AVAILABLE']}
                           </StatusBadge>
                         ) : (
                           <select

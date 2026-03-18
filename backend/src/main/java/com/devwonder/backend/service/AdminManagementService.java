@@ -274,6 +274,7 @@ public class AdminManagementService {
                 }
                 serial.setDealer(order.getDealer());
                 serial.setOrder(order);
+                serial.setStatus(ProductSerialStatus.SOLD);
                 toSave.add(serial);
             }
         }
