@@ -581,8 +581,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     BankTransferInstructions? bankTransferInstructions,
   }) async {
     final isBankTransfer = _method == OrderPaymentMethod.bankTransfer;
+    final orderId = _generateOrderId(orderController);
+    final previewTotal = cart.items.fold<int>(
+      0,
+      (sum, item) => sum + item.product.price * item.quantity,
+    );
+
+    if (isBankTransfer && bankTransferInstructions != null) {
+      final confirmed = await showBankTransferInfoSheet(
+        context: context,
+        instructions: bankTransferInstructions,
+        amount: previewTotal,
+        content: orderId,
+        onCopy: _copyToClipboard,
+      );
+      if (!mounted) return;
+      if (confirmed != true) return;
+    }
+
     final order = Order(
-      id: _generateOrderId(orderController),
+      id: orderId,
       createdAt: DateTime.now(),
       status: OrderStatus.pendingApproval,
       paymentMethod: _method,
@@ -603,29 +621,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           : _orderNoteController.text.trim(),
     );
     final createdOrder = await orderController.addOrder(order);
-    if (!mounted) {
-      return;
-    }
-
-    if (isBankTransfer && bankTransferInstructions != null) {
-      await showBankTransferInfoSheet(
-        context: context,
-        instructions: bankTransferInstructions,
-        amount: createdOrder.total,
-        content: createdOrder.id,
-        orderId: createdOrder.id,
-        orderController: orderController,
-        onCopy: _copyToClipboard,
-      );
-      if (!mounted) {
-        return;
-      }
-    }
+    if (!mounted) return;
 
     await cart.clear(rollbackOnFailure: false);
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     HapticFeedback.mediumImpact();
     Navigator.of(context).pushReplacement(
