@@ -898,32 +898,15 @@ List<InventoryProductItem> _buildInventoryItems({
   required OrderController orderController,
   required WarrantyController warrantyController,
 }) {
-  final completedOrders = orderController.orders
-      .where(
-        (order) =>
-            order.status == OrderStatus.completed ||
-            order.status == OrderStatus.shipping,
-      )
-      .toList(growable: false);
-
-  final map = <String, _InventoryAccumulator>{};
-  for (final order in completedOrders) {
+  // Build lookups from all orders
+  final productMap = <String, Product>{};
+  final completedOrderIds = <String>{};
+  for (final order in orderController.orders) {
     for (final item in order.items) {
-      final current =
-          map[item.product.id] ??
-          _InventoryAccumulator(
-            product: item.product,
-            importedQuantity: 0,
-            latestImportedAt: order.createdAt,
-            orderIds: <String>{},
-            serials: <String>{},
-          );
-      current.importedQuantity += item.quantity;
-      current.orderIds.add(order.id);
-      if (order.createdAt.isAfter(current.latestImportedAt)) {
-        current.latestImportedAt = order.createdAt;
-      }
-      map[item.product.id] = current;
+      productMap[item.product.id] = item.product;
+    }
+    if (order.status == OrderStatus.completed) {
+      completedOrderIds.add(order.id);
     }
   }
 
@@ -931,52 +914,65 @@ List<InventoryProductItem> _buildInventoryItems({
       .map((record) => warrantyController.normalizeSerial(record.serial))
       .toSet();
 
+  final map = <String, _InventoryAccumulator>{};
   for (final record in warrantyController.importedSerials) {
-    final current = map[record.productId];
-    if (current == null || !current.orderIds.contains(record.orderId)) {
-      continue;
-    }
+    // Only include serials whose order is completed (goods delivered to dealer)
+    if (!completedOrderIds.contains(record.orderId)) continue;
+
+    final product = productMap[record.productId] ??
+        Product(
+          id: record.productId,
+          name: record.productName,
+          sku: record.productSku,
+          shortDescription: '',
+          price: 0,
+          stock: 0,
+          warrantyMonths: 0,
+        );
+
+    final current = map[record.productId] ??
+        _InventoryAccumulator(
+          product: product,
+          importedQuantity: 0,
+          latestImportedAt: record.importedAt,
+          orderIds: <String>{},
+          serials: <String>{},
+        );
+
     if (record.importedAt.isAfter(current.latestImportedAt)) {
       current.latestImportedAt = record.importedAt;
     }
+    current.orderIds.add(record.orderId);
 
     final normalized = warrantyController.normalizeSerial(record.serial);
     final isNewSerial = current.serials.add(normalized);
     if (!isNewSerial) {
+      map[record.productId] = current;
       continue;
     }
 
+    current.importedQuantity += 1;
     if (warrantyController.isDefectiveSerial(normalized)) {
       current.serialDefective += 1;
-      continue;
-    }
-    if (activatedSet.contains(normalized)) {
+    } else if (activatedSet.contains(normalized)) {
       current.serialSold += 1;
-      continue;
+    } else {
+      current.serialAvailable += 1;
     }
-    current.serialAvailable += 1;
+    map[record.productId] = current;
   }
 
   return map.values
-      .map((entry) {
-        final trackedSerialCount = entry.serials.length;
-        final pendingWithoutSerial =
-            entry.importedQuantity - trackedSerialCount;
-        final availableFromPending = pendingWithoutSerial > 0
-            ? pendingWithoutSerial
-            : 0;
-
-        return InventoryProductItem(
-          product: entry.product,
-          importedQuantity: entry.importedQuantity,
-          availableQuantity: entry.serialAvailable + availableFromPending,
-          soldQuantity: entry.serialSold,
-          defectiveQuantity: entry.serialDefective,
-          latestImportedAt: entry.latestImportedAt,
-          orderIds: entry.orderIds,
-          serialSearchIndex: entry.serials.join(' '),
-        );
-      })
+      .map((entry) => InventoryProductItem(
+            product: entry.product,
+            importedQuantity: entry.importedQuantity,
+            availableQuantity: entry.serialAvailable,
+            soldQuantity: entry.serialSold,
+            defectiveQuantity: entry.serialDefective,
+            latestImportedAt: entry.latestImportedAt,
+            orderIds: entry.orderIds,
+            serialSearchIndex: entry.serials.join(' '),
+          ))
       .toList(growable: false);
 }
 

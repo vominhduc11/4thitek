@@ -447,7 +447,7 @@ function OrderDetailPage() {
         </div>
       </div>
 
-      {order.status !== 'cancelled' && order.status !== 'completed' && order.orderItems.length > 0 && (
+      {order.status === 'packing' && order.orderItems.length > 0 && (
         <div className="mt-6 rounded-3xl border border-sky-200 bg-sky-50/60 p-5">
           <p className="text-sm font-semibold text-sky-900">{t('Gán serial sản phẩm')}</p>
           <p className="mt-1 text-xs text-sky-700">

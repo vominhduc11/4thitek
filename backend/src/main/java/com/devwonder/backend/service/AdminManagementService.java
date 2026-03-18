@@ -222,8 +222,8 @@ public class AdminManagementService {
     public List<DealerProductSerialResponse> assignOrderSerials(Long orderId, AdminAssignOrderSerialsRequest request) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
-        if (order.getStatus() == OrderStatus.CANCELLED) {
-            throw new BadRequestException("Cannot assign serials to a cancelled order");
+        if (order.getStatus() != OrderStatus.CONFIRMED) {
+            throw new BadRequestException("Can only assign serials to a confirmed order");
         }
         if (order.getDealer() == null) {
             throw new BadRequestException("Order has no associated dealer");
