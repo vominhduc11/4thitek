@@ -440,8 +440,8 @@ function ProductsPage() {
         acc.all += 1
         if (product.status === 'Active') acc.active += 1
         if (product.status === 'Draft') acc.draft += 1
-        if (product.availableStock === 0) acc.outOfStock += 1
-        if (product.availableStock > 0 && product.availableStock < 20) acc.lowStock += 1
+        if (product.status === 'Active' && product.availableStock === 0) acc.outOfStock += 1
+        if (product.status === 'Active' && product.availableStock > 0 && product.availableStock < 20) acc.lowStock += 1
         return acc
       },
       {
@@ -459,9 +459,9 @@ function ProductsPage() {
         case 'active':
           return !product.isDeleted && product.status === 'Active'
         case 'lowStock':
-          return !product.isDeleted && product.availableStock > 0 && product.availableStock < 20
+          return !product.isDeleted && product.status === 'Active' && product.availableStock > 0 && product.availableStock < 20
         case 'outOfStock':
-          return !product.isDeleted && product.availableStock === 0
+          return !product.isDeleted && product.status === 'Active' && product.availableStock === 0
         case 'draft':
           return !product.isDeleted && product.status === 'Draft'
         case 'deleted':
