@@ -93,7 +93,7 @@ public class DealerSerialSupport {
             ProductSerial serial = new ProductSerial();
             serial.setSerial(serialValue.toUpperCase(Locale.ROOT));
             serial.setProduct(product);
-            serial.setDealer(order.getDealer());
+            serial.setDealer(orderStatus == OrderStatus.COMPLETED ? order.getDealer() : null);
             serial.setOrder(order);
             serial.setStatus(request.status() == null ? ProductSerialStatus.AVAILABLE : request.status());
             serial.setWarehouseId(request.warehouseId());
