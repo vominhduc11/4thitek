@@ -170,7 +170,6 @@ function SerialsPageRevamp() {
   const [form, setForm] = useState({
     productId: '',
     serials: '',
-    status: 'AVAILABLE' as BackendProductSerialStatus,
   })
 
   const loadData = useCallback(async (nextPage: number) => {
@@ -279,12 +278,10 @@ function SerialsPageRevamp() {
       await importAdminSerials(accessToken, {
         productId,
         serials,
-        status: form.status,
       })
       setForm({
         productId: '',
         serials: '',
-        status: 'AVAILABLE',
       })
       setShowImport(false)
       setPage(0)
@@ -377,22 +374,6 @@ function SerialsPageRevamp() {
                 {products.map((product) => (
                   <option key={product.id} value={product.id}>
                     {product.name} - {product.sku}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-2">
-              <span className={labelClass}>{copy.status}</span>
-              <select
-                className={inputClass}
-                value={form.status}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, status: event.target.value as BackendProductSerialStatus }))
-                }
-              >
-                {SERIAL_IMPORT_STATUS_OPTIONS.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
                   </option>
                 ))}
               </select>
