@@ -363,6 +363,7 @@ public class AdminOperationsService {
         Dealer dealer = serial.getDealer();
         Order order = serial.getOrder();
         WarrantyRegistration warranty = serial.getWarranty();
+        Dealer pendingDealer = dealer == null && order != null ? order.getDealer() : null;
         return new AdminSerialResponse(
                 serial.getId(),
                 serial.getSerial(),
@@ -372,6 +373,8 @@ public class AdminOperationsService {
                 product == null ? null : product.getSku(),
                 dealer == null ? null : dealer.getId(),
                 dealer == null ? null : firstNonBlank(dealer.getBusinessName(), dealer.getContactName(), dealer.getUsername()),
+                pendingDealer == null ? null : pendingDealer.getId(),
+                pendingDealer == null ? null : firstNonBlank(pendingDealer.getBusinessName(), pendingDealer.getContactName(), pendingDealer.getUsername()),
                 warranty == null ? null : warranty.getCustomerName(),
                 order == null ? null : order.getId(),
                 order == null ? null : order.getOrderCode(),

@@ -280,6 +280,8 @@ export type BackendSerialResponse = {
   productSku?: string | null
   dealerId?: number | null
   dealerName?: string | null
+  pendingDealerId?: number | null
+  pendingDealerName?: string | null
   customerName?: string | null
   orderId?: number | null
   orderCode?: string | null

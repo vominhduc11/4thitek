@@ -74,6 +74,7 @@ const copyByLanguage = {
     previous: 'Trước',
     available: 'Khả dụng',
     sold: 'Đã gán',
+    pending: 'đang giao',
     warranty: 'Bảo hành',
     defective: 'Hàng lỗi',
     returned: 'Trả lại',
@@ -127,6 +128,7 @@ const copyByLanguage = {
     previous: 'Previous',
     available: 'Available',
     sold: 'Assigned',
+    pending: 'in transit',
     warranty: 'Warranty',
     defective: 'Defective',
     returned: 'Returned',
@@ -491,7 +493,9 @@ function SerialsPageRevamp() {
                     </div>
                     <div className="flex justify-between gap-3">
                       <span className={tableMetaClass}>{copy.owner}</span>
-                      <span className="text-right text-[var(--ink)]">{item.dealerName ?? item.customerName ?? '-'}</span>
+                      <span className="text-right text-[var(--ink)]">
+                        {item.dealerName ?? (item.pendingDealerName ? <span className="text-[var(--ink-muted)] italic">{item.pendingDealerName} ({copy.pending})</span> : item.customerName ?? '-')}
+                      </span>
                     </div>
                     <div className="flex justify-between gap-3">
                       <span className={tableMetaClass}>{copy.importedAt}</span>
@@ -567,7 +571,12 @@ function SerialsPageRevamp() {
                         <p className={tableMetaClass}>{item.productSku ?? '-'}</p>
                       </td>
                       <td className="px-3 py-3">
-                        <p>{item.dealerName ?? '-'}</p>
+                        {item.dealerName
+                          ? <p>{item.dealerName}</p>
+                          : item.pendingDealerName
+                            ? <p className="italic text-[var(--ink-muted)]">{item.pendingDealerName} <span className="text-xs">({copy.pending})</span></p>
+                            : <p>-</p>
+                        }
                         <p className={tableMetaClass}>{item.customerName ?? '-'}</p>
                       </td>
                       <td className="px-3 py-3">

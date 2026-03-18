@@ -12,6 +12,8 @@ public record AdminSerialResponse(
         String productSku,
         Long dealerId,
         String dealerName,
+        Long pendingDealerId,
+        String pendingDealerName,
         String customerName,
         Long orderId,
         String orderCode,
