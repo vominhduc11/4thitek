@@ -1,9 +1,11 @@
-import { Barcode, Loader2, RefreshCw, Upload } from 'lucide-react'
+import { AlertTriangle, Barcode, Loader2, RefreshCw, RotateCcw, Trash2, Upload } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   fetchAllAdminSerials,
   fetchAdminSerialsPaged,
   importAdminSerials,
+  updateAdminSerialStatus,
+  deleteAdminSerial,
   type BackendProductSerialStatus,
   type BackendSerialResponse,
 } from '../lib/adminApi'
@@ -12,6 +14,7 @@ import { useLanguage } from '../context/LanguageContext'
 import { useProducts } from '../context/ProductsContext'
 import { useToast } from '../context/ToastContext'
 import { formatDateTime } from '../lib/formatters'
+import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import {
   EmptyState,
   ErrorState,
@@ -89,6 +92,16 @@ const copyByLanguage = {
     reload: 'Tải lại',
     loadingStats: 'Đang tải...',
     importSuccess: 'Import thành công {count} serial.',
+    markDefective: 'Đánh dấu lỗi',
+    markAvailable: 'Đưa về kho',
+    confirmDefectiveTitle: 'Xác nhận đánh dấu hàng lỗi',
+    confirmDefectiveMessage: 'Serial này sẽ bị đánh dấu là hàng lỗi và không thể phân phối cho đến khi được khôi phục.',
+    confirmRepairTitle: 'Xác nhận đưa về kho',
+    confirmRepairMessage: 'Serial này sẽ trở về trạng thái khả dụng và có thể phân phối lại.',
+    deleteSerial: 'Xóa serial',
+    confirmDeleteTitle: 'Xác nhận xóa serial',
+    confirmDeleteMessage: 'Serial "{serial}" sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.',
+    deleteSuccess: 'Đã xóa serial thành công.',
     statusLabels: {
       AVAILABLE: 'Khả dụng',
       DEFECTIVE: 'Hàng lỗi',
@@ -132,6 +145,16 @@ const copyByLanguage = {
     reload: 'Reload',
     loadingStats: 'Loading...',
     importSuccess: 'Successfully imported {count} serial(s).',
+    markDefective: 'Mark as defective',
+    markAvailable: 'Restore to stock',
+    confirmDefectiveTitle: 'Confirm mark as defective',
+    confirmDefectiveMessage: 'This serial will be marked as defective and cannot be distributed until restored.',
+    confirmRepairTitle: 'Confirm restore to stock',
+    confirmRepairMessage: 'This serial will return to available status and can be distributed again.',
+    deleteSerial: 'Delete serial',
+    confirmDeleteTitle: 'Confirm delete serial',
+    confirmDeleteMessage: 'Serial "{serial}" will be permanently deleted. This action cannot be undone.',
+    deleteSuccess: 'Serial deleted successfully.',
     statusLabels: {
       AVAILABLE: 'Available',
       DEFECTIVE: 'Defective',
@@ -148,6 +171,7 @@ function SerialsPageRevamp() {
   const { accessToken } = useAuth()
   const { notify } = useToast()
   const { products } = useProducts()
+  const { confirm, confirmDialog } = useConfirmDialog()
   const [items, setItems] = useState<BackendSerialResponse[]>([])
   const [allItems, setAllItems] = useState<BackendSerialResponse[]>([])
   const [page, setPage] = useState(0)
@@ -284,6 +308,42 @@ function SerialsPageRevamp() {
       })
     } finally {
       setIsImporting(false)
+    }
+  }
+
+  const handleDeleteSerial = async (item: BackendSerialResponse) => {
+    const approved = await confirm({
+      title: copy.confirmDeleteTitle,
+      message: copy.confirmDeleteMessage.replace('{serial}', item.serial),
+      tone: 'danger',
+      confirmLabel: copy.deleteSerial,
+    })
+    if (!approved) return
+    try {
+      await deleteAdminSerial(accessToken!, item.id)
+      setItems((current) => current.filter((entry) => entry.id !== item.id))
+      setAllItems((current) => current.filter((entry) => entry.id !== item.id))
+      notify(copy.deleteSuccess, { title: copy.title, variant: 'success' })
+    } catch (err) {
+      notify(err instanceof Error ? err.message : copy.loadFallback, { title: copy.title, variant: 'error' })
+    }
+  }
+
+  const handleSerialAction = async (item: BackendSerialResponse, next: 'DEFECTIVE' | 'AVAILABLE') => {
+    const isMarkingDefective = next === 'DEFECTIVE'
+    const approved = await confirm({
+      title: isMarkingDefective ? copy.confirmDefectiveTitle : copy.confirmRepairTitle,
+      message: isMarkingDefective ? copy.confirmDefectiveMessage : copy.confirmRepairMessage,
+      tone: isMarkingDefective ? 'danger' : 'warning',
+      confirmLabel: isMarkingDefective ? copy.markDefective : copy.markAvailable,
+    })
+    if (!approved) return
+    try {
+      const updated = await updateAdminSerialStatus(accessToken!, item.id, next)
+      setItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
+      setAllItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
+    } catch (err) {
+      notify(err instanceof Error ? err.message : copy.loadFallback, { title: copy.title, variant: 'error' })
     }
   }
 
@@ -438,6 +498,46 @@ function SerialsPageRevamp() {
                       <span className="text-right text-[var(--ink)]">{item.importedAt ? formatDateTime(item.importedAt) : '-'}</span>
                     </div>
                   </div>
+                  {item.status === 'AVAILABLE' && (
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleSerialAction(item, 'DEFECTIVE')}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-rose-200 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-950"
+                      >
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        {copy.markDefective}
+                      </button>
+                      <button
+                        type="button"
+                        title={copy.deleteSerial}
+                        onClick={() => void handleDeleteSerial(item)}
+                        className="flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-slate-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:hover:border-rose-800 dark:hover:bg-rose-950 dark:hover:text-rose-400"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                  {item.status === 'DEFECTIVE' && (
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleSerialAction(item, 'AVAILABLE')}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        {copy.markAvailable}
+                      </button>
+                      <button
+                        type="button"
+                        title={copy.deleteSerial}
+                        onClick={() => void handleDeleteSerial(item)}
+                        className="flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-slate-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:hover:border-rose-800 dark:hover:bg-rose-950 dark:hover:text-rose-400"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
                 </article>
               ))}
             </div>
@@ -452,6 +552,7 @@ function SerialsPageRevamp() {
                     <th className="px-3 py-2 font-semibold">{copy.owner}</th>
                     <th className="px-3 py-2 font-semibold">{copy.status}</th>
                     <th className="px-3 py-2 font-semibold">{copy.importedAt}</th>
+                    <th className="px-3 py-2" />
                   </tr>
                 </thead>
                 <tbody>
@@ -474,8 +575,44 @@ function SerialsPageRevamp() {
                           {copy.statusLabels[item.status ?? 'AVAILABLE']}
                         </StatusBadge>
                       </td>
-                      <td className="rounded-r-2xl px-3 py-3 text-sm">
+                      <td className="px-3 py-3 text-sm">
                         {item.importedAt ? formatDateTime(item.importedAt) : '-'}
+                      </td>
+                      <td className="rounded-r-2xl px-3 py-3">
+                        <div className="flex items-center gap-1">
+                          {item.status === 'AVAILABLE' && (
+                            <button
+                              type="button"
+                              title={copy.markDefective}
+                              onClick={() => void handleSerialAction(item, 'DEFECTIVE')}
+                              className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950"
+                            >
+                              <AlertTriangle className="h-3.5 w-3.5" />
+                              {copy.markDefective}
+                            </button>
+                          )}
+                          {item.status === 'DEFECTIVE' && (
+                            <button
+                              type="button"
+                              title={copy.markAvailable}
+                              onClick={() => void handleSerialAction(item, 'AVAILABLE')}
+                              className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" />
+                              {copy.markAvailable}
+                            </button>
+                          )}
+                          {(item.status === 'AVAILABLE' || item.status === 'DEFECTIVE') && (
+                            <button
+                              type="button"
+                              title={copy.deleteSerial}
+                              onClick={() => void handleDeleteSerial(item)}
+                              className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950 dark:hover:text-rose-400"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -499,6 +636,7 @@ function SerialsPageRevamp() {
         />
       )}
 
+      {confirmDialog}
     </PagePanel>
   )
 }

@@ -235,6 +235,12 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(adminOperationsService.updateSerialStatus(id, request)));
     }
 
+    @DeleteMapping("/serials/{id}")
+    public ResponseEntity<ApiResponse<Map<String, String>>> deleteSerial(@PathVariable("id") Long id) {
+        adminOperationsService.deleteSerial(id);
+        return ResponseEntity.ok(ApiResponse.success(Map.of("status", "deleted")));
+    }
+
     @GetMapping("/notifications/page")
     public ResponseEntity<ApiResponse<PagedResponse<AdminNotificationResponse>>> notifications(
             @RequestParam(name = "page", required = false) Integer page,

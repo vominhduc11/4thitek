@@ -829,6 +829,13 @@ export const updateAdminSerialStatus = (
     body: { status },
   })
 
+export const deleteAdminSerial = (token: string, id: number) =>
+  authorizedJsonRequest<{ status: string }>({
+    path: `/admin/serials/${id}`,
+    token,
+    method: 'DELETE',
+  })
+
 export const fetchAdminNotifications = (
   token: string,
   params?: { page?: number; size?: number },

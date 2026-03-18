@@ -237,6 +237,21 @@ public class AdminOperationsService {
         return toSerialResponse(productSerialRepository.save(productSerial));
     }
 
+    @Transactional
+    @CacheEvict(cacheNames = CacheNames.PUBLIC_WARRANTY_LOOKUP, allEntries = true)
+    public void deleteSerial(Long id) {
+        ProductSerial productSerial = productSerialRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Serial not found"));
+        ProductSerialStatus status = productSerial.getStatus();
+        if (status != ProductSerialStatus.AVAILABLE && status != ProductSerialStatus.DEFECTIVE) {
+            throw new BadRequestException("Only serials with AVAILABLE or DEFECTIVE status can be deleted");
+        }
+        if (productSerial.getOrder() != null || productSerial.getDealer() != null) {
+            throw new BadRequestException("Serial is linked to an order or dealer and cannot be deleted");
+        }
+        productSerialRepository.delete(productSerial);
+    }
+
     @Transactional(readOnly = true)
     public Page<AdminNotificationResponse> getNotifications(Pageable pageable) {
         return notifyRepository.findAllByOrderByCreatedAtDesc(pageable).map(this::toNotificationResponse);
