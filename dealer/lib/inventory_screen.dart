@@ -16,7 +16,7 @@ import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/product_image.dart';
 
-const int _lowStockThreshold = 5;
+const int _lowStockThreshold = kLowStockThreshold;
 const double _inventoryFabHeight = 56;
 const double _inventoryFabBottomSpacing = 20;
 const double _inventoryMinTapTarget = 48;
@@ -662,8 +662,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
 
     final order = orderController.findById(imported.orderId);
-    if (order == null || order.status != OrderStatus.completed) {
-      _showSnackBar('Serial $normalized chưa thuộc đơn đã hoàn thành.');
+    if (order == null ||
+        (order.status != OrderStatus.completed &&
+            order.status != OrderStatus.shipping)) {
+      _showSnackBar('Serial $normalized chưa thuộc đơn đã hoàn thành hoặc đang giao.');
       return;
     }
 
@@ -696,7 +698,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final warrantyController = WarrantyScope.of(context);
     final options = <_MainExportOrderOption>[];
     for (final order in orderController.orders) {
-      if (order.status != OrderStatus.completed) {
+      if (order.status != OrderStatus.completed &&
+          order.status != OrderStatus.shipping) {
         continue;
       }
       var availableSerials = 0;
@@ -896,7 +899,11 @@ List<InventoryProductItem> _buildInventoryItems({
   required WarrantyController warrantyController,
 }) {
   final completedOrders = orderController.orders
-      .where((order) => order.status == OrderStatus.completed)
+      .where(
+        (order) =>
+            order.status == OrderStatus.completed ||
+            order.status == OrderStatus.shipping,
+      )
       .toList(growable: false);
 
   final map = <String, _InventoryAccumulator>{};

@@ -100,6 +100,7 @@ function WholesaleDiscountsPageRevamp() {
   const [statusFilter, setStatusFilter] = useState<'all' | RuleStatus>('all')
   const [showForm, setShowForm] = useState(false)
   const [formError, setFormError] = useState('')
+  const [isCreating, setIsCreating] = useState(false)
   const [form, setForm] = useState({
     label: '',
     range: '',
@@ -136,6 +137,7 @@ function WholesaleDiscountsPageRevamp() {
       return
     }
 
+    setIsCreating(true)
     try {
       await addDiscountRule({
         label: form.label,
@@ -147,6 +149,8 @@ function WholesaleDiscountsPageRevamp() {
       setForm({ label: '', range: '', percent: '', status: 'draft' })
     } catch (saveError) {
       setFormError(saveError instanceof Error ? saveError.message : copy.loadFallback)
+    } finally {
+      setIsCreating(false)
     }
   }
 
@@ -259,7 +263,7 @@ function WholesaleDiscountsPageRevamp() {
           </div>
           {formError ? <p className="mt-2 text-sm text-rose-600">{formError}</p> : null}
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <PrimaryButton className="w-full sm:w-auto" onClick={() => void handleCreateRule()} type="button">
+            <PrimaryButton className="w-full sm:w-auto" disabled={isCreating} onClick={() => void handleCreateRule()} type="button">
               {copy.save}
             </PrimaryButton>
             <GhostButton

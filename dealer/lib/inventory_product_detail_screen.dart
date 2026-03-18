@@ -550,8 +550,10 @@ class _InventoryProductDetailScreenState
     }
 
     final order = orderController.findById(imported.orderId);
-    if (order == null || order.status != OrderStatus.completed) {
-      _showSnackBar('Serial $normalized chưa thuộc đơn đã hoàn thành.');
+    if (order == null ||
+        (order.status != OrderStatus.completed &&
+            order.status != OrderStatus.shipping)) {
+      _showSnackBar('Serial $normalized chưa thuộc đơn đã hoàn thành hoặc đang giao.');
       return;
     }
 
@@ -587,7 +589,9 @@ class _InventoryProductDetailScreenState
     final options = <_ExportOrderOption>[];
     for (final orderId in widget.orderIds) {
       final order = orderController.findById(orderId);
-      if (order == null || order.status != OrderStatus.completed) {
+      if (order == null ||
+          (order.status != OrderStatus.completed &&
+              order.status != OrderStatus.shipping)) {
         continue;
       }
       final available = warrantyController

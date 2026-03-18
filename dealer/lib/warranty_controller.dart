@@ -837,7 +837,7 @@ class WarrantyController extends ChangeNotifier {
             productId: activation.productId,
             productName: activation.productName,
             productSku: activation.productSku,
-            importedAt: activation.activatedAt,
+            importedAt: activation.purchaseDate,
           ),
         );
         _importedSerialsByNormalized[normalized] = _importedSerials.last;
@@ -1111,8 +1111,9 @@ class WarrantyController extends ChangeNotifier {
     if (warrantyEnd == null || !warrantyEnd.isAfter(purchaseDate)) {
       return 12;
     }
-    final days = warrantyEnd.difference(purchaseDate).inDays;
-    final months = (days / 30).round();
+    int months = (warrantyEnd.year - purchaseDate.year) * 12 +
+        (warrantyEnd.month - purchaseDate.month);
+    if (warrantyEnd.day < purchaseDate.day) months--;
     return months <= 0 ? 12 : months;
   }
 

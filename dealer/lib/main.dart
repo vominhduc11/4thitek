@@ -40,7 +40,7 @@ class DealerApp extends StatefulWidget {
   State<DealerApp> createState() => _DealerAppState();
 }
 
-class _DealerAppState extends State<DealerApp> {
+class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
   late final CartController _cartController;
   late final OrderController _orderController;
   late final WarrantyController _warrantyController;
@@ -56,6 +56,7 @@ class _DealerAppState extends State<DealerApp> {
   bool _isHandlingExpiredSession = false;
   int _handledSessionEventVersion = 0;
   int _handledIncomingNoticeVersion = 0;
+  bool _bootstrapDone = false;
 
   @override
   void initState() {
@@ -88,6 +89,7 @@ class _DealerAppState extends State<DealerApp> {
     _notificationController.incomingNoticeEvents.addListener(
       _handleIncomingNoticeEvent,
     );
+    WidgetsBinding.instance.addObserver(this);
     _startupFuture = _bootstrap();
     _router = buildDealerRouter(
       navigatorKey: _navigatorKey,
@@ -104,7 +106,17 @@ class _DealerAppState extends State<DealerApp> {
       _warrantyController.load(),
       _notificationController.load(),
     ]);
+    _bootstrapDone = true;
     return _authStorage.shouldAutoLogin();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || !_bootstrapDone) {
+      return;
+    }
+    unawaited(_notificationController.refresh());
+    unawaited(_orderController.refresh());
   }
 
   AppLocalizations? _localizationsOrNull() {
@@ -117,6 +129,7 @@ class _DealerAppState extends State<DealerApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _authStorage.sessionEvents.removeListener(_handleSessionEvent);
     _notificationController.incomingNoticeEvents.removeListener(
       _handleIncomingNoticeEvent,

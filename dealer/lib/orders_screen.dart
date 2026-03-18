@@ -44,12 +44,11 @@ class OrdersScreen extends StatefulWidget {
 
 class _OrdersScreenState extends State<OrdersScreen> {
   static const int _pageSize = 10;
-  static const Duration _apiLatency = Duration(milliseconds: 350);
 
   late final PagingController<int, Order> _pagingController;
   late final TextEditingController _searchController;
   Timer? _searchDebounce;
-  int _queryRevision = 0;
+  Timer? _orderRefreshDebounce;
   String _lastOrderSnapshot = '';
   bool _hasInitializedSnapshot = false;
   OrderController? _observedOrderController;
@@ -91,6 +90,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    _orderRefreshDebounce?.cancel();
     _observedOrderController?.removeListener(_handleOrderControllerChanged);
     _searchController.dispose();
     _pagingController.dispose();
@@ -157,12 +157,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   Future<void> _fetchPage(int pageKey) async {
-    final requestRevision = _queryRevision;
     try {
-      await Future.delayed(_apiLatency);
-      if (!mounted || requestRevision != _queryRevision) {
-        return;
-      }
+      if (!mounted) return;
 
       final allOrders = OrderScope.of(context).orders;
       final filteredOrders = _filterOrders(allOrders);
@@ -183,7 +179,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   void _refreshOrders() {
-    _queryRevision++;
     _pagingController.refresh();
   }
 
@@ -295,10 +290,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
       return;
     }
     _lastOrderSnapshot = snapshot;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
+    _orderRefreshDebounce?.cancel();
+    _orderRefreshDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
       _refreshOrders();
     });
   }

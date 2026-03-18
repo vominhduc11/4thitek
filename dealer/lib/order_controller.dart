@@ -32,6 +32,8 @@ class OrderController extends ChangeNotifier {
   late final http.Client _client;
   final Map<String, int> _remoteOrderIds = <String, int>{};
   final Map<int, String> _remoteOrderCodes = <int, String>{};
+  final Map<String, ({int amount, DateTime at})> _lastPayment =
+      <String, ({int amount, DateTime at})>{};
   List<Order> _sortedOrdersCache = const <Order>[];
   List<Order> _sortedDebtOrdersCache = const <Order>[];
   List<DebtPaymentRecord> _sortedPaymentHistoryCache =
@@ -172,8 +174,26 @@ class OrderController extends ChangeNotifier {
     return _createRemoteOrder(order);
   }
 
+  static const Map<OrderStatus, Set<OrderStatus>> _validTransitions =
+      <OrderStatus, Set<OrderStatus>>{
+    OrderStatus.pendingApproval: {
+      OrderStatus.approved,
+      OrderStatus.cancelled,
+    },
+    OrderStatus.approved: {OrderStatus.shipping, OrderStatus.cancelled},
+    OrderStatus.shipping: {OrderStatus.completed, OrderStatus.cancelled},
+    OrderStatus.completed: {},
+    OrderStatus.cancelled: {},
+  };
+
   Future<bool> updateOrderStatus(String orderId, OrderStatus status) async {
-    if (!_orderById.containsKey(orderId)) {
+    final current = _orderById[orderId];
+    if (current == null) {
+      return false;
+    }
+
+    final allowed = _validTransitions[current.status] ?? const {};
+    if (!allowed.contains(status)) {
       return false;
     }
 
@@ -224,6 +244,10 @@ class OrderController extends ChangeNotifier {
       return false;
     }
 
+    if (current.status == OrderStatus.cancelled) {
+      return false;
+    }
+
     final outstanding = current.outstandingAmount;
     if (outstanding <= 0) {
       return false;
@@ -235,6 +259,14 @@ class OrderController extends ChangeNotifier {
     if (safeAmount <= 0) {
       return false;
     }
+
+    final prev = _lastPayment[orderId];
+    if (prev != null &&
+        prev.amount == safeAmount &&
+        DateTime.now().difference(prev.at).inSeconds < 5) {
+      return false;
+    }
+    _lastPayment[orderId] = (amount: safeAmount, at: DateTime.now());
 
     final remoteOrderId = _remoteOrderIds[orderId];
     if (remoteOrderId != null && await _canUseRemoteApi()) {
