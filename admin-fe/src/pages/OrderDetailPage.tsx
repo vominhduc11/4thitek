@@ -2,7 +2,6 @@ import { ArrowLeft } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAdminData, type OrderStatus } from '../context/AdminDataContext'
-import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { getAllowedOrderStatuses, orderStatusLabel, orderStatusTone } from '../lib/adminLabels'
@@ -31,7 +30,6 @@ function OrderDetailPage() {
   const { t } = useLanguage()
   const { notify } = useToast()
   const { confirm, confirmDialog } = useConfirmDialog()
-  const { accessToken } = useAuth()
   const { orders, ordersState, updateOrderStatus, recordOrderPayment, deleteOrder, reloadResource } =
     useAdminData()
   const [paymentAmount, setPaymentAmount] = useState('')
