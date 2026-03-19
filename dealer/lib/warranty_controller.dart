@@ -273,6 +273,28 @@ class WarrantyController extends ChangeNotifier {
     return null;
   }
 
+  /// Validates a serial for the serial-first export flow (no orderId constraint).
+  String? validateSerialForExport(String serial) {
+    final normalized = _normalizeSerial(serial);
+    if (normalized.isEmpty) {
+      return 'Serial không hợp lệ.';
+    }
+    final imported = findImportedSerial(normalized);
+    if (imported == null) {
+      return 'Serial $normalized chưa được nhập kho.';
+    }
+    if (isSerialActivated(normalized)) {
+      return 'Serial $normalized đã được kích hoạt trước đó.';
+    }
+    final order = _orderLookup?.call(imported.orderId);
+    if (order == null ||
+        (order.status != OrderStatus.completed &&
+            order.status != OrderStatus.shipping)) {
+      return 'Serial $normalized chưa thuộc đơn hợp lệ (cần đang giao hoặc đã giao).';
+    }
+    return null;
+  }
+
   Future<bool> addActivations(
     List<WarrantyActivationRecord> newActivations,
   ) async {

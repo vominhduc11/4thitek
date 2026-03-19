@@ -5,12 +5,11 @@ import 'package:flutter/services.dart';
 
 import 'breakpoints.dart';
 import 'models.dart';
-import 'order_controller.dart';
 import 'order_detail_screen.dart';
 import 'serial_scan_screen.dart';
 import 'utils.dart';
-import 'warranty_activation_screen.dart';
 import 'warranty_controller.dart';
+import 'warranty_export_screen.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/product_image.dart';
 
@@ -105,7 +104,6 @@ class _InventoryProductDetailScreenState
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final warrantyController = WarrantyScope.of(context);
-    final orderController = OrderScope.of(context);
     final orderIdSet = widget.orderIds.toSet();
     final productSku = widget.product.sku.trim();
 
@@ -323,25 +321,10 @@ class _InventoryProductDetailScreenState
                       label: 'Xuất hàng',
                       child: ElevatedButton.icon(
                         onPressed: canExport
-                            ? () async {
-                                final orderId = await _pickOrderForExport(
-                                  orderController,
-                                  warrantyController,
-                                );
-                                if (!mounted) {
-                                  return;
-                                }
-                                if (orderId == null) {
-                                  _showSnackBar(
-                                    'Không tìm thấy đơn phù hợp để xuất hàng.',
-                                  );
-                                  return;
-                                }
+                            ? () {
                                 Navigator.of(this.context).push(
                                   MaterialPageRoute(
-                                    builder: (_) => WarrantyActivationScreen(
-                                      orderId: orderId,
-                                    ),
+                                    builder: (_) => const WarrantyExportScreen(),
                                   ),
                                 );
                               }
@@ -360,10 +343,7 @@ class _InventoryProductDetailScreenState
                     OutlinedButton.icon(
                       onPressed: () {
                         unawaited(
-                          _handleScanSerialForProduct(
-                            orderController,
-                            warrantyController,
-                          ),
+                          _handleScanSerialForProduct(warrantyController),
                         );
                       },
                       style: OutlinedButton.styleFrom(
@@ -476,7 +456,6 @@ class _InventoryProductDetailScreenState
   }
 
   Future<void> _handleScanSerialForProduct(
-    OrderController orderController,
     WarrantyController warrantyController,
   ) async {
     final scannedValue = await Navigator.of(
@@ -492,36 +471,7 @@ class _InventoryProductDetailScreenState
       return;
     }
 
-    final imported = warrantyController.findImportedSerial(normalized);
-    if (imported == null) {
-      _showSnackBar('Không tìm thấy serial $normalized trong kho.');
-      return;
-    }
-    if (imported.productId != widget.product.id) {
-      _showSnackBar('Serial $normalized không thuộc ${widget.product.name}.');
-      return;
-    }
-    if (!widget.orderIds.contains(imported.orderId)) {
-      _showSnackBar(
-        'Serial $normalized không thuộc nhóm đơn của sản phẩm này.',
-      );
-      return;
-    }
-
-    final order = orderController.findById(imported.orderId);
-    if (order == null ||
-        (order.status != OrderStatus.completed &&
-            order.status != OrderStatus.shipping)) {
-      _showSnackBar('Serial $normalized chưa thuộc đơn đã hoàn thành hoặc đang giao.');
-      return;
-    }
-
-    final validationError = warrantyController.validateSerialForActivation(
-      serial: normalized,
-      productId: imported.productId,
-      productName: imported.productName,
-      orderId: imported.orderId,
-    );
+    final validationError = warrantyController.validateSerialForExport(normalized);
     if (validationError != null) {
       _showSnackBar(validationError);
       return;
@@ -532,147 +482,8 @@ class _InventoryProductDetailScreenState
     }
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => WarrantyActivationScreen(
-          orderId: imported.orderId,
-          prefilledSerial: normalized,
-          prefilledProductId: imported.productId,
-        ),
+        builder: (_) => WarrantyExportScreen(prefilledSerial: normalized),
       ),
-    );
-  }
-
-  Future<String?> _pickOrderForExport(
-    OrderController orderController,
-    WarrantyController warrantyController,
-  ) async {
-    final options = <_ExportOrderOption>[];
-    for (final orderId in widget.orderIds) {
-      final order = orderController.findById(orderId);
-      if (order == null ||
-          (order.status != OrderStatus.completed &&
-              order.status != OrderStatus.shipping)) {
-        continue;
-      }
-      final available = warrantyController
-          .availableImportedSerialCountForOrderItem(
-            order.id,
-            widget.product.id,
-          );
-      if (available > 0) {
-        options.add(
-          _ExportOrderOption(
-            orderId: order.id,
-            availableSerialCount: available,
-            importedAt: order.createdAt,
-          ),
-        );
-      }
-    }
-    if (options.isEmpty) {
-      return null;
-    }
-    options.sort((a, b) => b.importedAt.compareTo(a.importedAt));
-    if (options.length == 1) {
-      return options.first.orderId;
-    }
-    if (!mounted) {
-      return null;
-    }
-
-    return showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      requestFocus: true,
-      builder: (sheetContext) {
-        final colorScheme = Theme.of(sheetContext).colorScheme;
-        return SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Chọn đơn để xuất hàng',
-                  style: Theme.of(sheetContext).textTheme.titleSmall?.copyWith(
-                    color: colorScheme.onSurface,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Sản phẩm có nhiều đơn còn serial khả dụng.',
-                  style: Theme.of(sheetContext).textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                for (final option in options) ...[
-                  Material(
-                    color: colorScheme.surfaceContainerHighest.withValues(
-                      alpha: 0.38,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(
-                        color: colorScheme.outlineVariant.withValues(
-                          alpha: 0.6,
-                        ),
-                      ),
-                    ),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () =>
-                          Navigator.of(sheetContext).pop(option.orderId),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'Đơn ${option.orderId}',
-                                    style: Theme.of(sheetContext)
-                                        .textTheme
-                                        .bodyLarge
-                                        ?.copyWith(
-                                          color: colorScheme.onSurface,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Còn ${option.availableSerialCount} serial • ${formatDate(option.importedAt)}',
-                                    style: Theme.of(sheetContext)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.copyWith(
-                                          color: colorScheme.onSurfaceVariant,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Icon(
-                              Icons.chevron_right_rounded,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -687,18 +498,6 @@ class _InventoryProductDetailScreenState
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
-}
-
-class _ExportOrderOption {
-  const _ExportOrderOption({
-    required this.orderId,
-    required this.availableSerialCount,
-    required this.importedAt,
-  });
-
-  final String orderId;
-  final int availableSerialCount;
-  final DateTime importedAt;
 }
 
 class _SerialEmptyStateCard extends StatelessWidget {
