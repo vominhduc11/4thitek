@@ -114,6 +114,10 @@ type AdminDataContextValue = {
   addPost: (
     payload: Pick<BlogPost, 'title' | 'category' | 'excerpt' | 'status' | 'imageUrl'>,
   ) => Promise<BlogPost>
+  updatePost: (
+    id: string,
+    payload: Pick<BlogPost, 'title' | 'category' | 'excerpt' | 'status' | 'imageUrl'>,
+  ) => Promise<void>
   updatePostStatus: (id: string, status: BlogStatus) => Promise<void>
   deletePost: (id: string) => Promise<void>
   dealers: Dealer[]
@@ -472,6 +476,24 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     return nextPost
   }
 
+  const updatePost: AdminDataContextValue['updatePost'] = async (id, payload) => {
+    const token = requireToken()
+    const updated = await updateAdminBlog(
+      token,
+      Number(id),
+      toBlogUpsertRequest({
+        title: payload.title,
+        category: payload.category,
+        excerpt: payload.excerpt,
+        imageUrl: payload.imageUrl,
+        status: payload.status,
+      }),
+    )
+    const nextPost = mapBlog(updated)
+    setPosts((previous) => previous.map((item) => (item.id === id ? nextPost : item)))
+    await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.posts })
+  }
+
   const updatePostStatus: AdminDataContextValue['updatePostStatus'] = async (id, status) => {
     const token = requireToken()
     const current = posts.find((item) => item.id === id)
@@ -596,6 +618,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     posts,
     postsState: resourceStates.posts,
     addPost,
+    updatePost,
     updatePostStatus,
     deletePost,
     dealers,

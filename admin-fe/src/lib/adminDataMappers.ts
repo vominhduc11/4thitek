@@ -219,6 +219,7 @@ export const mapBlog = (blog: BackendBlogResponse): BlogPost => ({
   excerpt: blog.description || '',
   imageUrl: parseBlogImage(blog.image),
   showOnHomepage: Boolean(blog.showOnHomepage),
+  content: blog.introduction || undefined,
 })
 
 export const mapDealer = (dealer: BackendDealerAccountResponse): Dealer => ({

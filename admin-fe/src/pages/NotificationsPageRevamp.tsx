@@ -52,6 +52,34 @@ const typeTone = {
   WARRANTY: 'success',
 } as const
 
+const audienceLabelsByLanguage = {
+  vi: {
+    DEALERS: 'Đại lý',
+    ALL_ACCOUNTS: 'Tất cả tài khoản',
+    ACCOUNTS: 'Tài khoản cụ thể',
+  },
+  en: {
+    DEALERS: 'Dealers',
+    ALL_ACCOUNTS: 'All accounts',
+    ACCOUNTS: 'Specific accounts',
+  },
+} as const
+
+const typeLabelsByLanguage = {
+  vi: {
+    SYSTEM: 'Hệ thống',
+    PROMOTION: 'Khuyến mãi',
+    ORDER: 'Đơn hàng',
+    WARRANTY: 'Bảo hành',
+  },
+  en: {
+    SYSTEM: 'System',
+    PROMOTION: 'Promotion',
+    ORDER: 'Order',
+    WARRANTY: 'Warranty',
+  },
+} as const
+
 const TITLE_MAX = 120
 const CONTENT_MAX = 500
 
@@ -145,6 +173,8 @@ const copyByLanguage = {
 function NotificationsPageRevamp() {
   const { language } = useLanguage()
   const copy = copyByLanguage[language]
+  const audienceLabels = audienceLabelsByLanguage[language]
+  const typeLabels = typeLabelsByLanguage[language]
   const { accessToken } = useAuth()
   const { notify } = useToast()
   const [items, setItems] = useState<BackendNotificationResponse[]>([])
@@ -382,7 +412,7 @@ function NotificationsPageRevamp() {
             >
               {AUDIENCE_OPTIONS.map((audience) => (
                 <option key={audience} value={audience}>
-                  {audience}
+                  {audienceLabels[audience]}
                 </option>
               ))}
             </select>
@@ -397,7 +427,7 @@ function NotificationsPageRevamp() {
             >
               {TYPE_OPTIONS.map((type) => (
                 <option key={type} value={type}>
-                  {type}
+                  {typeLabels[type]}
                 </option>
               ))}
             </select>
@@ -484,7 +514,7 @@ function NotificationsPageRevamp() {
                       <p className="font-semibold text-[var(--ink)]">{item.title}</p>
                       <p className={tableMetaClass}>{item.accountName ?? item.accountType ?? '-'}</p>
                     </div>
-                    <StatusBadge tone={typeTone[item.type ?? 'SYSTEM']}>{item.type ?? 'SYSTEM'}</StatusBadge>
+                    <StatusBadge tone={typeTone[item.type ?? 'SYSTEM']}>{typeLabels[item.type ?? 'SYSTEM']}</StatusBadge>
                   </div>
                   <p className="mt-3 text-sm text-[var(--ink)]">{item.content}</p>
                   {item.link ? (
@@ -528,7 +558,7 @@ function NotificationsPageRevamp() {
                         <p className={tableMetaClass}>{item.accountType ?? '-'}</p>
                       </td>
                       <td className="px-3 py-3">
-                        <StatusBadge tone={typeTone[item.type ?? 'SYSTEM']}>{item.type ?? 'SYSTEM'}</StatusBadge>
+                        <StatusBadge tone={typeTone[item.type ?? 'SYSTEM']}>{typeLabels[item.type ?? 'SYSTEM']}</StatusBadge>
                       </td>
                       <td className="px-3 py-3">
                         <StatusBadge tone={item.isRead ? 'neutral' : 'warning'}>

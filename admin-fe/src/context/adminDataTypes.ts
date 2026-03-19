@@ -40,6 +40,7 @@ export type BlogPost = {
   excerpt: string
   imageUrl?: string
   showOnHomepage?: boolean
+  content?: string
 }
 
 export type Dealer = {
