@@ -250,10 +250,10 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                         keyboardType: TextInputType.emailAddress,
                         enabled: !isFullyActivated,
                         decoration: const InputDecoration(
-                          labelText: 'Email khách hàng',
+                          labelText: 'Email khách hàng *',
                           prefixIcon: Icon(Icons.alternate_email_outlined),
                           helperText:
-                              'Dùng để lưu thông tin kích hoạt bảo hành và liên hệ hỗ trợ khi cần.',
+                              'Bắt buộc. Dùng để lưu thông tin kích hoạt bảo hành và liên hệ hỗ trợ.',
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -523,27 +523,40 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
         order.id,
         item.product.id,
       );
+      final activatedSerials = activated
+          .map((r) => warrantyController.normalizeSerial(r.serial))
+          .toSet();
       final remaining = (item.quantity - activated.length).clamp(
         0,
         item.quantity,
       );
       final existing = _serialControllers[item.product.id] ?? [];
+
+      List<TextEditingController> finalList;
       if (existing.length == remaining) {
-        continue;
-      }
-      if (existing.length > remaining) {
+        finalList = existing;
+      } else if (existing.length > remaining) {
         // Remove extra controllers from the end
         final toDispose = existing.sublist(remaining);
         for (final controller in toDispose) {
           controller.dispose();
         }
-        _serialControllers[item.product.id] = existing.sublist(0, remaining);
+        finalList = existing.sublist(0, remaining);
+        _serialControllers[item.product.id] = finalList;
       } else {
         // Add more controllers
         final toAdd = remaining - existing.length;
-        final newList = List<TextEditingController>.from(existing)
+        finalList = List<TextEditingController>.from(existing)
           ..addAll(List.generate(toAdd, (_) => TextEditingController()));
-        _serialControllers[item.product.id] = newList;
+        _serialControllers[item.product.id] = finalList;
+      }
+
+      // Clear any input whose serial is now activated (e.g. after partial failure)
+      for (final controller in finalList) {
+        final normalized = warrantyController.normalizeSerial(controller.text);
+        if (normalized.isNotEmpty && activatedSerials.contains(normalized)) {
+          controller.clear();
+        }
       }
     }
     // Remove entries for items no longer in the order
@@ -964,18 +977,20 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
       return;
     }
 
+    // Always sync serial inputs so controllers match actual remaining count,
+    // even on partial failure where some activations may have succeeded.
+    setState(() {
+      _isSubmitting = false;
+      _syncSerialInputs(order, warrantyController);
+    });
+
     if (!success) {
-      setState(() => _isSubmitting = false);
       _showSnackBar(
         'Không thể đồng bộ kích hoạt bảo hành. Vui lòng kiểm tra lại.',
       );
       return;
     }
 
-    setState(() {
-      _isSubmitting = false;
-      _syncSerialInputs(order, warrantyController);
-    });
     _jumpToTop();
     _showSnackBar('Đã kích hoạt thành công ${newRecords.length} serial.');
   }

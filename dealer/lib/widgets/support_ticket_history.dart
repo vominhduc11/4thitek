@@ -24,8 +24,8 @@ class SupportTicketHistory extends StatelessWidget {
   Widget build(BuildContext context) {
     final emptyMessage = isEnglish
         ? 'No support requests yet.'
-        : 'Chua co yeu cau ho tro nao.';
-    final loadMoreLabel = isEnglish ? 'Load more' : 'Xem them';
+        : 'Chưa có yêu cầu hỗ trợ nào.';
+    final loadMoreLabel = isEnglish ? 'Load more' : 'Xem thêm';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,12 +101,12 @@ class _HistoryCard extends StatelessWidget {
                   ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
-              _StatusChip(status: item.status),
+              _StatusChip(status: item.status, isEnglish: isEnglish),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            '${isEnglish ? 'Ticket' : 'Ma'}: ${item.ticketCode}',
+            '${isEnglish ? 'Ticket' : 'Mã'}: ${item.ticketCode}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 6),
@@ -114,7 +114,7 @@ class _HistoryCard extends StatelessWidget {
           if (item.adminReply != null && item.adminReply!.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
-              isEnglish ? 'Admin reply' : 'Phan hoi',
+              isEnglish ? 'Admin reply' : 'Phản hồi',
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
@@ -128,21 +128,21 @@ class _HistoryCard extends StatelessWidget {
             runSpacing: 6,
             children: [
               _InfoPill(
-                label: isEnglish ? 'Priority' : 'Uu tien',
+                label: isEnglish ? 'Priority' : 'Ưu tiên',
                 value: item.priority,
               ),
               _InfoPill(
-                label: isEnglish ? 'Created' : 'Tao luc',
+                label: isEnglish ? 'Created' : 'Tạo lúc',
                 value: _formatDateTime(item.createdAt),
               ),
               if (item.resolvedAt != null)
                 _InfoPill(
-                  label: isEnglish ? 'Resolved' : 'Xu ly',
+                  label: isEnglish ? 'Resolved' : 'Xử lý',
                   value: _formatDateTime(item.resolvedAt!),
                 ),
               if (item.closedAt != null)
                 _InfoPill(
-                  label: isEnglish ? 'Closed' : 'Dong',
+                  label: isEnglish ? 'Closed' : 'Đóng',
                   value: _formatDateTime(item.closedAt!),
                 ),
             ],
@@ -184,32 +184,38 @@ class _InfoPill extends StatelessWidget {
 }
 
 class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.status});
+  const _StatusChip({required this.status, required this.isEnglish});
 
   final String status;
+  final bool isEnglish;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     Color background;
     Color foreground;
+    String label;
     switch (status) {
       case 'RESOLVED':
         background = Colors.green.withValues(alpha: 0.16);
         foreground = Colors.green.shade700;
+        label = isEnglish ? 'Resolved' : 'Đã xử lý';
         break;
       case 'IN_PROGRESS':
         background = Colors.orange.withValues(alpha: 0.16);
         foreground = Colors.orange.shade800;
+        label = isEnglish ? 'In progress' : 'Đang xử lý';
         break;
       case 'CLOSED':
         background = scheme.surface;
         foreground = scheme.onSurfaceVariant;
+        label = isEnglish ? 'Closed' : 'Đóng';
         break;
       case 'OPEN':
       default:
         background = scheme.primary.withValues(alpha: 0.14);
         foreground = scheme.primary;
+        label = isEnglish ? 'Open' : 'Mở';
         break;
     }
 
@@ -220,7 +226,7 @@ class _StatusChip extends StatelessWidget {
         color: background,
       ),
       child: Text(
-        status,
+        label,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           color: foreground,
           fontWeight: FontWeight.w700,

@@ -23,7 +23,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   final _contactNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _shippingAddressController = TextEditingController();
+  final _addressLineController = TextEditingController();
+  final _wardController = TextEditingController();
+  final _districtController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _countryController = TextEditingController();
   final _policyController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final _uploadService = UploadService();
@@ -41,7 +45,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     _contactNameController,
     _emailController,
     _phoneController,
-    _shippingAddressController,
+    _addressLineController,
+    _wardController,
+    _districtController,
+    _cityController,
+    _countryController,
     _policyController,
   ];
 
@@ -71,7 +79,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     _contactNameController.text = profile.contactName;
     _emailController.text = profile.email;
     _phoneController.text = profile.phone;
-    _shippingAddressController.text = profile.shippingAddress;
+    _addressLineController.text = profile.addressLine;
+    _wardController.text = profile.ward;
+    _districtController.text = profile.district;
+    _cityController.text = profile.city;
+    _countryController.text = profile.country;
     _policyController.text = profile.salesPolicy;
     _avatarUrl = profile.avatarUrl;
     _initialSnapshot = _formSnapshot();
@@ -91,7 +103,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     _contactNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _shippingAddressController.dispose();
+    _addressLineController.dispose();
+    _wardController.dispose();
+    _districtController.dispose();
+    _cityController.dispose();
+    _countryController.dispose();
     _policyController.dispose();
     super.dispose();
   }
@@ -113,7 +129,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       _contactNameController.text.trim(),
       _emailController.text.trim(),
       _phoneController.text.trim(),
-      _shippingAddressController.text.trim(),
+      _addressLineController.text.trim(),
+      _wardController.text.trim(),
+      _districtController.text.trim(),
+      _cityController.text.trim(),
+      _countryController.text.trim(),
       _policyController.text.trim(),
       _avatarUrl?.trim() ?? '',
     ].join('||');
@@ -145,7 +165,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       _showSnackBar(
         isEnglish
             ? 'Avatar updated. Save changes to keep it.'
-            : 'Da cap nhat avatar. Nhan Luu de xac nhan.',
+            : 'Đã cập nhật avatar. Nhấn Lưu để xác nhận.',
       );
       _handleFormChanged();
     } catch (error) {
@@ -184,7 +204,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     _showSnackBar(
       isEnglish
           ? 'Avatar removed. Save changes to confirm.'
-          : 'Da xoa avatar. Nhan Luu de xac nhan.',
+          : 'Đã xóa avatar. Nhấn Lưu để xác nhận.',
     );
     _handleFormChanged();
   }
@@ -265,9 +285,16 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     _contactNameController.text = defaults.contactName;
     _emailController.text = defaults.email;
     _phoneController.text = defaults.phone;
-    _shippingAddressController.text = defaults.shippingAddress;
+    _addressLineController.text = defaults.addressLine;
+    _wardController.text = defaults.ward;
+    _districtController.text = defaults.district;
+    _cityController.text = defaults.city;
+    _countryController.text = defaults.country;
     _policyController.text = defaults.salesPolicy;
-    _avatarUrl = defaults.avatarUrl;
+    setState(() {
+      _avatarUrl = defaults.avatarUrl;
+    });
+    _handleFormChanged();
     _showSnackBar(
       isEnglish
           ? 'Default values applied. Press Save to confirm.'
@@ -329,7 +356,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           contactName: _contactNameController.text.trim(),
           email: _emailController.text.trim(),
           phone: _phoneController.text.trim(),
-          shippingAddress: _shippingAddressController.text.trim(),
+          addressLine: _addressLineController.text.trim(),
+          ward: _wardController.text.trim(),
+          district: _districtController.text.trim(),
+          city: _cityController.text.trim(),
+          country: _countryController.text.trim(),
           salesPolicy: _policyController.text.trim(),
           avatarUrl: _avatarUrl?.trim().isEmpty ?? true
               ? null
@@ -410,6 +441,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     final shippingTitle = isEnglish
         ? 'Shipping and contact'
         : 'Địa chỉ giao hàng và liên hệ';
+    final addressLineLabel = isEnglish ? 'Street address' : 'Số nhà, tên đường';
+    final wardLabel = isEnglish ? 'Ward / Commune' : 'Phường / Xã';
+    final districtLabel = isEnglish ? 'District' : 'Quận / Huyện';
+    final cityLabel = isEnglish ? 'Province / City' : 'Tỉnh / Thành phố';
+    final countryLabel = isEnglish ? 'Country' : 'Quốc gia';
     final policyTitle = isEnglish ? 'Sales policy' : 'Chính sách bán hàng';
     final saveLabel = isEnglish ? 'Save changes' : 'Lưu thay đổi';
     final businessLabel = isEnglish
@@ -418,7 +454,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     final contactLabel = isEnglish ? 'Contact person' : 'Người liên hệ';
     final emailLabel = 'Email';
     final phoneLabel = isEnglish ? 'Phone number' : 'Số điện thoại';
-    final shippingLabel = isEnglish ? 'Shipping address' : 'Địa chỉ giao hàng';
     final policyLabel = isEnglish ? 'Policy details' : 'Nội dung chính sách';
 
     return PopScope<void>(
@@ -615,19 +650,68 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                                 ),
                                 const SizedBox(height: 14),
                                 TextFormField(
-                                  controller: _shippingAddressController,
-                                  maxLines: 2,
+                                  controller: _addressLineController,
                                   textInputAction: TextInputAction.next,
                                   validator: (value) => _requiredValidator(
                                     value,
                                     isEnglish
-                                        ? 'Please enter shipping address.'
-                                        : 'Vui lòng nhập địa chỉ giao hàng.',
+                                        ? 'Please enter street address.'
+                                        : 'Vui lòng nhập số nhà, tên đường.',
                                   ),
                                   decoration: InputDecoration(
-                                    labelText: shippingLabel,
+                                    labelText: addressLineLabel,
                                     prefixIcon: const Icon(
                                       Icons.location_on_outlined,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _wardController,
+                                  textInputAction: TextInputAction.next,
+                                  decoration: InputDecoration(
+                                    labelText: wardLabel,
+                                    prefixIcon: const Icon(
+                                      Icons.holiday_village_outlined,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _districtController,
+                                  textInputAction: TextInputAction.next,
+                                  decoration: InputDecoration(
+                                    labelText: districtLabel,
+                                    prefixIcon: const Icon(
+                                      Icons.map_outlined,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _cityController,
+                                  textInputAction: TextInputAction.next,
+                                  validator: (value) => _requiredValidator(
+                                    value,
+                                    isEnglish
+                                        ? 'Please enter province / city.'
+                                        : 'Vui lòng nhập tỉnh / thành phố.',
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText: cityLabel,
+                                    prefixIcon: const Icon(
+                                      Icons.location_city_outlined,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _countryController,
+                                  textInputAction: TextInputAction.next,
+                                  decoration: InputDecoration(
+                                    labelText: countryLabel,
+                                    prefixIcon: const Icon(
+                                      Icons.public_outlined,
                                     ),
                                   ),
                                 ),

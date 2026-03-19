@@ -11,7 +11,11 @@ const String _profileBusinessNameKey = 'dealer_profile_business_name';
 const String _profileContactNameKey = 'dealer_profile_contact_name';
 const String _profileEmailKey = 'dealer_profile_email';
 const String _profilePhoneKey = 'dealer_profile_phone';
-const String _profileShippingAddressKey = 'dealer_profile_shipping_address';
+const String _profileAddressLineKey = 'dealer_profile_address_line';
+const String _profileWardKey = 'dealer_profile_ward';
+const String _profileDistrictKey = 'dealer_profile_district';
+const String _profileCityKey = 'dealer_profile_city';
+const String _profileCountryKey = 'dealer_profile_country';
 const String _profilePolicyKey = 'dealer_profile_policy';
 const String _profileAvatarUrlKey = 'dealer_profile_avatar_url';
 const String _profileCreditLimitKey = 'dealer_profile_credit_limit';
@@ -25,7 +29,11 @@ class DealerProfile {
     required this.contactName,
     required this.email,
     required this.phone,
-    required this.shippingAddress,
+    required this.addressLine,
+    required this.ward,
+    required this.district,
+    required this.city,
+    required this.country,
     required this.salesPolicy,
     this.creditLimit = 0,
     this.avatarUrl,
@@ -35,17 +43,34 @@ class DealerProfile {
   final String contactName;
   final String email;
   final String phone;
-  final String shippingAddress;
+  final String addressLine;
+  final String ward;
+  final String district;
+  final String city;
+  final String country;
   final String salesPolicy;
   final int creditLimit;
   final String? avatarUrl;
+
+  /// Full address joined for display (checkout, account screen, etc.)
+  String get shippingAddress => _joinNonEmpty([
+    addressLine,
+    ward,
+    district,
+    city,
+    country,
+  ]);
 
   DealerProfile copyWith({
     String? businessName,
     String? contactName,
     String? email,
     String? phone,
-    String? shippingAddress,
+    String? addressLine,
+    String? ward,
+    String? district,
+    String? city,
+    String? country,
     String? salesPolicy,
     int? creditLimit,
     String? avatarUrl,
@@ -55,7 +80,11 @@ class DealerProfile {
       contactName: contactName ?? this.contactName,
       email: email ?? this.email,
       phone: phone ?? this.phone,
-      shippingAddress: shippingAddress ?? this.shippingAddress,
+      addressLine: addressLine ?? this.addressLine,
+      ward: ward ?? this.ward,
+      district: district ?? this.district,
+      city: city ?? this.city,
+      country: country ?? this.country,
       salesPolicy: salesPolicy ?? this.salesPolicy,
       creditLimit: creditLimit ?? this.creditLimit,
       avatarUrl: avatarUrl ?? this.avatarUrl,
@@ -67,7 +96,11 @@ class DealerProfile {
     contactName: '',
     email: '',
     phone: '',
-    shippingAddress: '',
+    addressLine: '',
+    ward: '',
+    district: '',
+    city: '',
+    country: 'Việt Nam',
     salesPolicy: '',
     creditLimit: 0,
     avatarUrl: null,
@@ -120,13 +153,18 @@ Future<DealerProfile> loadDealerProfile() async {
 }
 
 Future<void> saveDealerProfile(DealerProfile profile) async {
-  final normalizedProfile = profile.copyWith(
+  final normalizedProfile = DealerProfile(
     businessName: profile.businessName.trim(),
     contactName: profile.contactName.trim(),
     email: profile.email.trim(),
     phone: profile.phone.trim(),
-    shippingAddress: profile.shippingAddress.trim(),
+    addressLine: profile.addressLine.trim(),
+    ward: profile.ward.trim(),
+    district: profile.district.trim(),
+    city: profile.city.trim(),
+    country: profile.country.trim(),
     salesPolicy: profile.salesPolicy.trim(),
+    creditLimit: profile.creditLimit,
     avatarUrl: profile.avatarUrl?.trim().isEmpty ?? true
         ? null
         : profile.avatarUrl!.trim(),
@@ -154,8 +192,12 @@ Future<void> saveDealerProfile(DealerProfile profile) async {
       'contactName': normalizedProfile.contactName,
       'email': normalizedProfile.email,
       'phone': normalizedProfile.phone,
-      'addressLine': normalizedProfile.shippingAddress,
-      'avatarUrl': normalizedProfile.avatarUrl ?? '',
+      'addressLine': normalizedProfile.addressLine,
+      'ward': normalizedProfile.ward,
+      'district': normalizedProfile.district,
+      'city': normalizedProfile.city,
+      'country': normalizedProfile.country,
+      'avatarUrl': normalizedProfile.avatarUrl,
       'salesPolicy': normalizedProfile.salesPolicy,
     }),
   );
@@ -182,7 +224,11 @@ Future<void> clearDealerProfileCache() async {
     prefs.remove(_profileContactNameKey),
     prefs.remove(_profileEmailKey),
     prefs.remove(_profilePhoneKey),
-    prefs.remove(_profileShippingAddressKey),
+    prefs.remove(_profileAddressLineKey),
+    prefs.remove(_profileWardKey),
+    prefs.remove(_profileDistrictKey),
+    prefs.remove(_profileCityKey),
+    prefs.remove(_profileCountryKey),
     prefs.remove(_profilePolicyKey),
     prefs.remove(_profileAvatarUrlKey),
     prefs.remove(_profileCreditLimitKey),
@@ -196,7 +242,11 @@ Future<void> _saveLocalDealerProfile(DealerProfile profile) async {
     prefs.setString(_profileContactNameKey, profile.contactName),
     prefs.setString(_profileEmailKey, profile.email),
     prefs.setString(_profilePhoneKey, profile.phone),
-    prefs.setString(_profileShippingAddressKey, profile.shippingAddress),
+    prefs.setString(_profileAddressLineKey, profile.addressLine),
+    prefs.setString(_profileWardKey, profile.ward),
+    prefs.setString(_profileDistrictKey, profile.district),
+    prefs.setString(_profileCityKey, profile.city),
+    prefs.setString(_profileCountryKey, profile.country),
     prefs.setString(_profilePolicyKey, profile.salesPolicy),
     prefs.setInt(_profileCreditLimitKey, profile.creditLimit),
     if ((profile.avatarUrl ?? '').trim().isNotEmpty)
@@ -210,13 +260,6 @@ DealerProfile _mapRemoteProfile(
   Map<String, dynamic> json, {
   required DealerProfile fallback,
 }) {
-  final shippingAddress = _joinNonEmpty(<String?>[
-    _normalizeString(json['addressLine']),
-    _normalizeString(json['ward']),
-    _normalizeString(json['district']),
-    _normalizeString(json['city']),
-    _normalizeString(json['country']),
-  ]);
   final hasAvatarField = json.containsKey('avatarUrl');
   final avatarUrl = _resolveAvatarUrl(_normalizeString(json['avatarUrl']));
 
@@ -226,9 +269,11 @@ DealerProfile _mapRemoteProfile(
     contactName: _normalizeString(json['contactName']) ?? fallback.contactName,
     email: _normalizeString(json['email']) ?? fallback.email,
     phone: _normalizeString(json['phone']) ?? fallback.phone,
-    shippingAddress: shippingAddress.isEmpty
-        ? fallback.shippingAddress
-        : shippingAddress,
+    addressLine: _normalizeString(json['addressLine']) ?? fallback.addressLine,
+    ward: _normalizeString(json['ward']) ?? fallback.ward,
+    district: _normalizeString(json['district']) ?? fallback.district,
+    city: _normalizeString(json['city']) ?? fallback.city,
+    country: _normalizeString(json['country']) ?? fallback.country,
     salesPolicy: _normalizeString(json['salesPolicy']) ?? fallback.salesPolicy,
     creditLimit: _normalizeInt(json['creditLimit']) ?? fallback.creditLimit,
     avatarUrl: hasAvatarField ? avatarUrl : fallback.avatarUrl,
@@ -248,9 +293,8 @@ String? _resolveAvatarUrl(String? value) {
   return DealerApiConfig.resolveUrl(normalized);
 }
 
-String _joinNonEmpty(List<String?> parts) {
+String _joinNonEmpty(List<String> parts) {
   return parts
-      .whereType<String>()
       .map((part) => part.trim())
       .where((part) => part.isNotEmpty)
       .join(', ');

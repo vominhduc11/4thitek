@@ -14,7 +14,7 @@ import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/product_image.dart';
 
-enum InventorySerialFilter { all, available, sold, defective }
+enum InventorySerialFilter { all, available, sold }
 
 const double _detailSectionSpacing = 16;
 const double _detailSectionSpacingLarge = 18;
@@ -28,7 +28,6 @@ class InventoryProductDetailScreen extends StatefulWidget {
     required this.availableQuantity,
     required this.importedQuantity,
     required this.soldQuantity,
-    required this.defectiveQuantity,
     required this.orderIds,
     required this.latestImportedAt,
   });
@@ -37,7 +36,6 @@ class InventoryProductDetailScreen extends StatefulWidget {
   final int availableQuantity;
   final int importedQuantity;
   final int soldQuantity;
-  final int defectiveQuantity;
   final List<String> orderIds;
   final DateTime latestImportedAt;
 
@@ -118,21 +116,16 @@ class _InventoryProductDetailScreenState
     final activatedSet = warrantyController.activations
         .map((record) => warrantyController.normalizeSerial(record.serial))
         .toSet();
-    final defectiveSet = warrantyController.defectiveSerialSetForProduct(
-      widget.product.id,
-    );
 
     // Compute live metrics from serial statuses (not stale widget params).
     int availableCount = 0;
     int soldCount = 0;
-    int defectiveCount = 0;
     final serialStatuses = <String, String>{};
     for (final record in serials) {
       final status = _serialStatus(
         record.serial,
         warrantyController,
         activatedSet: activatedSet,
-        defectiveSet: defectiveSet,
       );
       serialStatuses[record.serial] = status;
       switch (status) {
@@ -140,8 +133,6 @@ class _InventoryProductDetailScreenState
           availableCount++;
         case 'sold':
           soldCount++;
-        case 'defective':
-          defectiveCount++;
       }
     }
     final importedCount = serials.length;
@@ -149,7 +140,6 @@ class _InventoryProductDetailScreenState
     final filterAllLabel = 'Tất cả ($importedCount)';
     final filterAvailableLabel = 'Sẵn sàng ($availableCount)';
     final filterSoldLabel = 'Đã bán ($soldCount)';
-    final filterDefectiveLabel = 'Lỗi ($defectiveCount)';
 
     final filtered = serials
         .where((record) {
@@ -159,10 +149,6 @@ class _InventoryProductDetailScreenState
             return false;
           }
           if (_filter == InventorySerialFilter.sold && status != 'sold') {
-            return false;
-          }
-          if (_filter == InventorySerialFilter.defective &&
-              status != 'defective') {
             return false;
           }
           return true;
@@ -311,12 +297,6 @@ class _InventoryProductDetailScreenState
                                 color: colorScheme.tertiary,
                                 icon: Icons.north_east_rounded,
                               ),
-                              _InventoryMetric(
-                                label: 'Lỗi',
-                                value: '$defectiveCount',
-                                color: colorScheme.error,
-                                icon: Icons.error_outline_rounded,
-                              ),
                             ];
                             return Wrap(
                               spacing: spacing,
@@ -424,11 +404,6 @@ class _InventoryProductDetailScreenState
                       selected: _filter == InventorySerialFilter.sold,
                       onTap: () => _setFilter(InventorySerialFilter.sold),
                     ),
-                    _SerialFilterChip(
-                      label: filterDefectiveLabel,
-                      selected: _filter == InventorySerialFilter.defective,
-                      onTap: () => _setFilter(InventorySerialFilter.defective),
-                    ),
                   ],
                 ),
                 const SizedBox(height: _detailSectionSpacing),
@@ -459,18 +434,6 @@ class _InventoryProductDetailScreenState
                           );
                         },
                         onCopy: () => _copySerial(record.serial),
-                        onToggleDefective: () async {
-                          final next = status != 'defective';
-                          final error = await warrantyController
-                              .setSerialDefective(
-                                serial: record.serial,
-                                defective: next,
-                              );
-                          if (!mounted || error == null) {
-                            return;
-                          }
-                          _showSnackBar(error);
-                        },
                       ),
                     );
                   }),
@@ -504,12 +467,8 @@ class _InventoryProductDetailScreenState
     String serial,
     WarrantyController controller, {
     required Set<String> activatedSet,
-    required Set<String> defectiveSet,
   }) {
     final normalized = controller.normalizeSerial(serial);
-    if (defectiveSet.contains(normalized)) {
-      return 'defective';
-    }
     if (activatedSet.contains(normalized)) {
       return 'sold';
     }
@@ -876,28 +835,24 @@ class _SerialTile extends StatelessWidget {
     required this.status,
     required this.onOpenOrder,
     required this.onCopy,
-    required this.onToggleDefective,
   });
 
   final ImportedSerialRecord record;
   final String status;
   final VoidCallback onOpenOrder;
   final VoidCallback onCopy;
-  final Future<void> Function() onToggleDefective;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final color = switch (status) {
-      'available' => isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
       'sold' => isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
-      _ => isDark ? const Color(0xFFFCA5A5) : const Color(0xFFB91C1C),
+      _ => isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
     };
     final statusLabel = switch (status) {
-      'available' => 'Sẵn sàng',
       'sold' => 'Đã bán',
-      _ => 'Lỗi',
+      _ => 'Sẵn sàng',
     };
 
     return Card(
@@ -975,24 +930,15 @@ class _SerialTile extends StatelessWidget {
                 minWidth: _detailMinTapTarget,
                 minHeight: _detailMinTapTarget,
               ),
-              onSelected: (value) async {
-                switch (value) {
-                  case 'copy':
-                    onCopy();
-                  case 'defective':
-                    await onToggleDefective();
+              onSelected: (value) {
+                if (value == 'copy') {
+                  onCopy();
                 }
               },
               itemBuilder: (_) => [
                 const PopupMenuItem<String>(
                   value: 'copy',
                   child: Text('Sao chép serial'),
-                ),
-                PopupMenuItem<String>(
-                  value: 'defective',
-                  child: Text(
-                    status == 'defective' ? 'Bỏ đánh dấu lỗi' : 'Đánh dấu lỗi',
-                  ),
                 ),
               ],
               child: Container(

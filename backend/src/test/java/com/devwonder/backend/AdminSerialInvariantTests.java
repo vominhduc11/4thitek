@@ -126,6 +126,47 @@ class AdminSerialInvariantTests {
     }
 
     @Test
+    void adminCannotMarkDefectiveSerialThatIsDirectlyOwnedByDealer() {
+        Dealer dealer = dealerRepository.save(createDealer("admin-defective-owned@example.com"));
+        Product product = productRepository.save(createProduct("SKU-ADMIN-DEFECTIVE-1"));
+        ProductSerial serial = productSerialRepository.save(createSerial(
+                dealer,
+                null,
+                product,
+                "ADMIN-SERIAL-DEFECTIVE-1",
+                ProductSerialStatus.AVAILABLE
+        ));
+
+        assertThatThrownBy(() -> adminOperationsService.updateSerialStatus(
+                serial.getId(),
+                new UpdateAdminSerialStatusRequest(ProductSerialStatus.DEFECTIVE)
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Serial already belongs to a dealer");
+    }
+
+    @Test
+    void adminCannotMarkDefectiveSerialAssignedToDealerOrder() {
+        Dealer dealer = dealerRepository.save(createDealer("admin-defective-order@example.com"));
+        Product product = productRepository.save(createProduct("SKU-ADMIN-DEFECTIVE-2"));
+        Order order = orderRepository.save(createOrder(dealer, product, "ADMIN-ORDER-DEFECTIVE-1"));
+        ProductSerial serial = productSerialRepository.save(createSerial(
+                null,
+                order,
+                product,
+                "ADMIN-SERIAL-DEFECTIVE-2",
+                ProductSerialStatus.ASSIGNED
+        ));
+
+        assertThatThrownBy(() -> adminOperationsService.updateSerialStatus(
+                serial.getId(),
+                new UpdateAdminSerialStatusRequest(ProductSerialStatus.DEFECTIVE)
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Serial already belongs to a dealer");
+    }
+
+    @Test
     void adminCannotSetReturnedStatusManually() {
         Product product = productRepository.save(createProduct("SKU-ADMIN-STATUS-3"));
         ProductSerial serial = productSerialRepository.save(createSerial(

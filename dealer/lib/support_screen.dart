@@ -35,6 +35,8 @@ class _SupportScreenState extends State<SupportScreen> {
   DateTime? _lastSubmittedAt;
   SupportCategory? _lastCategory;
   SupportPriority? _lastPriority;
+  String? _lastStatus;
+  String? _lastAdminReply;
   final List<DealerSupportTicketRecord> _ticketHistory = [];
   int _ticketPage = 0;
   bool _isHistoryLoading = false;
@@ -95,6 +97,9 @@ class _SupportScreenState extends State<SupportScreen> {
       _lastSubmittedAt = ticket.createdAt;
       _lastCategory = _parseCategory(ticket.category);
       _lastPriority = _parsePriority(ticket.priority);
+      _lastStatus = ticket.status;
+      _lastAdminReply =
+          (ticket.adminReply?.isNotEmpty ?? false) ? ticket.adminReply : null;
     });
   }
 
@@ -265,6 +270,8 @@ class _SupportScreenState extends State<SupportScreen> {
                       _lastPriority ?? _priority,
                       isEnglish: isEnglish,
                     ),
+                    status: _lastStatus,
+                    adminReply: _lastAdminReply,
                     isEnglish: isEnglish,
                     onClear: () {
                       setState(() {
@@ -272,6 +279,8 @@ class _SupportScreenState extends State<SupportScreen> {
                         _lastSubmittedAt = null;
                         _lastCategory = null;
                         _lastPriority = null;
+                        _lastStatus = null;
+                        _lastAdminReply = null;
                       });
                     },
                   ),
@@ -840,6 +849,8 @@ class _StatusCard extends StatelessWidget {
     required this.sla,
     required this.onClear,
     required this.isEnglish,
+    this.status,
+    this.adminReply,
   });
 
   final String ticketId;
@@ -847,6 +858,8 @@ class _StatusCard extends StatelessWidget {
   final String category;
   final String priority;
   final String sla;
+  final String? status;
+  final String? adminReply;
   final VoidCallback onClear;
   final bool isEnglish;
 
@@ -907,10 +920,57 @@ class _StatusCard extends StatelessWidget {
               label: isEnglish ? 'Response SLA' : 'SLA phản hồi',
               value: sla,
             ),
+            if (status != null) ...[
+              const SizedBox(height: 6),
+              _InfoRow(
+                label: isEnglish ? 'Status' : 'Trạng thái',
+                value: _statusLabel(status!, isEnglish),
+              ),
+            ],
+            if (adminReply != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                isEnglish ? 'Admin reply' : 'Phản hồi từ admin',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(adminReply!),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  static String _statusLabel(String status, bool isEnglish) {
+    if (isEnglish) {
+      switch (status) {
+        case 'OPEN':
+          return 'Open';
+        case 'IN_PROGRESS':
+          return 'In progress';
+        case 'RESOLVED':
+          return 'Resolved';
+        case 'CLOSED':
+          return 'Closed';
+        default:
+          return status;
+      }
+    }
+    switch (status) {
+      case 'OPEN':
+        return 'Mở';
+      case 'IN_PROGRESS':
+        return 'Đang xử lý';
+      case 'RESOLVED':
+        return 'Đã xử lý';
+      case 'CLOSED':
+        return 'Đóng';
+      default:
+        return status;
+    }
   }
 
   static String _formatDateTime(DateTime value) {

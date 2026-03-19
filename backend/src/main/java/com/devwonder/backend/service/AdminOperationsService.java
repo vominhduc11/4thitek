@@ -486,6 +486,13 @@ public class AdminOperationsService {
                 && warranty != null) {
             throw new BadRequestException("Warranty-linked serial cannot move back to inventory status");
         }
+        if (nextStatus == ProductSerialStatus.DEFECTIVE) {
+            boolean ownedByDealer = productSerial.getDealer() != null
+                    || (productSerial.getOrder() != null && productSerial.getOrder().getDealer() != null);
+            if (ownedByDealer) {
+                throw new BadRequestException("Serial already belongs to a dealer and cannot be marked defective by admin");
+            }
+        }
     }
 
     private long computeRemainingDays(Instant warrantyEnd) {

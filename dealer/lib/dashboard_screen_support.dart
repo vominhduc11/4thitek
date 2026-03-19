@@ -178,10 +178,6 @@ List<_DashboardLowStockItem> _buildLowStockProducts({
       continue;
     }
 
-    if (warrantyController.isDefectiveSerial(normalized)) {
-      current.serialDefective += 1;
-      continue;
-    }
     if (activatedSet.contains(normalized)) {
       current.serialSold += 1;
       continue;
@@ -235,7 +231,6 @@ class _DashboardInventoryAccumulator {
   final Set<String> serials;
   int serialAvailable = 0;
   int serialSold = 0;
-  int serialDefective = 0;
 }
 
 String _periodCompactLabelFor(DateTime date, _DashboardTimeFilter filter) {

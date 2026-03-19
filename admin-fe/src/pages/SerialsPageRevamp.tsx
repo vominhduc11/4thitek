@@ -1,5 +1,6 @@
-import { AlertTriangle, Barcode, Loader2, RefreshCw, RotateCcw, Trash2, Upload } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { AlertTriangle, Barcode, Loader2, Printer, QrCode, RefreshCw, RotateCcw, Trash2, Upload, X } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   fetchAllAdminSerials,
   fetchAdminSerialsPaged,
@@ -118,6 +119,10 @@ const copyByLanguage = {
     confirmDeleteMessage: 'Serial "{serial}" sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.',
     deleteSuccess: 'Đã xóa serial thành công.',
     atDealer: 'Tại đại lý',
+    showQr: 'Mã QR',
+    printQr: 'In mã QR',
+    qrTitle: 'Mã QR Serial',
+    close: 'Đóng',
     statusLabels: {
       AVAILABLE: 'Khả dụng',
       RESERVED: 'Đang giữ chỗ',
@@ -174,6 +179,10 @@ const copyByLanguage = {
     confirmDeleteMessage: 'Serial "{serial}" will be permanently deleted. This action cannot be undone.',
     deleteSuccess: 'Serial deleted successfully.',
     atDealer: 'At dealer',
+    showQr: 'QR Code',
+    printQr: 'Print QR',
+    qrTitle: 'Serial QR Code',
+    close: 'Close',
     statusLabels: {
       AVAILABLE: 'Available',
       RESERVED: 'Reserved',
@@ -192,6 +201,8 @@ function SerialsPageRevamp() {
   const { notify } = useToast()
   const { products } = useProducts()
   const { confirm, confirmDialog } = useConfirmDialog()
+  const [qrItem, setQrItem] = useState<BackendSerialResponse | null>(null)
+  const qrRef = useRef<HTMLDivElement>(null)
   const [items, setItems] = useState<BackendSerialResponse[]>([])
   const [allItems, setAllItems] = useState<BackendSerialResponse[]>([])
   const [page, setPage] = useState(0)
@@ -367,6 +378,30 @@ function SerialsPageRevamp() {
     }
   }
 
+  const handlePrintQr = () => {
+    if (!qrRef.current) return
+    const style = document.createElement('style')
+    style.textContent = `
+      @media print {
+        body > * { visibility: hidden !important; }
+        #qr-print-root, #qr-print-root * { visibility: visible !important; }
+        #qr-print-root {
+          position: fixed !important;
+          inset: 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 12px !important;
+          background: white !important;
+        }
+      }
+    `
+    document.head.appendChild(style)
+    window.print()
+    document.head.removeChild(style)
+  }
+
   if (isLoading) {
     return (
       <PagePanel>
@@ -500,9 +535,19 @@ function SerialsPageRevamp() {
                       <p className="font-semibold text-[var(--ink)]">{item.serial}</p>
                       <p className={tableMetaClass}>{item.orderCode ?? '-'}</p>
                     </div>
-                    <StatusBadge tone={getSerialBadge(item, copy.statusLabels, copy.atDealer).tone}>
-                      {getSerialBadge(item, copy.statusLabels, copy.atDealer).label}
-                    </StatusBadge>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        title={copy.showQr}
+                        onClick={() => setQrItem(item)}
+                        className="rounded-lg p-1.5 text-[var(--ink-muted)] hover:bg-[var(--surface-raised)] hover:text-[var(--ink)]"
+                      >
+                        <QrCode className="h-4 w-4" />
+                      </button>
+                      <StatusBadge tone={getSerialBadge(item, copy.statusLabels, copy.atDealer).tone}>
+                        {getSerialBadge(item, copy.statusLabels, copy.atDealer).label}
+                      </StatusBadge>
+                    </div>
                   </div>
                   <div className="mt-4 grid gap-2 text-sm">
                     <div className="flex justify-between gap-3">
@@ -520,7 +565,7 @@ function SerialsPageRevamp() {
                       <span className="text-right text-[var(--ink)]">{item.importedAt ? formatDateTime(item.importedAt) : '-'}</span>
                     </div>
                   </div>
-                  {item.status === 'AVAILABLE' && (
+                  {item.status === 'AVAILABLE' && !item.dealerName && !item.pendingDealerName && (
                     <div className="mt-4 flex gap-2">
                       <button
                         type="button"
@@ -607,7 +652,15 @@ function SerialsPageRevamp() {
                       </td>
                       <td className="rounded-r-2xl px-3 py-3">
                         <div className="flex items-center gap-1">
-                          {item.status === 'AVAILABLE' && (
+                          <button
+                            type="button"
+                            title={copy.showQr}
+                            onClick={() => setQrItem(item)}
+                            className="rounded-lg p-1.5 text-[var(--ink-muted)] hover:bg-[var(--surface-raised)] hover:text-[var(--ink)]"
+                          >
+                            <QrCode className="h-3.5 w-3.5" />
+                          </button>
+                          {item.status === 'AVAILABLE' && !item.dealerName && !item.pendingDealerName && (
                             <button
                               type="button"
                               title={copy.markDefective}
@@ -664,6 +717,66 @@ function SerialsPageRevamp() {
       )}
 
       {confirmDialog}
+
+      {/* QR Modal */}
+      {qrItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setQrItem(null)}
+        >
+          <div
+            className="relative flex w-72 flex-col items-center gap-5 rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              aria-label={copy.close}
+              onClick={() => setQrItem(null)}
+              className="absolute right-3 top-3 rounded-full p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <p className="text-sm font-semibold text-[var(--ink)]">{copy.qrTitle}</p>
+
+            <div ref={qrRef} id="qr-print-root" className="flex flex-col items-center gap-3">
+              <QRCodeSVG
+                value={qrItem.serial}
+                size={180}
+                level="H"
+                marginSize={2}
+              />
+              <p className="text-center text-base font-bold tracking-widest text-[var(--ink)]">
+                {qrItem.serial}
+              </p>
+              {qrItem.productName && (
+                <p className="text-center text-xs text-slate-500">{qrItem.productName}</p>
+              )}
+              {qrItem.productSku && (
+                <p className="text-center text-xs text-slate-400">SKU: {qrItem.productSku}</p>
+              )}
+            </div>
+
+            <div className="flex w-full gap-2">
+              <button
+                type="button"
+                onClick={handlePrintQr}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+              >
+                <Printer className="h-4 w-4" />
+                {copy.printQr}
+              </button>
+              <button
+                type="button"
+                onClick={() => setQrItem(null)}
+                className="rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-[var(--surface-raised)]"
+              >
+                {copy.close}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </PagePanel>
   )
 }

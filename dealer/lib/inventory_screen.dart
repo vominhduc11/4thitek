@@ -444,7 +444,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                   availableQuantity: item.availableQuantity,
                                   importedQuantity: item.importedQuantity,
                                   soldQuantity: item.soldQuantity,
-                                  defectiveQuantity: item.defectiveQuantity,
                                   orderIds: item.orderIds.toList(
                                     growable: false,
                                   ),
@@ -870,7 +869,6 @@ class InventoryProductItem {
     required this.importedQuantity,
     required this.availableQuantity,
     required this.soldQuantity,
-    required this.defectiveQuantity,
     required this.latestImportedAt,
     required this.orderIds,
     required this.serialSearchIndex,
@@ -880,7 +878,6 @@ class InventoryProductItem {
   final int importedQuantity;
   final int availableQuantity;
   final int soldQuantity;
-  final int defectiveQuantity;
   final DateTime latestImportedAt;
   final Set<String> orderIds;
   final String serialSearchIndex;
@@ -954,9 +951,7 @@ List<InventoryProductItem> _buildInventoryItems({
     }
 
     current.importedQuantity += 1;
-    if (warrantyController.isDefectiveSerial(normalized)) {
-      current.serialDefective += 1;
-    } else if (activatedSet.contains(normalized)) {
+    if (activatedSet.contains(normalized)) {
       current.serialSold += 1;
     } else {
       current.serialAvailable += 1;
@@ -970,7 +965,6 @@ List<InventoryProductItem> _buildInventoryItems({
             importedQuantity: entry.importedQuantity,
             availableQuantity: entry.serialAvailable,
             soldQuantity: entry.serialSold,
-            defectiveQuantity: entry.serialDefective,
             latestImportedAt: entry.latestImportedAt,
             orderIds: entry.orderIds,
             serialSearchIndex: entry.serials.join(' '),
@@ -1060,7 +1054,6 @@ class _InventoryAccumulator {
   final Set<String> serials;
   int serialAvailable = 0;
   int serialSold = 0;
-  int serialDefective = 0;
 }
 
 class _SummaryChip extends StatelessWidget {
@@ -1510,11 +1503,10 @@ class _InventoryProductTile extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (item.soldQuantity > 0 ||
-                          item.defectiveQuantity > 0) ...[
+                      if (item.soldQuantity > 0) ...[
                         const SizedBox(height: 4),
                         Text(
-                          'Đã bán: ${item.soldQuantity} • Lỗi: ${item.defectiveQuantity}',
+                          'Đã bán: ${item.soldQuantity}',
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
