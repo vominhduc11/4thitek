@@ -340,7 +340,6 @@ class Order {
     required this.receiverName,
     required this.receiverAddress,
     required this.receiverPhone,
-    required this.shippingFee,
     required this.items,
     this.paidAmount = 0,
     this.completedAt,
@@ -361,7 +360,6 @@ class Order {
   final String receiverName;
   final String receiverAddress;
   final String receiverPhone;
-  final int shippingFee;
   final List<OrderLineItem> items;
   final int paidAmount;
   final DateTime? completedAt;
@@ -397,9 +395,7 @@ class Order {
   int get vatAmount =>
       vatAmountOverride ?? (totalAfterDiscount * vatPercent / 100).round();
 
-  int get totalBeforeShipping => totalAfterDiscount + vatAmount;
-
-  int get total => totalAmountOverride ?? (totalBeforeShipping + shippingFee);
+  int get total => totalAmountOverride ?? (totalAfterDiscount + vatAmount);
 
   int get outstandingAmount {
     final outstanding = total - paidAmount;
@@ -416,7 +412,6 @@ class Order {
     String? receiverName,
     String? receiverAddress,
     String? receiverPhone,
-    int? shippingFee,
     List<OrderLineItem>? items,
     int? paidAmount,
     DateTime? completedAt,
@@ -437,7 +432,6 @@ class Order {
       receiverName: receiverName ?? this.receiverName,
       receiverAddress: receiverAddress ?? this.receiverAddress,
       receiverPhone: receiverPhone ?? this.receiverPhone,
-      shippingFee: shippingFee ?? this.shippingFee,
       items: items ?? this.items,
       paidAmount: paidAmount ?? this.paidAmount,
       completedAt: completedAt ?? this.completedAt,

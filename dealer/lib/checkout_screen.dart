@@ -167,7 +167,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final discountAmount = cart.discountAmount;
     final totalAfterDiscount = cart.totalAfterDiscount;
     final vatAmount = cart.vatAmount;
-    const shippingFee = 0;
     final total = cart.total;
 
     return Scaffold(
@@ -356,13 +355,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       _SummaryRow(
                         label: 'VAT (${CartController.vatPercent}%)',
                         value: formatVnd(vatAmount),
-                      ),
-                      const SizedBox(height: 8),
-                      _SummaryRow(
-                        label: 'Phí giao hàng',
-                        value: shippingFee == 0
-                            ? 'Miễn phí'
-                            : formatVnd(shippingFee),
                       ),
                       const SizedBox(height: 8),
                       _SummaryRow(
@@ -595,7 +587,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       receiverName: _profile.businessName,
       receiverAddress: _profile.shippingAddress,
       receiverPhone: _profile.phone,
-      shippingFee: 0,
       items: cart.items
           .map(
             (item) =>

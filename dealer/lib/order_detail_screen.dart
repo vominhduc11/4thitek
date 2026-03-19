@@ -701,11 +701,6 @@ class OrderDetailScreen extends StatelessWidget {
                       ],
                       const SizedBox(height: 8),
                       _InfoRow(
-                        label: 'Phí vận chuyển',
-                        value: formatVnd(order.shippingFee),
-                      ),
-                      const SizedBox(height: 8),
-                      _InfoRow(
                         label: 'VAT (${order.vatPercent}%)',
                         value: formatVnd(order.vatAmount),
                       ),

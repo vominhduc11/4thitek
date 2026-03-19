@@ -360,7 +360,6 @@ class OrderController extends ChangeNotifier {
         'receiverName': order.receiverName,
         'receiverAddress': order.receiverAddress,
         'receiverPhone': order.receiverPhone,
-        'shippingFee': order.shippingFee,
         if (order.note != null && order.note!.trim().isNotEmpty)
           'note': order.note!.trim(),
         'items': order.items
@@ -476,7 +475,6 @@ class OrderController extends ChangeNotifier {
       receiverName: _normalizeString(json['receiverName']) ?? '',
       receiverAddress: _normalizeString(json['receiverAddress']) ?? '',
       receiverPhone: _normalizeString(json['receiverPhone']) ?? '',
-      shippingFee: _parseInt(json['shippingFee']),
       items: items,
       paidAmount: _parsePrice(json['paidAmount']),
       note: _normalizeString(json['note']),
