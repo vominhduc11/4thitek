@@ -910,14 +910,25 @@ class WarrantyController extends ChangeNotifier {
   }
 
   DateTime? _parseDateTimeValue(Object? value) {
-    final raw = value?.toString().trim() ?? '';
-    if (raw.isEmpty) {
-      return null;
+    if (value == null) return null;
+    // Numeric epoch seconds (Jackson default when write-dates-as-timestamps=true)
+    if (value is num) {
+      return DateTime.fromMillisecondsSinceEpoch(
+        (value * 1000).round(),
+        isUtc: true,
+      ).toLocal();
+    }
+    final raw = value.toString().trim();
+    if (raw.isEmpty) return null;
+    final numeric = num.tryParse(raw);
+    if (numeric != null) {
+      return DateTime.fromMillisecondsSinceEpoch(
+        (numeric * 1000).round(),
+        isUtc: true,
+      ).toLocal();
     }
     final parsed = DateTime.tryParse(raw);
-    if (parsed == null) {
-      return null;
-    }
+    if (parsed == null) return null;
     return parsed.isUtc ? parsed.toLocal() : parsed;
   }
 
