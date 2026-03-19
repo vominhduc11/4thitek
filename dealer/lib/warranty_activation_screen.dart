@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'models.dart';
 import 'order_controller.dart';
@@ -46,6 +47,10 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   bool _isSubmitting = false;
   bool _didApplyPrefill = false;
 
+  _WarrantyActivationTexts get _texts => _WarrantyActivationTexts(
+    isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+  );
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -84,13 +89,12 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _texts;
     final order = OrderScope.of(context).findById(widget.orderId);
     if (order == null) {
       return Scaffold(
-        appBar: AppBar(title: const BrandAppBarTitle('Xử lý serial')),
-        body: const Center(
-          child: Text('Không tìm thấy đơn hàng để xử lý serial.'),
-        ),
+        appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
+        body: Center(child: Text(texts.orderNotFoundMessage)),
       );
     }
 
@@ -99,7 +103,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
         order.status == OrderStatus.shipping;
     if (!canProcess) {
       return Scaffold(
-        appBar: AppBar(title: const BrandAppBarTitle('Xử lý serial')),
+        appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -121,7 +125,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                     const Icon(Icons.lock_outline, size: 38),
                     const SizedBox(height: 10),
                     Text(
-                      'Chỉ đơn đang giao hoặc đã giao mới được xử lý serial.',
+                      texts.cannotProcessMessage,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -129,7 +133,9 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Trạng thái hiện tại: ${order.status.label}',
+                      texts.currentStatusLabel(
+                        texts.orderStatusLabel(order.status),
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -162,7 +168,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
         : const Color(0xFF16A34A);
 
     return Scaffold(
-      appBar: AppBar(title: const BrandAppBarTitle('Xử lý serial')),
+      appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
@@ -173,14 +179,14 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
             children: [
               FadeSlideIn(
                 child: _SectionCard(
-                  title: 'Thông tin xử lý serial',
+                  title: texts.processingInfoTitle,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _InfoRow(label: 'Mã đơn hàng', value: order.id),
+                      _InfoRow(label: texts.orderIdLabel, value: order.id),
                       const SizedBox(height: 10),
                       _InfoRow(
-                        label: 'Ngày đặt',
+                        label: texts.orderDateLabel,
                         value: formatDateTime(order.createdAt),
                       ),
                       const SizedBox(height: 12),
@@ -207,8 +213,11 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _InfoRow(
-                              label: 'Tiến độ',
-                              value: '$activatedCount/$totalCount serial',
+                              label: texts.progressLabel,
+                              value: texts.serialProgressValue(
+                                activatedCount,
+                                totalCount,
+                              ),
                               isEmphasis: true,
                             ),
                             const SizedBox(height: 8),
@@ -230,7 +239,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'Chỉ serial đã nhập kho và thuộc sản phẩm trong đơn mới được kích hoạt.',
+                        texts.inventoryValidationHint,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -239,9 +248,9 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                       TextField(
                         controller: _customerNameController,
                         enabled: !lockNameField,
-                        decoration: const InputDecoration(
-                          labelText: 'Tên khách hàng',
-                          prefixIcon: Icon(Icons.person_outline),
+                        decoration: InputDecoration(
+                          labelText: texts.customerNameLabel,
+                          prefixIcon: const Icon(Icons.person_outline),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -249,11 +258,12 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         enabled: !isFullyActivated,
-                        decoration: const InputDecoration(
-                          labelText: 'Email khách hàng *',
-                          prefixIcon: Icon(Icons.alternate_email_outlined),
-                          helperText:
-                              'Bắt buộc. Dùng để lưu thông tin kích hoạt bảo hành và liên hệ hỗ trợ.',
+                        decoration: InputDecoration(
+                          labelText: texts.customerEmailLabel,
+                          prefixIcon: const Icon(
+                            Icons.alternate_email_outlined,
+                          ),
+                          helperText: texts.customerEmailHelper,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -261,25 +271,27 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         enabled: !lockPhoneField,
-                        decoration: const InputDecoration(
-                          labelText: 'Số điện thoại khách hàng',
-                          prefixIcon: Icon(Icons.phone_outlined),
+                        decoration: InputDecoration(
+                          labelText: texts.customerPhoneLabel,
+                          prefixIcon: const Icon(Icons.phone_outlined),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _addressController,
                         enabled: !lockAddressField,
-                        decoration: const InputDecoration(
-                          labelText: 'Địa chỉ khách hàng',
-                          prefixIcon: Icon(Icons.location_on_outlined),
+                        decoration: InputDecoration(
+                          labelText: texts.customerAddressLabel,
+                          prefixIcon: const Icon(Icons.location_on_outlined),
                         ),
                       ),
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
                         onPressed: isFullyActivated ? null : _pickPurchaseDate,
                         icon: const Icon(Icons.event_outlined),
-                        label: Text('Ngày mua: ${formatDate(_purchaseDate)}'),
+                        label: Text(
+                          texts.purchaseDateLabel(formatDate(_purchaseDate)),
+                        ),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size.fromHeight(52),
                           alignment: Alignment.centerLeft,
@@ -287,7 +299,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Đại lý có thể chọn lại ngày khách mua tại cửa hàng trước khi kích hoạt bảo hành.',
+                        texts.purchaseDateHint,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -295,7 +307,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                       if (hasOrderCustomerData) ...[
                         const SizedBox(height: 8),
                         Text(
-                          'Thông tin khách hàng đã được điền sẵn từ đơn hàng, đại lý có thể chỉnh sửa nếu cần.',
+                          texts.prefilledCustomerHint,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: colorScheme.onSurfaceVariant),
                         ),
@@ -332,17 +344,17 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _InfoRow(
-                            label: 'Số lượng',
+                            label: texts.quantityLabel,
                             value: '${item.quantity}',
                           ),
                           const SizedBox(height: 10),
                           _InfoRow(
-                            label: 'Đã kích hoạt',
+                            label: texts.activatedCountLabel,
                             value: '${activated.length}/${item.quantity}',
                           ),
                           const SizedBox(height: 10),
                           _InfoRow(
-                            label: 'Serial hợp lệ trong kho',
+                            label: texts.availableInventorySerialsLabel,
                             value: '${availableSerials.length}',
                           ),
                           const SizedBox(height: 12),
@@ -388,7 +400,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                             const Divider(height: 1),
                             const SizedBox(height: 12),
                             Text(
-                              'Nhập $remaining serial còn thiếu',
+                              texts.remainingSerialsLabel(remaining),
                               style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(fontWeight: FontWeight.w600),
                             ),
@@ -408,7 +420,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                                   icon: const Icon(
                                     Icons.qr_code_scanner_outlined,
                                   ),
-                                  label: const Text('Quét QR'),
+                                  label: Text(texts.scanQrAction),
                                   style: OutlinedButton.styleFrom(
                                     minimumSize: const Size(
                                       0,
@@ -425,7 +437,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                                           warrantyController,
                                         ),
                                   icon: const Icon(Icons.content_paste_rounded),
-                                  label: const Text('Dán nhiều serial'),
+                                  label: Text(texts.bulkPasteAction),
                                   style: TextButton.styleFrom(
                                     minimumSize: const Size(
                                       0,
@@ -452,13 +464,14 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                                     ),
                                   ],
                                   decoration: InputDecoration(
-                                    labelText:
-                                        'Serial ${serialIndex + 1}/$remaining',
+                                    labelText: texts.serialFieldLabel(
+                                      serialIndex + 1,
+                                      remaining,
+                                    ),
                                     prefixIcon: const Icon(
                                       Icons.confirmation_number_outlined,
                                     ),
-                                    helperText:
-                                        'Ví dụ: SN-ABC-12345 (chỉ gồm chữ, số và dấu -)',
+                                    helperText: texts.serialFieldHelper,
                                   ),
                                 ),
                               );
@@ -502,8 +515,8 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                               )
                             : Text(
                                 isFullyActivated
-                                    ? 'Đơn đã kích hoạt đủ serial'
-                                    : 'Xác nhận kích hoạt serial',
+                                    ? texts.fullyActivatedButtonLabel
+                                    : texts.confirmActivationAction,
                               ),
                       ),
                     ),
@@ -576,6 +589,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     Order order,
     WarrantyController warrantyController,
   ) {
+    final texts = _texts;
     if (_didApplyPrefill) {
       return;
     }
@@ -589,28 +603,24 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     final normalized = warrantyController.normalizeSerial(rawPrefilled);
     final imported = warrantyController.findImportedSerial(normalized);
     if (imported == null) {
-      _showSnackBarDeferred('Không tìm thấy serial $normalized trong kho.');
+      _showSnackBarDeferred(texts.serialNotFoundInInventory(normalized));
       return;
     }
     if (imported.orderId != order.id) {
       _showSnackBarDeferred(
-        'Serial $normalized thuộc đơn ${imported.orderId}, không thuộc đơn ${order.id}.',
+        texts.serialBelongsToOtherOrder(normalized, imported.orderId, order.id),
       );
       return;
     }
     if (widget.prefilledProductId != null &&
         widget.prefilledProductId != imported.productId) {
-      _showSnackBarDeferred(
-        'Serial $normalized không khớp sản phẩm cần xử lý.',
-      );
+      _showSnackBarDeferred(texts.serialProductMismatch(normalized));
       return;
     }
 
     final inputList = _serialControllers[imported.productId];
     if (inputList == null || inputList.isEmpty) {
-      _showSnackBarDeferred(
-        'Không còn ô serial trống cho ${imported.productName}.',
-      );
+      _showSnackBarDeferred(texts.noEmptySerialSlot(imported.productName));
       return;
     }
 
@@ -630,14 +640,12 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
       }
     }
     if (emptySlot == null) {
-      _showSnackBarDeferred(
-        'Đã đủ serial cho ${imported.productName}, không thể tự điền thêm.',
-      );
+      _showSnackBarDeferred(texts.productAlreadyFull(imported.productName));
       return;
     }
 
     emptySlot.text = normalized;
-    _showSnackBarDeferred('Đã điền serial quét: $normalized');
+    _showSnackBarDeferred(texts.prefilledSerialAssigned(normalized));
   }
 
   void _prefillCustomerFromOrder(Order order) {
@@ -656,6 +664,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   }
 
   Future<void> _pickPurchaseDate() async {
+    final texts = _texts;
     final now = DateUtils.dateOnly(DateTime.now());
     final order = OrderScope.of(context).findById(widget.orderId);
     final minimumDate = order == null
@@ -670,7 +679,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
       initialDate: effectiveInitialDate,
       firstDate: effectiveFirstDate,
       lastDate: now,
-      helpText: 'Chọn ngày mua',
+      helpText: texts.pickPurchaseDateHelp,
     );
     if (!mounted || picked == null) {
       return;
@@ -691,14 +700,15 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   }
 
   String? _validatePurchaseDateForOrder(Order order) {
+    final texts = _texts;
     final normalizedPurchaseDate = DateUtils.dateOnly(_purchaseDate);
     final minimumDate = _minimumPurchaseDateForOrder(order);
     final today = DateUtils.dateOnly(DateTime.now());
     if (normalizedPurchaseDate.isBefore(minimumDate)) {
-      return 'Ngày mua không được trước ngày đặt hàng ${formatDate(minimumDate)}.';
+      return texts.purchaseDateBeforeOrder(formatDate(minimumDate));
     }
     if (normalizedPurchaseDate.isAfter(today)) {
-      return 'Ngày mua không được sau ngày hôm nay.';
+      return texts.purchaseDateAfterToday;
     }
     return null;
   }
@@ -708,6 +718,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     OrderLineItem item,
     WarrantyController warrantyController,
   ) async {
+    final texts = _texts;
     final scannedValue = await Navigator.of(
       context,
     ).push<String>(MaterialPageRoute(builder: (_) => const SerialScanScreen()));
@@ -723,16 +734,16 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     );
     switch (result) {
       case _SerialAssignResult.assigned:
-        _showSnackBar('Đã điền serial quét cho ${item.product.name}.');
+        _showSnackBar(texts.scannedSerialAssigned(item.product.name));
         break;
       case _SerialAssignResult.duplicate:
-        _showSnackBar('Serial này đã có trong danh sách nhập.');
+        _showSnackBar(texts.duplicateScannedSerialMessage);
         break;
       case _SerialAssignResult.invalid:
-        _showSnackBar('Serial quét không hợp lệ cho sản phẩm này.');
+        _showSnackBar(texts.invalidScannedSerialMessage);
         break;
       case _SerialAssignResult.full:
-        _showSnackBar('Không còn ô serial trống cho ${item.product.name}.');
+        _showSnackBar(texts.noEmptySerialSlot(item.product.name));
         break;
     }
   }
@@ -742,6 +753,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     OrderLineItem item,
     WarrantyController warrantyController,
   ) async {
+    final texts = _texts;
     final textController = TextEditingController();
     final pastedText = await showDialog<String>(
       context: context,
@@ -749,24 +761,22 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
       requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Dán nhiều serial'),
+          title: Text(texts.bulkPasteTitle),
           content: TextField(
             controller: textController,
             maxLines: 6,
             autofocus: true,
-            decoration: const InputDecoration(
-              hintText: 'Mỗi serial một dòng, hoặc phân tách bằng dấu phẩy',
-            ),
+            decoration: InputDecoration(hintText: texts.bulkPasteHint),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Hủy'),
+              child: Text(texts.cancelAction),
             ),
             FilledButton(
               onPressed: () =>
                   Navigator.of(dialogContext).pop(textController.text),
-              child: const Text('Điền serial'),
+              child: Text(texts.fillSerialsAction),
             ),
           ],
         );
@@ -780,7 +790,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
 
     final serials = _parseSerialTokens(pastedText, warrantyController);
     if (serials.isEmpty) {
-      _showSnackBar('Không tìm thấy serial hợp lệ để điền.');
+      _showSnackBar(texts.noValidSerialsFoundMessage);
       return;
     }
 
@@ -816,7 +826,12 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     }
 
     _showSnackBar(
-      'Đã điền $assignedCount serial. Trùng: $duplicateCount, lỗi: $invalidCount, hết ô: $fullCount.',
+      texts.bulkPasteSummary(
+        assignedCount,
+        duplicateCount,
+        invalidCount,
+        fullCount,
+      ),
     );
   }
 
@@ -892,6 +907,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   }
 
   Future<void> _handleSubmit(Order order) async {
+    final texts = _texts;
     final warrantyController = WarrantyScope.of(context);
     final customerName = _customerNameController.text.trim();
     final customerEmail = _emailController.text.trim();
@@ -903,10 +919,10 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
         customerEmail.isEmpty ||
         customerPhone.isEmpty ||
         customerAddress.isEmpty) {
-      preErrors.add('Vui lòng nhập đầy đủ thông tin khách hàng.');
+      preErrors.add(texts.customerInfoRequiredMessage);
     }
     if (customerEmail.isNotEmpty && !isValidEmailAddress(customerEmail)) {
-      preErrors.add('Vui lòng nhập email hợp lệ.');
+      preErrors.add(texts.invalidEmailMessage);
     }
     final purchaseDateError = _validatePurchaseDateForOrder(order);
     if (purchaseDateError != null) preErrors.add(purchaseDateError);
@@ -922,15 +938,13 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
       for (final controller in serialInputs) {
         final rawSerial = controller.text.trim();
         if (rawSerial.isEmpty) {
-          _showSnackBar(
-            'Vui lòng nhập đầy đủ serial cho ${item.product.name}.',
-          );
+          _showSnackBar(texts.serialRequiredForProduct(item.product.name));
           return;
         }
 
         final normalized = warrantyController.normalizeSerial(rawSerial);
         if (localSerialSet.contains(normalized)) {
-          _showSnackBar('Serial $normalized đang bị trùng trong lần nhập này.');
+          _showSnackBar(texts.duplicateSerialInSubmission(normalized));
           return;
         }
         final serialValidationError = warrantyController
@@ -966,7 +980,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     }
 
     if (newRecords.isEmpty) {
-      _showSnackBar('Đơn hàng này đã kích hoạt đủ serial.');
+      _showSnackBar(texts.orderAlreadyFullyActivatedMessage);
       return;
     }
 
@@ -985,14 +999,12 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     });
 
     if (!success) {
-      _showSnackBar(
-        'Không thể đồng bộ kích hoạt bảo hành. Vui lòng kiểm tra lại.',
-      );
+      _showSnackBar(texts.activationSyncFailedMessage);
       return;
     }
 
     _jumpToTop();
-    _showSnackBar('Đã kích hoạt thành công ${newRecords.length} serial.');
+    _showSnackBar(texts.activationSuccessMessage(newRecords.length));
   }
 
   void _jumpToTop() {
@@ -1016,6 +1028,167 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
       }
       _showSnackBar(message);
     });
+  }
+}
+
+class _WarrantyActivationTexts {
+  const _WarrantyActivationTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get screenTitle => isEnglish ? 'Serial processing' : 'Xử lý serial';
+  String get orderNotFoundMessage => isEnglish
+      ? 'Cannot find the order for serial processing.'
+      : 'Không tìm thấy đơn hàng để xử lý serial.';
+  String get cannotProcessMessage => isEnglish
+      ? 'Only shipping or completed orders can be processed for serials.'
+      : 'Chỉ đơn đang giao hoặc đã giao mới được xử lý serial.';
+  String currentStatusLabel(String statusLabel) => isEnglish
+      ? 'Current status: $statusLabel'
+      : 'Trạng thái hiện tại: $statusLabel';
+  String get processingInfoTitle =>
+      isEnglish ? 'Serial processing information' : 'Thông tin xử lý serial';
+  String get orderIdLabel => isEnglish ? 'Order ID' : 'Mã đơn hàng';
+  String get orderDateLabel => isEnglish ? 'Order date' : 'Ngày đặt';
+  String get progressLabel => isEnglish ? 'Progress' : 'Tiến độ';
+  String serialProgressValue(int activatedCount, int totalCount) => isEnglish
+      ? '$activatedCount/$totalCount serials'
+      : '$activatedCount/$totalCount serial';
+  String get inventoryValidationHint => isEnglish
+      ? 'Only serials already in inventory and matching the order item can be activated.'
+      : 'Chỉ serial đã nhập kho và thuộc sản phẩm trong đơn mới được kích hoạt.';
+  String get customerNameLabel =>
+      isEnglish ? 'Customer name' : 'Tên khách hàng';
+  String get customerEmailLabel =>
+      isEnglish ? 'Customer email *' : 'Email khách hàng *';
+  String get customerEmailHelper => isEnglish
+      ? 'Required. Used to store warranty activation details and support contact.'
+      : 'Bắt buộc. Dùng để lưu thông tin kích hoạt bảo hành và liên hệ hỗ trợ.';
+  String get customerPhoneLabel =>
+      isEnglish ? 'Customer phone number' : 'Số điện thoại khách hàng';
+  String get customerAddressLabel =>
+      isEnglish ? 'Customer address' : 'Địa chỉ khách hàng';
+  String purchaseDateLabel(String dateLabel) =>
+      isEnglish ? 'Purchase date: $dateLabel' : 'Ngày mua: $dateLabel';
+  String get purchaseDateHint => isEnglish
+      ? 'Dealers can adjust the in-store purchase date before activating warranty.'
+      : 'Đại lý có thể chọn lại ngày khách mua tại cửa hàng trước khi kích hoạt bảo hành.';
+  String get prefilledCustomerHint => isEnglish
+      ? 'Customer information is prefilled from the order and can still be edited if needed.'
+      : 'Thông tin khách hàng đã được điền sẵn từ đơn hàng, đại lý có thể chỉnh sửa nếu cần.';
+  String get quantityLabel => isEnglish ? 'Quantity' : 'Số lượng';
+  String get activatedCountLabel => isEnglish ? 'Activated' : 'Đã kích hoạt';
+  String get availableInventorySerialsLabel =>
+      isEnglish ? 'Valid serials in inventory' : 'Serial hợp lệ trong kho';
+  String remainingSerialsLabel(int remaining) => isEnglish
+      ? 'Enter $remaining remaining serials'
+      : 'Nhập $remaining serial còn thiếu';
+  String get scanQrAction => isEnglish ? 'Scan QR' : 'Quét QR';
+  String get bulkPasteAction =>
+      isEnglish ? 'Paste multiple serials' : 'Dán nhiều serial';
+  String serialFieldLabel(int index, int remaining) =>
+      isEnglish ? 'Serial $index/$remaining' : 'Serial $index/$remaining';
+  String get serialFieldHelper => isEnglish
+      ? 'Example: SN-ABC-12345 (letters, numbers, and - only)'
+      : 'Ví dụ: SN-ABC-12345 (chỉ gồm chữ, số và dấu -)';
+  String get fullyActivatedButtonLabel => isEnglish
+      ? 'Order already has all serials activated'
+      : 'Đơn đã kích hoạt đủ serial';
+  String get confirmActivationAction =>
+      isEnglish ? 'Confirm serial activation' : 'Xác nhận kích hoạt serial';
+
+  String serialNotFoundInInventory(String serial) => isEnglish
+      ? 'Cannot find serial $serial in inventory.'
+      : 'Không tìm thấy serial $serial trong kho.';
+  String serialBelongsToOtherOrder(
+    String serial,
+    String importedOrderId,
+    String currentOrderId,
+  ) => isEnglish
+      ? 'Serial $serial belongs to order $importedOrderId, not order $currentOrderId.'
+      : 'Serial $serial thuộc đơn $importedOrderId, không thuộc đơn $currentOrderId.';
+  String serialProductMismatch(String serial) => isEnglish
+      ? 'Serial $serial does not match the product being processed.'
+      : 'Serial $serial không khớp sản phẩm cần xử lý.';
+  String noEmptySerialSlot(String productName) => isEnglish
+      ? 'There is no empty serial slot left for $productName.'
+      : 'Không còn ô serial trống cho $productName.';
+  String productAlreadyFull(String productName) => isEnglish
+      ? '$productName already has enough serials and cannot be auto-filled.'
+      : 'Đã đủ serial cho $productName, không thể tự điền thêm.';
+  String prefilledSerialAssigned(String serial) => isEnglish
+      ? 'Assigned scanned serial: $serial'
+      : 'Đã điền serial quét: $serial';
+  String get pickPurchaseDateHelp =>
+      isEnglish ? 'Select purchase date' : 'Chọn ngày mua';
+  String purchaseDateBeforeOrder(String minimumDate) => isEnglish
+      ? 'Purchase date cannot be before the order date $minimumDate.'
+      : 'Ngày mua không được trước ngày đặt hàng $minimumDate.';
+  String get purchaseDateAfterToday => isEnglish
+      ? 'Purchase date cannot be after today.'
+      : 'Ngày mua không được sau ngày hôm nay.';
+  String scannedSerialAssigned(String productName) => isEnglish
+      ? 'Assigned scanned serial for $productName.'
+      : 'Đã điền serial quét cho $productName.';
+  String get duplicateScannedSerialMessage => isEnglish
+      ? 'This serial is already in the input list.'
+      : 'Serial này đã có trong danh sách nhập.';
+  String get invalidScannedSerialMessage => isEnglish
+      ? 'The scanned serial is not valid for this product.'
+      : 'Serial quét không hợp lệ cho sản phẩm này.';
+  String get bulkPasteTitle =>
+      isEnglish ? 'Paste multiple serials' : 'Dán nhiều serial';
+  String get bulkPasteHint => isEnglish
+      ? 'One serial per line, or separate them with commas'
+      : 'Mỗi serial một dòng, hoặc phân tách bằng dấu phẩy';
+  String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
+  String get fillSerialsAction => isEnglish ? 'Fill serials' : 'Điền serial';
+  String get noValidSerialsFoundMessage => isEnglish
+      ? 'No valid serial was found to fill.'
+      : 'Không tìm thấy serial hợp lệ để điền.';
+  String bulkPasteSummary(
+    int assignedCount,
+    int duplicateCount,
+    int invalidCount,
+    int fullCount,
+  ) => isEnglish
+      ? 'Assigned $assignedCount serials. Duplicates: $duplicateCount, invalid: $invalidCount, no slots: $fullCount.'
+      : 'Đã điền $assignedCount serial. Trùng: $duplicateCount, lỗi: $invalidCount, hết ô: $fullCount.';
+  String get customerInfoRequiredMessage => isEnglish
+      ? 'Please enter all customer information.'
+      : 'Vui lòng nhập đầy đủ thông tin khách hàng.';
+  String get invalidEmailMessage => isEnglish
+      ? 'Please enter a valid email address.'
+      : 'Vui lòng nhập email hợp lệ.';
+  String serialRequiredForProduct(String productName) => isEnglish
+      ? 'Please enter all serials for $productName.'
+      : 'Vui lòng nhập đầy đủ serial cho $productName.';
+  String duplicateSerialInSubmission(String serial) => isEnglish
+      ? 'Serial $serial is duplicated in this submission.'
+      : 'Serial $serial đang bị trùng trong lần nhập này.';
+  String get orderAlreadyFullyActivatedMessage => isEnglish
+      ? 'This order already has all serials activated.'
+      : 'Đơn hàng này đã kích hoạt đủ serial.';
+  String get activationSyncFailedMessage => isEnglish
+      ? 'Cannot sync warranty activation. Please check again.'
+      : 'Không thể đồng bộ kích hoạt bảo hành. Vui lòng kiểm tra lại.';
+  String activationSuccessMessage(int count) => isEnglish
+      ? 'Successfully activated $count serials.'
+      : 'Đã kích hoạt thành công $count serial.';
+
+  String orderStatusLabel(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.pendingApproval:
+        return isEnglish ? 'Pending approval' : 'Chờ duyệt';
+      case OrderStatus.approved:
+        return isEnglish ? 'Approved' : 'Đã duyệt';
+      case OrderStatus.shipping:
+        return isEnglish ? 'Shipping' : 'Đang giao';
+      case OrderStatus.completed:
+        return isEnglish ? 'Completed' : 'Hoàn thành';
+      case OrderStatus.cancelled:
+        return isEnglish ? 'Cancelled' : 'Đã hủy';
+    }
   }
 }
 

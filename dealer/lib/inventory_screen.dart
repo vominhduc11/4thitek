@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'global_search.dart';
 import 'inventory_product_detail_screen.dart';
@@ -24,6 +25,10 @@ const int _inventoryPageSize = 12;
 const double _inventorySectionSpacing = 16;
 const double _inventorySectionSpacingLarge = 20;
 const double _inventoryListItemSpacing = 10;
+
+_InventoryTexts _inventoryTexts(BuildContext context) => _InventoryTexts(
+  isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+);
 
 enum InventoryLoadState { loading, ready, error }
 
@@ -55,6 +60,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       const <InventoryProductItem>[];
   bool _inventoryCacheDirty = true;
   InventoryLoadState _loadState = InventoryLoadState.loading;
+  bool _hasScheduledInitialReload = false;
 
   String _query = '';
   InventoryStockFilter _stockFilter = InventoryStockFilter.all;
@@ -68,7 +74,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     super.initState();
     _stockFilter = widget.initialStockFilter;
     _scrollController.addListener(_handleListScroll);
-    unawaited(_reload());
   }
 
   @override
@@ -88,6 +93,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
       _observedWarrantyController = nextWarrantyController;
       _observedWarrantyController?.addListener(_markInventoryCacheDirty);
       _inventoryCacheDirty = true;
+    }
+
+    if (!_hasScheduledInitialReload) {
+      _hasScheduledInitialReload = true;
+      unawaited(_reload());
     }
   }
 
@@ -119,10 +129,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
       _visibleItemCount = _inventoryPageSize;
     });
     try {
+      await Future.wait<void>([
+        OrderScope.of(context).refresh(),
+        WarrantyScope.of(context).load(forceRefresh: true),
+      ]);
       if (!mounted) {
         return;
       }
       setState(() {
+        _inventoryCacheDirty = true;
         _loadState = InventoryLoadState.ready;
         _visibleItemCount = _inventoryPageSize;
       });
@@ -243,6 +258,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _inventoryTexts(context);
     final orderController = OrderScope.of(context);
     final warrantyController = WarrantyScope.of(context);
     final inventoryItems = _resolveInventoryItems(
@@ -259,32 +275,28 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
 
     final summary = _buildSummary(inventoryItems);
-    final sortLabel = switch (_sortOption) {
-      InventorySortOption.name => 'Sắp xếp: Tên',
-      InventorySortOption.quantity => 'Sắp xếp: Tồn kho',
-      InventorySortOption.importedDate => 'Sắp xếp: Ngày nhập',
-    };
+    final sortLabel = texts.sortLabel(_sortOption);
     final summaryCards = <Widget>[
       _SummaryChip(
-        label: 'Tổng sản phẩm',
+        label: texts.totalProductsLabel,
         value: '${summary.totalProducts}',
         color: const Color(0xFF1D4ED8),
         icon: Icons.inventory_2_outlined,
-        helperText: 'SKU đang theo dõi',
+        helperText: texts.totalProductsHelperText,
       ),
       _SummaryChip(
-        label: 'Tổng tồn kho',
+        label: texts.totalInventoryLabel,
         value: '${summary.totalQuantity}',
         color: const Color(0xFF047857),
         icon: Icons.stacked_bar_chart_outlined,
-        helperText: 'Đơn vị còn khả dụng',
+        helperText: texts.totalInventoryHelperText,
       ),
       _SummaryChip(
-        label: 'Sắp hết hàng',
+        label: texts.lowStockSummaryLabel,
         value: '${summary.lowStockProducts}',
         color: const Color(0xFFB45309),
         icon: Icons.warning_amber_rounded,
-        helperText: 'Cần nhập thêm sớm',
+        helperText: texts.lowStockSummaryHelperText,
       ),
     ];
     _filteredItemCount = filteredItems.length;
@@ -300,7 +312,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const BrandAppBarTitle('Kho'),
+        title: BrandAppBarTitle(texts.screenTitle),
         actions: const [GlobalSearchIconButton()],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
@@ -324,16 +336,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 children: [
                   Semantics(
                     textField: true,
-                    label: 'Tìm kiếm sản phẩm theo tên, SKU hoặc serial',
+                    label: texts.searchSemantic,
                     child: TextField(
                       controller: _searchController,
                       onChanged: _onSearchChanged,
                       decoration: InputDecoration(
                         prefixIcon: const Icon(Icons.search),
-                        hintText: 'Tìm theo tên sản phẩm, SKU, serial',
+                        hintText: texts.searchHint,
                         suffixIcon: _query.isNotEmpty
                             ? IconButton(
-                                tooltip: 'Xóa tìm kiếm',
+                                tooltip: texts.clearSearchTooltip,
                                 onPressed: _clearSearchQuery,
                                 icon: const Icon(Icons.close_rounded),
                               )
@@ -347,26 +359,26 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     runSpacing: 8,
                     children: [
                       _FilterChip(
-                        label: 'Tất cả',
+                        label: texts.filterAllLabel,
                         selected: _stockFilter == InventoryStockFilter.all,
                         onTap: () =>
                             _onStockFilterChanged(InventoryStockFilter.all),
                       ),
                       _FilterChip(
-                        label: 'Còn hàng',
+                        label: texts.filterInStockLabel,
                         selected: _stockFilter == InventoryStockFilter.inStock,
                         onTap: () =>
                             _onStockFilterChanged(InventoryStockFilter.inStock),
                       ),
                       _FilterChip(
-                        label: 'Sắp hết',
+                        label: texts.filterLowStockLabel,
                         selected: _stockFilter == InventoryStockFilter.lowStock,
                         onTap: () => _onStockFilterChanged(
                           InventoryStockFilter.lowStock,
                         ),
                       ),
                       _FilterChip(
-                        label: 'Hết hàng',
+                        label: texts.filterOutOfStockLabel,
                         selected:
                             _stockFilter == InventoryStockFilter.outOfStock,
                         onTap: () => _onStockFilterChanged(
@@ -376,18 +388,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       _MenuFilterButton(
                         label:
                             '$sortLabel ${_sortDirection == InventorySortDirection.ascending ? '↑' : '↓'}',
-                        items: const [
+                        items: [
                           PopupMenuItem<String>(
                             value: 'name',
-                            child: Text('Theo tên'),
+                            child: Text(texts.sortByNameOption),
                           ),
                           PopupMenuItem<String>(
                             value: 'quantity',
-                            child: Text('Theo số lượng tồn'),
+                            child: Text(texts.sortByQuantityOption),
                           ),
                           PopupMenuItem<String>(
                             value: 'importedDate',
-                            child: Text('Theo ngày nhập'),
+                            child: Text(texts.sortByImportedDateOption),
                           ),
                         ],
                         onSelected: (value) {
@@ -421,9 +433,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   const SizedBox(height: _inventorySectionSpacingLarge),
                   if (inventoryItems.isEmpty)
                     _InventoryEmptyView(
-                      onImport: () => unawaited(
-                        _handleQuickAction('import'),
-                      ),
+                      onImport: () => unawaited(_handleQuickAction('import')),
                     )
                   else if (filteredItems.isEmpty)
                     _InventoryFilteredEmptyView(onClear: _clearFilters)
@@ -474,14 +484,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
       floatingActionButton: Semantics(
         button: true,
-        label: 'Tác vụ nhanh',
+        label: texts.quickActionsLabel,
         child: Padding(
           padding: const EdgeInsets.only(bottom: 6),
           child: FloatingActionButton.extended(
             onPressed: () => _showActionSheet(),
-            tooltip: 'Tác vụ nhanh',
+            tooltip: texts.quickActionsLabel,
             icon: const Icon(Icons.flash_on_outlined),
-            label: const Text('Tác vụ nhanh'),
+            label: Text(texts.quickActionsLabel),
           ),
         ),
       ),
@@ -502,6 +512,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   void _showActionSheet() {
+    final texts = _inventoryTexts(context);
     final colorScheme = Theme.of(context).colorScheme;
     showModalBottomSheet<void>(
       context: context,
@@ -566,7 +577,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Tác vụ nhanh',
+                              texts.quickActionsLabel,
                               style: Theme.of(context).textTheme.titleSmall
                                   ?.copyWith(
                                     color: sheetScheme.onSurface,
@@ -577,15 +588,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Xuất hàng là thao tác chính',
+                          texts.quickActionsSubtitle,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: sheetScheme.onSurfaceVariant),
                         ),
                         const SizedBox(height: 14),
                         _QuickActionSheetItem(
                           icon: Icons.local_shipping_outlined,
-                          title: 'Xuất hàng',
-                          subtitle: 'Kích hoạt xuất kho theo serial',
+                          title: texts.exportAction,
+                          subtitle: texts.exportSubtitle,
                           tone: _QuickActionTone.primary,
                           onTap: () => onSelect('export'),
                         ),
@@ -595,8 +606,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         const SizedBox(height: 12),
                         _QuickActionSheetItem(
                           icon: Icons.qr_code_scanner_outlined,
-                          title: 'Quét QR / Barcode',
-                          subtitle: 'Tra cứu serial bằng camera',
+                          title: texts.scanQrBarcodeAction,
+                          subtitle: texts.scanQrBarcodeSubtitle,
                           tone: _QuickActionTone.secondary,
                           onTap: () => onSelect('scan'),
                         ),
@@ -624,14 +635,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
         if (!mounted) {
           return;
         }
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const WarrantyExportScreen()),
-        );
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const WarrantyExportScreen()));
         return;
     }
   }
 
   Future<void> _handleScanSerial() async {
+    final texts = _inventoryTexts(context);
     final scannedValue = await Navigator.of(
       context,
     ).push<String>(MaterialPageRoute(builder: (_) => const SerialScanScreen()));
@@ -642,11 +654,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final warrantyController = WarrantyScope.of(context);
     final normalized = warrantyController.normalizeSerial(scannedValue);
     if (normalized.isEmpty) {
-      _showSnackBar('Mã quét không hợp lệ.');
+      _showSnackBar(texts.invalidScannedCodeMessage);
       return;
     }
 
-    final validationError = warrantyController.validateSerialForExport(normalized);
+    final validationError = warrantyController.validateSerialForExport(
+      normalized,
+    );
     if (validationError != null) {
       _showSnackBar(validationError);
       return;
@@ -668,7 +682,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
-
 }
 
 class InventorySummary {
@@ -740,7 +753,8 @@ List<InventoryProductItem> _buildInventoryItems({
     // Only include serials whose order is completed (goods delivered to dealer)
     if (!completedOrderIds.contains(record.orderId)) continue;
 
-    final product = productMap[record.productId] ??
+    final product =
+        productMap[record.productId] ??
         Product(
           id: record.productId,
           name: record.productName,
@@ -751,7 +765,8 @@ List<InventoryProductItem> _buildInventoryItems({
           warrantyMonths: 0,
         );
 
-    final current = map[record.productId] ??
+    final current =
+        map[record.productId] ??
         _InventoryAccumulator(
           product: product,
           importedQuantity: 0,
@@ -782,15 +797,17 @@ List<InventoryProductItem> _buildInventoryItems({
   }
 
   return map.values
-      .map((entry) => InventoryProductItem(
-            product: entry.product,
-            importedQuantity: entry.importedQuantity,
-            availableQuantity: entry.serialAvailable,
-            soldQuantity: entry.serialSold,
-            latestImportedAt: entry.latestImportedAt,
-            orderIds: entry.orderIds,
-            serialSearchIndex: entry.serials.join(' '),
-          ))
+      .map(
+        (entry) => InventoryProductItem(
+          product: entry.product,
+          importedQuantity: entry.importedQuantity,
+          availableQuantity: entry.serialAvailable,
+          soldQuantity: entry.serialSold,
+          latestImportedAt: entry.latestImportedAt,
+          orderIds: entry.orderIds,
+          serialSearchIndex: entry.serials.join(' '),
+        ),
+      )
       .toList(growable: false);
 }
 
@@ -976,8 +993,7 @@ class _FilterChip extends StatelessWidget {
               color: selected
                   ? colorScheme.onSecondaryContainer
                   : colorScheme.onSurface,
-              fontWeight:
-                  selected ? FontWeight.w600 : FontWeight.w400,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
             ),
           ),
           selected: selected,
@@ -1012,16 +1028,17 @@ class _MenuFilterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _inventoryTexts(context);
     final colorScheme = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
-      label: 'Mở bộ lọc sắp xếp',
+      label: texts.openSortMenuSemantic,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: _inventoryMinTapTarget),
         child: PopupMenuButton<String>(
           onSelected: onSelected,
           itemBuilder: (_) => items,
-          tooltip: 'Sắp xếp',
+          tooltip: texts.sortTooltip,
           child: Container(
             constraints: const BoxConstraints(
               minWidth: _inventoryMinTapTarget,
@@ -1072,15 +1089,16 @@ class _SortDirectionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _inventoryTexts(context);
     final colorScheme = Theme.of(context).colorScheme;
-    final label = ascending ? 'Tăng dần' : 'Giảm dần';
+    final label = texts.sortDirectionLabel(ascending);
     return Semantics(
       button: true,
-      label: 'Đổi chiều sắp xếp, hiện tại $label',
+      label: texts.sortDirectionSemantic(label),
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: _inventoryMinTapTarget),
         child: IconButton(
-          tooltip: 'Đổi chiều sắp xếp ($label)',
+          tooltip: texts.sortDirectionTooltip(label),
           onPressed: onTap,
           style: IconButton.styleFrom(
             minimumSize: const Size(
@@ -1214,6 +1232,7 @@ class _InventoryProductTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _inventoryTexts(context);
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.sizeOf(context).width;
@@ -1224,19 +1243,19 @@ class _InventoryProductTile extends StatelessWidget {
     late final IconData statusIcon;
     switch (item.stockStatus) {
       case InventoryStockStatus.inStock:
-        status = 'Còn hàng';
+        status = texts.inStockStatus;
         statusColor = isDark
             ? const Color(0xFF4ADE80)
             : const Color(0xFF166534);
         statusIcon = Icons.check_circle_outline;
       case InventoryStockStatus.lowStock:
-        status = 'Sắp hết';
+        status = texts.lowStockStatus;
         statusColor = isDark
             ? const Color(0xFFFBBF24)
             : const Color(0xFF9A3412);
         statusIcon = Icons.warning_amber_rounded;
       case InventoryStockStatus.outOfStock:
-        status = 'Hết hàng';
+        status = texts.outOfStockStatus;
         statusColor = isDark
             ? const Color(0xFFFCA5A5)
             : const Color(0xFFB91C1C);
@@ -1245,8 +1264,12 @@ class _InventoryProductTile extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label:
-          '${item.product.name}, SKU ${item.product.sku}, tồn ${item.availableQuantity}, trạng thái $status',
+      label: texts.productTileSemantic(
+        item.product.name,
+        item.product.sku,
+        item.availableQuantity,
+        status,
+      ),
       child: Card(
         elevation: 1,
         shadowColor: colorScheme.shadow.withValues(alpha: 0.1),
@@ -1268,7 +1291,7 @@ class _InventoryProductTile extends StatelessWidget {
               children: [
                 Semantics(
                   image: true,
-                  label: 'Ảnh sản phẩm ${item.product.name}',
+                  label: texts.productImageLabel(item.product.name),
                   child: ExcludeSemantics(
                     child: ProductImage(
                       product: item.product,
@@ -1315,7 +1338,7 @@ class _InventoryProductTile extends StatelessWidget {
                                 height: 1.2,
                               ),
                           children: [
-                            const TextSpan(text: 'Tồn: '),
+                            TextSpan(text: texts.stockLabelPrefix),
                             TextSpan(
                               text: '${item.availableQuantity}',
                               style: const TextStyle(
@@ -1328,7 +1351,7 @@ class _InventoryProductTile extends StatelessWidget {
                       if (item.soldQuantity > 0) ...[
                         const SizedBox(height: 4),
                         Text(
-                          'Đã bán: ${item.soldQuantity}',
+                          texts.soldCountLabel(item.soldQuantity),
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
@@ -1382,7 +1405,9 @@ class _InventoryProductTile extends StatelessWidget {
                       Text(
                         isCompact
                             ? formatDate(item.latestImportedAt)
-                            : 'Nhập gần nhất: ${formatDate(item.latestImportedAt)}',
+                            : texts.latestImportedLabel(
+                                formatDate(item.latestImportedAt),
+                              ),
                         maxLines: isCompact ? 1 : 2,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.right,
@@ -1514,6 +1539,7 @@ class _InventoryErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _inventoryTexts(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -1522,15 +1548,12 @@ class _InventoryErrorView extends StatelessWidget {
           children: [
             const Icon(Icons.error_outline, size: 52),
             const SizedBox(height: 10),
-            const Text(
-              'Không thể tải dữ liệu kho. Vui lòng thử lại.',
-              textAlign: TextAlign.center,
-            ),
+            Text(texts.loadInventoryErrorMessage, textAlign: TextAlign.center),
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: onRetry,
               style: ElevatedButton.styleFrom(minimumSize: const Size(128, 46)),
-              child: const Text('Thử lại'),
+              child: Text(texts.retryAction),
             ),
           ],
         ),
@@ -1546,6 +1569,7 @@ class _InventoryEmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _inventoryTexts(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -1555,27 +1579,24 @@ class _InventoryEmptyView extends StatelessWidget {
             const Icon(Icons.inventory_2_outlined, size: 64),
             const SizedBox(height: 12),
             Text(
-              'Kho chưa có sản phẩm.',
+              texts.emptyInventoryTitle,
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Nhập hàng từ nhà phân phối để bắt đầu quản lý kho.',
-              textAlign: TextAlign.center,
-            ),
+            Text(texts.emptyInventorySubtitle, textAlign: TextAlign.center),
             const SizedBox(height: 12),
             Semantics(
               button: true,
-              label: 'Nhập hàng từ nhà phân phối',
+              label: texts.importStockAction,
               child: ElevatedButton.icon(
                 onPressed: onImport,
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(132, 46),
                 ),
                 icon: const Icon(Icons.playlist_add_check_circle_outlined),
-                label: const Text('Nhập hàng'),
+                label: Text(texts.importStockAction),
               ),
             ),
           ],
@@ -1592,6 +1613,7 @@ class _InventoryFilteredEmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _inventoryTexts(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 30),
       child: Center(
@@ -1600,19 +1622,122 @@ class _InventoryFilteredEmptyView extends StatelessWidget {
           children: [
             const Icon(Icons.filter_alt_off_outlined, size: 44),
             const SizedBox(height: 10),
-            const Text(
-              'Không có sản phẩm phù hợp bộ lọc hiện tại.',
-              textAlign: TextAlign.center,
-            ),
+            Text(texts.filteredEmptyMessage, textAlign: TextAlign.center),
             const SizedBox(height: 10),
             TextButton(
               onPressed: onClear,
               style: TextButton.styleFrom(minimumSize: const Size(116, 48)),
-              child: const Text('Xóa bộ lọc'),
+              child: Text(texts.clearFiltersAction),
             ),
           ],
         ),
       ),
     );
   }
+}
+
+class _InventoryTexts {
+  const _InventoryTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get screenTitle => isEnglish ? 'Inventory' : 'Kho';
+  String get searchSemantic => isEnglish
+      ? 'Search products by name, SKU, or serial'
+      : 'Tìm kiếm sản phẩm theo tên, SKU hoặc serial';
+  String get searchHint => isEnglish
+      ? 'Search by product name, SKU, or serial'
+      : 'Tìm theo tên sản phẩm, SKU, serial';
+  String get clearSearchTooltip => isEnglish ? 'Clear search' : 'Xóa tìm kiếm';
+  String sortLabel(InventorySortOption option) {
+    switch (option) {
+      case InventorySortOption.name:
+        return isEnglish ? 'Sort: Name' : 'Sắp xếp: Tên';
+      case InventorySortOption.quantity:
+        return isEnglish ? 'Sort: Stock' : 'Sắp xếp: Tồn kho';
+      case InventorySortOption.importedDate:
+        return isEnglish ? 'Sort: Imported date' : 'Sắp xếp: Ngày nhập';
+    }
+  }
+
+  String get totalProductsLabel =>
+      isEnglish ? 'Total products' : 'Tổng sản phẩm';
+  String get totalProductsHelperText =>
+      isEnglish ? 'Tracked SKUs' : 'SKU đang theo dõi';
+  String get totalInventoryLabel =>
+      isEnglish ? 'Total inventory' : 'Tổng tồn kho';
+  String get totalInventoryHelperText =>
+      isEnglish ? 'Units available' : 'Đơn vị còn khả dụng';
+  String get lowStockSummaryLabel => isEnglish ? 'Low stock' : 'Sắp hết hàng';
+  String get lowStockSummaryHelperText =>
+      isEnglish ? 'Needs replenishment soon' : 'Cần nhập thêm sớm';
+  String get filterAllLabel => isEnglish ? 'All' : 'Tất cả';
+  String get filterInStockLabel => isEnglish ? 'In stock' : 'Còn hàng';
+  String get filterLowStockLabel => isEnglish ? 'Low stock' : 'Sắp hết';
+  String get filterOutOfStockLabel => isEnglish ? 'Out of stock' : 'Hết hàng';
+  String get sortByNameOption => isEnglish ? 'By name' : 'Theo tên';
+  String get sortByQuantityOption =>
+      isEnglish ? 'By stock quantity' : 'Theo số lượng tồn';
+  String get sortByImportedDateOption =>
+      isEnglish ? 'By imported date' : 'Theo ngày nhập';
+  String get openSortMenuSemantic =>
+      isEnglish ? 'Open sort menu' : 'Mở bộ lọc sắp xếp';
+  String get sortTooltip => isEnglish ? 'Sort' : 'Sắp xếp';
+  String sortDirectionLabel(bool ascending) => ascending
+      ? (isEnglish ? 'Ascending' : 'Tăng dần')
+      : (isEnglish ? 'Descending' : 'Giảm dần');
+  String sortDirectionSemantic(String label) => isEnglish
+      ? 'Change sort direction, currently $label'
+      : 'Đổi chiều sắp xếp, hiện tại $label';
+  String sortDirectionTooltip(String label) => isEnglish
+      ? 'Change sort direction ($label)'
+      : 'Đổi chiều sắp xếp ($label)';
+  String get quickActionsLabel => isEnglish ? 'Quick actions' : 'Tác vụ nhanh';
+  String get quickActionsSubtitle => isEnglish
+      ? 'Export is the primary action'
+      : 'Xuất hàng là thao tác chính';
+  String get exportAction => isEnglish ? 'Export stock' : 'Xuất hàng';
+  String get exportSubtitle => isEnglish
+      ? 'Start stock export by serial'
+      : 'Kích hoạt xuất kho theo serial';
+  String get scanQrBarcodeAction =>
+      isEnglish ? 'Scan QR / Barcode' : 'Quét QR / Barcode';
+  String get scanQrBarcodeSubtitle => isEnglish
+      ? 'Look up serials using the camera'
+      : 'Tra cứu serial bằng camera';
+  String get invalidScannedCodeMessage =>
+      isEnglish ? 'The scanned code is not valid.' : 'Mã quét không hợp lệ.';
+  String get inStockStatus => isEnglish ? 'In stock' : 'Còn hàng';
+  String get lowStockStatus => isEnglish ? 'Low stock' : 'Sắp hết';
+  String get outOfStockStatus => isEnglish ? 'Out of stock' : 'Hết hàng';
+  String productTileSemantic(
+    String name,
+    String sku,
+    int quantity,
+    String status,
+  ) => isEnglish
+      ? '$name, SKU $sku, stock $quantity, status $status'
+      : '$name, SKU $sku, tồn $quantity, trạng thái $status';
+  String productImageLabel(String productName) => isEnglish
+      ? 'Product image for $productName'
+      : 'Ảnh sản phẩm $productName';
+  String get stockLabelPrefix => isEnglish ? 'Stock: ' : 'Tồn: ';
+  String soldCountLabel(int count) =>
+      isEnglish ? 'Sold: $count' : 'Đã bán: $count';
+  String latestImportedLabel(String dateLabel) =>
+      isEnglish ? 'Latest import: $dateLabel' : 'Nhập gần nhất: $dateLabel';
+  String get loadInventoryErrorMessage => isEnglish
+      ? 'Unable to load inventory data. Please try again.'
+      : 'Không thể tải dữ liệu kho. Vui lòng thử lại.';
+  String get retryAction => isEnglish ? 'Retry' : 'Thử lại';
+  String get emptyInventoryTitle =>
+      isEnglish ? 'Inventory is empty.' : 'Kho chưa có sản phẩm.';
+  String get emptyInventorySubtitle => isEnglish
+      ? 'Import goods from the distributor to start managing inventory.'
+      : 'Nhập hàng từ nhà phân phối để bắt đầu quản lý kho.';
+  String get importStockAction => isEnglish ? 'Import stock' : 'Nhập hàng';
+  String get filteredEmptyMessage => isEnglish
+      ? 'No products match the current filter.'
+      : 'Không có sản phẩm phù hợp bộ lọc hiện tại.';
+  String get clearFiltersAction => isEnglish ? 'Clear filters' : 'Xóa bộ lọc';
 }

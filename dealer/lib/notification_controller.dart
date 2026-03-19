@@ -17,7 +17,8 @@ class NotificationController extends ChangeNotifier {
     AuthStorage? authStorage,
     http.Client? client,
     Future<void> Function()? onOrderSignal,
-    void Function(String, String, String, {int? paidAmount})? onOrderStatusEvent,
+    void Function(String, String, String, {int? paidAmount})?
+    onOrderStatusEvent,
   }) : _notices = <DistributorNotice>[] {
     _authStorage = authStorage ?? AuthStorage();
     _client = DealerAuthClient(
@@ -34,7 +35,13 @@ class NotificationController extends ChangeNotifier {
   late final AuthStorage _authStorage;
   late final http.Client _client;
   late final Future<void> Function()? _onOrderSignal;
-  late final void Function(String orderCode, String status, String paymentStatus, {int? paidAmount})? _onOrderStatusEvent;
+  late final void Function(
+    String orderCode,
+    String status,
+    String paymentStatus, {
+    int? paidAmount,
+  })?
+  _onOrderStatusEvent;
   final ValueNotifier<int> _incomingNoticeEventVersion = ValueNotifier<int>(0);
   final ValueNotifier<int> _incomingSupportEventVersion = ValueNotifier<int>(0);
   final List<DistributorNotice> _notices;
@@ -70,7 +77,8 @@ class NotificationController extends ChangeNotifier {
 
   int get incomingNoticeEventVersion => _incomingNoticeEventVersion.value;
 
-  ValueListenable<int> get incomingSupportEvents => _incomingSupportEventVersion;
+  ValueListenable<int> get incomingSupportEvents =>
+      _incomingSupportEventVersion;
 
   int get incomingSupportEventVersion => _incomingSupportEventVersion.value;
 
@@ -450,7 +458,8 @@ class NotificationController extends ChangeNotifier {
       unawaited(_emitOrderSignal());
     }
     if (notice.link != null && notice.link!.startsWith('/support')) {
-      _incomingSupportEventVersion.value = _incomingSupportEventVersion.value + 1;
+      _incomingSupportEventVersion.value =
+          _incomingSupportEventVersion.value + 1;
     }
   }
 
@@ -470,7 +479,12 @@ class NotificationController extends ChangeNotifier {
         status.isNotEmpty &&
         _onOrderStatusEvent != null) {
       final paidAmount = _parseAmount(payload['paidAmount']);
-      _onOrderStatusEvent?.call(orderCode, status, paymentStatus ?? '', paidAmount: paidAmount);
+      _onOrderStatusEvent(
+        orderCode,
+        status,
+        paymentStatus ?? '',
+        paidAmount: paidAmount,
+      );
       return;
     }
 

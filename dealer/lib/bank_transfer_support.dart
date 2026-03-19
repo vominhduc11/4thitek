@@ -5,12 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import 'api_config.dart';
+import 'app_settings_controller.dart';
 import 'auth_storage.dart';
 import 'breakpoints.dart';
 import 'dealer_auth_client.dart';
 import 'models.dart';
 import 'order_controller.dart';
 import 'utils.dart';
+
+_BankTransferTexts _bankTransferTexts(BuildContext context) =>
+    _BankTransferTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
 
 class BankTransferInstructions {
   const BankTransferInstructions({
@@ -176,6 +182,7 @@ class _BankTransferInfoSheetState extends State<_BankTransferInfoSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _bankTransferTexts(context);
     final isTablet = AppBreakpoints.isTablet(context);
     final maxWidth = isTablet ? 760.0 : double.infinity;
     final colors = Theme.of(context).colorScheme;
@@ -196,14 +203,14 @@ class _BankTransferInfoSheetState extends State<_BankTransferInfoSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Thông tin chuyển khoản',
+                    texts.sheetTitle,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Đơn hàng đã được tạo. Vui lòng chuyển khoản đúng số tiền và đúng nội dung bên dưới để SePay đối soát tự động.',
+                    texts.sheetDescription,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: colors.onSurfaceVariant,
                     ),
@@ -220,7 +227,7 @@ class _BankTransferInfoSheetState extends State<_BankTransferInfoSheet> {
                       ),
                     ),
                     child: Text(
-                      'Khi SePay gửi webhook thành công, hệ thống sẽ tự động cập nhật thanh toán cho đơn này. Bạn không cần tự xác nhận thanh toán trong app.',
+                      texts.webhookHint,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: colors.primary,
                         fontWeight: FontWeight.w600,
@@ -229,45 +236,57 @@ class _BankTransferInfoSheetState extends State<_BankTransferInfoSheet> {
                   ),
                   const SizedBox(height: 14),
                   _BankTransferInfoRow(
-                    label: 'Nhà cung cấp',
+                    label: texts.providerLabel,
                     value: widget.instructions.provider,
-                    onCopy: () =>
-                        widget.onCopy('Nhà cung cấp', widget.instructions.provider),
+                    onCopy: () => widget.onCopy(
+                      texts.providerLabel,
+                      widget.instructions.provider,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   _BankTransferInfoRow(
-                    label: 'Số tiền',
+                    label: texts.amountLabel,
                     value: formatVnd(widget.amount),
-                    onCopy: () =>
-                        widget.onCopy('Số tiền', widget.amount.toString()),
+                    onCopy: () => widget.onCopy(
+                      texts.amountLabel,
+                      widget.amount.toString(),
+                    ),
                   ),
                   const SizedBox(height: 10),
                   _BankTransferInfoRow(
-                    label: 'Chủ tài khoản',
+                    label: texts.accountHolderLabel,
                     value: widget.instructions.accountHolder,
-                    onCopy: () =>
-                        widget.onCopy('Chủ tài khoản', widget.instructions.accountHolder),
+                    onCopy: () => widget.onCopy(
+                      texts.accountHolderLabel,
+                      widget.instructions.accountHolder,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   _BankTransferInfoRow(
-                    label: 'Số tài khoản',
+                    label: texts.accountNumberLabel,
                     value: widget.instructions.accountNumber,
-                    onCopy: () =>
-                        widget.onCopy('Số tài khoản', widget.instructions.accountNumber),
+                    onCopy: () => widget.onCopy(
+                      texts.accountNumberLabel,
+                      widget.instructions.accountNumber,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   _BankTransferInfoRow(
-                    label: 'Ngân hàng',
+                    label: texts.bankNameLabel,
                     value: widget.instructions.bankName,
-                    onCopy: () =>
-                        widget.onCopy('Ngân hàng', widget.instructions.bankName),
+                    onCopy: () => widget.onCopy(
+                      texts.bankNameLabel,
+                      widget.instructions.bankName,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   _BankTransferInfoRow(
-                    label: 'Nội dung',
+                    label: texts.contentLabel,
                     value: widget.content,
-                    onCopy: () =>
-                        widget.onCopy('Nội dung chuyển khoản', widget.content),
+                    onCopy: () => widget.onCopy(
+                      texts.transferContentCopyLabel,
+                      widget.content,
+                    ),
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -293,6 +312,7 @@ class _BankTransferInfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _bankTransferTexts(context);
     final borderColor = Theme.of(context).colorScheme.outlineVariant;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -324,10 +344,36 @@ class _BankTransferInfoRow extends StatelessWidget {
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             onPressed: onCopy,
             icon: const Icon(Icons.copy, size: 18),
-            tooltip: 'Sao chep',
+            tooltip: texts.copyTooltip,
           ),
         ],
       ),
     );
   }
+}
+
+class _BankTransferTexts {
+  const _BankTransferTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get sheetTitle =>
+      isEnglish ? 'Bank transfer information' : 'Thông tin chuyển khoản';
+  String get sheetDescription => isEnglish
+      ? 'Your order has been created. Please transfer the exact amount and use the exact content below so SePay can reconcile it automatically.'
+      : 'Đơn hàng đã được tạo. Vui lòng chuyển khoản đúng số tiền và đúng nội dung bên dưới để SePay đối soát tự động.';
+  String get webhookHint => isEnglish
+      ? 'Once SePay sends a successful webhook, the system will automatically update payment for this order. You do not need to confirm payment manually in the app.'
+      : 'Khi SePay gửi webhook thành công, hệ thống sẽ tự động cập nhật thanh toán cho đơn này. Bạn không cần tự xác nhận thanh toán trong app.';
+  String get providerLabel => isEnglish ? 'Provider' : 'Nhà cung cấp';
+  String get amountLabel => isEnglish ? 'Amount' : 'Số tiền';
+  String get accountHolderLabel =>
+      isEnglish ? 'Account holder' : 'Chủ tài khoản';
+  String get accountNumberLabel =>
+      isEnglish ? 'Account number' : 'Số tài khoản';
+  String get bankNameLabel => isEnglish ? 'Bank' : 'Ngân hàng';
+  String get contentLabel => isEnglish ? 'Content' : 'Nội dung';
+  String get transferContentCopyLabel =>
+      isEnglish ? 'Transfer content' : 'Nội dung chuyển khoản';
+  String get copyTooltip => isEnglish ? 'Copy' : 'Sao chép';
 }

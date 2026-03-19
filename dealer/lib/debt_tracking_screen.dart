@@ -42,10 +42,7 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen> {
   }
 
   Future<void> _handleRefresh() async {
-    await Future.wait<void>([
-      OrderScope.of(context).load(forceRefresh: true),
-      _loadProfile(),
-    ]);
+    await Future.wait<void>([OrderScope.of(context).refresh(), _loadProfile()]);
     if (!mounted) {
       return;
     }

@@ -175,6 +175,240 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Account'**
   String get tabAccount;
+
+  /// No description provided for @retryAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retryAction;
+
+  /// No description provided for @cancelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancelAction;
+
+  /// No description provided for @accountLogoutConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm logout'**
+  String get accountLogoutConfirmTitle;
+
+  /// No description provided for @accountLogoutConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You are about to log out. Your current cart data will be cleared. Do you want to continue?'**
+  String get accountLogoutConfirmMessage;
+
+  /// No description provided for @accountScreenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get accountScreenTitle;
+
+  /// No description provided for @accountSignOutLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Signing out...'**
+  String get accountSignOutLoading;
+
+  /// No description provided for @accountMenuSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account settings'**
+  String get accountMenuSettingsTitle;
+
+  /// No description provided for @accountMenuSettingsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update company profile, contacts, and shipping information.'**
+  String get accountMenuSettingsSubtitle;
+
+  /// No description provided for @accountMenuSupportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Support'**
+  String get accountMenuSupportTitle;
+
+  /// No description provided for @accountMenuSupportSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact support and submit product, order, or warranty requests.'**
+  String get accountMenuSupportSubtitle;
+
+  /// No description provided for @accountMenuWarrantyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Warranty center'**
+  String get accountMenuWarrantyTitle;
+
+  /// No description provided for @accountMenuWarrantySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Process serials, activate warranties, and review serial inventory.'**
+  String get accountMenuWarrantySubtitle;
+
+  /// No description provided for @accountMenuPreferencesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance and language'**
+  String get accountMenuPreferencesTitle;
+
+  /// No description provided for @accountMenuPreferencesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch theme mode and language preferences.'**
+  String get accountMenuPreferencesSubtitle;
+
+  /// No description provided for @accountLogoutAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out'**
+  String get accountLogoutAction;
+
+  /// No description provided for @accountEditProfileAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit profile'**
+  String get accountEditProfileAction;
+
+  /// No description provided for @accountVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String accountVersionLabel(String version);
+
+  /// No description provided for @accountContactLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact person'**
+  String get accountContactLabel;
+
+  /// No description provided for @accountPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get accountPhoneLabel;
+
+  /// No description provided for @accountShippingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Shipping address'**
+  String get accountShippingLabel;
+
+  /// No description provided for @accountPolicyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales policy'**
+  String get accountPolicyLabel;
+
+  /// No description provided for @accountProfileLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load account profile.'**
+  String get accountProfileLoadError;
+
+  /// No description provided for @notificationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications ({count})'**
+  String notificationsTitle(int count);
+
+  /// No description provided for @notificationsMarkAllReadTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all as read'**
+  String get notificationsMarkAllReadTooltip;
+
+  /// No description provided for @notificationsEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications yet'**
+  String get notificationsEmptyTitle;
+
+  /// No description provided for @notificationsEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'New updates will appear here when they arrive.'**
+  String get notificationsEmptyMessage;
+
+  /// No description provided for @notificationsMarkedAllReadMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'All notifications have been marked as read.'**
+  String get notificationsMarkedAllReadMessage;
+
+  /// No description provided for @notificationsMarkUnreadAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as unread'**
+  String get notificationsMarkUnreadAction;
+
+  /// No description provided for @notificationsMarkedUnreadMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as unread.'**
+  String get notificationsMarkedUnreadMessage;
+
+  /// No description provided for @notificationsOpenLinkFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to open the link.'**
+  String get notificationsOpenLinkFailedMessage;
+
+  /// No description provided for @notificationsTypeOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Order'**
+  String get notificationsTypeOrder;
+
+  /// No description provided for @notificationsTypePromotion.
+  ///
+  /// In en, this message translates to:
+  /// **'Promotion'**
+  String get notificationsTypePromotion;
+
+  /// No description provided for @notificationsTypeSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get notificationsTypeSystem;
+
+  /// No description provided for @notificationsRelatedViewOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'View order'**
+  String get notificationsRelatedViewOrder;
+
+  /// No description provided for @notificationsRelatedViewProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'View products'**
+  String get notificationsRelatedViewProducts;
+
+  /// No description provided for @notificationsRelatedViewSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'View support'**
+  String get notificationsRelatedViewSupport;
+
+  /// No description provided for @notificationsRelatedViewNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'View notifications'**
+  String get notificationsRelatedViewNotifications;
+
+  /// No description provided for @notificationsRelatedOpenLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Open link'**
+  String get notificationsRelatedOpenLink;
+
+  /// No description provided for @notificationsRelatedOpenOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Open overview'**
+  String get notificationsRelatedOpenOverview;
 }
 
 class _AppLocalizationsDelegate

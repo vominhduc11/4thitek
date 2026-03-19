@@ -98,8 +98,9 @@ class _SupportScreenState extends State<SupportScreen> {
       _lastCategory = _parseCategory(ticket.category);
       _lastPriority = _parsePriority(ticket.priority);
       _lastStatus = ticket.status;
-      _lastAdminReply =
-          (ticket.adminReply?.isNotEmpty ?? false) ? ticket.adminReply : null;
+      _lastAdminReply = (ticket.adminReply?.isNotEmpty ?? false)
+          ? ticket.adminReply
+          : null;
     });
   }
 
@@ -148,291 +149,263 @@ class _SupportScreenState extends State<SupportScreen> {
   @override
   Widget build(BuildContext context) {
     final appSettings = AppSettingsScope.of(context);
-    final isEnglish = appSettings.locale.languageCode == 'en';
+    final texts = _SupportTexts(
+      isEnglish: appSettings.locale.languageCode == 'en',
+    );
     final isTablet = AppBreakpoints.isTablet(context);
     final contentMaxWidth = isTablet ? 860.0 : double.infinity;
-    final faqItems = _faqItems(isEnglish);
+    final faqItems = texts.faqItems;
 
     return Scaffold(
-      appBar: AppBar(title: BrandAppBarTitle(isEnglish ? 'Support' : 'Hỗ trợ')),
+      appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
       body: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: contentMaxWidth),
-          child: ListView(
-            controller: _scrollController,
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-            children: [
-              FadeSlideIn(
-                child: SectionCard(
-                  title: isEnglish ? 'Quick contact' : 'Liên hệ nhanh',
-                  child: Column(
-                    children: [
-                      _ContactTile(
-                        icon: Icons.phone_outlined,
-                        label: isEnglish ? 'Hotline' : 'Hotline',
-                        value: _hotline,
-                        copyTooltip: isEnglish ? 'Copy' : 'Sao chép',
-                        onCopy: () => _copyToClipboard(
-                          _hotline,
-                          message: isEnglish
-                              ? 'Hotline number copied.'
-                              : 'Đã sao chép số hotline.',
-                        ),
-                      ),
-                      const Divider(height: 0),
-                      _ContactTile(
-                        icon: Icons.mail_outline,
-                        label: 'Email',
-                        value: _supportEmail,
-                        copyTooltip: isEnglish ? 'Copy' : 'Sao chép',
-                        onCopy: () => _copyToClipboard(
-                          _supportEmail,
-                          message: isEnglish
-                              ? 'Support email copied.'
-                              : 'Đã sao chép email hỗ trợ.',
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 8,
-                        children: [
-                          OutlinedButton.icon(
-                            onPressed: () =>
-                                _launchHotline(_hotline, isEnglish),
-                            icon: const Icon(Icons.phone_in_talk_outlined),
-                            label: Text(
-                              isEnglish ? 'Call hotline' : 'Gọi hotline',
-                            ),
-                          ),
-                          OutlinedButton.icon(
-                            onPressed: () =>
-                                _launchSupportEmail(_supportEmail, isEnglish),
-                            icon: const Icon(Icons.alternate_email_outlined),
-                            label: Text(isEnglish ? 'Send email' : 'Gửi email'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          isEnglish
-                              ? 'Support hours: 8:00-18:00 (Mon-Sat)'
-                              : 'Thời gian hỗ trợ: 8:00-18:00 (T2-T7)',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              FadeSlideIn(
-                delay: const Duration(milliseconds: 60),
-                child: SectionCard(
-                  title: isEnglish
-                      ? 'Frequently asked questions'
-                      : 'Câu hỏi thường gặp',
-                  child: Column(
-                    children: [
-                      for (var i = 0; i < faqItems.length; i++)
-                        _FaqTile(
-                          item: faqItems[i],
-                          showDivider: i != faqItems.length - 1,
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              if (_lastTicketId != null && _lastSubmittedAt != null)
+          child: RefreshIndicator(
+            onRefresh: _handleRefresh,
+            child: ListView(
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              children: [
                 FadeSlideIn(
-                  key: _ticketCardKey,
-                  delay: const Duration(milliseconds: 90),
-                  child: _StatusCard(
-                    ticketId: _lastTicketId!,
-                    submittedAt: _lastSubmittedAt!,
-                    category: _categoryLabel(
-                      _lastCategory ?? _category,
-                      isEnglish: isEnglish,
+                  child: SectionCard(
+                    title: texts.quickContactTitle,
+                    child: Column(
+                      children: [
+                        _ContactTile(
+                          icon: Icons.phone_outlined,
+                          label: texts.hotlineLabel,
+                          value: _hotline,
+                          copyTooltip: texts.copyAction,
+                          onCopy: () => _copyToClipboard(
+                            _hotline,
+                            message: texts.hotlineCopiedMessage,
+                          ),
+                        ),
+                        const Divider(height: 0),
+                        _ContactTile(
+                          icon: Icons.mail_outline,
+                          label: texts.emailLabel,
+                          value: _supportEmail,
+                          copyTooltip: texts.copyAction,
+                          onCopy: () => _copyToClipboard(
+                            _supportEmail,
+                            message: texts.supportEmailCopiedMessage,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 8,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: () => _launchHotline(_hotline, texts),
+                              icon: const Icon(Icons.phone_in_talk_outlined),
+                              label: Text(texts.callHotlineAction),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () =>
+                                  _launchSupportEmail(_supportEmail, texts),
+                              icon: const Icon(Icons.alternate_email_outlined),
+                              label: Text(texts.sendEmailAction),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            texts.supportHours,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ),
+                      ],
                     ),
-                    priority: _priorityLabel(
-                      _lastPriority ?? _priority,
-                      isEnglish: isEnglish,
-                    ),
-                    sla: _slaText(
-                      _lastPriority ?? _priority,
-                      isEnglish: isEnglish,
-                    ),
-                    status: _lastStatus,
-                    adminReply: _lastAdminReply,
-                    isEnglish: isEnglish,
-                    onClear: () {
-                      setState(() {
-                        _lastTicketId = null;
-                        _lastSubmittedAt = null;
-                        _lastCategory = null;
-                        _lastPriority = null;
-                        _lastStatus = null;
-                        _lastAdminReply = null;
-                      });
-                    },
                   ),
                 ),
-              if (_lastTicketId != null && _lastSubmittedAt != null)
                 const SizedBox(height: 14),
-              FadeSlideIn(
-                delay: const Duration(milliseconds: 120),
-                child: SectionCard(
-                  title: isEnglish ? 'Recent requests' : 'Yêu cầu gần đây',
-                  child: SupportTicketHistory(
-                    isEnglish: isEnglish,
-                    items: _ticketHistory,
-                    isLoading: _isHistoryLoading,
-                    isLoadingMore: _isLoadingMoreTickets,
-                    hasMore: _hasMoreTickets,
-                    onLoadMore: () => _loadTicketHistory(loadMore: true),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 60),
+                  child: SectionCard(
+                    title: texts.faqTitle,
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < faqItems.length; i++)
+                          _FaqTile(
+                            item: faqItems[i],
+                            showDivider: i != faqItems.length - 1,
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 14),
-              FadeSlideIn(
-                delay: const Duration(milliseconds: 140),
-                child: SectionCard(
-                  title: isEnglish
-                      ? 'Submit support request'
-                      : 'Gửi yêu cầu hỗ trợ',
-                  child: Column(
-                    children: [
-                      DropdownButtonFormField<SupportCategory>(
-                        initialValue: _category,
-                        decoration: InputDecoration(
-                          labelText: isEnglish
-                              ? 'Request category'
-                              : 'Loại yêu cầu',
-                          prefixIcon: const Icon(Icons.category_outlined),
-                        ),
-                        items: SupportCategory.values
-                            .map(
-                              (item) => DropdownMenuItem(
-                                value: item,
-                                child: Text(
-                                  _categoryLabel(item, isEnglish: isEnglish),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value == null) {
-                            return;
-                          }
-                          setState(() => _category = value);
-                        },
-                      ),
-                      const SizedBox(height: 14),
-                      DropdownButtonFormField<SupportPriority>(
-                        initialValue: _priority,
-                        decoration: InputDecoration(
-                          labelText: isEnglish ? 'Priority' : 'Mức độ ưu tiên',
-                          prefixIcon: const Icon(Icons.flag_outlined),
-                        ),
-                        items: SupportPriority.values
-                            .map(
-                              (item) => DropdownMenuItem(
-                                value: item,
-                                child: Text(
-                                  _priorityLabel(item, isEnglish: isEnglish),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value == null) {
-                            return;
-                          }
-                          setState(() => _priority = value);
-                        },
-                      ),
-                      const SizedBox(height: 14),
-                      TextField(
-                        controller: _subjectController,
-                        textInputAction: TextInputAction.next,
-                        textCapitalization: TextCapitalization.sentences,
-                        maxLength: _subjectMax,
-                        buildCounter: _buildCounter,
-                        decoration: InputDecoration(
-                          labelText: isEnglish ? 'Subject' : 'Tiêu đề',
-                          prefixIcon: const Icon(Icons.subject_outlined),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      TextField(
-                        controller: _messageController,
-                        keyboardType: TextInputType.multiline,
-                        textInputAction: TextInputAction.newline,
-                        textCapitalization: TextCapitalization.sentences,
-                        minLines: 4,
-                        maxLines: 8,
-                        maxLength: _messageMax,
-                        buildCounter: _buildCounter,
-                        decoration: InputDecoration(
-                          labelText: isEnglish ? 'Description' : 'Nội dung',
-                          hintText: isEnglish
-                              ? 'Describe your issue, event time, and order/serial code if available.'
-                              : 'Mô tả vấn đề, thời điểm xảy ra, mã đơn/serial nếu có.',
-                          helperText: isEnglish
-                              ? 'The more details you share, the faster support can help.'
-                              : 'Thông tin càng chi tiết, đội hỗ trợ xử lý càng nhanh.',
-                          alignLabelWithHint: true,
-                          prefixIcon: const Icon(Icons.chat_bubble_outline),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          isEnglish
-                              ? 'Expected response time: ${_slaText(_priority, isEnglish: true)}'
-                              : 'Thời gian phản hồi dự kiến: ${_slaText(_priority, isEnglish: false)}',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _isSubmitting
-                              ? null
-                              : () => _handleSubmit(isEnglish),
-                          child: _isSubmitting
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                  ),
-                                )
-                              : Text(
-                                  isEnglish ? 'Submit request' : 'Gửi yêu cầu',
-                                ),
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 14),
+                if (_lastTicketId != null && _lastSubmittedAt != null)
+                  FadeSlideIn(
+                    key: _ticketCardKey,
+                    delay: const Duration(milliseconds: 90),
+                    child: _StatusCard(
+                      ticketId: _lastTicketId!,
+                      submittedAt: _lastSubmittedAt!,
+                      category: texts.categoryLabel(_lastCategory ?? _category),
+                      priority: texts.priorityLabel(_lastPriority ?? _priority),
+                      sla: texts.slaText(_lastPriority ?? _priority),
+                      status: _lastStatus,
+                      adminReply: _lastAdminReply,
+                      texts: texts,
+                      onClear: () {
+                        setState(() {
+                          _lastTicketId = null;
+                          _lastSubmittedAt = null;
+                          _lastCategory = null;
+                          _lastPriority = null;
+                          _lastStatus = null;
+                          _lastAdminReply = null;
+                        });
+                      },
+                    ),
+                  ),
+                if (_lastTicketId != null && _lastSubmittedAt != null)
+                  const SizedBox(height: 14),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 120),
+                  child: SectionCard(
+                    title: texts.recentRequestsTitle,
+                    child: SupportTicketHistory(
+                      isEnglish: texts.isEnglish,
+                      items: _ticketHistory,
+                      isLoading: _isHistoryLoading,
+                      isLoadingMore: _isLoadingMoreTickets,
+                      hasMore: _hasMoreTickets,
+                      onLoadMore: () => _loadTicketHistory(loadMore: true),
+                    ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 14),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 140),
+                  child: SectionCard(
+                    title: texts.submitRequestTitle,
+                    child: Column(
+                      children: [
+                        DropdownButtonFormField<SupportCategory>(
+                          initialValue: _category,
+                          decoration: InputDecoration(
+                            labelText: texts.categoryFieldLabel,
+                            prefixIcon: const Icon(Icons.category_outlined),
+                          ),
+                          items: SupportCategory.values
+                              .map(
+                                (item) => DropdownMenuItem(
+                                  value: item,
+                                  child: Text(texts.categoryLabel(item)),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value == null) {
+                              return;
+                            }
+                            setState(() => _category = value);
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        DropdownButtonFormField<SupportPriority>(
+                          initialValue: _priority,
+                          decoration: InputDecoration(
+                            labelText: texts.priorityFieldLabel,
+                            prefixIcon: const Icon(Icons.flag_outlined),
+                          ),
+                          items: SupportPriority.values
+                              .map(
+                                (item) => DropdownMenuItem(
+                                  value: item,
+                                  child: Text(texts.priorityLabel(item)),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value == null) {
+                              return;
+                            }
+                            setState(() => _priority = value);
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        TextField(
+                          controller: _subjectController,
+                          textInputAction: TextInputAction.next,
+                          textCapitalization: TextCapitalization.sentences,
+                          maxLength: _subjectMax,
+                          buildCounter: _buildCounter,
+                          decoration: InputDecoration(
+                            labelText: texts.subjectFieldLabel,
+                            prefixIcon: const Icon(Icons.subject_outlined),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        TextField(
+                          controller: _messageController,
+                          keyboardType: TextInputType.multiline,
+                          textInputAction: TextInputAction.newline,
+                          textCapitalization: TextCapitalization.sentences,
+                          minLines: 4,
+                          maxLines: 8,
+                          maxLength: _messageMax,
+                          buildCounter: _buildCounter,
+                          decoration: InputDecoration(
+                            labelText: texts.descriptionFieldLabel,
+                            hintText: texts.descriptionHint,
+                            helperText: texts.descriptionHelper,
+                            alignLabelWithHint: true,
+                            prefixIcon: const Icon(Icons.chat_bubble_outline),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            texts.expectedResponseTime(
+                              texts.slaText(_priority),
+                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _isSubmitting
+                                ? null
+                                : () => _handleSubmit(texts),
+                            child: _isSubmitting
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                    ),
+                                  )
+                                : Text(texts.submitRequestAction),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -461,74 +434,64 @@ class _SupportScreenState extends State<SupportScreen> {
     }
   }
 
+  Future<void> _handleRefresh() async {
+    await Future.wait<void>([_loadLatestTicket(), _loadTicketHistory()]);
+  }
+
   void _copyToClipboard(String value, {String? message}) {
     Clipboard.setData(ClipboardData(text: value));
     _showSnackBar(message ?? 'Đã sao chép $value');
   }
 
-  Future<void> _launchHotline(String phone, bool isEnglish) async {
+  Future<void> _launchHotline(String phone, _SupportTexts texts) async {
     final normalizedPhone = phone.replaceAll(RegExp(r'\s+'), '');
     final uri = Uri(scheme: 'tel', path: normalizedPhone);
     if (await launchUrl(uri)) {
       return;
     }
-    _copyToClipboard(
-      phone,
-      message: isEnglish
-          ? 'Cannot open dialer. Number has been copied.'
-          : 'Không mở được cuộc gọi. Đã sao chép số.',
-    );
+    _copyToClipboard(phone, message: texts.cannotOpenDialerMessage);
   }
 
-  Future<void> _launchSupportEmail(String email, bool isEnglish) async {
+  Future<void> _launchSupportEmail(String email, _SupportTexts texts) async {
     final uri = Uri(scheme: 'mailto', path: email);
     if (await launchUrl(uri)) {
       return;
     }
-    _copyToClipboard(
-      email,
-      message: isEnglish
-          ? 'Cannot open email app. Address has been copied.'
-          : 'Không mở được ứng dụng email. Đã sao chép địa chỉ.',
-    );
+    _copyToClipboard(email, message: texts.cannotOpenEmailAppMessage);
   }
 
-  Future<bool?> _confirmSubmit(bool isEnglish) {
+  Future<bool?> _confirmSubmit(_SupportTexts texts) {
     final subject = _subjectController.text.trim();
-    final category = _categoryLabel(_category, isEnglish: isEnglish);
-    final priority = _priorityLabel(_priority, isEnglish: isEnglish);
+    final category = texts.categoryLabel(_category);
+    final priority = texts.priorityLabel(_priority);
     return showDialog<bool>(
       context: context,
       traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
       requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text(isEnglish ? 'Confirm request' : 'Xác nhận gửi yêu cầu'),
+          title: Text(texts.confirmSubmitTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                isEnglish
-                    ? 'Please review the request details before submitting.'
-                    : 'Vui lòng kiểm tra thông tin yêu cầu trước khi gửi.',
-              ),
+              Text(texts.confirmSubmitDescription),
               const SizedBox(height: 10),
-              Text('${isEnglish ? 'Subject' : 'Tiêu đề'}: $subject'),
+              Text('${texts.subjectFieldLabel}: $subject'),
               const SizedBox(height: 4),
-              Text('${isEnglish ? 'Category' : 'Loại yêu cầu'}: $category'),
+              Text('${texts.categorySummaryLabel}: $category'),
               const SizedBox(height: 4),
-              Text('${isEnglish ? 'Priority' : 'Ưu tiên'}: $priority'),
+              Text('${texts.prioritySummaryLabel}: $priority'),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(isEnglish ? 'Cancel' : 'Hủy'),
+              child: Text(texts.cancelAction),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(isEnglish ? 'Submit' : 'Gửi yêu cầu'),
+              child: Text(texts.submitRequestAction),
             ),
           ],
         );
@@ -536,20 +499,16 @@ class _SupportScreenState extends State<SupportScreen> {
     );
   }
 
-  Future<void> _handleSubmit(bool isEnglish) async {
+  Future<void> _handleSubmit(_SupportTexts texts) async {
     final subject = _subjectController.text.trim();
     final message = _messageController.text.trim();
 
     if (subject.isEmpty || message.isEmpty) {
-      _showSnackBar(
-        isEnglish
-            ? 'Please enter both subject and description.'
-            : 'Vui lòng nhập tiêu đề và nội dung.',
-      );
+      _showSnackBar(texts.missingFieldsMessage);
       return;
     }
 
-    final shouldSubmit = await _confirmSubmit(isEnglish);
+    final shouldSubmit = await _confirmSubmit(texts);
     if (shouldSubmit != true) {
       return;
     }
@@ -564,11 +523,7 @@ class _SupportScreenState extends State<SupportScreen> {
       );
       _applyTicket(ticket);
       _loadTicketHistory();
-      _showSnackBar(
-        isEnglish
-            ? 'Request #${ticket.ticketCode} has been submitted.'
-            : 'Yêu cầu #${ticket.ticketCode} đã được gửi.',
-      );
+      _showSnackBar(texts.requestSubmittedMessage(ticket.ticketCode));
       _subjectController.clear();
       _messageController.clear();
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -641,81 +596,6 @@ class _SupportScreenState extends State<SupportScreen> {
     }
   }
 
-  String _categoryLabel(SupportCategory category, {required bool isEnglish}) {
-    if (isEnglish) {
-      switch (category) {
-        case SupportCategory.order:
-          return 'Order';
-        case SupportCategory.warranty:
-          return 'Warranty / Serial';
-        case SupportCategory.product:
-          return 'Product';
-        case SupportCategory.payment:
-          return 'Payment';
-        case SupportCategory.returnOrder:
-          return 'Return';
-        case SupportCategory.other:
-          return 'Other';
-      }
-    }
-    switch (category) {
-      case SupportCategory.order:
-        return 'Đơn hàng';
-      case SupportCategory.warranty:
-        return 'Kho serial';
-      case SupportCategory.product:
-        return 'Sản phẩm';
-      case SupportCategory.payment:
-        return 'Thanh toán';
-      case SupportCategory.returnOrder:
-        return 'Đổi trả hàng';
-      case SupportCategory.other:
-        return 'Khác';
-    }
-  }
-
-  String _priorityLabel(SupportPriority priority, {required bool isEnglish}) {
-    if (isEnglish) {
-      switch (priority) {
-        case SupportPriority.normal:
-          return 'Normal';
-        case SupportPriority.high:
-          return 'High';
-        case SupportPriority.urgent:
-          return 'Urgent';
-      }
-    }
-    switch (priority) {
-      case SupportPriority.normal:
-        return 'Bình thường';
-      case SupportPriority.high:
-        return 'Cao';
-      case SupportPriority.urgent:
-        return 'Khẩn cấp';
-    }
-  }
-
-  String _slaText(SupportPriority priority, {required bool isEnglish}) {
-    if (isEnglish) {
-      switch (priority) {
-        case SupportPriority.normal:
-          return '4-8 business hours';
-        case SupportPriority.high:
-          return '2-4 business hours';
-        case SupportPriority.urgent:
-          return '30-60 minutes';
-      }
-    }
-    switch (priority) {
-      case SupportPriority.normal:
-        return '4-8 giờ làm việc';
-      case SupportPriority.high:
-        return '2-4 giờ làm việc';
-      case SupportPriority.urgent:
-        return '30-60 phút';
-    }
-  }
-
   Widget _buildCounter(
     BuildContext context, {
     required int currentLength,
@@ -733,71 +613,6 @@ class _SupportScreenState extends State<SupportScreen> {
     return Text('$currentLength/$maxLength', style: style);
   }
 
-  List<_FaqItem> _faqItems(bool isEnglish) {
-    if (isEnglish) {
-      return const [
-        _FaqItem(
-          title: 'Cannot sign in',
-          body:
-              'Check your email, password, and internet connection before retrying.',
-          icon: Icons.lock_outline,
-        ),
-        _FaqItem(
-          title: 'Order status not updated',
-          body:
-              'The system may take 3-5 minutes to sync recent status changes.',
-          icon: Icons.receipt_long_outlined,
-        ),
-        _FaqItem(
-          title: 'Serial handling',
-          body:
-              'Prepare serial/IMEI and customer phone number for faster support.',
-          icon: Icons.verified_outlined,
-        ),
-        _FaqItem(
-          title: 'Payment reconciliation delay',
-          body:
-              'Bank transfer reconciliation can be delayed during peak periods.',
-          icon: Icons.account_balance_wallet_outlined,
-        ),
-        _FaqItem(
-          title: 'Warranty activation issue',
-          body:
-              'Verify purchase date and serial format before submitting warranty.',
-          icon: Icons.shield_outlined,
-        ),
-      ];
-    }
-
-    return const [
-      _FaqItem(
-        title: 'Không đăng nhập được',
-        body: 'Kiểm tra email, mật khẩu và đảm bảo thiết bị có kết nối mạng.',
-        icon: Icons.lock_outline,
-      ),
-      _FaqItem(
-        title: 'Đơn hàng chưa cập nhật',
-        body: 'Hệ thống có thể cần 3-5 phút để đồng bộ trạng thái đơn hàng.',
-        icon: Icons.receipt_long_outlined,
-      ),
-      _FaqItem(
-        title: 'Xử lý serial',
-        body: 'Chuẩn bị serial/IMEI và số điện thoại để xử lý nhanh hơn.',
-        icon: Icons.verified_outlined,
-      ),
-      _FaqItem(
-        title: 'Đối soát thanh toán chậm',
-        body: 'Đối soát chuyển khoản có thể chậm hơn vào khung giờ cao điểm.',
-        icon: Icons.account_balance_wallet_outlined,
-      ),
-      _FaqItem(
-        title: 'Lỗi kích hoạt bảo hành',
-        body: 'Kiểm tra ngày mua và định dạng serial trước khi gửi yêu cầu.',
-        icon: Icons.shield_outlined,
-      ),
-    ];
-  }
-
   void _showSnackBar(String message) {
     if (!mounted) {
       return;
@@ -806,6 +621,196 @@ class _SupportScreenState extends State<SupportScreen> {
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
+}
+
+class _SupportTexts {
+  const _SupportTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get screenTitle => isEnglish ? 'Support' : 'Hỗ trợ';
+  String get quickContactTitle => isEnglish ? 'Quick contact' : 'Liên hệ nhanh';
+  String get hotlineLabel => 'Hotline';
+  String get emailLabel => 'Email';
+  String get copyAction => isEnglish ? 'Copy' : 'Sao chép';
+  String get hotlineCopiedMessage =>
+      isEnglish ? 'Hotline number copied.' : 'Đã sao chép số hotline.';
+  String get supportEmailCopiedMessage =>
+      isEnglish ? 'Support email copied.' : 'Đã sao chép email hỗ trợ.';
+  String get callHotlineAction => isEnglish ? 'Call hotline' : 'Gọi hotline';
+  String get sendEmailAction => isEnglish ? 'Send email' : 'Gửi email';
+  String get supportHours => isEnglish
+      ? 'Support hours: 8:00-18:00 (Mon-Sat)'
+      : 'Thời gian hỗ trợ: 8:00-18:00 (T2-T7)';
+  String get faqTitle =>
+      isEnglish ? 'Frequently asked questions' : 'Câu hỏi thường gặp';
+  String get recentRequestsTitle =>
+      isEnglish ? 'Recent requests' : 'Yêu cầu gần đây';
+  String get submitRequestTitle =>
+      isEnglish ? 'Submit support request' : 'Gửi yêu cầu hỗ trợ';
+  String get categoryFieldLabel =>
+      isEnglish ? 'Request category' : 'Loại yêu cầu';
+  String get categorySummaryLabel => isEnglish ? 'Category' : 'Loại yêu cầu';
+  String get priorityFieldLabel => isEnglish ? 'Priority' : 'Mức độ ưu tiên';
+  String get prioritySummaryLabel => isEnglish ? 'Priority' : 'Ưu tiên';
+  String get subjectFieldLabel => isEnglish ? 'Subject' : 'Tiêu đề';
+  String get descriptionFieldLabel => isEnglish ? 'Description' : 'Nội dung';
+  String get descriptionHint => isEnglish
+      ? 'Describe your issue, event time, and order/serial code if available.'
+      : 'Mô tả vấn đề, thời điểm xảy ra, mã đơn/serial nếu có.';
+  String get descriptionHelper => isEnglish
+      ? 'The more details you share, the faster support can help.'
+      : 'Thông tin càng chi tiết, đội hỗ trợ xử lý càng nhanh.';
+  String expectedResponseTime(String sla) => isEnglish
+      ? 'Expected response time: $sla'
+      : 'Thời gian phản hồi dự kiến: $sla';
+  String get submitRequestAction =>
+      isEnglish ? 'Submit request' : 'Gửi yêu cầu';
+  String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
+  String get cannotOpenDialerMessage => isEnglish
+      ? 'Cannot open dialer. Number has been copied.'
+      : 'Không mở được cuộc gọi. Đã sao chép số.';
+  String get cannotOpenEmailAppMessage => isEnglish
+      ? 'Cannot open email app. Address has been copied.'
+      : 'Không mở được ứng dụng email. Đã sao chép địa chỉ.';
+  String get confirmSubmitTitle =>
+      isEnglish ? 'Confirm request' : 'Xác nhận gửi yêu cầu';
+  String get confirmSubmitDescription => isEnglish
+      ? 'Please review the request details before submitting.'
+      : 'Vui lòng kiểm tra thông tin yêu cầu trước khi gửi.';
+  String get missingFieldsMessage => isEnglish
+      ? 'Please enter both subject and description.'
+      : 'Vui lòng nhập tiêu đề và nội dung.';
+  String requestSubmittedMessage(String ticketCode) => isEnglish
+      ? 'Request #$ticketCode has been submitted.'
+      : 'Yêu cầu #$ticketCode đã được gửi.';
+  String get requestSubmittedTitle =>
+      isEnglish ? 'Request submitted' : 'Yêu cầu đã gửi';
+  String get hideAction => isEnglish ? 'Hide' : 'Ẩn';
+  String get ticketIdLabel => isEnglish ? 'Ticket ID' : 'Mã yêu cầu';
+  String get submittedAtLabel => isEnglish ? 'Submitted at' : 'Thời gian gửi';
+  String get responseSlaLabel => isEnglish ? 'Response SLA' : 'SLA phản hồi';
+  String get statusSummaryLabel => isEnglish ? 'Status' : 'Trạng thái';
+  String get adminReplyLabel => isEnglish ? 'Admin reply' : 'Phản hồi từ admin';
+
+  String categoryLabel(SupportCategory category) {
+    switch (category) {
+      case SupportCategory.order:
+        return isEnglish ? 'Order' : 'Đơn hàng';
+      case SupportCategory.warranty:
+        return isEnglish ? 'Warranty / Serial' : 'Kho serial';
+      case SupportCategory.product:
+        return isEnglish ? 'Product' : 'Sản phẩm';
+      case SupportCategory.payment:
+        return isEnglish ? 'Payment' : 'Thanh toán';
+      case SupportCategory.returnOrder:
+        return isEnglish ? 'Return' : 'Đổi trả hàng';
+      case SupportCategory.other:
+        return isEnglish ? 'Other' : 'Khác';
+    }
+  }
+
+  String priorityLabel(SupportPriority priority) {
+    switch (priority) {
+      case SupportPriority.normal:
+        return isEnglish ? 'Normal' : 'Bình thường';
+      case SupportPriority.high:
+        return isEnglish ? 'High' : 'Cao';
+      case SupportPriority.urgent:
+        return isEnglish ? 'Urgent' : 'Khẩn cấp';
+    }
+  }
+
+  String slaText(SupportPriority priority) {
+    switch (priority) {
+      case SupportPriority.normal:
+        return isEnglish ? '4-8 business hours' : '4-8 giờ làm việc';
+      case SupportPriority.high:
+        return isEnglish ? '2-4 business hours' : '2-4 giờ làm việc';
+      case SupportPriority.urgent:
+        return isEnglish ? '30-60 minutes' : '30-60 phút';
+    }
+  }
+
+  String statusLabel(String status) {
+    switch (status) {
+      case 'OPEN':
+        return isEnglish ? 'Open' : 'Mở';
+      case 'IN_PROGRESS':
+        return isEnglish ? 'In progress' : 'Đang xử lý';
+      case 'RESOLVED':
+        return isEnglish ? 'Resolved' : 'Đã xử lý';
+      case 'CLOSED':
+        return isEnglish ? 'Closed' : 'Đóng';
+      default:
+        return status;
+    }
+  }
+
+  List<_FaqItem> get faqItems => isEnglish
+      ? const [
+          _FaqItem(
+            title: 'Cannot sign in',
+            body:
+                'Check your email, password, and internet connection before retrying.',
+            icon: Icons.lock_outline,
+          ),
+          _FaqItem(
+            title: 'Order status not updated',
+            body:
+                'The system may take 3-5 minutes to sync recent status changes.',
+            icon: Icons.receipt_long_outlined,
+          ),
+          _FaqItem(
+            title: 'Serial handling',
+            body:
+                'Prepare serial/IMEI and customer phone number for faster support.',
+            icon: Icons.verified_outlined,
+          ),
+          _FaqItem(
+            title: 'Payment reconciliation delay',
+            body:
+                'Bank transfer reconciliation can be delayed during peak periods.',
+            icon: Icons.account_balance_wallet_outlined,
+          ),
+          _FaqItem(
+            title: 'Warranty activation issue',
+            body:
+                'Verify purchase date and serial format before submitting warranty.',
+            icon: Icons.shield_outlined,
+          ),
+        ]
+      : const [
+          _FaqItem(
+            title: 'Không đăng nhập được',
+            body:
+                'Kiểm tra email, mật khẩu và đảm bảo thiết bị có kết nối mạng.',
+            icon: Icons.lock_outline,
+          ),
+          _FaqItem(
+            title: 'Đơn hàng chưa cập nhật',
+            body:
+                'Hệ thống có thể cần 3-5 phút để đồng bộ trạng thái đơn hàng.',
+            icon: Icons.receipt_long_outlined,
+          ),
+          _FaqItem(
+            title: 'Xử lý serial',
+            body: 'Chuẩn bị serial/IMEI và số điện thoại để xử lý nhanh hơn.',
+            icon: Icons.verified_outlined,
+          ),
+          _FaqItem(
+            title: 'Đối soát thanh toán chậm',
+            body:
+                'Đối soát chuyển khoản có thể chậm hơn vào khung giờ cao điểm.',
+            icon: Icons.account_balance_wallet_outlined,
+          ),
+          _FaqItem(
+            title: 'Lỗi kích hoạt bảo hành',
+            body:
+                'Kiểm tra ngày mua và định dạng serial trước khi gửi yêu cầu.',
+            icon: Icons.shield_outlined,
+          ),
+        ];
 }
 
 class _ContactTile extends StatelessWidget {
@@ -848,7 +853,7 @@ class _StatusCard extends StatelessWidget {
     required this.priority,
     required this.sla,
     required this.onClear,
-    required this.isEnglish,
+    required this.texts,
     this.status,
     this.adminReply,
   });
@@ -861,7 +866,7 @@ class _StatusCard extends StatelessWidget {
   final String? status;
   final String? adminReply;
   final VoidCallback onClear;
-  final bool isEnglish;
+  final _SupportTexts texts;
 
   @override
   Widget build(BuildContext context) {
@@ -882,7 +887,7 @@ class _StatusCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    isEnglish ? 'Request submitted' : 'Yêu cầu đã gửi',
+                    texts.requestSubmittedTitle,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -891,46 +896,34 @@ class _StatusCard extends StatelessWidget {
                 IconButton(
                   onPressed: onClear,
                   icon: const Icon(Icons.close),
-                  tooltip: isEnglish ? 'Hide' : 'Ẩn',
+                  tooltip: texts.hideAction,
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            _InfoRow(
-              label: isEnglish ? 'Ticket ID' : 'Mã yêu cầu',
-              value: ticketId,
-            ),
+            _InfoRow(label: texts.ticketIdLabel, value: ticketId),
             const SizedBox(height: 6),
             _InfoRow(
-              label: isEnglish ? 'Submitted at' : 'Thời gian gửi',
+              label: texts.submittedAtLabel,
               value: _formatDateTime(submittedAt),
             ),
             const SizedBox(height: 6),
-            _InfoRow(
-              label: isEnglish ? 'Category' : 'Loại yêu cầu',
-              value: category,
-            ),
+            _InfoRow(label: texts.categorySummaryLabel, value: category),
             const SizedBox(height: 6),
-            _InfoRow(
-              label: isEnglish ? 'Priority' : 'Ưu tiên',
-              value: priority,
-            ),
+            _InfoRow(label: texts.prioritySummaryLabel, value: priority),
             const SizedBox(height: 6),
-            _InfoRow(
-              label: isEnglish ? 'Response SLA' : 'SLA phản hồi',
-              value: sla,
-            ),
+            _InfoRow(label: texts.responseSlaLabel, value: sla),
             if (status != null) ...[
               const SizedBox(height: 6),
               _InfoRow(
-                label: isEnglish ? 'Status' : 'Trạng thái',
-                value: _statusLabel(status!, isEnglish),
+                label: texts.statusSummaryLabel,
+                value: texts.statusLabel(status!),
               ),
             ],
             if (adminReply != null) ...[
               const SizedBox(height: 10),
               Text(
-                isEnglish ? 'Admin reply' : 'Phản hồi từ admin',
+                texts.adminReplyLabel,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -942,35 +935,6 @@ class _StatusCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  static String _statusLabel(String status, bool isEnglish) {
-    if (isEnglish) {
-      switch (status) {
-        case 'OPEN':
-          return 'Open';
-        case 'IN_PROGRESS':
-          return 'In progress';
-        case 'RESOLVED':
-          return 'Resolved';
-        case 'CLOSED':
-          return 'Closed';
-        default:
-          return status;
-      }
-    }
-    switch (status) {
-      case 'OPEN':
-        return 'Mở';
-      case 'IN_PROGRESS':
-        return 'Đang xử lý';
-      case 'RESOLVED':
-        return 'Đã xử lý';
-      case 'CLOSED':
-        return 'Đóng';
-      default:
-        return status;
-    }
   }
 
   static String _formatDateTime(DateTime value) {

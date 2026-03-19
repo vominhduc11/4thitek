@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'app_settings_controller.dart';
 import 'auth_service.dart';
 import 'breakpoints.dart';
 import 'validation_utils.dart';
@@ -33,6 +34,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   String _submittedEmail = '';
   int _resendCooldownSeconds = 0;
   Timer? _resendCooldownTimer;
+
+  _ForgotPasswordTexts get _texts => _ForgotPasswordTexts(
+    isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+  );
 
   @override
   void initState() {
@@ -69,6 +74,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _texts;
     final theme = Theme.of(context);
     final mediaSize = MediaQuery.sizeOf(context);
     final screenWidth = mediaSize.width;
@@ -147,12 +153,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           alignment: Alignment.centerLeft,
                           child: Semantics(
                             button: true,
-                            label: 'Quay lại đăng nhập',
+                            label: texts.backToLoginAction,
                             child: IconButton(
                               onPressed: _isSubmitting
                                   ? null
                                   : () => Navigator.of(context).pop(),
-                              tooltip: 'Quay lại đăng nhập',
+                              tooltip: texts.backToLoginAction,
                               style: IconButton.styleFrom(
                                 minimumSize: const Size(48, 48),
                                 foregroundColor: Colors.white,
@@ -171,6 +177,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           theme: theme,
                           isCompact: isCompact,
                           isTablet: isTablet,
+                          texts: texts,
                         ),
                       ),
                       SizedBox(height: headerToCardGap),
@@ -214,6 +221,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Widget _buildFormContent(ThemeData theme) {
+    final texts = _texts;
     final colorScheme = theme.colorScheme;
     final primaryActionColor = colorScheme.primary;
     final labelColor = colorScheme.onSurface.withValues(alpha: 0.84);
@@ -231,14 +239,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Đặt lại mật khẩu',
+              texts.screenTitle,
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Nhập email đăng ký để nhận liên kết đặt lại mật khẩu.',
+              texts.formDescription,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
                 height: 1.5,
@@ -258,14 +266,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             ? primaryActionColor
                             : labelColor,
                       ),
-                  child: const Text('Email'),
+                  child: Text(texts.emailLabel),
                 );
               },
             ),
             const SizedBox(height: 8),
             Semantics(
               textField: true,
-              label: 'Email đặt lại mật khẩu',
+              label: texts.emailFieldSemantic,
               child: TextFormField(
                 controller: _emailController,
                 focusNode: _emailFocusNode,
@@ -292,12 +300,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 validator: (value) {
                   final email = (value ?? '').trim();
                   if (email.isEmpty) {
-                    return 'Email không được để trống';
+                    return texts.emptyEmailMessage;
                   }
                   final shouldShowFormatError =
                       _emailValidationEnabled || !_emailFocusNode.hasFocus;
                   if (!_isValidEmail(email) && shouldShowFormatError) {
-                    return 'Email không hợp lệ';
+                    return texts.invalidEmailMessage;
                   }
                   return null;
                 },
@@ -312,12 +320,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   final canSubmit = isFormValid && !_isSubmitting;
                   return Semantics(
                     button: true,
-                    label: 'Gửi liên kết đặt lại mật khẩu',
+                    label: texts.submitSemantic,
                     child: _AnimatedSubmitButton(
                       canSubmit: canSubmit,
                       isLoading: _isSubmitting,
-                      label: 'Gửi liên kết đặt lại',
-                      loadingLabel: 'Đang gửi liên kết...',
+                      label: texts.submitAction,
+                      loadingLabel: texts.submittingLabel,
                       onPressed: _handleSubmit,
                       style: _buildPrimaryButtonStyle(theme),
                     ),
@@ -329,7 +337,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             Center(
               child: Semantics(
                 button: true,
-                label: 'Quay lại đăng nhập',
+                label: texts.backToLoginAction,
                 child: TextButton(
                   onPressed: _isSubmitting
                       ? null
@@ -342,7 +350,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       decoration: TextDecoration.underline,
                     ),
                   ),
-                  child: const Text('Quay lại đăng nhập'),
+                  child: Text(texts.backToLoginAction),
                 ),
               ),
             ),
@@ -353,11 +361,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Widget _buildSuccessContent(ThemeData theme) {
+    final texts = _texts;
     final colorScheme = theme.colorScheme;
     final canResend = !_isSubmitting && _resendCooldownSeconds == 0;
     final resendButtonLabel = _resendCooldownSeconds > 0
-        ? 'Gửi lại sau ${_resendCooldownSeconds}s'
-        : 'Gửi lại liên kết';
+        ? texts.resendCooldownLabel(_resendCooldownSeconds)
+        : texts.resendLinkAction;
 
     return Column(
       key: const ValueKey('forgot-success'),
@@ -381,7 +390,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 16),
         Text(
-          'Kiểm tra email',
+          texts.checkEmailTitle,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,
           ),
@@ -389,7 +398,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Nếu email tồn tại trong hệ thống, chúng tôi đã gửi liên kết đặt lại.',
+          texts.checkEmailDescription,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurfaceVariant,
             height: 1.5,
@@ -399,7 +408,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         if (_submittedEmail.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(
-            'Đã gửi đến: $_submittedEmail',
+            texts.sentToLabel(_submittedEmail),
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -408,7 +417,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ],
         const SizedBox(height: 6),
         Text(
-          'Vui lòng kiểm tra cả thư rác (Spam).',
+          texts.spamHint,
           style: theme.textTheme.bodySmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -416,7 +425,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Liên kết có hiệu lực trong 30 phút.',
+          texts.linkValidityHint,
           style: theme.textTheme.bodySmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -427,15 +436,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           width: double.infinity,
           child: Semantics(
             button: true,
-            label: 'Gửi lại liên kết đặt lại mật khẩu',
+            label: texts.submitSemantic,
             child: ElevatedButton(
               onPressed: canResend ? _handleSubmit : null,
               style: _buildPrimaryButtonStyle(theme),
               child: _isSubmitting
-                  ? const Row(
+                  ? Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        SizedBox(
+                        const SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(
@@ -443,8 +452,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             color: Colors.white,
                           ),
                         ),
-                        SizedBox(width: 10),
-                        Text('Đang gửi liên kết...'),
+                        const SizedBox(width: 10),
+                        Text(texts.submittingLabel),
                       ],
                     )
                   : Text(resendButtonLabel),
@@ -454,7 +463,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         if (_resendCooldownSeconds > 0) ...[
           const SizedBox(height: 8),
           Text(
-            'Vui lòng đợi để tránh gửi quá nhiều yêu cầu trong thời gian ngắn.',
+            texts.cooldownHint,
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -466,11 +475,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           width: double.infinity,
           child: Semantics(
             button: true,
-            label: 'Dùng email khác',
+            label: texts.useDifferentEmailAction,
             child: OutlinedButton(
               onPressed: _isSubmitting ? null : _handleUseDifferentEmail,
               style: _buildOutlineButtonStyle(theme),
-              child: const Text('Dùng email khác'),
+              child: Text(texts.useDifferentEmailAction),
             ),
           ),
         ),
@@ -478,7 +487,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         Center(
           child: Semantics(
             button: true,
-            label: 'Quay lại đăng nhập',
+            label: texts.backToLoginAction,
             child: TextButton(
               onPressed: _isSubmitting
                   ? null
@@ -491,7 +500,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   decoration: TextDecoration.underline,
                 ),
               ),
-              child: const Text('Quay lại đăng nhập'),
+              child: Text(texts.backToLoginAction),
             ),
           ),
         ),
@@ -590,12 +599,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Future<void> _handleSubmit() async {
+    final texts = _texts;
     if (_isSubmitting) {
       return;
     }
     if (_resendCooldownSeconds > 0) {
       _showErrorSnackbar(
-        'Bạn vừa yêu cầu gửi lại. Vui lòng thử lại sau $_resendCooldownSeconds giây.',
+        texts.recentlyRequestedMessage(_resendCooldownSeconds),
       );
       return;
     }
@@ -631,8 +641,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       );
       if (!result.isSuccess) {
         _showErrorSnackbar(
-          result.failure?.message ??
-              'Không thể gửi liên kết lúc này. Vui lòng thử lại.',
+          result.failure?.message ?? texts.cannotSendLinkMessage,
         );
         return;
       }
@@ -646,17 +655,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _startResendCooldown();
       if (isResend) {
         _showSuccessSnackbar(
-          result.message ?? 'Đã gửi lại liên kết đặt lại đến $_submittedEmail.',
+          result.message ?? texts.resentLinkMessage(_submittedEmail),
         );
       }
     } on TimeoutException {
-      _showErrorSnackbar('Yêu cầu đang quá tải, vui lòng thử lại.');
+      _showErrorSnackbar(texts.timeoutMessage);
     } on Exception {
-      _showErrorSnackbar(
-        'Không thể gửi liên kết lúc này. Vui lòng kiểm tra kết nối và thử lại.',
-      );
+      _showErrorSnackbar(texts.networkRetryMessage);
     } catch (_) {
-      _showErrorSnackbar('Đã có lỗi xảy ra. Vui lòng thử lại.');
+      _showErrorSnackbar(texts.unexpectedErrorMessage);
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -796,23 +803,96 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 }
 
+class _ForgotPasswordTexts {
+  const _ForgotPasswordTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get backToLoginAction =>
+      isEnglish ? 'Back to login' : 'Quay lại đăng nhập';
+  String get screenTitle => isEnglish ? 'Reset password' : 'Đặt lại mật khẩu';
+  String get formDescription => isEnglish
+      ? 'Enter your registered email to receive a password reset link.'
+      : 'Nhập email đăng ký để nhận liên kết đặt lại mật khẩu.';
+  String get emailLabel => 'Email';
+  String get emailFieldSemantic =>
+      isEnglish ? 'Password reset email' : 'Email đặt lại mật khẩu';
+  String get emptyEmailMessage =>
+      isEnglish ? 'Email cannot be empty.' : 'Email không được để trống';
+  String get invalidEmailMessage =>
+      isEnglish ? 'Invalid email address.' : 'Email không hợp lệ';
+  String get submitSemantic =>
+      isEnglish ? 'Send password reset link' : 'Gửi liên kết đặt lại mật khẩu';
+  String get submitAction =>
+      isEnglish ? 'Send reset link' : 'Gửi liên kết đặt lại';
+  String get submittingLabel =>
+      isEnglish ? 'Sending link...' : 'Đang gửi liên kết...';
+  String resendCooldownLabel(int seconds) =>
+      isEnglish ? 'Resend in ${seconds}s' : 'Gửi lại sau ${seconds}s';
+  String get resendLinkAction => isEnglish ? 'Resend link' : 'Gửi lại liên kết';
+  String get checkEmailTitle =>
+      isEnglish ? 'Check your email' : 'Kiểm tra email';
+  String get checkEmailDescription => isEnglish
+      ? 'If the email exists in the system, we have sent a reset link.'
+      : 'Nếu email tồn tại trong hệ thống, chúng tôi đã gửi liên kết đặt lại.';
+  String sentToLabel(String email) =>
+      isEnglish ? 'Sent to: $email' : 'Đã gửi đến: $email';
+  String get spamHint => isEnglish
+      ? 'Please also check your Spam folder.'
+      : 'Vui lòng kiểm tra cả thư rác (Spam).';
+  String get linkValidityHint => isEnglish
+      ? 'The link is valid for 30 minutes.'
+      : 'Liên kết có hiệu lực trong 30 phút.';
+  String get cooldownHint => isEnglish
+      ? 'Please wait to avoid sending too many requests in a short time.'
+      : 'Vui lòng đợi để tránh gửi quá nhiều yêu cầu trong thời gian ngắn.';
+  String get useDifferentEmailAction =>
+      isEnglish ? 'Use a different email' : 'Dùng email khác';
+  String recentlyRequestedMessage(int seconds) => isEnglish
+      ? 'You already requested a resend. Please try again in $seconds seconds.'
+      : 'Bạn vừa yêu cầu gửi lại. Vui lòng thử lại sau $seconds giây.';
+  String get cannotSendLinkMessage => isEnglish
+      ? 'Unable to send the link right now. Please try again.'
+      : 'Không thể gửi liên kết lúc này. Vui lòng thử lại.';
+  String resentLinkMessage(String email) => isEnglish
+      ? 'A new reset link has been sent to $email.'
+      : 'Đã gửi lại liên kết đặt lại đến $email.';
+  String get timeoutMessage => isEnglish
+      ? 'The request timed out. Please try again.'
+      : 'Yêu cầu đang quá tải, vui lòng thử lại.';
+  String get networkRetryMessage => isEnglish
+      ? 'Unable to send the link right now. Please check your connection and try again.'
+      : 'Không thể gửi liên kết lúc này. Vui lòng kiểm tra kết nối và thử lại.';
+  String get unexpectedErrorMessage => isEnglish
+      ? 'Something went wrong. Please try again.'
+      : 'Đã có lỗi xảy ra. Vui lòng thử lại.';
+  String get headerCompactSubtitle => isEnglish
+      ? 'Enter your email to receive a password reset link.'
+      : 'Nhập email để nhận liên kết đặt lại mật khẩu.';
+  String get headerSubtitle => isEnglish
+      ? 'We will send password reset instructions to your email.'
+      : 'Chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu qua email.';
+}
+
 class _ForgotHeader extends StatelessWidget {
   const _ForgotHeader({
     required this.theme,
     required this.isCompact,
     required this.isTablet,
+    required this.texts,
   });
 
   final ThemeData theme;
   final bool isCompact;
   final bool isTablet;
+  final _ForgotPasswordTexts texts;
 
   @override
   Widget build(BuildContext context) {
     final logoHeight = isTablet ? 52.0 : 40.0;
     final subtitle = isCompact
-        ? 'Nhập email để nhận liên kết đặt lại mật khẩu.'
-        : 'Chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu qua email.';
+        ? texts.headerCompactSubtitle
+        : texts.headerSubtitle;
     final subtitleTopGap = isCompact ? 12.0 : 16.0;
 
     return Column(

@@ -48,6 +48,7 @@ _DashboardSnapshot _buildDashboardSnapshot({
   required _DashboardTimeFilter timeFilter,
   required DateTime selectedPeriod,
   required DateTime now,
+  required bool isEnglish,
 }) {
   final periodAnchor = _dashboardNormalizePeriodAnchorForFilter(
     selectedPeriod,
@@ -101,6 +102,7 @@ _DashboardSnapshot _buildDashboardSnapshot({
     periodContextLabel: _dashboardPeriodContextLabelFor(
       periodAnchor,
       timeFilter,
+      isEnglish: isEnglish,
     ),
     periodRevenue: periodRevenueOrders.fold<int>(
       0,
@@ -111,9 +113,9 @@ _DashboardSnapshot _buildDashboardSnapshot({
         .where((order) => order.status == OrderStatus.completed)
         .length,
     totalOutstandingDebt: _calculateTotalOutstandingDebt(orders),
-    periodUnitLabel: timeFilter == _DashboardTimeFilter.month
-        ? 'th\u00E1ng'
-        : 'qu\u00FD',
+    periodUnitLabel: _DashboardTexts(
+      isEnglish: isEnglish,
+    ).periodUnitLabel(timeFilter),
   );
 }
 
@@ -243,13 +245,18 @@ String _periodCompactLabelFor(DateTime date, _DashboardTimeFilter filter) {
 
 String _dashboardPeriodContextLabelFor(
   DateTime date,
-  _DashboardTimeFilter filter,
-) {
+  _DashboardTimeFilter filter, {
+  required bool isEnglish,
+}) {
   if (filter == _DashboardTimeFilter.month) {
-    return 'Th\u00E1ng ${date.month}/${date.year}';
+    return isEnglish
+        ? 'Month ${date.month}/${date.year}'
+        : 'Th\u00E1ng ${date.month}/${date.year}';
   }
   final quarter = ((date.month - 1) ~/ 3) + 1;
-  return 'Qu\u00FD $quarter/${date.year}';
+  return isEnglish
+      ? 'Quarter $quarter/${date.year}'
+      : 'Qu\u00FD $quarter/${date.year}';
 }
 
 DateTime _dashboardPeriodStartForFilter(
@@ -353,6 +360,7 @@ Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({
   required BuildContext context,
   required _DashboardTimeFilter initialFilter,
   required DateTime selectedPeriod,
+  required _DashboardTexts texts,
 }) async {
   final now = DateTime.now();
   var draftFilter = initialFilter;
@@ -385,7 +393,7 @@ Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'L\u1ECDc th\u1EDDi gian',
+                    texts.filterSheetTitle,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -394,14 +402,14 @@ Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({
                   SegmentedButton<_DashboardTimeFilter>(
                     showSelectedIcon: false,
                     multiSelectionEnabled: false,
-                    segments: const [
+                    segments: [
                       ButtonSegment<_DashboardTimeFilter>(
                         value: _DashboardTimeFilter.month,
-                        label: Text('Theo th\u00E1ng'),
+                        label: Text(texts.filterByMonthLabel),
                       ),
                       ButtonSegment<_DashboardTimeFilter>(
                         value: _DashboardTimeFilter.quarter,
-                        label: Text('Theo qu\u00FD'),
+                        label: Text(texts.filterByQuarterLabel),
                       ),
                     ],
                     selected: {draftFilter},
@@ -435,7 +443,11 @@ Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({
                       ),
                     ),
                     child: Text(
-                      _dashboardPeriodContextLabelFor(draftPeriod, draftFilter),
+                      _dashboardPeriodContextLabelFor(
+                        draftPeriod,
+                        draftFilter,
+                        isEnglish: texts.isEnglish,
+                      ),
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -456,7 +468,7 @@ Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({
                             });
                           },
                           icon: const Icon(Icons.chevron_left),
-                          label: const Text('K\u1EF3 tr\u01B0\u1EDBc'),
+                          label: Text(texts.previousPeriodLabel),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 48),
                           ),
@@ -482,7 +494,7 @@ Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({
                                 }
                               : null,
                           icon: const Icon(Icons.chevron_right),
-                          label: const Text('K\u1EF3 sau'),
+                          label: Text(texts.nextPeriodLabel),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 48),
                           ),
@@ -503,8 +515,8 @@ Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({
                           firstDate: DateTime(now.year - 5, 1, 1),
                           lastDate: now,
                           helpText: draftFilter == _DashboardTimeFilter.month
-                              ? 'Ch\u1ECDn th\u00E1ng'
-                              : 'Ch\u1ECDn qu\u00FD',
+                              ? texts.pickMonthLabel
+                              : texts.pickQuarterLabel,
                         );
                         if (picked == null) {
                           return;
@@ -519,7 +531,7 @@ Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({
                         });
                       },
                       icon: const Icon(Icons.event_outlined),
-                      label: const Text('Ch\u1ECDn t\u1EEB l\u1ECBch'),
+                      label: Text(texts.pickFromCalendarLabel),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(48),
                       ),
@@ -541,7 +553,7 @@ Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({
                                       );
                                 });
                               },
-                        child: const Text('V\u1EC1 hi\u1EC7n t\u1EA1i'),
+                        child: Text(texts.backToCurrentLabel),
                       ),
                       const Spacer(),
                       FilledButton(
@@ -560,7 +572,7 @@ Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({
                         style: FilledButton.styleFrom(
                           minimumSize: const Size(96, 48),
                         ),
-                        child: const Text('\u00C1p d\u1EE5ng'),
+                        child: Text(texts.applyAction),
                       ),
                     ],
                   ),

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'models.dart';
 import 'order_detail_screen.dart';
@@ -19,6 +20,12 @@ const double _detailSectionSpacing = 16;
 const double _detailSectionSpacingLarge = 18;
 const double _detailItemSpacing = 10;
 const double _detailMinTapTarget = 48;
+
+_InventoryProductDetailTexts _inventoryProductDetailTexts(
+  BuildContext context,
+) => _InventoryProductDetailTexts(
+  isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+);
 
 class InventoryProductDetailScreen extends StatefulWidget {
   const InventoryProductDetailScreen({
@@ -102,6 +109,7 @@ class _InventoryProductDetailScreenState
 
   @override
   Widget build(BuildContext context) {
+    final texts = _inventoryProductDetailTexts(context);
     final colorScheme = Theme.of(context).colorScheme;
     final warrantyController = WarrantyScope.of(context);
     final orderIdSet = widget.orderIds.toSet();
@@ -135,9 +143,9 @@ class _InventoryProductDetailScreenState
     }
     final importedCount = serials.length;
     final canExport = availableCount > 0;
-    final filterAllLabel = 'Tất cả ($importedCount)';
-    final filterAvailableLabel = 'Sẵn sàng ($availableCount)';
-    final filterSoldLabel = 'Đã bán ($soldCount)';
+    final filterAllLabel = texts.filterAllLabel(importedCount);
+    final filterAvailableLabel = texts.filterAvailableLabel(availableCount);
+    final filterSoldLabel = texts.filterSoldLabel(soldCount);
 
     final filtered = serials
         .where((record) {
@@ -162,7 +170,7 @@ class _InventoryProductDetailScreenState
     final maxWidth = isTablet ? 1040.0 : double.infinity;
 
     return Scaffold(
-      appBar: AppBar(title: const BrandAppBarTitle('Chi tiết kho')),
+      appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
@@ -194,7 +202,9 @@ class _InventoryProductDetailScreenState
                           children: [
                             Semantics(
                               image: true,
-                              label: 'Ảnh sản phẩm ${widget.product.name}',
+                              label: texts.productImageLabel(
+                                widget.product.name,
+                              ),
                               child: ExcludeSemantics(
                                 child: ProductImage(
                                   product: widget.product,
@@ -241,7 +251,9 @@ class _InventoryProductDetailScreenState
                                   ],
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Nhập gần nhất: ${formatDateTime(widget.latestImportedAt)}',
+                                    texts.latestImportedLabel(
+                                      formatDateTime(widget.latestImportedAt),
+                                    ),
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
                                           color: colorScheme.onSurfaceVariant,
@@ -278,19 +290,19 @@ class _InventoryProductDetailScreenState
                                 columns;
                             final metrics = <Widget>[
                               _InventoryMetric(
-                                label: 'Tồn kho',
+                                label: texts.availableMetricLabel,
                                 value: '$availableCount',
                                 color: colorScheme.primary,
                                 icon: Icons.inventory_2_outlined,
                               ),
                               _InventoryMetric(
-                                label: 'Đã nhập',
+                                label: texts.importedMetricLabel,
                                 value: '$importedCount',
                                 color: colorScheme.secondary,
                                 icon: Icons.south_west_rounded,
                               ),
                               _InventoryMetric(
-                                label: 'Đã bán',
+                                label: texts.soldMetricLabel,
                                 value: '$soldCount',
                                 color: colorScheme.tertiary,
                                 icon: Icons.north_east_rounded,
@@ -318,13 +330,14 @@ class _InventoryProductDetailScreenState
                     Semantics(
                       button: true,
                       enabled: canExport,
-                      label: 'Xuất hàng',
+                      label: texts.exportAction,
                       child: ElevatedButton.icon(
                         onPressed: canExport
                             ? () {
                                 Navigator.of(this.context).push(
                                   MaterialPageRoute(
-                                    builder: (_) => const WarrantyExportScreen(),
+                                    builder: (_) =>
+                                        const WarrantyExportScreen(),
                                   ),
                                 );
                               }
@@ -337,7 +350,7 @@ class _InventoryProductDetailScreenState
                           ),
                         ),
                         icon: const Icon(Icons.local_shipping_outlined),
-                        label: const Text('Xuất hàng'),
+                        label: Text(texts.exportAction),
                       ),
                     ),
                     OutlinedButton.icon(
@@ -360,7 +373,7 @@ class _InventoryProductDetailScreenState
                         textStyle: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       icon: const Icon(Icons.qr_code_scanner_outlined),
-                      label: const Text('Quét QR'),
+                      label: Text(texts.scanQrAction),
                     ),
                   ],
                 ),
@@ -388,13 +401,9 @@ class _InventoryProductDetailScreenState
                 ),
                 const SizedBox(height: _detailSectionSpacing),
                 if (serials.isEmpty)
-                  const _SerialEmptyStateCard(
-                    message: 'Sản phẩm này chưa có danh sách serial.',
-                  )
+                  _SerialEmptyStateCard(message: texts.noSerialsMessage)
                 else if (filtered.isEmpty)
-                  const _SerialEmptyStateCard(
-                    message: 'Không có serial phù hợp bộ lọc.',
-                  )
+                  _SerialEmptyStateCard(message: texts.filterEmptyMessage)
                 else
                   ...visibleSerials.map((record) {
                     final status = serialStatuses[record.serial]!;
@@ -458,6 +467,7 @@ class _InventoryProductDetailScreenState
   Future<void> _handleScanSerialForProduct(
     WarrantyController warrantyController,
   ) async {
+    final texts = _inventoryProductDetailTexts(context);
     final scannedValue = await Navigator.of(
       context,
     ).push<String>(MaterialPageRoute(builder: (_) => const SerialScanScreen()));
@@ -467,11 +477,13 @@ class _InventoryProductDetailScreenState
 
     final normalized = warrantyController.normalizeSerial(scannedValue);
     if (normalized.isEmpty) {
-      _showSnackBar('Mã quét không hợp lệ.');
+      _showSnackBar(texts.invalidScannedCodeMessage);
       return;
     }
 
-    final validationError = warrantyController.validateSerialForExport(normalized);
+    final validationError = warrantyController.validateSerialForExport(
+      normalized,
+    );
     if (validationError != null) {
       _showSnackBar(validationError);
       return;
@@ -489,7 +501,9 @@ class _InventoryProductDetailScreenState
 
   void _copySerial(String serial) {
     Clipboard.setData(ClipboardData(text: serial));
-    _showSnackBar('Đã sao chép serial $serial.');
+    _showSnackBar(
+      _inventoryProductDetailTexts(context).copiedSerialMessage(serial),
+    );
   }
 
   void _showSnackBar(String message) {
@@ -643,6 +657,7 @@ class _SerialTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _inventoryProductDetailTexts(context);
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final color = switch (status) {
@@ -650,8 +665,8 @@ class _SerialTile extends StatelessWidget {
       _ => isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
     };
     final statusLabel = switch (status) {
-      'sold' => 'Đã bán',
-      _ => 'Sẵn sàng',
+      'sold' => texts.soldStatusLabel,
+      _ => texts.availableStatusLabel,
     };
 
     return Card(
@@ -694,7 +709,7 @@ class _SerialTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Nhập: ${formatDateTime(record.importedAt)}',
+                    texts.importedAtLabel(formatDateTime(record.importedAt)),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                       fontSize: 12,
@@ -710,7 +725,7 @@ class _SerialTile extends StatelessWidget {
                       foregroundColor: colorScheme.primary,
                     ),
                     child: Text(
-                      'Đơn ${record.orderId}',
+                      texts.orderLinkLabel(record.orderId),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: colorScheme.primary,
                         fontWeight: FontWeight.w600,
@@ -723,7 +738,7 @@ class _SerialTile extends StatelessWidget {
               ),
             ),
             PopupMenuButton<String>(
-              tooltip: 'Tùy chọn serial',
+              tooltip: texts.serialOptionsTooltip,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(
                 minWidth: _detailMinTapTarget,
@@ -735,9 +750,9 @@ class _SerialTile extends StatelessWidget {
                 }
               },
               itemBuilder: (_) => [
-                const PopupMenuItem<String>(
+                PopupMenuItem<String>(
                   value: 'copy',
-                  child: Text('Sao chép serial'),
+                  child: Text(texts.copySerialAction),
                 ),
               ],
               child: Container(
@@ -759,4 +774,48 @@ class _SerialTile extends StatelessWidget {
       ),
     );
   }
+}
+
+class _InventoryProductDetailTexts {
+  const _InventoryProductDetailTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get screenTitle => isEnglish ? 'Inventory details' : 'Chi tiết kho';
+  String filterAllLabel(int count) =>
+      isEnglish ? 'All ($count)' : 'Tất cả ($count)';
+  String filterAvailableLabel(int count) =>
+      isEnglish ? 'Available ($count)' : 'Sẵn sàng ($count)';
+  String filterSoldLabel(int count) =>
+      isEnglish ? 'Sold ($count)' : 'Đã bán ($count)';
+  String productImageLabel(String productName) => isEnglish
+      ? 'Product image for $productName'
+      : 'Ảnh sản phẩm $productName';
+  String latestImportedLabel(String dateTimeLabel) => isEnglish
+      ? 'Latest import: $dateTimeLabel'
+      : 'Nhập gần nhất: $dateTimeLabel';
+  String get availableMetricLabel => isEnglish ? 'Available' : 'Tồn kho';
+  String get importedMetricLabel => isEnglish ? 'Imported' : 'Đã nhập';
+  String get soldMetricLabel => isEnglish ? 'Sold' : 'Đã bán';
+  String get exportAction => isEnglish ? 'Export stock' : 'Xuất hàng';
+  String get scanQrAction => isEnglish ? 'Scan QR' : 'Quét QR';
+  String get noSerialsMessage => isEnglish
+      ? 'This product does not have any serials yet.'
+      : 'Sản phẩm này chưa có danh sách serial.';
+  String get filterEmptyMessage => isEnglish
+      ? 'No serial matches the selected filter.'
+      : 'Không có serial phù hợp bộ lọc.';
+  String get invalidScannedCodeMessage =>
+      isEnglish ? 'The scanned code is not valid.' : 'Mã quét không hợp lệ.';
+  String copiedSerialMessage(String serial) =>
+      isEnglish ? 'Copied serial $serial.' : 'Đã sao chép serial $serial.';
+  String get availableStatusLabel => isEnglish ? 'Available' : 'Sẵn sàng';
+  String get soldStatusLabel => isEnglish ? 'Sold' : 'Đã bán';
+  String importedAtLabel(String dateTimeLabel) =>
+      isEnglish ? 'Imported: $dateTimeLabel' : 'Nhập: $dateTimeLabel';
+  String orderLinkLabel(String orderId) =>
+      isEnglish ? 'Order $orderId' : 'Đơn $orderId';
+  String get serialOptionsTooltip =>
+      isEnglish ? 'Serial options' : 'Tùy chọn serial';
+  String get copySerialAction => isEnglish ? 'Copy serial' : 'Sao chép serial';
 }

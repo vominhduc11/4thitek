@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'account_settings_screen.dart';
 import 'app_preferences_screen.dart';
-import 'app_settings_controller.dart';
 import 'auth_storage.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'dealer_profile_storage.dart';
 import 'file_reference.dart';
 import 'global_search.dart';
+import 'l10n/app_localizations.dart';
 import 'notification_controller.dart';
 import 'order_controller.dart';
 import 'support_screen.dart';
+import 'warranty_hub_screen.dart';
 import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
@@ -32,13 +34,13 @@ class _AccountScreenState extends State<AccountScreen> {
   bool _isProfileLoading = true;
   DealerProfile? _profile;
   Object? _profileError;
-
-  static const _appVersion = '1.0.0+1';
+  String _appVersion = '--';
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
+    _loadAppVersion();
   }
 
   Future<void> _loadProfile() async {
@@ -88,6 +90,15 @@ class _AccountScreenState extends State<AccountScreen> {
     ).push(MaterialPageRoute(builder: (context) => const SupportScreen()));
   }
 
+  Future<void> _openWarrantyHub() async {
+    if (_isLoggingOut) {
+      return;
+    }
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const WarrantyHubScreen()));
+  }
+
   Future<void> _openAppPreferences() async {
     if (_isLoggingOut) {
       return;
@@ -97,25 +108,35 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  Future<bool?> _confirmLogout(bool isEnglish) {
-    final title = isEnglish ? 'Confirm logout' : 'Xác nhận đăng xuất';
-    final message = isEnglish
-        ? 'You are about to log out. Your current cart data will be cleared. Do you want to continue?'
-        : 'Bạn sắp đăng xuất. Dữ liệu giỏ hàng hiện tại sẽ bị xóa. Bạn có muốn tiếp tục không?';
-    final cancelLabel = isEnglish ? 'Cancel' : 'Hủy';
-    final confirmLabel = isEnglish ? 'Log out' : 'Đăng xuất';
+  Future<void> _loadAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      final version = info.version.trim();
+      final buildNumber = info.buildNumber.trim();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _appVersion = buildNumber.isEmpty ? version : '$version+$buildNumber';
+      });
+    } catch (_) {
+      // Keep fallback when runtime package metadata is unavailable.
+    }
+  }
+
+  Future<bool?> _confirmLogout(AppLocalizations l10n) {
     return showDialog<bool>(
       context: context,
       traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
       requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text(title),
-          content: Text(message),
+          title: Text(l10n.accountLogoutConfirmTitle),
+          content: Text(l10n.accountLogoutConfirmMessage),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(cancelLabel),
+              child: Text(l10n.cancelAction),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
@@ -123,7 +144,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 foregroundColor: Theme.of(context).colorScheme.onError,
               ),
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(confirmLabel),
+              child: Text(l10n.accountLogoutAction),
             ),
           ],
         );
@@ -131,11 +152,11 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  Future<void> _handleLogout(bool isEnglish) async {
+  Future<void> _handleLogout(AppLocalizations l10n) async {
     if (_isLoggingOut) {
       return;
     }
-    final shouldLogout = await _confirmLogout(isEnglish);
+    final shouldLogout = await _confirmLogout(l10n);
     if (shouldLogout != true || !mounted) {
       return;
     }
@@ -211,44 +232,31 @@ class _AccountScreenState extends State<AccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final appSettings = AppSettingsScope.of(context);
-    final isEnglish = appSettings.locale.languageCode == 'en';
+    final l10n = AppLocalizations.of(context)!;
     final colors = Theme.of(context).colorScheme;
     final isTablet = AppBreakpoints.isTablet(context);
     final contentMaxWidth = isTablet ? 860.0 : double.infinity;
 
-    final screenTitle = isEnglish ? 'Account' : 'Tài khoản';
-    final loadingLabel = isEnglish ? 'Signing out...' : 'Đang đăng xuất...';
-    final menuSettingsTitle = isEnglish
-        ? 'Account settings'
-        : 'Cài đặt tài khoản';
-    final menuSettingsSubtitle = isEnglish
-        ? 'Update company profile, contacts, and shipping information.'
-        : 'Cập nhật thông tin đại lý, liên hệ và địa chỉ giao hàng.';
-    final menuSupportTitle = isEnglish ? 'Support' : 'Hỗ trợ';
-    final menuSupportSubtitle = isEnglish
-        ? 'Contact support and submit product, order, or warranty requests.'
-        : 'Liên hệ hỗ trợ và gửi yêu cầu đơn hàng, sản phẩm, bảo hành.';
-    final menuPreferencesTitle = isEnglish
-        ? 'Appearance and language'
-        : 'Giao diện và ngôn ngữ';
-    final menuPreferencesSubtitle = isEnglish
-        ? 'Switch theme mode and language preferences.'
-        : 'Chuyển chế độ giao diện và ngôn ngữ sử dụng.';
-    final logoutLabel = isEnglish ? 'Log out' : 'Đăng xuất';
-    final editProfileLabel = isEnglish ? 'Edit profile' : 'Sửa hồ sơ';
-    final versionLabel = isEnglish
-        ? 'Version $_appVersion'
-        : 'Phiên bản $_appVersion';
-    final contactLabel = isEnglish ? 'Contact person' : 'Người liên hệ';
+    final screenTitle = l10n.accountScreenTitle;
+    final loadingLabel = l10n.accountSignOutLoading;
+    final menuSettingsTitle = l10n.accountMenuSettingsTitle;
+    final menuSettingsSubtitle = l10n.accountMenuSettingsSubtitle;
+    final menuSupportTitle = l10n.accountMenuSupportTitle;
+    final menuSupportSubtitle = l10n.accountMenuSupportSubtitle;
+    final menuWarrantyTitle = l10n.accountMenuWarrantyTitle;
+    final menuWarrantySubtitle = l10n.accountMenuWarrantySubtitle;
+    final menuPreferencesTitle = l10n.accountMenuPreferencesTitle;
+    final menuPreferencesSubtitle = l10n.accountMenuPreferencesSubtitle;
+    final logoutLabel = l10n.accountLogoutAction;
+    final editProfileLabel = l10n.accountEditProfileAction;
+    final versionLabel = l10n.accountVersionLabel(_appVersion);
+    final contactLabel = l10n.accountContactLabel;
     final emailLabel = 'Email';
-    final phoneLabel = isEnglish ? 'Phone' : 'Số điện thoại';
-    final shippingLabel = isEnglish ? 'Shipping address' : 'Địa chỉ giao hàng';
-    final policyLabel = isEnglish ? 'Sales policy' : 'Chính sách';
-    final profileErrorTitle = isEnglish
-        ? 'Unable to load account profile.'
-        : 'Không thể tải dữ liệu tài khoản.';
-    final retryLabel = isEnglish ? 'Retry' : 'Thử lại';
+    final phoneLabel = l10n.accountPhoneLabel;
+    final shippingLabel = l10n.accountShippingLabel;
+    final policyLabel = l10n.accountPolicyLabel;
+    final profileErrorTitle = l10n.accountProfileLoadError;
+    final retryLabel = l10n.retryAction;
 
     Widget buildBody() {
       if (_isProfileLoading) {
@@ -421,6 +429,14 @@ class _AccountScreenState extends State<AccountScreen> {
                   ),
                   const Divider(height: 0),
                   ListTile(
+                    leading: const Icon(Icons.verified_user_outlined),
+                    title: Text(menuWarrantyTitle),
+                    subtitle: Text(menuWarrantySubtitle),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: _isLoggingOut ? null : _openWarrantyHub,
+                  ),
+                  const Divider(height: 0),
+                  ListTile(
                     leading: const Icon(Icons.palette_outlined),
                     title: Text(menuPreferencesTitle),
                     subtitle: Text(menuPreferencesSubtitle),
@@ -439,7 +455,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 foregroundColor: colors.error,
                 side: BorderSide(color: colors.error.withValues(alpha: 0.55)),
               ),
-              onPressed: _isLoggingOut ? null : () => _handleLogout(isEnglish),
+              onPressed: _isLoggingOut ? null : () => _handleLogout(l10n),
               child: _isLoggingOut
                   ? SizedBox(
                       width: 20,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'account_settings_screen.dart';
+import 'app_settings_controller.dart';
 import 'bank_transfer_support.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
@@ -31,8 +32,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   BankTransferInstructions? _bankTransferInstructions;
   bool _isSubmitting = false;
   bool _isLoadingBankTransferInstructions = false;
+  bool _isEnglish = false;
+
+  _CheckoutTexts get _texts => _CheckoutTexts(isEnglish: _isEnglish);
 
   bool get _canUseDebtPayment => _profile.creditLimit > 0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _isEnglish = AppSettingsScope.of(context).locale.languageCode == 'en';
+  }
 
   @override
   void initState() {
@@ -55,7 +65,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           // Keep default profile when remote profile is temporarily unavailable.
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
-              _showSnackBar('Không tải được thông tin tài khoản. Một số tính năng có thể bị hạn chế.');
+              _showSnackBar(_texts.profileLoadFailedMessage);
             }
           });
         });
@@ -79,10 +89,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   String get _primaryActionLabel {
+    final texts = _texts;
     if (_method == OrderPaymentMethod.bankTransfer) {
-      return 'Tạo đơn và xem thông tin chuyển khoản';
+      return texts.primaryActionBankTransfer;
     }
-    return 'Xác nhận đặt hàng';
+    return texts.primaryActionConfirmOrder;
   }
 
   Future<void> _openAccountSettings() async {
@@ -121,7 +132,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
       setState(() => _bankTransferInstructions = null);
       if (showError) {
-        _showSnackBar('Không thể tải thông tin chuyển khoản: $error');
+        _showSnackBar(_texts.cannotLoadBankTransferMessage(error));
       }
     } finally {
       if (mounted) {
@@ -143,7 +154,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (!mounted) {
       return;
     }
-    _showSnackBar('Đã sao chép $label');
+    _showSnackBar(_texts.copiedLabelMessage(label));
   }
 
   void _showSnackBar(String message) {
@@ -157,6 +168,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _texts;
     final colors = Theme.of(context).colorScheme;
     final cart = CartScope.of(context);
     final orderController = OrderScope.of(context);
@@ -171,7 +183,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const BrandAppBarTitle('Thanh toán'),
+        title: BrandAppBarTitle(texts.screenTitle),
         actions: const [GlobalSearchIconButton()],
       ),
       body: Center(
@@ -182,7 +194,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             children: [
               FadeSlideIn(
                 child: SectionCard(
-                  title: 'Thông tin nhận hàng',
+                  title: texts.shippingInfoTitle,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -191,7 +203,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         child: TextButton.icon(
                           onPressed: _openAccountSettings,
                           icon: const Icon(Icons.edit_outlined, size: 18),
-                          label: const Text('Sửa thông tin nhận hàng'),
+                          label: Text(texts.editShippingInfoAction),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -203,7 +215,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Người liên hệ: ${_profile.contactName}',
+                        texts.contactPersonLine(_profile.contactName),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),
@@ -217,7 +229,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'SDT: ${_profile.phone}',
+                        texts.phoneLine(_profile.phone),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),
@@ -230,7 +242,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 60),
                 child: SectionCard(
-                  title: 'Phương thức thanh toán',
+                  title: texts.paymentMethodTitle,
                   child: RadioGroup<OrderPaymentMethod>(
                     groupValue: _method,
                     onChanged: (value) {
@@ -248,19 +260,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       children: [
                         RadioListTile<OrderPaymentMethod>(
                           value: OrderPaymentMethod.bankTransfer,
-                          title: const Text('Chuyển khoản ngân hàng'),
-                          subtitle: const Text(
-                            'Tạo đơn trước, SePay webhook sẽ tự động xác nhận thanh toán.',
-                          ),
+                          title: Text(texts.bankTransferTitle),
+                          subtitle: Text(texts.bankTransferSubtitle),
                         ),
                         RadioListTile<OrderPaymentMethod>(
                           value: OrderPaymentMethod.debt,
                           enabled: _canUseDebtPayment,
-                          title: const Text('Ghi nhận công nợ'),
+                          title: Text(texts.debtPaymentTitle),
                           subtitle: Text(
                             _canUseDebtPayment
-                                ? 'Hạn mức còn lại: ${formatVnd((_profile.creditLimit - orderController.totalOutstandingDebt).clamp(0, _profile.creditLimit))} / ${formatVnd(_profile.creditLimit)}.'
-                                : 'Cần được cấp hạn mức công nợ trước khi dùng tuỳ chọn này.',
+                                ? texts.remainingCreditLimitLabel(
+                                    formatVnd(
+                                      (_profile.creditLimit -
+                                              orderController
+                                                  .totalOutstandingDebt)
+                                          .clamp(0, _profile.creditLimit),
+                                    ),
+                                    formatVnd(_profile.creditLimit),
+                                  )
+                                : texts.debtLimitRequiredMessage,
                           ),
                         ),
                       ],
@@ -272,7 +290,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 120),
                 child: SectionCard(
-                  title: 'Sản phẩm trong đơn (${cart.totalItems})',
+                  title: texts.productsInOrderTitle(cart.totalItems),
                   child: Theme(
                     data: Theme.of(
                       context,
@@ -282,13 +300,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       childrenPadding: const EdgeInsets.only(top: 8),
                       initiallyExpanded: cart.items.length <= 3,
                       title: Text(
-                        '${cart.items.length} dòng sản phẩm',
+                        texts.productLineCount(cart.items.length),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       subtitle: Text(
-                        'Nhấn để xem chi tiết từng sản phẩm',
+                        texts.expandProductsHint,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),
@@ -308,15 +326,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 160),
                 child: SectionCard(
-                  title: 'Ghi chú đơn hàng',
+                  title: texts.orderNoteTitle,
                   child: TextField(
                     controller: _orderNoteController,
                     maxLines: 3,
                     minLines: 2,
                     maxLength: 200,
-                    decoration: const InputDecoration(
-                      hintText:
-                          'Ví dụ: giao giờ hành chính, gọi trước khi giao, lưu ý xuất hoá đơn...',
+                    decoration: InputDecoration(
+                      hintText: texts.orderNoteHint,
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -326,45 +343,45 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 200),
                 child: SectionCard(
-                  title: 'Tóm tắt đơn hàng',
+                  title: texts.orderSummaryTitle,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _SummaryRow(
-                        label: 'Số lượng sản phẩm',
+                        label: texts.itemCountLabel,
                         value: '${cart.totalItems}',
                       ),
                       const SizedBox(height: 8),
                       _SummaryRow(
-                        label: 'Tạm tính',
+                        label: texts.subtotalLabel,
                         value: formatVnd(subtotal),
                       ),
                       if (discountAmount > 0) ...[
                         const SizedBox(height: 8),
                         _SummaryRow(
-                          label: 'Chiết khấu ($discountPercent%)',
+                          label: texts.discountLabel(discountPercent),
                           value: '-${formatVnd(discountAmount)}',
                         ),
                         const SizedBox(height: 8),
                         _SummaryRow(
-                          label: 'Sau chiết khấu',
+                          label: texts.afterDiscountLabel,
                           value: formatVnd(totalAfterDiscount),
                         ),
                       ],
                       const SizedBox(height: 8),
                       _SummaryRow(
-                        label: 'VAT (${CartController.vatPercent}%)',
+                        label: texts.vatLabel(CartController.vatPercent),
                         value: formatVnd(vatAmount),
                       ),
                       const SizedBox(height: 8),
                       _SummaryRow(
-                        label: 'Trạng thái thanh toán',
-                        value: _previewPaymentStatus.label,
+                        label: texts.paymentStatusLabelTitle,
+                        value: texts.paymentStatusLabel(_previewPaymentStatus),
                       ),
                       if (_method == OrderPaymentMethod.bankTransfer) ...[
                         const SizedBox(height: 8),
                         Text(
-                          'Đơn sẽ được tạo trước. Sau đó hãy chuyển khoản đúng số tiền và đúng mã đơn để SePay webhook đối soát tự động.',
+                          texts.bankTransferSummaryHint,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: colors.primary,
@@ -385,7 +402,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Đang tải thông tin chuyển khoản từ hệ thống...',
+                                  texts.loadingBankTransferMessage,
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
                                         color: colors.onSurfaceVariant,
@@ -400,7 +417,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  'Chưa tải được thông tin chuyển khoản. Hãy thử lại trước khi đặt đơn.',
+                                  texts.bankTransferUnavailableMessage,
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(color: colors.error),
                                 ),
@@ -411,7 +428,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                     : () => _loadBankTransferInstructions(
                                         showError: true,
                                       ),
-                                child: const Text('Tải lại'),
+                                child: Text(texts.retryAction),
                               ),
                             ],
                           ),
@@ -419,13 +436,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ],
                       const Divider(height: 20),
                       _SummaryRow(
-                        label: 'Tổng cộng',
+                        label: texts.totalLabel,
                         value: formatVnd(total),
                         isEmphasis: true,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Lưu ý: Giá thực tế trong đơn được tính theo giá hiện hành tại thời điểm đặt hàng, có thể khác nếu giá sản phẩm thay đổi từ lần tải gần nhất.',
+                        texts.pricingNote,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: colors.onSurfaceVariant,
                           fontStyle: FontStyle.italic,
@@ -463,7 +480,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               } else {
                                 if (!_canUseDebtPayment) {
                                   _showSnackBar(
-                                    'Tài khoản chưa được cấp hạn mức công nợ.',
+                                    texts.debtPaymentUnavailableMessage,
                                   );
                                   return;
                                 }
@@ -473,7 +490,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 if (projectedOutstandingDebt >
                                     _profile.creditLimit) {
                                   _showSnackBar(
-                                    'Vượt hạn mức công nợ. Công nợ dự kiến ${formatVnd(projectedOutstandingDebt)} lớn hơn hạn mức ${formatVnd(_profile.creditLimit)}.',
+                                    texts.creditLimitExceededMessage(
+                                      formatVnd(projectedOutstandingDebt),
+                                      formatVnd(_profile.creditLimit),
+                                    ),
                                   );
                                   return;
                                 }
@@ -494,9 +514,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                     bankTransferInstructions,
                               );
                             } catch (_) {
-                              _showSnackBar(
-                                'Không thể tạo đơn hàng. Vui lòng thử lại.',
-                              );
+                              _showSnackBar(texts.cannotCreateOrderMessage);
                             } finally {
                               if (mounted) {
                                 setState(() => _isSubmitting = false);
@@ -521,12 +539,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   List<String> _validateCart(CartController cart) {
+    final texts = _texts;
     final List<String> issues = [];
     for (final item in cart.items) {
       if (item.quantity > item.product.stock) {
-        issues.add(
-          '${item.product.name} chỉ còn ${item.product.stock} SP trong kho.',
-        );
+        issues.add(texts.stockIssue(item.product.name, item.product.stock));
       }
     }
     return issues;
@@ -537,34 +554,33 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     required int amount,
     required int itemCount,
   }) {
+    final texts = _texts;
     return showDialog<bool>(
       context: context,
       traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
       requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Xác nhận ghi nhận công nợ'),
+          title: Text(texts.debtConfirmTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Đơn hàng sẽ được tạo ngay và ghi nhận vào tổng công nợ hiện tại.',
-              ),
+              Text(texts.debtConfirmDescription),
               const SizedBox(height: 12),
-              Text('Số lượng sản phẩm: $itemCount'),
+              Text(texts.productCountSummary(itemCount)),
               const SizedBox(height: 4),
-              Text('Tổng thanh toán: ${formatVnd(amount)}'),
+              Text(texts.totalPaymentSummary(formatVnd(amount))),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Huỷ'),
+              child: Text(texts.cancelAction),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Xác nhận đặt hàng'),
+              child: Text(texts.primaryActionConfirmOrder),
             ),
           ],
         );
@@ -639,18 +655,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     BuildContext context,
     List<String> issues,
   ) async {
+    final texts = _texts;
     await showDialog<void>(
       context: context,
       traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
       requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Cần điều chỉnh đơn hàng'),
+          title: Text(texts.validationDialogTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Vui lòng kiểm tra:'),
+              Text(texts.validationDialogSubtitle),
               const SizedBox(height: 10),
               ...issues.map(
                 (issue) => Padding(
@@ -669,7 +686,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Đóng'),
+              child: Text(texts.closeAction),
             ),
           ],
         );
@@ -689,6 +706,129 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
 
     return orderId;
+  }
+}
+
+class _CheckoutTexts {
+  const _CheckoutTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get profileLoadFailedMessage => isEnglish
+      ? 'Unable to load account information. Some features may be limited.'
+      : 'Không tải được thông tin tài khoản. Một số tính năng có thể bị hạn chế.';
+  String get primaryActionBankTransfer => isEnglish
+      ? 'Create order and view bank transfer details'
+      : 'Tạo đơn và xem thông tin chuyển khoản';
+  String get primaryActionConfirmOrder =>
+      isEnglish ? 'Confirm order' : 'Xác nhận đặt hàng';
+  String cannotLoadBankTransferMessage(Object error) => isEnglish
+      ? 'Unable to load bank transfer information: $error'
+      : 'Không thể tải thông tin chuyển khoản: $error';
+  String copiedLabelMessage(String label) =>
+      isEnglish ? 'Copied $label' : 'Đã sao chép $label';
+  String get screenTitle => isEnglish ? 'Checkout' : 'Thanh toán';
+  String get shippingInfoTitle =>
+      isEnglish ? 'Shipping information' : 'Thông tin nhận hàng';
+  String get editShippingInfoAction =>
+      isEnglish ? 'Edit shipping information' : 'Sửa thông tin nhận hàng';
+  String contactPersonLine(String name) =>
+      isEnglish ? 'Contact person: $name' : 'Người liên hệ: $name';
+  String phoneLine(String phone) => isEnglish ? 'Phone: $phone' : 'SDT: $phone';
+  String get paymentMethodTitle =>
+      isEnglish ? 'Payment method' : 'Phương thức thanh toán';
+  String get bankTransferTitle =>
+      isEnglish ? 'Bank transfer' : 'Chuyển khoản ngân hàng';
+  String get bankTransferSubtitle => isEnglish
+      ? 'Create the order first, then let the SePay webhook confirm payment automatically.'
+      : 'Tạo đơn trước, SePay webhook sẽ tự động xác nhận thanh toán.';
+  String get debtPaymentTitle =>
+      isEnglish ? 'Debt recorded' : 'Ghi nhận công nợ';
+  String remainingCreditLimitLabel(String remaining, String total) => isEnglish
+      ? 'Remaining credit limit: $remaining / $total.'
+      : 'Hạn mức còn lại: $remaining / $total.';
+  String get debtLimitRequiredMessage => isEnglish
+      ? 'A credit limit must be granted before using this option.'
+      : 'Cần được cấp hạn mức công nợ trước khi dùng tuỳ chọn này.';
+  String productsInOrderTitle(int totalItems) => isEnglish
+      ? 'Products in order ($totalItems)'
+      : 'Sản phẩm trong đơn ($totalItems)';
+  String productLineCount(int count) =>
+      isEnglish ? '$count line items' : '$count dòng sản phẩm';
+  String get expandProductsHint => isEnglish
+      ? 'Tap to view each product in detail'
+      : 'Nhấn để xem chi tiết từng sản phẩm';
+  String get orderNoteTitle => isEnglish ? 'Order note' : 'Ghi chú đơn hàng';
+  String get orderNoteHint => isEnglish
+      ? 'Example: deliver during office hours, call before delivery, invoice note...'
+      : 'Ví dụ: giao giờ hành chính, gọi trước khi giao, lưu ý xuất hoá đơn...';
+  String get orderSummaryTitle =>
+      isEnglish ? 'Order summary' : 'Tóm tắt đơn hàng';
+  String get itemCountLabel => isEnglish ? 'Item count' : 'Số lượng sản phẩm';
+  String get subtotalLabel => isEnglish ? 'Subtotal' : 'Tạm tính';
+  String discountLabel(int percent) =>
+      isEnglish ? 'Discount ($percent%)' : 'Chiết khấu ($percent%)';
+  String get afterDiscountLabel =>
+      isEnglish ? 'After discount' : 'Sau chiết khấu';
+  String vatLabel(int percent) =>
+      isEnglish ? 'VAT ($percent%)' : 'VAT ($percent%)';
+  String get paymentStatusLabelTitle =>
+      isEnglish ? 'Payment status' : 'Trạng thái thanh toán';
+  String get bankTransferSummaryHint => isEnglish
+      ? 'The order will be created first. Then transfer the exact amount with the exact order ID so the SePay webhook can reconcile it automatically.'
+      : 'Đơn sẽ được tạo trước. Sau đó hãy chuyển khoản đúng số tiền và đúng mã đơn để SePay webhook đối soát tự động.';
+  String get loadingBankTransferMessage => isEnglish
+      ? 'Loading bank transfer information from the system...'
+      : 'Đang tải thông tin chuyển khoản từ hệ thống...';
+  String get bankTransferUnavailableMessage => isEnglish
+      ? 'Bank transfer information could not be loaded yet. Please try again before placing the order.'
+      : 'Chưa tải được thông tin chuyển khoản. Hãy thử lại trước khi đặt đơn.';
+  String get retryAction => isEnglish ? 'Retry' : 'Tải lại';
+  String get totalLabel => isEnglish ? 'Total' : 'Tổng cộng';
+  String get pricingNote => isEnglish
+      ? 'Note: The actual order price is calculated using the current price at checkout time, and may differ if product prices changed since the last refresh.'
+      : 'Lưu ý: Giá thực tế trong đơn được tính theo giá hiện hành tại thời điểm đặt hàng, có thể khác nếu giá sản phẩm thay đổi từ lần tải gần nhất.';
+  String get debtPaymentUnavailableMessage => isEnglish
+      ? 'This account has not been granted a credit limit yet.'
+      : 'Tài khoản chưa được cấp hạn mức công nợ.';
+  String creditLimitExceededMessage(String projected, String limit) => isEnglish
+      ? 'Credit limit exceeded. Projected debt $projected is greater than limit $limit.'
+      : 'Vượt hạn mức công nợ. Công nợ dự kiến $projected lớn hơn hạn mức $limit.';
+  String get cannotCreateOrderMessage => isEnglish
+      ? 'Unable to create the order. Please try again.'
+      : 'Không thể tạo đơn hàng. Vui lòng thử lại.';
+  String stockIssue(String productName, int stock) => isEnglish
+      ? '$productName only has $stock items left in stock.'
+      : '$productName chỉ còn $stock SP trong kho.';
+  String get debtConfirmTitle =>
+      isEnglish ? 'Confirm debt recording' : 'Xác nhận ghi nhận công nợ';
+  String get debtConfirmDescription => isEnglish
+      ? 'The order will be created immediately and recorded into the current outstanding debt.'
+      : 'Đơn hàng sẽ được tạo ngay và ghi nhận vào tổng công nợ hiện tại.';
+  String productCountSummary(int count) =>
+      isEnglish ? 'Item count: $count' : 'Số lượng sản phẩm: $count';
+  String totalPaymentSummary(String amount) =>
+      isEnglish ? 'Total payment: $amount' : 'Tổng thanh toán: $amount';
+  String get cancelAction => isEnglish ? 'Cancel' : 'Huỷ';
+  String get validationDialogTitle =>
+      isEnglish ? 'Order needs adjustments' : 'Cần điều chỉnh đơn hàng';
+  String get validationDialogSubtitle =>
+      isEnglish ? 'Please review:' : 'Vui lòng kiểm tra:';
+  String get closeAction => isEnglish ? 'Close' : 'Đóng';
+
+  String paymentStatusLabel(OrderPaymentStatus status) {
+    switch (status) {
+      case OrderPaymentStatus.cancelled:
+        return isEnglish ? 'Cancelled' : 'Đã hủy';
+      case OrderPaymentStatus.failed:
+        return isEnglish ? 'Failed' : 'Thất bại';
+      case OrderPaymentStatus.unpaid:
+        return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
+      case OrderPaymentStatus.paid:
+        return isEnglish ? 'Paid' : 'Đã thanh toán';
+      case OrderPaymentStatus.debtRecorded:
+        return isEnglish ? 'Debt recorded' : 'Công nợ';
+    }
   }
 }
 

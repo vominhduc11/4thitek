@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'models.dart';
 import 'notification_controller.dart';
@@ -18,6 +19,9 @@ class WarrantyHubScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _WarrantyHubTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
     final orderController = OrderScope.of(context);
     final warrantyController = WarrantyScope.of(context);
     final orders = orderController.orders;
@@ -38,7 +42,7 @@ class WarrantyHubScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const BrandAppBarTitle('Bảo hành'),
+        title: BrandAppBarTitle(texts.screenTitle),
         actions: [
           NotificationIconButton(
             count: NotificationScope.of(context).unreadCount,
@@ -74,17 +78,16 @@ class WarrantyHubScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Xử lý serial nhanh',
+                          texts.quickProcessTitle,
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          quickOrder == null
-                              ? (completedOrders.isEmpty
-                                    ? 'Chưa có đơn đã giao. Chỉ đơn hoàn thành mới được xử lý serial.'
-                                    : 'Tất cả đơn đã giao đã xử lý đủ serial.')
-                              : 'Mở đơn ${quickOrder.id} để xử lý serial và thông tin khách hàng.',
+                          texts.quickProcessDescription(
+                            quickOrder: quickOrder,
+                            hasCompletedOrders: completedOrders.isNotEmpty,
+                          ),
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 color: Theme.of(
@@ -109,7 +112,7 @@ class WarrantyHubScreen extends StatelessWidget {
                                       ),
                                     );
                                   },
-                            child: const Text('Xử lý serial'),
+                            child: Text(texts.processSerialAction),
                           ),
                         ),
                       ],
@@ -136,13 +139,13 @@ class WarrantyHubScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Kho serial',
+                          texts.serialInventoryTitle,
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Serial được NPP đồng bộ khi đơn chuyển sang hoàn thành. Đại lý không cần ghi nhận thủ công.',
+                          texts.serialInventoryDescription,
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 color: Theme.of(
@@ -157,17 +160,17 @@ class WarrantyHubScreen extends StatelessWidget {
                           runSpacing: 8,
                           children: [
                             _MetricChip(
-                              label: 'Đã nhập',
+                              label: texts.importedLabel,
                               value: '$importedSerialCount',
                               color: const Color(0xFF1D4ED8),
                             ),
                             _MetricChip(
-                              label: 'Sẵn sàng',
+                              label: texts.availableLabel,
                               value: '$availableSerialCount',
                               color: const Color(0xFF047857),
                             ),
                             _MetricChip(
-                              label: 'Đã kích hoạt',
+                              label: texts.activatedLabel,
                               value: '$activatedSerialCount',
                               color: const Color(0xFFB45309),
                             ),
@@ -189,7 +192,7 @@ class WarrantyHubScreen extends StatelessWidget {
                               Icons.inventory_2_outlined,
                               size: 18,
                             ),
-                            label: const Text('Xem serial'),
+                            label: Text(texts.viewSerialAction),
                           ),
                         ),
                       ],
@@ -201,7 +204,7 @@ class WarrantyHubScreen extends StatelessWidget {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 60),
                 child: Text(
-                  'Gần đây',
+                  texts.recentTitle,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -221,9 +224,9 @@ class WarrantyHubScreen extends StatelessWidget {
                         ).colorScheme.outlineVariant.withValues(alpha: 0.6),
                       ),
                     ),
-                    child: const Padding(
+                    child: Padding(
                       padding: EdgeInsets.all(16),
-                      child: Text('Chưa có lượt xử lý serial nào.'),
+                      child: Text(texts.emptyRecentMessage),
                     ),
                   ),
                 ),
@@ -250,13 +253,18 @@ class WarrantyHubScreen extends StatelessWidget {
                       child: ListTile(
                         title: Text(activation.serial),
                         subtitle: Text(
-                          'Đơn ${activation.orderId} - ${activation.productSku}\n'
-                          'Khách: ${activation.customerName} (${activation.customerPhone})\n'
-                          'Từ ${formatDate(activation.startsAt)} đến ${formatDate(activation.expiresAt)}',
+                          texts.recentActivationSummary(
+                            orderId: activation.orderId,
+                            productSku: activation.productSku,
+                            customerName: activation.customerName,
+                            customerPhone: activation.customerPhone,
+                            startDate: formatDate(activation.startsAt),
+                            endDate: formatDate(activation.expiresAt),
+                          ),
                         ),
                         isThreeLine: true,
                         trailing: Text(
-                          'Đã xử lý',
+                          texts.processedStatusLabel,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color:
@@ -336,5 +344,68 @@ class _MetricChip extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _WarrantyHubTexts {
+  const _WarrantyHubTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get screenTitle => isEnglish ? 'Warranty' : 'Bảo hành';
+  String get quickProcessTitle =>
+      isEnglish ? 'Quick serial processing' : 'Xử lý serial nhanh';
+  String get processSerialAction =>
+      isEnglish ? 'Process serials' : 'Xử lý serial';
+  String get serialInventoryTitle =>
+      isEnglish ? 'Serial inventory' : 'Kho serial';
+  String get serialInventoryDescription => isEnglish
+      ? 'Serials are synced automatically when an order reaches completed status. Dealers do not need to record them manually.'
+      : 'Serial được NPP đồng bộ khi đơn chuyển sang hoàn thành. Đại lý không cần ghi nhận thủ công.';
+  String get importedLabel => isEnglish ? 'Imported' : 'Đã nhập';
+  String get availableLabel => isEnglish ? 'Available' : 'Sẵn sàng';
+  String get activatedLabel => isEnglish ? 'Activated' : 'Đã kích hoạt';
+  String get viewSerialAction => isEnglish ? 'View serials' : 'Xem serial';
+  String get recentTitle => isEnglish ? 'Recent activity' : 'Gần đây';
+  String get emptyRecentMessage => isEnglish
+      ? 'No serial activity has been recorded yet.'
+      : 'Chưa có lượt xử lý serial nào.';
+  String get processedStatusLabel => isEnglish ? 'Processed' : 'Đã xử lý';
+
+  String quickProcessDescription({
+    required Order? quickOrder,
+    required bool hasCompletedOrders,
+  }) {
+    if (quickOrder == null) {
+      if (!hasCompletedOrders) {
+        return isEnglish
+            ? 'There are no delivered orders yet. Only completed orders can be processed for serials.'
+            : 'Chưa có đơn đã giao. Chỉ đơn hoàn thành mới được xử lý serial.';
+      }
+      return isEnglish
+          ? 'All delivered orders already have enough processed serials.'
+          : 'Tất cả đơn đã giao đã xử lý đủ serial.';
+    }
+    return isEnglish
+        ? 'Open order ${quickOrder.id} to process serials and customer details.'
+        : 'Mở đơn ${quickOrder.id} để xử lý serial và thông tin khách hàng.';
+  }
+
+  String recentActivationSummary({
+    required String orderId,
+    required String productSku,
+    required String customerName,
+    required String customerPhone,
+    required String startDate,
+    required String endDate,
+  }) {
+    if (isEnglish) {
+      return 'Order $orderId - $productSku\n'
+          'Customer: $customerName ($customerPhone)\n'
+          '$startDate to $endDate';
+    }
+    return 'Đơn $orderId - $productSku\n'
+        'Khách: $customerName ($customerPhone)\n'
+        'Từ $startDate đến $endDate';
   }
 }

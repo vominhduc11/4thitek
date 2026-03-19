@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'global_search.dart';
 import 'models.dart';
@@ -16,6 +18,7 @@ import 'orders_screen.dart';
 import 'product_list_screen.dart';
 import 'utils.dart';
 import 'warranty_controller.dart';
+import 'warranty_hub_screen.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/skeleton_box.dart';
@@ -39,6 +42,278 @@ Color _dashboardMutedText(BuildContext context) =>
 enum _DashboardTimeFilter { month, quarter }
 
 enum _DashboardLoadState { loading, ready, error }
+
+class _DashboardTexts {
+  const _DashboardTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get loadErrorMessage => isEnglish
+      ? 'Unable to load dashboard data. Please try again.'
+      : 'Không thể tải dữ liệu dashboard. Vui lòng thử lại.';
+  String get quickActionsTitle =>
+      isEnglish ? 'Quick actions' : 'Thao tác nhanh';
+  String get quickActionsSubtitle => isEnglish
+      ? 'Keep common dealer tasks within one tap instead of switching between tabs.'
+      : 'Ưu tiên các tác vụ dealer dùng thường xuyên để giảm số lần chuyển tab.';
+  String get createOrderLabel => isEnglish ? 'New order' : 'Tạo đơn';
+  String get debtLabel => isEnglish ? 'Debt' : 'Công nợ';
+  String get inventoryLabel => isEnglish ? 'Inventory' : 'Kho';
+  String get warrantyLabel => isEnglish ? 'Warranty' : 'Bảo hành';
+  String get trackingSectionTitle =>
+      isEnglish ? 'Operational insights' : 'Hiệu suất theo dõi';
+  String get mobileInsightsTitle =>
+      isEnglish ? 'Inventory and warranty' : 'Kho và bảo hành';
+  String get mobileInsightsSubtitle => isEnglish
+      ? 'Secondary charts stay collapsed on mobile, but remain available when needed.'
+      : 'Ẩn bớt biểu đồ phụ trên mobile, nhưng vẫn giữ đủ insight khi cần.';
+  String get recentOrdersTitle =>
+      isEnglish ? 'Recent orders' : 'Đơn hàng gần đây';
+  String get viewAllAction => isEnglish ? 'View all' : 'Xem tất cả';
+  String get recentOrdersEmptyMessage => isEnglish
+      ? 'There are no orders in the selected period yet.'
+      : 'Bạn chưa có đơn hàng nào trong kỳ đã chọn.';
+  String get recentOrdersEmptyDescription => isEnglish
+      ? 'Create a new order to start tracking activity.'
+      : 'Hãy tạo đơn hàng mới để bắt đầu theo dõi.';
+  String get createOrderAction => isEnglish ? 'Create order' : 'Tạo đơn hàng';
+  String get createOrderSemanticLabel =>
+      isEnglish ? 'Create a new order' : 'Tạo đơn hàng mới';
+  String get appBarTitle => isEnglish ? 'Overview' : 'Tổng quan';
+  String get previousPeriodTooltip =>
+      isEnglish ? 'Previous period' : 'Kỳ trước';
+  String get timeFilterTooltip =>
+      isEnglish ? 'Filter time range' : 'Lọc thời gian';
+  String get nextPeriodTooltip => isEnglish ? 'Next period' : 'Kỳ sau';
+  String revenueChipLabel(int amount) => isEnglish
+      ? 'Revenue ${_formatCompactVnd(amount)}'
+      : 'Doanh thu ${_formatCompactVnd(amount)}';
+  String orderCountChipLabel(int count) =>
+      isEnglish ? '$count orders' : '$count đơn';
+  String periodUnitLabel(_DashboardTimeFilter filter) {
+    switch (filter) {
+      case _DashboardTimeFilter.month:
+        return isEnglish ? 'month' : 'tháng';
+      case _DashboardTimeFilter.quarter:
+        return isEnglish ? 'quarter' : 'quý';
+    }
+  }
+
+  String periodContextLabel(DateTime date, _DashboardTimeFilter filter) {
+    if (filter == _DashboardTimeFilter.month) {
+      return isEnglish
+          ? 'Month ${date.month}/${date.year}'
+          : 'Tháng ${date.month}/${date.year}';
+    }
+    final quarter = ((date.month - 1) ~/ 3) + 1;
+    return isEnglish
+        ? 'Quarter $quarter/${date.year}'
+        : 'Quý $quarter/${date.year}';
+  }
+
+  String get overviewTitle =>
+      isEnglish ? 'Operational overview' : 'Tổng quan vận hành';
+  String overviewContext(String contextLabel) => isEnglish
+      ? 'Data window: $contextLabel'
+      : 'Bối cảnh dữ liệu: $contextLabel';
+  String overviewRevenueLabel(String periodUnitLabel) => isEnglish
+      ? 'Purchase value this $periodUnitLabel'
+      : 'Giá trị nhập hàng trong $periodUnitLabel';
+  String get overviewDebtLabel =>
+      isEnglish ? 'Total outstanding debt' : 'Tổng công nợ';
+  String overviewOrdersLabel(String periodUnitLabel) =>
+      isEnglish ? 'Orders this $periodUnitLabel' : 'Đơn trong $periodUnitLabel';
+  String completionRateLabel(int completed, int total) {
+    if (total == 0) {
+      return isEnglish ? 'Completion rate' : 'Tỷ lệ hoàn thành';
+    }
+    return isEnglish
+        ? 'Completion rate ($completed/$total)'
+        : 'Tỷ lệ hoàn thành ($completed/$total)';
+  }
+
+  String get dashboardErrorTitle => isEnglish
+      ? 'Unable to load dashboard data'
+      : 'Không thể tải dữ liệu dashboard';
+  String get dashboardErrorDescription => isEnglish
+      ? 'Please try again or check your network connection.'
+      : 'Vui lòng thử lại hoặc kiểm tra kết nối mạng.';
+  String get retryAction => isEnglish ? 'Retry' : 'Thử lại';
+  String get retryDashboardSemantic => isEnglish
+      ? 'Retry loading dashboard data'
+      : 'Thử tải lại dữ liệu dashboard';
+
+  String get filterSheetTitle => isEnglish ? 'Time filter' : 'Lọc thời gian';
+  String get filterByMonthLabel => isEnglish ? 'By month' : 'Theo tháng';
+  String get filterByQuarterLabel => isEnglish ? 'By quarter' : 'Theo quý';
+  String get previousPeriodLabel => isEnglish ? 'Previous period' : 'Kỳ trước';
+  String get nextPeriodLabel => isEnglish ? 'Next period' : 'Kỳ sau';
+  String get pickMonthLabel => isEnglish ? 'Pick month' : 'Chọn tháng';
+  String get pickQuarterLabel => isEnglish ? 'Pick quarter' : 'Chọn quý';
+  String get pickFromCalendarLabel =>
+      isEnglish ? 'Pick from calendar' : 'Chọn từ lịch';
+  String get backToCurrentLabel =>
+      isEnglish ? 'Back to current' : 'Về hiện tại';
+  String get applyAction => isEnglish ? 'Apply' : 'Áp dụng';
+
+  String orderStatusLabel(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.pendingApproval:
+        return isEnglish ? 'Pending approval' : 'Chờ duyệt';
+      case OrderStatus.approved:
+        return isEnglish ? 'Approved' : 'Đã duyệt';
+      case OrderStatus.shipping:
+        return isEnglish ? 'Shipping' : 'Đang giao';
+      case OrderStatus.completed:
+        return isEnglish ? 'Completed' : 'Hoàn thành';
+      case OrderStatus.cancelled:
+        return isEnglish ? 'Cancelled' : 'Đã hủy';
+    }
+  }
+
+  String paymentStatusShort(OrderPaymentStatus status) {
+    switch (status) {
+      case OrderPaymentStatus.cancelled:
+        return isEnglish ? 'Cancelled' : 'Đã hủy';
+      case OrderPaymentStatus.failed:
+        return isEnglish ? 'Failed' : 'Thất bại';
+      case OrderPaymentStatus.unpaid:
+        return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
+      case OrderPaymentStatus.paid:
+        return isEnglish ? 'Paid' : 'Đã thanh toán';
+      case OrderPaymentStatus.debtRecorded:
+        return isEnglish ? 'Debt' : 'Công nợ';
+    }
+  }
+
+  String recentOrderItemsLabel(int count) =>
+      isEnglish ? '$count items' : '$count SP';
+
+  String recentOrderMeta(
+    DateTime createdAt,
+    int totalItems,
+    OrderPaymentStatus paymentStatus,
+  ) {
+    return '${_formatRecentOrderMetaDate(createdAt)} • ${recentOrderItemsLabel(totalItems)} • ${paymentStatusShort(paymentStatus)}';
+  }
+
+  String get lowStockThresholdLabel =>
+      isEnglish ? 'Stock / Threshold' : 'Tồn / Ngưỡng';
+
+  String lowStockStatusLabel(int shortage) => shortage > 0
+      ? (isEnglish
+            ? 'Missing $shortage against threshold $_lowStockAlertThreshold'
+            : 'Thiếu $shortage so với ngưỡng $_lowStockAlertThreshold')
+      : (isEnglish ? 'At warning threshold' : 'Chạm ngưỡng cảnh báo');
+
+  String lowStockMinimumLabel(int minimumTarget, int shortageToMinimum) =>
+      shortageToMinimum > 0
+      ? (isEnglish
+            ? 'Min $minimumTarget (missing $shortageToMinimum)'
+            : 'Min $minimumTarget (thiếu $shortageToMinimum)')
+      : 'Min: $minimumTarget';
+
+  String lowStockHeaderTitle(bool hasAlerts) => hasAlerts
+      ? (isEnglish ? 'Low-stock alerts' : 'Cảnh báo tồn kho thấp')
+      : (isEnglish ? 'Inventory is stable' : 'Tồn kho ổn định');
+
+  String lowStockHeaderSubtitle(bool hasAlerts) => hasAlerts
+      ? (isEnglish
+            ? 'High priority, inventory replenishment is needed soon.'
+            : 'Mức ưu tiên cao, cần bổ sung hàng ngay.')
+      : (isEnglish
+            ? 'No SKU is currently below the warning threshold.'
+            : 'Chưa có SKU nào dưới ngưỡng cảnh báo.');
+
+  String get lowStockEmptyTitle =>
+      isEnglish ? 'No alerts need attention' : 'Không có cảnh báo cần xử lý';
+  String get lowStockEmptyMessage => isEnglish
+      ? 'No product is currently below the warning threshold.'
+      : 'Hiện chưa có sản phẩm nào dưới ngưỡng cảnh báo.';
+  String get lowStockEmptyDescription => isEnglish
+      ? 'You can open detailed inventory to review it regularly.'
+      : 'Bạn có thể xem tồn kho chi tiết để kiểm tra định kỳ.';
+  String get viewInventoryAction =>
+      isEnglish ? 'View inventory' : 'Xem tồn kho';
+  String get openInventorySemantic =>
+      isEnglish ? 'Open inventory list' : 'Mở danh sách tồn kho';
+  String get replenishNowAction =>
+      isEnglish ? 'Replenish now' : 'Nhập thêm ngay';
+  String lowStockSkuCountLabel(int count) => '$count SKU';
+
+  String get orderDistributionTitle =>
+      isEnglish ? 'Order status distribution' : 'Phân bố trạng thái đơn';
+  String get orderDistributionHint => isEnglish
+      ? 'Tap each status to view the corresponding order list.'
+      : 'Chạm vào từng trạng thái để xem danh sách đơn tương ứng.';
+  String get orderDistributionEmptyMessage => isEnglish
+      ? 'You do not have any orders yet.'
+      : 'Bạn chưa có đơn hàng nào.';
+  String get orderDistributionEmptyDescription => isEnglish
+      ? 'Create a new order to start tracking status.'
+      : 'Hãy tạo đơn hàng mới để bắt đầu theo dõi.';
+  String get createOrderToTrackSemantic => isEnglish
+      ? 'Create a new order to track status'
+      : 'Tạo đơn hàng mới để theo dõi trạng thái';
+  String orderCountPercentLabel(int count, int percent) =>
+      isEnglish ? '$count orders ($percent%)' : '$count đơn ($percent%)';
+  String get selectedStatusListDescription => isEnglish
+      ? 'Orders in the selected status'
+      : 'Danh sách đơn theo trạng thái đã chọn';
+  String get noMatchingOrdersTitle =>
+      isEnglish ? 'No matching orders' : 'Chưa có đơn phù hợp';
+  String get noMatchingOrdersMessage => isEnglish
+      ? 'There are no orders in this status.'
+      : 'Không có đơn nào ở trạng thái này.';
+  String get noMatchingOrdersDescription => isEnglish
+      ? 'Choose another status or switch the tracking period.'
+      : 'Hãy chọn trạng thái khác hoặc chuyển kỳ theo dõi.';
+
+  String get debtAgingTitle =>
+      isEnglish ? 'Debt by age' : 'Công nợ theo tuổi nợ';
+  String get viewDebtListAction => isEnglish ? 'View list' : 'Xem danh sách';
+  String totalDebtLabel(int total) => isEnglish
+      ? 'Total debt: ${formatVnd(total)}'
+      : 'Tổng công nợ: ${formatVnd(total)}';
+  String get debtAgingHint => isEnglish
+      ? 'Tap each debt-age group to view more detail.'
+      : 'Chạm vào từng nhóm tuổi nợ để xem chi tiết công nợ.';
+  String get debtAgingEmptyMessage => isEnglish
+      ? 'No debt has been recorded yet.'
+      : 'Hiện chưa có công nợ phát sinh.';
+  String get debtAgingEmptyDescription => isEnglish
+      ? 'Debt will appear after transactions are recorded.'
+      : 'Công nợ sẽ hiển thị sau khi có giao dịch.';
+  String get openDebtListAction =>
+      isEnglish ? 'Open debt list' : 'Mở danh sách công nợ';
+  String get openDebtListSemantic =>
+      isEnglish ? 'Open debt list' : 'Mở danh sách công nợ';
+  String bucketValueLabel(int amount) => isEnglish
+      ? 'Value: ${formatVnd(amount)}'
+      : 'Giá trị: ${formatVnd(amount)}';
+
+  String bucketDescription(_DebtBucket bucket) {
+    if (bucket.minDay >= 91) {
+      return isEnglish
+          ? 'This overdue bucket is high risk and should be prioritized for follow-up.'
+          : 'Nhóm nợ quá hạn cao, cần ưu tiên theo dõi và thu hồi.';
+    }
+    return isEnglish
+        ? 'This bucket includes debts from ${bucket.minDay} to ${bucket.maxDay} days.'
+        : 'Nhóm này bao gồm các khoản nợ từ ${bucket.minDay} đến ${bucket.maxDay} ngày.';
+  }
+
+  String get over90DayNote => isEnglish
+      ? '>90 days includes all overdue debt from 91 days onward.'
+      : '>90 ngày bao gồm toàn bộ công nợ quá hạn từ 91 ngày trở lên.';
+
+  String debtBucketRangeLabel(int minDay, int maxDay) {
+    if (maxDay >= 9999) {
+      return isEnglish ? '>90 days' : '>90 ngày';
+    }
+    return isEnglish ? '$minDay-$maxDay days' : '$minDay-$maxDay ngày';
+  }
+}
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key, this.onSwitchTab});
@@ -67,16 +342,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _loadDashboardState();
+        unawaited(_loadDashboardState());
       }
     });
   }
 
-  void _loadDashboardState() {
-    setState(() {
-      _loadState = _DashboardLoadState.ready;
-      _loadErrorMessage = null;
-    });
+  Future<void> _loadDashboardState({bool showLoadingState = true}) async {
+    final texts = _DashboardTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
+    final loadErrorMessage = texts.loadErrorMessage;
+    if (showLoadingState && mounted) {
+      setState(() {
+        _loadState = _DashboardLoadState.loading;
+        _loadErrorMessage = null;
+      });
+    }
+
+    try {
+      await Future.wait<void>([
+        OrderScope.of(context).refresh(),
+        WarrantyScope.of(context).load(forceRefresh: true),
+      ]);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _cachedSnapshot = null;
+        _lastSnapshotOrders = null;
+        _lastSnapshotActivations = null;
+        _lastSnapshotFilter = null;
+        _lastSnapshotPeriod = null;
+        _loadState = _DashboardLoadState.ready;
+        _loadErrorMessage = null;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _loadState = _DashboardLoadState.error;
+        _loadErrorMessage = loadErrorMessage;
+      });
+    }
   }
 
   void _openCreateOrderFlow() {
@@ -131,8 +439,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  void _openWarrantyHub() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const WarrantyHubScreen()));
+  }
+
   @override
   Widget build(BuildContext context) {
+    final texts = _DashboardTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
     final orderController = OrderScope.of(context);
     final warrantyCtrl =
         context.dependOnInheritedWidgetOfExactType<WarrantyScope>()?.notifier ??
@@ -159,6 +476,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         timeFilter: _timeFilter,
         selectedPeriod: _selectedPeriod,
         now: now,
+        isEnglish: texts.isEnglish,
       );
     }
     final snapshot = _cachedSnapshot!;
@@ -181,6 +499,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ?.unreadCount ??
         0;
     final periodUnitLabel = snapshot.periodUnitLabel;
+    final dashboardLoadErrorMessage = texts.loadErrorMessage;
+    final primaryTrackingCards = <Widget>[
+      FadeSlideIn(
+        delay: const Duration(milliseconds: 110),
+        child: _OrderStatusDistributionCard(
+          orders: periodOrders,
+          onCreateOrder: _openCreateOrderFlow,
+        ),
+      ),
+      FadeSlideIn(
+        delay: const Duration(milliseconds: 115),
+        child: _RevenueChartCard(
+          data: monthlyRevenue,
+          focusMonth: periodAnchor.month,
+          displayYear: periodAnchor.year,
+          onCreateOrder: _openCreateOrderFlow,
+        ),
+      ),
+      FadeSlideIn(
+        delay: const Duration(milliseconds: 120),
+        child: _AgingDebtCard(
+          buckets: _buildDebtBuckets(totalOutstandingDebt, texts: texts),
+          onViewAll: _openDebtTracking,
+        ),
+      ),
+    ];
+    final secondaryTrackingCards = <Widget>[
+      FadeSlideIn(
+        delay: const Duration(milliseconds: 125),
+        child: _LowStockPanel(
+          products: lowStockProducts,
+          onOpenInventory: _openInventoryScreen,
+          onOpenLowStockInventory: _openLowStockInventoryScreen,
+        ),
+      ),
+      FadeSlideIn(
+        delay: const Duration(milliseconds: 130),
+        child: _ActivationTrendCard(
+          data: activationSeries,
+          windowDays: activationWindowDays,
+        ),
+      ),
+      FadeSlideIn(
+        delay: const Duration(milliseconds: 135),
+        child: _WarrantyStatusDonutCard(
+          activations: warrantyActivationSeries,
+          ranges: warrantyRanges,
+          initialRange: warrantyRanges.last,
+        ),
+      ),
+    ];
 
     final screenSize = MediaQuery.sizeOf(context);
     final screenWidth = screenSize.width;
@@ -199,171 +568,151 @@ class _DashboardScreenState extends State<DashboardScreen> {
       content = _DashboardLoadingView(horizontalPadding: horizontalPadding);
     } else if (_loadState == _DashboardLoadState.error) {
       content = _DashboardErrorView(
-        message:
-            _loadErrorMessage ??
-            'Không thể tải dữ liệu dashboard. Vui lòng thử lại.',
-        onRetry: _loadDashboardState,
+        title: texts.dashboardErrorTitle,
+        message: _loadErrorMessage ?? dashboardLoadErrorMessage,
+        description: texts.dashboardErrorDescription,
+        ctaLabel: texts.retryAction,
+        ctaSemanticLabel: texts.retryDashboardSemantic,
+        onRetry: () => unawaited(_loadDashboardState()),
         horizontalPadding: horizontalPadding,
       );
     } else {
-      content = ListView(
-        padding: EdgeInsets.fromLTRB(
-          horizontalPadding,
-          16,
-          horizontalPadding,
-          listBottomPadding,
-        ),
-        children: [
-          FadeSlideIn(
-            child: _OverviewCard(
-              totalDebt: totalOutstandingDebt,
-              periodRevenue: periodRevenue,
-              periodOrders: periodOrderCount,
-              periodCompletedOrders: periodCompletedOrderCount,
-              periodUnitLabel: periodUnitLabel,
-              contextLabel: periodContextLabel,
+      content = RefreshIndicator(
+        onRefresh: () => _loadDashboardState(showLoadingState: false),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            16,
+            horizontalPadding,
+            listBottomPadding,
+          ),
+          children: [
+            FadeSlideIn(
+              child: _OverviewCard(
+                totalDebt: totalOutstandingDebt,
+                periodRevenue: periodRevenue,
+                periodOrders: periodOrderCount,
+                periodCompletedOrders: periodCompletedOrderCount,
+                periodUnitLabel: periodUnitLabel,
+                contextLabel: periodContextLabel,
+                texts: texts,
+              ),
             ),
-          ),
-          const SizedBox(height: 14),
-          FadeSlideIn(
-            delay: const Duration(milliseconds: 95),
-            child: const _SectionTitle(title: 'Hiệu suất theo dõi'),
-          ),
-          const SizedBox(height: 8),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final cols = constraints.maxWidth >= _desktopBreakpoint
-                  ? 3
-                  : constraints.maxWidth >= _tabletBreakpoint
-                  ? 2
-                  : 1;
-              final childWidth =
-                  (constraints.maxWidth - (cols - 1) * 12) / cols;
-              return Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  SizedBox(
-                    width: childWidth,
-                    child: FadeSlideIn(
-                      delay: const Duration(milliseconds: 110),
-                      child: _OrderStatusDistributionCard(
-                        orders: periodOrders,
-                        onCreateOrder: _openCreateOrderFlow,
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: childWidth,
-                    child: FadeSlideIn(
-                      delay: const Duration(milliseconds: 115),
-                      child: _RevenueChartCard(
-                        data: monthlyRevenue,
-                        focusMonth: periodAnchor.month,
-                        displayYear: periodAnchor.year,
-                        onCreateOrder: _openCreateOrderFlow,
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: childWidth,
-                    child: FadeSlideIn(
-                      delay: const Duration(milliseconds: 120),
-                      child: _AgingDebtCard(
-                        buckets: _buildDebtBuckets(totalOutstandingDebt),
-                        onViewAll: _openDebtTracking,
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: childWidth,
-                    child: FadeSlideIn(
-                      delay: const Duration(milliseconds: 125),
-                      child: _LowStockPanel(
-                        products: lowStockProducts,
-                        onOpenInventory: _openInventoryScreen,
-                        onOpenLowStockInventory: _openLowStockInventoryScreen,
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: childWidth,
-                    child: FadeSlideIn(
-                      delay: const Duration(milliseconds: 130),
-                      child: _ActivationTrendCard(
-                        data: activationSeries,
-                        windowDays: activationWindowDays,
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: childWidth,
-                    child: FadeSlideIn(
-                      delay: const Duration(milliseconds: 135),
-                      child: _WarrantyStatusDonutCard(
-                        activations: warrantyActivationSeries,
-                        ranges: warrantyRanges,
-                        initialRange: warrantyRanges.last,
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          FadeSlideIn(
-            delay: const Duration(milliseconds: 140),
-            child: Row(
-              children: [
-                const Expanded(child: _SectionTitle(title: 'Đơn hàng gần đây')),
-                if (periodOrders.isNotEmpty)
-                  TextButton.icon(
-                    onPressed: _openOrdersScreen,
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(48, 48),
-                      visualDensity: VisualDensity.compact,
-                      foregroundColor: const Color(0xFF1D4ED8),
-                    ),
-                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                    label: const Text('Xem tất cả'),
-                  ),
-              ],
+            const SizedBox(height: 14),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 70),
+              child: _DashboardQuickActionsCard(
+                onCreateOrder: _openCreateOrderFlow,
+                onOpenDebtTracking: _openDebtTracking,
+                onOpenInventory: _openInventoryScreen,
+                onOpenWarrantyHub: _openWarrantyHub,
+                title: texts.quickActionsTitle,
+                subtitle: texts.quickActionsSubtitle,
+                createOrderLabel: texts.createOrderLabel,
+                debtLabel: texts.debtLabel,
+                inventoryLabel: texts.inventoryLabel,
+                warrantyLabel: texts.warrantyLabel,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          if (periodOrders.isEmpty)
-            _EmptyCard(
-              title: 'Đơn hàng gần đây',
-              message: 'Bạn chưa có đơn hàng nào trong kỳ đã chọn.',
-              description: 'Hãy tạo đơn hàng mới để bắt đầu theo dõi.',
-              icon: Icons.receipt_long_outlined,
-              ctaLabel: 'Tạo đơn hàng',
-              ctaSemanticLabel: 'Tạo đơn hàng mới',
-              ctaIcon: Icons.add_shopping_cart_outlined,
-              onCtaPressed: _openCreateOrderFlow,
-            )
-          else
-            ...periodOrders.take(5).map((order) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _RecentOrderCard(
-                  order: order,
-                  onTap: () => _openOrderDetail(order.id),
+            const SizedBox(height: 14),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 95),
+              child: _SectionTitle(title: texts.trackingSectionTitle),
+            ),
+            const SizedBox(height: 8),
+            if (isMobile) ...[
+              ...primaryTrackingCards.map(
+                (card) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: card,
                 ),
-              );
-            }),
-        ],
+              ),
+              _DashboardExpandableInsights(
+                title: texts.mobileInsightsTitle,
+                subtitle: texts.mobileInsightsSubtitle,
+                children: secondaryTrackingCards,
+              ),
+            ] else
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final cols = constraints.maxWidth >= _desktopBreakpoint
+                      ? 3
+                      : constraints.maxWidth >= _tabletBreakpoint
+                      ? 2
+                      : 1;
+                  final childWidth =
+                      (constraints.maxWidth - (cols - 1) * 12) / cols;
+                  return Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      ...primaryTrackingCards.map(
+                        (card) => SizedBox(width: childWidth, child: card),
+                      ),
+                      ...secondaryTrackingCards.map(
+                        (card) => SizedBox(width: childWidth, child: card),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            const SizedBox(height: 12),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 140),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _SectionTitle(title: texts.recentOrdersTitle),
+                  ),
+                  if (periodOrders.isNotEmpty)
+                    TextButton.icon(
+                      onPressed: _openOrdersScreen,
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(48, 48),
+                        visualDensity: VisualDensity.compact,
+                        foregroundColor: const Color(0xFF1D4ED8),
+                      ),
+                      icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                      label: Text(texts.viewAllAction),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (periodOrders.isEmpty)
+              _EmptyCard(
+                title: texts.recentOrdersTitle,
+                message: texts.recentOrdersEmptyMessage,
+                description: texts.recentOrdersEmptyDescription,
+                icon: Icons.receipt_long_outlined,
+                ctaLabel: texts.createOrderAction,
+                ctaSemanticLabel: texts.createOrderSemanticLabel,
+                ctaIcon: Icons.add_shopping_cart_outlined,
+                onCtaPressed: _openCreateOrderFlow,
+              )
+            else
+              ...periodOrders.take(5).map((order) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _RecentOrderCard(
+                    order: order,
+                    onTap: () => _openOrderDetail(order.id),
+                  ),
+                );
+              }),
+          ],
+        ),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const BrandAppBarTitle('Tổng quan', logoSize: 30, logoGap: 4),
+        title: BrandAppBarTitle(texts.appBarTitle, logoSize: 30, logoGap: 4),
         actions: [
           if (!isNarrowAppBar)
             Tooltip(
-              message: 'Kỳ trước',
+              message: texts.previousPeriodTooltip,
               child: IconButton(
                 onPressed: _moveToPreviousPeriod,
                 icon: const Icon(Icons.chevron_left_rounded),
@@ -371,16 +720,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           if (isNarrowAppBar)
             Tooltip(
-              message: 'Lọc thời gian',
+              message: texts.timeFilterTooltip,
               child: IconButton(
-                tooltip: 'Lọc thời gian',
+                tooltip: texts.timeFilterTooltip,
                 onPressed: _openTimeFilterSheet,
                 icon: const Icon(Icons.calendar_month_outlined),
               ),
             )
           else
             Tooltip(
-              message: 'Lọc thời gian',
+              message: texts.timeFilterTooltip,
               child: TextButton.icon(
                 onPressed: _openTimeFilterSheet,
                 icon: const Icon(Icons.calendar_month_outlined, size: 18),
@@ -389,7 +738,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           if (!isNarrowAppBar)
             Tooltip(
-              message: 'Kỳ sau',
+              message: texts.nextPeriodTooltip,
               child: IconButton(
                 onPressed: canMoveNextPeriod ? _moveToNextPeriod : null,
                 icon: const Icon(Icons.chevron_right_rounded),
@@ -420,12 +769,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(width: 8),
                 _HeaderSummaryChip(
                   icon: Icons.payments_outlined,
-                  label: 'Doanh thu ${_formatCompactVnd(periodRevenue)}',
+                  label: texts.revenueChipLabel(periodRevenue),
                 ),
                 const SizedBox(width: 8),
                 _HeaderSummaryChip(
                   icon: Icons.receipt_long_outlined,
-                  label: '$periodOrderCount \u0111\u01a1n',
+                  label: texts.orderCountChipLabel(periodOrderCount),
                 ),
               ],
             ),
@@ -439,10 +788,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
-            child: KeyedSubtree(
-              key: ValueKey(_loadState),
-              child: content,
-            ),
+            child: KeyedSubtree(key: ValueKey(_loadState), child: content),
           ),
         ),
       ),
@@ -481,6 +827,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context: context,
       initialFilter: _timeFilter,
       selectedPeriod: _selectedPeriod,
+      texts: _DashboardTexts(
+        isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+      ),
     );
     if (!mounted || selection == null) {
       return;
@@ -492,6 +841,207 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
+class _DashboardQuickActionsCard extends StatelessWidget {
+  const _DashboardQuickActionsCard({
+    required this.onCreateOrder,
+    required this.onOpenDebtTracking,
+    required this.onOpenInventory,
+    required this.onOpenWarrantyHub,
+    required this.title,
+    required this.subtitle,
+    required this.createOrderLabel,
+    required this.debtLabel,
+    required this.inventoryLabel,
+    required this.warrantyLabel,
+  });
+
+  final VoidCallback onCreateOrder;
+  final VoidCallback onOpenDebtTracking;
+  final VoidCallback onOpenInventory;
+  final VoidCallback onOpenWarrantyHub;
+  final String title;
+  final String subtitle;
+  final String createOrderLabel;
+  final String debtLabel;
+  final String inventoryLabel;
+  final String warrantyLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isCompact = MediaQuery.sizeOf(context).width < _mobileBreakpoint;
+    final actions = <Widget>[
+      _DashboardQuickActionButton(
+        icon: Icons.add_shopping_cart_outlined,
+        label: createOrderLabel,
+        onPressed: onCreateOrder,
+        isPrimary: true,
+      ),
+      _DashboardQuickActionButton(
+        icon: Icons.account_balance_wallet_outlined,
+        label: debtLabel,
+        onPressed: onOpenDebtTracking,
+      ),
+      _DashboardQuickActionButton(
+        icon: Icons.inventory_2_outlined,
+        label: inventoryLabel,
+        onPressed: onOpenInventory,
+      ),
+      _DashboardQuickActionButton(
+        icon: Icons.verified_user_outlined,
+        label: warrantyLabel,
+        onPressed: onOpenWarrantyHub,
+      ),
+    ];
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: actions
+                  .map(
+                    (action) =>
+                        SizedBox(width: isCompact ? 148 : 170, child: action),
+                  )
+                  .toList(growable: false),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DashboardQuickActionButton extends StatelessWidget {
+  const _DashboardQuickActionButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.isPrimary = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  final bool isPrimary;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = isPrimary
+        ? ElevatedButton.styleFrom(
+            minimumSize: const Size(0, 48),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          )
+        : OutlinedButton.styleFrom(
+            minimumSize: const Size(0, 48),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          );
+
+    final child = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 18),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+
+    return isPrimary
+        ? ElevatedButton(onPressed: onPressed, style: style, child: child)
+        : OutlinedButton(onPressed: onPressed, style: style, child: child);
+  }
+}
+
+class _DashboardExpandableInsights extends StatelessWidget {
+  const _DashboardExpandableInsights({
+    required this.title,
+    required this.subtitle,
+    required this.children,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
+      ),
+      child: Theme(
+        data: theme.copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          title: Text(
+            title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          children: children
+              .map(
+                (child) => Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: child,
+                ),
+              )
+              .toList(growable: false),
+        ),
+      ),
+    );
+  }
+}
+
 class _OverviewCard extends StatelessWidget {
   const _OverviewCard({
     required this.totalDebt,
@@ -500,6 +1050,7 @@ class _OverviewCard extends StatelessWidget {
     required this.periodCompletedOrders,
     required this.periodUnitLabel,
     required this.contextLabel,
+    required this.texts,
   });
 
   final int totalDebt;
@@ -508,6 +1059,7 @@ class _OverviewCard extends StatelessWidget {
   final int periodCompletedOrders;
   final String periodUnitLabel;
   final String contextLabel;
+  final _DashboardTexts texts;
 
   @override
   Widget build(BuildContext context) {
@@ -519,9 +1071,10 @@ class _OverviewCard extends StatelessWidget {
     final completionRate = periodOrders == 0
         ? 0
         : ((periodCompletedOrders / periodOrders) * 100).round();
-    final completionLabel = periodOrders == 0
-        ? 'Tỷ lệ hoàn thành'
-        : 'Tỷ lệ hoàn thành ($periodCompletedOrders/$periodOrders)';
+    final completionLabel = texts.completionRateLabel(
+      periodCompletedOrders,
+      periodOrders,
+    );
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -537,7 +1090,7 @@ class _OverviewCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'T\u1ed5ng quan v\u1eadn h\u00e0nh',
+            texts.overviewTitle,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
@@ -545,7 +1098,7 @@ class _OverviewCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Bối cảnh dữ liệu: $contextLabel',
+            texts.overviewContext(contextLabel),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: const Color(0xF2FFFFFF),
               fontWeight: FontWeight.w500,
@@ -555,7 +1108,7 @@ class _OverviewCard extends StatelessWidget {
           _OverviewMetricTile(
             icon: Icons.payments_rounded,
             accentColor: revenueAccent,
-            label: 'Giá trị nhập hàng trong $periodUnitLabel',
+            label: texts.overviewRevenueLabel(periodUnitLabel),
             value: _formatCompactVnd(periodRevenue),
             isPrimary: true,
           ),
@@ -566,14 +1119,14 @@ class _OverviewCard extends StatelessWidget {
               final debtCard = _OverviewMetricTile(
                 icon: Icons.account_balance_wallet_rounded,
                 accentColor: debtAccent,
-                label: 'T\u1ed5ng c\u00f4ng n\u1ee3',
+                label: texts.overviewDebtLabel,
                 value: _formatCompactVnd(totalDebt),
                 isPrimary: false,
               );
               final orderCard = _OverviewMetricTile(
                 icon: Icons.receipt_long_rounded,
                 accentColor: orderAccent,
-                label: 'Đơn trong $periodUnitLabel',
+                label: texts.overviewOrdersLabel(periodUnitLabel),
                 value: '$periodOrders',
                 isPrimary: false,
               );
@@ -738,6 +1291,8 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isEnglish = AppSettingsScope.of(context).locale.languageCode == 'en';
+    final texts = _DashboardTexts(isEnglish: isEnglish);
     final colorScheme = theme.colorScheme;
     final focusMonth = widget.focusMonth.clamp(1, 12);
     final displayYear = widget.displayYear;
@@ -764,8 +1319,12 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
     final yInterval = topY / 4;
 
     final subtitle = hasSparseData
-        ? '\u0110\u00e3 c\u00f3 d\u1eef li\u1ec7u ${monthsWithData.length}/12 th\u00e1ng c\u1ee7a n\u0103m $displayYear.'
-        : 'T\u1ed5ng h\u1ee3p gi\u00e1 tr\u1ecb \u0111\u01a1n nh\u1eadp theo t\u1eebng th\u00e1ng trong n\u0103m $displayYear.';
+        ? (isEnglish
+              ? 'Data is available for ${monthsWithData.length}/12 months in $displayYear.'
+              : '\u0110\u00e3 c\u00f3 d\u1eef li\u1ec7u ${monthsWithData.length}/12 th\u00e1ng c\u1ee7a n\u0103m $displayYear.')
+        : (isEnglish
+              ? 'Monthly purchase value across $displayYear.'
+              : 'T\u1ed5ng h\u1ee3p gi\u00e1 tr\u1ecb \u0111\u01a1n nh\u1eadp theo t\u1eebng th\u00e1ng trong n\u0103m $displayYear.');
 
     final showValueLabels = hasAnyData && monthsWithData.length <= 2;
     final yearlyTotal = widget.data.fold<int>(
@@ -781,8 +1340,8 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
         : (focusMonthValue - previousMonthValue) / previousMonthValue * 100;
     final monthChangeText = previousMonthValue <= 0
         ? (focusMonthValue > 0
-              ? 'M\u1edbi ph\u00e1t sinh'
-              : 'Kh\u00f4ng \u0111\u1ed5i')
+              ? (isEnglish ? 'New activity' : 'M\u1edbi ph\u00e1t sinh')
+              : (isEnglish ? 'No change' : 'Kh\u00f4ng \u0111\u1ed5i'))
         : '${monthChangePercent >= 0 ? '+' : ''}${monthChangePercent.toStringAsFixed(1)}%';
     final monthChangeColor = previousMonthValue <= 0
         ? _dashboardMutedText(context)
@@ -809,7 +1368,9 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Gi\u00e1 tr\u1ecb nh\u1eadp h\u00e0ng theo th\u00e1ng ($displayYear)',
+              isEnglish
+                  ? 'Monthly purchase value ($displayYear)'
+                  : 'Gi\u00e1 tr\u1ecb nh\u1eadp h\u00e0ng theo th\u00e1ng ($displayYear)',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -830,17 +1391,21 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                 runSpacing: 6,
                 children: [
                   _InsightChip(
-                    label: 'T\u1ed5ng n\u0103m',
+                    label: isEnglish ? 'Year total' : 'T\u1ed5ng n\u0103m',
                     value: _formatCompactVnd(yearlyTotal),
                     valueColor: const Color(0xFF1E3A8A),
                   ),
                   _InsightChip(
-                    label: 'Th\u00e1ng ch\u1ecdn',
+                    label: isEnglish
+                        ? 'Selected month'
+                        : 'Th\u00e1ng ch\u1ecdn',
                     value: _formatCompactVnd(focusMonthValue),
                     valueColor: const Color(0xFF1E3A8A),
                   ),
                   _InsightChip(
-                    label: 'So v\u1edbi th\u00e1ng tr\u01b0\u1edbc',
+                    label: isEnglish
+                        ? 'Vs previous month'
+                        : 'So v\u1edbi th\u00e1ng tr\u01b0\u1edbc',
                     value: monthChangeText,
                     valueColor: monthChangeColor,
                   ),
@@ -871,7 +1436,9 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'Hiển thị đủ 12 tháng, $zeroValueMonthCount tháng chưa có dữ liệu đang được hiển thị là 0.',
+                        isEnglish
+                            ? 'Showing all 12 months. $zeroValueMonthCount months without data are displayed as 0.'
+                            : 'Hiển thị đủ 12 tháng, $zeroValueMonthCount tháng chưa có dữ liệu đang được hiển thị là 0.',
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: colorScheme.onPrimaryContainer,
                           fontWeight: FontWeight.w600,
@@ -911,7 +1478,9 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Bạn chưa có đơn nhập nào trong năm $displayYear.',
+                      isEnglish
+                          ? 'No purchase orders have been recorded in $displayYear yet.'
+                          : 'Bạn chưa có đơn nhập nào trong năm $displayYear.',
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w700,
@@ -920,7 +1489,9 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Hãy tạo đơn hàng mới để bắt đầu theo dõi giá trị nhập theo tháng.',
+                      isEnglish
+                          ? 'Create a new order to start tracking monthly purchase value.'
+                          : 'Hãy tạo đơn hàng mới để bắt đầu theo dõi giá trị nhập theo tháng.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: _dashboardMutedText(context),
                         fontWeight: FontWeight.w500,
@@ -932,8 +1503,9 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                       width: 220,
                       child: Semantics(
                         button: true,
-                        label:
-                            'Tạo đơn hàng mới để theo dõi giá trị nhập hàng theo tháng',
+                        label: isEnglish
+                            ? 'Create a new order to track monthly purchase value'
+                            : 'Tạo đơn hàng mới để theo dõi giá trị nhập hàng theo tháng',
                         child: FilledButton.icon(
                           onPressed: widget.onCreateOrder,
                           style: FilledButton.styleFrom(
@@ -943,7 +1515,7 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                             Icons.add_shopping_cart_outlined,
                             size: 18,
                           ),
-                          label: const Text('Tạo đơn hàng'),
+                          label: Text(texts.createOrderAction),
                         ),
                       ),
                     ),
@@ -1234,7 +1806,13 @@ class _RecentOrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final statusColor = _statusColor(order.status, Theme.of(context).colorScheme);
+    final texts = _DashboardTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
+    final statusColor = _statusColor(
+      order.status,
+      Theme.of(context).colorScheme,
+    );
 
     return Card(
       elevation: 0,
@@ -1269,7 +1847,7 @@ class _RecentOrderCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   _OrderStatusTag(
-                    label: order.status.label,
+                    label: texts.orderStatusLabel(order.status),
                     color: statusColor,
                   ),
                 ],
@@ -1284,7 +1862,11 @@ class _RecentOrderCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                '${_formatRecentOrderMetaDate(order.createdAt)} \u2022 ${order.totalItems} SP \u2022 ${_shortPaymentStatus(order.paymentStatus)}',
+                texts.recentOrderMeta(
+                  order.createdAt,
+                  order.totalItems,
+                  order.paymentStatus,
+                ),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: _dashboardMutedText(context),
                   fontWeight: FontWeight.w600,
@@ -1332,21 +1914,6 @@ String _formatRecentOrderMetaDate(DateTime value) {
   return '$day/$month \u00b7 $hour:$minute';
 }
 
-String _shortPaymentStatus(OrderPaymentStatus status) {
-  switch (status) {
-    case OrderPaymentStatus.cancelled:
-      return 'Da huy';
-    case OrderPaymentStatus.failed:
-      return 'That bai';
-    case OrderPaymentStatus.unpaid:
-      return 'Ch\u01b0a thanh to\u00e1n';
-    case OrderPaymentStatus.paid:
-      return '\u0110\u00e3 thanh to\u00e1n';
-    case OrderPaymentStatus.debtRecorded:
-      return 'C\u00f4ng n\u1ee3';
-  }
-}
-
 class _LowStockCard extends StatelessWidget {
   const _LowStockCard({required this.item});
 
@@ -1355,6 +1922,9 @@ class _LowStockCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final texts = _DashboardTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
     final colorScheme = theme.colorScheme;
     final product = item.product;
     final availableQuantity = item.availableQuantity;
@@ -1372,9 +1942,7 @@ class _LowStockCard extends StatelessWidget {
         .toDouble();
     const minimumTarget = 1;
     final shortageToMinimum = math.max(0, minimumTarget - availableQuantity);
-    final statusLabel = shortage > 0
-        ? 'Thiếu $shortage so với ngưỡng $_lowStockAlertThreshold'
-        : 'Chạm ngưỡng cảnh báo';
+    final statusLabel = texts.lowStockStatusLabel(shortage);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -1451,7 +2019,7 @@ class _LowStockCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Tồn / Ngưỡng',
+                      texts.lowStockThresholdLabel,
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: _dashboardMutedText(context),
                         fontWeight: FontWeight.w600,
@@ -1507,9 +2075,7 @@ class _LowStockCard extends StatelessWidget {
                 ),
               ),
               Text(
-                shortageToMinimum > 0
-                    ? 'Min $minimumTarget (thiếu $shortageToMinimum)'
-                    : 'Min: $minimumTarget',
+                texts.lowStockMinimumLabel(minimumTarget, shortageToMinimum),
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w700,
@@ -1553,6 +2119,9 @@ class _LowStockPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final texts = _DashboardTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
     final colorScheme = theme.colorScheme;
     final hasAlerts = products.isNotEmpty;
     final panelColor = hasAlerts
@@ -1567,10 +2136,8 @@ class _LowStockPanel extends StatelessWidget {
     final headerIconColor = hasAlerts
         ? colorScheme.onErrorContainer
         : colorScheme.onTertiaryContainer;
-    final headerTitle = hasAlerts ? 'Cảnh báo tồn kho thấp' : 'Tồn kho ổn định';
-    final headerSubtitle = hasAlerts
-        ? 'Mức ưu tiên cao, cần bổ sung hàng ngay.'
-        : 'Chưa có SKU nào dưới ngưỡng cảnh báo.';
+    final headerTitle = texts.lowStockHeaderTitle(hasAlerts);
+    final headerSubtitle = texts.lowStockHeaderSubtitle(hasAlerts);
 
     return Card(
       elevation: 0,
@@ -1646,7 +2213,7 @@ class _LowStockPanel extends StatelessWidget {
                       border: Border.all(color: colorScheme.error),
                     ),
                     child: Text(
-                      '${products.length} SKU',
+                      texts.lowStockSkuCountLabel(products.length),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: colorScheme.onErrorContainer,
                         fontWeight: FontWeight.w700,
@@ -1658,13 +2225,12 @@ class _LowStockPanel extends StatelessWidget {
             const SizedBox(height: 10),
             if (products.isEmpty)
               _EmptyCard(
-                title: 'Không có cảnh báo cần xử lý',
-                message: 'Hiện chưa có sản phẩm nào dưới ngưỡng cảnh báo.',
-                description:
-                    'Bạn có thể xem tồn kho chi tiết để kiểm tra định kỳ.',
+                title: texts.lowStockEmptyTitle,
+                message: texts.lowStockEmptyMessage,
+                description: texts.lowStockEmptyDescription,
                 icon: Icons.inventory_2_outlined,
-                ctaLabel: 'Xem tồn kho',
-                ctaSemanticLabel: 'Mở danh sách tồn kho',
+                ctaLabel: texts.viewInventoryAction,
+                ctaSemanticLabel: texts.openInventorySemantic,
                 ctaIcon: Icons.inventory_2_outlined,
                 onCtaPressed: onOpenInventory,
               )
@@ -1691,7 +2257,7 @@ class _LowStockPanel extends StatelessWidget {
                     minimumSize: const Size(0, 48),
                   ),
                   icon: const Icon(Icons.local_shipping_outlined, size: 18),
-                  label: const Text('Nhập thêm ngay'),
+                  label: Text(texts.replenishNowAction),
                 ),
               ),
             ],
@@ -1714,6 +2280,9 @@ class _OrderStatusDistributionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final texts = _DashboardTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
     final colorScheme = theme.colorScheme;
     final totals = _computeStatusTotals(orders);
     final totalCount = totals.values.fold<int>(0, (sum, v) => sum + v);
@@ -1737,7 +2306,7 @@ class _OrderStatusDistributionCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Phân bố trạng thái đơn',
+                    texts.orderDistributionTitle,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -1759,7 +2328,7 @@ class _OrderStatusDistributionCard extends StatelessWidget {
                   border: Border.all(color: theme.colorScheme.outlineVariant),
                 ),
                 child: Text(
-                  'Chạm vào từng trạng thái để xem danh sách đơn tương ứng.',
+                  texts.orderDistributionHint,
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: _dashboardMutedText(context),
                     fontWeight: FontWeight.w600,
@@ -1769,12 +2338,12 @@ class _OrderStatusDistributionCard extends StatelessWidget {
             const SizedBox(height: 12),
             if (showEmpty)
               _EmptyCard(
-                title: 'Phân bố trạng thái đơn',
-                message: 'Bạn chưa có đơn hàng nào.',
-                description: 'Hãy tạo đơn hàng mới để bắt đầu theo dõi.',
+                title: texts.orderDistributionTitle,
+                message: texts.orderDistributionEmptyMessage,
+                description: texts.orderDistributionEmptyDescription,
                 icon: Icons.inbox_outlined,
-                ctaLabel: 'Tạo đơn hàng',
-                ctaSemanticLabel: 'Tạo đơn hàng mới để theo dõi trạng thái',
+                ctaLabel: texts.createOrderAction,
+                ctaSemanticLabel: texts.createOrderToTrackSemantic,
                 ctaIcon: Icons.add_shopping_cart_outlined,
                 onCtaPressed: onCreateOrder,
               )
@@ -1790,7 +2359,7 @@ class _OrderStatusDistributionCard extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: _StatusBar(
-                      label: status.label,
+                      label: texts.orderStatusLabel(status),
                       count: count,
                       ratio: ratio,
                       percent: percent,
@@ -1827,6 +2396,9 @@ class _OrderStatusDistributionCard extends StatelessWidget {
     required int totalCount,
     required Color color,
   }) {
+    final texts = _DashboardTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
     final count = orders.length;
     final ratio = totalCount == 0 ? 0.0 : count / totalCount;
     final percent = totalCount == 0 ? 0 : (ratio * 100).round();
@@ -1863,14 +2435,14 @@ class _OrderStatusDistributionCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        status.label,
+                        texts.orderStatusLabel(status),
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
                     Text(
-                      '$count đơn ($percent%)',
+                      texts.orderCountPercentLabel(count, percent),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w700,
@@ -1880,7 +2452,7 @@ class _OrderStatusDistributionCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Danh sách đơn theo trạng thái đã chọn',
+                  texts.selectedStatusListDescription,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: _dashboardMutedText(context),
                     fontWeight: FontWeight.w500,
@@ -1888,11 +2460,10 @@ class _OrderStatusDistributionCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 if (orders.isEmpty)
-                  const _EmptyCard(
-                    title: 'Chưa có đơn phù hợp',
-                    message: 'Không có đơn nào ở trạng thái này.',
-                    description:
-                        'Hãy chọn trạng thái khác hoặc chuyển kỳ theo dõi.',
+                  _EmptyCard(
+                    title: texts.noMatchingOrdersTitle,
+                    message: texts.noMatchingOrdersMessage,
+                    description: texts.noMatchingOrdersDescription,
                     icon: Icons.filter_alt_off_outlined,
                   )
                 else
@@ -1952,6 +2523,9 @@ class _StatusBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final texts = _DashboardTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
 
     Widget ratioBar() {
       return ClipRRect(
@@ -1993,7 +2567,7 @@ class _StatusBar extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              '$count đơn ($percent%)',
+              texts.orderCountPercentLabel(count, percent),
               textAlign: TextAlign.right,
               style: theme.textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w700,
@@ -2025,10 +2599,11 @@ class _StatusBar extends StatelessWidget {
         Expanded(child: ratioBar()),
         const SizedBox(width: 10),
         SizedBox(
-          width: 78,
+          width: 104,
           child: Text(
-            '$count đơn\n$percent%',
+            texts.orderCountPercentLabel(count, percent),
             textAlign: TextAlign.right,
+            maxLines: 2,
             style: theme.textTheme.bodySmall?.copyWith(
               fontWeight: FontWeight.w700,
               color: theme.colorScheme.onSurface,
@@ -2074,6 +2649,9 @@ class _AgingDebtCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final texts = _DashboardTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
     final total = buckets.fold<int>(0, (sum, b) => sum + b.amount);
     final showEmpty = total == 0;
 
@@ -2095,7 +2673,7 @@ class _AgingDebtCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Công nợ theo tuổi nợ',
+                    texts.debtAgingTitle,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -2111,14 +2689,14 @@ class _AgingDebtCard extends StatelessWidget {
                       foregroundColor: const Color(0xFF1D4ED8),
                     ),
                     icon: const Icon(Icons.list_alt_outlined, size: 18),
-                    label: const Text('Xem danh sách'),
+                    label: Text(texts.viewDebtListAction),
                   ),
               ],
             ),
             if (!showEmpty) ...[
               const SizedBox(height: 4),
               Text(
-                'Tổng công nợ: ${formatVnd(total)}',
+                texts.totalDebtLabel(total),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.w700,
@@ -2136,7 +2714,7 @@ class _AgingDebtCard extends StatelessWidget {
                   border: Border.all(color: theme.colorScheme.outlineVariant),
                 ),
                 child: Text(
-                  'Chạm vào từng nhóm tuổi nợ để xem chi tiết công nợ.',
+                  texts.debtAgingHint,
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: _dashboardMutedText(context),
                     fontWeight: FontWeight.w600,
@@ -2147,12 +2725,12 @@ class _AgingDebtCard extends StatelessWidget {
             const SizedBox(height: 12),
             if (showEmpty)
               _EmptyCard(
-                title: 'Công nợ theo tuổi nợ',
-                message: 'Hiện chưa có công nợ phát sinh.',
-                description: 'Công nợ sẽ hiển thị sau khi có giao dịch.',
+                title: texts.debtAgingTitle,
+                message: texts.debtAgingEmptyMessage,
+                description: texts.debtAgingEmptyDescription,
                 icon: Icons.account_balance_wallet_outlined,
-                ctaLabel: 'Xem danh sách công nợ',
-                ctaSemanticLabel: 'Mở danh sách công nợ',
+                ctaLabel: texts.openDebtListAction,
+                ctaSemanticLabel: texts.openDebtListSemantic,
                 ctaIcon: Icons.list_alt_outlined,
                 onCtaPressed: onViewAll,
               )
@@ -2187,6 +2765,9 @@ class _AgingDebtCard extends StatelessWidget {
     required _DebtBucket bucket,
     required int total,
   }) {
+    final texts = _DashboardTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
     final ratio = total == 0 ? 0.0 : bucket.amount / total;
     final percent = total == 0 ? 0 : (ratio * 100).round();
 
@@ -2238,7 +2819,7 @@ class _AgingDebtCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Giá trị: ${formatVnd(bucket.amount)}',
+                  texts.bucketValueLabel(bucket.amount),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.w700,
@@ -2246,7 +2827,7 @@ class _AgingDebtCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _bucketDescription(bucket),
+                  texts.bucketDescription(bucket),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: _dashboardMutedText(context),
                     fontWeight: FontWeight.w500,
@@ -2255,7 +2836,7 @@ class _AgingDebtCard extends StatelessWidget {
                 if (bucket.minDay >= 91) ...[
                   const SizedBox(height: 6),
                   Text(
-                    '>90 ngày bao gồm toàn bộ công nợ quá hạn từ 91 ngày trở lên.',
+                    texts.over90DayNote,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: const Color(0xFF334155),
                       fontWeight: FontWeight.w600,
@@ -2269,7 +2850,7 @@ class _AgingDebtCard extends StatelessWidget {
                     onViewAll();
                   },
                   icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                  label: const Text('Mở danh sách công nợ'),
+                  label: Text(texts.openDebtListAction),
                 ),
               ],
             ),
@@ -2277,13 +2858,6 @@ class _AgingDebtCard extends StatelessWidget {
         );
       },
     );
-  }
-
-  String _bucketDescription(_DebtBucket bucket) {
-    if (bucket.minDay >= 91) {
-      return 'Nhóm nợ quá hạn cao, cần ưu tiên theo dõi và thu hồi.';
-    }
-    return 'Nhóm này bao gồm các khoản nợ từ ${bucket.minDay} đến ${bucket.maxDay} ngày.';
   }
 }
 
@@ -2702,12 +3276,20 @@ class _EmptyCard extends StatelessWidget {
 
 class _DashboardErrorView extends StatelessWidget {
   const _DashboardErrorView({
+    required this.title,
     required this.message,
+    required this.description,
+    required this.ctaLabel,
+    required this.ctaSemanticLabel,
     required this.onRetry,
     required this.horizontalPadding,
   });
 
+  final String title;
   final String message;
+  final String description;
+  final String ctaLabel;
+  final String ctaSemanticLabel;
   final VoidCallback onRetry;
   final double horizontalPadding;
 
@@ -2722,12 +3304,12 @@ class _DashboardErrorView extends StatelessWidget {
       ),
       children: [
         _EmptyCard(
-          title: 'Không thể tải dữ liệu dashboard',
+          title: title,
           message: message,
-          description: 'Vui lòng thử lại hoặc kiểm tra kết nối mạng.',
+          description: description,
           icon: Icons.cloud_off_outlined,
-          ctaLabel: 'Thử lại',
-          ctaSemanticLabel: 'Thử tải lại dữ liệu dashboard',
+          ctaLabel: ctaLabel,
+          ctaSemanticLabel: ctaSemanticLabel,
           ctaIcon: Icons.refresh,
           onCtaPressed: onRetry,
         ),
@@ -2823,28 +3405,31 @@ List<_CustomerStat> _buildTopCustomers(List<Order> orders) {
   return list;
 }
 
-List<_DebtBucket> _buildDebtBuckets(int totalOutstandingDebt) {
-  const buckets = [
+List<_DebtBucket> _buildDebtBuckets(
+  int totalOutstandingDebt, {
+  required _DashboardTexts texts,
+}) {
+  final buckets = [
     _DebtBucket(
-      label: '0-30 ngày',
+      label: texts.debtBucketRangeLabel(0, 30),
       minDay: 0,
       maxDay: 30,
       color: Color(0xFF1D4ED8),
     ),
     _DebtBucket(
-      label: '31-60 ngày',
+      label: texts.debtBucketRangeLabel(31, 60),
       minDay: 31,
       maxDay: 60,
       color: Color(0xFF7C3AED),
     ),
     _DebtBucket(
-      label: '61-90 ngày',
+      label: texts.debtBucketRangeLabel(61, 90),
       minDay: 61,
       maxDay: 90,
       color: Color(0xFFEA580C),
     ),
     _DebtBucket(
-      label: '>90 ngày',
+      label: texts.debtBucketRangeLabel(91, 9999),
       minDay: 91,
       maxDay: 9999,
       color: Color(0xFFD92D20),
@@ -2895,71 +3480,81 @@ List<_DailyActivation> _buildActivationSeries({
 }
 
 List<_WarrantyStatusStat> _buildWarrantyStatuses(
-  List<_DailyActivation> activations,
-) {
+  List<_DailyActivation> activations, {
+  required bool isEnglish,
+}) {
+  final activationLabel = isEnglish ? 'Activated' : 'Kích hoạt';
+  final pendingLabel = isEnglish ? 'Pending' : 'Chờ xử lý';
+  final processingLabel = isEnglish ? 'Processing' : 'Đang xử lý';
+  final completedLabel = isEnglish ? 'Completed' : 'Hoàn tất';
+  final rejectedLabel = isEnglish ? 'Rejected' : 'Từ chối';
   final total = activations.fold<int>(0, (s, d) => s + d.count);
   if (total == 0) {
-    return const [
+    return [
       _WarrantyStatusStat(
-        label: 'Kích hoạt',
+        label: activationLabel,
         count: 0,
         color: Color(0xFF1D4ED8),
       ),
       _WarrantyStatusStat(
-        label: 'Chờ xử lý',
+        label: pendingLabel,
         count: 0,
         color: Color(0xFF6D28D9),
       ),
       _WarrantyStatusStat(
-        label: 'Đang xử lý',
+        label: processingLabel,
         count: 0,
         color: Color(0xFFC2410C),
       ),
       _WarrantyStatusStat(
-        label: 'Hoàn tất',
+        label: completedLabel,
         count: 0,
         color: Color(0xFF15803D),
       ),
-      _WarrantyStatusStat(label: 'Từ chối', count: 0, color: Color(0xFFB91C1C)),
+      _WarrantyStatusStat(
+        label: rejectedLabel,
+        count: 0,
+        color: const Color(0xFFB91C1C),
+      ),
     ];
   }
   // mock distribution based on total
   final dist = {
-    'Kích hoạt': (total * 0.55).round(),
-    'Chờ xử lý': (total * 0.12).round(),
-    'Đang xử lý': (total * 0.18).round(),
-    'Hoàn tất': (total * 0.12).round(),
-    'Từ chối': total, // will adjust below
+    activationLabel: (total * 0.55).round(),
+    pendingLabel: (total * 0.12).round(),
+    processingLabel: (total * 0.18).round(),
+    completedLabel: (total * 0.12).round(),
+    rejectedLabel: total, // will adjust below
   };
-  dist['Từ chối'] = math.max(
+  dist[rejectedLabel] = math.max(
     0,
     total - dist.values.take(4).fold<int>(0, (s, v) => s + v),
   );
 
   return [
     _WarrantyStatusStat(
-      label: 'Kích hoạt',
-      count: dist['Kích hoạt']!,
+      label: activationLabel,
+      count: dist[activationLabel]!,
       color: const Color(0xFF1D4ED8),
     ),
     _WarrantyStatusStat(
-      label: 'Chờ xử lý',
-      count: dist['Chờ xử lý']!,
+      label: pendingLabel,
+      count: dist[pendingLabel]!,
       color: const Color(0xFF6D28D9),
     ),
     _WarrantyStatusStat(
-      label: 'Đang xử lý',
-      count: dist['Đang xử lý']!,
+      label: processingLabel,
+      count: dist[processingLabel]!,
       color: const Color(0xFFC2410C),
     ),
     _WarrantyStatusStat(
-      label: 'Hoàn tất',
-      count: dist['Hoàn tất']!,
+      label: completedLabel,
+      count: dist[completedLabel]!,
       color: const Color(0xFF15803D),
     ),
     _WarrantyStatusStat(
-      label: 'Từ chối',
-      count: dist['Từ chối']!,
+      label: rejectedLabel,
+      count: dist[rejectedLabel]!,
       color: const Color(0xFFB91C1C),
     ),
   ];
@@ -2997,6 +3592,7 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
   Widget build(BuildContext context) {
     final rawData = widget.data;
     final theme = Theme.of(context);
+    final isEnglish = AppSettingsScope.of(context).locale.languageCode == 'en';
     final secondaryTextColor = _dashboardMutedText(context);
     final windowDays = widget.windowDays;
     final isCompactMobile =
@@ -3005,10 +3601,15 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
 
     if (rawData.isEmpty) {
       return _EmptyCard(
-        title: 'Chưa có dữ liệu kích hoạt',
-        message:
-            'Chưa ghi nhận lượt kích hoạt nào trong $windowDays ngày gần đây.',
-        description: 'Hãy hoàn tất đơn và xử lý serial để bắt đầu theo dõi.',
+        title: isEnglish
+            ? 'No activation data yet'
+            : 'Chưa có dữ liệu kích hoạt',
+        message: isEnglish
+            ? 'No activation has been recorded in the last $windowDays days.'
+            : 'Chưa ghi nhận lượt kích hoạt nào trong $windowDays ngày gần đây.',
+        description: isEnglish
+            ? 'Complete orders and process serials to start tracking.'
+            : 'Hãy hoàn tất đơn và xử lý serial để bắt đầu theo dõi.',
         icon: Icons.show_chart_outlined,
       );
     }
@@ -3070,7 +3671,9 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Xử lý serial $windowDays ngày gần nhất',
+              isEnglish
+                  ? 'Serial processing in the last $windowDays days'
+                  : 'Xử lý serial $windowDays ngày gần nhất',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -3078,8 +3681,12 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
             const SizedBox(height: 4),
             Text(
               useWeeklyBuckets
-                  ? 'Số lượt kích hoạt theo tuần'
-                  : 'Số lượt kích hoạt theo từng ngày',
+                  ? (isEnglish
+                        ? 'Weekly activation volume'
+                        : 'Số lượt kích hoạt theo tuần')
+                  : (isEnglish
+                        ? 'Daily activation volume'
+                        : 'Số lượt kích hoạt theo từng ngày'),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: secondaryTextColor,
                 fontWeight: FontWeight.w500,
@@ -3087,7 +3694,7 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Đơn vị: lượt/ngày',
+              isEnglish ? 'Unit: activations/day' : 'Đơn vị: lượt/ngày',
               style: theme.textTheme.labelSmall?.copyWith(
                 color: secondaryTextColor,
                 fontWeight: FontWeight.w600,
@@ -3106,7 +3713,9 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
                   border: Border.all(color: theme.colorScheme.outlineVariant),
                 ),
                 child: Text(
-                  'Đang gộp dữ liệu theo tuần để dễ đọc trên mobile.',
+                  isEnglish
+                      ? 'Grouped by week for easier reading on mobile.'
+                      : 'Đang gộp dữ liệu theo tuần để dễ đọc trên mobile.',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.onPrimaryContainer,
                     fontWeight: FontWeight.w700,
@@ -3141,8 +3750,9 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
                             fontWeight: FontWeight.w700,
                             fontSize: 11,
                           ),
-                          labelResolver: (_) =>
-                              'TB: ${averagePerDay.toStringAsFixed(1)}',
+                          labelResolver: (_) => isEnglish
+                              ? 'Avg: ${averagePerDay.toStringAsFixed(1)}'
+                              : 'TB: ${averagePerDay.toStringAsFixed(1)}',
                         ),
                       ),
                     ],
@@ -3215,7 +3825,9 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
                             return null;
                           }
                           return LineTooltipItem(
-                            '${_formatPointLabel(data[idx])} • ${spot.y.toInt()} lượt',
+                            isEnglish
+                                ? '${_formatPointLabel(data[idx])} • ${spot.y.toInt()} activations'
+                                : '${_formatPointLabel(data[idx])} • ${spot.y.toInt()} lượt',
                             const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
@@ -3357,16 +3969,19 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
               runSpacing: 8,
               children: [
                 _MiniKpi(
-                  label: 'Tổng $windowDays ngày',
+                  label: isEnglish
+                      ? 'Total $windowDays days'
+                      : 'Tổng $windowDays ngày',
                   value: '$totalActivations',
                 ),
                 _MiniKpi(
-                  label: 'Trung bình/ngày',
+                  label: isEnglish ? 'Average / day' : 'Trung bình/ngày',
                   value: averagePerDay.toStringAsFixed(1),
                 ),
                 _MiniKpi(
-                  label:
-                      '${useWeeklyBuckets ? 'Đỉnh tuần' : 'Đỉnh'} ($peakLabel)',
+                  label: isEnglish
+                      ? '${useWeeklyBuckets ? 'Peak week' : 'Peak'} ($peakLabel)'
+                      : '${useWeeklyBuckets ? 'Đỉnh tuần' : 'Đỉnh'} ($peakLabel)',
                   value: '${peakPoint.count}',
                 ),
               ],
@@ -3474,12 +4089,16 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isEnglish = AppSettingsScope.of(context).locale.languageCode == 'en';
     final enableHoverTooltip = kIsWeb;
     final filteredActivations = _filterByRange(
       widget.activations,
       _selectedRange,
     );
-    final stats = _buildWarrantyStatuses(filteredActivations);
+    final stats = _buildWarrantyStatuses(
+      filteredActivations,
+      isEnglish: isEnglish,
+    );
     final total = stats.fold<int>(0, (sum, e) => sum + e.count);
     final showEmpty = total == 0;
 
@@ -3496,6 +4115,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
     final displayStats = _groupWarrantyStats(
       sortedStats,
       maxSegments: _maxSegments,
+      isEnglish: isEnglish,
     );
 
     final touchedStat =
@@ -3521,14 +4141,16 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Trạng thái serial',
+              isEnglish ? 'Serial status' : 'Trạng thái serial',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              'Tổng: $total đơn xử lý serial',
+              isEnglish
+                  ? 'Total: $total serial-processing orders'
+                  : 'Tổng: $total đơn xử lý serial',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: _dashboardMutedText(context),
               ),
@@ -3727,6 +4349,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
     required _WarrantyStatusStat? touchedStat,
     required bool enableHoverTooltip,
   }) {
+    final isEnglish = AppSettingsScope.of(context).locale.languageCode == 'en';
     return SizedBox(
       width: donutSize,
       height: donutSize,
@@ -3828,7 +4451,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
               ),
               const SizedBox(height: 2),
               Text(
-                'Tổng',
+                isEnglish ? 'Total' : 'Tổng',
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: _dashboardMutedText(context),
                   fontWeight: FontWeight.w600,
@@ -3862,10 +4485,14 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
+    final texts = _DashboardTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
     final percent = total == 0 ? 0 : (stat.count / total * 100).round();
     return Semantics(
       button: true,
-      label: '${stat.label}: ${stat.count} đơn, $percent%',
+      label:
+          '${stat.label}: ${texts.orderCountPercentLabel(stat.count, percent)}',
       child: Material(
         color: isSelected
             ? theme.colorScheme.surfaceContainerLow
@@ -3897,7 +4524,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      '${stat.label}  ${stat.count} đơn ($percent%)',
+                      '${stat.label}  ${texts.orderCountPercentLabel(stat.count, percent)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -3925,10 +4552,14 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
     required bool isCompact,
     required VoidCallback onTap,
   }) {
+    final texts = _DashboardTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
     final percent = total == 0 ? 0 : (stat.count / total * 100).round();
     return Semantics(
       button: true,
-      label: '${stat.label}: ${stat.count} đơn, $percent%',
+      label:
+          '${stat.label}: ${texts.orderCountPercentLabel(stat.count, percent)}',
       child: Material(
         color: isSelected
             ? theme.colorScheme.surfaceContainerHighest
@@ -3973,6 +4604,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
   }
 
   Widget _buildEmptyDonutState(ThemeData theme) {
+    final isEnglish = AppSettingsScope.of(context).locale.languageCode == 'en';
     return Column(
       children: [
         SizedBox(
@@ -4009,7 +4641,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Tổng',
+                    isEnglish ? 'Total' : 'Tổng',
                     style: theme.textTheme.labelMedium?.copyWith(
                       color: _dashboardMutedText(context),
                       fontWeight: FontWeight.w600,
@@ -4022,7 +4654,9 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
         ),
         const SizedBox(height: 10),
         Text(
-          'Chưa có dữ liệu trong khoảng thời gian này. Hãy chọn mốc khác hoặc bổ sung kích hoạt mới.',
+          isEnglish
+              ? 'No data is available in this time range. Choose another range or add new activations.'
+              : 'Chưa có dữ liệu trong khoảng thời gian này. Hãy chọn mốc khác hoặc bổ sung kích hoạt mới.',
           style: theme.textTheme.bodySmall?.copyWith(
             color: _dashboardMutedText(context),
             fontWeight: FontWeight.w600,
@@ -4052,6 +4686,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
   List<_WarrantyStatusStat> _groupWarrantyStats(
     List<_WarrantyStatusStat> sortedStats, {
     required int maxSegments,
+    required bool isEnglish,
   }) {
     if (sortedStats.isEmpty || maxSegments <= 0) {
       return sortedStats;
@@ -4074,10 +4709,12 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
       }
     }
 
+    final otherLabel = isEnglish ? 'Other' : 'Khác';
+
     if (groupedCount > 0) {
       visibleStats.add(
         _WarrantyStatusStat(
-          label: 'Khác',
+          label: otherLabel,
           count: groupedCount,
           color: const Color(0xFF475569),
         ),
@@ -4099,7 +4736,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
     if (othersCount > 0) {
       top.add(
         _WarrantyStatusStat(
-          label: 'Khác',
+          label: otherLabel,
           count: othersCount,
           color: const Color(0xFF475569),
         ),
@@ -4140,6 +4777,9 @@ class _DonutSliceTooltip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final texts = _DashboardTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
     return Container(
       constraints: BoxConstraints(maxWidth: maxWidth),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
@@ -4184,7 +4824,7 @@ class _DonutSliceTooltip extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '$count đơn ($percent%)',
+                  texts.orderCountPercentLabel(count, percent),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelSmall?.copyWith(

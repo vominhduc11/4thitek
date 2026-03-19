@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'models.dart';
 import 'order_controller.dart';
@@ -22,9 +23,12 @@ class OrderSuccessScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _OrderSuccessTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
     final order = OrderScope.of(context).findById(orderId);
     final isPaid = order?.paymentStatus == OrderPaymentStatus.paid;
-    final statusNote = _buildStatusNote(order);
+    final statusNote = _buildStatusNote(order, texts);
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isTablet = AppBreakpoints.isTablet(context);
@@ -36,7 +40,7 @@ class OrderSuccessScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const BrandAppBarTitle('Đặt hàng thành công'),
+        title: BrandAppBarTitle(texts.screenTitle),
       ),
       body: Center(
         child: ConstrainedBox(
@@ -68,17 +72,14 @@ class OrderSuccessScreen extends StatelessWidget {
                   child: Column(
                     children: [
                       Text(
-                        'Đơn hàng đã được ghi nhận',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                        texts.orderRecordedTitle,
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.w700),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Mã đơn hàng: $orderId',
+                        texts.orderIdSummary(orderId),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -92,23 +93,33 @@ class OrderSuccessScreen extends StatelessWidget {
                   FadeSlideIn(
                     delay: const Duration(milliseconds: 250),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: successColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: successColor.withValues(alpha: 0.4)),
+                        border: Border.all(
+                          color: successColor.withValues(alpha: 0.4),
+                        ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.check_circle, color: successColor, size: 20),
+                          Icon(
+                            Icons.check_circle,
+                            color: successColor,
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           Text(
-                            'Thanh toán đã được xác nhận!',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: successColor,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            texts.paymentConfirmedMessage,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: successColor,
+                                  fontWeight: FontWeight.w700,
+                                ),
                           ),
                         ],
                       ),
@@ -130,10 +141,15 @@ class OrderSuccessScreen extends StatelessWidget {
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 500),
                   child: _SummaryCard(
+                    texts: texts,
                     itemCount: itemCount,
                     totalPrice: totalPrice,
-                    paymentMethod: order?.paymentMethod.label,
-                    paymentStatus: order?.paymentStatus.label,
+                    paymentMethod: order != null
+                        ? texts.paymentMethodLabel(order.paymentMethod)
+                        : null,
+                    paymentStatus: order != null
+                        ? texts.paymentStatusLabel(order.paymentStatus)
+                        : null,
                     note: order?.note,
                   ),
                 ),
@@ -153,7 +169,7 @@ class OrderSuccessScreen extends StatelessWidget {
                             (route) => route.isFirst,
                           );
                         },
-                        child: const Text('Xem chi tiết đơn hàng'),
+                        child: Text(texts.viewOrderDetailAction),
                       ),
                       const SizedBox(height: 12),
                       OutlinedButton(
@@ -162,7 +178,7 @@ class OrderSuccessScreen extends StatelessWidget {
                             context,
                           ).popUntil((route) => route.isFirst);
                         },
-                        child: const Text('Tiếp tục mua hàng'),
+                        child: Text(texts.continueShoppingAction),
                       ),
                     ],
                   ),
@@ -175,22 +191,23 @@ class OrderSuccessScreen extends StatelessWidget {
     );
   }
 
-  String _buildStatusNote(Order? order) {
+  String _buildStatusNote(Order? order, _OrderSuccessTexts texts) {
     if (order == null) {
-      return 'Đơn đang chờ duyệt phía nhà phân phối.';
+      return texts.pendingApprovalMessage;
     }
     if (order.paymentMethod == OrderPaymentMethod.debt) {
-      return 'Đơn đã được ghi nhận công nợ và đang chờ duyệt phía nhà phân phối.';
+      return texts.debtRecordedMessage;
     }
     if (order.paymentStatus == OrderPaymentStatus.paid) {
-      return 'SePay đã ghi nhận thanh toán. Đơn hàng đang chờ duyệt phía nhà phân phối.';
+      return texts.sepayConfirmedMessage;
     }
-    return 'Đơn đã được tạo. Hãy chuyển khoản đúng mã đơn hàng, SePay webhook sẽ tự động cập nhật thanh toán khi ngân hàng ghi nhận giao dịch.';
+    return texts.pendingTransferMessage;
   }
 }
 
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({
+    required this.texts,
     required this.itemCount,
     required this.totalPrice,
     this.paymentMethod,
@@ -198,6 +215,7 @@ class _SummaryCard extends StatelessWidget {
     this.note,
   });
 
+  final _OrderSuccessTexts texts;
   final int itemCount;
   final int totalPrice;
   final String? paymentMethod;
@@ -220,28 +238,28 @@ class _SummaryCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _SummaryRow(label: 'Số lượng sản phẩm', value: '$itemCount'),
+            _SummaryRow(label: texts.itemCountLabel, value: '$itemCount'),
             const SizedBox(height: 8),
             if (paymentMethod != null) ...[
               _SummaryRow(
-                label: 'Phương thức thanh toán',
+                label: texts.paymentMethodRowLabel,
                 value: paymentMethod!,
               ),
               const SizedBox(height: 8),
             ],
             if (paymentStatus != null) ...[
               _SummaryRow(
-                label: 'Trạng thái thanh toán',
+                label: texts.paymentStatusRowLabel,
                 value: paymentStatus!,
               ),
               const SizedBox(height: 8),
             ],
             if (note != null && note!.trim().isNotEmpty) ...[
-              _SummaryRow(label: 'Ghi chú', value: note!),
+              _SummaryRow(label: texts.noteLabel, value: note!),
               const SizedBox(height: 8),
             ],
             _SummaryRow(
-              label: 'Tổng thanh toán',
+              label: texts.totalPaymentLabel,
               value: formatVnd(totalPrice),
               isEmphasis: true,
             ),
@@ -249,6 +267,70 @@ class _SummaryCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _OrderSuccessTexts {
+  const _OrderSuccessTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get screenTitle =>
+      isEnglish ? 'Order placed successfully' : 'Đặt hàng thành công';
+  String get orderRecordedTitle =>
+      isEnglish ? 'Your order has been recorded' : 'Đơn hàng đã được ghi nhận';
+  String orderIdSummary(String orderId) =>
+      isEnglish ? 'Order ID: $orderId' : 'Mã đơn hàng: $orderId';
+  String get paymentConfirmedMessage => isEnglish
+      ? 'Payment has been confirmed!'
+      : 'Thanh toán đã được xác nhận!';
+  String get pendingApprovalMessage => isEnglish
+      ? 'The order is waiting for distributor approval.'
+      : 'Đơn đang chờ duyệt phía nhà phân phối.';
+  String get debtRecordedMessage => isEnglish
+      ? 'The order has been recorded as debt and is waiting for distributor approval.'
+      : 'Đơn đã được ghi nhận công nợ và đang chờ duyệt phía nhà phân phối.';
+  String get sepayConfirmedMessage => isEnglish
+      ? 'SePay has confirmed the payment. Your order is waiting for distributor approval.'
+      : 'SePay đã ghi nhận thanh toán. Đơn hàng đang chờ duyệt phía nhà phân phối.';
+  String get pendingTransferMessage => isEnglish
+      ? 'The order has been created. Please transfer using the correct order ID; the SePay webhook will update payment automatically once the bank confirms the transaction.'
+      : 'Đơn đã được tạo. Hãy chuyển khoản đúng mã đơn hàng, SePay webhook sẽ tự động cập nhật thanh toán khi ngân hàng ghi nhận giao dịch.';
+  String get viewOrderDetailAction =>
+      isEnglish ? 'View order details' : 'Xem chi tiết đơn hàng';
+  String get continueShoppingAction =>
+      isEnglish ? 'Continue shopping' : 'Tiếp tục mua hàng';
+  String get itemCountLabel => isEnglish ? 'Item count' : 'Số lượng sản phẩm';
+  String get paymentMethodRowLabel =>
+      isEnglish ? 'Payment method' : 'Phương thức thanh toán';
+  String get paymentStatusRowLabel =>
+      isEnglish ? 'Payment status' : 'Trạng thái thanh toán';
+  String get noteLabel => isEnglish ? 'Note' : 'Ghi chú';
+  String get totalPaymentLabel =>
+      isEnglish ? 'Total payment' : 'Tổng thanh toán';
+
+  String paymentMethodLabel(OrderPaymentMethod method) {
+    switch (method) {
+      case OrderPaymentMethod.bankTransfer:
+        return isEnglish ? 'Bank transfer' : 'Chuyển khoản ngân hàng';
+      case OrderPaymentMethod.debt:
+        return isEnglish ? 'Debt recorded' : 'Ghi nhận công nợ';
+    }
+  }
+
+  String paymentStatusLabel(OrderPaymentStatus status) {
+    switch (status) {
+      case OrderPaymentStatus.cancelled:
+        return isEnglish ? 'Cancelled' : 'Đã hủy';
+      case OrderPaymentStatus.failed:
+        return isEnglish ? 'Failed' : 'Thất bại';
+      case OrderPaymentStatus.unpaid:
+        return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
+      case OrderPaymentStatus.paid:
+        return isEnglish ? 'Paid' : 'Đã thanh toán';
+      case OrderPaymentStatus.debtRecorded:
+        return isEnglish ? 'Debt recorded' : 'Công nợ';
+    }
   }
 }
 

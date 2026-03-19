@@ -17,35 +17,12 @@ class AppPreferencesScreen extends StatelessWidget {
       animation: settings,
       builder: (context, _) {
         final isEnglish = settings.locale.languageCode == 'en';
+        final texts = _AppPreferencesTexts(isEnglish: isEnglish);
         final isTablet = AppBreakpoints.isTablet(context);
         final contentMaxWidth = isTablet ? 760.0 : double.infinity;
 
-        final screenTitle = isEnglish ? 'Preferences' : 'Giao diện và ngôn ngữ';
-        final themeTitle = isEnglish ? 'Theme mode' : 'Chế độ giao diện';
-        final themeSubtitle = isEnglish
-            ? 'Choose how the app follows light, dark, or system appearance.'
-            : 'Chọn giao diện sáng, tối hoặc theo hệ thống.';
-        final languageTitle = isEnglish ? 'Language' : 'Ngôn ngữ';
-        final languageSubtitle = isEnglish
-            ? 'Choose the language used across the app.'
-            : 'Chọn ngôn ngữ sử dụng trong ứng dụng.';
-        final previewTitle = isEnglish
-            ? 'Theme preview'
-            : 'Xem trước giao diện';
-
         String themeLabel(ThemeMode mode) {
-          if (isEnglish) {
-            return switch (mode) {
-              ThemeMode.system => 'System',
-              ThemeMode.light => 'Light',
-              ThemeMode.dark => 'Dark',
-            };
-          }
-          return switch (mode) {
-            ThemeMode.system => 'Hệ thống',
-            ThemeMode.light => 'Sáng',
-            ThemeMode.dark => 'Tối',
-          };
+          return texts.themeModeLabel(mode);
         }
 
         final brightness = MediaQuery.platformBrightnessOf(context);
@@ -60,7 +37,7 @@ class AppPreferencesScreen extends StatelessWidget {
             : const Color(0xFF1A1A1A);
 
         return Scaffold(
-          appBar: AppBar(title: BrandAppBarTitle(screenTitle)),
+          appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
           body: Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: contentMaxWidth),
@@ -69,11 +46,11 @@ class AppPreferencesScreen extends StatelessWidget {
                 children: [
                   FadeSlideIn(
                     child: SectionCard(
-                      title: themeTitle,
+                      title: texts.themeTitle,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(themeSubtitle),
+                          Text(texts.themeSubtitle),
                           const SizedBox(height: 10),
                           SegmentedButton<ThemeMode>(
                             segments: [
@@ -118,7 +95,7 @@ class AppPreferencesScreen extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  previewTitle,
+                                  texts.previewTitle,
                                   style: Theme.of(context).textTheme.labelLarge,
                                 ),
                                 const SizedBox(height: 8),
@@ -142,9 +119,7 @@ class AppPreferencesScreen extends StatelessWidget {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              isEnglish
-                                                  ? 'Sample heading'
-                                                  : 'Tiêu đề mẫu',
+                                              texts.previewHeading,
                                               style: Theme.of(context)
                                                   .textTheme
                                                   .titleSmall
@@ -155,9 +130,7 @@ class AppPreferencesScreen extends StatelessWidget {
                                             ),
                                             const SizedBox(height: 4),
                                             Text(
-                                              isEnglish
-                                                  ? 'Example body text for current mode.'
-                                                  : 'Văn bản mô phỏng theo giao diện hiện tại.',
+                                              texts.previewBody,
                                               style: Theme.of(context)
                                                   .textTheme
                                                   .bodySmall
@@ -190,11 +163,11 @@ class AppPreferencesScreen extends StatelessWidget {
                   FadeSlideIn(
                     delay: const Duration(milliseconds: 80),
                     child: SectionCard(
-                      title: languageTitle,
+                      title: texts.languageTitle,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(languageSubtitle),
+                          Text(texts.languageSubtitle),
                           const SizedBox(height: 10),
                           SegmentedButton<String>(
                             segments: const [
@@ -223,5 +196,42 @@ class AppPreferencesScreen extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+class _AppPreferencesTexts {
+  const _AppPreferencesTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get screenTitle => isEnglish ? 'Preferences' : 'Giao diện và ngôn ngữ';
+  String get themeTitle => isEnglish ? 'Theme mode' : 'Chế độ giao diện';
+  String get themeSubtitle => isEnglish
+      ? 'Choose how the app follows light, dark, or system appearance.'
+      : 'Chọn giao diện sáng, tối hoặc theo hệ thống.';
+  String get languageTitle => isEnglish ? 'Language' : 'Ngôn ngữ';
+  String get languageSubtitle => isEnglish
+      ? 'Choose the language used across the app.'
+      : 'Chọn ngôn ngữ sử dụng trong ứng dụng.';
+  String get previewTitle =>
+      isEnglish ? 'Theme preview' : 'Xem trước giao diện';
+  String get previewHeading => isEnglish ? 'Sample heading' : 'Tiêu đề mẫu';
+  String get previewBody => isEnglish
+      ? 'Example body text for current mode.'
+      : 'Văn bản mô phỏng theo giao diện hiện tại.';
+
+  String themeModeLabel(ThemeMode mode) {
+    if (isEnglish) {
+      return switch (mode) {
+        ThemeMode.system => 'System',
+        ThemeMode.light => 'Light',
+        ThemeMode.dark => 'Dark',
+      };
+    }
+    return switch (mode) {
+      ThemeMode.system => 'Hệ thống',
+      ThemeMode.light => 'Sáng',
+      ThemeMode.dark => 'Tối',
+    };
   }
 }

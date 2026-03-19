@@ -22,13 +22,11 @@ class WarrantyController extends ChangeNotifier {
     AuthStorage? authStorage,
     http.Client? client,
     String? Function(int remoteOrderId)? orderCodeForRemoteId,
-    int? Function(String orderCode)? remoteOrderIdForOrderCode,
     Order? Function(String orderCode)? orderLookup,
     Product? Function(String productId)? productLookup,
   }) : _activations = <WarrantyActivationRecord>[],
        _importedSerials = <ImportedSerialRecord>[],
        _orderCodeForRemoteId = orderCodeForRemoteId,
-       _remoteOrderIdForOrderCode = remoteOrderIdForOrderCode,
        _orderLookup = orderLookup,
        _productLookup = productLookup {
     _authStorage = authStorage ?? AuthStorage();
@@ -44,7 +42,6 @@ class WarrantyController extends ChangeNotifier {
   late final AuthStorage _authStorage;
   late final http.Client _client;
   final String? Function(int remoteOrderId)? _orderCodeForRemoteId;
-  final int? Function(String orderCode)? _remoteOrderIdForOrderCode;
   final Order? Function(String orderCode)? _orderLookup;
   final Product? Function(String productId)? _productLookup;
   final Map<String, int> _remoteSerialIds = <String, int>{};
@@ -655,20 +652,6 @@ class WarrantyController extends ChangeNotifier {
     _ensureImportedSerialsForActivations(records);
   }
 
-  void _upsertImportedSerials(List<ImportedSerialRecord> records) {
-    if (records.isEmpty) {
-      return;
-    }
-    final bySerial = <String, ImportedSerialRecord>{
-      for (final record in _importedSerials)
-        _normalizeSerial(record.serial): record,
-    };
-    for (final record in records) {
-      bySerial[_normalizeSerial(record.serial)] = record;
-    }
-    _replaceImportedSerials(bySerial.values);
-  }
-
   void _resetToEmptyState() {
     _replaceActivations(const <WarrantyActivationRecord>[]);
     _replaceImportedSerials(const <ImportedSerialRecord>[]);
@@ -899,19 +882,6 @@ class WarrantyController extends ChangeNotifier {
     return fallback;
   }
 
-  String _describeError(Object error, {required String fallback}) {
-    final text = error.toString().trim();
-    if (text.isEmpty) {
-      return fallback;
-    }
-    const exceptionPrefix = 'Exception: ';
-    if (text.startsWith(exceptionPrefix)) {
-      final trimmed = text.substring(exceptionPrefix.length).trim();
-      return trimmed.isEmpty ? fallback : trimmed;
-    }
-    return text;
-  }
-
   int _parseInt(Object? value, {int fallback = 0}) {
     if (value is int) {
       return value;
@@ -973,7 +943,8 @@ class WarrantyController extends ChangeNotifier {
     if (warrantyEnd == null || !warrantyEnd.isAfter(purchaseDate)) {
       return 12;
     }
-    int months = (warrantyEnd.year - purchaseDate.year) * 12 +
+    int months =
+        (warrantyEnd.year - purchaseDate.year) * 12 +
         (warrantyEnd.month - purchaseDate.month);
     if (warrantyEnd.day < purchaseDate.day) months--;
     return months <= 0 ? 12 : months;

@@ -12,5 +12,58 @@
   "tabOrders": "Orders",
   "tabOverview": "Overview",
   "tabInventory": "Inventory",
-  "tabAccount": "Account"
+  "tabAccount": "Account",
+  "retryAction": "Retry",
+  "cancelAction": "Cancel",
+  "accountLogoutConfirmTitle": "Confirm logout",
+  "accountLogoutConfirmMessage": "You are about to log out. Your current cart data will be cleared. Do you want to continue?",
+  "accountScreenTitle": "Account",
+  "accountSignOutLoading": "Signing out...",
+  "accountMenuSettingsTitle": "Account settings",
+  "accountMenuSettingsSubtitle": "Update company profile, contacts, and shipping information.",
+  "accountMenuSupportTitle": "Support",
+  "accountMenuSupportSubtitle": "Contact support and submit product, order, or warranty requests.",
+  "accountMenuWarrantyTitle": "Warranty center",
+  "accountMenuWarrantySubtitle": "Process serials, activate warranties, and review serial inventory.",
+  "accountMenuPreferencesTitle": "Appearance and language",
+  "accountMenuPreferencesSubtitle": "Switch theme mode and language preferences.",
+  "accountLogoutAction": "Log out",
+  "accountEditProfileAction": "Edit profile",
+  "accountVersionLabel": "Version {version}",
+  "@accountVersionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "accountContactLabel": "Contact person",
+  "accountPhoneLabel": "Phone",
+  "accountShippingLabel": "Shipping address",
+  "accountPolicyLabel": "Sales policy",
+  "accountProfileLoadError": "Unable to load account profile.",
+  "notificationsTitle": "Notifications ({count})",
+  "@notificationsTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationsMarkAllReadTooltip": "Mark all as read",
+  "notificationsEmptyTitle": "No notifications yet",
+  "notificationsEmptyMessage": "New updates will appear here when they arrive.",
+  "notificationsMarkedAllReadMessage": "All notifications have been marked as read.",
+  "notificationsMarkUnreadAction": "Mark as unread",
+  "notificationsMarkedUnreadMessage": "Marked as unread.",
+  "notificationsOpenLinkFailedMessage": "Unable to open the link.",
+  "notificationsTypeOrder": "Order",
+  "notificationsTypePromotion": "Promotion",
+  "notificationsTypeSystem": "System",
+  "notificationsRelatedViewOrder": "View order",
+  "notificationsRelatedViewProducts": "View products",
+  "notificationsRelatedViewSupport": "View support",
+  "notificationsRelatedViewNotifications": "View notifications",
+  "notificationsRelatedOpenLink": "Open link",
+  "notificationsRelatedOpenOverview": "Open overview"
 }

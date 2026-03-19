@@ -37,8 +37,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   bool _isUploadingAvatar = false;
   bool _hasUnsavedChanges = false;
   bool _didLoadInitialData = false;
+  bool _isEnglish = false;
   String _initialSnapshot = '';
   String? _avatarUrl;
+
+  _AccountSettingsTexts get _texts =>
+      _AccountSettingsTexts(isEnglish: _isEnglish);
 
   List<TextEditingController> get _editableControllers => [
     _businessNameController,
@@ -62,14 +66,21 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     _loadData();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _isEnglish = AppSettingsScope.of(context).locale.languageCode == 'en';
+  }
+
   Future<void> _loadData() async {
+    final texts = _texts;
     DealerProfile profile;
     try {
       profile = await loadDealerProfile();
     } catch (error) {
       profile = DealerProfile.defaults;
       if (mounted) {
-        _showSnackBar('Không thể tải hồ sơ: $error');
+        _showSnackBar(texts.loadProfileFailed(error));
       }
     }
     if (!mounted) {
@@ -143,7 +154,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     return RegExp(r'^[0-9+\s-]{8,}$').hasMatch(phone);
   }
 
-  Future<void> _pickAvatar(bool isEnglish) async {
+  Future<void> _pickAvatar() async {
+    final texts = _texts;
     if (_isSaving || _isUploadingAvatar) {
       return;
     }
@@ -162,21 +174,13 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       setState(() {
         _avatarUrl = nextAvatarUrl;
       });
-      _showSnackBar(
-        isEnglish
-            ? 'Avatar updated. Save changes to keep it.'
-            : 'Đã cập nhật avatar. Nhấn Lưu để xác nhận.',
-      );
+      _showSnackBar(texts.avatarUpdatedMessage);
       _handleFormChanged();
     } catch (error) {
       if (!mounted) {
         return;
       }
-      _showSnackBar(
-        isEnglish
-            ? 'Unable to upload avatar: $error'
-            : 'Không thể tải avatar: $error',
-      );
+      _showSnackBar(texts.avatarUploadFailed(error));
     } finally {
       if (mounted) {
         setState(() => _isUploadingAvatar = false);
@@ -192,7 +196,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     return uploaded.url;
   }
 
-  void _removeAvatar(bool isEnglish) {
+  void _removeAvatar() {
+    final texts = _texts;
     if (_isSaving ||
         _isUploadingAvatar ||
         (_avatarUrl?.trim().isEmpty ?? true)) {
@@ -201,46 +206,39 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     setState(() {
       _avatarUrl = null;
     });
-    _showSnackBar(
-      isEnglish
-          ? 'Avatar removed. Save changes to confirm.'
-          : 'Đã xóa avatar. Nhấn Lưu để xác nhận.',
-    );
+    _showSnackBar(texts.avatarRemovedMessage);
     _handleFormChanged();
   }
 
-  Future<bool> _handleWillPop(bool isEnglish) async {
+  Future<bool> _handleWillPop() async {
     if (_isSaving) {
       return false;
     }
     if (!_hasUnsavedChanges) {
       return true;
     }
-    final shouldDiscard = await _confirmDiscardChanges(isEnglish);
+    final shouldDiscard = await _confirmDiscardChanges();
     return shouldDiscard ?? false;
   }
 
-  Future<bool?> _confirmDiscardChanges(bool isEnglish) {
+  Future<bool?> _confirmDiscardChanges() {
+    final texts = _texts;
     return showDialog<bool>(
       context: context,
       traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
       requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text(isEnglish ? 'Unsaved changes' : 'Có thay đổi chưa lưu'),
-          content: Text(
-            isEnglish
-                ? 'You have unsaved changes. Do you want to leave this screen?'
-                : 'Bạn có thay đổi chưa lưu. Bạn có muốn thoát màn hình này không?',
-          ),
+          title: Text(texts.unsavedChangesTitle),
+          content: Text(texts.unsavedChangesDescription),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(isEnglish ? 'Stay' : 'Ở lại'),
+              child: Text(texts.stayAction),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(isEnglish ? 'Leave' : 'Thoát'),
+              child: Text(texts.leaveAction),
             ),
           ],
         );
@@ -248,7 +246,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     );
   }
 
-  Future<void> _resetToDefaults(bool isEnglish) async {
+  Future<void> _resetToDefaults() async {
+    final texts = _texts;
     if (_isSaving) {
       return;
     }
@@ -258,20 +257,16 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text(isEnglish ? 'Reset fields' : 'Đặt lại dữ liệu'),
-          content: Text(
-            isEnglish
-                ? 'Reset editable fields to default values?'
-                : 'Đặt lại các trường có thể chỉnh sửa về giá trị mặc định?',
-          ),
+          title: Text(texts.resetFieldsTitle),
+          content: Text(texts.resetFieldsDescription),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(isEnglish ? 'Cancel' : 'Hủy'),
+              child: Text(texts.cancelAction),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(isEnglish ? 'Reset' : 'Đặt lại'),
+              child: Text(texts.resetAction),
             ),
           ],
         );
@@ -295,56 +290,42 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       _avatarUrl = defaults.avatarUrl;
     });
     _handleFormChanged();
-    _showSnackBar(
-      isEnglish
-          ? 'Default values applied. Press Save to confirm.'
-          : 'Đã áp dụng giá trị mặc định. Nhấn Lưu để xác nhận.',
-    );
+    _showSnackBar(texts.defaultsAppliedMessage);
   }
 
   String? _requiredValidator(String? value, String message) {
     return validateRequiredText(value, message: message);
   }
 
-  String? _emailValidator(String? value, bool isEnglish) {
-    final requiredMessage = isEnglish
-        ? 'Please enter your email.'
-        : 'Vui lòng nhập email.';
-    final invalidMessage = isEnglish
-        ? 'Invalid email format.'
-        : 'Email không hợp lệ.';
+  String? _emailValidator(String? value) {
+    final texts = _texts;
     return validateEmailAddress(
       value,
-      emptyMessage: requiredMessage,
-      invalidMessage: invalidMessage,
+      emptyMessage: texts.emailRequiredMessage,
+      invalidMessage: texts.invalidEmailMessage,
     );
   }
 
-  String? _phoneValidator(String? value, bool isEnglish) {
-    final requiredMessage = isEnglish
-        ? 'Please enter your phone number.'
-        : 'Vui lòng nhập số điện thoại.';
-    final invalidMessage = isEnglish
-        ? 'Invalid phone number format.'
-        : 'Số điện thoại không hợp lệ.';
-    final requiredResult = _requiredValidator(value, requiredMessage);
+  String? _phoneValidator(String? value) {
+    final texts = _texts;
+    final requiredResult = _requiredValidator(
+      value,
+      texts.phoneRequiredMessage,
+    );
     if (requiredResult != null) {
       return requiredResult;
     }
     if (!_isValidPhone(value!.trim())) {
-      return invalidMessage;
+      return texts.invalidPhoneMessage;
     }
     return null;
   }
 
-  Future<void> _handleSave(bool isEnglish) async {
+  Future<void> _handleSave() async {
+    final texts = _texts;
     final form = _formKey.currentState;
     if (form == null || !form.validate()) {
-      _showSnackBar(
-        isEnglish
-            ? 'Please review the highlighted fields.'
-            : 'Vui lòng kiểm tra các trường đang báo lỗi.',
-      );
+      _showSnackBar(texts.reviewHighlightedFieldsMessage);
       return;
     }
 
@@ -372,11 +353,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         return;
       }
       setState(() => _isSaving = false);
-      _showSnackBar(
-        isEnglish
-            ? 'Unable to save profile: $error'
-            : 'Không thể lưu hồ sơ: $error',
-      );
+      _showSnackBar(texts.saveProfileFailed(error));
       return;
     }
 
@@ -393,13 +370,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(
-            isEnglish
-                ? 'Profile saved successfully.'
-                : 'Đã lưu thông tin tài khoản.',
-          ),
+          content: Text(texts.profileSavedMessage),
           action: SnackBarAction(
-            label: isEnglish ? 'Back' : 'Quay lại',
+            label: texts.backAction,
             onPressed: () {
               if (mounted) {
                 Navigator.of(context).maybePop();
@@ -421,40 +394,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final appSettings = AppSettingsScope.of(context);
-    final isEnglish = appSettings.locale.languageCode == 'en';
+    final texts = _texts;
     final isTablet = AppBreakpoints.isTablet(context);
     final contentMaxWidth = isTablet ? 860.0 : double.infinity;
-
-    final screenTitle = isEnglish ? 'Account settings' : 'Cài đặt tài khoản';
-    final resetTooltip = isEnglish ? 'Reset to defaults' : 'Đặt lại mặc định';
-    final avatarTitle = isEnglish ? 'Avatar' : 'Ảnh đại diện';
-    final avatarHint = isEnglish
-        ? 'Upload a dealer avatar for profile screens.'
-        : 'Tải ảnh đại diện cho hồ sơ đại lý.';
-    final uploadAvatarLabel = isEnglish ? 'Upload avatar' : 'Tải avatar';
-    final replaceAvatarLabel = isEnglish ? 'Replace avatar' : 'Đổi avatar';
-    final removeAvatarLabel = isEnglish ? 'Remove avatar' : 'Xóa avatar';
-    final companyTitle = isEnglish
-        ? 'Business information'
-        : 'Thông tin doanh nghiệp';
-    final shippingTitle = isEnglish
-        ? 'Shipping and contact'
-        : 'Địa chỉ giao hàng và liên hệ';
-    final addressLineLabel = isEnglish ? 'Street address' : 'Số nhà, tên đường';
-    final wardLabel = isEnglish ? 'Ward / Commune' : 'Phường / Xã';
-    final districtLabel = isEnglish ? 'District' : 'Quận / Huyện';
-    final cityLabel = isEnglish ? 'Province / City' : 'Tỉnh / Thành phố';
-    final countryLabel = isEnglish ? 'Country' : 'Quốc gia';
-    final policyTitle = isEnglish ? 'Sales policy' : 'Chính sách bán hàng';
-    final saveLabel = isEnglish ? 'Save changes' : 'Lưu thay đổi';
-    final businessLabel = isEnglish
-        ? 'Business / dealer name'
-        : 'Tên doanh nghiệp / đại lý';
-    final contactLabel = isEnglish ? 'Contact person' : 'Người liên hệ';
-    final emailLabel = 'Email';
-    final phoneLabel = isEnglish ? 'Phone number' : 'Số điện thoại';
-    final policyLabel = isEnglish ? 'Policy details' : 'Nội dung chính sách';
 
     return PopScope<void>(
       canPop: !_hasUnsavedChanges && !_isSaving,
@@ -462,7 +404,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         if (didPop) {
           return;
         }
-        final canLeave = await _handleWillPop(isEnglish);
+        final canLeave = await _handleWillPop();
         if (!canLeave || !context.mounted) {
           return;
         }
@@ -470,11 +412,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: BrandAppBarTitle(screenTitle),
+          title: BrandAppBarTitle(texts.screenTitle),
           actions: [
             IconButton(
-              tooltip: resetTooltip,
-              onPressed: _isSaving ? null : () => _resetToDefaults(isEnglish),
+              tooltip: texts.resetTooltip,
+              onPressed: _isSaving ? null : _resetToDefaults,
               icon: const Icon(Icons.restore_outlined),
             ),
           ],
@@ -492,7 +434,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                       children: [
                         FadeSlideIn(
                           child: SectionCard(
-                            title: avatarTitle,
+                            title: texts.avatarTitle,
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -517,7 +459,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        avatarHint,
+                                        texts.avatarHint,
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodySmall
@@ -535,7 +477,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                                           OutlinedButton.icon(
                                             onPressed: _isUploadingAvatar
                                                 ? null
-                                                : () => _pickAvatar(isEnglish),
+                                                : _pickAvatar,
                                             icon: _isUploadingAvatar
                                                 ? const SizedBox(
                                                     width: 16,
@@ -552,16 +494,17 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                                             label: Text(
                                               (_avatarUrl?.trim().isNotEmpty ??
                                                       false)
-                                                  ? replaceAvatarLabel
-                                                  : uploadAvatarLabel,
+                                                  ? texts.replaceAvatarLabel
+                                                  : texts.uploadAvatarLabel,
                                             ),
                                           ),
                                           if (_avatarUrl?.trim().isNotEmpty ??
                                               false)
                                             TextButton(
-                                              onPressed: () =>
-                                                  _removeAvatar(isEnglish),
-                                              child: Text(removeAvatarLabel),
+                                              onPressed: _removeAvatar,
+                                              child: Text(
+                                                texts.removeAvatarLabel,
+                                              ),
                                             ),
                                         ],
                                       ),
@@ -575,7 +518,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                         const SizedBox(height: 14),
                         FadeSlideIn(
                           child: SectionCard(
-                            title: companyTitle,
+                            title: texts.companyTitle,
                             child: Column(
                               children: [
                                 TextFormField(
@@ -583,12 +526,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                                   textInputAction: TextInputAction.next,
                                   validator: (value) => _requiredValidator(
                                     value,
-                                    isEnglish
-                                        ? 'Please enter business name.'
-                                        : 'Vui lòng nhập tên doanh nghiệp.',
+                                    texts.businessNameRequiredMessage,
                                   ),
                                   decoration: InputDecoration(
-                                    labelText: businessLabel,
+                                    labelText: texts.businessLabel,
                                     prefixIcon: const Padding(
                                       padding: EdgeInsets.all(12),
                                       child: BrandLogoIcon(size: 20),
@@ -601,12 +542,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                                   textInputAction: TextInputAction.next,
                                   validator: (value) => _requiredValidator(
                                     value,
-                                    isEnglish
-                                        ? 'Please enter contact person.'
-                                        : 'Vui lòng nhập người liên hệ.',
+                                    texts.contactRequiredMessage,
                                   ),
                                   decoration: InputDecoration(
-                                    labelText: contactLabel,
+                                    labelText: texts.contactLabel,
                                     prefixIcon: const Icon(
                                       Icons.person_outline,
                                     ),
@@ -620,17 +559,16 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                         FadeSlideIn(
                           delay: const Duration(milliseconds: 80),
                           child: SectionCard(
-                            title: shippingTitle,
+                            title: texts.shippingTitle,
                             child: Column(
                               children: [
                                 TextFormField(
                                   controller: _emailController,
                                   keyboardType: TextInputType.emailAddress,
                                   textInputAction: TextInputAction.next,
-                                  validator: (value) =>
-                                      _emailValidator(value, isEnglish),
+                                  validator: _emailValidator,
                                   decoration: InputDecoration(
-                                    labelText: emailLabel,
+                                    labelText: texts.emailLabel,
                                     prefixIcon: const Icon(Icons.mail_outline),
                                   ),
                                 ),
@@ -639,10 +577,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                                   controller: _phoneController,
                                   keyboardType: TextInputType.phone,
                                   textInputAction: TextInputAction.next,
-                                  validator: (value) =>
-                                      _phoneValidator(value, isEnglish),
+                                  validator: _phoneValidator,
                                   decoration: InputDecoration(
-                                    labelText: phoneLabel,
+                                    labelText: texts.phoneLabel,
                                     prefixIcon: const Icon(
                                       Icons.phone_outlined,
                                     ),
@@ -654,12 +591,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                                   textInputAction: TextInputAction.next,
                                   validator: (value) => _requiredValidator(
                                     value,
-                                    isEnglish
-                                        ? 'Please enter street address.'
-                                        : 'Vui lòng nhập số nhà, tên đường.',
+                                    texts.addressLineRequiredMessage,
                                   ),
                                   decoration: InputDecoration(
-                                    labelText: addressLineLabel,
+                                    labelText: texts.addressLineLabel,
                                     prefixIcon: const Icon(
                                       Icons.location_on_outlined,
                                     ),
@@ -670,7 +605,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                                   controller: _wardController,
                                   textInputAction: TextInputAction.next,
                                   decoration: InputDecoration(
-                                    labelText: wardLabel,
+                                    labelText: texts.wardLabel,
                                     prefixIcon: const Icon(
                                       Icons.holiday_village_outlined,
                                     ),
@@ -681,10 +616,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                                   controller: _districtController,
                                   textInputAction: TextInputAction.next,
                                   decoration: InputDecoration(
-                                    labelText: districtLabel,
-                                    prefixIcon: const Icon(
-                                      Icons.map_outlined,
-                                    ),
+                                    labelText: texts.districtLabel,
+                                    prefixIcon: const Icon(Icons.map_outlined),
                                   ),
                                 ),
                                 const SizedBox(height: 14),
@@ -693,12 +626,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                                   textInputAction: TextInputAction.next,
                                   validator: (value) => _requiredValidator(
                                     value,
-                                    isEnglish
-                                        ? 'Please enter province / city.'
-                                        : 'Vui lòng nhập tỉnh / thành phố.',
+                                    texts.cityRequiredMessage,
                                   ),
                                   decoration: InputDecoration(
-                                    labelText: cityLabel,
+                                    labelText: texts.cityLabel,
                                     prefixIcon: const Icon(
                                       Icons.location_city_outlined,
                                     ),
@@ -709,7 +640,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                                   controller: _countryController,
                                   textInputAction: TextInputAction.next,
                                   decoration: InputDecoration(
-                                    labelText: countryLabel,
+                                    labelText: texts.countryLabel,
                                     prefixIcon: const Icon(
                                       Icons.public_outlined,
                                     ),
@@ -723,19 +654,17 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                         FadeSlideIn(
                           delay: const Duration(milliseconds: 120),
                           child: SectionCard(
-                            title: policyTitle,
+                            title: texts.policyTitle,
                             child: TextFormField(
                               controller: _policyController,
                               minLines: 3,
                               maxLines: 5,
                               validator: (value) => _requiredValidator(
                                 value,
-                                isEnglish
-                                    ? 'Please enter policy details.'
-                                    : 'Vui lòng nhập nội dung chính sách.',
+                                texts.policyRequiredMessage,
                               ),
                               decoration: InputDecoration(
-                                labelText: policyLabel,
+                                labelText: texts.policyLabel,
                                 alignLabelWithHint: true,
                                 prefixIcon: const Icon(Icons.policy_outlined),
                               ),
@@ -748,9 +677,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                           child: SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _isSaving
-                                  ? null
-                                  : () => _handleSave(isEnglish),
+                              onPressed: _isSaving ? null : _handleSave,
                               child: _isSaving
                                   ? const SizedBox(
                                       width: 20,
@@ -759,7 +686,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                                         strokeWidth: 2.5,
                                       ),
                                     )
-                                  : Text(saveLabel),
+                                  : Text(texts.saveLabel),
                             ),
                           ),
                         ),
@@ -771,6 +698,105 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       ),
     );
   }
+}
+
+class _AccountSettingsTexts {
+  const _AccountSettingsTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String loadProfileFailed(Object error) => isEnglish
+      ? 'Unable to load profile: $error'
+      : 'Không thể tải hồ sơ: $error';
+  String get avatarUpdatedMessage => isEnglish
+      ? 'Avatar updated. Save changes to keep it.'
+      : 'Đã cập nhật avatar. Nhấn Lưu để xác nhận.';
+  String avatarUploadFailed(Object error) => isEnglish
+      ? 'Unable to upload avatar: $error'
+      : 'Không thể tải avatar: $error';
+  String get avatarRemovedMessage => isEnglish
+      ? 'Avatar removed. Save changes to confirm.'
+      : 'Đã xóa avatar. Nhấn Lưu để xác nhận.';
+  String get unsavedChangesTitle =>
+      isEnglish ? 'Unsaved changes' : 'Có thay đổi chưa lưu';
+  String get unsavedChangesDescription => isEnglish
+      ? 'You have unsaved changes. Do you want to leave this screen?'
+      : 'Bạn có thay đổi chưa lưu. Bạn có muốn thoát màn hình này không?';
+  String get stayAction => isEnglish ? 'Stay' : 'Ở lại';
+  String get leaveAction => isEnglish ? 'Leave' : 'Thoát';
+  String get resetFieldsTitle => isEnglish ? 'Reset fields' : 'Đặt lại dữ liệu';
+  String get resetFieldsDescription => isEnglish
+      ? 'Reset editable fields to default values?'
+      : 'Đặt lại các trường có thể chỉnh sửa về giá trị mặc định?';
+  String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
+  String get resetAction => isEnglish ? 'Reset' : 'Đặt lại';
+  String get defaultsAppliedMessage => isEnglish
+      ? 'Default values applied. Press Save to confirm.'
+      : 'Đã áp dụng giá trị mặc định. Nhấn Lưu để xác nhận.';
+  String get emailRequiredMessage =>
+      isEnglish ? 'Please enter your email.' : 'Vui lòng nhập email.';
+  String get invalidEmailMessage =>
+      isEnglish ? 'Invalid email format.' : 'Email không hợp lệ.';
+  String get phoneRequiredMessage => isEnglish
+      ? 'Please enter your phone number.'
+      : 'Vui lòng nhập số điện thoại.';
+  String get invalidPhoneMessage => isEnglish
+      ? 'Invalid phone number format.'
+      : 'Số điện thoại không hợp lệ.';
+  String get reviewHighlightedFieldsMessage => isEnglish
+      ? 'Please review the highlighted fields.'
+      : 'Vui lòng kiểm tra các trường đang báo lỗi.';
+  String saveProfileFailed(Object error) => isEnglish
+      ? 'Unable to save profile: $error'
+      : 'Không thể lưu hồ sơ: $error';
+  String get profileSavedMessage =>
+      isEnglish ? 'Profile saved successfully.' : 'Đã lưu thông tin tài khoản.';
+  String get backAction => isEnglish ? 'Back' : 'Quay lại';
+  String get screenTitle =>
+      isEnglish ? 'Account settings' : 'Cài đặt tài khoản';
+  String get resetTooltip =>
+      isEnglish ? 'Reset to defaults' : 'Đặt lại mặc định';
+  String get avatarTitle => isEnglish ? 'Avatar' : 'Ảnh đại diện';
+  String get avatarHint => isEnglish
+      ? 'Upload a dealer avatar for profile screens.'
+      : 'Tải ảnh đại diện cho hồ sơ đại lý.';
+  String get uploadAvatarLabel => isEnglish ? 'Upload avatar' : 'Tải avatar';
+  String get replaceAvatarLabel => isEnglish ? 'Replace avatar' : 'Đổi avatar';
+  String get removeAvatarLabel => isEnglish ? 'Remove avatar' : 'Xóa avatar';
+  String get companyTitle =>
+      isEnglish ? 'Business information' : 'Thông tin doanh nghiệp';
+  String get shippingTitle =>
+      isEnglish ? 'Shipping and contact' : 'Địa chỉ giao hàng và liên hệ';
+  String get addressLineLabel =>
+      isEnglish ? 'Street address' : 'Số nhà, tên đường';
+  String get wardLabel => isEnglish ? 'Ward / Commune' : 'Phường / Xã';
+  String get districtLabel => isEnglish ? 'District' : 'Quận / Huyện';
+  String get cityLabel => isEnglish ? 'Province / City' : 'Tỉnh / Thành phố';
+  String get countryLabel => isEnglish ? 'Country' : 'Quốc gia';
+  String get policyTitle => isEnglish ? 'Sales policy' : 'Chính sách bán hàng';
+  String get saveLabel => isEnglish ? 'Save changes' : 'Lưu thay đổi';
+  String get businessLabel =>
+      isEnglish ? 'Business / dealer name' : 'Tên doanh nghiệp / đại lý';
+  String get contactLabel => isEnglish ? 'Contact person' : 'Người liên hệ';
+  String get emailLabel => 'Email';
+  String get phoneLabel => isEnglish ? 'Phone number' : 'Số điện thoại';
+  String get policyLabel =>
+      isEnglish ? 'Policy details' : 'Nội dung chính sách';
+  String get businessNameRequiredMessage => isEnglish
+      ? 'Please enter business name.'
+      : 'Vui lòng nhập tên doanh nghiệp.';
+  String get contactRequiredMessage => isEnglish
+      ? 'Please enter contact person.'
+      : 'Vui lòng nhập người liên hệ.';
+  String get addressLineRequiredMessage => isEnglish
+      ? 'Please enter street address.'
+      : 'Vui lòng nhập số nhà, tên đường.';
+  String get cityRequiredMessage => isEnglish
+      ? 'Please enter province / city.'
+      : 'Vui lòng nhập tỉnh / thành phố.';
+  String get policyRequiredMessage => isEnglish
+      ? 'Please enter policy details.'
+      : 'Vui lòng nhập nội dung chính sách.';
 }
 
 class _AvatarPreview extends StatelessWidget {

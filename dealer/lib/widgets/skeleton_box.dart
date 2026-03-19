@@ -63,7 +63,9 @@ class _SkeletonBoxState extends State<SkeletonBox>
               end: Alignment.centerRight,
               stops: const [0.0, 0.5, 1.0],
               colors: [baseColor, highlightColor, baseColor],
-              transform: _SlidingGradientTransform(slidePercent: _shimmer.value),
+              transform: _SlidingGradientTransform(
+                slidePercent: _shimmer.value,
+              ),
             ),
           ),
         );
@@ -73,22 +75,12 @@ class _SkeletonBoxState extends State<SkeletonBox>
 }
 
 class _SlidingGradientTransform extends GradientTransform {
-  _SlidingGradientTransform({required this.slidePercent});
+  const _SlidingGradientTransform({required this.slidePercent});
 
   final double slidePercent;
 
-  // Cache to avoid Matrix4 allocation on every paint call.
-  Matrix4? _cachedMatrix;
-  double? _cachedWidth;
-
   @override
   Matrix4? transform(Rect bounds, {TextDirection? textDirection}) {
-    if (_cachedMatrix == null || _cachedWidth != bounds.width) {
-      _cachedWidth = bounds.width;
-      _cachedMatrix = Matrix4.translationValues(
-        bounds.width * slidePercent, 0, 0,
-      );
-    }
-    return _cachedMatrix;
+    return Matrix4.translationValues(bounds.width * slidePercent, 0, 0);
   }
 }

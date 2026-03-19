@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
+import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'global_search.dart';
 import 'models.dart';
@@ -20,18 +21,9 @@ import 'widgets/fade_slide_in.dart';
 
 enum _OrderSort { newest, highestValue, debtFirst }
 
-extension _OrderSortLabel on _OrderSort {
-  String get label {
-    switch (this) {
-      case _OrderSort.newest:
-        return 'Mới nhất';
-      case _OrderSort.highestValue:
-        return 'Giá trị cao';
-      case _OrderSort.debtFirst:
-        return 'Còn nợ trước';
-    }
-  }
-}
+_OrdersTexts _ordersTexts(BuildContext context) => _OrdersTexts(
+  isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+);
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key, this.onSwitchTab});
@@ -297,24 +289,26 @@ class _OrdersScreenState extends State<OrdersScreen> {
     });
   }
 
-  String _activeCriteriaSummary() {
+  String _activeCriteriaSummary(BuildContext context) {
+    final texts = _ordersTexts(context);
     final parts = <String>[];
     if (_onlyOutstanding) {
-      parts.add('Còn nợ');
+      parts.add(texts.outstandingCriteriaLabel);
     }
     if (_selectedStatus != null) {
-      parts.add('Trạng thái: ${_selectedStatus!.label}');
+      parts.add(texts.statusCriteriaLabel(_selectedStatus!));
     }
     if (_selectedPaymentStatus != null) {
-      parts.add('Thanh toán: ${_selectedPaymentStatus!.label}');
+      parts.add(texts.paymentCriteriaLabel(_selectedPaymentStatus!));
     }
     if (_searchQuery.isNotEmpty) {
-      parts.add('Từ khóa: "$_searchQuery"');
+      parts.add(texts.keywordCriteriaLabel(_searchQuery));
     }
     return parts.join(' · ');
   }
 
   void _confirmCancel(BuildContext context, Order order) {
+    final texts = _ordersTexts(context);
     showDialog<void>(
       context: context,
       traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
@@ -322,12 +316,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
       builder: (dialogContext) {
         final colors = Theme.of(context).colorScheme;
         return AlertDialog(
-          title: const Text('Xác nhận hủy đơn'),
-          content: Text('Bạn có chắc muốn hủy đơn hàng ${order.id}?'),
+          title: Text(texts.confirmCancelTitle),
+          content: Text(texts.confirmCancelDescription(order.id)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Không'),
+              child: Text(texts.noAction),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
@@ -343,14 +337,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   return;
                 }
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.',
-                    ),
-                  ),
+                  SnackBar(content: Text(texts.updateOrderStatusFailedMessage)),
                 );
               },
-              child: const Text('Hủy đơn'),
+              child: Text(texts.cancelOrderAction),
             ),
           ],
         );
@@ -439,6 +429,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _ordersTexts(context);
     final colors = Theme.of(context).colorScheme;
     final mediaSize = MediaQuery.sizeOf(context);
     final shortestSide = mediaSize.shortestSide;
@@ -490,7 +481,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         _selectedPaymentStatus != null ||
         _onlyOutstanding;
     final hasActiveSearch = _searchQuery.isNotEmpty;
-    final activeCriteriaSummary = _activeCriteriaSummary();
+    final activeCriteriaSummary = _activeCriteriaSummary(context);
     final canResetCriteria = hasActiveFilters || hasActiveSearch;
     final hasActiveCriteria = canResetCriteria;
     final orderBuilderDelegate = PagedChildBuilderDelegate<Order>(
@@ -504,9 +495,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         final serialProcessedCount = warrantyController.activationCountForOrder(
           order.id,
         );
-        final orderSemanticsLabel =
-            'Don ${order.id}, ${order.receiverName}, tong ${formatVnd(order.total)}, '
-            '${order.totalItems} san pham';
+        final orderSemanticsLabel = texts.orderSemanticsLabel(order);
         final card = FadeSlideIn(
           key: ValueKey(order.id),
           delay: Duration(
@@ -515,7 +504,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           child: Semantics(
             container: true,
             label: orderSemanticsLabel,
-            hint: 'Mo chi tiet don hang',
+            hint: texts.openOrderDetailsHint,
             child: Card(
               clipBehavior: Clip.antiAlias,
               elevation: 0,
@@ -554,7 +543,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'Đặt ${formatRelativeTime(order.createdAt)}',
+                                  texts.placedAt(order.createdAt),
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
                                         color: colors.onSurfaceVariant,
@@ -588,14 +577,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${order.totalItems} sản phẩm',
+                        texts.itemCountLabel(order.totalItems),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Thanh toán: ${order.paymentMethod.label}',
+                        texts.paymentMethodSummary(order.paymentMethod),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),
@@ -604,7 +593,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       Row(
                         children: [
                           Text(
-                            'Trạng thái TT:',
+                            texts.paymentStatusLabel,
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: colors.onSurfaceVariant),
                           ),
@@ -631,7 +620,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Serial $serialProcessedCount/${order.totalItems}',
+                              texts.serialProgressLabel(
+                                serialProcessedCount,
+                                order.totalItems,
+                              ),
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(color: colors.onSurfaceVariant),
                             ),
@@ -641,7 +633,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       if (order.outstandingAmount > 0) ...[
                         const SizedBox(height: 4),
                         Text(
-                          'Còn nợ: ${formatVnd(order.outstandingAmount)}',
+                          texts.outstandingAmountLabel(order.outstandingAmount),
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: colors.error,
@@ -660,7 +652,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 14),
                           ),
                           onPressed: () => _confirmCancel(context, order),
-                          child: const Text('Hủy đơn'),
+                          child: Text(texts.cancelOrderAction),
                         ),
                       ],
                     ],
@@ -696,20 +688,20 @@ class _OrdersScreenState extends State<OrdersScreen> {
       firstPageErrorIndicatorBuilder: (context) {
         return _PagedErrorState(
           onRetry: _pagingController.refresh,
-          message: 'Không thể tải danh sách đơn hàng.',
+          message: texts.loadOrdersFailedMessage,
         );
       },
       newPageErrorIndicatorBuilder: (context) {
         return _PagedErrorState(
           onRetry: _pagingController.retryLastFailedRequest,
-          message: 'Không thể tải thêm đơn hàng.',
+          message: texts.loadMoreOrdersFailedMessage,
         );
       },
     );
 
     return Scaffold(
       appBar: AppBar(
-        title: const BrandAppBarTitle('Đơn hàng'),
+        title: BrandAppBarTitle(texts.screenTitle),
         actions: [
           const GlobalSearchIconButton(),
           NotificationIconButton(
@@ -732,12 +724,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Tìm mã đơn, tên khách, SĐT, sản phẩm...',
+                    hintText: texts.searchHint,
                     prefixIcon: const Icon(Icons.search_outlined),
                     suffixIcon: hasActiveSearch
                         ? IconButton(
                             onPressed: _clearSearch,
-                            tooltip: 'Xóa tìm kiếm',
+                            tooltip: texts.clearSearchTooltip,
                             icon: const Icon(Icons.close),
                           )
                         : null,
@@ -752,21 +744,25 @@ class _OrdersScreenState extends State<OrdersScreen> {
               const SizedBox(height: 10),
               _buildFilterChips<OrderStatus>(
                 context: context,
-                label: 'Trạng thái',
+                label: texts.statusFilterLabel,
                 options: statusFilters,
                 selected: _selectedStatus,
                 onSelected: _setStatusFilter,
-                labelFor: (status) => status == null ? 'Tất cả' : status.label,
+                labelFor: (status) => status == null
+                    ? texts.allFilterOption
+                    : texts.orderStatusLabel(status),
                 useWrapLayout: useWrapFilters,
               ),
               const SizedBox(height: 8),
               _buildFilterChips<OrderPaymentStatus>(
                 context: context,
-                label: 'Thanh toán',
+                label: texts.paymentFilterLabel,
                 options: paymentFilters,
                 selected: _selectedPaymentStatus,
                 onSelected: _setPaymentStatusFilter,
-                labelFor: (status) => status == null ? 'Tất cả' : status.label,
+                labelFor: (status) => status == null
+                    ? texts.allFilterOption
+                    : texts.orderPaymentStatusLabel(status),
                 useWrapLayout: useWrapFilters,
               ),
               Padding(
@@ -780,7 +776,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                               children: [
                                 if (pendingApprovalCount > 0)
                                   Text(
-                                    '$pendingApprovalCount đơn chờ duyệt',
+                                    texts.pendingApprovalCountLabel(
+                                      pendingApprovalCount,
+                                    ),
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
                                           color: colors.onSurfaceVariant,
@@ -806,7 +804,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                         vertical: 2,
                                       ),
                                       child: Text(
-                                        '$debtOrderCount đơn còn nợ',
+                                        texts.outstandingOrderCountLabel(
+                                          debtOrderCount,
+                                        ),
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodySmall
@@ -846,7 +846,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Đang lọc',
+                              texts.filteredBadgeLabel,
                               style: Theme.of(context).textTheme.labelSmall
                                   ?.copyWith(
                                     color: colors.onPrimaryContainer,
@@ -859,14 +859,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     if (hasActiveFilters)
                       IconButton(
                         onPressed: _clearActiveFilters,
-                        tooltip: 'Xóa bộ lọc',
+                        tooltip: texts.clearFiltersTooltip,
                         icon: const Icon(
                           Icons.filter_alt_off_outlined,
                           size: 20,
                         ),
                       ),
                     PopupMenuButton<_OrderSort>(
-                      tooltip: 'Sắp xếp đơn hàng',
+                      tooltip: texts.sortTooltip,
                       onSelected: _setSort,
                       itemBuilder: (context) => _OrderSort.values
                           .map(
@@ -884,7 +884,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                           )
                                         : null,
                                   ),
-                                  Text(sort.label),
+                                  Text(texts.sortLabel(sort)),
                                 ],
                               ),
                             ),
@@ -907,7 +907,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           children: [
                             const Icon(Icons.sort, size: 16),
                             const SizedBox(width: 6),
-                            Text(_selectedSort.label),
+                            Text(texts.sortLabel(_selectedSort)),
                           ],
                         ),
                       ),
@@ -919,7 +919,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () async {
-                    await orderController.load(forceRefresh: true);
+                    await orderController.refresh();
                     _refreshOrders();
                   },
                   child: useGridLayout
@@ -966,10 +966,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ? FloatingActionButton.extended(
               onPressed: () => _openCreateOrder(context),
               icon: const Icon(Icons.add_shopping_cart_outlined),
-              label: const Text('Tạo đơn'),
+              label: Text(texts.createOrderAction),
             )
           : FloatingActionButton(
-              tooltip: 'Tạo đơn',
+              tooltip: texts.createOrderAction,
               onPressed: () => _openCreateOrder(context),
               child: const Icon(Icons.add_shopping_cart_outlined),
             ),
@@ -984,6 +984,7 @@ class _EmptyOrders extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _ordersTexts(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -993,7 +994,7 @@ class _EmptyOrders extends StatelessWidget {
             const Icon(Icons.receipt_long_outlined, size: 64),
             const SizedBox(height: 16),
             Text(
-              'Chưa có đơn hàng',
+              texts.emptyOrdersTitle,
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
@@ -1001,7 +1002,7 @@ class _EmptyOrders extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Hãy đặt hàng để xem lịch sử đơn hàng của bạn.',
+              texts.emptyOrdersDescription,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -1011,7 +1012,7 @@ class _EmptyOrders extends StatelessWidget {
             FilledButton.icon(
               onPressed: onCreateOrder,
               icon: const Icon(Icons.add_shopping_cart_outlined),
-              label: const Text('Tạo đơn hàng đầu tiên'),
+              label: Text(texts.createFirstOrderAction),
             ),
           ],
         ),
@@ -1028,6 +1029,7 @@ class _PagedErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _ordersTexts(context);
     final colors = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
@@ -1046,7 +1048,7 @@ class _PagedErrorState extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
-              label: const Text('Thử lại'),
+              label: Text(texts.retryAction),
             ),
           ],
         ),
@@ -1068,6 +1070,7 @@ class _EmptyFilterResult extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _ordersTexts(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -1077,7 +1080,7 @@ class _EmptyFilterResult extends StatelessWidget {
             const Icon(Icons.search_off_outlined, size: 64),
             const SizedBox(height: 16),
             Text(
-              'Không tìm thấy đơn hàng phù hợp',
+              texts.emptyFilteredTitle,
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
@@ -1085,7 +1088,7 @@ class _EmptyFilterResult extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Thử thay đổi từ khóa hoặc bộ lọc trạng thái.',
+              texts.emptyFilteredDescription,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -1106,7 +1109,7 @@ class _EmptyFilterResult extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: onClearCriteria,
                 icon: const Icon(Icons.filter_alt_off_outlined),
-                label: const Text('Xóa bộ lọc và tìm kiếm'),
+                label: Text(texts.clearFiltersAndSearchAction),
               ),
             ],
           ],
@@ -1123,6 +1126,7 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _ordersTexts(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final background = _backgroundForStatus(status, isDark: isDark);
     final textColor = _textForStatus(status, isDark: isDark);
@@ -1135,7 +1139,7 @@ class _StatusChip extends StatelessWidget {
         border: Border.all(color: textColor.withValues(alpha: 0.28)),
       ),
       child: Text(
-        status.label,
+        texts.orderStatusLabel(status),
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           fontWeight: FontWeight.w600,
           color: textColor,
@@ -1152,6 +1156,7 @@ class _PaymentStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _ordersTexts(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final background = _paymentStatusBackground(paymentStatus, isDark: isDark);
     final textColor = _paymentStatusTextColor(paymentStatus, isDark: isDark);
@@ -1164,13 +1169,207 @@ class _PaymentStatusChip extends StatelessWidget {
         border: Border.all(color: textColor.withValues(alpha: 0.28)),
       ),
       child: Text(
-        paymentStatus.label,
+        texts.orderPaymentStatusLabel(paymentStatus),
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           fontWeight: FontWeight.w600,
           color: textColor,
         ),
       ),
     );
+  }
+}
+
+class _OrdersTexts {
+  const _OrdersTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get screenTitle => isEnglish ? 'Orders' : 'Đơn hàng';
+  String get searchHint => isEnglish
+      ? 'Search order ID, customer, phone, product...'
+      : 'Tìm mã đơn, tên khách, SĐT, sản phẩm...';
+  String get clearSearchTooltip => isEnglish ? 'Clear search' : 'Xóa tìm kiếm';
+  String get statusFilterLabel => isEnglish ? 'Status' : 'Trạng thái';
+  String get paymentFilterLabel => isEnglish ? 'Payment' : 'Thanh toán';
+  String get allFilterOption => isEnglish ? 'All' : 'Tất cả';
+  String get filteredBadgeLabel => isEnglish ? 'Filtered' : 'Đang lọc';
+  String get clearFiltersTooltip => isEnglish ? 'Clear filters' : 'Xóa bộ lọc';
+  String get sortTooltip => isEnglish ? 'Sort orders' : 'Sắp xếp đơn hàng';
+  String get createOrderAction => isEnglish ? 'Create order' : 'Tạo đơn';
+  String get createFirstOrderAction =>
+      isEnglish ? 'Create your first order' : 'Tạo đơn hàng đầu tiên';
+  String get emptyOrdersTitle =>
+      isEnglish ? 'No orders yet' : 'Chưa có đơn hàng';
+  String get emptyOrdersDescription => isEnglish
+      ? 'Place an order to see your order history here.'
+      : 'Hãy đặt hàng để xem lịch sử đơn hàng của bạn.';
+  String get retryAction => isEnglish ? 'Retry' : 'Thử lại';
+  String get emptyFilteredTitle => isEnglish
+      ? 'No matching orders found'
+      : 'Không tìm thấy đơn hàng phù hợp';
+  String get emptyFilteredDescription => isEnglish
+      ? 'Try adjusting your keyword or filters.'
+      : 'Thử thay đổi từ khóa hoặc bộ lọc trạng thái.';
+  String get clearFiltersAndSearchAction =>
+      isEnglish ? 'Clear filters and search' : 'Xóa bộ lọc và tìm kiếm';
+  String get loadOrdersFailedMessage => isEnglish
+      ? 'Unable to load orders.'
+      : 'Không thể tải danh sách đơn hàng.';
+  String get loadMoreOrdersFailedMessage => isEnglish
+      ? 'Unable to load more orders.'
+      : 'Không thể tải thêm đơn hàng.';
+  String get outstandingCriteriaLabel => isEnglish ? 'Outstanding' : 'Còn nợ';
+  String get confirmCancelTitle =>
+      isEnglish ? 'Confirm cancellation' : 'Xác nhận hủy đơn';
+  String get noAction => isEnglish ? 'No' : 'Không';
+  String get cancelOrderAction => isEnglish ? 'Cancel order' : 'Hủy đơn';
+  String get updateOrderStatusFailedMessage => isEnglish
+      ? 'Unable to update the order status. Please try again.'
+      : 'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.';
+  String get openOrderDetailsHint =>
+      isEnglish ? 'Open order details' : 'Mở chi tiết đơn hàng';
+  String get paymentStatusLabel =>
+      isEnglish ? 'Payment status:' : 'Trạng thái TT:';
+
+  String sortLabel(_OrderSort sort) {
+    switch (sort) {
+      case _OrderSort.newest:
+        return isEnglish ? 'Newest first' : 'Mới nhất';
+      case _OrderSort.highestValue:
+        return isEnglish ? 'Highest value' : 'Giá trị cao';
+      case _OrderSort.debtFirst:
+        return isEnglish ? 'Outstanding first' : 'Còn nợ trước';
+    }
+  }
+
+  String orderStatusLabel(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.pendingApproval:
+        return isEnglish ? 'Pending approval' : 'Chờ duyệt';
+      case OrderStatus.approved:
+        return isEnglish ? 'Approved' : 'Đã duyệt';
+      case OrderStatus.shipping:
+        return isEnglish ? 'Shipping' : 'Đang giao';
+      case OrderStatus.completed:
+        return isEnglish ? 'Completed' : 'Hoàn thành';
+      case OrderStatus.cancelled:
+        return isEnglish ? 'Cancelled' : 'Đã hủy';
+    }
+  }
+
+  String paymentMethodLabel(OrderPaymentMethod method) {
+    switch (method) {
+      case OrderPaymentMethod.bankTransfer:
+        return isEnglish ? 'Bank transfer' : 'Chuyển khoản ngân hàng';
+      case OrderPaymentMethod.debt:
+        return isEnglish ? 'Debt recorded' : 'Ghi nhận công nợ';
+    }
+  }
+
+  String orderPaymentStatusLabel(OrderPaymentStatus status) {
+    switch (status) {
+      case OrderPaymentStatus.cancelled:
+        return isEnglish ? 'Cancelled' : 'Đã hủy';
+      case OrderPaymentStatus.failed:
+        return isEnglish ? 'Failed' : 'Thất bại';
+      case OrderPaymentStatus.unpaid:
+        return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
+      case OrderPaymentStatus.paid:
+        return isEnglish ? 'Paid' : 'Đã thanh toán';
+      case OrderPaymentStatus.debtRecorded:
+        return isEnglish ? 'Debt recorded' : 'Công nợ';
+    }
+  }
+
+  String statusCriteriaLabel(OrderStatus status) =>
+      '${isEnglish ? 'Status' : 'Trạng thái'}: ${orderStatusLabel(status)}';
+
+  String paymentCriteriaLabel(OrderPaymentStatus status) =>
+      '${isEnglish ? 'Payment' : 'Thanh toán'}: '
+      '${orderPaymentStatusLabel(status)}';
+
+  String keywordCriteriaLabel(String value) =>
+      '${isEnglish ? 'Keyword' : 'Từ khóa'}: "$value"';
+
+  String confirmCancelDescription(String orderId) => isEnglish
+      ? 'Are you sure you want to cancel order $orderId?'
+      : 'Bạn có chắc muốn hủy đơn hàng $orderId?';
+
+  String orderSemanticsLabel(Order order) {
+    final count = itemCountLabel(order.totalItems);
+    return isEnglish
+        ? 'Order ${order.id}, ${order.receiverName}, total ${formatVnd(order.total)}, $count'
+        : 'Đơn ${order.id}, ${order.receiverName}, tổng ${formatVnd(order.total)}, $count';
+  }
+
+  String placedAt(DateTime value) =>
+      '${isEnglish ? 'Placed' : 'Đặt'} ${relativeTimeLabel(value)}';
+
+  String itemCountLabel(int count) {
+    if (!isEnglish) {
+      return '$count sản phẩm';
+    }
+    return '$count ${count == 1 ? 'item' : 'items'}';
+  }
+
+  String paymentMethodSummary(OrderPaymentMethod method) =>
+      '${isEnglish ? 'Payment' : 'Thanh toán'}: ${paymentMethodLabel(method)}';
+
+  String serialProgressLabel(int processedCount, int totalCount) => isEnglish
+      ? 'Serials $processedCount/$totalCount'
+      : 'Serial $processedCount/$totalCount';
+
+  String outstandingAmountLabel(int amount) => isEnglish
+      ? 'Outstanding: ${formatVnd(amount)}'
+      : 'Còn nợ: ${formatVnd(amount)}';
+
+  String pendingApprovalCountLabel(int count) => isEnglish
+      ? '$count ${count == 1 ? 'pending approval order' : 'pending approval orders'}'
+      : '$count đơn chờ duyệt';
+
+  String outstandingOrderCountLabel(int count) => isEnglish
+      ? '$count ${count == 1 ? 'order with outstanding debt' : 'orders with outstanding debt'}'
+      : '$count đơn còn nợ';
+
+  String relativeTimeLabel(DateTime value, {DateTime? now}) {
+    final current = (now ?? DateTime.now()).toLocal();
+    final target = value.toLocal();
+    final diff = current.difference(target);
+
+    if (diff.isNegative) {
+      return formatDateTime(target);
+    }
+    if (diff.inMinutes < 1) {
+      return isEnglish ? 'just now' : 'vừa xong';
+    }
+    if (diff.inHours < 1) {
+      final minutes = diff.inMinutes;
+      return isEnglish
+          ? '$minutes ${minutes == 1 ? 'minute' : 'minutes'} ago'
+          : '$minutes phút trước';
+    }
+    if (diff.inDays < 1) {
+      final hours = diff.inHours;
+      return isEnglish
+          ? '$hours ${hours == 1 ? 'hour' : 'hours'} ago'
+          : '$hours giờ trước';
+    }
+
+    final currentDate = DateTime(current.year, current.month, current.day);
+    final targetDate = DateTime(target.year, target.month, target.day);
+    final dayDiff = currentDate.difference(targetDate).inDays;
+
+    if (dayDiff == 1) {
+      final time =
+          '${target.hour.toString().padLeft(2, '0')}:${target.minute.toString().padLeft(2, '0')}';
+      return isEnglish ? 'yesterday $time' : 'hôm qua $time';
+    }
+    if (dayDiff < 7) {
+      return isEnglish
+          ? '$dayDiff ${dayDiff == 1 ? 'day' : 'days'} ago'
+          : '$dayDiff ngày trước';
+    }
+    return formatDateTime(target);
   }
 }
 

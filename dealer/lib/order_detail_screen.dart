@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'app_settings_controller.dart';
 import 'bank_transfer_support.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
@@ -15,12 +16,17 @@ import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/section_card.dart';
 
+_OrderDetailTexts _orderDetailTexts(BuildContext context) => _OrderDetailTexts(
+  isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+);
+
 class OrderDetailScreen extends StatelessWidget {
   const OrderDetailScreen({super.key, required this.orderId});
 
   final String orderId;
 
   void _confirmCancel(BuildContext context, Order order) {
+    final texts = _orderDetailTexts(context);
     showDialog<void>(
       context: context,
       traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
@@ -28,12 +34,12 @@ class OrderDetailScreen extends StatelessWidget {
       builder: (dialogContext) {
         final colors = Theme.of(context).colorScheme;
         return AlertDialog(
-          title: const Text('Xác nhận hủy đơn'),
-          content: Text('Bạn có chắc muốn hủy đơn hàng ${order.id}?'),
+          title: Text(texts.confirmCancelTitle),
+          content: Text(texts.confirmCancelDescription(order.id)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Không'),
+              child: Text(texts.noAction),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
@@ -49,14 +55,10 @@ class OrderDetailScreen extends StatelessWidget {
                   return;
                 }
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.',
-                    ),
-                  ),
+                  SnackBar(content: Text(texts.updateOrderStatusFailedMessage)),
                 );
               },
-              child: const Text('Hủy đơn'),
+              child: Text(texts.cancelOrderAction),
             ),
           ],
         );
@@ -65,18 +67,19 @@ class OrderDetailScreen extends StatelessWidget {
   }
 
   void _confirmReceived(BuildContext context, Order order) {
+    final texts = _orderDetailTexts(context);
     showDialog<void>(
       context: context,
       traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
       requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Xác nhận đã nhận hàng'),
-          content: Text('Đánh dấu đơn ${order.id} là hoàn thành?'),
+          title: Text(texts.confirmReceivedTitle),
+          content: Text(texts.confirmReceivedDescription(order.id)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Không'),
+              child: Text(texts.noAction),
             ),
             FilledButton(
               onPressed: () async {
@@ -88,14 +91,10 @@ class OrderDetailScreen extends StatelessWidget {
                   return;
                 }
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.',
-                    ),
-                  ),
+                  SnackBar(content: Text(texts.updateOrderStatusFailedMessage)),
                 );
               },
-              child: const Text('Xác nhận'),
+              child: Text(texts.confirmAction),
             ),
           ],
         );
@@ -104,20 +103,20 @@ class OrderDetailScreen extends StatelessWidget {
   }
 
   Future<void> _callReceiver(BuildContext context, String rawPhone) async {
+    final texts = _orderDetailTexts(context);
     final normalized = rawPhone.replaceAll(RegExp(r'[^0-9+]'), '');
     final uri = Uri(scheme: 'tel', path: normalized);
     final launched = await launchUrl(uri);
     if (launched || !context.mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Không thể mở trình gọi điện trên thiết bị này.'),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(texts.cannotOpenPhoneAppMessage)));
   }
 
   Future<void> _openAddressOnMap(BuildContext context, String address) async {
+    final texts = _orderDetailTexts(context);
     final uri = Uri.https('www.google.com', '/maps/search/', {
       'api': '1',
       'query': address,
@@ -126,9 +125,9 @@ class OrderDetailScreen extends StatelessWidget {
     if (launched || !context.mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Không thể mở ứng dụng bản đồ.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(texts.cannotOpenMapAppMessage)));
   }
 
   Future<void> _reorder(
@@ -136,6 +135,7 @@ class OrderDetailScreen extends StatelessWidget {
     CartController cart,
     Order order,
   ) async {
+    final texts = _orderDetailTexts(context);
     var addedCount = 0;
     final skipped = <String>[];
 
@@ -160,12 +160,11 @@ class OrderDetailScreen extends StatelessWidget {
 
     final String message;
     if (addedCount == 0) {
-      message = 'Không có sản phẩm nào được thêm vào giỏ (hết hàng).';
+      message = texts.reorderNoneAddedMessage;
     } else if (skipped.isEmpty) {
-      message = 'Đã thêm tất cả sản phẩm vào giỏ hàng.';
+      message = texts.reorderAllAddedMessage;
     } else {
-      message =
-          'Đã thêm $addedCount sản phẩm. Bỏ qua: ${skipped.join(', ')} (hết hàng hoặc vượt tồn kho).';
+      message = texts.reorderPartialAddedMessage(addedCount, skipped);
     }
 
     if (!context.mounted) {
@@ -176,7 +175,7 @@ class OrderDetailScreen extends StatelessWidget {
         content: Text(message),
         action: addedCount > 0
             ? SnackBarAction(
-                label: 'Mở giỏ hàng',
+                label: texts.openCartAction,
                 onPressed: () {
                   Navigator.of(
                     context,
@@ -193,19 +192,21 @@ class OrderDetailScreen extends StatelessWidget {
     String label,
     String value,
   ) async {
+    final texts = _orderDetailTexts(context);
     await Clipboard.setData(ClipboardData(text: value));
     if (!context.mounted) {
       return;
     }
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text('Đã sao chép $label')));
+    ).showSnackBar(SnackBar(content: Text(texts.copiedLabelMessage(label))));
   }
 
   Future<void> _showBankTransferInstructions(
     BuildContext context,
     Order order,
   ) async {
+    final texts = _orderDetailTexts(context);
     final service = BankTransferService();
     try {
       final instructions = await service.fetchInstructions();
@@ -228,7 +229,7 @@ class OrderDetailScreen extends StatelessWidget {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Không thể tải thông tin chuyển khoản: $error')),
+        SnackBar(content: Text(texts.cannotLoadBankTransferMessage(error))),
       );
     } finally {
       service.close();
@@ -236,8 +237,13 @@ class OrderDetailScreen extends StatelessWidget {
   }
 
   void _showRecordPaymentDialog(BuildContext context, Order order) {
+    final texts = _orderDetailTexts(context);
     final amountController = TextEditingController();
-    const channels = <String>['Chuyển khoản', 'Tiền mặt', 'Bù trừ công nợ'];
+    final channels = <String>[
+      texts.bankTransferChannelValue,
+      texts.cashChannelValue,
+      texts.debtOffsetChannelValue,
+    ];
     var selectedChannel = order.paymentMethod == OrderPaymentMethod.bankTransfer
         ? channels.first
         : channels.last;
@@ -252,13 +258,16 @@ class OrderDetailScreen extends StatelessWidget {
         return StatefulBuilder(
           builder: (_, setDialogState) {
             return AlertDialog(
-              title: const Text('Ghi nhận thanh toán'),
+              title: Text(texts.recordPaymentTitle),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Đơn ${order.id} còn nợ ${formatVnd(order.outstandingAmount)}',
+                    texts.outstandingOrderSummary(
+                      order.id,
+                      formatVnd(order.outstandingAmount),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -266,22 +275,24 @@ class OrderDetailScreen extends StatelessWidget {
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: InputDecoration(
-                      labelText: 'Số tiền',
-                      hintText: 'Tối đa ${formatVnd(order.outstandingAmount)}',
+                      labelText: texts.amountLabel,
+                      hintText: texts.amountHint(
+                        formatVnd(order.outstandingAmount),
+                      ),
                       errorText: errorText,
                     ),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     initialValue: selectedChannel,
-                    decoration: const InputDecoration(
-                      labelText: 'Kênh thanh toán',
+                    decoration: InputDecoration(
+                      labelText: texts.paymentChannelLabel,
                     ),
                     items: channels
                         .map(
                           (channel) => DropdownMenuItem(
                             value: channel,
-                            child: Text(channel),
+                            child: Text(texts.paymentChannelDisplay(channel)),
                           ),
                         )
                         .toList(),
@@ -299,7 +310,7 @@ class OrderDetailScreen extends StatelessWidget {
                   onPressed: isSubmitting
                       ? null
                       : () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Đóng'),
+                  child: Text(texts.closeAction),
                 ),
                 FilledButton(
                   onPressed: isSubmitting
@@ -312,13 +323,13 @@ class OrderDetailScreen extends StatelessWidget {
                           final amount = int.tryParse(digitsOnly) ?? 0;
                           if (amount <= 0) {
                             setDialogState(() {
-                              errorText = 'Số tiền không hợp lệ.';
+                              errorText = texts.invalidAmountMessage;
                             });
                             return;
                           }
                           if (amount > order.outstandingAmount) {
                             setDialogState(() {
-                              errorText = 'Số tiền vượt quá công nợ còn lại.';
+                              errorText = texts.amountExceedsDebtMessage;
                             });
                             return;
                           }
@@ -332,7 +343,7 @@ class OrderDetailScreen extends StatelessWidget {
                                 orderId: order.id,
                                 amount: amount,
                                 channel: selectedChannel,
-                                note: 'Ghi nhận từ màn hình chi tiết đơn hàng.',
+                                note: texts.recordPaymentScreenNote,
                               );
                           if (!dialogContext.mounted || !context.mounted) {
                             return;
@@ -340,8 +351,7 @@ class OrderDetailScreen extends StatelessWidget {
                           setDialogState(() => isSubmitting = false);
                           if (!success) {
                             setDialogState(() {
-                              errorText =
-                                  'Không thể ghi nhận thanh toán. Vui lòng kiểm tra lại.';
+                              errorText = texts.cannotRecordPaymentMessage;
                             });
                             return;
                           }
@@ -350,7 +360,10 @@ class OrderDetailScreen extends StatelessWidget {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                'Đã ghi nhận ${formatVnd(amount)} cho đơn ${order.id}.',
+                                texts.paymentRecordedMessage(
+                                  formatVnd(amount),
+                                  order.id,
+                                ),
                               ),
                             ),
                           );
@@ -361,7 +374,7 @@ class OrderDetailScreen extends StatelessWidget {
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2.4),
                         )
-                      : const Text('Ghi nhận'),
+                      : Text(texts.recordAction),
                 ),
               ],
             );
@@ -379,6 +392,7 @@ class OrderDetailScreen extends StatelessWidget {
     required bool canMarkReceived,
     required bool canCancel,
   }) {
+    final texts = _orderDetailTexts(context);
     final colors = Theme.of(context).colorScheme;
     final canReorder = order.status != OrderStatus.cancelled;
     final markReceivedIsPrimary = canMarkReceived;
@@ -397,31 +411,31 @@ class OrderDetailScreen extends StatelessWidget {
       if (canReorder)
         OutlinedButton(
           onPressed: () => _reorder(context, cart, order),
-          child: const Text('Đặt lại đơn cũ'),
+          child: Text(texts.reorderAction),
         ),
       if (canShowBankTransferInfo)
         paymentActionIsPrimary
             ? ElevatedButton.icon(
                 onPressed: () => _showBankTransferInstructions(context, order),
                 icon: const Icon(Icons.account_balance_outlined, size: 18),
-                label: const Text('Thông tin chuyển khoản'),
+                label: Text(texts.bankTransferInfoAction),
               )
             : OutlinedButton.icon(
                 onPressed: () => _showBankTransferInstructions(context, order),
                 icon: const Icon(Icons.account_balance_outlined, size: 18),
-                label: const Text('Thông tin chuyển khoản'),
+                label: Text(texts.bankTransferInfoAction),
               ),
       if (canRecordPayment)
         paymentActionIsPrimary
             ? ElevatedButton.icon(
                 onPressed: () => _showRecordPaymentDialog(context, order),
                 icon: const Icon(Icons.payments_outlined, size: 18),
-                label: const Text('Ghi nhận thanh toán'),
+                label: Text(texts.recordPaymentAction),
               )
             : OutlinedButton.icon(
                 onPressed: () => _showRecordPaymentDialog(context, order),
                 icon: const Icon(Icons.payments_outlined, size: 18),
-                label: const Text('Ghi nhận thanh toán'),
+                label: Text(texts.recordPaymentAction),
               ),
       if (canProcessSerial)
         processSerialIsPrimary
@@ -434,7 +448,7 @@ class OrderDetailScreen extends StatelessWidget {
                     ),
                   );
                 },
-                child: const Text('Xử lý serial'),
+                child: Text(texts.processSerialAction),
               )
             : OutlinedButton(
                 onPressed: () {
@@ -445,12 +459,12 @@ class OrderDetailScreen extends StatelessWidget {
                     ),
                   );
                 },
-                child: const Text('Xử lý serial'),
+                child: Text(texts.processSerialAction),
               ),
       if (canMarkReceived)
         ElevatedButton(
           onPressed: () => _confirmReceived(context, order),
-          child: const Text('Xác nhận đã nhận hàng'),
+          child: Text(texts.confirmReceivedAction),
         ),
       if (canCancel)
         TextButton(
@@ -460,7 +474,7 @@ class OrderDetailScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14),
           ),
           onPressed: () => _confirmCancel(context, order),
-          child: const Text('Hủy đơn'),
+          child: Text(texts.cancelOrderAction),
         ),
     ];
 
@@ -469,6 +483,7 @@ class OrderDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _orderDetailTexts(context);
     final colors = Theme.of(context).colorScheme;
     final order = OrderScope.of(context).findById(orderId);
     final cart = CartScope.of(context);
@@ -477,8 +492,8 @@ class OrderDetailScreen extends StatelessWidget {
 
     if (order == null) {
       return Scaffold(
-        appBar: AppBar(title: const BrandAppBarTitle('Chi tiết đơn hàng')),
-        body: const Center(child: Text('Không tìm thấy đơn hàng.')),
+        appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
+        body: Center(child: Text(texts.orderNotFoundMessage)),
       );
     }
 
@@ -507,7 +522,7 @@ class OrderDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const BrandAppBarTitle('Chi tiết đơn hàng'),
+        title: BrandAppBarTitle(texts.screenTitle),
         actions: const [GlobalSearchIconButton()],
       ),
       bottomNavigationBar: stickyActionBar,
@@ -519,39 +534,41 @@ class OrderDetailScreen extends StatelessWidget {
             children: [
               FadeSlideIn(
                 child: SectionCard(
-                  title: 'Thông tin đơn',
+                  title: texts.orderInfoTitle,
                   child: Column(
                     children: [
                       _InfoRow(
-                        label: 'Mã đơn',
+                        label: texts.orderIdLabel,
                         value: order.id,
                         onCopy: () {
                           Clipboard.setData(ClipboardData(text: order.id));
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Đã sao chép mã đơn ${order.id}'),
+                              content: Text(
+                                texts.copiedOrderIdMessage(order.id),
+                              ),
                             ),
                           );
                         },
                       ),
                       const SizedBox(height: 8),
                       _InfoRow(
-                        label: 'Ngày đặt',
+                        label: texts.orderDateLabel,
                         value: formatDateTime(order.createdAt),
                       ),
                       const SizedBox(height: 8),
                       _InfoStatusRow(
-                        label: 'Trạng thái đơn',
+                        label: texts.orderStatusRowLabel,
                         status: order.status,
                       ),
                       const SizedBox(height: 8),
                       _InfoRow(
-                        label: 'Phương thức thanh toán',
-                        value: order.paymentMethod.label,
+                        label: texts.paymentMethodRowLabel,
+                        value: texts.paymentMethodLabel(order.paymentMethod),
                       ),
                       const SizedBox(height: 8),
                       _InfoPaymentStatusRow(
-                        label: 'Trạng thái thanh toán',
+                        label: texts.paymentStatusRowLabel,
                         paymentStatus: order.paymentStatus,
                       ),
                     ],
@@ -562,7 +579,7 @@ class OrderDetailScreen extends StatelessWidget {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 60),
                 child: SectionCard(
-                  title: 'Thông tin nhận hàng',
+                  title: texts.shippingInfoTitle,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -650,7 +667,7 @@ class OrderDetailScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            'Ghi chú: ${order.note!}',
+                            texts.noteValue(order.note!),
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: colors.onSurfaceVariant),
                           ),
@@ -664,7 +681,7 @@ class OrderDetailScreen extends StatelessWidget {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 120),
                 child: SectionCard(
-                  title: 'Sản phẩm (${order.totalItems})',
+                  title: texts.productsTitle(order.totalItems),
                   child: Column(
                     children: [
                       for (var i = 0; i < order.items.length; i++) ...[
@@ -680,46 +697,46 @@ class OrderDetailScreen extends StatelessWidget {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 180),
                 child: SectionCard(
-                  title: 'Thanh toán',
+                  title: texts.paymentTitle,
                   child: Column(
                     children: [
                       _InfoRow(
-                        label: 'Tạm tính',
+                        label: texts.subtotalLabel,
                         value: formatVnd(order.subtotal),
                       ),
                       if (order.discountAmount > 0) ...[
                         const SizedBox(height: 8),
                         _InfoRow(
-                          label: 'Chiết khấu (${order.discountPercent}%)',
+                          label: texts.discountLabel(order.discountPercent),
                           value: '-${formatVnd(order.discountAmount)}',
                         ),
                         const SizedBox(height: 8),
                         _InfoRow(
-                          label: 'Sau chiết khấu',
+                          label: texts.afterDiscountLabel,
                           value: formatVnd(order.totalAfterDiscount),
                         ),
                       ],
                       const SizedBox(height: 8),
                       _InfoRow(
-                        label: 'VAT (${order.vatPercent}%)',
+                        label: texts.vatLabel(order.vatPercent),
                         value: formatVnd(order.vatAmount),
                       ),
                       const SizedBox(height: 8),
                       _InfoRow(
-                        label: 'Đã thanh toán',
+                        label: texts.paidAmountLabel,
                         value: formatVnd(order.paidAmount),
                       ),
                       if (order.outstandingAmount > 0) ...[
                         const SizedBox(height: 8),
                         _InfoRow(
-                          label: 'Còn nợ',
+                          label: texts.outstandingAmountLabel,
                           value: formatVnd(order.outstandingAmount),
                           isWarning: true,
                         ),
                       ],
                       const Divider(height: 20),
                       _InfoRow(
-                        label: 'Tổng cộng',
+                        label: texts.totalLabel,
                         value: formatVnd(order.total),
                         isEmphasis: true,
                       ),
@@ -732,12 +749,12 @@ class OrderDetailScreen extends StatelessWidget {
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 240),
                   child: SectionCard(
-                    title: 'Lịch sử thanh toán',
+                    title: texts.paymentHistoryTitle,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Tổng đã ghi nhận',
+                          texts.totalRecordedLabel,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: colors.onSurfaceVariant,
@@ -769,6 +786,184 @@ class OrderDetailScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _OrderDetailTexts {
+  const _OrderDetailTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get screenTitle => isEnglish ? 'Order details' : 'Chi tiết đơn hàng';
+  String get orderNotFoundMessage =>
+      isEnglish ? 'Order not found.' : 'Không tìm thấy đơn hàng.';
+  String get updateOrderStatusFailedMessage => isEnglish
+      ? 'Unable to update the order status. Please try again.'
+      : 'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.';
+  String get confirmCancelTitle =>
+      isEnglish ? 'Confirm order cancellation' : 'Xác nhận hủy đơn';
+  String confirmCancelDescription(String orderId) => isEnglish
+      ? 'Are you sure you want to cancel order $orderId?'
+      : 'Bạn có chắc muốn hủy đơn hàng $orderId?';
+  String get noAction => isEnglish ? 'No' : 'Không';
+  String get cancelOrderAction => isEnglish ? 'Cancel order' : 'Hủy đơn';
+  String get confirmReceivedTitle =>
+      isEnglish ? 'Confirm delivery received' : 'Xác nhận đã nhận hàng';
+  String confirmReceivedDescription(String orderId) => isEnglish
+      ? 'Mark order $orderId as completed?'
+      : 'Đánh dấu đơn $orderId là hoàn thành?';
+  String get confirmAction => isEnglish ? 'Confirm' : 'Xác nhận';
+  String get confirmReceivedAction =>
+      isEnglish ? 'Confirm received' : 'Xác nhận đã nhận hàng';
+  String get cannotOpenPhoneAppMessage => isEnglish
+      ? 'Unable to open the phone app on this device.'
+      : 'Không thể mở trình gọi điện trên thiết bị này.';
+  String get cannotOpenMapAppMessage => isEnglish
+      ? 'Unable to open the map application.'
+      : 'Không thể mở ứng dụng bản đồ.';
+  String get reorderNoneAddedMessage => isEnglish
+      ? 'No products were added to the cart because they are out of stock.'
+      : 'Không có sản phẩm nào được thêm vào giỏ (hết hàng).';
+  String get reorderAllAddedMessage => isEnglish
+      ? 'All products were added to the cart.'
+      : 'Đã thêm tất cả sản phẩm vào giỏ hàng.';
+  String reorderPartialAddedMessage(int addedCount, List<String> skipped) =>
+      isEnglish
+      ? 'Added $addedCount products. Skipped: ${skipped.join(', ')} (out of stock or over stock limit).'
+      : 'Đã thêm $addedCount sản phẩm. Bỏ qua: ${skipped.join(', ')} (hết hàng hoặc vượt tồn kho).';
+  String get openCartAction => isEnglish ? 'Open cart' : 'Mở giỏ hàng';
+  String copiedLabelMessage(String label) =>
+      isEnglish ? 'Copied $label' : 'Đã sao chép $label';
+  String cannotLoadBankTransferMessage(Object error) => isEnglish
+      ? 'Unable to load bank transfer details: $error'
+      : 'Không thể tải thông tin chuyển khoản: $error';
+  String get recordPaymentTitle =>
+      isEnglish ? 'Record payment' : 'Ghi nhận thanh toán';
+  String outstandingOrderSummary(String orderId, String amount) => isEnglish
+      ? 'Order $orderId has an outstanding amount of $amount'
+      : 'Đơn $orderId còn nợ $amount';
+  String get amountLabel => isEnglish ? 'Amount' : 'Số tiền';
+  String amountHint(String maxAmount) =>
+      isEnglish ? 'Maximum $maxAmount' : 'Tối đa $maxAmount';
+  String get paymentChannelLabel =>
+      isEnglish ? 'Payment channel' : 'Kênh thanh toán';
+  String get closeAction => isEnglish ? 'Close' : 'Đóng';
+  String get invalidAmountMessage =>
+      isEnglish ? 'Invalid amount.' : 'Số tiền không hợp lệ.';
+  String get amountExceedsDebtMessage => isEnglish
+      ? 'The amount exceeds the remaining outstanding balance.'
+      : 'Số tiền vượt quá công nợ còn lại.';
+  String get recordPaymentScreenNote => isEnglish
+      ? 'Recorded from the order detail screen.'
+      : 'Ghi nhận từ màn hình chi tiết đơn hàng.';
+  String get cannotRecordPaymentMessage => isEnglish
+      ? 'Unable to record the payment. Please check again.'
+      : 'Không thể ghi nhận thanh toán. Vui lòng kiểm tra lại.';
+  String paymentRecordedMessage(String amount, String orderId) => isEnglish
+      ? 'Recorded $amount for order $orderId.'
+      : 'Đã ghi nhận $amount cho đơn $orderId.';
+  String get recordAction => isEnglish ? 'Record' : 'Ghi nhận';
+  String get reorderAction => isEnglish ? 'Reorder' : 'Đặt lại đơn cũ';
+  String get bankTransferInfoAction =>
+      isEnglish ? 'Bank transfer info' : 'Thông tin chuyển khoản';
+  String get recordPaymentAction =>
+      isEnglish ? 'Record payment' : 'Ghi nhận thanh toán';
+  String get processSerialAction =>
+      isEnglish ? 'Process serials' : 'Xử lý serial';
+  String get orderInfoTitle =>
+      isEnglish ? 'Order information' : 'Thông tin đơn';
+  String get orderIdLabel => isEnglish ? 'Order ID' : 'Mã đơn';
+  String copiedOrderIdMessage(String orderId) =>
+      isEnglish ? 'Copied order ID $orderId' : 'Đã sao chép mã đơn $orderId';
+  String get orderDateLabel => isEnglish ? 'Order date' : 'Ngày đặt';
+  String get orderStatusRowLabel =>
+      isEnglish ? 'Order status' : 'Trạng thái đơn';
+  String get paymentMethodRowLabel =>
+      isEnglish ? 'Payment method' : 'Phương thức thanh toán';
+  String get paymentStatusRowLabel =>
+      isEnglish ? 'Payment status' : 'Trạng thái thanh toán';
+  String get shippingInfoTitle =>
+      isEnglish ? 'Shipping information' : 'Thông tin nhận hàng';
+  String noteValue(String note) => isEnglish ? 'Note: $note' : 'Ghi chú: $note';
+  String productsTitle(int count) =>
+      isEnglish ? 'Products ($count)' : 'Sản phẩm ($count)';
+  String get paymentTitle => isEnglish ? 'Payment' : 'Thanh toán';
+  String get subtotalLabel => isEnglish ? 'Subtotal' : 'Tạm tính';
+  String discountLabel(int percent) =>
+      isEnglish ? 'Discount ($percent%)' : 'Chiết khấu ($percent%)';
+  String get afterDiscountLabel =>
+      isEnglish ? 'After discount' : 'Sau chiết khấu';
+  String vatLabel(int percent) =>
+      isEnglish ? 'VAT ($percent%)' : 'VAT ($percent%)';
+  String get paidAmountLabel => isEnglish ? 'Paid amount' : 'Đã thanh toán';
+  String get outstandingAmountLabel => isEnglish ? 'Outstanding' : 'Còn nợ';
+  String get totalLabel => isEnglish ? 'Total' : 'Tổng cộng';
+  String get paymentHistoryTitle =>
+      isEnglish ? 'Payment history' : 'Lịch sử thanh toán';
+  String get totalRecordedLabel =>
+      isEnglish ? 'Total recorded' : 'Tổng đã ghi nhận';
+  String get copyTooltip => isEnglish ? 'Copy' : 'Sao chép';
+
+  String orderStatusLabel(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.pendingApproval:
+        return isEnglish ? 'Pending approval' : 'Chờ duyệt';
+      case OrderStatus.approved:
+        return isEnglish ? 'Approved' : 'Đã duyệt';
+      case OrderStatus.shipping:
+        return isEnglish ? 'Shipping' : 'Đang giao';
+      case OrderStatus.completed:
+        return isEnglish ? 'Completed' : 'Hoàn thành';
+      case OrderStatus.cancelled:
+        return isEnglish ? 'Cancelled' : 'Đã hủy';
+    }
+  }
+
+  String paymentMethodLabel(OrderPaymentMethod method) {
+    switch (method) {
+      case OrderPaymentMethod.bankTransfer:
+        return isEnglish ? 'Bank transfer' : 'Chuyển khoản ngân hàng';
+      case OrderPaymentMethod.debt:
+        return isEnglish ? 'Debt recorded' : 'Ghi nhận công nợ';
+    }
+  }
+
+  String orderPaymentStatusLabel(OrderPaymentStatus status) {
+    switch (status) {
+      case OrderPaymentStatus.cancelled:
+        return isEnglish ? 'Cancelled' : 'Đã hủy';
+      case OrderPaymentStatus.failed:
+        return isEnglish ? 'Failed' : 'Thất bại';
+      case OrderPaymentStatus.unpaid:
+        return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
+      case OrderPaymentStatus.paid:
+        return isEnglish ? 'Paid' : 'Đã thanh toán';
+      case OrderPaymentStatus.debtRecorded:
+        return isEnglish ? 'Debt recorded' : 'Công nợ';
+    }
+  }
+
+  String get bankTransferChannelValue => 'Chuyển khoản';
+  String get cashChannelValue => 'Tiền mặt';
+  String get debtOffsetChannelValue => 'Bù trừ công nợ';
+
+  String paymentChannelDisplay(String value) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized.contains('chuyển khoản') ||
+        normalized.contains('transfer') ||
+        normalized.contains('bank')) {
+      return isEnglish ? 'Bank transfer' : 'Chuyển khoản';
+    }
+    if (normalized.contains('tiền mặt') || normalized.contains('cash')) {
+      return isEnglish ? 'Cash' : 'Tiền mặt';
+    }
+    if (normalized.contains('bù trừ') ||
+        normalized.contains('công nợ') ||
+        normalized.contains('debt') ||
+        normalized.contains('offset')) {
+      return isEnglish ? 'Debt offset' : 'Bù trừ công nợ';
+    }
+    return value;
   }
 }
 
@@ -912,6 +1107,7 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _orderDetailTexts(context);
     final colors = Theme.of(context).colorScheme;
     final style = Theme.of(context).textTheme.bodyMedium;
     final emphasisStyle = Theme.of(
@@ -953,7 +1149,7 @@ class _InfoRow extends StatelessWidget {
                     const SizedBox(width: 2),
                     IconButton(
                       onPressed: onCopy,
-                      tooltip: 'Sao chép',
+                      tooltip: texts.copyTooltip,
                       constraints: const BoxConstraints(
                         minWidth: 48,
                         minHeight: 48,
@@ -1023,6 +1219,7 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _orderDetailTexts(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final background = _backgroundForStatus(status, isDark: isDark);
     final textColor = _textForStatus(status, isDark: isDark);
@@ -1035,7 +1232,7 @@ class _StatusChip extends StatelessWidget {
         border: Border.all(color: textColor.withValues(alpha: 0.28)),
       ),
       child: Text(
-        status.label,
+        texts.orderStatusLabel(status),
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           fontWeight: FontWeight.w600,
           color: textColor,
@@ -1052,6 +1249,7 @@ class _PaymentStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _orderDetailTexts(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final background = _paymentStatusBackground(paymentStatus, isDark: isDark);
     final textColor = _paymentStatusTextColor(paymentStatus, isDark: isDark);
@@ -1064,7 +1262,7 @@ class _PaymentStatusChip extends StatelessWidget {
         border: Border.all(color: textColor.withValues(alpha: 0.28)),
       ),
       child: Text(
-        paymentStatus.label,
+        texts.orderPaymentStatusLabel(paymentStatus),
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           fontWeight: FontWeight.w600,
           color: textColor,
@@ -1267,13 +1465,18 @@ class _PaymentHistoryTile extends StatelessWidget {
 
   IconData _iconForChannel(String channel) {
     final normalized = channel.toLowerCase();
-    if (normalized.contains('chuyển khoản')) {
+    if (normalized.contains('chuyển khoản') ||
+        normalized.contains('transfer') ||
+        normalized.contains('bank')) {
       return Icons.account_balance_outlined;
     }
-    if (normalized.contains('tiền mặt')) {
+    if (normalized.contains('tiền mặt') || normalized.contains('cash')) {
       return Icons.money_outlined;
     }
-    if (normalized.contains('bù trừ') || normalized.contains('công nợ')) {
+    if (normalized.contains('bù trừ') ||
+        normalized.contains('công nợ') ||
+        normalized.contains('debt') ||
+        normalized.contains('offset')) {
       return Icons.swap_horiz_outlined;
     }
     return Icons.payments_outlined;
@@ -1281,6 +1484,7 @@ class _PaymentHistoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _orderDetailTexts(context);
     final colors = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1301,7 +1505,7 @@ class _PaymentHistoryTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Text(
-                  record.channel,
+                  texts.paymentChannelDisplay(record.channel),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colors.onSecondaryContainer,
                     fontWeight: FontWeight.w600,

@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'order_controller.dart';
 import 'serial_scan_screen.dart';
 import 'utils.dart';
 import 'validation_utils.dart';
 import 'warranty_controller.dart';
-import 'warranty_models.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 const double _exportSectionGap = 18;
 const double _exportMinTapTarget = 48;
+
+_WarrantyExportTexts _warrantyExportTexts(BuildContext context) =>
+    _WarrantyExportTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
 
 class WarrantyExportScreen extends StatefulWidget {
   const WarrantyExportScreen({super.key, this.prefilledSerial});
@@ -35,10 +40,15 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
   DateTime _purchaseDate = DateUtils.dateOnly(DateTime.now());
   bool _isSubmitting = false;
   bool _didApplyPrefill = false;
+  bool _isEnglish = false;
+
+  _WarrantyExportTexts get _texts =>
+      _WarrantyExportTexts(isEnglish: _isEnglish);
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _isEnglish = AppSettingsScope.of(context).locale.languageCode == 'en';
     if (_didApplyPrefill) return;
     _didApplyPrefill = true;
 
@@ -70,12 +80,13 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
   }
 
   void _addSerialFromInput(WarrantyController warrantyController) {
+    final texts = _texts;
     final raw = _serialInputController.text.trim();
     if (raw.isEmpty) return;
 
     final normalized = warrantyController.normalizeSerial(raw);
     if (_cartContains(normalized, warrantyController)) {
-      _showSnackBar('Serial $normalized đã có trong giỏ xuất hàng.');
+      _showSnackBar(texts.serialAlreadyInCartMessage(normalized));
       return;
     }
 
@@ -95,14 +106,15 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
   }
 
   Future<void> _scanSerial(WarrantyController warrantyController) async {
-    final scanned = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const SerialScanScreen()),
-    );
+    final texts = _texts;
+    final scanned = await Navigator.of(
+      context,
+    ).push<String>(MaterialPageRoute(builder: (_) => const SerialScanScreen()));
     if (!mounted || scanned == null) return;
 
     final normalized = warrantyController.normalizeSerial(scanned);
     if (_cartContains(normalized, warrantyController)) {
-      _showSnackBar('Serial $normalized đã có trong giỏ xuất hàng.');
+      _showSnackBar(texts.serialAlreadyInCartMessage(normalized));
       return;
     }
 
@@ -116,7 +128,7 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
     if (record == null) return;
 
     setState(() => _cart.add(record));
-    _showSnackBar('Đã thêm serial $normalized.');
+    _showSnackBar(texts.addedSerialMessage(normalized));
   }
 
   bool _cartContains(String normalized, WarrantyController warrantyController) {
@@ -126,16 +138,18 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
   }
 
   Future<void> _pickPurchaseDate() async {
+    final texts = _texts;
     final now = DateUtils.dateOnly(DateTime.now());
     final firstDate = DateTime(now.year - 5, 1, 1);
-    final effectiveInitialDate =
-        _purchaseDate.isAfter(now) ? now : _purchaseDate;
+    final effectiveInitialDate = _purchaseDate.isAfter(now)
+        ? now
+        : _purchaseDate;
     final picked = await showDatePicker(
       context: context,
       initialDate: effectiveInitialDate,
       firstDate: firstDate,
       lastDate: now,
-      helpText: 'Chọn ngày mua',
+      helpText: texts.pickPurchaseDateHelp,
     );
     if (!mounted || picked == null) return;
     setState(() => _purchaseDate = DateUtils.dateOnly(picked));
@@ -145,8 +159,9 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
     WarrantyController warrantyController,
     OrderController orderController,
   ) async {
+    final texts = _texts;
     if (_cart.isEmpty) {
-      _showSnackBar('Chưa có serial nào trong giỏ xuất hàng.');
+      _showSnackBar(texts.emptyCartMessage);
       return;
     }
 
@@ -160,10 +175,10 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
         customerEmail.isEmpty ||
         customerPhone.isEmpty ||
         customerAddress.isEmpty) {
-      errors.add('Vui lòng nhập đầy đủ thông tin khách hàng.');
+      errors.add(texts.customerInfoRequiredMessage);
     }
     if (customerEmail.isNotEmpty && !isValidEmailAddress(customerEmail)) {
-      errors.add('Vui lòng nhập email hợp lệ.');
+      errors.add(texts.invalidEmailMessage);
     }
     if (errors.isNotEmpty) {
       _showSnackBar(errors.join('\n'));
@@ -181,29 +196,32 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
     }
 
     final purchaseDate = DateUtils.dateOnly(_purchaseDate);
-    final newRecords = _cart.map((record) {
-      final order = orderController.findById(record.orderId);
-      final warrantyMonths = order?.items
-              .where((item) => item.product.id == record.productId)
-              .firstOrNull
-              ?.product
-              .warrantyMonths ??
-          12;
-      return WarrantyActivationRecord(
-        orderId: record.orderId,
-        productId: record.productId,
-        productName: record.productName,
-        productSku: record.productSku,
-        serial: warrantyController.normalizeSerial(record.serial),
-        customerName: customerName,
-        customerEmail: customerEmail,
-        customerPhone: customerPhone,
-        customerAddress: customerAddress,
-        warrantyMonths: warrantyMonths,
-        activatedAt: DateTime.now(),
-        purchaseDate: purchaseDate,
-      );
-    }).toList(growable: false);
+    final newRecords = _cart
+        .map((record) {
+          final order = orderController.findById(record.orderId);
+          final warrantyMonths =
+              order?.items
+                  .where((item) => item.product.id == record.productId)
+                  .firstOrNull
+                  ?.product
+                  .warrantyMonths ??
+              12;
+          return WarrantyActivationRecord(
+            orderId: record.orderId,
+            productId: record.productId,
+            productName: record.productName,
+            productSku: record.productSku,
+            serial: warrantyController.normalizeSerial(record.serial),
+            customerName: customerName,
+            customerEmail: customerEmail,
+            customerPhone: customerPhone,
+            customerAddress: customerAddress,
+            warrantyMonths: warrantyMonths,
+            activatedAt: DateTime.now(),
+            purchaseDate: purchaseDate,
+          );
+        })
+        .toList(growable: false);
 
     setState(() => _isSubmitting = true);
     final success = await warrantyController.addActivations(newRecords);
@@ -212,9 +230,7 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
     setState(() => _isSubmitting = false);
 
     if (!success) {
-      _showSnackBar(
-        'Không thể đồng bộ kích hoạt bảo hành. Vui lòng kiểm tra lại.',
-      );
+      _showSnackBar(texts.activationSyncFailedMessage);
       return;
     }
 
@@ -228,7 +244,7 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
     });
 
     _scrollController.jumpTo(0);
-    _showSnackBar('Đã kích hoạt thành công ${newRecords.length} serial.');
+    _showSnackBar(texts.activationSuccessMessage(newRecords.length));
     if (_cart.isEmpty && mounted) {
       Navigator.of(context).pop();
     }
@@ -236,6 +252,7 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _texts;
     final warrantyController = WarrantyScope.of(context);
     final orderController = OrderScope.of(context);
     final colorScheme = Theme.of(context).colorScheme;
@@ -252,7 +269,7 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const BrandAppBarTitle('Xuất hàng'),
+        title: BrandAppBarTitle(texts.screenTitle),
         actions: [
           if (_cart.isNotEmpty)
             Padding(
@@ -268,7 +285,7 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    '${_cart.length} serial',
+                    texts.serialCountBadge(_cart.length),
                     style: TextStyle(
                       color: colorScheme.onPrimaryContainer,
                       fontWeight: FontWeight.w700,
@@ -291,12 +308,12 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
               // Serial input section
               FadeSlideIn(
                 child: _ExportSectionCard(
-                  title: 'Quét hoặc nhập serial',
+                  title: texts.scanOrEnterSerialTitle,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Thêm từng serial vào giỏ. Mỗi serial có thể thuộc đơn hàng khác nhau.',
+                        texts.scanOrEnterSerialDescription,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -314,8 +331,8 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
                                   RegExp(r'[A-Za-z0-9-]'),
                                 ),
                               ],
-                              decoration: const InputDecoration(
-                                labelText: 'Nhập serial',
+                              decoration: InputDecoration(
+                                labelText: texts.serialFieldLabel,
                                 prefixIcon: Icon(
                                   Icons.confirmation_number_outlined,
                                 ),
@@ -330,7 +347,7 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
                             child: ElevatedButton(
                               onPressed: () =>
                                   _addSerialFromInput(warrantyController),
-                              child: const Text('Thêm'),
+                              child: Text(texts.addAction),
                             ),
                           ),
                         ],
@@ -339,7 +356,7 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
                       OutlinedButton.icon(
                         onPressed: () => _scanSerial(warrantyController),
                         icon: const Icon(Icons.qr_code_scanner_outlined),
-                        label: const Text('Quét QR'),
+                        label: Text(texts.scanQrAction),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size.fromHeight(
                             _exportMinTapTarget,
@@ -357,92 +374,92 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 40),
                 child: _cart.isEmpty
-                    ? _EmptyCartCard()
+                    ? const _EmptyCartCard()
                     : _ExportSectionCard(
-                        title: 'Giỏ xuất hàng (${_cart.length} serial)',
+                        title: texts.exportCartTitle(_cart.length),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            ...byProduct.entries.toList().asMap().entries.map(
-                              (outerEntry) {
-                                final isLast =
-                                    outerEntry.key ==
-                                    byProduct.entries.length - 1;
-                                final entry = outerEntry.value;
-                                final records = entry.value;
-                                final firstRecord = records.first;
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${firstRecord.productName} (${firstRecord.productSku})',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w700,
-                                            color: colorScheme.onSurface,
+                            ...byProduct.entries.toList().asMap().entries.map((
+                              outerEntry,
+                            ) {
+                              final isLast =
+                                  outerEntry.key ==
+                                  byProduct.entries.length - 1;
+                              final entry = outerEntry.value;
+                              final records = entry.value;
+                              final firstRecord = records.first;
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${firstRecord.productName} (${firstRecord.productSku})',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: colorScheme.onSurface,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  ...records.map(
+                                    (record) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 6),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.verified_outlined,
+                                            size: 16,
+                                            color: colorScheme.primary,
                                           ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    ...records.map(
-                                      (record) => Padding(
-                                        padding: const EdgeInsets.only(
-                                          bottom: 6,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.verified_outlined,
-                                              size: 16,
-                                              color: colorScheme.primary,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    record.serial,
-                                                    style: const TextStyle(
-                                                      fontWeight: FontWeight.w700,
-                                                      fontSize: 14,
-                                                    ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  record.serial,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 14,
                                                   ),
-                                                  Text(
-                                                    'Đơn: ${record.orderId}',
-                                                    style: Theme.of(context)
-                                                        .textTheme
-                                                        .bodySmall
-                                                        ?.copyWith(
-                                                          color: colorScheme
-                                                              .onSurfaceVariant,
-                                                        ),
+                                                ),
+                                                Text(
+                                                  texts.orderIdLabel(
+                                                    record.orderId,
                                                   ),
-                                                ],
-                                              ),
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .bodySmall
+                                                      ?.copyWith(
+                                                        color: colorScheme
+                                                            .onSurfaceVariant,
+                                                      ),
+                                                ),
+                                              ],
                                             ),
-                                            IconButton(
-                                              icon: const Icon(
-                                                Icons.remove_circle_outline,
-                                                size: 20,
-                                              ),
-                                              color: colorScheme.error,
-                                              tooltip: 'Xóa serial',
-                                              onPressed: () => setState(
-                                                () => _cart.remove(record),
-                                              ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.remove_circle_outline,
+                                              size: 20,
                                             ),
-                                          ],
-                                        ),
+                                            color: colorScheme.error,
+                                            tooltip: texts.removeSerialTooltip,
+                                            onPressed: () => setState(
+                                              () => _cart.remove(record),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    if (!isLast) const Divider(height: 16),
-                                  ],
-                                );
-                              },
-                            ),
+                                  ),
+                                  if (!isLast) const Divider(height: 16),
+                                ],
+                              );
+                            }),
                           ],
                         ),
                       ),
@@ -454,13 +471,13 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 80),
                 child: _ExportSectionCard(
-                  title: 'Thông tin khách hàng',
+                  title: texts.customerInfoTitle,
                   child: Column(
                     children: [
                       TextField(
                         controller: _customerNameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Tên khách hàng',
+                        decoration: InputDecoration(
+                          labelText: texts.customerNameLabel,
                           prefixIcon: Icon(Icons.person_outline),
                         ),
                       ),
@@ -468,27 +485,26 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
                       TextField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          labelText: 'Email khách hàng *',
+                        decoration: InputDecoration(
+                          labelText: texts.customerEmailLabel,
                           prefixIcon: Icon(Icons.alternate_email_outlined),
-                          helperText:
-                              'Bắt buộc. Dùng để lưu thông tin kích hoạt bảo hành.',
+                          helperText: texts.customerEmailHelper,
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(
-                          labelText: 'Số điện thoại',
+                        decoration: InputDecoration(
+                          labelText: texts.customerPhoneLabel,
                           prefixIcon: Icon(Icons.phone_outlined),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _addressController,
-                        decoration: const InputDecoration(
-                          labelText: 'Địa chỉ',
+                        decoration: InputDecoration(
+                          labelText: texts.customerAddressLabel,
                           prefixIcon: Icon(Icons.location_on_outlined),
                         ),
                       ),
@@ -496,7 +512,9 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
                       OutlinedButton.icon(
                         onPressed: _pickPurchaseDate,
                         icon: const Icon(Icons.event_outlined),
-                        label: Text('Ngày mua: ${formatDate(_purchaseDate)}'),
+                        label: Text(
+                          texts.purchaseDateLabel(formatDate(_purchaseDate)),
+                        ),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size.fromHeight(52),
                           alignment: Alignment.centerLeft,
@@ -542,8 +560,10 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
                               )
                             : Text(
                                 _cart.isEmpty
-                                    ? 'Thêm serial để xuất hàng'
-                                    : 'Kích hoạt ${_cart.length} serial',
+                                    ? texts.addSerialsToExportButtonLabel
+                                    : texts.activateSerialsButtonLabel(
+                                        _cart.length,
+                                      ),
                               ),
                       ),
                     ),
@@ -573,8 +593,11 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
 }
 
 class _EmptyCartCard extends StatelessWidget {
+  const _EmptyCartCard();
+
   @override
   Widget build(BuildContext context) {
+    final texts = _warrantyExportTexts(context);
     final colorScheme = Theme.of(context).colorScheme;
     return Card(
       elevation: 0,
@@ -595,7 +618,7 @@ class _EmptyCartCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Chưa có serial nào trong giỏ',
+              texts.emptyCartCardMessage,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -605,6 +628,71 @@ class _EmptyCartCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _WarrantyExportTexts {
+  const _WarrantyExportTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get screenTitle => isEnglish ? 'Export stock' : 'Xuất hàng';
+  String serialAlreadyInCartMessage(String serial) => isEnglish
+      ? 'Serial $serial is already in the export cart.'
+      : 'Serial $serial đã có trong giỏ xuất hàng.';
+  String addedSerialMessage(String serial) =>
+      isEnglish ? 'Added serial $serial.' : 'Đã thêm serial $serial.';
+  String get pickPurchaseDateHelp =>
+      isEnglish ? 'Select purchase date' : 'Chọn ngày mua';
+  String get emptyCartMessage => isEnglish
+      ? 'There are no serials in the export cart yet.'
+      : 'Chưa có serial nào trong giỏ xuất hàng.';
+  String get customerInfoRequiredMessage => isEnglish
+      ? 'Please enter full customer information.'
+      : 'Vui lòng nhập đầy đủ thông tin khách hàng.';
+  String get invalidEmailMessage =>
+      isEnglish ? 'Please enter a valid email.' : 'Vui lòng nhập email hợp lệ.';
+  String get activationSyncFailedMessage => isEnglish
+      ? 'Unable to sync warranty activation. Please check again.'
+      : 'Không thể đồng bộ kích hoạt bảo hành. Vui lòng kiểm tra lại.';
+  String activationSuccessMessage(int count) => isEnglish
+      ? 'Successfully activated $count serials.'
+      : 'Đã kích hoạt thành công $count serial.';
+  String serialCountBadge(int count) =>
+      isEnglish ? '$count serials' : '$count serial';
+  String get scanOrEnterSerialTitle =>
+      isEnglish ? 'Scan or enter serials' : 'Quét hoặc nhập serial';
+  String get scanOrEnterSerialDescription => isEnglish
+      ? 'Add each serial to the cart. Serials can belong to different orders.'
+      : 'Thêm từng serial vào giỏ. Mỗi serial có thể thuộc đơn hàng khác nhau.';
+  String get serialFieldLabel => isEnglish ? 'Enter serial' : 'Nhập serial';
+  String get addAction => isEnglish ? 'Add' : 'Thêm';
+  String get scanQrAction => isEnglish ? 'Scan QR' : 'Quét QR';
+  String exportCartTitle(int count) => isEnglish
+      ? 'Export cart ($count serials)'
+      : 'Giỏ xuất hàng ($count serial)';
+  String orderIdLabel(String orderId) =>
+      isEnglish ? 'Order: $orderId' : 'Đơn: $orderId';
+  String get removeSerialTooltip => isEnglish ? 'Remove serial' : 'Xóa serial';
+  String get customerInfoTitle =>
+      isEnglish ? 'Customer information' : 'Thông tin khách hàng';
+  String get customerNameLabel =>
+      isEnglish ? 'Customer name' : 'Tên khách hàng';
+  String get customerEmailLabel =>
+      isEnglish ? 'Customer email *' : 'Email khách hàng *';
+  String get customerEmailHelper => isEnglish
+      ? 'Required. Used to save warranty activation information.'
+      : 'Bắt buộc. Dùng để lưu thông tin kích hoạt bảo hành.';
+  String get customerPhoneLabel => isEnglish ? 'Phone number' : 'Số điện thoại';
+  String get customerAddressLabel => isEnglish ? 'Address' : 'Địa chỉ';
+  String purchaseDateLabel(String dateLabel) =>
+      isEnglish ? 'Purchase date: $dateLabel' : 'Ngày mua: $dateLabel';
+  String get addSerialsToExportButtonLabel =>
+      isEnglish ? 'Add serials to export' : 'Thêm serial để xuất hàng';
+  String activateSerialsButtonLabel(int count) =>
+      isEnglish ? 'Activate $count serials' : 'Kích hoạt $count serial';
+  String get emptyCartCardMessage => isEnglish
+      ? 'There are no serials in the cart yet.'
+      : 'Chưa có serial nào trong giỏ';
 }
 
 class _ExportSectionCard extends StatelessWidget {

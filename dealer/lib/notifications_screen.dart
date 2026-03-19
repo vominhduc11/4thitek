@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'breakpoints.dart';
 import 'dashboard_screen.dart';
 import 'global_search.dart';
+import 'l10n/app_localizations.dart';
 import 'models.dart';
 import 'notification_controller.dart';
 import 'order_detail_screen.dart';
@@ -29,6 +30,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     final notificationController = NotificationScope.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final notices = List.of(notificationController.notices)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     final hasUnread = notificationController.unreadCount > 0;
@@ -37,10 +39,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: BrandAppBarTitle('Thông báo (${notices.length})'),
+        title: BrandAppBarTitle(l10n.notificationsTitle(notices.length)),
         actions: [
           IconButton(
-            tooltip: 'Đánh dấu tất cả đã đọc',
+            tooltip: l10n.notificationsMarkAllReadTooltip,
             onPressed: hasUnread
                 ? () async => _markAllAsRead(notificationController)
                 : null,
@@ -156,6 +158,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(28, 56, 28, 24),
@@ -163,7 +166,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         const Icon(Icons.notifications_none, size: 56),
         const SizedBox(height: 10),
         Text(
-          'Chưa có thông báo nào',
+          l10n.notificationsEmptyTitle,
           textAlign: TextAlign.center,
           style: Theme.of(
             context,
@@ -171,7 +174,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Thông báo mới sẽ xuất hiện tại đây khi có cập nhật.',
+          l10n.notificationsEmptyMessage,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -184,6 +187,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _markAllAsRead(
     NotificationController notificationController,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final error = await notificationController.markAllAsRead();
     if (!mounted) {
       return;
@@ -195,7 +199,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đã đánh dấu tất cả là đã đọc.')),
+      SnackBar(content: Text(l10n.notificationsMarkedAllReadMessage)),
     );
   }
 
@@ -217,6 +221,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       showDragHandle: true,
       requestFocus: true,
       builder: (sheetContext) {
+        final l10n = AppLocalizations.of(sheetContext)!;
         final colorScheme = Theme.of(sheetContext).colorScheme;
         final content = Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
@@ -231,7 +236,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   const SizedBox(width: 10),
                   Flexible(
                     child: Text(
-                      _noticeTypeLabel(notice.type),
+                      _noticeTypeLabel(l10n, notice.type),
                       style: Theme.of(sheetContext).textTheme.labelLarge
                           ?.copyWith(fontWeight: FontWeight.w600),
                     ),
@@ -270,7 +275,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       sheetContext,
                     ).pop(_NoticeDetailAction.markUnread),
                     icon: const Icon(Icons.mark_email_unread_outlined),
-                    label: const Text('Đánh dấu chưa đọc'),
+                    label: Text(l10n.notificationsMarkUnreadAction),
                   ),
                   FilledButton.icon(
                     onPressed: () => Navigator.of(
@@ -313,7 +318,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           break;
         }
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã đánh dấu là chưa đọc.')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.notificationsMarkedUnreadMessage,
+            ),
+          ),
         );
         break;
       case _NoticeDetailAction.openRelated:
@@ -357,7 +366,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
       if (!launched && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không mở được liên kết.')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.notificationsOpenLinkFailedMessage,
+            ),
+          ),
         );
       }
       return launched;
@@ -397,44 +410,45 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return true;
   }
 
-  String _noticeTypeLabel(NoticeType type) {
+  String _noticeTypeLabel(AppLocalizations l10n, NoticeType type) {
     switch (type) {
       case NoticeType.order:
-        return 'Đơn hàng';
+        return l10n.notificationsTypeOrder;
       case NoticeType.promotion:
-        return 'Khuyến mãi';
+        return l10n.notificationsTypePromotion;
       case NoticeType.system:
-        return 'Hệ thống';
+        return l10n.notificationsTypeSystem;
     }
   }
 
   String _relatedActionLabel(DistributorNotice notice) {
+    final l10n = AppLocalizations.of(context)!;
     final link = notice.link?.trim() ?? '';
     if (link.startsWith('/orders')) {
-      return 'Xem Ä‘Æ¡n hĂ ng';
+      return l10n.notificationsRelatedViewOrder;
     }
     if (link.startsWith('/products')) {
-      return 'Xem sáº£n pháº©m';
+      return l10n.notificationsRelatedViewProducts;
     }
     if (link == '/account/support' ||
         link == '/dealer/support' ||
         link == '/support') {
-      return 'Xem há»— trá»£';
+      return l10n.notificationsRelatedViewSupport;
     }
     if (link.startsWith('/notifications')) {
-      return 'Xem thĂ´ng bĂ¡o';
+      return l10n.notificationsRelatedViewNotifications;
     }
     if (link.isNotEmpty) {
-      return 'Má»Ÿ liĂªn káº¿t';
+      return l10n.notificationsRelatedOpenLink;
     }
 
     switch (notice.type) {
       case NoticeType.order:
-        return 'Xem đơn hàng';
+        return l10n.notificationsRelatedViewOrder;
       case NoticeType.promotion:
-        return 'Xem sản phẩm';
+        return l10n.notificationsRelatedViewProducts;
       case NoticeType.system:
-        return 'Mở tổng quan';
+        return l10n.notificationsRelatedOpenOverview;
     }
   }
 }

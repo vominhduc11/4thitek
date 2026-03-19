@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'app_settings_controller.dart';
 import 'models.dart';
 import 'order_controller.dart';
 import 'order_detail_screen.dart';
@@ -9,11 +10,14 @@ import 'product_catalog_controller.dart';
 import 'product_detail_screen.dart';
 
 Future<void> showGlobalSearch(BuildContext context) async {
+  final isEnglish = AppSettingsScope.of(context).locale.languageCode == 'en';
   final orders = List<Order>.from(OrderScope.of(context).orders);
-  final products = ProductCatalogScope.maybeOf(context)?.products ?? const <Product>[];
+  final products =
+      ProductCatalogScope.maybeOf(context)?.products ?? const <Product>[];
   await showSearch<void>(
     context: context,
     delegate: _GlobalSearchDelegate(
+      isEnglish: isEnglish,
       launchContext: context,
       products: products,
       orders: orders,
@@ -22,18 +26,22 @@ Future<void> showGlobalSearch(BuildContext context) async {
 }
 
 class GlobalSearchIconButton extends StatelessWidget {
-  const GlobalSearchIconButton({super.key, this.tooltip = 'Tìm kiếm toàn cục'});
+  const GlobalSearchIconButton({super.key, this.tooltip});
 
-  final String tooltip;
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
+    final texts = _GlobalSearchTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
+    final effectiveTooltip = tooltip ?? texts.searchButtonTooltip;
     return Semantics(
       button: true,
-      label: tooltip,
+      label: effectiveTooltip,
       child: IconButton(
         onPressed: () => showGlobalSearch(context),
-        tooltip: tooltip,
+        tooltip: effectiveTooltip,
         icon: const Icon(Icons.search_outlined),
       ),
     );
@@ -57,17 +65,21 @@ class _SearchItem {
 
 class _GlobalSearchDelegate extends SearchDelegate<void> {
   _GlobalSearchDelegate({
+    required this.isEnglish,
     required this.launchContext,
     required this.products,
     required this.orders,
   });
 
+  final bool isEnglish;
   final BuildContext launchContext;
   final List<Product> products;
   final List<Order> orders;
 
   Timer? _debounceTimer;
   String _debouncedQuery = '';
+
+  _GlobalSearchTexts get _texts => _GlobalSearchTexts(isEnglish: isEnglish);
 
   void _scheduleSearch() {
     _debounceTimer?.cancel();
@@ -80,7 +92,7 @@ class _GlobalSearchDelegate extends SearchDelegate<void> {
   }
 
   @override
-  String get searchFieldLabel => 'Tìm sản phẩm, mã đơn, tên khách...';
+  String get searchFieldLabel => _texts.searchFieldLabel;
 
   @override
   TextInputType get keyboardType => TextInputType.text;
@@ -90,7 +102,7 @@ class _GlobalSearchDelegate extends SearchDelegate<void> {
     return [
       if (query.isNotEmpty)
         IconButton(
-          tooltip: 'Xóa từ khóa',
+          tooltip: _texts.clearQueryTooltip,
           onPressed: () => query = '',
           icon: const Icon(Icons.close),
         ),
@@ -100,7 +112,7 @@ class _GlobalSearchDelegate extends SearchDelegate<void> {
   @override
   Widget? buildLeading(BuildContext context) {
     return IconButton(
-      tooltip: 'Đóng tìm kiếm',
+      tooltip: _texts.closeSearchTooltip,
       onPressed: () => close(context, null),
       icon: const Icon(Icons.arrow_back),
     );
@@ -137,7 +149,9 @@ class _GlobalSearchDelegate extends SearchDelegate<void> {
         final subtitle = isOrder
             ? '${item.order!.receiverName} • ${item.order!.receiverPhone}'
             : item.product!.sku;
-        final trailingLabel = isOrder ? 'Đơn hàng' : 'Sản phẩm';
+        final trailingLabel = isOrder
+            ? _texts.orderItemLabel
+            : _texts.productItemLabel;
 
         return Card(
           elevation: 0,
@@ -220,6 +234,9 @@ class _SearchHintState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _GlobalSearchTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
     final colors = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
@@ -230,7 +247,7 @@ class _SearchHintState extends StatelessWidget {
             Icon(Icons.search, size: 54, color: colors.onSurfaceVariant),
             const SizedBox(height: 12),
             Text(
-              'Nhập từ khóa để tìm nhanh đơn hàng và sản phẩm.',
+              texts.hintMessage,
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,
@@ -248,6 +265,9 @@ class _SearchEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _GlobalSearchTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
     final colors = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
@@ -258,7 +278,7 @@ class _SearchEmptyState extends StatelessWidget {
             Icon(Icons.search_off_outlined, size: 54, color: colors.error),
             const SizedBox(height: 12),
             Text(
-              'Không tìm thấy kết quả phù hợp.',
+              texts.emptyMessage,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
@@ -267,4 +287,26 @@ class _SearchEmptyState extends StatelessWidget {
       ),
     );
   }
+}
+
+class _GlobalSearchTexts {
+  const _GlobalSearchTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get searchButtonTooltip =>
+      isEnglish ? 'Global search' : 'Tìm kiếm toàn cục';
+  String get searchFieldLabel => isEnglish
+      ? 'Search products, order IDs, or customer names...'
+      : 'Tìm sản phẩm, mã đơn, tên khách...';
+  String get clearQueryTooltip => isEnglish ? 'Clear keyword' : 'Xóa từ khóa';
+  String get closeSearchTooltip => isEnglish ? 'Close search' : 'Đóng tìm kiếm';
+  String get orderItemLabel => isEnglish ? 'Order' : 'Đơn hàng';
+  String get productItemLabel => isEnglish ? 'Product' : 'Sản phẩm';
+  String get hintMessage => isEnglish
+      ? 'Enter a keyword to quickly find orders and products.'
+      : 'Nhập từ khóa để tìm nhanh đơn hàng và sản phẩm.';
+  String get emptyMessage => isEnglish
+      ? 'No matching results found.'
+      : 'Không tìm thấy kết quả phù hợp.';
 }

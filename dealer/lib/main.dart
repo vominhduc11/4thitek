@@ -62,7 +62,9 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     _authStorage = AuthStorage();
-    _productCatalogController = ProductCatalogController(authStorage: _authStorage);
+    _productCatalogController = ProductCatalogController(
+      authStorage: _authStorage,
+    );
     _cartController = CartController(
       productLookup: _productCatalogController.findById,
       authStorage: _authStorage,
@@ -74,7 +76,6 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
     _warrantyController = WarrantyController(
       authStorage: _authStorage,
       orderCodeForRemoteId: _orderController.orderCodeForRemoteId,
-      remoteOrderIdForOrderCode: _orderController.remoteOrderIdForOrderCode,
       orderLookup: _orderController.findById,
       productLookup: _productCatalogController.findById,
     );
@@ -82,8 +83,14 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
     _notificationController = NotificationController(
       authStorage: _authStorage,
       onOrderSignal: _orderController.refresh,
-      onOrderStatusEvent: (orderCode, status, paymentStatus, {int? paidAmount}) =>
-          _orderController.applyOrderStatusEvent(orderCode, status, paymentStatus, paidAmount: paidAmount),
+      onOrderStatusEvent:
+          (orderCode, status, paymentStatus, {int? paidAmount}) =>
+              _orderController.applyOrderStatusEvent(
+                orderCode,
+                status,
+                paymentStatus,
+                paidAmount: paidAmount,
+              ),
     );
     _authStorage.sessionEvents.addListener(_handleSessionEvent);
     _notificationController.incomingNoticeEvents.addListener(
@@ -115,6 +122,7 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
     if (state != AppLifecycleState.resumed || !_bootstrapDone) {
       return;
     }
+    unawaited(_productCatalogController.load(forceRefresh: true));
     unawaited(_notificationController.refresh());
     unawaited(_orderController.refresh());
   }
@@ -205,11 +213,10 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
 
       final sessionMessage = _authStorage.lastSessionEventMessage?.trim();
       final l10n = _localizationsOrNull();
-      final message =
-          sessionMessage != null && sessionMessage.isNotEmpty
-              ? sessionMessage
-              : (l10n?.sessionExpiredMessage ??
-                    'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      final message = sessionMessage != null && sessionMessage.isNotEmpty
+          ? sessionMessage
+          : (l10n?.sessionExpiredMessage ??
+                'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
 
       _router.go('/login?error=${Uri.encodeComponent(message)}');
     } finally {

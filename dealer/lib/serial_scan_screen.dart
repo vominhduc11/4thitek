@@ -53,6 +53,9 @@ class _SerialScanScreenState extends State<SerialScanScreen>
     return AppSettingsScope.of(context).locale.languageCode == 'en';
   }
 
+  _SerialScanTexts get _texts =>
+      _SerialScanTexts(isEnglish: _isEnglishLocale());
+
   Rect _scanWindowFor({
     required Size size,
     required EdgeInsets safePadding,
@@ -124,18 +127,14 @@ class _SerialScanScreenState extends State<SerialScanScreen>
     if (_isCompleting) {
       return;
     }
-    final isEnglish = _isEnglishLocale();
+    final texts = _texts;
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     if (!mounted) {
       return;
     }
     final pasted = data?.text?.trim() ?? '';
     if (pasted.isEmpty) {
-      _showMessage(
-        isEnglish
-            ? 'Clipboard has no serial text to paste.'
-            : 'Clipboard không có dữ liệu serial để dán.',
-      );
+      _showMessage(texts.clipboardEmptyMessage);
       return;
     }
     _manualController.value = TextEditingValue(
@@ -150,7 +149,7 @@ class _SerialScanScreenState extends State<SerialScanScreen>
       return;
     }
 
-    final isEnglish = _isEnglishLocale();
+    final texts = _texts;
     HapticFeedback.selectionClick();
     final bool wasScannerRunning = _scannerController.value.isRunning;
     setState(() => _isPickingImage = true);
@@ -170,11 +169,7 @@ class _SerialScanScreenState extends State<SerialScanScreen>
       }
 
       if (picked == null) {
-        _showMessage(
-          isEnglish
-              ? 'No image selected for scanning.'
-              : 'Bạn chưa chọn ảnh để quét.',
-        );
+        _showMessage(texts.noImageSelectedMessage);
         return;
       }
 
@@ -191,52 +186,29 @@ class _SerialScanScreenState extends State<SerialScanScreen>
       }
 
       if (serial == null) {
-        _showMessage(
-          isEnglish
-              ? 'No QR or barcode found in the selected image.'
-              : 'Không tìm thấy mã QR hoặc barcode trong ảnh.',
-        );
+        _showMessage(texts.noCodeFoundInImageMessage);
         return;
       }
       _completeWith(serial);
     } on MissingPluginException {
-      _showMessage(
-        isEnglish
-            ? 'Image picker is unavailable. Please restart the app.'
-            : 'Chức năng chọn ảnh chưa sẵn sàng. Hãy khởi động lại app.',
-      );
+      _showMessage(texts.imagePickerUnavailableMessage);
     } on PlatformException catch (error) {
       final code = error.code.toLowerCase();
       if (code.contains('denied')) {
-        _showMessage(
-          isEnglish
-              ? 'Photo library permission denied. Please allow permission and try again.'
-              : 'Không có quyền truy cập thư viện ảnh. Hãy cấp quyền rồi thử lại.',
-        );
+        _showMessage(texts.photoLibraryPermissionDeniedMessage);
       } else if (code.contains('already_active')) {
-        _showMessage(
-          isEnglish
-              ? 'Photo picker is already open. Please wait a moment.'
-              : 'Thư viện ảnh đang mở. Vui lòng chờ trong giây lát.',
-        );
+        _showMessage(texts.photoPickerAlreadyOpenMessage);
       } else {
         final detailMessage = (error.message ?? '').trim();
         _showMessage(
-          detailMessage.isEmpty
-              ? isEnglish
-                    ? 'Cannot open photo library (${error.code}).'
-                    : 'Không thể mở thư viện ảnh (${error.code}).'
-              : isEnglish
-              ? 'Cannot open photo library (${error.code}). $detailMessage'
-              : 'Không thể mở thư viện ảnh (${error.code}). $detailMessage',
+          texts.cannotOpenPhotoLibraryMessage(
+            error.code,
+            detailMessage: detailMessage,
+          ),
         );
       }
     } catch (_) {
-      _showMessage(
-        isEnglish
-            ? 'Cannot read serial from image. Please try again.'
-            : 'Không thể đọc mã từ ảnh. Vui lòng thử lại.',
-      );
+      _showMessage(texts.cannotReadSerialFromImageMessage);
     } finally {
       if (mounted) {
         setState(() => _isPickingImage = false);
@@ -244,11 +216,7 @@ class _SerialScanScreenState extends State<SerialScanScreen>
           try {
             await _scannerController.start();
           } catch (_) {
-            _showMessage(
-              isEnglish
-                  ? 'Cannot restart camera. Please try again.'
-                  : 'Không thể khởi động lại camera. Vui lòng thử lại.',
-            );
+            _showMessage(texts.cannotRestartCameraMessage);
           }
         }
       }
@@ -256,28 +224,20 @@ class _SerialScanScreenState extends State<SerialScanScreen>
   }
 
   Future<void> _restartCamera() async {
-    final isEnglish = _isEnglishLocale();
+    final texts = _texts;
     try {
       await _scannerController.stop();
       await _scannerController.start();
     } catch (_) {
-      _showMessage(
-        isEnglish
-            ? 'Cannot start camera. Please try again.'
-            : 'Không thể khởi động camera. Vui lòng thử lại.',
-      );
+      _showMessage(texts.cannotStartCameraMessage);
     }
   }
 
   void _submitManual() {
-    final isEnglish = _isEnglishLocale();
+    final texts = _texts;
     final value = _manualController.text.trim();
     if (value.isEmpty) {
-      _showMessage(
-        isEnglish
-            ? 'Please enter serial or QR content.'
-            : 'Vui lòng nhập serial hoặc mã QR.',
-      );
+      _showMessage(texts.enterSerialPromptMessage);
       return;
     }
     _completeWith(value);
@@ -285,61 +245,35 @@ class _SerialScanScreenState extends State<SerialScanScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isEnglish = _isEnglishLocale();
+    final texts = _texts;
     final colors = Theme.of(context).colorScheme;
     final isTablet = AppBreakpoints.isTablet(context);
 
-    final title = isEnglish ? 'Scan QR / Barcode' : 'Quét QR / Barcode';
-    final fromImageTooltip = isEnglish ? 'Scan from image' : 'Quét từ ảnh';
-    final torchOnTooltip = isEnglish ? 'Turn off flashlight' : 'Tắt đèn pin';
-    final torchOffTooltip = isEnglish ? 'Turn on flashlight' : 'Bật đèn pin';
-    final switchCameraTooltip = isEnglish ? 'Switch camera' : 'Đổi camera';
-    final permissionDeniedMessage = isEnglish
-        ? 'Camera permission is denied. Open app settings and enable camera access.'
-        : 'Quyền camera đang bị từ chối. Hãy vào cài đặt ứng dụng và bật lại quyền.';
-    final cameraAccessError = isEnglish
-        ? 'Cannot access camera. Please check and try again.'
-        : 'Không thể truy cập camera. Hãy kiểm tra lại và thử lại.';
-    final statusError = isEnglish
-        ? 'Cannot access camera'
-        : 'Không thể truy cập camera';
-    final statusLoading = isEnglish
-        ? 'Starting camera...'
-        : 'Đang khởi động camera...';
-    final statusReady = isEnglish
-        ? 'Scanning... Keep the code inside the frame.'
-        : 'Đang quét mã. Giữ mã trong khung.';
-    final manualTitle = isEnglish
-        ? 'Cannot scan? Enter manually'
-        : 'Không quét được? Nhập thủ công';
-    final manualDescription = isEnglish
-        ? 'Paste or type serial when camera cannot read the code.'
-        : 'Dán hoặc nhập serial nếu camera không đọc được mã.';
-    final manualHint = isEnglish ? 'Enter serial...' : 'Nhập serial...';
-    final submitSerialTooltip = isEnglish ? 'Submit serial' : 'Xác nhận serial';
-    final clearSerialTooltip = isEnglish ? 'Clear input' : 'Xóa nội dung';
-    final pasteSerialTooltip = isEnglish
-        ? 'Paste from clipboard'
-        : 'Dán từ clipboard';
-    final loadingCameraText = statusLoading;
-    final cameraErrorTitle = statusError;
-    final retryLabel = isEnglish ? 'Retry' : 'Thử lại';
-    final scannerAreaLabel = isEnglish
-        ? 'Camera scan frame'
-        : 'Khung quét camera';
-    final scannerAreaHint = isEnglish
-        ? 'Align QR or barcode within the frame.'
-        : 'Đưa mã QR hoặc barcode vào trong khung.';
-    final statusBannerSemantics = isEnglish ? 'Scan status' : 'Trạng thái quét';
-    final manualSectionSemanticsLabel = isEnglish
-        ? 'Manual serial input section'
-        : 'Khu vực nhập serial thủ công';
-    final manualSectionSemanticsHint = isEnglish
-        ? 'Type, paste, or submit serial manually.'
-        : 'Nhập, dán hoặc xác nhận serial thủ công.';
-    final manualFieldSemanticsLabel = isEnglish
-        ? 'Serial text input'
-        : 'Ô nhập serial';
+    final title = texts.screenTitle;
+    final fromImageTooltip = texts.fromImageTooltip;
+    final torchOnTooltip = texts.turnOffFlashlightTooltip;
+    final torchOffTooltip = texts.turnOnFlashlightTooltip;
+    final switchCameraTooltip = texts.switchCameraTooltip;
+    final permissionDeniedMessage = texts.cameraPermissionDeniedMessage;
+    final cameraAccessError = texts.cameraAccessErrorMessage;
+    final statusError = texts.cameraErrorTitle;
+    final statusLoading = texts.cameraLoadingStatus;
+    final statusReady = texts.cameraReadyStatus;
+    final manualTitle = texts.manualTitle;
+    final manualDescription = texts.manualDescription;
+    final manualHint = texts.manualHint;
+    final submitSerialTooltip = texts.submitSerialTooltip;
+    final clearSerialTooltip = texts.clearSerialTooltip;
+    final pasteSerialTooltip = texts.pasteSerialTooltip;
+    final loadingCameraText = texts.cameraLoadingStatus;
+    final cameraErrorTitle = texts.cameraErrorTitle;
+    final retryLabel = texts.retryAction;
+    final scannerAreaLabel = texts.scannerAreaLabel;
+    final scannerAreaHint = texts.scannerAreaHint;
+    final statusBannerSemantics = texts.statusBannerSemantics;
+    final manualSectionSemanticsLabel = texts.manualSectionSemanticsLabel;
+    final manualSectionSemanticsHint = texts.manualSectionSemanticsHint;
+    final manualFieldSemanticsLabel = texts.manualFieldSemanticsLabel;
 
     Widget buildManualSection({
       required bool landscape,
@@ -687,6 +621,108 @@ class _SerialScanScreenState extends State<SerialScanScreen>
       ),
     );
   }
+}
+
+class _SerialScanTexts {
+  const _SerialScanTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get clipboardEmptyMessage => isEnglish
+      ? 'Clipboard has no serial text to paste.'
+      : 'Clipboard không có dữ liệu serial để dán.';
+  String get noImageSelectedMessage => isEnglish
+      ? 'No image selected for scanning.'
+      : 'Bạn chưa chọn ảnh để quét.';
+  String get noCodeFoundInImageMessage => isEnglish
+      ? 'No QR or barcode found in the selected image.'
+      : 'Không tìm thấy mã QR hoặc barcode trong ảnh.';
+  String get imagePickerUnavailableMessage => isEnglish
+      ? 'Image picker is unavailable. Please restart the app.'
+      : 'Chức năng chọn ảnh chưa sẵn sàng. Hãy khởi động lại app.';
+  String get photoLibraryPermissionDeniedMessage => isEnglish
+      ? 'Photo library permission denied. Please allow permission and try again.'
+      : 'Không có quyền truy cập thư viện ảnh. Hãy cấp quyền rồi thử lại.';
+  String get photoPickerAlreadyOpenMessage => isEnglish
+      ? 'Photo picker is already open. Please wait a moment.'
+      : 'Thư viện ảnh đang mở. Vui lòng chờ trong giây lát.';
+
+  String cannotOpenPhotoLibraryMessage(
+    String errorCode, {
+    String? detailMessage,
+  }) {
+    final base = isEnglish
+        ? 'Cannot open photo library ($errorCode).'
+        : 'Không thể mở thư viện ảnh ($errorCode).';
+    final detail = (detailMessage ?? '').trim();
+    if (detail.isEmpty) {
+      return base;
+    }
+    return '$base $detail';
+  }
+
+  String get cannotReadSerialFromImageMessage => isEnglish
+      ? 'Cannot read serial from image. Please try again.'
+      : 'Không thể đọc mã từ ảnh. Vui lòng thử lại.';
+  String get cannotRestartCameraMessage => isEnglish
+      ? 'Cannot restart camera. Please try again.'
+      : 'Không thể khởi động lại camera. Vui lòng thử lại.';
+  String get cannotStartCameraMessage => isEnglish
+      ? 'Cannot start camera. Please try again.'
+      : 'Không thể khởi động camera. Vui lòng thử lại.';
+  String get enterSerialPromptMessage => isEnglish
+      ? 'Please enter serial or QR content.'
+      : 'Vui lòng nhập serial hoặc mã QR.';
+
+  String get screenTitle =>
+      isEnglish ? 'Scan QR / Barcode' : 'Quét QR / Barcode';
+  String get fromImageTooltip => isEnglish ? 'Scan from image' : 'Quét từ ảnh';
+  String get turnOffFlashlightTooltip =>
+      isEnglish ? 'Turn off flashlight' : 'Tắt đèn pin';
+  String get turnOnFlashlightTooltip =>
+      isEnglish ? 'Turn on flashlight' : 'Bật đèn pin';
+  String get switchCameraTooltip => isEnglish ? 'Switch camera' : 'Đổi camera';
+  String get cameraPermissionDeniedMessage => isEnglish
+      ? 'Camera permission is denied. Open app settings and enable camera access.'
+      : 'Quyền camera đang bị từ chối. Hãy vào cài đặt ứng dụng và bật lại quyền.';
+  String get cameraAccessErrorMessage => isEnglish
+      ? 'Cannot access camera. Please check and try again.'
+      : 'Không thể truy cập camera. Hãy kiểm tra lại và thử lại.';
+  String get cameraErrorTitle =>
+      isEnglish ? 'Cannot access camera' : 'Không thể truy cập camera';
+  String get cameraLoadingStatus =>
+      isEnglish ? 'Starting camera...' : 'Đang khởi động camera...';
+  String get cameraReadyStatus => isEnglish
+      ? 'Scanning... Keep the code inside the frame.'
+      : 'Đang quét mã. Giữ mã trong khung.';
+  String get manualTitle => isEnglish
+      ? 'Cannot scan? Enter manually'
+      : 'Không quét được? Nhập thủ công';
+  String get manualDescription => isEnglish
+      ? 'Paste or type serial when camera cannot read the code.'
+      : 'Dán hoặc nhập serial nếu camera không đọc được mã.';
+  String get manualHint => isEnglish ? 'Enter serial...' : 'Nhập serial...';
+  String get submitSerialTooltip =>
+      isEnglish ? 'Submit serial' : 'Xác nhận serial';
+  String get clearSerialTooltip => isEnglish ? 'Clear input' : 'Xóa nội dung';
+  String get pasteSerialTooltip =>
+      isEnglish ? 'Paste from clipboard' : 'Dán từ clipboard';
+  String get retryAction => isEnglish ? 'Retry' : 'Thử lại';
+  String get scannerAreaLabel =>
+      isEnglish ? 'Camera scan frame' : 'Khung quét camera';
+  String get scannerAreaHint => isEnglish
+      ? 'Align QR or barcode within the frame.'
+      : 'Đưa mã QR hoặc barcode vào trong khung.';
+  String get statusBannerSemantics =>
+      isEnglish ? 'Scan status' : 'Trạng thái quét';
+  String get manualSectionSemanticsLabel => isEnglish
+      ? 'Manual serial input section'
+      : 'Khu vực nhập serial thủ công';
+  String get manualSectionSemanticsHint => isEnglish
+      ? 'Type, paste, or submit serial manually.'
+      : 'Nhập, dán hoặc xác nhận serial thủ công.';
+  String get manualFieldSemanticsLabel =>
+      isEnglish ? 'Serial text input' : 'Ô nhập serial';
 }
 
 class _CameraLoadingView extends StatelessWidget {

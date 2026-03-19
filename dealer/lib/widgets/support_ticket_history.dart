@@ -22,10 +22,7 @@ class SupportTicketHistory extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final emptyMessage = isEnglish
-        ? 'No support requests yet.'
-        : 'Chưa có yêu cầu hỗ trợ nào.';
-    final loadMoreLabel = isEnglish ? 'Load more' : 'Xem thêm';
+    final texts = _SupportHistoryTexts(isEnglish: isEnglish);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -40,13 +37,13 @@ class SupportTicketHistory extends StatelessWidget {
               borderRadius: BorderRadius.circular(18),
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
             ),
-            child: Text(emptyMessage),
+            child: Text(texts.emptyMessage),
           )
         else
           Column(
             children: [
               for (final item in items) ...[
-                _HistoryCard(item: item, isEnglish: isEnglish),
+                _HistoryCard(item: item, texts: texts),
                 const SizedBox(height: 12),
               ],
               if (hasMore)
@@ -60,7 +57,7 @@ class SupportTicketHistory extends StatelessWidget {
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : Text(loadMoreLabel),
+                        : Text(texts.loadMoreLabel),
                   ),
                 ),
             ],
@@ -71,10 +68,10 @@ class SupportTicketHistory extends StatelessWidget {
 }
 
 class _HistoryCard extends StatelessWidget {
-  const _HistoryCard({required this.item, required this.isEnglish});
+  const _HistoryCard({required this.item, required this.texts});
 
   final DealerSupportTicketRecord item;
-  final bool isEnglish;
+  final _SupportHistoryTexts texts;
 
   @override
   Widget build(BuildContext context) {
@@ -84,9 +81,13 @@ class _HistoryCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.45),
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.45),
         ),
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,12 +102,12 @@ class _HistoryCard extends StatelessWidget {
                   ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
-              _StatusChip(status: item.status, isEnglish: isEnglish),
+              _StatusChip(status: item.status, texts: texts),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            '${isEnglish ? 'Ticket' : 'Mã'}: ${item.ticketCode}',
+            '${texts.ticketLabel}: ${item.ticketCode}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 6),
@@ -114,7 +115,7 @@ class _HistoryCard extends StatelessWidget {
           if (item.adminReply != null && item.adminReply!.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
-              isEnglish ? 'Admin reply' : 'Phản hồi',
+              texts.adminReplyLabel,
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
@@ -127,22 +128,19 @@ class _HistoryCard extends StatelessWidget {
             spacing: 10,
             runSpacing: 6,
             children: [
+              _InfoPill(label: texts.priorityLabel, value: item.priority),
               _InfoPill(
-                label: isEnglish ? 'Priority' : 'Ưu tiên',
-                value: item.priority,
-              ),
-              _InfoPill(
-                label: isEnglish ? 'Created' : 'Tạo lúc',
+                label: texts.createdLabel,
                 value: _formatDateTime(item.createdAt),
               ),
               if (item.resolvedAt != null)
                 _InfoPill(
-                  label: isEnglish ? 'Resolved' : 'Xử lý',
+                  label: texts.resolvedLabel,
                   value: _formatDateTime(item.resolvedAt!),
                 ),
               if (item.closedAt != null)
                 _InfoPill(
-                  label: isEnglish ? 'Closed' : 'Đóng',
+                  label: texts.closedLabel,
                   value: _formatDateTime(item.closedAt!),
                 ),
             ],
@@ -184,38 +182,33 @@ class _InfoPill extends StatelessWidget {
 }
 
 class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.status, required this.isEnglish});
+  const _StatusChip({required this.status, required this.texts});
 
   final String status;
-  final bool isEnglish;
+  final _SupportHistoryTexts texts;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     Color background;
     Color foreground;
-    String label;
     switch (status) {
       case 'RESOLVED':
         background = Colors.green.withValues(alpha: 0.16);
         foreground = Colors.green.shade700;
-        label = isEnglish ? 'Resolved' : 'Đã xử lý';
         break;
       case 'IN_PROGRESS':
         background = Colors.orange.withValues(alpha: 0.16);
         foreground = Colors.orange.shade800;
-        label = isEnglish ? 'In progress' : 'Đang xử lý';
         break;
       case 'CLOSED':
         background = scheme.surface;
         foreground = scheme.onSurfaceVariant;
-        label = isEnglish ? 'Closed' : 'Đóng';
         break;
       case 'OPEN':
       default:
         background = scheme.primary.withValues(alpha: 0.14);
         foreground = scheme.primary;
-        label = isEnglish ? 'Open' : 'Mở';
         break;
     }
 
@@ -226,12 +219,42 @@ class _StatusChip extends StatelessWidget {
         color: background,
       ),
       child: Text(
-        label,
+        texts.statusLabel(status),
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           color: foreground,
           fontWeight: FontWeight.w700,
         ),
       ),
     );
+  }
+}
+
+class _SupportHistoryTexts {
+  const _SupportHistoryTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get emptyMessage =>
+      isEnglish ? 'No support requests yet.' : 'Chưa có yêu cầu hỗ trợ nào.';
+  String get loadMoreLabel => isEnglish ? 'Load more' : 'Xem thêm';
+  String get ticketLabel => isEnglish ? 'Ticket' : 'Mã';
+  String get adminReplyLabel => isEnglish ? 'Admin reply' : 'Phản hồi';
+  String get priorityLabel => isEnglish ? 'Priority' : 'Ưu tiên';
+  String get createdLabel => isEnglish ? 'Created' : 'Tạo lúc';
+  String get resolvedLabel => isEnglish ? 'Resolved' : 'Xử lý';
+  String get closedLabel => isEnglish ? 'Closed' : 'Đóng';
+
+  String statusLabel(String status) {
+    switch (status) {
+      case 'RESOLVED':
+        return isEnglish ? 'Resolved' : 'Đã xử lý';
+      case 'IN_PROGRESS':
+        return isEnglish ? 'In progress' : 'Đang xử lý';
+      case 'CLOSED':
+        return isEnglish ? 'Closed' : 'Đóng';
+      case 'OPEN':
+      default:
+        return isEnglish ? 'Open' : 'Mở';
+    }
   }
 }

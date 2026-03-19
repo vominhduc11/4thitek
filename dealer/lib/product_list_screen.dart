@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_spinbox/flutter_spinbox.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
+import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'cart_screen.dart';
@@ -24,6 +25,10 @@ import 'widgets/product_image.dart';
 import 'widgets/skeleton_box.dart';
 import 'widgets/stock_badge.dart';
 
+_ProductListTexts _productListTexts(BuildContext context) => _ProductListTexts(
+  isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+);
+
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
 
@@ -40,11 +45,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
   late final PagingController<int, Product> _pagingController;
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
+  Timer? _catalogRefreshDebounce;
   String _searchText = '';
   StockFilter _stockFilter = StockFilter.all;
   SortOption _sortOption = SortOption.none;
   ProductCatalogController? _productCatalog;
   final Set<String> _addingProductIds = <String>{};
+  String? _catalogSnapshot;
+  bool _isManuallyRefreshingCatalog = false;
+  int _suppressedCatalogLoadCount = 0;
   int _queryRevision = 0;
 
   @override
@@ -63,7 +72,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
       return;
     }
     _productCatalog?.removeListener(_handleCatalogChanged);
+    _catalogRefreshDebounce?.cancel();
     _productCatalog = nextCatalog;
+    _catalogSnapshot = nextCatalog == null
+        ? null
+        : _catalogSummarySnapshot(nextCatalog);
     _productCatalog?.addListener(_handleCatalogChanged);
     unawaited(_productCatalog?.load());
   }
@@ -72,6 +85,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   void dispose() {
     _productCatalog?.removeListener(_handleCatalogChanged);
     _searchDebounce?.cancel();
+    _catalogRefreshDebounce?.cancel();
     _searchController.dispose();
     _pagingController.dispose();
     super.dispose();
@@ -79,6 +93,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _productListTexts(context);
     final cart = CartScope.of(context);
     final size = MediaQuery.sizeOf(context);
     final width = size.width;
@@ -98,7 +113,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const BrandAppBarTitle('Sản phẩm'),
+        title: BrandAppBarTitle(texts.screenTitle),
         actions: [
           const GlobalSearchIconButton(),
           NotificationIconButton(
@@ -120,39 +135,43 @@ class _ProductListScreenState extends State<ProductListScreen> {
           const SizedBox(width: 6),
         ],
       ),
-      body: CustomScrollView(
-        slivers: [
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _PinnedHeaderDelegate(
-              minExtent: stickyBarHeight,
-              maxExtent: stickyBarHeight,
-              child: Container(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                padding: EdgeInsets.fromLTRB(
-                  horizontalPadding,
-                  isTablet ? 8 : 6,
-                  horizontalPadding,
-                  isTablet ? 14 : 12,
-                ),
-                child: _buildStickyFilterBar(
-                  context,
-                  isTablet: isTablet,
-                  cart: cart,
+      body: RefreshIndicator(
+        onRefresh: _refreshCatalog,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _PinnedHeaderDelegate(
+                minExtent: stickyBarHeight,
+                maxExtent: stickyBarHeight,
+                child: Container(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    isTablet ? 8 : 6,
+                    horizontalPadding,
+                    isTablet ? 14 : 12,
+                  ),
+                  child: _buildStickyFilterBar(
+                    context,
+                    isTablet: isTablet,
+                    cart: cart,
+                  ),
                 ),
               ),
             ),
-          ),
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(
-              horizontalPadding,
-              0,
-              horizontalPadding,
-              24,
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                0,
+                horizontalPadding,
+                24,
+              ),
+              sliver: _buildResultsSliver(context, cart, isTablet: isTablet),
             ),
-            sliver: _buildResultsSliver(context, cart, isTablet: isTablet),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -201,9 +220,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
         return _buildErrorIndicator(context);
       },
       noItemsFoundIndicatorBuilder: (context) {
+        final texts = _productListTexts(context);
         final message = _hasAnyFilters
-            ? 'Không tìm thấy sản phẩm phù hợp bộ lọc.'
-            : 'Chưa có sản phẩm để hiển thị.';
+            ? texts.emptyFilteredProductsMessage
+            : texts.emptyProductsMessage;
         return FadeSlideIn(
           child: Center(
             child: Padding(
@@ -265,7 +285,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
         }
       } else {
         // Client-side filter: load toàn bộ rồi lọc
-        await _productCatalog?.load();
+        _suppressedCatalogLoadCount++;
+        try {
+          await _productCatalog?.load();
+        } finally {
+          _suppressedCatalogLoadCount = math.max(
+            0,
+            _suppressedCatalogLoadCount - 1,
+          );
+        }
         await Future.delayed(_apiLatency);
         if (!mounted || requestRevision != _queryRevision) return;
 
@@ -419,7 +447,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
           SizedBox(width: iconSpacing),
           Expanded(
             child: Text(
-              _discountBannerMessage(cart),
+              _discountBannerMessage(context, cart),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style:
@@ -437,13 +465,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
-  String _discountBannerMessage(CartController cart) {
+  String _discountBannerMessage(BuildContext context, CartController cart) {
+    final texts = _productListTexts(context);
     final nextTarget = cart.nextDiscountTarget;
     if (nextTarget == null) {
       if (cart.discountPercent > 0) {
-        return 'Đã đạt mức chiết khấu hiện tại ${cart.discountPercent}%';
+        return texts.discountReachedMessage(cart.discountPercent);
       }
-      return 'Chiết khấu số lượng sẽ áp dụng tự động khi đủ điều kiện';
+      return texts.discountAutoApplyMessage;
     }
 
     final remaining = remainingQuantityForBulkDiscountTarget(
@@ -452,16 +481,20 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
     if (remaining <= 0) {
       if (cart.discountPercent > 0) {
-        return 'Đã đạt mức chiết khấu hiện tại ${cart.discountPercent}%';
+        return texts.discountReachedMessage(cart.discountPercent);
       }
-      return 'Chiết khấu số lượng sẽ áp dụng tự động khi đủ điều kiện';
+      return texts.discountAutoApplyMessage;
     }
 
     final productName = _productNameForDiscountTarget(cart.items, nextTarget);
     if (productName != null && productName.trim().isNotEmpty) {
-      return 'Mua thêm $remaining sản phẩm "$productName" để đạt chiết khấu ${nextTarget.percent}%';
+      return texts.discountTargetProductMessage(
+        remaining,
+        productName,
+        nextTarget.percent,
+      );
     }
-    return 'Mua thêm $remaining sản phẩm để đạt chiết khấu ${nextTarget.percent}%';
+    return texts.discountTargetMessage(remaining, nextTarget.percent);
   }
 
   Widget _buildStickyFilterBar(
@@ -469,6 +502,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     required bool isTablet,
     required CartController cart,
   }) {
+    final texts = _productListTexts(context);
     final hasActiveFilters = _hasAnyFilters;
     final activeCount = _activeFilterCount;
     final theme = Theme.of(context);
@@ -506,12 +540,13 @@ class _ProductListScreenState extends State<ProductListScreen> {
               controller: _searchController,
               decoration: InputDecoration(
                 isDense: true,
-                hintText: 'Tìm theo tên hoặc SKU...',
+                hintText: texts.searchHint,
                 prefixIcon: const Icon(Icons.search, size: 20),
                 suffixIcon: _searchController.text.isEmpty
                     ? null
                     : IconButton(
                         icon: const Icon(Icons.close, size: 18),
+                        tooltip: texts.clearSearchTooltip,
                         onPressed: _clearSearch,
                       ),
                 filled: true,
@@ -557,13 +592,29 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     ),
                   ),
                   const SizedBox(width: 2),
-                  _buildStockChip(context, StockFilter.all, 'Tất cả'),
+                  _buildStockChip(
+                    context,
+                    StockFilter.all,
+                    texts.stockFilterLabel(StockFilter.all),
+                  ),
                   const SizedBox(width: 8),
-                  _buildStockChip(context, StockFilter.inStock, 'Còn hàng'),
+                  _buildStockChip(
+                    context,
+                    StockFilter.inStock,
+                    texts.stockFilterLabel(StockFilter.inStock),
+                  ),
                   const SizedBox(width: 8),
-                  _buildStockChip(context, StockFilter.lowStock, 'Sắp hết'),
+                  _buildStockChip(
+                    context,
+                    StockFilter.lowStock,
+                    texts.stockFilterLabel(StockFilter.lowStock),
+                  ),
                   const SizedBox(width: 8),
-                  _buildStockChip(context, StockFilter.outOfStock, 'Hết hàng'),
+                  _buildStockChip(
+                    context,
+                    StockFilter.outOfStock,
+                    texts.stockFilterLabel(StockFilter.outOfStock),
+                  ),
                   const SizedBox(width: 8),
                   _buildSortMenu(context),
                   if (hasActiveFilters) ...[
@@ -571,7 +622,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     TextButton.icon(
                       onPressed: _resetFilters,
                       icon: const Icon(Icons.close_rounded, size: 16),
-                      label: Text('Xóa lọc ($activeCount)'),
+                      label: Text(texts.clearFiltersLabel(activeCount)),
                     ),
                   ],
                   const SizedBox(width: 2),
@@ -622,31 +673,41 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   Widget _buildSortMenu(BuildContext context) {
+    final texts = _productListTexts(context);
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final label = switch (_sortOption) {
-      SortOption.priceAsc => 'Giá thấp → cao',
-      SortOption.priceDesc => 'Giá cao → thấp',
-      SortOption.nameAsc => 'Tên A → Z',
-      SortOption.nameDesc => 'Tên Z → A',
-      SortOption.none => 'Sắp xếp',
+      SortOption.priceAsc => texts.sortLabel(SortOption.priceAsc),
+      SortOption.priceDesc => texts.sortLabel(SortOption.priceDesc),
+      SortOption.nameAsc => texts.sortLabel(SortOption.nameAsc),
+      SortOption.nameDesc => texts.sortLabel(SortOption.nameDesc),
+      SortOption.none => texts.sortLabel(SortOption.none),
     };
 
     return PopupMenuButton<SortOption>(
-      tooltip: 'Sắp xếp',
+      tooltip: texts.sortTooltip,
       onSelected: _setSortOption,
-      itemBuilder: (context) => const [
-        PopupMenuItem(value: SortOption.none, child: Text('Mặc định')),
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: SortOption.none,
+          child: Text(texts.sortMenuOptionLabel(SortOption.none)),
+        ),
         PopupMenuItem(
           value: SortOption.priceAsc,
-          child: Text('Giá thấp → cao'),
+          child: Text(texts.sortMenuOptionLabel(SortOption.priceAsc)),
         ),
         PopupMenuItem(
           value: SortOption.priceDesc,
-          child: Text('Giá cao → thấp'),
+          child: Text(texts.sortMenuOptionLabel(SortOption.priceDesc)),
         ),
-        PopupMenuItem(value: SortOption.nameAsc, child: Text('Tên A → Z')),
-        PopupMenuItem(value: SortOption.nameDesc, child: Text('Tên Z → A')),
+        PopupMenuItem(
+          value: SortOption.nameAsc,
+          child: Text(texts.sortMenuOptionLabel(SortOption.nameAsc)),
+        ),
+        PopupMenuItem(
+          value: SortOption.nameDesc,
+          child: Text(texts.sortMenuOptionLabel(SortOption.nameDesc)),
+        ),
       ],
       child: Container(
         constraints: const BoxConstraints(minHeight: 48),
@@ -680,6 +741,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     BuildContext context, {
     bool isFirstPage = false,
   }) {
+    final texts = _productListTexts(context);
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(
@@ -697,13 +759,13 @@ class _ProductListScreenState extends State<ProductListScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Không tải được danh sách sản phẩm.',
+            texts.loadProductsFailedTitle,
             style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
           Text(
-            'Vui lòng kiểm tra kết nối và thử lại.',
+            texts.loadProductsFailedDescription,
             style: textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -712,7 +774,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
           const SizedBox(height: 12),
           OutlinedButton(
             onPressed: _retryLoadProducts,
-            child: const Text('Thử lại'),
+            child: Text(texts.retryAction),
           ),
         ],
       ),
@@ -761,6 +823,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     required bool isTablet,
     bool isGridLayout = false,
   }) {
+    final texts = _productListTexts(context);
     final delay = Duration(milliseconds: 30 * (index % _pageSize));
     final isSyncingProduct = cart.isSyncingProduct(product.id);
     final isAddingToCart = _addingProductIds.contains(product.id);
@@ -773,12 +836,13 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final imageSize = isTablet ? 80.0 : 64.0;
     final gridImageHeight = isTablet ? 132.0 : 112.0;
     final cardPadding = isTablet ? (isGridLayout ? 16.0 : 18.0) : 14.0;
-    final addButtonLabel = remainingStock <= 0 ? 'Hết hàng' : 'Thêm nhanh';
+    final addButtonLabel = texts.quickAddLabel(remainingStock: remainingStock);
 
     final useCompactQuickAdd = isGridLayout && canAddToCart;
-    final productSemanticsLabel =
-        '${product.name}, SKU ${product.sku}, giá ${formatVnd(product.price)}, '
-        'tồn kho $remainingStock';
+    final productSemanticsLabel = texts.productSemanticsLabel(
+      product,
+      remainingStock,
+    );
 
     return FadeSlideIn(
       key: ValueKey(product.id),
@@ -790,7 +854,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         child: Semantics(
           container: true,
           label: productSemanticsLabel,
-          hint: 'Mở chi tiết sản phẩm',
+          hint: texts.openProductDetailsHint,
           child: Card(
             elevation: 0,
             clipBehavior: Clip.antiAlias,
@@ -933,8 +997,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         Widget buildQuantityButton() {
                           return Tooltip(
                             message: isSyncingProduct
-                                ? 'Đang đồng bộ giỏ hàng'
-                                : 'Chọn số lượng',
+                                ? texts.syncingCartTooltip
+                                : texts.chooseQuantityTooltip,
                             child: OutlinedButton(
                               onPressed: canAddToCart
                                   ? () => _handleAddToCart(
@@ -1070,20 +1134,74 @@ class _ProductListScreenState extends State<ProductListScreen> {
       _sortOption != SortOption.none;
 
   void _handleCatalogChanged() {
-    if (!mounted) {
+    final catalog = _productCatalog;
+    if (!mounted ||
+        catalog == null ||
+        catalog.isLoading ||
+        _isManuallyRefreshingCatalog ||
+        _suppressedCatalogLoadCount > 0) {
       return;
     }
-    _refreshProducts();
+    final nextSnapshot = _catalogSummarySnapshot(catalog);
+    if (_catalogSnapshot == nextSnapshot) {
+      return;
+    }
+    _catalogSnapshot = nextSnapshot;
+    _catalogRefreshDebounce?.cancel();
+    _catalogRefreshDebounce = Timer(const Duration(milliseconds: 120), () {
+      if (!mounted) {
+        return;
+      }
+      _refreshProducts();
+    });
+  }
+
+  Future<void> _refreshCatalog() async {
+    _isManuallyRefreshingCatalog = true;
+    try {
+      _catalogRefreshDebounce?.cancel();
+      await _productCatalog?.load(forceRefresh: true);
+      final catalog = _productCatalog;
+      if (catalog != null) {
+        _catalogSnapshot = _catalogSummarySnapshot(catalog);
+      }
+      if (!mounted) {
+        return;
+      }
+      _refreshProducts();
+    } finally {
+      _isManuallyRefreshingCatalog = false;
+    }
   }
 
   void _retryLoadProducts() {
-    unawaited(_productCatalog?.load(forceRefresh: true));
-    _refreshProducts();
+    unawaited(_refreshCatalog());
   }
 
   void _refreshProducts() {
     _queryRevision++;
     _pagingController.refresh();
+  }
+
+  String _catalogSummarySnapshot(ProductCatalogController catalog) {
+    return Object.hash(
+      catalog.errorMessage,
+      catalog.products.length,
+      Object.hashAll(
+        catalog.products.map(
+          (product) => Object.hash(
+            product.id,
+            product.name,
+            product.sku,
+            product.shortDescription,
+            product.price,
+            product.stock,
+            product.warrantyMonths,
+            product.imageUrl,
+          ),
+        ),
+      ),
+    ).toString();
   }
 
   Future<void> _handleAddToCart(
@@ -1148,14 +1266,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
     if (!mounted) {
       return;
     }
+    final texts = _productListTexts(context);
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        content: Text('Đã thêm $quantity sản phẩm vào giỏ'),
+        content: Text(texts.addedToCartMessage(quantity)),
         action: SnackBarAction(
-          label: 'Quay lại giỏ hàng',
+          label: texts.backToCartAction,
           onPressed: () {
             Navigator.of(
               context,
@@ -1171,6 +1290,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     int maxQuantity, {
     required int initialQuantity,
   }) {
+    final texts = _productListTexts(context);
     final minQty = 1;
     final safeInitial = initialQuantity.clamp(minQty, maxQuantity);
     var selected = safeInitial <= maxQuantity ? safeInitial : maxQuantity;
@@ -1180,7 +1300,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       requestFocus: true,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Chọn số lượng'),
+          title: Text(texts.chooseQuantityDialogTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1198,7 +1318,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Tối thiểu: $minQty • Tối đa: $maxQuantity',
+                texts.quantityRangeLabel(minQty, maxQuantity),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -1208,11 +1328,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Hủy'),
+              child: Text(texts.cancelAction),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(dialogContext).pop(selected),
-              child: const Text('Thêm'),
+              child: Text(texts.addAction),
             ),
           ],
         );
@@ -1362,6 +1482,119 @@ class _ProductCardSkeleton extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ProductListTexts {
+  const _ProductListTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get screenTitle => isEnglish ? 'Products' : 'Sản phẩm';
+  String get searchHint => isEnglish
+      ? 'Search by product name or SKU...'
+      : 'Tìm theo tên hoặc SKU...';
+  String get clearSearchTooltip => isEnglish ? 'Clear search' : 'Xóa tìm kiếm';
+  String get emptyFilteredProductsMessage => isEnglish
+      ? 'No products match your current filters.'
+      : 'Không tìm thấy sản phẩm phù hợp bộ lọc.';
+  String get emptyProductsMessage => isEnglish
+      ? 'No products available to display.'
+      : 'Chưa có sản phẩm để hiển thị.';
+  String get discountAutoApplyMessage => isEnglish
+      ? 'Volume discounts apply automatically when eligible'
+      : 'Chiết khấu số lượng sẽ áp dụng tự động khi đủ điều kiện';
+  String get sortTooltip => isEnglish ? 'Sort products' : 'Sắp xếp';
+  String get loadProductsFailedTitle => isEnglish
+      ? 'Unable to load the product catalog.'
+      : 'Không tải được danh sách sản phẩm.';
+  String get loadProductsFailedDescription => isEnglish
+      ? 'Please check your connection and try again.'
+      : 'Vui lòng kiểm tra kết nối và thử lại.';
+  String get retryAction => isEnglish ? 'Retry' : 'Thử lại';
+  String get openProductDetailsHint =>
+      isEnglish ? 'Open product details' : 'Mở chi tiết sản phẩm';
+  String get syncingCartTooltip =>
+      isEnglish ? 'Syncing cart' : 'Đang đồng bộ giỏ hàng';
+  String get chooseQuantityTooltip =>
+      isEnglish ? 'Choose quantity' : 'Chọn số lượng';
+  String get backToCartAction => isEnglish ? 'Go to cart' : 'Quay lại giỏ hàng';
+  String get chooseQuantityDialogTitle =>
+      isEnglish ? 'Choose quantity' : 'Chọn số lượng';
+  String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
+  String get addAction => isEnglish ? 'Add' : 'Thêm';
+
+  String stockFilterLabel(StockFilter filter) {
+    switch (filter) {
+      case StockFilter.all:
+        return isEnglish ? 'All' : 'Tất cả';
+      case StockFilter.inStock:
+        return isEnglish ? 'In stock' : 'Còn hàng';
+      case StockFilter.lowStock:
+        return isEnglish ? 'Low stock' : 'Sắp hết';
+      case StockFilter.outOfStock:
+        return isEnglish ? 'Out of stock' : 'Hết hàng';
+    }
+  }
+
+  String clearFiltersLabel(int count) =>
+      isEnglish ? 'Clear filters ($count)' : 'Xóa lọc ($count)';
+
+  String sortLabel(SortOption option) {
+    switch (option) {
+      case SortOption.none:
+        return isEnglish ? 'Sort' : 'Sắp xếp';
+      case SortOption.priceAsc:
+        return isEnglish ? 'Price low -> high' : 'Giá thấp → cao';
+      case SortOption.priceDesc:
+        return isEnglish ? 'Price high -> low' : 'Giá cao → thấp';
+      case SortOption.nameAsc:
+        return isEnglish ? 'Name A -> Z' : 'Tên A → Z';
+      case SortOption.nameDesc:
+        return isEnglish ? 'Name Z -> A' : 'Tên Z → A';
+    }
+  }
+
+  String sortMenuOptionLabel(SortOption option) {
+    if (option == SortOption.none) {
+      return isEnglish ? 'Default' : 'Mặc định';
+    }
+    return sortLabel(option);
+  }
+
+  String discountReachedMessage(int percent) => isEnglish
+      ? 'Current discount tier reached: $percent%'
+      : 'Đã đạt mức chiết khấu hiện tại $percent%';
+
+  String discountTargetProductMessage(
+    int remaining,
+    String productName,
+    int percent,
+  ) => isEnglish
+      ? 'Buy $remaining more ${remaining == 1 ? 'item' : 'items'} of "$productName" to unlock $percent% discount'
+      : 'Mua thêm $remaining sản phẩm "$productName" để đạt chiết khấu $percent%';
+
+  String discountTargetMessage(int remaining, int percent) => isEnglish
+      ? 'Buy $remaining more ${remaining == 1 ? 'item' : 'items'} to unlock $percent% discount'
+      : 'Mua thêm $remaining sản phẩm để đạt chiết khấu $percent%';
+
+  String quickAddLabel({required int remainingStock}) {
+    if (remainingStock <= 0) {
+      return isEnglish ? 'Out of stock' : 'Hết hàng';
+    }
+    return isEnglish ? 'Quick add' : 'Thêm nhanh';
+  }
+
+  String productSemanticsLabel(Product product, int remainingStock) => isEnglish
+      ? '${product.name}, SKU ${product.sku}, price ${formatVnd(product.price)}, stock $remainingStock'
+      : '${product.name}, SKU ${product.sku}, giá ${formatVnd(product.price)}, tồn kho $remainingStock';
+
+  String addedToCartMessage(int quantity) => isEnglish
+      ? 'Added $quantity ${quantity == 1 ? 'item' : 'items'} to cart'
+      : 'Đã thêm $quantity sản phẩm vào giỏ';
+
+  String quantityRangeLabel(int minQty, int maxQuantity) => isEnglish
+      ? 'Minimum: $minQty • Maximum: $maxQuantity'
+      : 'Tối thiểu: $minQty • Tối đa: $maxQuantity';
 }
 
 enum StockFilter { all, inStock, lowStock, outOfStock }

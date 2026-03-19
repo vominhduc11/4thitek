@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'app_settings_controller.dart';
 import 'breakpoints.dart';
+import 'order_controller.dart';
 import 'order_detail_screen.dart';
 import 'utils.dart';
 import 'warranty_controller.dart';
@@ -54,7 +56,10 @@ class _WarrantySerialInventoryScreenState
   }
 
   Future<void> _refresh() async {
-    await Future<void>.delayed(const Duration(milliseconds: 160));
+    await Future.wait<void>([
+      OrderScope.of(context).refresh(),
+      WarrantyScope.of(context).load(forceRefresh: true),
+    ]);
     if (!mounted) {
       return;
     }
@@ -69,6 +74,9 @@ class _WarrantySerialInventoryScreenState
 
   @override
   Widget build(BuildContext context) {
+    final texts = _WarrantySerialInventoryTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
     final warrantyController = WarrantyScope.of(context);
     final imported = warrantyController.importedSerials;
     final activatedSet = warrantyController.activations
@@ -145,7 +153,7 @@ class _WarrantySerialInventoryScreenState
     final maxWidth = isTablet ? 1100.0 : double.infinity;
 
     return Scaffold(
-      appBar: AppBar(title: const BrandAppBarTitle('Kho serial')),
+      appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
@@ -162,10 +170,10 @@ class _WarrantySerialInventoryScreenState
                       onChanged: _onSearchChanged,
                       decoration: InputDecoration(
                         prefixIcon: const Icon(Icons.search),
-                        hintText: 'Tìm serial, SKU, tên sản phẩm, mã đơn',
+                        hintText: texts.searchHint,
                         suffixIcon: _query.isNotEmpty
                             ? IconButton(
-                                tooltip: 'Xóa tìm kiếm',
+                                tooltip: texts.clearSearchTooltip,
                                 onPressed: () {
                                   _searchDebounce?.cancel();
                                   _searchController.clear();
@@ -183,7 +191,7 @@ class _WarrantySerialInventoryScreenState
                       runSpacing: 8,
                       children: [
                         _FilterChip(
-                          label: 'Tất cả ($scopedAllCount)',
+                          label: texts.allFilterLabel(scopedAllCount),
                           selected: _filter == SerialInventoryFilter.all,
                           onTap: () {
                             setState(() => _filter = SerialInventoryFilter.all);
@@ -191,7 +199,7 @@ class _WarrantySerialInventoryScreenState
                           },
                         ),
                         _FilterChip(
-                          label: 'Sẵn sàng ($scopedReadyCount)',
+                          label: texts.readyFilterLabel(scopedReadyCount),
                           selected: _filter == SerialInventoryFilter.ready,
                           onTap: () {
                             setState(
@@ -201,7 +209,9 @@ class _WarrantySerialInventoryScreenState
                           },
                         ),
                         _FilterChip(
-                          label: 'Đã kích hoạt ($scopedActivatedCount)',
+                          label: texts.activatedFilterLabel(
+                            scopedActivatedCount,
+                          ),
                           selected: _filter == SerialInventoryFilter.activated,
                           onTap: () {
                             setState(
@@ -212,12 +222,12 @@ class _WarrantySerialInventoryScreenState
                         ),
                         _MenuFilterButton(
                           label: _selectedOrderId == null
-                              ? 'Đơn: Tất cả'
-                              : 'Đơn: $_selectedOrderId',
+                              ? texts.orderFilterAllLabel
+                              : texts.orderFilterLabel(_selectedOrderId!),
                           items: [
-                            const PopupMenuItem<String>(
+                            PopupMenuItem<String>(
                               value: _allFilterValue,
-                              child: Text('Tất cả đơn'),
+                              child: Text(texts.allOrdersLabel),
                             ),
                             ...orderIds.map(
                               (orderId) => PopupMenuItem<String>(
@@ -237,12 +247,12 @@ class _WarrantySerialInventoryScreenState
                         ),
                         _MenuFilterButton(
                           label: _selectedSku == null
-                              ? 'SKU: Tất cả'
-                              : 'SKU: $_selectedSku',
+                              ? texts.skuFilterAllLabel
+                              : texts.skuFilterLabel(_selectedSku!),
                           items: [
-                            const PopupMenuItem<String>(
+                            PopupMenuItem<String>(
                               value: _allFilterValue,
-                              child: Text('Tất cả SKU'),
+                              child: Text(texts.allSkusLabel),
                             ),
                             ...skus.map(
                               (sku) => PopupMenuItem<String>(
@@ -262,16 +272,16 @@ class _WarrantySerialInventoryScreenState
                         ),
                         _MenuFilterButton(
                           label: _sort == SerialInventorySort.newest
-                              ? 'Sắp xếp: Mới nhất'
-                              : 'Sắp xếp: Cũ nhất',
-                          items: const [
+                              ? texts.sortNewestLabel
+                              : texts.sortOldestLabel,
+                          items: [
                             PopupMenuItem<String>(
                               value: 'newest',
-                              child: Text('Mới nhất'),
+                              child: Text(texts.newestOptionLabel),
                             ),
                             PopupMenuItem<String>(
                               value: 'oldest',
-                              child: Text('Cũ nhất'),
+                              child: Text(texts.oldestOptionLabel),
                             ),
                           ],
                           onSelected: (value) {
@@ -291,17 +301,17 @@ class _WarrantySerialInventoryScreenState
                       runSpacing: 8,
                       children: [
                         _SummaryChip(
-                          label: 'Đã nhập',
+                          label: texts.importedLabel,
                           value: '$importedCount',
                           color: const Color(0xFF1D4ED8),
                         ),
                         _SummaryChip(
-                          label: 'Sẵn sàng',
+                          label: texts.readyLabel,
                           value: '$readyCount',
                           color: const Color(0xFF047857),
                         ),
                         _SummaryChip(
-                          label: 'Đã kích hoạt',
+                          label: texts.activatedLabel,
                           value: '$activatedCount',
                           color: const Color(0xFFB45309),
                         ),
@@ -318,10 +328,9 @@ class _WarrantySerialInventoryScreenState
                           controller: _scrollController,
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                          children: const [
+                          children: [
                             _SerialInventoryEmptyCard(
-                              message:
-                                  'Không có serial phù hợp bộ lọc hiện tại.',
+                              message: texts.emptyMessage,
                             ),
                           ],
                         )
@@ -342,8 +351,8 @@ class _WarrantySerialInventoryScreenState
                             final isDark =
                                 Theme.of(context).brightness == Brightness.dark;
                             final statusLabel = isActivated
-                                ? 'Đã kích hoạt'
-                                : 'Sẵn sàng';
+                                ? texts.activatedLabel
+                                : texts.readyLabel;
                             final statusColor = isActivated
                                 ? (isDark
                                       ? const Color(0xFFFBBF24)
@@ -408,11 +417,17 @@ class _WarrantySerialInventoryScreenState
                                   ],
                                 ),
                                 subtitle: Text(
-                                  '${record.productSku} - Đơn ${record.orderId}\nNhập ${formatDateTime(record.importedAt)}',
+                                  texts.recordSubtitle(
+                                    productSku: record.productSku,
+                                    orderId: record.orderId,
+                                    importedAt: formatDateTime(
+                                      record.importedAt,
+                                    ),
+                                  ),
                                 ),
                                 isThreeLine: true,
                                 trailing: PopupMenuButton<String>(
-                                  tooltip: 'Tác vụ serial',
+                                  tooltip: texts.serialActionsTooltip,
                                   icon: const Icon(Icons.more_vert),
                                   onSelected: (value) {
                                     if (value == 'copy') {
@@ -424,13 +439,13 @@ class _WarrantySerialInventoryScreenState
                                     }
                                   },
                                   itemBuilder: (context) => [
-                                    const PopupMenuItem<String>(
+                                    PopupMenuItem<String>(
                                       value: 'copy',
-                                      child: Text('Sao chép serial'),
+                                      child: Text(texts.copySerialAction),
                                     ),
-                                    const PopupMenuItem<String>(
+                                    PopupMenuItem<String>(
                                       value: 'order',
-                                      child: Text('Xem chi tiết đơn'),
+                                      child: Text(texts.viewOrderAction),
                                     ),
                                   ],
                                 ),
@@ -452,15 +467,72 @@ class _WarrantySerialInventoryScreenState
     if (!mounted) {
       return;
     }
+    final texts = _WarrantySerialInventoryTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text('Đã sao chép serial $serial.')));
+    ).showSnackBar(SnackBar(content: Text(texts.copiedSerialMessage(serial))));
   }
 
   void _openOrderDetail(String orderId) {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => OrderDetailScreen(orderId: orderId)),
     );
+  }
+}
+
+class _WarrantySerialInventoryTexts {
+  const _WarrantySerialInventoryTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get screenTitle => isEnglish ? 'Serial inventory' : 'Kho serial';
+  String get searchHint => isEnglish
+      ? 'Search serial, SKU, product name, order ID'
+      : 'Tìm serial, SKU, tên sản phẩm, mã đơn';
+  String get clearSearchTooltip => isEnglish ? 'Clear search' : 'Xóa tìm kiếm';
+  String allFilterLabel(int count) =>
+      isEnglish ? 'All ($count)' : 'Tất cả ($count)';
+  String readyFilterLabel(int count) =>
+      isEnglish ? 'Ready ($count)' : 'Sẵn sàng ($count)';
+  String activatedFilterLabel(int count) =>
+      isEnglish ? 'Activated ($count)' : 'Đã kích hoạt ($count)';
+  String get orderFilterAllLabel => isEnglish ? 'Order: All' : 'Đơn: Tất cả';
+  String orderFilterLabel(String orderId) =>
+      isEnglish ? 'Order: $orderId' : 'Đơn: $orderId';
+  String get allOrdersLabel => isEnglish ? 'All orders' : 'Tất cả đơn';
+  String get skuFilterAllLabel => isEnglish ? 'SKU: All' : 'SKU: Tất cả';
+  String skuFilterLabel(String sku) => 'SKU: $sku';
+  String get allSkusLabel => isEnglish ? 'All SKU' : 'Tất cả SKU';
+  String get sortNewestLabel =>
+      isEnglish ? 'Sort: Newest' : 'Sắp xếp: Mới nhất';
+  String get sortOldestLabel => isEnglish ? 'Sort: Oldest' : 'Sắp xếp: Cũ nhất';
+  String get newestOptionLabel => isEnglish ? 'Newest' : 'Mới nhất';
+  String get oldestOptionLabel => isEnglish ? 'Oldest' : 'Cũ nhất';
+  String get importedLabel => isEnglish ? 'Imported' : 'Đã nhập';
+  String get readyLabel => isEnglish ? 'Ready' : 'Sẵn sàng';
+  String get activatedLabel => isEnglish ? 'Activated' : 'Đã kích hoạt';
+  String get emptyMessage => isEnglish
+      ? 'No serial matches the current filters.'
+      : 'Không có serial phù hợp bộ lọc hiện tại.';
+  String get serialActionsTooltip =>
+      isEnglish ? 'Serial actions' : 'Tác vụ serial';
+  String get copySerialAction => isEnglish ? 'Copy serial' : 'Sao chép serial';
+  String get viewOrderAction =>
+      isEnglish ? 'View order details' : 'Xem chi tiết đơn';
+  String copiedSerialMessage(String serial) =>
+      isEnglish ? 'Copied serial $serial.' : 'Đã sao chép serial $serial.';
+
+  String recordSubtitle({
+    required String productSku,
+    required String orderId,
+    required String importedAt,
+  }) {
+    if (isEnglish) {
+      return '$productSku - Order $orderId\nImported $importedAt';
+    }
+    return '$productSku - Đơn $orderId\nNhập $importedAt';
   }
 }
 
