@@ -69,12 +69,12 @@ public class DealerOrderWorkflowSupport {
             item.setUnitPrice(DealerOrderSupport.resolveUnitPrice(product));
             items.add(item);
         }
-        orderInventorySupport.reserveStock(requestedQuantities, lockedProducts);
         order.setOrderItems(items);
         order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
         assertCreditLimitAvailable(dealer, order, activeDiscountRules);
 
         Order saved = orderRepository.save(order);
+        orderInventorySupport.reserveStock(requestedQuantities, lockedProducts, saved);
         webSocketEventPublisher.publishAdminNewOrder(new AdminNewOrderEvent(
                 saved.getId(),
                 saved.getOrderCode(),
@@ -100,7 +100,6 @@ public class DealerOrderWorkflowSupport {
             order.setCompletedAt(null);
         }
         if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
-            orderInventorySupport.restoreStock(order);
             productSerialOrderSupport.releaseNonWarrantySerials(order);
         }
         if (request.status() == OrderStatus.CANCELLED

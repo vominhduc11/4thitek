@@ -35,6 +35,8 @@ public interface ProductSerialRepository extends JpaRepository<ProductSerial, Lo
 
     long countByOrderIdAndProductId(Long orderId, Long productId);
 
+    List<ProductSerial> findByOrderIdAndStatus(Long orderId, ProductSerialStatus status);
+
     long countByProductIdAndDealerIsNullAndStatus(Long productId, ProductSerialStatus status);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

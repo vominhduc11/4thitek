@@ -8,10 +8,13 @@ import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
+import com.devwonder.backend.entity.ProductSerial;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.data.domain.PageRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -35,23 +38,28 @@ public class OrderInventorySupport {
         return lockProducts(requestedQuantities.keySet());
     }
 
-    public void reserveStock(Map<Long, Integer> requestedQuantities, Map<Long, Product> lockedProducts) {
+    public void reserveStock(Map<Long, Integer> requestedQuantities, Map<Long, Product> lockedProducts, Order order) {
+        List<ProductSerial> toReserve = new ArrayList<>();
         for (Map.Entry<Long, Integer> entry : requestedQuantities.entrySet()) {
             Product product = lockedProducts.get(entry.getKey());
             if (product == null) {
                 throw new ResourceNotFoundException("Product not found");
             }
             int requestedQuantity = safeQuantity(entry.getValue());
-            long availableSerials = productSerialRepository.countByProductIdAndDealerIsNullAndStatus(
-                    product.getId(), ProductSerialStatus.AVAILABLE);
-            if (requestedQuantity > availableSerials) {
+            List<ProductSerial> picked = productSerialRepository.findAvailableForAssignment(
+                    product.getId(), ProductSerialStatus.AVAILABLE, PageRequest.of(0, requestedQuantity));
+            if (picked.size() < requestedQuantity) {
                 throw new BadRequestException("Insufficient stock for product " + product.getName());
             }
+            for (ProductSerial serial : picked) {
+                serial.setOrder(order);
+                serial.setStatus(ProductSerialStatus.RESERVED);
+                toReserve.add(serial);
+            }
         }
-    }
-
-    public void restoreStock(Order order) {
-        // Stock is derived from serial count; cancellation is handled by releaseNonWarrantySerials
+        if (!toReserve.isEmpty()) {
+            productSerialRepository.saveAll(toReserve);
+        }
     }
 
     private Map<Long, Product> lockProducts(Collection<Long> productIds) {

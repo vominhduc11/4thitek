@@ -116,6 +116,8 @@ Future<void> showBankTransferInfoSheet({
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    isDismissible: true,
+    enableDrag: true,
     requestFocus: true,
     builder: (sheetContext) {
       return _BankTransferInfoSheet(
@@ -268,13 +270,6 @@ class _BankTransferInfoSheetState extends State<_BankTransferInfoSheet> {
                         widget.onCopy('Nội dung chuyển khoản', widget.content),
                   ),
                   const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Đã hiểu'),
-                    ),
-                  ),
                 ],
               ),
             ),

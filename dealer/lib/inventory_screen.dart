@@ -104,7 +104,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   void _markInventoryCacheDirty() {
-    _inventoryCacheDirty = true;
+    if (!mounted) return;
+    setState(() {
+      _inventoryCacheDirty = true;
+    });
   }
 
   Future<void> _reload() async {

@@ -40,6 +40,7 @@ import {
 
 const SERIAL_STATUS_FILTER_OPTIONS: BackendProductSerialStatus[] = [
   'AVAILABLE',
+  'RESERVED',
   'DEFECTIVE',
   'ASSIGNED',
   'WARRANTY',
@@ -48,11 +49,24 @@ const SERIAL_STATUS_FILTER_OPTIONS: BackendProductSerialStatus[] = [
 
 const statusTone = {
   AVAILABLE: 'success',
+  RESERVED: 'warning',
   DEFECTIVE: 'danger',
   ASSIGNED: 'neutral',
   WARRANTY: 'info',
   RETURNED: 'warning',
 } as const
+
+function getSerialBadge(
+  item: BackendSerialResponse,
+  statusLabels: Record<BackendProductSerialStatus, string>,
+  atDealerLabel: string,
+): { tone: 'success' | 'danger' | 'neutral' | 'info' | 'warning'; label: string } {
+  const status = item.status ?? 'AVAILABLE'
+  if (status === 'AVAILABLE' && item.dealerName) {
+    return { tone: 'info', label: atDealerLabel }
+  }
+  return { tone: statusTone[status], label: statusLabels[status] }
+}
 
 const SERIAL_FORMAT = /^[A-Z0-9][A-Z0-9-_.]{3,63}$/i
 
@@ -103,8 +117,10 @@ const copyByLanguage = {
     confirmDeleteTitle: 'Xác nhận xóa serial',
     confirmDeleteMessage: 'Serial "{serial}" sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.',
     deleteSuccess: 'Đã xóa serial thành công.',
+    atDealer: 'Tại đại lý',
     statusLabels: {
       AVAILABLE: 'Khả dụng',
+      RESERVED: 'Đang giữ chỗ',
       DEFECTIVE: 'Hàng lỗi',
       ASSIGNED: 'Đã gán',
       WARRANTY: 'Bảo hành',
@@ -157,8 +173,10 @@ const copyByLanguage = {
     confirmDeleteTitle: 'Confirm delete serial',
     confirmDeleteMessage: 'Serial "{serial}" will be permanently deleted. This action cannot be undone.',
     deleteSuccess: 'Serial deleted successfully.',
+    atDealer: 'At dealer',
     statusLabels: {
       AVAILABLE: 'Available',
+      RESERVED: 'Reserved',
       DEFECTIVE: 'Defective',
       ASSIGNED: 'Assigned',
       WARRANTY: 'Warranty',
@@ -482,8 +500,8 @@ function SerialsPageRevamp() {
                       <p className="font-semibold text-[var(--ink)]">{item.serial}</p>
                       <p className={tableMetaClass}>{item.orderCode ?? '-'}</p>
                     </div>
-                    <StatusBadge tone={statusTone[item.status ?? 'AVAILABLE']}>
-                      {copy.statusLabels[item.status ?? 'AVAILABLE']}
+                    <StatusBadge tone={getSerialBadge(item, copy.statusLabels, copy.atDealer).tone}>
+                      {getSerialBadge(item, copy.statusLabels, copy.atDealer).label}
                     </StatusBadge>
                   </div>
                   <div className="mt-4 grid gap-2 text-sm">
@@ -580,8 +598,8 @@ function SerialsPageRevamp() {
                         <p className={tableMetaClass}>{item.customerName ?? '-'}</p>
                       </td>
                       <td className="px-3 py-3">
-                        <StatusBadge tone={statusTone[item.status ?? 'AVAILABLE']}>
-                          {copy.statusLabels[item.status ?? 'AVAILABLE']}
+                        <StatusBadge tone={getSerialBadge(item, copy.statusLabels, copy.atDealer).tone}>
+                          {getSerialBadge(item, copy.statusLabels, copy.atDealer).label}
                         </StatusBadge>
                       </td>
                       <td className="px-3 py-3 text-sm">

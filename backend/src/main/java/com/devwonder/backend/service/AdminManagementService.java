@@ -210,6 +210,13 @@ public class AdminManagementService {
         if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
             productSerialOrderSupport.releaseNonWarrantySerials(order);
         }
+        if (previousStatus == OrderStatus.PENDING && request.status() == OrderStatus.CONFIRMED) {
+            List<ProductSerial> reserved = productSerialRepository.findByOrderIdAndStatus(id, ProductSerialStatus.RESERVED);
+            reserved.forEach(s -> s.setStatus(ProductSerialStatus.ASSIGNED));
+            if (!reserved.isEmpty()) {
+                productSerialRepository.saveAll(reserved);
+            }
+        }
         if (request.status() == OrderStatus.COMPLETED && order.getDealer() != null) {
             List<ProductSerial> orderSerials = productSerialRepository.findByOrderId(id);
             java.util.List<ProductSerial> toUpdate = new java.util.ArrayList<>();
