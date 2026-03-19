@@ -253,7 +253,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                           labelText: 'Email khách hàng',
                           prefixIcon: Icon(Icons.alternate_email_outlined),
                           helperText:
-                              'Dung de luu thong tin kich hoat bao hanh va lien he ho tro khi can.',
+                              'Dùng để lưu thông tin kích hoạt bảo hành và liên hệ hỗ trợ khi cần.',
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -279,7 +279,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                       OutlinedButton.icon(
                         onPressed: isFullyActivated ? null : _pickPurchaseDate,
                         icon: const Icon(Icons.event_outlined),
-                        label: Text('Ngay mua: ${formatDate(_purchaseDate)}'),
+                        label: Text('Ngày mua: ${formatDate(_purchaseDate)}'),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size.fromHeight(52),
                           alignment: Alignment.centerLeft,
@@ -287,7 +287,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Dealer co the chon lai ngay khach mua tai cua hang truoc khi kich hoat bao hanh.',
+                        'Đại lý có thể chọn lại ngày khách mua tại cửa hàng trước khi kích hoạt bảo hành.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -295,7 +295,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                       if (hasOrderCustomerData) ...[
                         const SizedBox(height: 8),
                         Text(
-                          'Thong tin khach hang da duoc dien san tu don hang, dealer co the chinh sua neu can.',
+                          'Thông tin khách hàng đã được điền sẵn từ đơn hàng, đại lý có thể chỉnh sửa nếu cần.',
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: colorScheme.onSurfaceVariant),
                         ),
@@ -492,11 +492,19 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                             fontSize: 15,
                           ),
                         ),
-                        child: Text(
-                          isFullyActivated
-                              ? 'Đơn đã kích hoạt đủ serial'
-                              : 'Xác nhận kích hoạt serial',
-                        ),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : Text(
+                                isFullyActivated
+                                    ? 'Đơn đã kích hoạt đủ serial'
+                                    : 'Xác nhận kích hoạt serial',
+                              ),
                       ),
                     ),
                   ),
@@ -649,7 +657,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
       initialDate: effectiveInitialDate,
       firstDate: effectiveFirstDate,
       lastDate: now,
-      helpText: 'Chon ngay mua',
+      helpText: 'Chọn ngày mua',
     );
     if (!mounted || picked == null) {
       return;
@@ -674,10 +682,10 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     final minimumDate = _minimumPurchaseDateForOrder(order);
     final today = DateUtils.dateOnly(DateTime.now());
     if (normalizedPurchaseDate.isBefore(minimumDate)) {
-      return 'Ngay mua khong duoc truoc ngay dat hang ${formatDate(minimumDate)}.';
+      return 'Ngày mua không được trước ngày đặt hàng ${formatDate(minimumDate)}.';
     }
     if (normalizedPurchaseDate.isAfter(today)) {
-      return 'Ngay mua khong duoc sau ngay hom nay.';
+      return 'Ngày mua không được sau ngày hôm nay.';
     }
     return null;
   }

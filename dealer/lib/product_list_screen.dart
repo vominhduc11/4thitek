@@ -777,8 +777,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
     final useCompactQuickAdd = isGridLayout && canAddToCart;
     final productSemanticsLabel =
-        '${product.name}, sku ${product.sku}, gia ${formatVnd(product.price)}, '
-        'ton kho $remainingStock';
+        '${product.name}, SKU ${product.sku}, giá ${formatVnd(product.price)}, '
+        'tồn kho $remainingStock';
 
     return FadeSlideIn(
       key: ValueKey(product.id),
@@ -790,7 +790,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         child: Semantics(
           container: true,
           label: productSemanticsLabel,
-          hint: 'Mo chi tiet san pham',
+          hint: 'Mở chi tiết sản phẩm',
           child: Card(
             elevation: 0,
             clipBehavior: Clip.antiAlias,

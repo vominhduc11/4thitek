@@ -119,7 +119,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       _visibleItemCount = _inventoryPageSize;
     });
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 160));
       if (!mounted) {
         return;
       }
@@ -1158,9 +1157,13 @@ class _FilterChip extends StatelessWidget {
         child: ChoiceChip(
           label: Text(
             label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: selected
+                  ? colorScheme.onSecondaryContainer
+                  : colorScheme.onSurface,
+              fontWeight:
+                  selected ? FontWeight.w600 : FontWeight.w400,
+            ),
           ),
           selected: selected,
           showCheckmark: false,

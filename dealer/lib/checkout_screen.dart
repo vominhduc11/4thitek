@@ -51,8 +51,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             }
           });
         })
-        .catchError((_) {
+        .catchError((e) {
           // Keep default profile when remote profile is temporarily unavailable.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _showSnackBar('Không tải được thông tin tài khoản. Một số tính năng có thể bị hạn chế.');
+            }
+          });
         });
     _loadBankTransferInstructions();
   }
@@ -138,7 +143,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (!mounted) {
       return;
     }
-    _showSnackBar('Da sao chep $label');
+    _showSnackBar('Đã sao chép $label');
   }
 
   void _showSnackBar(String message) {
@@ -226,7 +231,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 60),
                 child: SectionCard(
-                  title: 'Phuong thuc thanh toan',
+                  title: 'Phương thức thanh toán',
                   child: RadioGroup<OrderPaymentMethod>(
                     groupValue: _method,
                     onChanged: (value) {
@@ -244,19 +249,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       children: [
                         RadioListTile<OrderPaymentMethod>(
                           value: OrderPaymentMethod.bankTransfer,
-                          title: const Text('Chuyển khoản ngan hang'),
+                          title: const Text('Chuyển khoản ngân hàng'),
                           subtitle: const Text(
-                            'Tao don truoc, SePay webhook se tu dong xac nhan thanh toan.',
+                            'Tạo đơn trước, SePay webhook sẽ tự động xác nhận thanh toán.',
                           ),
                         ),
                         RadioListTile<OrderPaymentMethod>(
                           value: OrderPaymentMethod.debt,
                           enabled: _canUseDebtPayment,
-                          title: const Text('Ghi nhan cong no'),
+                          title: const Text('Ghi nhận công nợ'),
                           subtitle: Text(
                             _canUseDebtPayment
-                                ? 'Han muc con lai: ${formatVnd((_profile.creditLimit - orderController.totalOutstandingDebt).clamp(0, _profile.creditLimit))} / ${formatVnd(_profile.creditLimit)}.'
-                                : 'Can duoc cap han muc cong no truoc khi dung tuy chon nay.',
+                                ? 'Hạn mức còn lại: ${formatVnd((_profile.creditLimit - orderController.totalOutstandingDebt).clamp(0, _profile.creditLimit))} / ${formatVnd(_profile.creditLimit)}.'
+                                : 'Cần được cấp hạn mức công nợ trước khi dùng tuỳ chọn này.',
                           ),
                         ),
                       ],
@@ -268,7 +273,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 120),
                 child: SectionCard(
-                  title: 'San pham trong don (${cart.totalItems})',
+                  title: 'Sản phẩm trong đơn (${cart.totalItems})',
                   child: Theme(
                     data: Theme.of(
                       context,
@@ -312,7 +317,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     maxLength: 200,
                     decoration: const InputDecoration(
                       hintText:
-                          'Vi du: giao gio hanh chinh, goi truoc khi giao, luu y xuat hoa don...',
+                          'Ví dụ: giao giờ hành chính, gọi trước khi giao, lưu ý xuất hoá đơn...',
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -332,18 +337,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                       const SizedBox(height: 8),
                       _SummaryRow(
-                        label: 'Tam tinh',
+                        label: 'Tạm tính',
                         value: formatVnd(subtotal),
                       ),
                       if (discountAmount > 0) ...[
                         const SizedBox(height: 8),
                         _SummaryRow(
-                          label: 'Chiet khau ($discountPercent%)',
+                          label: 'Chiết khấu ($discountPercent%)',
                           value: '-${formatVnd(discountAmount)}',
                         ),
                         const SizedBox(height: 8),
                         _SummaryRow(
-                          label: 'Sau chiet khau',
+                          label: 'Sau chiết khấu',
                           value: formatVnd(totalAfterDiscount),
                         ),
                       ],
@@ -354,14 +359,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                       const SizedBox(height: 8),
                       _SummaryRow(
-                        label: 'Phi giao hang',
+                        label: 'Phí giao hàng',
                         value: shippingFee == 0
-                            ? 'Mien phi'
+                            ? 'Miễn phí'
                             : formatVnd(shippingFee),
                       ),
                       const SizedBox(height: 8),
                       _SummaryRow(
-                        label: 'Trang thai thanh toan',
+                        label: 'Trạng thái thanh toán',
                         value: _previewPaymentStatus.label,
                       ),
                       if (_method == OrderPaymentMethod.bankTransfer) ...[
@@ -422,7 +427,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ],
                       const Divider(height: 20),
                       _SummaryRow(
-                        label: 'Tong cong',
+                        label: 'Tổng cộng',
                         value: formatVnd(total),
                         isEmphasis: true,
                       ),
@@ -466,7 +471,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               } else {
                                 if (!_canUseDebtPayment) {
                                   _showSnackBar(
-                                    'Tai khoan chua duoc cap han muc cong no.',
+                                    'Tài khoản chưa được cấp hạn mức công nợ.',
                                   );
                                   return;
                                 }
@@ -476,7 +481,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 if (projectedOutstandingDebt >
                                     _profile.creditLimit) {
                                   _showSnackBar(
-                                    'Vuot han muc cong no. Cong no du kien ${formatVnd(projectedOutstandingDebt)} lon hon han muc ${formatVnd(_profile.creditLimit)}.',
+                                    'Vượt hạn mức công nợ. Công nợ dự kiến ${formatVnd(projectedOutstandingDebt)} lớn hơn hạn mức ${formatVnd(_profile.creditLimit)}.',
                                   );
                                   return;
                                 }
@@ -528,7 +533,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     for (final item in cart.items) {
       if (item.quantity > item.product.stock) {
         issues.add(
-          '${item.product.name} chi con ${item.product.stock} SP trong kho.',
+          '${item.product.name} chỉ còn ${item.product.stock} SP trong kho.',
         );
       }
     }
@@ -557,13 +562,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               const SizedBox(height: 12),
               Text('Số lượng sản phẩm: $itemCount'),
               const SizedBox(height: 4),
-              Text('Tong thanh toan: ${formatVnd(amount)}'),
+              Text('Tổng thanh toán: ${formatVnd(amount)}'),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Huy'),
+              child: const Text('Huỷ'),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
@@ -673,7 +678,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Dong'),
+              child: const Text('Đóng'),
             ),
           ],
         );

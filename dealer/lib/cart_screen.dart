@@ -285,14 +285,16 @@ class CartScreen extends StatelessWidget {
                               ),
                             ),
                             if (isSyncingItem)
-                              Positioned(
-                                right: 10,
-                                child: SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: colors.primary,
+                              Positioned.fill(
+                                child: Align(
+                                  alignment: Alignment.center,
+                                  child: SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: colors.primary,
+                                    ),
                                   ),
                                 ),
                               ),

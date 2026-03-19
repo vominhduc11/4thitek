@@ -199,7 +199,7 @@ class OrderDetailScreen extends StatelessWidget {
     }
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text('Da sao chep $label')));
+    ).showSnackBar(SnackBar(content: Text('Đã sao chép $label')));
   }
 
   Future<void> _showBankTransferInstructions(
@@ -237,7 +237,7 @@ class OrderDetailScreen extends StatelessWidget {
 
   void _showRecordPaymentDialog(BuildContext context, Order order) {
     final amountController = TextEditingController();
-    const channels = <String>['Chuyển khoản', 'Tien mat', 'Bu tru cong no'];
+    const channels = <String>['Chuyển khoản', 'Tiền mặt', 'Bù trừ công nợ'];
     var selectedChannel = order.paymentMethod == OrderPaymentMethod.bankTransfer
         ? channels.first
         : channels.last;
@@ -267,7 +267,7 @@ class OrderDetailScreen extends StatelessWidget {
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: InputDecoration(
                       labelText: 'Số tiền',
-                      hintText: 'Toi da ${formatVnd(order.outstandingAmount)}',
+                      hintText: 'Tối đa ${formatVnd(order.outstandingAmount)}',
                       errorText: errorText,
                     ),
                   ),
@@ -299,7 +299,7 @@ class OrderDetailScreen extends StatelessWidget {
                   onPressed: isSubmitting
                       ? null
                       : () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Dong'),
+                  child: const Text('Đóng'),
                 ),
                 FilledButton(
                   onPressed: isSubmitting
@@ -312,13 +312,13 @@ class OrderDetailScreen extends StatelessWidget {
                           final amount = int.tryParse(digitsOnly) ?? 0;
                           if (amount <= 0) {
                             setDialogState(() {
-                              errorText = 'Số tiền khong hop le.';
+                              errorText = 'Số tiền không hợp lệ.';
                             });
                             return;
                           }
                           if (amount > order.outstandingAmount) {
                             setDialogState(() {
-                              errorText = 'Số tiền vuot qua cong no con lai.';
+                              errorText = 'Số tiền vượt quá công nợ còn lại.';
                             });
                             return;
                           }
@@ -361,7 +361,7 @@ class OrderDetailScreen extends StatelessWidget {
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2.4),
                         )
-                      : const Text('Ghi nhan'),
+                      : const Text('Ghi nhận'),
                 ),
               ],
             );
