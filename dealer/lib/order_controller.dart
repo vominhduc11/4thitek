@@ -131,6 +131,7 @@ class OrderController extends ChangeNotifier {
         .where(
           (order) =>
               order.paymentMethod == OrderPaymentMethod.debt &&
+              order.outstandingAmount > 0 &&
               order.status != OrderStatus.cancelled,
         )
         .fold<int>(0, (sum, order) => sum + order.outstandingAmount);
