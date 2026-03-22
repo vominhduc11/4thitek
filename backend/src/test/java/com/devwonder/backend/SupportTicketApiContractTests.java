@@ -1,5 +1,6 @@
 package com.devwonder.backend;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -75,17 +76,7 @@ class SupportTicketApiContractTests {
     void supportTicketApiAcceptsAndReturnsSpecEnumValues() throws Exception {
         String dealerToken = registerDealerAndExtractAccessToken("support-ticket");
 
-        MvcResult createResult = mockMvc.perform(post("/api/v1/dealer/support-tickets")
-                        .contentType(APPLICATION_JSON)
-                        .header("Authorization", "Bearer " + dealerToken)
-                        .content("""
-                                {
-                                  "category": "returnOrder",
-                                  "priority": "normal",
-                                  "subject": "Need return",
-                                  "message": "Need return workflow."
-                                }
-                                """))
+        MvcResult createResult = createSupportTicket(dealerToken)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.category").value("returnOrder"))
                 .andExpect(jsonPath("$.data.priority").value("normal"))
@@ -99,18 +90,134 @@ class SupportTicketApiContractTests {
 
         String adminToken = login("support.admin@example.com", "ChangedPass#456");
 
-        mockMvc.perform(patch("/api/v1/admin/support-tickets/{id}", ticketId)
-                        .contentType(APPLICATION_JSON)
-                        .header("Authorization", "Bearer " + adminToken)
-                        .content("""
-                                {
-                                  "status": "in_progress",
-                                  "adminReply": "Working on it"
-                                }
-                                """))
+        mockMvc.perform(updateSupportTicketRequest(ticketId, adminToken, """
+                        {
+                          "status": "in_progress",
+                          "adminReply": "Working on it"
+                        }
+                        """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("in_progress"))
                 .andExpect(jsonPath("$.data.adminReply").value("Working on it"));
+    }
+
+    @Test
+    void supportTicketWorkflowEnforcesTransitionPolicyAndTimelineReset() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("support-ticket-flow");
+        Long ticketId = readTicketId(createSupportTicket(dealerToken).andExpect(status().isOk()).andReturn());
+        String adminToken = login("support.admin@example.com", "ChangedPass#456");
+
+        JsonNode inProgress = readData(mockMvc.perform(updateSupportTicketRequest(ticketId, adminToken, """
+                        {
+                          "status": "in_progress",
+                          "adminReply": "Working on it"
+                        }
+                        """))
+                .andExpect(status().isOk())
+                .andReturn());
+        assertThat(inProgress.path("status").asText()).isEqualTo("in_progress");
+        assertThat(inProgress.path("resolvedAt").isNull()).isTrue();
+        assertThat(inProgress.path("closedAt").isNull()).isTrue();
+
+        JsonNode resolved = readData(mockMvc.perform(updateSupportTicketRequest(ticketId, adminToken, """
+                        {
+                          "status": "resolved"
+                        }
+                        """))
+                .andExpect(status().isOk())
+                .andReturn());
+        assertThat(resolved.path("status").asText()).isEqualTo("resolved");
+        assertThat(resolved.path("resolvedAt").asText()).isNotBlank();
+        assertThat(resolved.path("closedAt").isNull()).isTrue();
+
+        JsonNode reopened = readData(mockMvc.perform(updateSupportTicketRequest(ticketId, adminToken, """
+                        {
+                          "status": "in_progress"
+                        }
+                        """))
+                .andExpect(status().isOk())
+                .andReturn());
+        assertThat(reopened.path("status").asText()).isEqualTo("in_progress");
+        assertThat(reopened.path("resolvedAt").isNull()).isTrue();
+        assertThat(reopened.path("closedAt").isNull()).isTrue();
+
+        JsonNode closed = readData(mockMvc.perform(updateSupportTicketRequest(ticketId, adminToken, """
+                        {
+                          "status": "closed"
+                        }
+                        """))
+                .andExpect(status().isOk())
+                .andReturn());
+        assertThat(closed.path("status").asText()).isEqualTo("closed");
+        assertThat(closed.path("resolvedAt").asText()).isNotBlank();
+        assertThat(closed.path("closedAt").asText()).isNotBlank();
+
+        mockMvc.perform(updateSupportTicketRequest(ticketId, adminToken, """
+                        {
+                          "status": "in_progress"
+                        }
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Support ticket transition from CLOSED to IN_PROGRESS is not allowed"));
+    }
+
+    @Test
+    void blankAdminReplyClearsExistingReply() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("support-ticket-reply");
+        Long ticketId = readTicketId(createSupportTicket(dealerToken).andExpect(status().isOk()).andReturn());
+        String adminToken = login("support.admin@example.com", "ChangedPass#456");
+
+        mockMvc.perform(updateSupportTicketRequest(ticketId, adminToken, """
+                        {
+                          "status": "in_progress",
+                          "adminReply": "Initial reply"
+                        }
+                        """))
+                .andExpect(status().isOk());
+
+        JsonNode cleared = readData(mockMvc.perform(updateSupportTicketRequest(ticketId, adminToken, """
+                        {
+                          "status": "in_progress",
+                          "adminReply": "   "
+                        }
+                        """))
+                .andExpect(status().isOk())
+                .andReturn());
+
+        assertThat(cleared.path("adminReply").isNull()).isTrue();
+    }
+
+    private org.springframework.test.web.servlet.ResultActions createSupportTicket(String dealerToken) throws Exception {
+        return mockMvc.perform(post("/api/v1/dealer/support-tickets")
+                .contentType(APPLICATION_JSON)
+                .header("Authorization", "Bearer " + dealerToken)
+                .content("""
+                        {
+                          "category": "returnOrder",
+                          "priority": "normal",
+                          "subject": "Need return",
+                          "message": "Need return workflow."
+                        }
+                        """));
+    }
+
+    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder updateSupportTicketRequest(
+            Long ticketId,
+            String adminToken,
+            String body
+    ) {
+        return patch("/api/v1/admin/support-tickets/{id}", ticketId)
+                .contentType(APPLICATION_JSON)
+                .header("Authorization", "Bearer " + adminToken)
+                .content(body);
+    }
+
+    private Long readTicketId(MvcResult result) throws Exception {
+        return readData(result).path("id").asLong();
+    }
+
+    private JsonNode readData(MvcResult result) throws Exception {
+        return objectMapper.readTree(result.getResponse().getContentAsString()).path("data");
     }
 
     private String registerDealerAndExtractAccessToken(String prefix) throws Exception {

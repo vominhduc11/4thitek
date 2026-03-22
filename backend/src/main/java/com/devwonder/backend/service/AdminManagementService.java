@@ -261,17 +261,34 @@ public class AdminManagementService {
             }
         }
 
-        List<ProductSerial> toSave = new java.util.ArrayList<>();
+        java.util.Map<Long, Long> requestedCounts = new java.util.HashMap<>();
+        java.util.Set<String> requestedSerials = new java.util.LinkedHashSet<>();
         for (AdminAssignOrderSerialsRequest.LineAssignment line : request.assignments()) {
             Long productId = line.productId();
             int ordered = orderedQty.getOrDefault(productId, 0);
             if (ordered <= 0) {
                 throw new BadRequestException("Product " + productId + " is not part of this order");
             }
+            for (String serialValue : line.serials()) {
+                String normalizedSerial = serialValue.trim().toUpperCase(java.util.Locale.ROOT);
+                if (!requestedSerials.add(normalizedSerial)) {
+                    throw new BadRequestException("Duplicate serial in request: " + normalizedSerial);
+                }
+                requestedCounts.merge(productId, 1L, Long::sum);
+            }
+        }
+        for (java.util.Map.Entry<Long, Long> entry : requestedCounts.entrySet()) {
+            Long productId = entry.getKey();
             long existingCount = alreadyAssigned.getOrDefault(productId, 0L);
-            if (existingCount + line.serials().size() > ordered) {
+            int ordered = orderedQty.getOrDefault(productId, 0);
+            if (existingCount + entry.getValue() > ordered) {
                 throw new BadRequestException("Serial count for product " + productId + " exceeds ordered quantity");
             }
+        }
+
+        List<ProductSerial> toSave = new java.util.ArrayList<>();
+        for (AdminAssignOrderSerialsRequest.LineAssignment line : request.assignments()) {
+            Long productId = line.productId();
             for (String serialValue : line.serials()) {
                 String normalizedSerial = serialValue.trim().toUpperCase(java.util.Locale.ROOT);
                 ProductSerial serial = productSerialRepository.findBySerialIgnoreCase(normalizedSerial)
@@ -357,6 +374,7 @@ public class AdminManagementService {
             CacheNames.PUBLIC_BLOGS_BY_CATEGORY
     }, allEntries = true)
     public AdminBlogResponse createBlog(AdminBlogUpsertRequest request) {
+        adminWriteSupport.validateBlogRequest(request, true);
         Blog blog = new Blog();
         adminWriteSupport.applyBlog(blog, request, true);
         return AdminResponseMapper.toBlogResponse(blogRepository.save(blog));
@@ -373,6 +391,7 @@ public class AdminManagementService {
             CacheNames.PUBLIC_BLOGS_BY_CATEGORY
     }, allEntries = true)
     public AdminBlogResponse updateBlog(Long id, AdminBlogUpsertRequest request) {
+        adminWriteSupport.validateBlogRequest(request, false);
         Blog blog = blogRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Blog not found"));
         adminWriteSupport.applyBlog(blog, request, false);
@@ -541,6 +560,7 @@ public class AdminManagementService {
     @Transactional
     @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
     public AdminDiscountRuleResponse createDiscountRule(AdminDiscountRuleUpsertRequest request) {
+        adminWriteSupport.validateDiscountRuleRequest(request);
         BulkDiscount rule = new BulkDiscount();
         rule.setLabel(requireNonBlank(request.label(), "label"));
         applyDiscountRuleRange(rule, requireNonBlank(request.range(), "range"));

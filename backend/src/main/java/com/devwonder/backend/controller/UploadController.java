@@ -4,6 +4,7 @@ import com.devwonder.backend.dto.ApiResponse;
 import com.devwonder.backend.entity.Account;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
+import com.devwonder.backend.service.DealerAccountLifecycleService;
 import com.devwonder.backend.service.FileStorageService;
 import java.time.Duration;
 import java.util.Map;
@@ -32,6 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class UploadController {
 
     private final FileStorageService fileStorageService;
+    private final DealerAccountLifecycleService dealerAccountLifecycleService;
 
     @Value("${app.upload.base-url:/uploads}")
     private String uploadBaseUrl;
@@ -103,14 +105,14 @@ public class UploadController {
                 if (isAdmin(account)) {
                     yield adminScopedFolder("avatars/dealers", account);
                 }
-                requireAnyAuthority(account, "DEALER");
+                requireDealerPortalAccess(account);
                 yield actorScopedFolder("avatars/dealers", account);
             }
             case "payment-proofs" -> {
                 if (isAdmin(account)) {
                     yield adminScopedFolder("payments/proofs", account);
                 }
-                requireAnyAuthority(account, "DEALER");
+                requireDealerPortalAccess(account);
                 yield actorScopedFolder("payments/proofs/dealers", account);
             }
             default -> throw new BadRequestException("Unsupported upload category: " + category);
@@ -177,7 +179,7 @@ public class UploadController {
             if (isAdmin(account)) {
                 return;
             }
-            requireAnyAuthority(account, "DEALER");
+            requireDealerPortalAccess(account);
             requireOwnedPath(normalized, actorScopedFolder("avatars/dealers", account));
             return;
         }
@@ -186,7 +188,7 @@ public class UploadController {
             if (isAdmin(account)) {
                 return;
             }
-            requireAnyAuthority(account, "DEALER");
+            requireDealerPortalAccess(account);
             requireOwnedPath(normalized, actorScopedFolder("payments/proofs/dealers", account));
             return;
         }
@@ -235,6 +237,11 @@ public class UploadController {
         if (!hasAnyAuthority(account, authorities)) {
             throw new AccessDeniedException("Access denied");
         }
+    }
+
+    private void requireDealerPortalAccess(Account account) {
+        requireAnyAuthority(account, "DEALER");
+        dealerAccountLifecycleService.assertDealerPortalAccess(account);
     }
 
     private String actorScopedFolder(String baseFolder, Account account) {

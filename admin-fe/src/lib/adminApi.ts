@@ -333,10 +333,10 @@ export type BackendNotificationDispatchResponse = {
   dispatchedAt: string
 }
 
-export type BackendReportExportResponse = {
+export type BackendReportDownloadResponse = {
+  blob: Blob
   fileName: string
   contentType: string
-  content: string
 }
 
 export type BackendAdminSettingsResponse = {
@@ -468,6 +468,72 @@ const authorizedJsonRequest = async <T>({
   }
 
   return payload.data
+}
+
+const parseDownloadFilename = (response: Response, fallbackFileName: string) => {
+  const contentDisposition = response.headers.get('Content-Disposition') ?? ''
+  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1])
+    } catch {
+      return utf8Match[1]
+    }
+  }
+  const plainMatch = contentDisposition.match(/filename="?([^"]+)"?/i)
+  if (plainMatch?.[1]) {
+    return plainMatch[1]
+  }
+  return fallbackFileName
+}
+
+const authorizedBlobRequest = async ({
+  path,
+  token,
+  params,
+  fallbackFileName,
+}: {
+  path: string
+  token: string
+  params?: Record<string, string | number | null | undefined>
+  fallbackFileName: string
+}): Promise<BackendReportDownloadResponse> => {
+  let activeToken = await resolveAuthorizedToken(token)
+  let response = await requestWithToken({
+    path,
+    token: activeToken,
+    method: 'GET',
+    params,
+  })
+
+  if (response.status === 401) {
+    const refreshedSession = await refreshStoredAuthSession()
+    if (refreshedSession?.accessToken) {
+      activeToken = refreshedSession.accessToken
+      response = await requestWithToken({
+        path,
+        token: activeToken,
+        method: 'GET',
+        params,
+      })
+    }
+  }
+
+  if (!response.ok) {
+    const payload = await parseApiResponse<unknown>(response)
+    if (response.status === 401) {
+      clearStoredAuthSession()
+    }
+    throw new Error(
+      payload?.error || (response.status === 401 ? unauthorizedErrorMessage : defaultErrorMessage),
+    )
+  }
+
+  return {
+    blob: await response.blob(),
+    fileName: parseDownloadFilename(response, fallbackFileName),
+    contentType: response.headers.get('Content-Type') || 'application/octet-stream',
+  }
 }
 
 const fetchAllPagedItems = async <T>(
@@ -870,8 +936,9 @@ export const exportAdminReport = (
   type: BackendReportExportType,
   format: BackendReportFormat,
 ) =>
-  authorizedJsonRequest<BackendReportExportResponse>({
+  authorizedBlobRequest({
     path: '/admin/reports/export',
     token,
     params: { type, format },
+    fallbackFileName: `${type.toLowerCase()}-report.${format.toLowerCase()}`,
   })

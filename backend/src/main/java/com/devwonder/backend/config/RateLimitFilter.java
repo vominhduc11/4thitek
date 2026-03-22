@@ -27,15 +27,18 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
     private final Map<String, WindowState> windows = new ConcurrentHashMap<>();
     private final long cleanupGraceSeconds;
+    private final boolean trustForwardedFor;
 
     public RateLimitFilter(
             AdminSettingsService adminSettingsService,
             ObjectMapper objectMapper,
-            @Value("${app.rate-limit.cleanup-grace-seconds:300}") long cleanupGraceSeconds
+            @Value("${app.rate-limit.cleanup-grace-seconds:300}") long cleanupGraceSeconds,
+            @Value("${app.rate-limit.trust-forwarded-for:false}") boolean trustForwardedFor
     ) {
         this.adminSettingsService = adminSettingsService;
         this.objectMapper = objectMapper;
         this.cleanupGraceSeconds = Math.max(60L, cleanupGraceSeconds);
+        this.trustForwardedFor = trustForwardedFor;
     }
 
     @Override
@@ -117,9 +120,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private String clientKey(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
+        if (trustForwardedFor) {
+            String forwarded = request.getHeader("X-Forwarded-For");
+            if (forwarded != null && !forwarded.isBlank()) {
+                String forwardedClient = forwarded.split(",")[0].trim();
+                if (!forwardedClient.isBlank()) {
+                    return forwardedClient;
+                }
+            }
         }
         return request.getRemoteAddr();
     }

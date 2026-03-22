@@ -89,23 +89,21 @@ public class AdminOperationsService {
 
         DealerSupportTicketStatus previousStatus = ticket.getStatus();
         String previousReply = normalize(ticket.getAdminReply());
+        DealerSupportTicketStatus nextStatus = request.status();
+        assertSupportTicketTransitionAllowed(previousStatus, nextStatus);
+        ticket.setStatus(nextStatus);
 
-        ticket.setStatus(request.status());
         String normalizedReply = normalize(request.adminReply());
-        if (normalizedReply != null) {
+        boolean replyProvided = request.adminReply() != null;
+        if (replyProvided) {
             ticket.setAdminReply(normalizedReply);
         }
-        if (request.status() == DealerSupportTicketStatus.RESOLVED && ticket.getResolvedAt() == null) {
-            ticket.setResolvedAt(Instant.now());
-        }
-        if (request.status() == DealerSupportTicketStatus.CLOSED && ticket.getClosedAt() == null) {
-            ticket.setClosedAt(Instant.now());
-        }
+        synchronizeSupportTicketTimeline(ticket, nextStatus, Instant.now());
 
         DealerSupportTicket saved = dealerSupportTicketRepository.save(ticket);
         Dealer dealer = saved.getDealer();
         boolean statusChanged = previousStatus != saved.getStatus();
-        boolean replyChanged = normalizedReply != null && !normalizedReply.equals(previousReply);
+        boolean replyChanged = replyProvided && !Objects.equals(normalizedReply, previousReply);
         if (dealer != null && (statusChanged || replyChanged)) {
             notificationService.create(new CreateNotifyRequest(
                     dealer.getId(),
@@ -138,7 +136,7 @@ public class AdminOperationsService {
         registration.setStatus(request.status());
         ProductSerial productSerial = registration.getProductSerial();
         if (productSerial != null) {
-            productSerial.setStatus(resolveSerialStatusForWarranty());
+            productSerial.setStatus(resolveSerialStatusForWarranty(registration, productSerial));
             productSerialRepository.save(productSerial);
         }
 
@@ -475,8 +473,22 @@ public class AdminOperationsService {
         return registration.getStatus() == null ? WarrantyStatus.ACTIVE : registration.getStatus();
     }
 
-    private ProductSerialStatus resolveSerialStatusForWarranty() {
-        return ProductSerialStatus.WARRANTY;
+    private ProductSerialStatus resolveSerialStatusForWarranty(
+            WarrantyRegistration registration,
+            ProductSerial productSerial
+    ) {
+        ProductSerialStatus currentStatus = productSerial.getStatus();
+        if (currentStatus == ProductSerialStatus.DEFECTIVE || currentStatus == ProductSerialStatus.RETURNED) {
+            return currentStatus;
+        }
+        WarrantyStatus resolvedWarrantyStatus = resolveWarrantyStatus(registration);
+        if (resolvedWarrantyStatus == WarrantyStatus.ACTIVE) {
+            return ProductSerialStatus.WARRANTY;
+        }
+        Order order = productSerial.getOrder();
+        return order != null && order.getStatus() == OrderStatus.COMPLETED
+                ? ProductSerialStatus.ASSIGNED
+                : ProductSerialStatus.AVAILABLE;
     }
 
     private ProductSerialStatus resolveImportedStatus(ProductSerialStatus requestedStatus, Order order) {
@@ -561,6 +573,60 @@ public class AdminOperationsService {
 
     private long computeRemainingDays(Instant warrantyEnd) {
         return WarrantyDateSupport.remainingDays(warrantyEnd);
+    }
+
+    private void assertSupportTicketTransitionAllowed(
+            DealerSupportTicketStatus currentStatus,
+            DealerSupportTicketStatus nextStatus
+    ) {
+        if (nextStatus == null) {
+            throw new BadRequestException("status is required");
+        }
+        boolean allowed = switch (currentStatus) {
+            case OPEN -> nextStatus == DealerSupportTicketStatus.OPEN
+                    || nextStatus == DealerSupportTicketStatus.IN_PROGRESS
+                    || nextStatus == DealerSupportTicketStatus.CLOSED;
+            case IN_PROGRESS -> nextStatus == DealerSupportTicketStatus.OPEN
+                    || nextStatus == DealerSupportTicketStatus.IN_PROGRESS
+                    || nextStatus == DealerSupportTicketStatus.RESOLVED
+                    || nextStatus == DealerSupportTicketStatus.CLOSED;
+            case RESOLVED -> nextStatus == DealerSupportTicketStatus.RESOLVED
+                    || nextStatus == DealerSupportTicketStatus.IN_PROGRESS
+                    || nextStatus == DealerSupportTicketStatus.CLOSED;
+            case CLOSED -> nextStatus == DealerSupportTicketStatus.CLOSED;
+        };
+        if (!allowed) {
+            throw new BadRequestException(
+                    "Support ticket transition from " + currentStatus + " to " + nextStatus + " is not allowed"
+            );
+        }
+    }
+
+    private void synchronizeSupportTicketTimeline(
+            DealerSupportTicket ticket,
+            DealerSupportTicketStatus nextStatus,
+            Instant now
+    ) {
+        switch (nextStatus) {
+            case OPEN, IN_PROGRESS -> {
+                ticket.setResolvedAt(null);
+                ticket.setClosedAt(null);
+            }
+            case RESOLVED -> {
+                if (ticket.getResolvedAt() == null) {
+                    ticket.setResolvedAt(now);
+                }
+                ticket.setClosedAt(null);
+            }
+            case CLOSED -> {
+                if (ticket.getResolvedAt() == null) {
+                    ticket.setResolvedAt(now);
+                }
+                if (ticket.getClosedAt() == null) {
+                    ticket.setClosedAt(now);
+                }
+            }
+        }
     }
 
     private String buildSupportTicketNotificationContent(

@@ -45,11 +45,15 @@ import com.devwonder.backend.service.AdminReportingService;
 import com.devwonder.backend.service.AdminSettingsService;
 import com.devwonder.backend.util.PaginationUtils;
 import jakarta.validation.Valid;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -261,11 +265,28 @@ public class AdminController {
     }
 
     @GetMapping("/reports/export")
-    public ResponseEntity<ApiResponse<AdminReportExportResponse>> exportReport(
+    public ResponseEntity<byte[]> exportReport(
             @RequestParam("type") AdminReportExportType type,
             @RequestParam("format") AdminReportFormat format
     ) {
-        return ResponseEntity.ok(ApiResponse.success(adminReportingService.export(type, format)));
+        AdminReportExportResponse report = adminReportingService.export(type, format);
+        MediaType mediaType;
+        try {
+            mediaType = MediaType.parseMediaType(report.contentType());
+        } catch (IllegalArgumentException ex) {
+            mediaType = MediaType.APPLICATION_OCTET_STREAM;
+        }
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(report.fileName(), StandardCharsets.UTF_8)
+                                .build()
+                                .toString()
+                )
+                .contentLength(report.content().length)
+                .body(report.content());
     }
 
     @GetMapping("/blogs")

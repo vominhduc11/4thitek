@@ -88,6 +88,28 @@ class UploadAuthorizationTests {
     }
 
     @Test
+    void underReviewDealerCannotUploadOwnAvatar() throws Exception {
+        Dealer dealer = registerDealer("dealer-avatar-review", CustomerStatus.UNDER_REVIEW);
+        String dealerToken = login(dealer.getEmail(), "Dealer#123");
+
+        mockMvc.perform(multipart("/api/v1/upload/dealer-avatars")
+                        .file(sampleImage("dealer-avatar-review.png"))
+                        .header("Authorization", "Bearer " + dealerToken))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void underReviewDealerCannotUploadPaymentProof() throws Exception {
+        Dealer dealer = registerDealer("dealer-proof-review", CustomerStatus.UNDER_REVIEW);
+        String dealerToken = login(dealer.getEmail(), "Dealer#123");
+
+        mockMvc.perform(multipart("/api/v1/upload/payment-proofs")
+                        .file(sampleImage("dealer-proof-review.png"))
+                        .header("Authorization", "Bearer " + dealerToken))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void adminUploadsAvatarIntoAdminScopedFolder() throws Exception {
         String adminToken = login("upload.admin@example.com", "ChangedPass#456");
         Admin admin = adminRepository.findByUsername("upload.admin@example.com").orElseThrow();
@@ -165,11 +187,45 @@ class UploadAuthorizationTests {
                 .andExpect(status().isNotFound());
     }
 
+    @Test
+    void suspendedDealerCannotReadOrDeleteOwnUploadAfterSuspension() throws Exception {
+        Dealer dealer = registerDealer("dealer-suspended-upload", CustomerStatus.ACTIVE);
+        String dealerToken = login(dealer.getEmail(), "Dealer#123");
+
+        MvcResult uploadResult = mockMvc.perform(multipart("/api/v1/upload/dealer-avatars")
+                        .file(sampleImage("dealer-suspended.png"))
+                        .header("Authorization", "Bearer " + dealerToken))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String uploadedUrl = objectMapper.readTree(uploadResult.getResponse().getContentAsString())
+                .path("data")
+                .path("url")
+                .asText();
+
+        dealer.setCustomerStatus(CustomerStatus.SUSPENDED);
+        dealerRepository.save(dealer);
+
+        mockMvc.perform(get(uploadedUrl)
+                        .header("Authorization", "Bearer " + dealerToken))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(delete("/api/v1/upload")
+                        .param("url", uploadedUrl)
+                        .header("Authorization", "Bearer " + dealerToken))
+                .andExpect(status().isUnauthorized());
+    }
+
     private MockMultipartFile sampleImage(String fileName) {
         return new MockMultipartFile("file", fileName, "image/png", "test-image".getBytes(UTF_8));
     }
 
     private String registerDealerAndExtractAccessToken(String prefix) throws Exception {
+        Dealer dealer = registerDealer(prefix, CustomerStatus.ACTIVE);
+        return login(dealer.getEmail(), "Dealer#123");
+    }
+
+    private Dealer registerDealer(String prefix, CustomerStatus status) throws Exception {
         String unique = UUID.randomUUID().toString().substring(0, 8);
         long phoneSuffix = Math.floorMod(UUID.randomUUID().getMostSignificantBits(), 1_000_000_000L);
         String username = prefix + "." + unique;
@@ -203,10 +259,8 @@ class UploadAuthorizationTests {
                 .andExpect(status().isOk());
 
         Dealer dealer = dealerRepository.findByUsername(username).orElseThrow();
-        dealer.setCustomerStatus(CustomerStatus.ACTIVE);
-        dealerRepository.save(dealer);
-
-        return login(email, password);
+        dealer.setCustomerStatus(status);
+        return dealerRepository.save(dealer);
     }
 
     private String login(String username, String password) throws Exception {

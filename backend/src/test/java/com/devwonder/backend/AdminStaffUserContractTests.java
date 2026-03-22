@@ -87,6 +87,25 @@ class AdminStaffUserContractTests {
     }
 
     @Test
+    void creatingStaffUserRequiresNameAndRole() throws Exception {
+        String accessToken = login("staff.owner@example.com", "ChangedPass#456");
+
+        mockMvc.perform(post("/api/v1/admin/users")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "staff.ops@example.com",
+                                  "name": "   ",
+                                  "role": ""
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.data.name").exists())
+                .andExpect(jsonPath("$.data.role").exists());
+    }
+
+    @Test
     void creatingStaffUserUsesProvidedEmailAndDeliversCredentialsThere() throws Exception {
         String accessToken = login("staff.owner@example.com", "ChangedPass#456");
 

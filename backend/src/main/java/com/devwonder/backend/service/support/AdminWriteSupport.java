@@ -1,6 +1,7 @@
 package com.devwonder.backend.service.support;
 
 import com.devwonder.backend.dto.admin.AdminBlogUpsertRequest;
+import com.devwonder.backend.dto.admin.AdminDiscountRuleUpsertRequest;
 import com.devwonder.backend.dto.admin.AdminProductUpsertRequest;
 import com.devwonder.backend.entity.Blog;
 import com.devwonder.backend.entity.CategoryBlog;
@@ -9,11 +10,14 @@ import com.devwonder.backend.entity.enums.BlogStatus;
 import com.devwonder.backend.entity.enums.PublishStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ConflictException;
+import com.devwonder.backend.exception.FieldValidationException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.CategoryBlogRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -126,6 +130,36 @@ public class AdminWriteSupport {
         }
     }
 
+    public void validateBlogRequest(AdminBlogUpsertRequest request, boolean creating) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        validateRequiredText(request.title(), "title", creating, errors);
+        validateRequiredText(request.description(), "description", creating, errors);
+        validateOptionalText(request.image(), "image", errors);
+        validateOptionalText(request.introduction(), "introduction", errors);
+        validateOptionalText(request.categoryName(), "categoryName", errors);
+        if (creating && request.categoryId() == null && normalize(request.categoryName()) == null) {
+            errors.put("categoryId", "categoryId or categoryName is required");
+        }
+        throwIfErrors(errors);
+    }
+
+    public void validateDiscountRuleRequest(AdminDiscountRuleUpsertRequest request) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        validateRequiredText(request.label(), "label", true, errors);
+        String normalizedRange = validateRequiredText(request.range(), "range", true, errors);
+        if (normalizedRange != null && OrderPricingSupport.parseRange(normalizedRange) == null) {
+            errors.put("range", "range is invalid");
+        }
+        if (request.percent() == null) {
+            errors.put("percent", "percent is required");
+        } else if (request.percent().compareTo(BigDecimal.ZERO) <= 0) {
+            errors.put("percent", "percent must be greater than 0");
+        } else if (request.percent().compareTo(BigDecimal.valueOf(100)) > 0) {
+            errors.put("percent", "percent must not exceed 100");
+        }
+        throwIfErrors(errors);
+    }
+
     public BigDecimal requirePositivePercent(BigDecimal value) {
         if (value == null || value.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BadRequestException("percent must be greater than 0");
@@ -154,6 +188,31 @@ public class AdminWriteSupport {
             throw new BadRequestException("categoryId or categoryName is required");
         }
         return null;
+    }
+
+    private String validateRequiredText(String value, String fieldName, boolean required, Map<String, String> errors) {
+        String normalized = normalize(value);
+        if (normalized == null) {
+            if (value != null) {
+                errors.put(fieldName, fieldName + " must not be blank");
+            } else if (required) {
+                errors.put(fieldName, fieldName + " is required");
+            }
+            return null;
+        }
+        return normalized;
+    }
+
+    private void validateOptionalText(String value, String fieldName, Map<String, String> errors) {
+        if (value != null && normalize(value) == null) {
+            errors.put(fieldName, fieldName + " must not be blank");
+        }
+    }
+
+    private void throwIfErrors(Map<String, String> errors) {
+        if (!errors.isEmpty()) {
+            throw new FieldValidationException(errors);
+        }
     }
 
     private String requireNonBlank(String value, String fieldName) {

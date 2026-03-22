@@ -7,6 +7,9 @@ import com.devwonder.backend.dto.admin.AdminSettingsResponse;
 import com.devwonder.backend.dto.admin.UpdateAdminSettingsRequest;
 import com.devwonder.backend.entity.AdminSettings;
 import com.devwonder.backend.exception.BadRequestException;
+import com.devwonder.backend.exception.FieldValidationException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import com.devwonder.backend.repository.AdminSettingsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -67,6 +70,7 @@ public class AdminSettingsService {
         applySepaySettings(settings, request.sepay());
         applyEmailSettings(settings, request.emailSettings());
         applyRateLimitSettings(settings, request.rateLimitOverrides());
+        validateDependentSettings(settings);
         AdminSettings savedSettings = adminSettingsRepository.save(settings);
         EffectiveAdminSettings effectiveSettings = toEffectiveSettings(savedSettings);
         cachedEffectiveSettings = effectiveSettings;
@@ -245,6 +249,29 @@ public class AdminSettingsService {
         if (bucket.windowSeconds() != null) {
             validatePositive(bucket.windowSeconds(), fieldPrefix + ".windowSeconds");
             windowSetter.accept(settings, bucket.windowSeconds());
+        }
+    }
+
+    private void validateDependentSettings(AdminSettings settings) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        if (Boolean.TRUE.equals(settings.getSepayEnabled())) {
+            requireConfigured(settings.getSepayWebhookToken(), "sepay.webhookToken", errors);
+            requireConfigured(settings.getSepayBankName(), "sepay.bankName", errors);
+            requireConfigured(settings.getSepayAccountNumber(), "sepay.accountNumber", errors);
+            requireConfigured(settings.getSepayAccountHolder(), "sepay.accountHolder", errors);
+        }
+        if (Boolean.TRUE.equals(settings.getMailEnabled())) {
+            requireConfigured(settings.getMailFrom(), "emailSettings.from", errors);
+            requireConfigured(settings.getMailFromName(), "emailSettings.fromName", errors);
+        }
+        if (!errors.isEmpty()) {
+            throw new FieldValidationException(errors);
+        }
+    }
+
+    private void requireConfigured(String value, String field, Map<String, String> errors) {
+        if (normalize(value) == null) {
+            errors.put(field, field + " is required when enabled");
         }
     }
 

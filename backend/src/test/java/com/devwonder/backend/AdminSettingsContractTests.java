@@ -291,6 +291,53 @@ class AdminSettingsContractTests {
                 .andExpect(status().isTooManyRequests());
     }
 
+    @Test
+    void enablingSepayRequiresConfiguredWebhookAndBankFields() throws Exception {
+        String adminToken = login("settings.admin@example.com", "ChangedPass#456");
+
+        mockMvc.perform(put("/api/v1/admin/settings")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "sepay": {
+                                    "enabled": true,
+                                    "webhookToken": "   ",
+                                    "bankName": "   ",
+                                    "accountNumber": "   ",
+                                    "accountHolder": "   "
+                                  }
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Validation failed"))
+                .andExpect(jsonPath("$.data['sepay.webhookToken']").value("sepay.webhookToken is required when enabled"))
+                .andExpect(jsonPath("$.data['sepay.bankName']").value("sepay.bankName is required when enabled"))
+                .andExpect(jsonPath("$.data['sepay.accountNumber']").value("sepay.accountNumber is required when enabled"))
+                .andExpect(jsonPath("$.data['sepay.accountHolder']").value("sepay.accountHolder is required when enabled"));
+    }
+
+    @Test
+    void enablingMailRequiresFromName() throws Exception {
+        String adminToken = login("settings.admin@example.com", "ChangedPass#456");
+
+        mockMvc.perform(put("/api/v1/admin/settings")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "emailSettings": {
+                                    "enabled": true,
+                                    "from": "ops@4thitek.local",
+                                    "fromName": "   "
+                                  }
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Validation failed"))
+                .andExpect(jsonPath("$.data['emailSettings.fromName']").value("emailSettings.fromName is required when enabled"));
+    }
+
     private String login(String username, String password) throws Exception {
         MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON)

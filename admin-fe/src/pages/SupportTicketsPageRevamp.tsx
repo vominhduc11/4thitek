@@ -33,6 +33,13 @@ import {
 
 const STATUS_OPTIONS: BackendSupportTicketStatus[] = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']
 
+const STATUS_TRANSITIONS: Record<BackendSupportTicketStatus, BackendSupportTicketStatus[]> = {
+  OPEN: ['OPEN', 'IN_PROGRESS', 'CLOSED'],
+  IN_PROGRESS: ['IN_PROGRESS', 'OPEN', 'RESOLVED', 'CLOSED'],
+  RESOLVED: ['RESOLVED', 'IN_PROGRESS', 'CLOSED'],
+  CLOSED: ['CLOSED'],
+}
+
 const statusTone = {
   OPEN: 'warning',
   IN_PROGRESS: 'info',
@@ -209,6 +216,17 @@ function SupportTicketsPageRevamp() {
     setStatusDraft(selectedTicket.status ?? 'OPEN')
   }, [selectedTicket])
 
+  const allowedStatusOptions = useMemo(
+    () => STATUS_TRANSITIONS[selectedTicket?.status ?? 'OPEN'] ?? STATUS_OPTIONS,
+    [selectedTicket],
+  )
+
+  useEffect(() => {
+    if (!allowedStatusOptions.includes(statusDraft)) {
+      setStatusDraft(selectedTicket?.status ?? 'OPEN')
+    }
+  }, [allowedStatusOptions, selectedTicket, statusDraft])
+
   const stats = useMemo(
     () => ({
       open: sourceTickets.filter((ticket) => ticket.status === 'OPEN').length,
@@ -231,7 +249,7 @@ function SupportTicketsPageRevamp() {
     try {
       const updated = await updateAdminSupportTicket(accessToken, selectedTicket.id, {
         status: statusDraft,
-        adminReply: replyDraft.trim() || undefined,
+        adminReply: replyDraft,
       })
       setTickets((current) => current.map((ticket) => (ticket.id === updated.id ? updated : ticket)))
       setAllTickets((current) => current.map((ticket) => (ticket.id === updated.id ? updated : ticket)))
@@ -381,7 +399,7 @@ function SupportTicketsPageRevamp() {
                     value={statusDraft}
                     onChange={(event) => setStatusDraft(event.target.value as BackendSupportTicketStatus)}
                   >
-                    {STATUS_OPTIONS.map((status) => (
+                    {allowedStatusOptions.map((status) => (
                       <option key={status} value={status}>
                         {status}
                       </option>

@@ -208,7 +208,37 @@ class AdminSerialInvariantTests {
         );
 
         assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
-                .isEqualTo(ProductSerialStatus.WARRANTY);
+                .isEqualTo(ProductSerialStatus.AVAILABLE);
+    }
+
+    @Test
+    void adminWarrantyStatusUpdateReturnsCompletedOrderSerialToAssigned() {
+        Dealer dealer = dealerRepository.save(createDealer("admin-serial-warranty-completed@example.com"));
+        Product product = productRepository.save(createProduct("SKU-ADMIN-STATUS-5"));
+        Order order = orderRepository.save(createOrder(dealer, product, "ADMIN-ORDER-3"));
+        order.setStatus(OrderStatus.COMPLETED);
+        order = orderRepository.save(order);
+        ProductSerial serial = productSerialRepository.save(createSerial(
+                dealer,
+                order,
+                product,
+                "ADMIN-SERIAL-6",
+                ProductSerialStatus.WARRANTY
+        ));
+        WarrantyRegistration warranty = warrantyRegistrationRepository.save(createWarranty(
+                serial,
+                dealer,
+                order,
+                WarrantyStatus.ACTIVE
+        ));
+
+        adminOperationsService.updateWarrantyStatus(
+                warranty.getId(),
+                new UpdateAdminWarrantyStatusRequest(WarrantyStatus.VOID)
+        );
+
+        assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
+                .isEqualTo(ProductSerialStatus.ASSIGNED);
     }
 
     private Dealer createDealer(String email) {

@@ -35,6 +35,11 @@ public class RestExceptionHandler {
         return ResponseEntity.badRequest().body(ApiResponse.failure(ex.getMessage()));
     }
 
+    @ExceptionHandler(FieldValidationException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleFieldValidation(FieldValidationException ex) {
+        return ResponseEntity.badRequest().body(new ApiResponse<>(false, ex.getErrors(), ex.getMessage()));
+    }
+
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiResponse<Void>> handleBadCredentials(BadCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.failure("Invalid credentials"));

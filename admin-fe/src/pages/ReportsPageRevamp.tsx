@@ -17,17 +17,7 @@ type ReportDefinition = {
   icon: typeof ShoppingCart
 }
 
-const decodeBase64 = (value: string) => {
-  const raw = window.atob(value)
-  const bytes = new Uint8Array(raw.length)
-  for (let index = 0; index < raw.length; index += 1) {
-    bytes[index] = raw.charCodeAt(index)
-  }
-  return bytes
-}
-
-const downloadFile = (fileName: string, contentType: string, content: string) => {
-  const blob = new Blob([decodeBase64(content)], { type: contentType })
+const downloadFile = (fileName: string, blob: Blob) => {
   const url = window.URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url
@@ -139,7 +129,7 @@ function ReportsPageRevamp() {
 
     try {
       const response = await exportAdminReport(accessToken, type, format)
-      downloadFile(response.fileName, response.contentType, response.content)
+      downloadFile(response.fileName, response.blob)
     } catch (error) {
       notify(error instanceof Error ? error.message : copy.title, {
         title: copy.title,
