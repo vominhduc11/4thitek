@@ -58,7 +58,7 @@ public class BootstrapSuperAdminInitializer implements ApplicationRunner {
             return;
         }
         AccountValidationSupport.assertStrongPassword(password, "app.bootstrap-super-admin.password");
-        if (accountRepository.existsByUsername(email) || accountRepository.findByEmailIgnoreCase(email).isPresent()) {
+        if (accountRepository.existsByUsernameIgnoreCase(email) || accountRepository.findByEmailIgnoreCase(email).isPresent()) {
             throw new IllegalStateException("Cannot bootstrap SUPER_ADMIN because username/email already exists: " + email);
         }
 
@@ -69,7 +69,7 @@ public class BootstrapSuperAdminInitializer implements ApplicationRunner {
         admin.setDisplayName(displayName == null ? "System Owner" : displayName);
         admin.setRoleTitle("Super Admin");
         admin.setUserStatus(StaffUserStatus.ACTIVE);
-        admin.setRequireLoginEmailConfirmation(Boolean.TRUE);
+        admin.setRequirePasswordChange(Boolean.TRUE);
         admin.setRoles(new HashSet<>(List.of(
                 resolveRole("ADMIN", "Admin role"),
                 resolveRole("SUPER_ADMIN", "Super admin role")

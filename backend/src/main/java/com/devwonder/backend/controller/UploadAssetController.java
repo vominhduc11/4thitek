@@ -1,5 +1,6 @@
 package com.devwonder.backend.controller;
 
+import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.service.FileStorageService;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,9 @@ public class UploadAssetController {
     @GetMapping("/uploads/{*path}")
     public ResponseEntity<InputStreamResource> getUploadedAsset(@PathVariable("path") String path) {
         String normalizedPath = path != null && path.startsWith("/") ? path.substring(1) : path;
+        if (!isPublicAssetPath(normalizedPath)) {
+            throw new ResourceNotFoundException("Uploaded file not found");
+        }
         FileStorageService.StoredFile storedFile = fileStorageService.open(normalizedPath);
 
         MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
@@ -42,5 +46,13 @@ public class UploadAssetController {
         }
 
         return response.body(new InputStreamResource(storedFile.inputStream()));
+    }
+
+    private boolean isPublicAssetPath(String relativePath) {
+        if (!StringUtils.hasText(relativePath)) {
+            return false;
+        }
+        String normalized = relativePath.replace('\\', '/');
+        return normalized.startsWith("products/") || normalized.startsWith("blogs/");
     }
 }

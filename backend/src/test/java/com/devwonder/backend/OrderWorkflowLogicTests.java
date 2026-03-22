@@ -169,6 +169,53 @@ class OrderWorkflowLogicTests {
     }
 
     @Test
+    void adminConfirmationKeepsReservedSerialsReserved() {
+        Dealer dealer = dealerRepository.save(createDealer("admin-confirm-serial@example.com"));
+        Product product = productRepository.save(createProduct("SKU-CONFIRM-SERIAL-ADMIN", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, OrderStatus.PENDING, "WF-CONFIRM-SERIAL-ADMIN"));
+        ProductSerial serial = productSerialRepository.save(createSerial(
+                null,
+                order,
+                product,
+                "SERIAL-CONFIRM-ADMIN-1",
+                ProductSerialStatus.RESERVED
+        ));
+
+        adminManagementService.updateOrderStatus(
+                order.getId(),
+                new UpdateDealerOrderStatusRequest(OrderStatus.CONFIRMED)
+        );
+
+        ProductSerial savedSerial = productSerialRepository.findById(serial.getId()).orElseThrow();
+        assertThat(savedSerial.getStatus()).isEqualTo(ProductSerialStatus.RESERVED);
+        assertThat(savedSerial.getDealer()).isNull();
+    }
+
+    @Test
+    void adminCompletionAssignsReservedSerialsToDealerInventory() {
+        Dealer dealer = dealerRepository.save(createDealer("admin-complete-serial@example.com"));
+        Product product = productRepository.save(createProduct("SKU-COMPLETE-SERIAL-ADMIN", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, OrderStatus.SHIPPING, "WF-COMPLETE-SERIAL-ADMIN"));
+        ProductSerial serial = productSerialRepository.save(createSerial(
+                null,
+                order,
+                product,
+                "SERIAL-COMPLETE-ADMIN-1",
+                ProductSerialStatus.RESERVED
+        ));
+
+        adminManagementService.updateOrderStatus(
+                order.getId(),
+                new UpdateDealerOrderStatusRequest(OrderStatus.COMPLETED)
+        );
+
+        ProductSerial savedSerial = productSerialRepository.findById(serial.getId()).orElseThrow();
+        assertThat(savedSerial.getStatus()).isEqualTo(ProductSerialStatus.ASSIGNED);
+        assertThat(savedSerial.getDealer()).isNotNull();
+        assertThat(savedSerial.getDealer().getId()).isEqualTo(dealer.getId());
+    }
+
+    @Test
     void dealerCannotCreateDebtOrderBeyondCreditLimit() {
         Dealer dealer = createDealer("credit-limit@example.com");
         dealer.setCreditLimit(BigDecimal.valueOf(100_000));
@@ -481,6 +528,43 @@ class OrderWorkflowLogicTests {
 
         assertThat(updatedOrder.paymentStatus()).isEqualTo(PaymentStatus.PAID);
         assertThat(updatedOrder.paidAmount()).isEqualByComparingTo(createdOrder.totalAmount());
+    }
+
+    @Test
+    void dealerCanRecordBankTransferPaymentWhenSepayIsDisabled() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-bank-payment@example.com"));
+        Product product = productRepository.save(createProduct("SKU-BANK-DEALER-1", BigDecimal.valueOf(100_000)));
+        var createdOrder = dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer receiver",
+                        "123 Dealer Payment Street",
+                        "0900000000",
+                        0,
+                        "Dealer should confirm payment manually when SePay is disabled",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
+                )
+        );
+
+        var recordedPayment = dealerPortalService.recordPayment(
+                dealer.getUsername(),
+                createdOrder.id(),
+                new RecordPaymentRequest(
+                        createdOrder.totalAmount(),
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer manual confirmation",
+                        "DEALER-TX-001",
+                        "Recorded because SePay is disabled",
+                        null,
+                        Instant.parse("2026-03-10T02:00:00Z")
+                )
+        );
+
+        Order updatedOrder = orderRepository.findById(createdOrder.id()).orElseThrow();
+        assertThat(recordedPayment.amount()).isEqualByComparingTo(createdOrder.totalAmount());
+        assertThat(updatedOrder.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+        assertThat(updatedOrder.getPaidAmount()).isEqualByComparingTo(createdOrder.totalAmount());
     }
 
     @Test

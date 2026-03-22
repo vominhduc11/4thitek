@@ -1,19 +1,14 @@
 package com.devwonder.backend.dto.publicapi;
 
-import java.time.Instant;
 import java.time.LocalDate;
 
 public record WarrantyLookupResponse(
-        Long id,
-        Long idProductSerial,
-        String warrantyCode,
         String status,
+        String productName,
+        String serialNumber,
         LocalDate purchaseDate,
-        Instant warrantyStart,
-        Instant warrantyEnd,
+        LocalDate warrantyEndDate,
         long remainingDays,
-        Instant createdAt,
-        String customerName,
-        WarrantyLookupProductSerialResponse productSerial
+        String warrantyCode
 ) implements java.io.Serializable {
 }

@@ -23,9 +23,9 @@ class DealerApiConfig {
 
   static bool get isConfigured => baseUrl.isNotEmpty;
 
-  static Uri get authLoginUri => Uri.parse('$baseUrl/api/auth/login');
+  static Uri get authLoginUri => Uri.parse('$baseUrl/api/v1/auth/login');
 
-  static Uri get authRefreshUri => Uri.parse('$baseUrl/api/auth/refresh');
+  static Uri get authRefreshUri => Uri.parse('$baseUrl/api/v1/auth/refresh');
 
   static String get webSocketEndpointUrl {
     final normalizedWebSocketBaseUrl = webSocketBaseUrl.trim();
@@ -47,7 +47,7 @@ class DealerApiConfig {
   }
 
   static Uri uploadUri(String category) =>
-      Uri.parse('$baseUrl/api/upload/$category');
+      Uri.parse('$baseUrl/api/v1/upload/$category');
 
   static String resolveUrl(String path) {
     return _resolveUrlWithBase(baseUrl, path);

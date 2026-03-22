@@ -89,6 +89,7 @@ type NotificationFormState = {
   title: string
   content: string
   link: string
+  deepLink: string
   accountIdsText: string
 }
 
@@ -98,6 +99,7 @@ const createInitialForm = (): NotificationFormState => ({
   title: '',
   content: '',
   link: '',
+  deepLink: '',
   accountIdsText: '',
 })
 
@@ -111,6 +113,7 @@ const copyByLanguage = {
     type: 'Loại',
     content: 'Nội dung',
     link: 'Liên kết',
+    deepLink: 'Deep link',
     accountIds: 'Danh sách ID tài khoản',
     send: 'Gửi thông báo',
     currentPage: 'Trang hiện tại',
@@ -144,6 +147,7 @@ const copyByLanguage = {
     type: 'Type',
     content: 'Content',
     link: 'Link',
+    deepLink: 'Deep link',
     accountIds: 'Account IDs',
     send: 'Send notification',
     currentPage: 'Current page',
@@ -283,7 +287,7 @@ function NotificationsPageRevamp() {
   const filteredItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
     return sourceItems.filter((item) => {
-      const haystack = [item.title, item.content, item.link, item.accountName, item.accountType]
+      const haystack = [item.title, item.body, item.link, item.deepLink, item.accountName, item.accountType]
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
@@ -328,9 +332,10 @@ function NotificationsPageRevamp() {
       await createAdminNotificationDispatch(accessToken, {
         audience: form.audience,
         title: form.title.trim(),
-        content: form.content.trim(),
+        body: form.content.trim(),
         type: form.type,
         link: form.link.trim() || undefined,
+        deepLink: form.deepLink.trim() || undefined,
         accountIds,
       })
       setForm(createInitialForm())
@@ -473,6 +478,15 @@ function NotificationsPageRevamp() {
               onChange={(event) => updateFormField('link', event.target.value)}
             />
           </label>
+          <label className="space-y-2">
+            <span className={labelClass}>{copy.deepLink}</span>
+            <input
+              aria-label={copy.deepLink}
+              className={inputClass}
+              value={form.deepLink}
+              onChange={(event) => updateFormField('deepLink', event.target.value)}
+            />
+          </label>
           {form.audience === 'ACCOUNTS' ? (
             <label className="space-y-2">
               <span className={labelClass}>{copy.accountIds}</span>
@@ -516,10 +530,15 @@ function NotificationsPageRevamp() {
                     </div>
                     <StatusBadge tone={typeTone[item.type ?? 'SYSTEM']}>{typeLabels[item.type ?? 'SYSTEM']}</StatusBadge>
                   </div>
-                  <p className="mt-3 text-sm text-[var(--ink)]">{item.content}</p>
+                  <p className="mt-3 text-sm text-[var(--ink)]">{item.body}</p>
                   {item.link ? (
                     <p className={`mt-2 break-all text-xs ${tableMetaClass}`}>
                       {copy.link}: {item.link}
+                    </p>
+                  ) : null}
+                  {item.deepLink ? (
+                    <p className={`mt-1 break-all text-xs ${tableMetaClass}`}>
+                      {copy.deepLink}: {item.deepLink}
                     </p>
                   ) : null}
                   <div className="mt-4 flex items-center justify-between gap-3">
@@ -548,9 +567,12 @@ function NotificationsPageRevamp() {
                     <tr key={item.id} className={tableRowClass}>
                       <td className="rounded-l-2xl px-3 py-3">
                         <p className="font-semibold text-[var(--ink)]">{item.title}</p>
-                        <p className={`${tableMetaClass} line-clamp-2`}>{item.content}</p>
+                        <p className={`${tableMetaClass} line-clamp-2`}>{item.body}</p>
                         {item.link ? (
                           <p className={`${tableMetaClass} mt-1 break-all`}>{copy.link}: {item.link}</p>
+                        ) : null}
+                        {item.deepLink ? (
+                          <p className={`${tableMetaClass} mt-1 break-all`}>{copy.deepLink}: {item.deepLink}</p>
                         ) : null}
                       </td>
                       <td className="px-3 py-3">

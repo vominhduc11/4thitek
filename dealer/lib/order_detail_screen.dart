@@ -48,14 +48,23 @@ class OrderDetailScreen extends StatelessWidget {
               ),
               onPressed: () async {
                 Navigator.of(dialogContext).pop();
-                final success = await OrderScope.of(
-                  context,
-                ).updateOrderStatus(order.id, OrderStatus.cancelled);
+                final orderController = OrderScope.of(context);
+                final success = await orderController.updateOrderStatus(
+                  order.id,
+                  OrderStatus.cancelled,
+                );
                 if (!context.mounted || success) {
                   return;
                 }
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(texts.updateOrderStatusFailedMessage)),
+                  SnackBar(
+                    content: Text(
+                      orderControllerErrorMessage(
+                        orderController.lastActionMessage,
+                        isEnglish: texts.isEnglish,
+                      ),
+                    ),
+                  ),
                 );
               },
               child: Text(texts.cancelOrderAction),
@@ -84,14 +93,23 @@ class OrderDetailScreen extends StatelessWidget {
             FilledButton(
               onPressed: () async {
                 Navigator.of(dialogContext).pop();
-                final success = await OrderScope.of(
-                  context,
-                ).updateOrderStatus(order.id, OrderStatus.completed);
+                final orderController = OrderScope.of(context);
+                final success = await orderController.updateOrderStatus(
+                  order.id,
+                  OrderStatus.completed,
+                );
                 if (!context.mounted || success) {
                   return;
                 }
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(texts.updateOrderStatusFailedMessage)),
+                  SnackBar(
+                    content: Text(
+                      orderControllerErrorMessage(
+                        orderController.lastActionMessage,
+                        isEnglish: texts.isEnglish,
+                      ),
+                    ),
+                  ),
                 );
               },
               child: Text(texts.confirmAction),
@@ -338,8 +356,8 @@ class OrderDetailScreen extends StatelessWidget {
                             errorText = null;
                             isSubmitting = true;
                           });
-                          final success = await OrderScope.of(context)
-                              .recordPayment(
+                          final orderController = OrderScope.of(context);
+                          final success = await orderController.recordPayment(
                                 orderId: order.id,
                                 amount: amount,
                                 channel: selectedChannel,
@@ -351,7 +369,10 @@ class OrderDetailScreen extends StatelessWidget {
                           setDialogState(() => isSubmitting = false);
                           if (!success) {
                             setDialogState(() {
-                              errorText = texts.cannotRecordPaymentMessage;
+                              errorText = orderControllerErrorMessage(
+                                orderController.lastActionMessage,
+                                isEnglish: texts.isEnglish,
+                              );
                             });
                             return;
                           }
@@ -835,8 +856,8 @@ class _OrderDetailTexts {
   String copiedLabelMessage(String label) =>
       isEnglish ? 'Copied $label' : 'Đã sao chép $label';
   String cannotLoadBankTransferMessage(Object error) => isEnglish
-      ? 'Unable to load bank transfer details: $error'
-      : 'Không thể tải thông tin chuyển khoản: $error';
+      ? bankTransferLoadErrorMessage(error, isEnglish: true)
+      : bankTransferLoadErrorMessage(error, isEnglish: false);
   String get recordPaymentTitle =>
       isEnglish ? 'Record payment' : 'Ghi nhận thanh toán';
   String outstandingOrderSummary(String orderId, String amount) => isEnglish

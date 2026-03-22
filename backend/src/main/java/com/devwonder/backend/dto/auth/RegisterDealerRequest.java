@@ -11,8 +11,7 @@ public record RegisterDealerRequest(
         @NotBlank(message = "password is required")
         @Size(min = 8, max = 255, message = "password must be 8-255 characters")
         String password,
-        @NotBlank(message = "businessName is required")
-        @Size(min = 2, max = 150, message = "businessName must be 2-150 characters")
+        @Size(max = 150, message = "businessName must be <= 150 characters")
         String businessName,
         @Size(max = 150, message = "contactName must be <= 150 characters")
         String contactName,

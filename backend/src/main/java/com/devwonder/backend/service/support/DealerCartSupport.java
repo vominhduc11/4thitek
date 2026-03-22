@@ -36,6 +36,13 @@ public class DealerCartSupport {
 
         Product product = productRepository.findById(request.productId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        int availableStock = product.getStock() == null ? 0 : Math.max(0, product.getStock());
+        if (availableStock <= 0) {
+            throw new BadRequestException("Product is out of stock");
+        }
+        if (request.quantity() > availableStock) {
+            throw new BadRequestException("quantity must not exceed available stock");
+        }
         DealerCartItem existing = dealerCartItemRepository.findByDealerIdAndProductOfCartProductId(dealer.getId(), product.getId())
                 .orElse(null);
 

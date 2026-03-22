@@ -51,7 +51,7 @@ void main() {
     () async {
       final firstResponseGate = Completer<void>();
       final secondResponseGate = Completer<void>();
-      client.enqueue('PUT', '/api/dealer/cart/items', (request) async {
+      client.enqueue('PUT', '/api/v1/dealer/cart/items', (request) async {
         await firstResponseGate.future;
         return _jsonResponse(
           request,
@@ -59,7 +59,7 @@ void main() {
           body: <String, dynamic>{'error': 'sync failed'},
         );
       });
-      client.enqueue('PUT', '/api/dealer/cart/items', (request) async {
+      client.enqueue('PUT', '/api/v1/dealer/cart/items', (request) async {
         await secondResponseGate.future;
         return _jsonResponse(
           request,
@@ -87,7 +87,7 @@ void main() {
   test('latest failed sync rolls back to the last synced cart state', () async {
     client.enqueue(
       'PUT',
-      '/api/dealer/cart/items',
+      '/api/v1/dealer/cart/items',
       (request) => Future<http.StreamedResponse>.value(
         _jsonResponse(
           request,
@@ -99,7 +99,7 @@ void main() {
     );
     client.enqueue(
       'PUT',
-      '/api/dealer/cart/items',
+      '/api/v1/dealer/cart/items',
       (request) => Future<http.StreamedResponse>.value(
         _jsonResponse(
           request,
@@ -123,7 +123,7 @@ void main() {
     'sync flags stay active while a cart mutation is still in flight',
     () async {
       final responseGate = Completer<void>();
-      client.enqueue('PUT', '/api/dealer/cart/items', (request) async {
+      client.enqueue('PUT', '/api/v1/dealer/cart/items', (request) async {
         await responseGate.future;
         return _jsonResponse(
           request,
@@ -131,13 +131,13 @@ void main() {
             'data': <String, dynamic>{'productId': 1, 'quantity': 2},
           },
         );
-    });
+      });
 
-    final updateFuture = controller.setQuantity(product, 2);
-    await Future<void>.delayed(Duration.zero);
+      final updateFuture = controller.setQuantity(product, 2);
+      await Future<void>.delayed(Duration.zero);
 
-    expect(controller.isSyncing, isTrue);
-    expect(controller.isSyncingProduct(product.id), isTrue);
+      expect(controller.isSyncing, isTrue);
+      expect(controller.isSyncingProduct(product.id), isTrue);
 
       responseGate.complete();
 
@@ -153,7 +153,7 @@ void main() {
       final cartResponseGate = Completer<void>();
       client.enqueue(
         'GET',
-        '/api/dealer/discount-rules',
+        '/api/v1/dealer/discount-rules',
         (request) => Future<http.StreamedResponse>.value(
           _jsonResponse(
             request,
@@ -161,7 +161,7 @@ void main() {
           ),
         ),
       );
-      client.enqueue('GET', '/api/dealer/cart', (request) async {
+      client.enqueue('GET', '/api/v1/dealer/cart', (request) async {
         await cartResponseGate.future;
         return _jsonResponse(
           request,
@@ -174,7 +174,7 @@ void main() {
       });
       client.enqueue(
         'PUT',
-        '/api/dealer/cart/items',
+        '/api/v1/dealer/cart/items',
         (request) => Future<http.StreamedResponse>.value(
           _jsonResponse(
             request,

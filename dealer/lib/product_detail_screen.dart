@@ -7,6 +7,7 @@ import 'package:chewie/chewie.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
+import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'checkout_screen.dart';
@@ -22,6 +23,11 @@ import 'widgets/fade_slide_in.dart';
 import 'widgets/lazy_network_image.dart';
 import 'widgets/product_image.dart';
 import 'widgets/skeleton_box.dart';
+
+_ProductDetailTexts _productDetailTexts(BuildContext context) =>
+    _ProductDetailTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
 
 class ProductDetailScreen extends StatefulWidget {
   const ProductDetailScreen({super.key, required this.product});
@@ -81,6 +87,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _handleAddToCart(CartController cart) async {
+    final texts = _productDetailTexts(context);
     if (_isAddingToCart || cart.isSyncingProduct(_currentProduct.id)) {
       return;
     }
@@ -90,8 +97,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return;
     }
     final addQuantity = await _showAddQuantityDialog(
-      title: 'Th\u00eam v\u00e0o gi\u1ecf',
-      confirmLabel: 'Th\u00eam',
+      title: texts.addToCartTitle,
+      confirmLabel: texts.addToCartAction,
       productName: _currentProduct.name,
       maxQuantity: remainingStock,
       quantityInCart: cart.quantityFor(_currentProduct.id),
@@ -124,12 +131,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             behavior: SnackBarBehavior.floating,
             content: Text(
               didAdd
-                  ? '\u0110\u00e3 th\u00eam ${_currentProduct.name} (x$addQuantity) v\u00e0o gi\u1ecf h\u00e0ng'
-                  : 'S\u1ea3n ph\u1ea9m \u0111\u00e3 \u0111\u1ea1t gi\u1edbi h\u1ea1n t\u1ed3n kho',
+                  ? texts.addedToCartMessage(_currentProduct.name, addQuantity)
+                  : texts.stockLimitReachedMessage,
             ),
             action: didAdd
                 ? SnackBarAction(
-                    label: '\u0051uay l\u1ea1i gi\u1ecf h\u00e0ng',
+                    label: texts.viewCartAction,
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -149,6 +156,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _handleBuyNow(CartController cart) async {
+    final texts = _productDetailTexts(context);
     if (_isBuyingNow || cart.isSyncingProduct(_currentProduct.id)) {
       return;
     }
@@ -158,8 +166,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return;
     }
     final addQuantity = await _showAddQuantityDialog(
-      title: 'Mua ngay',
-      confirmLabel: 'Ti\u1ebfp t\u1ee5c',
+      title: texts.buyNowTitle,
+      confirmLabel: texts.continueAction,
       productName: _currentProduct.name,
       maxQuantity: remainingStock,
       quantityInCart: cart.quantityFor(_currentProduct.id),
@@ -202,6 +210,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     required int maxQuantity,
     required int quantityInCart,
   }) async {
+    final texts = _productDetailTexts(context);
     final minQuantity = 1;
     var selectedQuantity = minQuantity <= maxQuantity
         ? minQuantity
@@ -226,12 +235,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'T\u1ed1i thi\u1ec3u: $minQuantity  \u2022  T\u1ed1i \u0111a: $maxQuantity',
+                    texts.quantityRangeLabel(minQuantity, maxQuantity),
                   ),
                   if (quantityInCart > 0) ...[
                     const SizedBox(height: 6),
                     Text(
-                      'B\u1ea1n \u0111\u00e3 c\u00f3 $quantityInCart trong gi\u1ecf.',
+                      texts.quantityInCartMessage(quantityInCart),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -257,14 +266,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                   if (selectedQuantity == maxQuantity)
                     Text(
-                      '\u0110\u00e3 \u0111\u1ea1t t\u1ed1i \u0111a theo t\u1ed3n kho.',
+                      texts.maximumByStockMessage,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   if (selectedQuantity == minQuantity && minQuantity > 1)
                     Text(
-                      'S\u1ed1 l\u01b0\u1ee3ng t\u1ed1i thi\u1ec3u: $minQuantity',
+                      texts.minimumQuantityMessage(minQuantity),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -274,7 +283,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('H\u1ee7y'),
+                  child: Text(texts.cancelAction),
                 ),
                 ElevatedButton(
                   onPressed: () =>
@@ -291,13 +300,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   void _showMaxStockMessage() {
+    final texts = _productDetailTexts(context);
     final messenger = ScaffoldMessenger.of(context);
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        const SnackBar(
+        SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('San pham da het hang hoac da dat gioi han trong gio'),
+          content: Text(texts.maxStockMessage),
         ),
       );
   }
@@ -307,6 +317,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     required int suggestedAddQuantity,
     required bool isSyncingProduct,
   }) {
+    final texts = _productDetailTexts(context);
+    if (isSyncingProduct) {
+      return texts.syncingCartMessage;
+    }
+    if (remainingStock <= 0) {
+      return texts.outOfStockMessage;
+    }
+    if (suggestedAddQuantity <= 0) {
+      return texts.cartLimitReachedMessage;
+    }
     if (isSyncingProduct) {
       return 'Đang đồng bộ giỏ hàng cho sản phẩm này';
     }
@@ -347,6 +367,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _productDetailTexts(context);
     final colors = Theme.of(context).colorScheme;
     final cart = CartScope.of(context);
     final isSyncingProduct = cart.isSyncingProduct(_currentProduct.id);
@@ -532,7 +553,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text(
-                                        'Gi\u00e1 \u0111\u1ea1i l\u00fd',
+                                        texts.dealerPriceLabel,
                                         style: Theme.of(context)
                                             .textTheme
                                             .labelSmall
@@ -542,7 +563,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        'Ch\u01b0a g\u1ed3m VAT',
+                                        texts.vatExcludedLabel,
                                         style: Theme.of(context)
                                             .textTheme
                                             .labelSmall
@@ -569,7 +590,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'SKU: ${_currentProduct.sku}',
+                                texts.skuLabel(_currentProduct.sku),
                                 style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(color: colors.onSurfaceVariant),
                               ),
@@ -627,7 +648,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Th\u00f4ng s\u1ed1 k\u1ef9 thu\u1eadt',
+                                  texts.technicalSpecsTitle,
                                   style: Theme.of(context).textTheme.titleSmall
                                       ?.copyWith(fontWeight: FontWeight.w700),
                                 ),
@@ -820,26 +841,26 @@ class _QuickInfoSection extends StatelessWidget {
   final int warrantyMonths;
   final int nextAddQuantity;
 
-  _QuickInfoItemData _buildStatusItem() {
+  _QuickInfoItemData _buildStatusItem(_ProductDetailTexts texts) {
     if (remainingStock <= 0) {
-      return const _QuickInfoItemData(
-        label: 'Tr\u1ea1ng th\u00e1i',
-        value: 'H\u1ebft h\u00e0ng',
+      return _QuickInfoItemData(
+        label: texts.statusLabel,
+        value: texts.outOfStockShortLabel,
         icon: Icons.cancel_outlined,
         tone: _QuickInfoTone.danger,
       );
     }
     if (remainingStock <= 10) {
-      return const _QuickInfoItemData(
-        label: 'Tr\u1ea1ng th\u00e1i',
-        value: 'S\u1eafp h\u1ebft',
+      return _QuickInfoItemData(
+        label: texts.statusLabel,
+        value: texts.lowStockShortLabel,
         icon: Icons.schedule_outlined,
         tone: _QuickInfoTone.warning,
       );
     }
-    return const _QuickInfoItemData(
-      label: 'Tr\u1ea1ng th\u00e1i',
-      value: 'C\u00f2n h\u00e0ng',
+    return _QuickInfoItemData(
+      label: texts.statusLabel,
+      value: texts.inStockShortLabel,
       icon: Icons.check_circle_outline,
       tone: _QuickInfoTone.success,
     );
@@ -847,12 +868,13 @@ class _QuickInfoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _productDetailTexts(context);
     final colors = Theme.of(context).colorScheme;
     final canAddNow = nextAddQuantity > 0 && remainingStock > 0;
     final items = <_QuickInfoItemData>[
-      _buildStatusItem(),
+      _buildStatusItem(texts),
       _QuickInfoItemData(
-        label: 'T\u1ed3n kho',
+        label: texts.stockLabel,
         value: quantityInCart > 0 ? '$remainingStock/$stock' : '$stock',
         icon: Icons.inventory_2_outlined,
         tone: remainingStock <= 0
@@ -862,16 +884,16 @@ class _QuickInfoSection extends StatelessWidget {
             : _QuickInfoTone.info,
       ),
       _QuickInfoItemData(
-        label: 'Th\u00eam \u0111\u01b0\u1ee3c ngay',
-        value: canAddNow ? '$nextAddQuantity s\u1ea3n ph\u1ea9m' : '--',
+        label: texts.readyToAddLabel,
+        value: canAddNow ? texts.readyToAddValue(nextAddQuantity) : '--',
         icon: canAddNow
             ? Icons.add_shopping_cart_outlined
             : Icons.remove_shopping_cart_outlined,
         tone: canAddNow ? _QuickInfoTone.success : _QuickInfoTone.neutral,
       ),
       _QuickInfoItemData(
-        label: 'B\u1ea3o h\u00e0nh',
-        value: '$warrantyMonths th\u00e1ng',
+        label: texts.warrantyLabel,
+        value: texts.warrantyMonthsValue(warrantyMonths),
         icon: Icons.verified_outlined,
         tone: _QuickInfoTone.success,
       ),
@@ -888,14 +910,14 @@ class _QuickInfoSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Th\u00f4ng tin nhanh',
+            texts.quickInfoTitle,
             style: Theme.of(
               context,
             ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
-            'Ch\u1ec9 s\u1ed1 quan tr\u1ecdng \u0111\u1ec3 ra quy\u1ebft \u0111\u1ecbnh \u0111\u1eb7t h\u00e0ng nhanh.',
+            texts.quickInfoDescription,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: colors.onSurfaceVariant,
               height: 1.35,
@@ -923,7 +945,7 @@ class _QuickInfoSection extends StatelessWidget {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      '\u0110\u00e3 c\u00f3 $quantityInCart s\u1ea3n ph\u1ea9m trong gi\u1ecf',
+                      texts.quantityInCartBanner(quantityInCart),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: colors.onPrimaryContainer,
                         fontWeight: FontWeight.w600,
@@ -1040,6 +1062,7 @@ class _DescriptionSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _productDetailTexts(context);
     final colors = Theme.of(context).colorScheme;
     return Container(
       padding: EdgeInsets.all(contentPadding),
@@ -1052,7 +1075,7 @@ class _DescriptionSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'M\u00f4 t\u1ea3 chi ti\u1ebft',
+            texts.detailedDescriptionTitle,
             style: Theme.of(
               context,
             ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
@@ -1060,7 +1083,7 @@ class _DescriptionSection extends StatelessWidget {
           const SizedBox(height: 10),
           if (items.isEmpty)
             Text(
-              'Ch\u01b0a c\u00f3 m\u00f4 t\u1ea3 chi ti\u1ebft.',
+              texts.noDetailedDescriptionMessage,
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
@@ -1304,6 +1327,7 @@ class _VideoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _productDetailTexts(context);
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
@@ -1318,13 +1342,13 @@ class _VideoSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Video s\u1ea3n ph\u1ea9m',
+            texts.productVideosTitle,
             style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 10),
           if (videos.isEmpty)
             Text(
-              'Ch\u01b0a c\u00f3 video cho s\u1ea3n ph\u1ea9m n\u00e0y.',
+              texts.noProductVideosMessage,
               style: textTheme.bodySmall?.copyWith(
                 color: colors.onSurfaceVariant,
               ),
@@ -1354,7 +1378,7 @@ class _VideoSection extends StatelessWidget {
                         Expanded(
                           child: Text(
                             video.title.trim().isEmpty
-                                ? 'Video'
+                                ? texts.defaultVideoTitle
                                 : video.title.trim(),
                             style: textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
@@ -1445,6 +1469,7 @@ class _InlineVideoPlayerState extends State<_InlineVideoPlayer> {
   }
 
   Future<void> _initPlayer() async {
+    final texts = _productDetailTexts(context);
     if (mounted) {
       setState(() {
         _isInitializing = true;
@@ -1505,8 +1530,8 @@ class _InlineVideoPlayerState extends State<_InlineVideoPlayer> {
         _isInitializing = false;
         _hasError = true;
         _errorMessage = errors.isEmpty
-            ? 'Kh\u00f4ng t\u00ecm th\u1ea5y video h\u1ee3p l\u1ec7 cho s\u1ea3n ph\u1ea9m n\u00e0y.'
-            : 'Kh\u00f4ng th\u1ec3 ph\u00e1t video l\u00fac n\u00e0y. Vui l\u00f2ng th\u1eed l\u1ea1i sau.';
+            ? texts.invalidProductVideoMessage
+            : texts.cannotPlayVideoNowMessage;
       });
     } else {
       _isInitializing = false;
@@ -1599,25 +1624,27 @@ class _VideoExternalLink extends StatelessWidget {
   final String url;
 
   Future<void> _open(BuildContext context) async {
+    final texts = _productDetailTexts(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
     final resolved = resolveFileReference(url).trim();
     final uri = Uri.tryParse(resolved);
     if (uri == null) {
       messenger?.showSnackBar(
-        const SnackBar(content: Text('Link video khong hop le.')),
+        SnackBar(content: Text(texts.invalidVideoLinkMessage)),
       );
       return;
     }
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched) {
       messenger?.showSnackBar(
-        const SnackBar(content: Text('Khong the mo video luc nay.')),
+        SnackBar(content: Text(texts.cannotOpenVideoNowMessage)),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final texts = _productDetailTexts(context);
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final isYouTube = _isYouTubeVideoUrl(url);
@@ -1641,8 +1668,8 @@ class _VideoExternalLink extends StatelessWidget {
               Expanded(
                 child: Text(
                   isYouTube
-                      ? 'Video YouTube se mo ben ngoai ung dung.'
-                      : 'Video nay se mo ben ngoai ung dung.',
+                      ? texts.youtubeExternalOpenMessage
+                      : texts.videoExternalOpenMessage,
                   style: textTheme.bodySmall?.copyWith(
                     color: colors.onSurfaceVariant,
                   ),
@@ -1654,7 +1681,9 @@ class _VideoExternalLink extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: () => _open(context),
             icon: const Icon(Icons.open_in_new, size: 16),
-            label: Text(isYouTube ? 'Mo tren YouTube' : 'Mo video'),
+            label: Text(
+              isYouTube ? texts.openOnYoutubeAction : texts.openVideoAction,
+            ),
           ),
         ],
       ),
@@ -1670,6 +1699,7 @@ class _VideoFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _productDetailTexts(context);
     final colors = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
@@ -1687,7 +1717,7 @@ class _VideoFallback extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Kh\u00f4ng th\u1ec3 t\u1ea3i video tr\u00ean thi\u1ebft b\u1ecb n\u00e0y.',
+                  texts.cannotLoadVideoOnDeviceMessage,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colors.onSurfaceVariant,
                   ),
@@ -1708,7 +1738,7 @@ class _VideoFallback extends StatelessWidget {
                   OutlinedButton.icon(
                     onPressed: onRetry,
                     icon: const Icon(Icons.refresh, size: 16),
-                    label: const Text('Th\u1eed t\u1ea3i l\u1ea1i'),
+                    label: Text(texts.retryLoadAction),
                   ),
                 ],
               ],
@@ -1727,6 +1757,7 @@ class _VideoDeferredPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _productDetailTexts(context);
     final colors = Theme.of(context).colorScheme;
     return AspectRatio(
       aspectRatio: 16 / 9,
@@ -1743,7 +1774,7 @@ class _VideoDeferredPlaceholder extends StatelessWidget {
                 Icon(Icons.play_circle_fill, size: 38, color: colors.primary),
                 const SizedBox(height: 8),
                 Text(
-                  'Nh\u1ea5n \u0111\u1ec3 t\u1ea3i video',
+                  texts.tapToLoadVideoMessage,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colors.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
@@ -1765,6 +1796,7 @@ class _StockBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _productDetailTexts(context);
     final colors = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final style = Theme.of(context).textTheme.bodySmall;
@@ -1772,19 +1804,19 @@ class _StockBadge extends StatelessWidget {
     late final Color textColor;
     late final Color background;
     if (remainingStock <= 0) {
-      label = 'H\u1ebft h\u00e0ng';
+      label = texts.outOfStockShortLabel;
       textColor = colors.error;
       background = colors.errorContainer.withValues(
         alpha: isDark ? 0.42 : 0.82,
       );
     } else if (remainingStock <= 10) {
-      label = 'S\u1eafp h\u1ebft: $remainingStock';
+      label = texts.lowStockBadge(remainingStock);
       textColor = colors.tertiary;
       background = colors.tertiaryContainer.withValues(
         alpha: isDark ? 0.46 : 0.82,
       );
     } else {
-      label = 'C\u00f2n h\u00e0ng: $remainingStock';
+      label = texts.inStockBadge(remainingStock);
       textColor = colors.primary;
       background = colors.primaryContainer.withValues(
         alpha: isDark ? 0.4 : 0.8,
@@ -1856,13 +1888,14 @@ class _BottomActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _productDetailTexts(context);
     final colors = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final label = remainingStock <= 0
-        ? 'H\u1ebft h\u00e0ng'
+        ? texts.outOfStockShortLabel
         : remainingStock <= 10
-        ? 'C\u00f2n \u00edt h\u00e0ng'
-        : 'C\u00f2n h\u00e0ng';
+        ? texts.lowStockCompactLabel
+        : texts.inStockShortLabel;
     final labelColor = remainingStock <= 0
         ? colors.error
         : remainingStock <= 10
@@ -1889,7 +1922,7 @@ class _BottomActionBar extends StatelessWidget {
               height: 20,
               child: CircularProgressIndicator(strokeWidth: 2.5),
             )
-          : const Text('Th\u00eam v\u00e0o gi\u1ecf'),
+          : Text(texts.addToCartTitle),
     );
     final buyButton = ElevatedButton(
       onPressed: onBuyNow,
@@ -1899,7 +1932,7 @@ class _BottomActionBar extends StatelessWidget {
               height: 20,
               child: CircularProgressIndicator(strokeWidth: 2.5),
             )
-          : const Text('Mua ngay'),
+          : Text(texts.buyNowTitle),
     );
     final horizontalPadding = isTablet
         ? 28.0
@@ -1930,7 +1963,7 @@ class _BottomActionBar extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Ch\u01b0a g\u1ed3m VAT',
+            texts.vatExcludedLabel,
             style: Theme.of(
               context,
             ).textTheme.labelSmall?.copyWith(color: colors.onSurfaceVariant),
@@ -1946,7 +1979,7 @@ class _BottomActionBar extends StatelessWidget {
           if (quantityInCart > 0) ...[
             const SizedBox(height: 2),
             Text(
-              '\u0110\u00e3 c\u00f3 $quantityInCart trong gi\u1ecf',
+              texts.quantityInCartSummary(quantityInCart),
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: colors.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
@@ -1955,7 +1988,7 @@ class _BottomActionBar extends StatelessWidget {
           ] else if (remainingStock > 0) ...[
             const SizedBox(height: 2),
             Text(
-              'So luong linh hoat',
+              texts.flexibleQuantityLabel,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: colors.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
@@ -2205,6 +2238,126 @@ class _BottomBarHeightReporterState extends State<_BottomBarHeightReporter> {
     _reportHeight();
     return widget.child;
   }
+}
+
+class _ProductDetailTexts {
+  const _ProductDetailTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get addToCartTitle => isEnglish ? 'Add to cart' : 'Them vao gio';
+  String get addToCartAction => isEnglish ? 'Add' : 'Them';
+  String get buyNowTitle => isEnglish ? 'Buy now' : 'Mua ngay';
+  String get continueAction => isEnglish ? 'Continue' : 'Tiep tuc';
+  String get cancelAction => isEnglish ? 'Cancel' : 'Huy';
+  String get viewCartAction => isEnglish ? 'View cart' : 'Mo gio hang';
+  String get dealerPriceLabel => isEnglish ? 'Dealer price' : 'Gia dai ly';
+  String get vatExcludedLabel =>
+      isEnglish ? 'Excludes VAT' : 'Chua gom VAT';
+  String skuLabel(String sku) => 'SKU: $sku';
+  String get technicalSpecsTitle =>
+      isEnglish ? 'Technical specifications' : 'Thong so ky thuat';
+  String get syncingCartMessage => isEnglish
+      ? 'Cart is syncing for this product.'
+      : 'Gio hang dang dong bo cho san pham nay.';
+  String get outOfStockMessage =>
+      isEnglish ? 'This product is out of stock.' : 'San pham da het hang.';
+  String get cartLimitReachedMessage => isEnglish
+      ? 'Cart quantity limit has been reached.'
+      : 'Da dat gioi han so luong trong gio.';
+  String get stockLimitReachedMessage => isEnglish
+      ? 'Product has reached the stock limit.'
+      : 'San pham da dat gioi han ton kho.';
+  String get maxStockMessage => isEnglish
+      ? 'Product is out of stock or the cart limit has been reached.'
+      : 'San pham da het hang hoac da dat gioi han trong gio.';
+  String addedToCartMessage(String productName, int quantity) => isEnglish
+      ? 'Added $productName (x$quantity) to cart.'
+      : 'Da them $productName (x$quantity) vao gio hang.';
+  String quantityRangeLabel(int minQuantity, int maxQuantity) => isEnglish
+      ? 'Minimum: $minQuantity • Maximum: $maxQuantity'
+      : 'Toi thieu: $minQuantity • Toi da: $maxQuantity';
+  String quantityInCartMessage(int quantity) => isEnglish
+      ? 'You already have $quantity in the cart.'
+      : 'Ban da co $quantity trong gio.';
+  String minimumQuantityMessage(int quantity) => isEnglish
+      ? 'Minimum quantity: $quantity'
+      : 'So luong toi thieu: $quantity';
+  String get maximumByStockMessage => isEnglish
+      ? 'Maximum quantity reached based on stock.'
+      : 'Da dat toi da theo ton kho.';
+  String get statusLabel => isEnglish ? 'Status' : 'Trang thai';
+  String get outOfStockShortLabel =>
+      isEnglish ? 'Out of stock' : 'Het hang';
+  String get lowStockShortLabel => isEnglish ? 'Low stock' : 'Sap het';
+  String get inStockShortLabel => isEnglish ? 'In stock' : 'Con hang';
+  String get lowStockCompactLabel =>
+      isEnglish ? 'Limited stock' : 'Con it hang';
+  String lowStockBadge(int remainingStock) => isEnglish
+      ? 'Low stock: $remainingStock'
+      : 'Sap het: $remainingStock';
+  String inStockBadge(int remainingStock) => isEnglish
+      ? 'In stock: $remainingStock'
+      : 'Con hang: $remainingStock';
+  String get stockLabel => isEnglish ? 'Stock' : 'Ton kho';
+  String get readyToAddLabel =>
+      isEnglish ? 'Ready to add' : 'Them duoc ngay';
+  String readyToAddValue(int quantity) =>
+      isEnglish ? '$quantity products' : '$quantity san pham';
+  String get warrantyLabel => isEnglish ? 'Warranty' : 'Bao hanh';
+  String warrantyMonthsValue(int months) =>
+      isEnglish ? '$months months' : '$months thang';
+  String get quickInfoTitle =>
+      isEnglish ? 'Quick information' : 'Thong tin nhanh';
+  String get quickInfoDescription => isEnglish
+      ? 'Key indicators to make ordering decisions faster.'
+      : 'Chi so quan trong de ra quyet dinh dat hang nhanh.';
+  String quantityInCartBanner(int quantity) => isEnglish
+      ? '$quantity products are already in your cart.'
+      : 'Da co $quantity san pham trong gio';
+  String get detailedDescriptionTitle =>
+      isEnglish ? 'Detailed description' : 'Mo ta chi tiet';
+  String get noDetailedDescriptionMessage => isEnglish
+      ? 'No detailed description is available yet.'
+      : 'Chua co mo ta chi tiet.';
+  String get productVideosTitle =>
+      isEnglish ? 'Product videos' : 'Video san pham';
+  String get noProductVideosMessage => isEnglish
+      ? 'No videos are available for this product yet.'
+      : 'Chua co video cho san pham nay.';
+  String get defaultVideoTitle => isEnglish ? 'Video' : 'Video';
+  String get invalidProductVideoMessage => isEnglish
+      ? 'No valid video was found for this product.'
+      : 'Khong tim thay video hop le cho san pham nay.';
+  String get cannotPlayVideoNowMessage => isEnglish
+      ? 'Cannot play this video right now. Please try again later.'
+      : 'Khong the phat video luc nay. Vui long thu lai sau.';
+  String get invalidVideoLinkMessage =>
+      isEnglish ? 'The video link is invalid.' : 'Link video khong hop le.';
+  String get cannotOpenVideoNowMessage => isEnglish
+      ? 'Cannot open the video right now.'
+      : 'Khong the mo video luc nay.';
+  String get youtubeExternalOpenMessage => isEnglish
+      ? 'This YouTube video will open outside the app.'
+      : 'Video YouTube se mo ben ngoai ung dung.';
+  String get videoExternalOpenMessage => isEnglish
+      ? 'This video will open outside the app.'
+      : 'Video nay se mo ben ngoai ung dung.';
+  String get openOnYoutubeAction =>
+      isEnglish ? 'Open on YouTube' : 'Mo tren YouTube';
+  String get openVideoAction => isEnglish ? 'Open video' : 'Mo video';
+  String get cannotLoadVideoOnDeviceMessage => isEnglish
+      ? 'This device cannot load the video.'
+      : 'Khong the tai video tren thiet bi nay.';
+  String get retryLoadAction => isEnglish ? 'Retry' : 'Thu tai lai';
+  String get tapToLoadVideoMessage => isEnglish
+      ? 'Tap to load video'
+      : 'Nhan de tai video';
+  String quantityInCartSummary(int quantity) => isEnglish
+      ? '$quantity already in cart'
+      : 'Da co $quantity trong gio';
+  String get flexibleQuantityLabel =>
+      isEnglish ? 'Flexible quantity' : 'So luong linh hoat';
 }
 
 class _ProductDetailLoadingView extends StatelessWidget {

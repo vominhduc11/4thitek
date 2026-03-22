@@ -36,7 +36,6 @@ import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,44 +57,32 @@ public class SepayService {
     private final NotificationService notificationService;
     private final WebSocketEventPublisher webSocketEventPublisher;
     private final AppMessageSupport appMessageSupport;
-
-    @Value("${sepay.enabled:false}")
-    private boolean sepayEnabled;
-
-    @Value("${sepay.webhook-token:}")
-    private String webhookToken;
-
-    @Value("${sepay.bank-name:}")
-    private String bankName;
-
-    @Value("${sepay.account-number:}")
-    private String accountNumber;
-
-    @Value("${sepay.account-holder:}")
-    private String accountHolder;
+    private final AdminSettingsService adminSettingsService;
 
     @Transactional(readOnly = true)
     public DealerBankTransferInstructionResponse getBankTransferInstructions() {
-        validateInstructionConfig();
+        AdminSettingsService.SepayRuntimeSettings settings = adminSettingsService.getSepaySettings();
+        validateInstructionConfig(settings);
         return new DealerBankTransferInstructionResponse(
                 "SePay",
-                bankName.trim(),
-                accountNumber.trim(),
-                accountHolder.trim()
+                settings.bankName().trim(),
+                settings.accountNumber().trim(),
+                settings.accountHolder().trim()
         );
     }
 
     @Transactional
     public WebhookResult processWebhook(SepayWebhookRequest request, String providedToken) {
+        AdminSettingsService.SepayRuntimeSettings settings = adminSettingsService.getSepaySettings();
         log.info("SePay webhook received: id={}, gateway={}, transferType={}, amount={}, transferContent='{}', referenceCode={}, transactionDate={}",
                 request.id(), request.gateway(), request.transferType(), request.transferAmount(),
                 request.transferContent(), request.referenceCode(), request.transactionDate());
 
-        if (!sepayEnabled) {
+        if (!settings.enabled()) {
             log.warn("SePay webhook ignored: disabled");
             return WebhookResult.ignored("disabled", null, null, "SePay webhook is disabled");
         }
-        validateWebhookToken(providedToken);
+        validateWebhookToken(providedToken, settings.webhookToken());
 
         BigDecimal amount = request.transferAmount();
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -197,14 +184,17 @@ public class SepayService {
         );
     }
 
-    private void validateInstructionConfig() {
-        if (isBlank(bankName) || isBlank(accountNumber) || isBlank(accountHolder)) {
+    private void validateInstructionConfig(AdminSettingsService.SepayRuntimeSettings settings) {
+        if (settings == null
+                || isBlank(settings.bankName())
+                || isBlank(settings.accountNumber())
+                || isBlank(settings.accountHolder())) {
             throw new BadRequestException("Bank transfer instructions are not configured");
         }
     }
 
-    private void validateWebhookToken(String providedToken) {
-        String normalizedConfigured = normalize(webhookToken);
+    private void validateWebhookToken(String providedToken, String configuredToken) {
+        String normalizedConfigured = normalize(configuredToken);
         if (normalizedConfigured == null) {
             throw new BadRequestException("SePay webhook token is not configured");
         }
@@ -240,7 +230,8 @@ public class SepayService {
                                 orderCode
                         ),
                         NotifyType.ORDER,
-                        "/orders/" + orderCode
+                        "/orders/" + orderCode,
+                        null
                 ));
             } catch (RuntimeException ex) {
                 log.warn("Could not create SePay payment notification for order {}", orderCode, ex);

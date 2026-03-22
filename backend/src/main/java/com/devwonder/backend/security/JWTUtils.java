@@ -1,5 +1,6 @@
 package com.devwonder.backend.security;
 
+import com.devwonder.backend.service.AdminSettingsService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -22,14 +23,16 @@ public class JWTUtils {
     private static final Logger log = LoggerFactory.getLogger(JWTUtils.class);
     private static final int MIN_HMAC_KEY_BYTES = 32;
     private final SecretKey key;
-    private final long accessTokenExpirationMs;
+    private final long defaultAccessTokenExpirationMs;
     private final long refreshTokenExpirationMs;
+    private final AdminSettingsService adminSettingsService;
 
     public JWTUtils(
             @Value("${jwt.secret}") String secretString,
             @Value("${jwt.access-token-expiration-ms:1800000}") long accessTokenExpirationMs,
             @Value("${jwt.refresh-token-expiration-ms:604800000}") long refreshTokenExpirationMs,
-            @Value("${app.security.require-strong-jwt-secret:true}") boolean requireStrongSecret
+            @Value("${app.security.require-strong-jwt-secret:true}") boolean requireStrongSecret,
+            AdminSettingsService adminSettingsService
     ) {
         String normalizedSecret = secretString == null ? "" : secretString.trim();
         if (normalizedSecret.isEmpty()) {
@@ -54,8 +57,9 @@ public class JWTUtils {
         }
 
         this.key = Keys.hmacShaKeyFor(keyBytes);
-        this.accessTokenExpirationMs = accessTokenExpirationMs;
+        this.defaultAccessTokenExpirationMs = accessTokenExpirationMs;
         this.refreshTokenExpirationMs = refreshTokenExpirationMs;
+        this.adminSettingsService = adminSettingsService;
     }
 
     private byte[] deriveKeyBytes(String secret) {
@@ -77,6 +81,7 @@ public class JWTUtils {
     }
 
     public String generateToken(UserDetails userDetails) {
+        long accessTokenExpirationMs = resolveAccessTokenExpirationMs();
         return Jwts
                 .builder()
                 .setSubject(userDetails.getUsername())
@@ -116,5 +121,18 @@ public class JWTUtils {
 
     public boolean isTokenExpired(String token) {
         return extractClaims(token, Claims::getExpiration).before(new Date());
+    }
+
+    public long getAccessTokenExpirationMs() {
+        return resolveAccessTokenExpirationMs();
+    }
+
+    private long resolveAccessTokenExpirationMs() {
+        AdminSettingsService.EffectiveAdminSettings effectiveSettings = adminSettingsService.getEffectiveSettings();
+        int sessionTimeoutMinutes = effectiveSettings.sessionTimeoutMinutes();
+        if (sessionTimeoutMinutes <= 0) {
+            return defaultAccessTokenExpirationMs;
+        }
+        return sessionTimeoutMinutes * 60_000L;
     }
 }

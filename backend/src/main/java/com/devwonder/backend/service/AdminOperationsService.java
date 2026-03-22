@@ -112,7 +112,8 @@ public class AdminOperationsService {
                     appMessageSupport.get("notification.support.updated.title"),
                     buildSupportTicketNotificationContent(saved, statusChanged, replyChanged),
                     NotifyType.SYSTEM,
-                    "/support"
+                    "/support",
+                    null
             ));
             sendSupportTicketEmailIfPossible(dealer, saved, statusChanged, replyChanged);
         }
@@ -137,7 +138,7 @@ public class AdminOperationsService {
         registration.setStatus(request.status());
         ProductSerial productSerial = registration.getProductSerial();
         if (productSerial != null) {
-            productSerial.setStatus(resolveSerialStatusForWarranty(productSerial, request.status()));
+            productSerial.setStatus(resolveSerialStatusForWarranty());
             productSerialRepository.save(productSerial);
         }
 
@@ -187,14 +188,21 @@ public class AdminOperationsService {
         if (uniqueSerials.isEmpty()) {
             throw new BadRequestException("No valid serials supplied");
         }
-        ProductSerialStatus initialStatus = request.status() == null ? ProductSerialStatus.AVAILABLE : request.status();
+        ProductSerialStatus initialStatus = resolveImportedStatus(request.status(), order);
         if (initialStatus != ProductSerialStatus.AVAILABLE
                 && initialStatus != ProductSerialStatus.DEFECTIVE
-                && initialStatus != ProductSerialStatus.ASSIGNED) {
+                && initialStatus != ProductSerialStatus.ASSIGNED
+                && initialStatus != ProductSerialStatus.RESERVED) {
             throw new BadRequestException("Unsupported serial import status");
         }
         if (initialStatus == ProductSerialStatus.ASSIGNED && order == null) {
             throw new BadRequestException("ASSIGNED status requires a linked order");
+        }
+        if (initialStatus == ProductSerialStatus.RESERVED && order == null) {
+            throw new BadRequestException("RESERVED status requires a linked order");
+        }
+        if (initialStatus == ProductSerialStatus.ASSIGNED && dealer == null) {
+            throw new BadRequestException("ASSIGNED status requires a linked dealer");
         }
         if (order != null) {
             long existingSerialCount = productSerialRepository.countByOrderIdAndProductId(order.getId(), product.getId());
@@ -208,16 +216,20 @@ public class AdminOperationsService {
             ProductSerial productSerial = new ProductSerial();
             productSerial.setSerial(serial);
             productSerial.setProduct(product);
-            productSerial.setDealer(initialStatus == ProductSerialStatus.ASSIGNED ? null : dealer);
+            productSerial.setDealer(initialStatus == ProductSerialStatus.ASSIGNED ? dealer : null);
             productSerial.setOrder(order);
             productSerial.setStatus(initialStatus);
             productSerial.setWarehouseId(defaultIfBlank(request.warehouseId(), "main"));
             productSerial.setWarehouseName(defaultIfBlank(request.warehouseName(), "Kho tong"));
             serialsToSave.add(productSerial);
         }
-        return productSerialRepository.saveAll(serialsToSave).stream()
+        List<AdminSerialResponse> responses = productSerialRepository.saveAll(serialsToSave).stream()
                 .map(this::toSerialResponse)
                 .toList();
+        if (initialStatus == ProductSerialStatus.AVAILABLE) {
+            adjustProductStock(product, uniqueSerials.size());
+        }
+        return responses;
     }
 
     @Transactional
@@ -233,6 +245,17 @@ public class AdminOperationsService {
             return toSerialResponse(productSerial);
         }
         assertManualSerialStatusAllowed(productSerial, nextStatus);
+        adjustAvailableInventoryForStatusChange(productSerial, nextStatus);
+        if (nextStatus == ProductSerialStatus.ASSIGNED) {
+            Dealer resolvedDealer = productSerial.getDealer();
+            if (resolvedDealer == null && productSerial.getOrder() != null) {
+                resolvedDealer = productSerial.getOrder().getDealer();
+            }
+            if (resolvedDealer == null) {
+                throw new BadRequestException("ASSIGNED status requires a linked dealer");
+            }
+            productSerial.setDealer(resolvedDealer);
+        }
         productSerial.setStatus(nextStatus);
         return toSerialResponse(productSerialRepository.save(productSerial));
     }
@@ -248,6 +271,9 @@ public class AdminOperationsService {
         }
         if (productSerial.getOrder() != null || productSerial.getDealer() != null) {
             throw new BadRequestException("Serial is linked to an order or dealer and cannot be deleted");
+        }
+        if (status == ProductSerialStatus.AVAILABLE) {
+            adjustProductStock(productSerial.getProduct(), -1);
         }
         productSerialRepository.delete(productSerial);
     }
@@ -268,9 +294,10 @@ public class AdminOperationsService {
             notificationService.create(new CreateNotifyRequest(
                     accountId,
                     requireNonBlank(request.title(), "title"),
-                    requireNonBlank(request.content(), "content"),
+                    requireNonBlank(request.body(), "body"),
                     request.type() == null ? NotifyType.SYSTEM : request.type(),
-                    normalize(request.link())
+                    normalize(request.link()),
+                    normalize(request.deepLink())
             ));
         }
 
@@ -396,6 +423,7 @@ public class AdminOperationsService {
                 notify.getIsRead(),
                 notify.getType(),
                 notify.getLink(),
+                notify.getDeepLink(),
                 notify.getCreatedAt()
         );
     }
@@ -447,14 +475,20 @@ public class AdminOperationsService {
         return registration.getStatus() == null ? WarrantyStatus.ACTIVE : registration.getStatus();
     }
 
-    private ProductSerialStatus resolveSerialStatusForWarranty(ProductSerial productSerial, WarrantyStatus warrantyStatus) {
-        if (warrantyStatus == WarrantyStatus.ACTIVE) {
-            return ProductSerialStatus.WARRANTY;
+    private ProductSerialStatus resolveSerialStatusForWarranty() {
+        return ProductSerialStatus.WARRANTY;
+    }
+
+    private ProductSerialStatus resolveImportedStatus(ProductSerialStatus requestedStatus, Order order) {
+        if (requestedStatus != null) {
+            return requestedStatus;
         }
-        Order order = productSerial.getOrder();
-        return order == null || order.getStatus() == OrderStatus.COMPLETED
-                ? ProductSerialStatus.AVAILABLE
-                : ProductSerialStatus.ASSIGNED;
+        if (order == null) {
+            return ProductSerialStatus.AVAILABLE;
+        }
+        return order.getStatus() == OrderStatus.COMPLETED
+                ? ProductSerialStatus.ASSIGNED
+                : ProductSerialStatus.RESERVED;
     }
 
     private void assertManualSerialStatusAllowed(ProductSerial productSerial, ProductSerialStatus nextStatus) {
@@ -466,6 +500,9 @@ public class AdminOperationsService {
 
         if (nextStatus == ProductSerialStatus.RETURNED) {
             throw new BadRequestException("RETURNED status must be managed via a dedicated return workflow");
+        }
+        if (nextStatus == ProductSerialStatus.RESERVED) {
+            throw new BadRequestException("RESERVED status must be managed via the order workflow");
         }
         if (nextStatus == ProductSerialStatus.WARRANTY) {
             if (warranty == null || warrantyStatus != WarrantyStatus.ACTIVE) {
@@ -493,6 +530,33 @@ public class AdminOperationsService {
                 throw new BadRequestException("Serial already belongs to a dealer and cannot be marked defective by admin");
             }
         }
+    }
+
+    private void adjustAvailableInventoryForStatusChange(ProductSerial productSerial, ProductSerialStatus nextStatus) {
+        ProductSerialStatus currentStatus = productSerial.getStatus();
+        if (currentStatus == nextStatus) {
+            return;
+        }
+        if (currentStatus == ProductSerialStatus.AVAILABLE && nextStatus != ProductSerialStatus.AVAILABLE) {
+            adjustProductStock(productSerial.getProduct(), -1);
+            return;
+        }
+        if (currentStatus != ProductSerialStatus.AVAILABLE && nextStatus == ProductSerialStatus.AVAILABLE) {
+            adjustProductStock(productSerial.getProduct(), 1);
+        }
+    }
+
+    private void adjustProductStock(Product product, int delta) {
+        if (product == null || delta == 0) {
+            return;
+        }
+        int nextStock = Math.max(0, safeStock(product) + delta);
+        product.setStock(nextStock);
+        productRepository.save(product);
+    }
+
+    private int safeStock(Product product) {
+        return product == null || product.getStock() == null ? 0 : Math.max(0, product.getStock());
     }
 
     private long computeRemainingDays(Instant warrantyEnd) {

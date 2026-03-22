@@ -100,6 +100,7 @@ public class DealerOrderWorkflowSupport {
             order.setCompletedAt(null);
         }
         if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
+            orderInventorySupport.restoreStock(order);
             productSerialOrderSupport.releaseNonWarrantySerials(order);
         }
         if (request.status() == OrderStatus.CANCELLED

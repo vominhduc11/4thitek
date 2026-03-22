@@ -11,9 +11,14 @@ import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
-  const ForgotPasswordScreen({super.key, this.initialEmail});
+  const ForgotPasswordScreen({
+    super.key,
+    this.initialEmail,
+    this.authService,
+  });
 
   final String? initialEmail;
+  final AuthService? authService;
 
   @override
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
@@ -26,7 +31,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
   final _emailFocusNode = FocusNode();
   final _isFormValidNotifier = ValueNotifier<bool>(false);
-  final AuthService _authService = RemoteAuthService();
+  late final AuthService _authService;
 
   bool _isSubmitting = false;
   bool _isSubmitted = false;
@@ -42,6 +47,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   void initState() {
     super.initState();
+    _authService = widget.authService ?? RemoteAuthService();
     final initialEmail = widget.initialEmail?.trim() ?? '';
     if (initialEmail.isNotEmpty) {
       _emailController.text = initialEmail;
@@ -640,8 +646,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         email: targetEmail,
       );
       if (!result.isSuccess) {
+        final message = result.failure?.message;
         _showErrorSnackbar(
-          result.failure?.message ?? texts.cannotSendLinkMessage,
+          message == null
+              ? texts.cannotSendLinkMessage
+              : resolveAuthServiceMessage(
+                  message,
+                  isEnglish: texts.isEnglish,
+                ),
         );
         return;
       }
@@ -654,8 +666,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       });
       _startResendCooldown();
       if (isResend) {
+        final message = result.message;
         _showSuccessSnackbar(
-          result.message ?? texts.resentLinkMessage(_submittedEmail),
+          message == null
+              ? texts.resentLinkMessage(_submittedEmail)
+              : resolveAuthServiceMessage(
+                  message,
+                  isEnglish: texts.isEnglish,
+                ),
         );
       }
     } on TimeoutException {

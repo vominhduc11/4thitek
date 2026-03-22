@@ -11,11 +11,15 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface AccountRepository extends JpaRepository<Account, Long> {
     Optional<Account> findByUsername(String username);
+    Optional<Account> findByUsernameIgnoreCase(String username);
     Optional<Account> findByEmail(String email);
     Optional<Account> findByEmailIgnoreCase(String email);
+    Optional<Account> findByUsernameIgnoreCaseOrEmailIgnoreCase(String username, String email);
     Optional<Account> findByUsernameOrEmail(String username, String email);
     boolean existsByUsername(String username);
+    boolean existsByUsernameIgnoreCase(String username);
     boolean existsByEmailIgnoreCase(String email);
+    boolean existsByEmailIgnoreCaseAndIdNot(String email, Long id);
     boolean existsByEmailAndIdNot(String email, Long id);
     List<Account> findByIdIn(List<Long> ids);
 

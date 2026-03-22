@@ -49,6 +49,9 @@ public class Notify {
     @Column(name = "link")
     private String link;
 
+    @Column(name = "deep_link")
+    private String deepLink;
+
     @Column(name = "read_at")
     private Instant readAt;
 

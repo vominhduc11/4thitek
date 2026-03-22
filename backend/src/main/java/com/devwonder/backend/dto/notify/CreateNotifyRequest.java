@@ -5,8 +5,9 @@ import com.devwonder.backend.entity.enums.NotifyType;
 public record CreateNotifyRequest(
         Long accountId,
         String title,
-        String content,
+        String body,
         NotifyType type,
-        String link
+        String link,
+        String deepLink
 ) {
 }

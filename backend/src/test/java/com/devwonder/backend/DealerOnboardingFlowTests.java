@@ -15,9 +15,8 @@ import com.devwonder.backend.dto.auth.RegisterDealerRequest;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Notify;
 import com.devwonder.backend.entity.enums.CustomerStatus;
-import com.devwonder.backend.exception.ConflictException;
 import com.devwonder.backend.exception.BadRequestException;
-import com.devwonder.backend.exception.UnauthorizedException;
+import com.devwonder.backend.exception.ConflictException;
 import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.DealerSupportTicketRepository;
@@ -37,8 +36,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.authentication.BadCredentialsException;
 
 @SpringBootTest(properties = {
         "app.mail.enabled=true",
@@ -114,7 +113,7 @@ class DealerOnboardingFlowTests {
     }
 
     @Test
-    void dealerCannotLoginUntilActivatedAndReceivesStatusNotification() {
+    void underReviewDealerCanLoginAndActivationStillSendsStatusNotification() {
         authService.registerDealer(new RegisterDealerRequest(
                 "dealer.active@example.com",
                 "DealerPass#123",
@@ -132,12 +131,10 @@ class DealerOnboardingFlowTests {
         ));
         Dealer dealer = dealerRepository.findByUsername("dealer.active@example.com").orElseThrow();
 
-        assertThatThrownBy(() -> authService.login(new LoginRequest(
+        assertThat(authService.login(new LoginRequest(
                 "dealer.active@example.com",
                 "DealerPass#123"
-        )))
-                .isInstanceOf(BadCredentialsException.class)
-                .hasMessageContaining("Invalid credentials");
+        )).accessToken()).isNotBlank();
 
         reset(javaMailSender);
         when(javaMailSender.createMimeMessage()).thenReturn(
@@ -187,7 +184,7 @@ class DealerOnboardingFlowTests {
     }
 
     @Test
-    void inactiveDealerCannotRefreshToken() {
+    void underReviewDealerCanRefreshToken() {
         authService.registerDealer(new RegisterDealerRequest(
                 "dealer.refresh@example.com",
                 "DealerPass#123",
@@ -206,9 +203,7 @@ class DealerOnboardingFlowTests {
         Dealer dealer = dealerRepository.findByUsername("dealer.refresh@example.com").orElseThrow();
         String refreshToken = jwtUtils.generateRefreshToken(new HashMap<>(), dealer);
 
-        assertThatThrownBy(() -> authService.refreshToken(new RefreshTokenRequest(refreshToken)))
-                .isInstanceOf(UnauthorizedException.class)
-                .hasMessageContaining("Account is not active");
+        assertThat(authService.refreshToken(new RefreshTokenRequest(refreshToken)).accessToken()).isNotBlank();
     }
 
     @Test
@@ -289,6 +284,28 @@ class DealerOnboardingFlowTests {
 
         Dealer saved = dealerRepository.findByUsername("dealer.country@example.com").orElseThrow();
         assertThat(saved.getCountry()).isNull();
+    }
+
+    @Test
+    void registerDealerAllowsMissingBusinessName() {
+        authService.registerDealer(new RegisterDealerRequest(
+                "dealer.no.business@example.com",
+                "DealerPass#123",
+                null,
+                "Dealer Contact",
+                "801800900",
+                "0912345605",
+                "dealer.no.business@example.com",
+                "777 Optional Street",
+                null,
+                "District 2",
+                "Ho Chi Minh City",
+                "Vietnam",
+                null
+        ));
+
+        Dealer saved = dealerRepository.findByUsername("dealer.no.business@example.com").orElseThrow();
+        assertThat(saved.getBusinessName()).isNull();
     }
 
     @Test

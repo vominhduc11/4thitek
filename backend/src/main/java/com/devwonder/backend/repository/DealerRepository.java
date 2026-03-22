@@ -30,6 +30,15 @@ public interface DealerRepository extends JpaRepository<Dealer, Long> {
     Page<Dealer> findAllByOrderByCreatedAtDesc(Pageable pageable);
     List<Dealer> findAllByOrderByCreatedAtDesc();
 
+    @Query("""
+            select d
+            from Dealer d
+            where d.customerStatus is null
+               or d.customerStatus = com.devwonder.backend.entity.enums.CustomerStatus.ACTIVE
+            order by d.createdAt desc
+            """)
+    Page<Dealer> findPublicDealers(Pageable pageable);
+
     @Query("select d.id from Dealer d")
     List<Long> findAllIds();
 }

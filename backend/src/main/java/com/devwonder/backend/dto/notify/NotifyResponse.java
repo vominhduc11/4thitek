@@ -7,10 +7,11 @@ public record NotifyResponse(
         Long id,
         Long accountId,
         String title,
-        String content,
+        String body,
         Boolean isRead,
         NotifyType type,
         String link,
+        String deepLink,
         Instant readAt,
         Instant createdAt
 ) {

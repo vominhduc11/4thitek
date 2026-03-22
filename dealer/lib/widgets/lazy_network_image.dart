@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../file_reference.dart';
+
 typedef LazyImagePlaceholderBuilder = Widget Function(BuildContext context);
 
 class LazyNetworkImage extends StatefulWidget {
@@ -139,6 +141,7 @@ class _LazyNetworkImageState extends State<LazyNetworkImage> {
 
     return CachedNetworkImage(
       imageUrl: normalizedUrl,
+      httpHeaders: authHeadersForResolvedUrl(normalizedUrl),
       width: widget.width,
       height: widget.height,
       fit: widget.fit,

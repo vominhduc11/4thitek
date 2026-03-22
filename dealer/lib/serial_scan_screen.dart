@@ -9,6 +9,105 @@ import 'app_settings_controller.dart';
 import 'breakpoints.dart';
 import 'widgets/brand_identity.dart';
 
+enum SerialScanErrorCode {
+  clipboardEmpty,
+  noImageSelected,
+  noCodeFoundInImage,
+  imagePickerUnavailable,
+  photoLibraryPermissionDenied,
+  photoPickerAlreadyOpen,
+  cannotOpenPhotoLibrary,
+  cannotReadSerialFromImage,
+  cannotRestartCamera,
+  cannotStartCamera,
+  enterSerialPrompt,
+  cameraPermissionDenied,
+  cameraAccessError,
+}
+
+String serialScanErrorMessage(
+  SerialScanErrorCode code, {
+  required bool isEnglish,
+}) {
+  switch (code) {
+    case SerialScanErrorCode.clipboardEmpty:
+      return isEnglish
+          ? 'Clipboard has no serial text to paste.'
+          : 'Clipboard khong co du lieu serial de dan.';
+    case SerialScanErrorCode.noImageSelected:
+      return isEnglish
+          ? 'No image selected for scanning.'
+          : 'Ban chua chon anh de quet.';
+    case SerialScanErrorCode.noCodeFoundInImage:
+      return isEnglish
+          ? 'No QR or barcode found in the selected image.'
+          : 'Khong tim thay ma QR hoac barcode trong anh.';
+    case SerialScanErrorCode.imagePickerUnavailable:
+      return isEnglish
+          ? 'Image picker is unavailable. Please restart the app.'
+          : 'Chuc nang chon anh chua san sang. Hay khoi dong lai app.';
+    case SerialScanErrorCode.photoLibraryPermissionDenied:
+      return isEnglish
+          ? 'Photo library permission denied. Please allow permission and try again.'
+          : 'Khong co quyen truy cap thu vien anh. Hay cap quyen roi thu lai.';
+    case SerialScanErrorCode.photoPickerAlreadyOpen:
+      return isEnglish
+          ? 'Photo picker is already open. Please wait a moment.'
+          : 'Thu vien anh dang mo. Vui long cho trong giay lat.';
+    case SerialScanErrorCode.cannotOpenPhotoLibrary:
+      return isEnglish
+          ? 'Cannot open photo library. Please try again.'
+          : 'Khong the mo thu vien anh. Vui long thu lai.';
+    case SerialScanErrorCode.cannotReadSerialFromImage:
+      return isEnglish
+          ? 'Cannot read serial from image. Please try again.'
+          : 'Khong the doc ma tu anh. Vui long thu lai.';
+    case SerialScanErrorCode.cannotRestartCamera:
+      return isEnglish
+          ? 'Cannot restart camera. Please try again.'
+          : 'Khong the khoi dong lai camera. Vui long thu lai.';
+    case SerialScanErrorCode.cannotStartCamera:
+      return isEnglish
+          ? 'Cannot start camera. Please try again.'
+          : 'Khong the khoi dong camera. Vui long thu lai.';
+    case SerialScanErrorCode.enterSerialPrompt:
+      return isEnglish
+          ? 'Please enter serial or QR content.'
+          : 'Vui long nhap serial hoac ma QR.';
+    case SerialScanErrorCode.cameraPermissionDenied:
+      return isEnglish
+          ? 'Camera permission is denied. Open app settings and enable camera access.'
+          : 'Quyen camera dang bi tu choi. Hay vao cai dat ung dung va bat lai quyen.';
+    case SerialScanErrorCode.cameraAccessError:
+      return isEnglish
+          ? 'Cannot access camera. Please check and try again.'
+          : 'Khong the truy cap camera. Hay kiem tra lai va thu lai.';
+  }
+}
+
+String serialScanPhotoLibraryErrorMessage({
+  required String platformCode,
+  required bool isEnglish,
+}) {
+  final normalized = platformCode.trim().toLowerCase();
+  if (normalized.contains('denied')) {
+    return serialScanErrorMessage(
+      SerialScanErrorCode.photoLibraryPermissionDenied,
+      isEnglish: isEnglish,
+    );
+  }
+  if (normalized.contains('already_active')) {
+    return serialScanErrorMessage(
+      SerialScanErrorCode.photoPickerAlreadyOpen,
+      isEnglish: isEnglish,
+    );
+  }
+  return serialScanErrorMessage(
+    SerialScanErrorCode.cannotOpenPhotoLibrary,
+    isEnglish: isEnglish,
+  );
+}
+
 class SerialScanScreen extends StatefulWidget {
   const SerialScanScreen({super.key});
 
@@ -193,20 +292,12 @@ class _SerialScanScreenState extends State<SerialScanScreen>
     } on MissingPluginException {
       _showMessage(texts.imagePickerUnavailableMessage);
     } on PlatformException catch (error) {
-      final code = error.code.toLowerCase();
-      if (code.contains('denied')) {
-        _showMessage(texts.photoLibraryPermissionDeniedMessage);
-      } else if (code.contains('already_active')) {
-        _showMessage(texts.photoPickerAlreadyOpenMessage);
-      } else {
-        final detailMessage = (error.message ?? '').trim();
-        _showMessage(
-          texts.cannotOpenPhotoLibraryMessage(
-            error.code,
-            detailMessage: detailMessage,
-          ),
-        );
-      }
+      _showMessage(
+        serialScanPhotoLibraryErrorMessage(
+          platformCode: error.code,
+          isEnglish: _isEnglishLocale(),
+        ),
+      );
     } catch (_) {
       _showMessage(texts.cannotReadSerialFromImageMessage);
     } finally {
@@ -628,51 +719,38 @@ class _SerialScanTexts {
 
   final bool isEnglish;
 
-  String get clipboardEmptyMessage => isEnglish
-      ? 'Clipboard has no serial text to paste.'
-      : 'Clipboard không có dữ liệu serial để dán.';
-  String get noImageSelectedMessage => isEnglish
-      ? 'No image selected for scanning.'
-      : 'Bạn chưa chọn ảnh để quét.';
-  String get noCodeFoundInImageMessage => isEnglish
-      ? 'No QR or barcode found in the selected image.'
-      : 'Không tìm thấy mã QR hoặc barcode trong ảnh.';
-  String get imagePickerUnavailableMessage => isEnglish
-      ? 'Image picker is unavailable. Please restart the app.'
-      : 'Chức năng chọn ảnh chưa sẵn sàng. Hãy khởi động lại app.';
-  String get photoLibraryPermissionDeniedMessage => isEnglish
-      ? 'Photo library permission denied. Please allow permission and try again.'
-      : 'Không có quyền truy cập thư viện ảnh. Hãy cấp quyền rồi thử lại.';
-  String get photoPickerAlreadyOpenMessage => isEnglish
-      ? 'Photo picker is already open. Please wait a moment.'
-      : 'Thư viện ảnh đang mở. Vui lòng chờ trong giây lát.';
-
-  String cannotOpenPhotoLibraryMessage(
-    String errorCode, {
-    String? detailMessage,
-  }) {
-    final base = isEnglish
-        ? 'Cannot open photo library ($errorCode).'
-        : 'Không thể mở thư viện ảnh ($errorCode).';
-    final detail = (detailMessage ?? '').trim();
-    if (detail.isEmpty) {
-      return base;
-    }
-    return '$base $detail';
-  }
-
-  String get cannotReadSerialFromImageMessage => isEnglish
-      ? 'Cannot read serial from image. Please try again.'
-      : 'Không thể đọc mã từ ảnh. Vui lòng thử lại.';
-  String get cannotRestartCameraMessage => isEnglish
-      ? 'Cannot restart camera. Please try again.'
-      : 'Không thể khởi động lại camera. Vui lòng thử lại.';
-  String get cannotStartCameraMessage => isEnglish
-      ? 'Cannot start camera. Please try again.'
-      : 'Không thể khởi động camera. Vui lòng thử lại.';
-  String get enterSerialPromptMessage => isEnglish
-      ? 'Please enter serial or QR content.'
-      : 'Vui lòng nhập serial hoặc mã QR.';
+  String get clipboardEmptyMessage => serialScanErrorMessage(
+    SerialScanErrorCode.clipboardEmpty,
+    isEnglish: isEnglish,
+  );
+  String get noImageSelectedMessage => serialScanErrorMessage(
+    SerialScanErrorCode.noImageSelected,
+    isEnglish: isEnglish,
+  );
+  String get noCodeFoundInImageMessage => serialScanErrorMessage(
+    SerialScanErrorCode.noCodeFoundInImage,
+    isEnglish: isEnglish,
+  );
+  String get imagePickerUnavailableMessage => serialScanErrorMessage(
+    SerialScanErrorCode.imagePickerUnavailable,
+    isEnglish: isEnglish,
+  );
+  String get cannotReadSerialFromImageMessage => serialScanErrorMessage(
+    SerialScanErrorCode.cannotReadSerialFromImage,
+    isEnglish: isEnglish,
+  );
+  String get cannotRestartCameraMessage => serialScanErrorMessage(
+    SerialScanErrorCode.cannotRestartCamera,
+    isEnglish: isEnglish,
+  );
+  String get cannotStartCameraMessage => serialScanErrorMessage(
+    SerialScanErrorCode.cannotStartCamera,
+    isEnglish: isEnglish,
+  );
+  String get enterSerialPromptMessage => serialScanErrorMessage(
+    SerialScanErrorCode.enterSerialPrompt,
+    isEnglish: isEnglish,
+  );
 
   String get screenTitle =>
       isEnglish ? 'Scan QR / Barcode' : 'Quét QR / Barcode';
@@ -682,12 +760,14 @@ class _SerialScanTexts {
   String get turnOnFlashlightTooltip =>
       isEnglish ? 'Turn on flashlight' : 'Bật đèn pin';
   String get switchCameraTooltip => isEnglish ? 'Switch camera' : 'Đổi camera';
-  String get cameraPermissionDeniedMessage => isEnglish
-      ? 'Camera permission is denied. Open app settings and enable camera access.'
-      : 'Quyền camera đang bị từ chối. Hãy vào cài đặt ứng dụng và bật lại quyền.';
-  String get cameraAccessErrorMessage => isEnglish
-      ? 'Cannot access camera. Please check and try again.'
-      : 'Không thể truy cập camera. Hãy kiểm tra lại và thử lại.';
+  String get cameraPermissionDeniedMessage => serialScanErrorMessage(
+    SerialScanErrorCode.cameraPermissionDenied,
+    isEnglish: isEnglish,
+  );
+  String get cameraAccessErrorMessage => serialScanErrorMessage(
+    SerialScanErrorCode.cameraAccessError,
+    isEnglish: isEnglish,
+  );
   String get cameraErrorTitle =>
       isEnglish ? 'Cannot access camera' : 'Không thể truy cập camera';
   String get cameraLoadingStatus =>

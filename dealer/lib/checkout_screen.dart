@@ -513,8 +513,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 bankTransferInstructions:
                                     bankTransferInstructions,
                               );
-                            } catch (_) {
-                              _showSnackBar(texts.cannotCreateOrderMessage);
+                            } catch (error) {
+                              _showSnackBar(
+                                orderControllerErrorMessage(
+                                  error,
+                                  isEnglish: texts.isEnglish,
+                                ),
+                              );
                             } finally {
                               if (mounted) {
                                 setState(() => _isSubmitting = false);
@@ -723,8 +728,8 @@ class _CheckoutTexts {
   String get primaryActionConfirmOrder =>
       isEnglish ? 'Confirm order' : 'Xác nhận đặt hàng';
   String cannotLoadBankTransferMessage(Object error) => isEnglish
-      ? 'Unable to load bank transfer information: $error'
-      : 'Không thể tải thông tin chuyển khoản: $error';
+      ? bankTransferLoadErrorMessage(error, isEnglish: true)
+      : bankTransferLoadErrorMessage(error, isEnglish: false);
   String copiedLabelMessage(String label) =>
       isEnglish ? 'Copied $label' : 'Đã sao chép $label';
   String get screenTitle => isEnglish ? 'Checkout' : 'Thanh toán';

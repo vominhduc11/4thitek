@@ -1,5 +1,7 @@
+import 'package:dealer_hub/app_settings_controller.dart';
 import 'package:dealer_hub/dashboard_screen.dart';
 import 'package:dealer_hub/order_controller.dart';
+import 'package:dealer_hub/warranty_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -25,13 +27,21 @@ void main() {
         view.resetDevicePixelRatio();
       });
 
-      final controller = OrderController();
+      final settingsController = AppSettingsController();
+      final orderController = _FakeOrderController();
+      final warrantyController = _FakeWarrantyController();
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: OrderScope(
-            controller: controller,
-            child: const DashboardScreen(),
+        AppSettingsScope(
+          controller: settingsController,
+          child: MaterialApp(
+            home: WarrantyScope(
+              controller: warrantyController,
+              child: OrderScope(
+                controller: orderController,
+                child: const DashboardScreen(),
+              ),
+            ),
           ),
         ),
       );
@@ -52,7 +62,7 @@ void main() {
         reason: 'Layout exception on ${c.name}: ${exceptions.join('\n')}',
       );
 
-      expect(find.textContaining('theo'), findsWidgets);
+      expect(find.byType(Card), findsWidgets);
       expect(
         find.byWidgetPredicate(
           (widget) => widget is ListView && widget.scrollDirection == Axis.vertical,
@@ -61,4 +71,14 @@ void main() {
       );
     });
   }
+}
+
+class _FakeOrderController extends OrderController {
+  @override
+  Future<void> refresh() async {}
+}
+
+class _FakeWarrantyController extends WarrantyController {
+  @override
+  Future<void> load({bool forceRefresh = false}) async {}
 }

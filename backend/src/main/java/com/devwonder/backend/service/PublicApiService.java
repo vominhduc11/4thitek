@@ -4,7 +4,6 @@ import com.devwonder.backend.dto.pagination.PagedResponse;
 import com.devwonder.backend.dto.publicapi.PublicDealerResponse;
 import com.devwonder.backend.dto.publicapi.PublicProductDetailResponse;
 import com.devwonder.backend.dto.publicapi.PublicProductSummaryResponse;
-import com.devwonder.backend.dto.publicapi.WarrantyLookupProductSerialResponse;
 import com.devwonder.backend.dto.publicapi.WarrantyLookupResponse;
 import com.devwonder.backend.config.CacheNames;
 import org.springframework.data.domain.PageRequest;
@@ -16,18 +15,18 @@ import com.devwonder.backend.entity.WarrantyRegistration;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.PublishStatus;
 import com.devwonder.backend.entity.enums.WarrantyStatus;
+import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
-import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.ProductRepository;
-import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Locale;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +39,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class PublicApiService {
 
     private final ProductRepository productRepository;
-    private final ProductSerialRepository productSerialRepository;
     private final DealerRepository dealerRepository;
     private final WarrantyRegistrationRepository warrantyRegistrationRepository;
     private final ObjectMapper objectMapper;
@@ -48,30 +46,27 @@ public class PublicApiService {
     @Transactional(readOnly = true)
     @Cacheable(CacheNames.PUBLIC_HOMEPAGE_PRODUCTS)
     public List<PublicProductSummaryResponse> getHomepageProducts() {
-        var stockMap = buildAvailableSerialCountMap();
         return productRepository.findTop6ByIsDeletedFalseAndShowOnHomepageTrueAndPublishStatusOrderByUpdatedAtDesc(PublishStatus.PUBLISHED)
                 .stream()
-                .map(p -> toSummary(p, stockMap))
+                .map(this::toSummary)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     @Cacheable(CacheNames.PUBLIC_FEATURED_PRODUCTS)
     public List<PublicProductSummaryResponse> getFeaturedProducts() {
-        var stockMap = buildAvailableSerialCountMap();
         return productRepository.findTop6ByIsDeletedFalseAndIsFeaturedTrueAndPublishStatusOrderByUpdatedAtDesc(PublishStatus.PUBLISHED)
                 .stream()
-                .map(p -> toSummary(p, stockMap))
+                .map(this::toSummary)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     @Cacheable(CacheNames.PUBLIC_PRODUCTS)
     public List<PublicProductSummaryResponse> getProducts() {
-        var stockMap = buildAvailableSerialCountMap();
         return productRepository.findByIsDeletedFalseAndPublishStatusOrderByNameAsc(PublishStatus.PUBLISHED)
                 .stream()
-                .map(p -> toSummary(p, stockMap))
+                .map(this::toSummary)
                 .toList();
     }
 
@@ -83,7 +78,7 @@ public class PublicApiService {
             Double maxPrice
     ) {
         String normalizedQuery = normalize(query);
-        var stockMap = buildAvailableSerialCountMap();
+        validateSearchRange(minPrice, maxPrice);
 
         return productRepository.findByIsDeletedFalseAndPublishStatusOrderByNameAsc(PublishStatus.PUBLISHED)
                 .stream()
@@ -91,7 +86,7 @@ public class PublicApiService {
                 .filter(product -> matchesMinPrice(product, minPrice))
                 .filter(product -> matchesMaxPrice(product, maxPrice))
                 .sorted(Comparator.comparing(Product::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
-                .map(p -> toSummary(p, stockMap))
+                .map(this::toSummary)
                 .toList();
     }
 
@@ -100,9 +95,7 @@ public class PublicApiService {
     public PublicProductDetailResponse getProduct(Long id) {
         Product product = productRepository.findByIdAndIsDeletedFalseAndPublishStatus(id, PublishStatus.PUBLISHED)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-        long availableStock = productSerialRepository.countByProductIdAndDealerIsNullAndStatus(
-                id, ProductSerialStatus.AVAILABLE);
-        return toDetail(product, availableStock);
+        return toDetail(product, safeStock(product));
     }
 
     @Transactional(readOnly = true)
@@ -115,32 +108,41 @@ public class PublicApiService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.PUBLIC_WARRANTY_LOOKUP, key = "#serial")
+    public PagedResponse<PublicDealerResponse> getDealersPaged(int page, int size) {
+        var pageable = PageRequest.of(validatePage(page), validatePageSize(size), Sort.by("createdAt").descending());
+        var dealerPage = dealerRepository.findPublicDealers(pageable);
+        return PagedResponse.from(dealerPage.map(this::toDealer), "createdAt");
+    }
+
+    @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.PUBLIC_WARRANTY_LOOKUP, key = "#serial == null ? '' : #serial.trim().toUpperCase()")
     public WarrantyLookupResponse lookupWarranty(String serial) {
-        WarrantyRegistration registration = warrantyRegistrationRepository.findByProductSerialSerialIgnoreCase(serial)
-                .orElseThrow(() -> new ResourceNotFoundException("Warranty not found"));
+        String normalizedSerial = normalizeSerial(serial);
+        WarrantyRegistration registration = warrantyRegistrationRepository.findByProductSerialSerialIgnoreCase(normalizedSerial)
+                .orElse(null);
+        if (registration == null) {
+            return new WarrantyLookupResponse(
+                    "invalid",
+                    null,
+                    normalizedSerial,
+                    null,
+                    null,
+                    0L,
+                    null
+            );
+        }
+
         ProductSerial productSerial = registration.getProductSerial();
         Product product = productSerial == null ? null : productSerial.getProduct();
         WarrantyStatus resolvedStatus = resolveWarrantyStatus(registration);
         return new WarrantyLookupResponse(
-                registration.getId(),
-                productSerial == null ? null : productSerial.getId(),
-                registration.getWarrantyCode(),
                 resolvedStatus.name(),
+                product == null ? null : product.getName(),
+                productSerial == null ? normalizedSerial : productSerial.getSerial(),
                 registration.getPurchaseDate(),
-                registration.getWarrantyStart(),
-                registration.getWarrantyEnd(),
+                toLocalDate(registration.getWarrantyEnd()),
                 computeRemainingDays(registration.getWarrantyEnd()),
-                registration.getCreatedAt(),
-                registration.getCustomerName(),
-                new WarrantyLookupProductSerialResponse(
-                        productSerial == null ? null : productSerial.getId(),
-                        productSerial == null ? null : productSerial.getSerial(),
-                        product == null ? null : product.getName(),
-                        product == null ? null : product.getSku(),
-                        productSerial == null || productSerial.getStatus() == null ? null : productSerial.getStatus().name(),
-                        extractImage(product)
-                )
+                registration.getWarrantyCode()
         );
     }
 
@@ -163,25 +165,14 @@ public class PublicApiService {
 
     @Transactional(readOnly = true)
     public PagedResponse<PublicProductSummaryResponse> getProductsPaged(int page, int size) {
-        var stockMap = buildAvailableSerialCountMap();
-        var pageable = PageRequest.of(page, Math.min(size, 100), Sort.by("name").ascending());
+        var pageable = PageRequest.of(validatePage(page), validatePageSize(size), Sort.by("name").ascending());
         var productPage = productRepository.findByIsDeletedFalseAndPublishStatusOrderByNameAsc(
                 PublishStatus.PUBLISHED, pageable);
-        return PagedResponse.from(productPage.map(p -> toSummary(p, stockMap)), "name");
+        return PagedResponse.from(productPage.map(this::toSummary), "name");
     }
 
-    private Map<Long, Integer> buildAvailableSerialCountMap() {
-        Map<Long, Integer> map = new HashMap<>();
-        for (Object[] row : productSerialRepository.countAvailableGroupByProduct(ProductSerialStatus.AVAILABLE)) {
-            Long productId = ((Number) row[0]).longValue();
-            int count = ((Number) row[1]).intValue();
-            map.put(productId, count);
-        }
-        return map;
-    }
-
-    private PublicProductSummaryResponse toSummary(Product product, Map<Long, Integer> stockMap) {
-        int stock = stockMap.getOrDefault(product.getId(), 0);
+    private PublicProductSummaryResponse toSummary(Product product) {
+        int stock = safeStock(product);
         return new PublicProductSummaryResponse(
                 product.getId(),
                 product.getName(),
@@ -194,7 +185,7 @@ public class PublicApiService {
         );
     }
 
-    private PublicProductDetailResponse toDetail(Product product, long availableStock) {
+    private PublicProductDetailResponse toDetail(Product product, int availableStock) {
         return new PublicProductDetailResponse(
                 product.getId(),
                 product.getName(),
@@ -206,7 +197,7 @@ public class PublicApiService {
                 product.getSpecifications(),
                 product.getVideos(),
                 product.getDescriptions(),
-                (int) availableStock,
+                availableStock,
                 product.getWarrantyPeriod() == null ? 12 : product.getWarrantyPeriod()
         );
     }
@@ -342,5 +333,50 @@ public class PublicApiService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeSerial(String serial) {
+        String normalized = normalize(serial);
+        if (normalized == null) {
+            return null;
+        }
+        return normalized.toUpperCase(Locale.ROOT);
+    }
+
+    private int validatePage(int page) {
+        if (page < 0) {
+            throw new BadRequestException("page must be greater than or equal to 0");
+        }
+        return page;
+    }
+
+    private int validatePageSize(int size) {
+        if (size <= 0) {
+            throw new BadRequestException("size must be greater than 0");
+        }
+        return Math.min(size, 100);
+    }
+
+    private void validateSearchRange(Double minPrice, Double maxPrice) {
+        if (minPrice != null && minPrice < 0) {
+            throw new BadRequestException("minPrice must be greater than or equal to 0");
+        }
+        if (maxPrice != null && maxPrice < 0) {
+            throw new BadRequestException("maxPrice must be greater than or equal to 0");
+        }
+        if (minPrice != null && maxPrice != null && minPrice > maxPrice) {
+            throw new BadRequestException("minPrice must not be greater than maxPrice");
+        }
+    }
+
+    private int safeStock(Product product) {
+        return product == null || product.getStock() == null ? 0 : Math.max(0, product.getStock());
+    }
+
+    private LocalDate toLocalDate(Instant instant) {
+        if (instant == null) {
+            return null;
+        }
+        return instant.atZone(WarrantyDateSupport.APP_ZONE).toLocalDate();
     }
 }

@@ -20,7 +20,6 @@ public class OpenApiConfig {
                         .description("Documented API surface for admin, dealer, customer, and public clients.")
                         .contact(new Contact().name("4ThiTek")))
                 .servers(List.of(
-                        new Server().url("/api").description("Legacy API alias"),
                         new Server().url("/api/v1").description("Versioned API")
                 ));
     }

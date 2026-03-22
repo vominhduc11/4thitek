@@ -22,10 +22,11 @@ public class DealerAccountLifecycleService {
     private final NotificationService notificationService;
     private final MailService mailService;
     private final AppMessageSupport appMessageSupport;
+    private final AdminSettingsService adminSettingsService;
 
     public void assertDealerPortalAccess(Account account) {
         if (!(account instanceof Dealer dealer)) {
-            return;
+            throw new UnauthorizedException("Dealer access required");
         }
         CustomerStatus status = normalizeStatus(dealer.getCustomerStatus());
         if (status == CustomerStatus.ACTIVE) {
@@ -65,6 +66,7 @@ public class DealerAccountLifecycleService {
                 notificationTitle(currentStatus),
                 notificationContent(currentStatus),
                 NotifyType.SYSTEM,
+                null,
                 null
         ));
 
@@ -77,8 +79,8 @@ public class DealerAccountLifecycleService {
 
     private String loginBlockedMessage(CustomerStatus status) {
         return switch (status) {
-            case UNDER_REVIEW -> "Tài khoản đại lý đang chờ duyệt. Vui lòng đợi email cập nhật từ 4ThiTek.";
-            case SUSPENDED -> "Tài khoản đại lý của bạn đã bị tạm khóa. Vui lòng liên hệ 4ThiTek để biết thêm chi tiết.";
+            case UNDER_REVIEW -> "Tài khoản đang chờ duyệt. Vui lòng đợi email cập nhật từ 4ThiTek.";
+            case SUSPENDED -> "Tài khoản đã bị tạm khóa. Vui lòng liên hệ 4ThiTek để biết thêm chi tiết.";
             case ACTIVE -> "Tài khoản đại lý đã sẵn sàng.";
         };
     }
@@ -131,7 +133,7 @@ public class DealerAccountLifecycleService {
             case SUSPENDED -> """
                     Xin chào %s,
 
-                    Tài khoản đại lý của bạn đã bị tạm khóa và không thể đăng nhập ứng dụng Dealer.
+                    Tài khoản đại lý của bạn đã bị tạm khóa.
                     Vui lòng liên hệ đội ngũ 4ThiTek để biết thêm chi tiết và được hỗ trợ.
 
                     Trân trọng,
@@ -141,7 +143,9 @@ public class DealerAccountLifecycleService {
     }
 
     private void sendEmailIfPossible(String recipient, String subject, String body) {
-        if (!StringUtils.hasText(recipient) || !mailService.isEnabled()) {
+        if (!StringUtils.hasText(recipient)
+                || !mailService.isEnabled()
+                || !adminSettingsService.getEffectiveSettings().emailConfirmation()) {
             return;
         }
         try {

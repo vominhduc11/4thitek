@@ -2,8 +2,10 @@ package com.devwonder.backend;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -59,7 +61,7 @@ class UploadAuthorizationTests {
     void prepareAdminAccount() {
         Admin admin = adminRepository.findByUsername("upload.admin@example.com").orElseThrow();
         admin.setPassword(passwordEncoder.encode("ChangedPass#456"));
-        admin.setRequireLoginEmailConfirmation(false);
+        admin.setRequirePasswordChange(false);
         adminRepository.save(admin);
     }
 
@@ -67,7 +69,7 @@ class UploadAuthorizationTests {
     void dealerCannotUploadProductAssets() throws Exception {
         String dealerToken = registerDealerAndExtractAccessToken("dealer-products");
 
-        mockMvc.perform(multipart("/api/upload/products")
+        mockMvc.perform(multipart("/api/v1/upload/products")
                         .file(sampleImage("product-upload.png"))
                         .header("Authorization", "Bearer " + dealerToken))
                 .andExpect(status().isForbidden());
@@ -77,12 +79,25 @@ class UploadAuthorizationTests {
     void dealerCanUploadOwnAvatarIntoScopedFolder() throws Exception {
         String dealerToken = registerDealerAndExtractAccessToken("dealer-avatar");
 
-        mockMvc.perform(multipart("/api/upload/dealer-avatars")
+        mockMvc.perform(multipart("/api/v1/upload/dealer-avatars")
                         .file(sampleImage("dealer-avatar.png"))
                         .header("Authorization", "Bearer " + dealerToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.url").value(containsString("/uploads/avatars/dealers/account-")))
-                .andExpect(jsonPath("$.data.fileName").value(containsString("avatars/dealers/account-")));
+                .andExpect(jsonPath("$.data.url").value(containsString("/api/v1/upload/avatars/dealers/")))
+                .andExpect(jsonPath("$.data.fileName").value(containsString("avatars/dealers/")));
+    }
+
+    @Test
+    void adminUploadsAvatarIntoAdminScopedFolder() throws Exception {
+        String adminToken = login("upload.admin@example.com", "ChangedPass#456");
+        Admin admin = adminRepository.findByUsername("upload.admin@example.com").orElseThrow();
+
+        mockMvc.perform(multipart("/api/v1/upload/avatars")
+                        .file(sampleImage("admin-avatar.png"))
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.url").value(containsString("/api/v1/upload/avatars/" + admin.getId() + "/")))
+                .andExpect(jsonPath("$.data.fileName").value(containsString("avatars/" + admin.getId() + "/")));
     }
 
     @Test
@@ -90,7 +105,7 @@ class UploadAuthorizationTests {
         String adminToken = login("upload.admin@example.com", "ChangedPass#456");
         String dealerToken = registerDealerAndExtractAccessToken("dealer-delete");
 
-        MvcResult uploadResult = mockMvc.perform(multipart("/api/upload/products")
+        MvcResult uploadResult = mockMvc.perform(multipart("/api/v1/upload/products")
                         .file(sampleImage("admin-product.png"))
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
@@ -99,11 +114,55 @@ class UploadAuthorizationTests {
         JsonNode uploadPayload = objectMapper.readTree(uploadResult.getResponse().getContentAsString());
         String uploadedUrl = uploadPayload.path("data").path("url").asText();
 
-        mockMvc.perform(delete("/api/upload")
+        mockMvc.perform(delete("/api/v1/upload")
                         .param("url", uploadedUrl)
                         .header("Authorization", "Bearer " + dealerToken))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("Access denied"));
+    }
+
+    @Test
+    void localProductAssetsArePubliclyReadableWithoutAuthentication() throws Exception {
+        String adminToken = login("upload.admin@example.com", "ChangedPass#456");
+
+        MvcResult uploadResult = mockMvc.perform(multipart("/api/v1/upload/products")
+                        .file(sampleImage("public-product.png"))
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode uploadPayload = objectMapper.readTree(uploadResult.getResponse().getContentAsString());
+        String uploadedUrl = uploadPayload.path("data").path("url").asText();
+
+        mockMvc.perform(get(uploadedUrl))
+                .andExpect(status().isOk())
+                .andExpect(content().bytes("test-image".getBytes(UTF_8)));
+    }
+
+    @Test
+    void localUploadsUseAuthenticatedInternalReadRoute() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("dealer-fetch");
+
+        MvcResult uploadResult = mockMvc.perform(multipart("/api/v1/upload/dealer-avatars")
+                        .file(sampleImage("dealer-fetch.png"))
+                        .header("Authorization", "Bearer " + dealerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.url").value(containsString("/api/v1/upload/avatars/dealers/")))
+                .andReturn();
+
+        JsonNode uploadPayload = objectMapper.readTree(uploadResult.getResponse().getContentAsString());
+        String uploadedUrl = uploadPayload.path("data").path("url").asText();
+
+        mockMvc.perform(get(uploadedUrl))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get(uploadedUrl)
+                        .header("Authorization", "Bearer " + dealerToken))
+                .andExpect(status().isOk())
+                .andExpect(content().bytes("test-image".getBytes(UTF_8)));
+
+        mockMvc.perform(get(uploadedUrl.replace("/api/v1/upload/", "/uploads/")))
+                .andExpect(status().isNotFound());
     }
 
     private MockMultipartFile sampleImage(String fileName) {
@@ -116,7 +175,7 @@ class UploadAuthorizationTests {
         String username = prefix + "." + unique;
         String email = prefix + "." + unique + "@example.com";
         String password = "Dealer#123";
-        mockMvc.perform(post("/api/auth/register-dealer")
+        mockMvc.perform(post("/api/v1/auth/register-dealer")
                         .contentType(APPLICATION_JSON)
                         .content("""
                                 {
@@ -151,7 +210,7 @@ class UploadAuthorizationTests {
     }
 
     private String login(String username, String password) throws Exception {
-        MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON)
                         .content("""
                                 {

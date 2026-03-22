@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping({"/api/blog", "/api/v1/blog"})
+@RequestMapping("/api/v1/blog")
 @RequiredArgsConstructor
 public class PublicBlogController {
 

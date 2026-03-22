@@ -18,10 +18,19 @@ import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
+_LoginTexts _loginTexts(BuildContext context) => _LoginTexts(
+  isEnglish: Localizations.localeOf(context).languageCode == 'en',
+);
+
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, this.initialErrorMessage});
+  const LoginScreen({
+    super.key,
+    this.initialErrorMessage,
+    this.authService,
+  });
 
   final String? initialErrorMessage;
+  final AuthService? authService;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -53,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _authService = RemoteAuthService();
+    _authService = widget.authService ?? RemoteAuthService();
     _authStorage = AuthStorage();
     _emailController.addListener(_onFormInputChanged);
     _passwordController.addListener(_onFormInputChanged);
@@ -276,6 +285,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
+    final texts = _loginTexts(context);
     if (_isLoggingIn) {
       return;
     }
@@ -324,21 +334,26 @@ class _LoginScreenState extends State<LoginScreen> {
           case LoginFailureType.conflict:
             _handleInvalidCredentialFailure(
               type: LoginFailureType.invalidCredentials,
-              message:
-                  'Email ho\u1eb7c m\u1eadt kh\u1ea9u kh\u00f4ng \u0111\u00fang.',
+              message: texts.invalidCredentialsMessage,
             );
             break;
           case LoginFailureType.network:
             _clearCredentialFieldErrors();
-            _authErrorNotifier.value =
-                result.failure?.message ??
-                'Kh\u00f4ng th\u1ec3 k\u1ebft n\u1ed1i m\u00e1y ch\u1ee7. Vui l\u00f2ng th\u1eed l\u1ea1i.';
+            _authErrorNotifier.value = result.failure?.message == null
+                ? texts.cannotConnectServerMessage
+                : resolveAuthServiceMessage(
+                    result.failure?.message,
+                    isEnglish: texts.isEnglish,
+                  );
             break;
           case LoginFailureType.unknown:
             _clearCredentialFieldErrors();
-            _authErrorNotifier.value =
-                result.failure?.message ??
-                '\u0110\u0103ng nh\u1eadp th\u1ea5t b\u1ea1i. Vui l\u00f2ng th\u1eed l\u1ea1i.';
+            _authErrorNotifier.value = result.failure?.message == null
+                ? texts.loginFailedMessage
+                : resolveAuthServiceMessage(
+                    result.failure?.message,
+                    isEnglish: texts.isEnglish,
+                  );
             break;
         }
         return;
@@ -347,8 +362,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final token = result.accessToken;
       if (token == null || token.isEmpty) {
         _clearCredentialFieldErrors();
-        _authErrorNotifier.value =
-            'Kh\u00f4ng th\u1ec3 t\u1ea1o phi\u00ean \u0111\u0103ng nh\u1eadp. Vui l\u00f2ng th\u1eed l\u1ea1i.';
+        _authErrorNotifier.value = texts.cannotCreateSessionMessage;
         return;
       }
 
@@ -382,16 +396,13 @@ class _LoginScreenState extends State<LoginScreen> {
       context.go('/home');
     } on TimeoutException {
       _clearCredentialFieldErrors();
-      _authErrorNotifier.value =
-          'Y\u00eau c\u1ea7u \u0111\u0103ng nh\u1eadp h\u1ebft th\u1eddi gian. Vui l\u00f2ng th\u1eed l\u1ea1i.';
+      _authErrorNotifier.value = texts.loginTimeoutMessage;
     } on Exception {
       _clearCredentialFieldErrors();
-      _authErrorNotifier.value =
-          'Kh\u00f4ng th\u1ec3 k\u1ebft n\u1ed1i m\u00e1y ch\u1ee7. Vui l\u00f2ng th\u1eed l\u1ea1i.';
+      _authErrorNotifier.value = texts.cannotConnectServerMessage;
     } catch (_) {
       _clearCredentialFieldErrors();
-      _authErrorNotifier.value =
-          '\u0110\u00e3 x\u1ea3y ra l\u1ed7i kh\u00f4ng x\u00e1c \u0111\u1ecbnh. Vui l\u00f2ng th\u1eed l\u1ea1i.';
+      _authErrorNotifier.value = texts.unknownLoginErrorMessage;
     } finally {
       if (mounted) {
         setState(() {
@@ -573,6 +584,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _openDealerRegistrationPage() async {
+    final texts = _loginTexts(context);
     final launched = await launchUrl(
       DealerApiConfig.dealerRegistrationPageUri,
       mode: LaunchMode.externalApplication,
@@ -581,10 +593,8 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Kh\u00f4ng th\u1ec3 m\u1edf trang \u0111\u0103ng k\u00fd \u0111\u1ea1i l\u00fd tr\u00ean website.',
-        ),
+      SnackBar(
+        content: Text(texts.cannotOpenRegistrationPageMessage),
       ),
     );
   }
@@ -607,6 +617,7 @@ class _BrandHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _loginTexts(context);
     return Column(
       crossAxisAlignment: alignment,
       children: [
@@ -614,7 +625,7 @@ class _BrandHeader extends StatelessWidget {
         if (showSubtitle) ...[
           const SizedBox(height: 16),
           Text(
-            '\u0110\u0103ng nh\u1eadp \u0111\u1ec3 qu\u1ea3n l\u00fd \u0111\u01a1n nh\u1eadp, c\u00f4ng n\u1ee3 v\u00e0 b\u1ea3o h\u00e0nh c\u00f9ng 4thitek.',
+            texts.brandSubtitle,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: Colors.white,
               shadows: const [
@@ -642,6 +653,7 @@ class _TabletBrandPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _loginTexts(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
       child: Column(
@@ -655,6 +667,25 @@ class _TabletBrandPanel extends StatelessWidget {
             textAlign: TextAlign.left,
           ),
           const SizedBox(height: 20),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _BrandPill(
+                icon: Icons.inventory_2_outlined,
+                text: texts.brandPillOrders,
+              ),
+              _BrandPill(
+                icon: Icons.account_balance_wallet_outlined,
+                text: texts.brandPillDebt,
+              ),
+              _BrandPill(
+                icon: Icons.verified_user_outlined,
+                text: texts.brandPillWarranty,
+              ),
+            ],
+          ),
+          /*
           Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -673,6 +704,7 @@ class _TabletBrandPanel extends StatelessWidget {
               ),
             ],
           ),
+          */
         ],
       ),
     );
@@ -843,6 +875,7 @@ class _LoginCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _loginTexts(context);
     final colorScheme = theme.colorScheme;
     final primaryActionColor = colorScheme.primary;
     final borderColor = colorScheme.outlineVariant;
@@ -889,14 +922,14 @@ class _LoginCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '\u0110\u0103ng nh\u1eadp \u0111\u1ea1i l\u00fd',
+                texts.loginTitle,
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
               ),
               SizedBox(height: introGap),
               Text(
-                'Nh\u1eadp email v\u00e0 m\u1eadt kh\u1ea9u \u0111\u1ec3 ti\u1ebfp t\u1ee5c',
+                texts.loginSubtitle,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                   height: 1.5,
@@ -904,7 +937,7 @@ class _LoginCard extends StatelessWidget {
               ),
               SizedBox(height: sectionStartGap),
               _buildFieldLabel(
-                text: 'Email',
+                text: texts.emailLabel,
                 focusNode: emailFocusNode,
                 focusedColor: primaryActionColor,
                 defaultColor: labelColor,
@@ -917,7 +950,7 @@ class _LoginCard extends StatelessWidget {
                   builder: (context, emailFieldError, _) {
                     return Semantics(
                       textField: true,
-                      label: 'Email',
+                      label: texts.emailLabel,
                       child: TextFormField(
                         controller: emailController,
                         focusNode: emailFocusNode,
@@ -943,9 +976,8 @@ class _LoginCard extends StatelessWidget {
                         validator: (value) {
                           return validateEmailAddress(
                             value,
-                            emptyMessage:
-                                'Email kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u1ec3 tr\u1ed1ng',
-                            invalidMessage: 'Email kh\u00f4ng h\u1ee3p l\u1ec7',
+                            emptyMessage: texts.emailRequiredMessage,
+                            invalidMessage: texts.invalidEmailMessage,
                             showFormatError:
                                 shouldValidateEmailFormat ||
                                 !emailFocusNode.hasFocus,
@@ -960,7 +992,7 @@ class _LoginCard extends StatelessWidget {
               ),
               SizedBox(height: sectionGap),
               _buildFieldLabel(
-                text: 'M\u1eadt kh\u1ea9u',
+                text: texts.passwordLabel,
                 focusNode: passwordFocusNode,
                 focusedColor: primaryActionColor,
                 defaultColor: labelColor,
@@ -982,7 +1014,7 @@ class _LoginCard extends StatelessWidget {
                           children: [
                             Semantics(
                               textField: true,
-                              label: 'M\u1eadt kh\u1ea9u',
+                              label: texts.passwordLabel,
                               child: TextFormField(
                                 controller: passwordController,
                                 focusNode: passwordFocusNode,
@@ -1005,8 +1037,8 @@ class _LoginCard extends StatelessWidget {
                                         ? null
                                         : onTogglePassword,
                                     tooltip: obscurePassword
-                                        ? 'Hi\u1ec7n m\u1eadt kh\u1ea9u'
-                                        : '\u1ea8n m\u1eadt kh\u1ea9u',
+                                        ? texts.showPasswordTooltip
+                                        : texts.hidePasswordTooltip,
                                     icon: AnimatedSwitcher(
                                       duration: const Duration(
                                         milliseconds: 160,
@@ -1037,10 +1069,10 @@ class _LoginCard extends StatelessWidget {
                                 validator: (value) {
                                   final password = value ?? '';
                                   if (password.isEmpty) {
-                                    return 'M\u1eadt kh\u1ea9u kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u1ec3 tr\u1ed1ng';
+                                    return texts.passwordRequiredMessage;
                                   }
                                   if (password.length < 6) {
-                                    return 'M\u1eadt kh\u1ea9u t\u1ed1i thi\u1ec3u 6 k\u00fd t\u1ef1';
+                                    return texts.passwordMinLengthMessage;
                                   }
                                   return null;
                                 },
@@ -1059,7 +1091,7 @@ class _LoginCard extends StatelessWidget {
                                         left: 12,
                                       ),
                                       child: Text(
-                                        'T\u1ed1i thi\u1ec3u 6 k\u00fd t\u1ef1',
+                                        texts.passwordMinLengthHint,
                                         style: theme.textTheme.bodySmall
                                             ?.copyWith(
                                               color: theme
@@ -1108,8 +1140,7 @@ class _LoginCard extends StatelessWidget {
                     child: Semantics(
                       container: true,
                       liveRegion: true,
-                      label:
-                          'L\u1ed7i \u0111\u0103ng nh\u1eadp: $authErrorMessage',
+                      label: texts.authErrorSemanticsLabel(authErrorMessage),
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
@@ -1157,9 +1188,7 @@ class _LoginCard extends StatelessWidget {
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              child: const Text(
-                                'Qu\u00ean m\u1eadt kh\u1ea9u?',
-                              ),
+                              child: Text(texts.forgotPasswordAction),
                             ),
                           ],
                         ),
@@ -1207,7 +1236,7 @@ class _LoginCard extends StatelessWidget {
                                 const SizedBox(width: 2),
                                 Flexible(
                                   child: Text(
-                                    'Ghi nh\u1edb email',
+                                    texts.rememberEmailLabel,
                                     overflow: TextOverflow.ellipsis,
                                     style: theme.textTheme.bodyMedium,
                                   ),
@@ -1235,7 +1264,7 @@ class _LoginCard extends StatelessWidget {
                         decorationThickness: 1.2,
                       ),
                     ),
-                    child: const Text('Qu\u00ean m\u1eadt kh\u1ea9u?'),
+                    child: Text(texts.forgotPasswordAction),
                   ),
                 ],
               ),
@@ -1250,7 +1279,7 @@ class _LoginCard extends StatelessWidget {
                     return _AnimatedSubmitButton(
                       canSubmit: canSubmit,
                       isLoading: isLoading,
-                      label: '\u0110\u0103ng nh\u1eadp',
+                      label: texts.loginAction,
                       onPressed: () async => onLogin(),
                       style: ButtonStyle(
                         minimumSize: const WidgetStatePropertyAll(Size(0, 48)),
@@ -1322,6 +1351,7 @@ class _AnimatedSubmitButtonState extends State<_AnimatedSubmitButton> {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _loginTexts(context);
     return Listener(
       onPointerDown: widget.canSubmit
           ? (_) {
@@ -1352,10 +1382,10 @@ class _AnimatedSubmitButtonState extends State<_AnimatedSubmitButton> {
               : null,
           style: widget.style,
           child: widget.isLoading
-              ? const Row(
+              ? Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(
+                    const SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
@@ -1363,8 +1393,8 @@ class _AnimatedSubmitButtonState extends State<_AnimatedSubmitButton> {
                         color: Colors.white,
                       ),
                     ),
-                    SizedBox(width: 10),
-                    Text('\u0110ang \u0111\u0103ng nh\u1eadp...'),
+                    const SizedBox(width: 10),
+                    Text(texts.loggingInLabel),
                   ],
                 )
               : Text(widget.label),
@@ -1387,6 +1417,7 @@ class _RegisterPrompt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _loginTexts(context);
     final backgroundColor = theme.brightness == Brightness.dark
         ? Colors.white.withValues(alpha: 0.16)
         : Colors.black.withValues(alpha: 0.24);
@@ -1410,14 +1441,14 @@ class _RegisterPrompt extends StatelessWidget {
           ),
           child: Text.rich(
             TextSpan(
-              text: 'Ch\u01b0a c\u00f3 t\u00e0i kho\u1ea3n? ',
+              text: texts.noAccountPrompt,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: Colors.white,
                 height: 1.2,
               ),
               children: [
                 TextSpan(
-                  text: '\u0110\u0103ng k\u00fd tr\u00ean website',
+                  text: texts.registerOnWebsiteAction,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -1432,6 +1463,84 @@ class _RegisterPrompt extends StatelessWidget {
       ),
     );
   }
+}
+
+class _LoginTexts {
+  const _LoginTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get brandSubtitle => isEnglish
+      ? 'Sign in to manage orders, debt, and warranties with 4thitek.'
+      : 'Dang nhap de quan ly don nhap, cong no va bao hanh cung 4thitek.';
+  String get brandPillOrders =>
+      isEnglish ? 'Manage orders' : 'Quan ly don nhap';
+  String get brandPillDebt =>
+      isEnglish ? 'Track debt' : 'Theo doi cong no';
+  String get brandPillWarranty =>
+      isEnglish ? 'Process warranties' : 'Xu ly bao hanh';
+  String get loginTitle => isEnglish ? 'Dealer sign in' : 'Dang nhap dai ly';
+  String get loginSubtitle => isEnglish
+      ? 'Enter your email and password to continue.'
+      : 'Nhap email va mat khau de tiep tuc';
+  String get emailLabel => 'Email';
+  String get passwordLabel => isEnglish ? 'Password' : 'Mat khau';
+  String get emailRequiredMessage => isEnglish
+      ? 'Email is required.'
+      : 'Email khong duoc de trong';
+  String get invalidEmailMessage =>
+      isEnglish ? 'Email is invalid.' : 'Email khong hop le';
+  String get passwordRequiredMessage => isEnglish
+      ? 'Password is required.'
+      : 'Mat khau khong duoc de trong';
+  String get passwordMinLengthMessage => isEnglish
+      ? 'Password must be at least 6 characters.'
+      : 'Mat khau toi thieu 6 ky tu';
+  String get passwordMinLengthHint => isEnglish
+      ? 'At least 6 characters'
+      : 'Toi thieu 6 ky tu';
+  String get showPasswordTooltip =>
+      isEnglish ? 'Show password' : 'Hien mat khau';
+  String get hidePasswordTooltip =>
+      isEnglish ? 'Hide password' : 'An mat khau';
+  String authErrorSemanticsLabel(String message) => isEnglish
+      ? 'Login error: $message'
+      : 'Loi dang nhap: $message';
+  String get forgotPasswordAction => isEnglish
+      ? 'Forgot password?'
+      : 'Quen mat khau?';
+  String get rememberEmailLabel => isEnglish
+      ? 'Remember email'
+      : 'Ghi nho email';
+  String get loginAction => isEnglish ? 'Sign in' : 'Dang nhap';
+  String get loggingInLabel =>
+      isEnglish ? 'Signing in...' : 'Dang dang nhap...';
+  String get noAccountPrompt =>
+      isEnglish ? 'No account yet? ' : 'Chua co tai khoan? ';
+  String get registerOnWebsiteAction => isEnglish
+      ? 'Register on website'
+      : 'Dang ky tren website';
+  String get invalidCredentialsMessage => isEnglish
+      ? 'Email or password is incorrect.'
+      : 'Email hoac mat khau khong dung.';
+  String get cannotConnectServerMessage => isEnglish
+      ? 'Unable to connect to the server. Please try again.'
+      : 'Khong the ket noi may chu. Vui long thu lai.';
+  String get loginFailedMessage => isEnglish
+      ? 'Sign in failed. Please try again.'
+      : 'Dang nhap that bai. Vui long thu lai.';
+  String get cannotCreateSessionMessage => isEnglish
+      ? 'Unable to create a login session. Please try again.'
+      : 'Khong the tao phien dang nhap. Vui long thu lai.';
+  String get loginTimeoutMessage => isEnglish
+      ? 'The sign-in request timed out. Please try again.'
+      : 'Yeu cau dang nhap het thoi gian. Vui long thu lai.';
+  String get unknownLoginErrorMessage => isEnglish
+      ? 'An unknown error occurred. Please try again.'
+      : 'Da xay ra loi khong xac dinh. Vui long thu lai.';
+  String get cannotOpenRegistrationPageMessage => isEnglish
+      ? 'Unable to open the dealer registration page on the website.'
+      : 'Khong the mo trang dang ky dai ly tren website.';
 }
 
 class _TextureLayer extends StatelessWidget {

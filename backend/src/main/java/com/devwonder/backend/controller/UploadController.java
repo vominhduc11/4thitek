@@ -3,17 +3,22 @@ package com.devwonder.backend.controller;
 import com.devwonder.backend.dto.ApiResponse;
 import com.devwonder.backend.entity.Account;
 import com.devwonder.backend.exception.BadRequestException;
+import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.service.FileStorageService;
+import java.time.Duration;
 import java.util.Map;
-import java.util.Set;
 import java.util.Locale;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping({"/api/upload", "/api/v1/upload"})
+@RequestMapping("/api/v1/upload")
 @RequiredArgsConstructor
 public class UploadController {
 
@@ -30,6 +35,9 @@ public class UploadController {
 
     @Value("${app.upload.base-url:/uploads}")
     private String uploadBaseUrl;
+
+    @Value("${app.storage.provider:local}")
+    private String storageProvider;
 
     @PostMapping(value = "/{category}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Map<String, String>>> upload(
@@ -45,6 +53,19 @@ public class UploadController {
         )));
     }
 
+    @GetMapping("/{*path}")
+    public ResponseEntity<InputStreamResource> openInternal(
+            @PathVariable("path") String path,
+            Authentication authentication
+    ) {
+        String normalizedPath = path != null && path.startsWith("/") ? path.substring(1) : path;
+        if (isPublicAssetPath(normalizedPath)) {
+            return buildFileResponse(fileStorageService.open(normalizedPath), true);
+        }
+        assertReadAccess(authentication, normalizedPath);
+        return buildFileResponse(fileStorageService.open(normalizedPath), false);
+    }
+
     @DeleteMapping
     public ResponseEntity<ApiResponse<Map<String, String>>> delete(
             Authentication authentication,
@@ -52,7 +73,10 @@ public class UploadController {
     ) {
         String relativePath = resolveRelativePath(url);
         assertDeleteAccess(authentication, relativePath);
-        fileStorageService.delete(relativePath);
+        boolean deleted = fileStorageService.delete(relativePath);
+        if (!deleted) {
+            throw new ResourceNotFoundException("Uploaded file not found");
+        }
         return ResponseEntity.ok(ApiResponse.success(Map.of(
                 "status", "deleted",
                 "path", relativePath
@@ -79,14 +103,14 @@ public class UploadController {
                 if (isAdmin(account)) {
                     yield adminScopedFolder("avatars/dealers", account);
                 }
-                requireAnyAuthority(account, "USER");
+                requireAnyAuthority(account, "DEALER");
                 yield actorScopedFolder("avatars/dealers", account);
             }
             case "payment-proofs" -> {
                 if (isAdmin(account)) {
                     yield adminScopedFolder("payments/proofs", account);
                 }
-                requireAnyAuthority(account, "USER");
+                requireAnyAuthority(account, "DEALER");
                 yield actorScopedFolder("payments/proofs/dealers", account);
             }
             default -> throw new BadRequestException("Unsupported upload category: " + category);
@@ -99,9 +123,14 @@ public class UploadController {
             throw new BadRequestException("Invalid upload path");
         }
 
-        String baseUrl = uploadBaseUrl == null ? "/uploads" : uploadBaseUrl.trim();
-        if (baseUrl.isEmpty()) {
-            baseUrl = "/uploads";
+        String baseUrl;
+        if ("s3".equalsIgnoreCase(storageProvider == null ? "" : storageProvider.trim())) {
+            baseUrl = uploadBaseUrl == null ? "/uploads" : uploadBaseUrl.trim();
+            if (baseUrl.isEmpty()) {
+                baseUrl = "/uploads";
+            }
+        } else {
+            baseUrl = "/api/v1/upload";
         }
         if (!baseUrl.startsWith("/")) {
             baseUrl = "/" + baseUrl;
@@ -124,6 +153,21 @@ public class UploadController {
         String normalized = relativePath.replace('\\', '/');
         Account account = requireAccount(authentication);
 
+        if (isPublicAssetPath(normalized)) {
+            requireAnyAuthority(account, "ADMIN", "SUPER_ADMIN");
+            return;
+        }
+
+        assertPrivateReadAccess(account, normalized);
+    }
+
+    private void assertReadAccess(Authentication authentication, String relativePath) {
+        String normalized = relativePath == null ? null : relativePath.replace('\\', '/');
+        Account account = requireAccount(authentication);
+        assertPrivateReadAccess(account, normalized);
+    }
+
+    private void assertPrivateReadAccess(Account account, String normalized) {
         if (normalized.startsWith("products/") || normalized.startsWith("blogs/")) {
             requireAnyAuthority(account, "ADMIN", "SUPER_ADMIN");
             return;
@@ -133,7 +177,7 @@ public class UploadController {
             if (isAdmin(account)) {
                 return;
             }
-            requireAnyAuthority(account, "USER");
+            requireAnyAuthority(account, "DEALER");
             requireOwnedPath(normalized, actorScopedFolder("avatars/dealers", account));
             return;
         }
@@ -142,7 +186,7 @@ public class UploadController {
             if (isAdmin(account)) {
                 return;
             }
-            requireAnyAuthority(account, "USER");
+            requireAnyAuthority(account, "DEALER");
             requireOwnedPath(normalized, actorScopedFolder("payments/proofs/dealers", account));
             return;
         }
@@ -153,6 +197,14 @@ public class UploadController {
         }
 
         throw new BadRequestException("Unsupported upload path");
+    }
+
+    private boolean isPublicAssetPath(String relativePath) {
+        if (relativePath == null) {
+            return false;
+        }
+        String normalized = relativePath.replace('\\', '/');
+        return normalized.startsWith("products/") || normalized.startsWith("blogs/");
     }
 
     private Account requireAccount(Authentication authentication) {
@@ -190,11 +242,11 @@ public class UploadController {
         if (accountId == null) {
             throw new AccessDeniedException("Access denied");
         }
-        return baseFolder + "/account-" + accountId;
+        return baseFolder + "/" + accountId;
     }
 
     private String adminScopedFolder(String baseFolder, Account account) {
-        return baseFolder + "/admin/" + actorScopedFolder("", account).replaceFirst("^/", "");
+        return actorScopedFolder(baseFolder, account);
     }
 
     private void requireOwnedPath(String normalizedPath, String ownedFolder) {
@@ -202,5 +254,28 @@ public class UploadController {
         if (!normalizedPath.startsWith(expectedPrefix)) {
             throw new AccessDeniedException("Access denied");
         }
+    }
+
+    private ResponseEntity<InputStreamResource> buildFileResponse(
+            FileStorageService.StoredFile storedFile,
+            boolean cachePublic
+    ) {
+        MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
+        if (storedFile.contentType() != null && !storedFile.contentType().isBlank()) {
+            try {
+                mediaType = MediaType.parseMediaType(storedFile.contentType());
+            } catch (IllegalArgumentException ignored) {
+                mediaType = MediaType.APPLICATION_OCTET_STREAM;
+            }
+        }
+
+        ResponseEntity.BodyBuilder response = ResponseEntity.ok().contentType(mediaType);
+        if (cachePublic) {
+            response.cacheControl(CacheControl.maxAge(Duration.ofDays(365)).cachePublic().immutable());
+        }
+        if (storedFile.contentLength() >= 0) {
+            response.contentLength(storedFile.contentLength());
+        }
+        return response.body(new InputStreamResource(storedFile.inputStream()));
     }
 }

@@ -1,6 +1,7 @@
 package com.devwonder.backend.config;
 
 import com.devwonder.backend.dto.ApiResponse;
+import com.devwonder.backend.service.AdminSettingsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,17 +23,17 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private final RateLimitProperties properties;
+    private final AdminSettingsService adminSettingsService;
     private final ObjectMapper objectMapper;
     private final Map<String, WindowState> windows = new ConcurrentHashMap<>();
     private final long cleanupGraceSeconds;
 
     public RateLimitFilter(
-            RateLimitProperties properties,
+            AdminSettingsService adminSettingsService,
             ObjectMapper objectMapper,
             @Value("${app.rate-limit.cleanup-grace-seconds:300}") long cleanupGraceSeconds
     ) {
-        this.properties = properties;
+        this.adminSettingsService = adminSettingsService;
         this.objectMapper = objectMapper;
         this.cleanupGraceSeconds = Math.max(60L, cleanupGraceSeconds);
     }
@@ -43,7 +44,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        if (!properties.enabled()) {
+        AdminSettingsService.RateLimitRuntimeSettings settings = adminSettingsService.getRateLimitSettings();
+        if (!settings.enabled()) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -53,7 +55,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
-        LimitRule rule = resolveRule(request);
+        LimitRule rule = resolveRule(request, settings);
         if (rule == null) {
             filterChain.doFilter(request, response);
             return;
@@ -82,31 +84,35 @@ public class RateLimitFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private LimitRule resolveRule(HttpServletRequest request) {
+    private LimitRule resolveRule(
+            HttpServletRequest request,
+            AdminSettingsService.RateLimitRuntimeSettings settings
+    ) {
         String path = request.getRequestURI();
-        if (path.startsWith("/api/auth/login") || path.startsWith("/api/v1/auth/login")) {
-            return rule("auth", properties.authRequests(), properties.authWindowSeconds(), 10, 60);
+        String method = request.getMethod();
+        if ("POST".equalsIgnoreCase(method) && path.startsWith("/api/v1/auth/login")) {
+            return rule("auth", settings.auth());
         }
-        if (path.startsWith("/api/auth/forgot-password") || path.startsWith("/api/v1/auth/forgot-password")) {
-            return rule("password-reset", properties.passwordResetRequests(), properties.passwordResetWindowSeconds(), 5, 300);
+        if ("POST".equalsIgnoreCase(method) && path.startsWith("/api/v1/auth/forgot-password")) {
+            return rule("password-reset", settings.passwordReset());
         }
-        if (path.startsWith("/api/warranty/check/") || path.startsWith("/api/v1/warranty/check/")) {
-            return rule("warranty", properties.warrantyLookupRequests(), properties.warrantyLookupWindowSeconds(), 30, 60);
+        if ("GET".equalsIgnoreCase(method) && path.startsWith("/api/v1/warranty/check/")) {
+            return rule("warranty", settings.warrantyLookup());
         }
-        if (path.startsWith("/api/upload/") || path.startsWith("/api/v1/upload/")) {
-            return rule("upload", properties.uploadRequests(), properties.uploadWindowSeconds(), 20, 60);
+        if ("POST".equalsIgnoreCase(method) && path.startsWith("/api/v1/upload/")) {
+            return rule("upload", settings.upload());
         }
-        if (path.startsWith("/api/webhooks/sepay") || path.startsWith("/api/v1/webhooks/sepay")) {
-            return rule("webhook", properties.webhookRequests(), properties.webhookWindowSeconds(), 120, 60);
+        if ("POST".equalsIgnoreCase(method) && path.startsWith("/api/v1/webhooks/sepay")) {
+            return rule("webhook", settings.webhook());
         }
         return null;
     }
 
-    private LimitRule rule(String bucketKey, int requestLimit, long windowSeconds, int defaultLimit, long defaultWindowSeconds) {
+    private LimitRule rule(String bucketKey, AdminSettingsService.RateLimitBucketRuntimeSettings bucket) {
         return new LimitRule(
                 bucketKey,
-                requestLimit > 0 ? requestLimit : defaultLimit,
-                windowSeconds > 0 ? windowSeconds : defaultWindowSeconds
+                bucket.requests(),
+                bucket.windowSeconds()
         );
     }
 

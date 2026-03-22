@@ -11,10 +11,11 @@ public record CreateAdminNotificationRequest(
         List<Long> accountIds,
         @NotBlank(message = "title is required")
         String title,
-        @NotBlank(message = "content is required")
-        String content,
+        @NotBlank(message = "body is required")
+        String body,
         @NotNull(message = "type is required")
         NotifyType type,
-        String link
+        String link,
+        String deepLink
 ) {
 }

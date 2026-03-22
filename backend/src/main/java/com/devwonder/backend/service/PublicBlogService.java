@@ -7,6 +7,7 @@ import com.devwonder.backend.config.CacheNames;
 import com.devwonder.backend.entity.Blog;
 import com.devwonder.backend.entity.CategoryBlog;
 import com.devwonder.backend.entity.enums.BlogStatus;
+import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.BlogRepository;
 import com.devwonder.backend.repository.CategoryBlogRepository;
@@ -66,12 +67,13 @@ public class PublicBlogService {
         if (blog.getCategoryBlog() == null || blog.getCategoryBlog().getId() == null) {
             return List.of();
         }
-        return blogRepository.findTop4ByCategoryBlogIdAndIsDeletedFalseAndStatusAndIdNotOrderByCreatedAtDesc(
+        int effectiveLimit = validateLimit(limit);
+        return blogRepository.findByCategoryBlogIdAndIsDeletedFalseAndStatusOrderByCreatedAtDesc(
                         blog.getCategoryBlog().getId(),
-                        BlogStatus.PUBLISHED,
-                        id
+                        BlogStatus.PUBLISHED
                 ).stream()
-                .limit(Math.max(limit, 0))
+                .filter(candidate -> candidate != null && !id.equals(candidate.getId()))
+                .limit(effectiveLimit)
                 .map(this::toSummary)
                 .toList();
     }
@@ -121,5 +123,12 @@ public class PublicBlogService {
 
     private String resolveCategory(CategoryBlog categoryBlog) {
         return categoryBlog == null ? null : categoryBlog.getName();
+    }
+
+    private int validateLimit(int limit) {
+        if (limit <= 0) {
+            throw new BadRequestException("limit must be greater than 0");
+        }
+        return Math.min(limit, 20);
     }
 }

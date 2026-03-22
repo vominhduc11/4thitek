@@ -478,6 +478,7 @@ class DistributorNotice {
     required this.message,
     required this.createdAt,
     this.link,
+    this.deepLink,
   });
 
   final String id;
@@ -486,6 +487,7 @@ class DistributorNotice {
   final String message;
   final DateTime createdAt;
   final String? link;
+  final String? deepLink;
 }
 
 typedef _BulkDiscountLine = ({String productId, int quantity});

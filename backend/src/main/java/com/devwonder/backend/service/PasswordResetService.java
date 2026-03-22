@@ -42,15 +42,13 @@ public class PasswordResetService {
         if (email == null) {
             throw new BadRequestException("email is required");
         }
-        if (!mailService.isEnabled()) {
-            throw new BadRequestException("Email service is not configured");
-        }
-        if (!StringUtils.hasText(resetBaseUrl)) {
-            throw new BadRequestException("Password reset URL is not configured");
-        }
+        boolean canSendResetEmail = mailService.isEnabled() && StringUtils.hasText(resetBaseUrl);
 
         accountRepository.findByEmailIgnoreCase(email).ifPresent(account -> {
             passwordResetTokenRepository.deleteByAccountId(account.getId());
+            if (!canSendResetEmail) {
+                return;
+            }
 
             PasswordResetToken token = new PasswordResetToken();
             token.setAccount(account);

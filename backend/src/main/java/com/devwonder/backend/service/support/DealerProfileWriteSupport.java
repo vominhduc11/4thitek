@@ -32,6 +32,7 @@ public class DealerProfileWriteSupport {
         }
         if (request.phone() != null) {
             String phone = DealerRequestSupport.requireNonBlank(request.phone(), "phone");
+            AccountValidationSupport.assertVietnamPhone(phone, "phone");
             if (dealerRepository.existsByPhoneAndIdNot(phone, dealer.getId())) {
                 throw new ConflictException("Phone already exists");
             }
@@ -53,15 +54,15 @@ public class DealerProfileWriteSupport {
             dealer.setCountry(DealerRequestSupport.normalize(request.country()));
         }
         if (request.email() != null) {
-            String email = DealerRequestSupport.normalize(request.email());
-            if (email != null && accountRepository.existsByEmailAndIdNot(email, dealer.getId())) {
+            String email = AccountValidationSupport.normalizeEmail(request.email());
+            if (email != null && accountRepository.existsByEmailIgnoreCaseAndIdNot(email, dealer.getId())) {
                 throw new ConflictException("Email already exists");
             }
             dealer.setEmail(email);
         }
         if (request.avatarUrl() != null) {
             String avatarUrl = DealerRequestSupport.normalize(request.avatarUrl());
-            if (avatarUrl != null && !DealerRequestSupport.isValidUrl(avatarUrl)) {
+            if (avatarUrl != null && !DealerRequestSupport.isValidUrlOrUploadPath(avatarUrl)) {
                 throw new BadRequestException("avatarUrl must be a valid URL");
             }
             dealer.setAvatarUrl(avatarUrl);

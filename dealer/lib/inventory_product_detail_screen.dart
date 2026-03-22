@@ -483,6 +483,7 @@ class _InventoryProductDetailScreenState
 
     final validationError = warrantyController.validateSerialForExport(
       normalized,
+      isEnglish: texts.isEnglish,
     );
     if (validationError != null) {
       _showSnackBar(validationError);

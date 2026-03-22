@@ -44,9 +44,10 @@ public class NotificationService {
         Notify notify = new Notify();
         notify.setAccount(account);
         notify.setTitle(request.title());
-        notify.setContent(request.content());
+        notify.setContent(request.body());
         notify.setType(request.type());
         notify.setLink(request.link());
+        notify.setDeepLink(request.deepLink());
         notify.setIsRead(false);
         NotifyResponse created = toResponse(notifyRepository.save(notify));
         webSocketEventPublisher.publishNotificationCreated(account.getUsername(), created);
@@ -90,6 +91,7 @@ public class NotificationService {
                 notify.getIsRead(),
                 notify.getType(),
                 notify.getLink(),
+                notify.getDeepLink(),
                 notify.getReadAt(),
                 notify.getCreatedAt()
         );

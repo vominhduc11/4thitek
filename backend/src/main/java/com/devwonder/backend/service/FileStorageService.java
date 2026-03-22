@@ -41,6 +41,7 @@ public class FileStorageService implements DisposableBean {
     private static final String LOCAL_PROVIDER = "local";
     private static final String S3_PROVIDER = "s3";
     private static final String UPLOADS_PREFIX = "/uploads/";
+    private static final String INTERNAL_UPLOAD_PREFIX = "/api/v1/upload/";
 
     private final Path uploadDir;
     private final Set<String> allowedExtensions;
@@ -155,10 +156,10 @@ public class FileStorageService implements DisposableBean {
         return key;
     }
 
-    public void delete(String relativePath) {
+    public boolean delete(String relativePath) {
         String normalizedPath = normalizeStoredPath(relativePath);
         if (normalizedPath == null) {
-            return;
+            return false;
         }
 
         if (LOCAL_PROVIDER.equals(provider)) {
@@ -166,14 +167,14 @@ public class FileStorageService implements DisposableBean {
             ensureInsideUploadDir(targetPath);
 
             try {
-                Files.deleteIfExists(targetPath);
+                return Files.deleteIfExists(targetPath);
             } catch (IOException ex) {
                 throw new IllegalStateException("Cannot delete uploaded file", ex);
             }
-            return;
         }
 
         s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(normalizedPath).build());
+        return true;
     }
 
     public StoredFile open(String storedPath) {
@@ -231,6 +232,11 @@ public class FileStorageService implements DisposableBean {
             return fromUploadsPrefix;
         }
 
+        String fromInternalPrefix = stripInternalUploadPrefix(normalizedValue);
+        if (fromInternalPrefix != null) {
+            return fromInternalPrefix;
+        }
+
         if (normalizedValue.startsWith("http://") || normalizedValue.startsWith("https://")) {
             try {
                 URI uri = URI.create(normalizedValue);
@@ -242,6 +248,10 @@ public class FileStorageService implements DisposableBean {
                 fromUploadsPrefix = stripUploadsPrefix(path);
                 if (fromUploadsPrefix != null) {
                     return fromUploadsPrefix;
+                }
+                fromInternalPrefix = stripInternalUploadPrefix(path);
+                if (fromInternalPrefix != null) {
+                    return fromInternalPrefix;
                 }
             } catch (IllegalArgumentException ex) {
                 throw new BadRequestException("Invalid upload path");
@@ -351,6 +361,18 @@ public class FileStorageService implements DisposableBean {
         String normalizedValue = value.replace('\\', '/').trim();
         if (normalizedValue.startsWith(UPLOADS_PREFIX)) {
             return normalizeRelativePath(normalizedValue.substring(UPLOADS_PREFIX.length()));
+        }
+        return null;
+    }
+
+    private String stripInternalUploadPrefix(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+
+        String normalizedValue = value.replace('\\', '/').trim();
+        if (normalizedValue.startsWith(INTERNAL_UPLOAD_PREFIX)) {
+            return normalizeRelativePath(normalizedValue.substring(INTERNAL_UPLOAD_PREFIX.length()));
         }
         return null;
     }

@@ -171,6 +171,7 @@ export type BackendStaffUserResponse = {
 }
 
 export type BackendStaffUserUpsertRequest = {
+  email: string
   name: string
   role: string
   status?: BackendStaffUserStatus
@@ -306,19 +307,21 @@ export type BackendNotificationResponse = {
   accountName?: string | null
   accountType?: string | null
   title: string
-  content: string
+  body: string
   isRead?: boolean | null
   type?: BackendNotifyType | null
   link?: string | null
+  deepLink?: string | null
   createdAt?: string | null
 }
 
 export type BackendNotificationCreateRequest = {
   audience: 'DEALERS' | 'ALL_ACCOUNTS' | 'ACCOUNTS'
   title: string
-  content: string
+  body: string
   type?: BackendNotifyType
   link?: string
+  deepLink?: string
   accountIds?: number[]
 }
 

@@ -21,7 +21,7 @@ class WebSocketAuthorizationInterceptorTests {
 
     @Test
     void allowsAuthenticatedUserSubscriptionsToOwnQueues() {
-        Authentication user = authenticatedUser("dealer@example.com", "USER");
+        Authentication user = authenticatedUser("dealer@example.com", "DEALER");
 
         assertThatCode(() -> interceptor.preSend(
                 message(StompCommand.SUBSCRIBE, "/user/queue/notifications", user), null
@@ -62,7 +62,7 @@ class WebSocketAuthorizationInterceptorTests {
         )).doesNotThrowAnyException();
 
         assertThatThrownBy(() -> interceptor.preSend(
-                message(StompCommand.SUBSCRIBE, "/topic/dealer-registrations", authenticatedUser("dealer", "USER")),
+                message(StompCommand.SUBSCRIBE, "/topic/dealer-registrations", authenticatedUser("dealer", "DEALER")),
                 null
         ))
                 .isInstanceOf(AccessDeniedException.class)

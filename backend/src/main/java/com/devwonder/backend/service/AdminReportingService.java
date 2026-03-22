@@ -3,15 +3,18 @@ package com.devwonder.backend.service;
 import com.devwonder.backend.dto.admin.AdminReportExportResponse;
 import com.devwonder.backend.dto.admin.AdminReportExportType;
 import com.devwonder.backend.dto.admin.AdminReportFormat;
+import com.devwonder.backend.entity.BulkDiscount;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
-import com.devwonder.backend.entity.OrderItem;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
 import com.devwonder.backend.entity.WarrantyRegistration;
+import com.devwonder.backend.entity.enums.DiscountRuleStatus;
+import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
+import com.devwonder.backend.service.support.OrderPricingSupport;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -54,6 +57,7 @@ public class AdminReportingService {
             DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").withZone(REPORT_ZONE);
 
     private final OrderRepository orderRepository;
+    private final BulkDiscountRepository bulkDiscountRepository;
     private final WarrantyRegistrationRepository warrantyRegistrationRepository;
     private final ProductSerialRepository productSerialRepository;
 
@@ -73,15 +77,16 @@ public class AdminReportingService {
     }
 
     private TableReport buildReport(AdminReportExportType type) {
+        List<BulkDiscount> activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
         return switch (type) {
-            case ORDERS -> buildOrdersReport();
-            case REVENUE -> buildRevenueReport();
+            case ORDERS -> buildOrdersReport(activeDiscountRules);
+            case REVENUE -> buildRevenueReport(activeDiscountRules);
             case WARRANTIES -> buildWarrantiesReport();
             case SERIALS -> buildSerialsReport();
         };
     }
 
-    private TableReport buildOrdersReport() {
+    private TableReport buildOrdersReport(List<BulkDiscount> activeDiscountRules) {
         List<Order> orders = orderRepository.findAll().stream()
                 .sorted(Comparator.comparing(Order::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
@@ -92,7 +97,7 @@ public class AdminReportingService {
                         dealerName(order.getDealer()),
                         safeEnum(order.getStatus()),
                         safeEnum(order.getPaymentStatus()),
-                        formatMoney(calculateTotalAmount(order)),
+                        formatMoney(calculateTotalAmount(order, activeDiscountRules)),
                         formatMoney(order.getPaidAmount()),
                         String.valueOf(order.getOrderItems() == null ? 0 : order.getOrderItems().size()),
                         formatDate(order.getCreatedAt())
@@ -106,7 +111,7 @@ public class AdminReportingService {
         );
     }
 
-    private TableReport buildRevenueReport() {
+    private TableReport buildRevenueReport(List<BulkDiscount> activeDiscountRules) {
         Map<String, DealerRevenueRow> summary = new LinkedHashMap<>();
         for (Order order : orderRepository.findAll()) {
             Dealer dealer = order.getDealer();
@@ -120,7 +125,7 @@ public class AdminReportingService {
                             null
                     )
             );
-            row.totalAmount = row.totalAmount.add(calculateTotalAmount(order));
+            row.totalAmount = row.totalAmount.add(calculateTotalAmount(order, activeDiscountRules));
             row.paidAmount = row.paidAmount.add(nullSafe(order.getPaidAmount()));
             row.orderCount += 1;
             if (order.getCreatedAt() != null && (row.lastOrderAt == null || order.getCreatedAt().isAfter(row.lastOrderAt))) {
@@ -288,18 +293,9 @@ public class AdminReportingService {
         return sanitized.length() <= 24 ? sanitized : sanitized.substring(0, 21) + "...";
     }
 
-    private BigDecimal calculateTotalAmount(Order order) {
-        BigDecimal itemTotal = order.getOrderItems() == null ? BigDecimal.ZERO : order.getOrderItems().stream()
-                .map(this::calculateItemTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal shippingFee = order.getShippingFee() == null ? BigDecimal.ZERO : BigDecimal.valueOf(order.getShippingFee());
-        return itemTotal.add(shippingFee).setScale(2, RoundingMode.HALF_UP);
-    }
-
-    private BigDecimal calculateItemTotal(OrderItem item) {
-        BigDecimal unitPrice = nullSafe(item.getUnitPrice());
-        BigDecimal quantity = BigDecimal.valueOf(item.getQuantity() == null ? 0 : item.getQuantity());
-        return unitPrice.multiply(quantity);
+    private BigDecimal calculateTotalAmount(Order order, List<BulkDiscount> activeDiscountRules) {
+        return OrderPricingSupport.computeTotalAmount(order, activeDiscountRules)
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     private BigDecimal nullSafe(BigDecimal value) {

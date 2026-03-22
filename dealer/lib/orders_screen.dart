@@ -330,14 +330,23 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ),
               onPressed: () async {
                 Navigator.of(dialogContext).pop();
-                final success = await OrderScope.of(
-                  context,
-                ).updateOrderStatus(order.id, OrderStatus.cancelled);
+                final orderController = OrderScope.of(context);
+                final success = await orderController.updateOrderStatus(
+                  order.id,
+                  OrderStatus.cancelled,
+                );
                 if (!context.mounted || success) {
                   return;
                 }
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(texts.updateOrderStatusFailedMessage)),
+                  SnackBar(
+                    content: Text(
+                      orderControllerErrorMessage(
+                        orderController.lastActionMessage,
+                        isEnglish: texts.isEnglish,
+                      ),
+                    ),
+                  ),
                 );
               },
               child: Text(texts.cancelOrderAction),

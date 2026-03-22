@@ -84,6 +84,7 @@ function UsersPageRevamp() {
   const [showInvite, setShowInvite] = useState(false)
   const [formError, setFormError] = useState('')
   const [form, setForm] = useState({
+    email: '',
     name: '',
     role: '',
   })
@@ -94,7 +95,7 @@ function UsersPageRevamp() {
     () =>
       users.map((user) => ({
         user,
-        searchText: `${user.name} ${user.role} ${user.id}`.toLowerCase(),
+        searchText: `${user.name} ${user.email} ${user.role} ${user.id}`.toLowerCase(),
       })),
     [users],
   )
@@ -118,7 +119,7 @@ function UsersPageRevamp() {
 
   const handleInvite = async () => {
     setFormError('')
-    if (!form.name.trim() || !form.role.trim()) {
+    if (!form.email.trim() || !form.name.trim() || !form.role.trim()) {
       setFormError(copy.validate)
       return
     }
@@ -126,7 +127,7 @@ function UsersPageRevamp() {
     try {
       await addUser(form)
       setShowInvite(false)
-      setForm({ name: '', role: '' })
+      setForm({ email: '', name: '', role: '' })
     } catch (saveError) {
       setFormError(saveError instanceof Error ? saveError.message : copy.loadFallback)
     }
@@ -184,6 +185,15 @@ function UsersPageRevamp() {
         <div className={`${formCardClass} mt-6`}>
           <p className="text-sm font-semibold text-[var(--ink)]">{copy.createTitle}</p>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <label className="space-y-2 md:col-span-2">
+              <span className={labelClass}>Email</span>
+              <input
+                className={inputClass}
+                type="email"
+                value={form.email}
+                onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+              />
+            </label>
             <label className="space-y-2">
               <span className={labelClass}>{copy.name}</span>
               <input

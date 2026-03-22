@@ -856,6 +856,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     required String rawSerial,
     required WarrantyController warrantyController,
   }) {
+    final texts = _texts;
     final normalized = warrantyController.normalizeSerial(rawSerial);
     if (normalized.isEmpty) {
       return _SerialAssignResult.invalid;
@@ -886,6 +887,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
       productId: item.product.id,
       productName: item.product.name,
       orderId: order.id,
+      isEnglish: texts.isEnglish,
     );
     if (validationError != null) {
       return _SerialAssignResult.invalid;
@@ -953,6 +955,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
               productId: item.product.id,
               productName: item.product.name,
               orderId: order.id,
+              isEnglish: texts.isEnglish,
             );
         if (serialValidationError != null) {
           _showSnackBar(serialValidationError);
@@ -999,7 +1002,12 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     });
 
     if (!success) {
-      _showSnackBar(texts.activationSyncFailedMessage);
+      _showSnackBar(
+        warrantySyncErrorMessage(
+          warrantyController.lastSyncMessage,
+          isEnglish: texts.isEnglish,
+        ),
+      );
       return;
     }
 

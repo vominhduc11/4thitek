@@ -35,10 +35,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             select count(p)
             from Product p
             where (p.isDeleted = false or p.isDeleted is null)
-              and (select count(ps) from ProductSerial ps
-                   where ps.product = p
-                     and ps.dealer is null
-                     and ps.status = com.devwonder.backend.entity.enums.ProductSerialStatus.AVAILABLE) < :threshold
+              and coalesce(p.stock, 0) < :threshold
             """)
     long countActiveProductsBelowStock(@Param("threshold") int threshold);
 

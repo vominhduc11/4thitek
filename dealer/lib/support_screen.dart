@@ -16,7 +16,9 @@ enum SupportCategory { order, warranty, product, payment, returnOrder, other }
 enum SupportPriority { normal, high, urgent }
 
 class SupportScreen extends StatefulWidget {
-  const SupportScreen({super.key});
+  const SupportScreen({super.key, this.supportService});
+
+  final SupportService? supportService;
 
   @override
   State<SupportScreen> createState() => _SupportScreenState();
@@ -53,7 +55,7 @@ class _SupportScreenState extends State<SupportScreen> {
   @override
   void initState() {
     super.initState();
-    _supportService = SupportService();
+    _supportService = widget.supportService ?? SupportService();
     _loadLatestTicket();
     _loadTicketHistory();
   }
@@ -440,7 +442,10 @@ class _SupportScreenState extends State<SupportScreen> {
 
   void _copyToClipboard(String value, {String? message}) {
     Clipboard.setData(ClipboardData(text: value));
-    _showSnackBar(message ?? 'Đã sao chép $value');
+    final texts = _SupportTexts(
+      isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+    );
+    _showSnackBar(message ?? texts.copiedValueMessage(value));
   }
 
   Future<void> _launchHotline(String phone, _SupportTexts texts) async {
@@ -530,7 +535,12 @@ class _SupportScreenState extends State<SupportScreen> {
         _scrollToTicketCard();
       });
     } on SupportException catch (error) {
-      _showSnackBar(error.message);
+      _showSnackBar(
+        resolveSupportServiceMessage(
+          error.message,
+          isEnglish: texts.isEnglish,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -637,6 +647,8 @@ class _SupportTexts {
       isEnglish ? 'Hotline number copied.' : 'Đã sao chép số hotline.';
   String get supportEmailCopiedMessage =>
       isEnglish ? 'Support email copied.' : 'Đã sao chép email hỗ trợ.';
+  String copiedValueMessage(String value) =>
+      isEnglish ? 'Copied $value' : 'Đã sao chép $value';
   String get callHotlineAction => isEnglish ? 'Call hotline' : 'Gọi hotline';
   String get sendEmailAction => isEnglish ? 'Send email' : 'Gửi email';
   String get supportHours => isEnglish

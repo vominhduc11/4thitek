@@ -12,6 +12,21 @@ import 'dealer_auth_client.dart';
 import 'models.dart';
 import 'utils.dart';
 
+const String _notificationSyncUnavailableMarker =
+    'notification.sync.unavailable';
+
+String notificationSyncErrorMessage(
+  String error, {
+  required bool isEnglish,
+}) {
+  if (error == _notificationSyncUnavailableMarker) {
+    return isEnglish
+        ? 'Unable to sync notifications.'
+        : 'Không thể đồng bộ thông báo.';
+  }
+  return error;
+}
+
 class NotificationController extends ChangeNotifier {
   NotificationController({
     AuthStorage? authStorage,
@@ -97,7 +112,7 @@ class NotificationController extends ChangeNotifier {
 
     final remoteId = _remoteNoticeIds[id];
     if (remoteId == null || !await _canUseRemoteApi()) {
-      return 'Không thể đồng bộ thông báo.';
+      return _notificationSyncUnavailableMarker;
     }
 
     final error = await _markRemoteRead(remoteId);
@@ -117,7 +132,7 @@ class NotificationController extends ChangeNotifier {
 
     final remoteId = _remoteNoticeIds[id];
     if (remoteId == null || !await _canUseRemoteApi()) {
-      return 'Không thể đồng bộ thông báo.';
+      return _notificationSyncUnavailableMarker;
     }
 
     final error = await _markRemoteUnread(remoteId);
@@ -136,7 +151,7 @@ class NotificationController extends ChangeNotifier {
     }
 
     if (_remoteNoticeIds.isEmpty || !await _canUseRemoteApi()) {
-      return 'Không thể đồng bộ thông báo.';
+      return _notificationSyncUnavailableMarker;
     }
 
     final error = await _markAllRemoteRead();
@@ -176,7 +191,7 @@ class NotificationController extends ChangeNotifier {
 
     try {
       final response = await _client.get(
-        Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/notifications')),
+        Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/notifications')),
         headers: _authorizedHeaders(token),
       );
       final payload = _decodeBody(response.body);
@@ -201,9 +216,10 @@ class NotificationController extends ChangeNotifier {
             id: noticeId,
             type: _mapRemoteType(entry['type']?.toString()),
             title: _normalizeString(entry['title']) ?? 'Thông báo',
-            message: _normalizeString(entry['content']) ?? '',
+            message: _normalizeString(entry['body']) ?? '',
             createdAt: parseApiDateTime(entry['createdAt']) ?? DateTime.now(),
             link: _normalizeString(entry['link']),
+            deepLink: _normalizeString(entry['deepLink']),
           ),
         );
         if (_parseBool(entry['isRead'])) {
@@ -230,7 +246,7 @@ class NotificationController extends ChangeNotifier {
       final response = await _client.patch(
         Uri.parse(
           DealerApiConfig.resolveUrl(
-            '/api/dealer/notifications/$remoteId/read',
+            '/api/v1/dealer/notifications/$remoteId/read',
           ),
         ),
         headers: await _authorizedJsonHeaders(),
@@ -241,7 +257,7 @@ class NotificationController extends ChangeNotifier {
       }
       return null;
     } catch (_) {
-      return 'Không thể đồng bộ thông báo.';
+      return _notificationSyncUnavailableMarker;
     }
   }
 
@@ -250,7 +266,7 @@ class NotificationController extends ChangeNotifier {
       final response = await _client.patch(
         Uri.parse(
           DealerApiConfig.resolveUrl(
-            '/api/dealer/notifications/$remoteId/unread',
+            '/api/v1/dealer/notifications/$remoteId/unread',
           ),
         ),
         headers: await _authorizedJsonHeaders(),
@@ -261,7 +277,7 @@ class NotificationController extends ChangeNotifier {
       }
       return null;
     } catch (_) {
-      return 'Không thể đồng bộ thông báo.';
+      return _notificationSyncUnavailableMarker;
     }
   }
 
@@ -269,7 +285,7 @@ class NotificationController extends ChangeNotifier {
     try {
       final response = await _client.patch(
         Uri.parse(
-          DealerApiConfig.resolveUrl('/api/dealer/notifications/read-all'),
+          DealerApiConfig.resolveUrl('/api/v1/dealer/notifications/read-all'),
         ),
         headers: await _authorizedJsonHeaders(),
       );
@@ -279,7 +295,7 @@ class NotificationController extends ChangeNotifier {
       }
       return null;
     } catch (_) {
-      return 'Không thể đồng bộ thông báo.';
+      return _notificationSyncUnavailableMarker;
     }
   }
 
@@ -424,9 +440,10 @@ class NotificationController extends ChangeNotifier {
       id: remoteId.toString(),
       type: _mapRemoteType(payload['type']?.toString()),
       title: _normalizeString(payload['title']) ?? 'Thông báo',
-      message: _normalizeString(payload['content']) ?? '',
+      message: _normalizeString(payload['body']) ?? '',
       createdAt: parseApiDateTime(payload['createdAt']) ?? DateTime.now(),
       link: _normalizeString(payload['link']),
+      deepLink: _normalizeString(payload['deepLink']),
     );
 
     final existingIndex = _notices.indexWhere((entry) => entry.id == notice.id);
@@ -457,7 +474,8 @@ class NotificationController extends ChangeNotifier {
     if (notice.type == NoticeType.order) {
       unawaited(_emitOrderSignal());
     }
-    if (notice.link != null && notice.link!.startsWith('/support')) {
+    final noticeTarget = (notice.deepLink ?? notice.link)?.trim() ?? '';
+    if (noticeTarget.startsWith('/support')) {
       _incomingSupportEventVersion.value =
           _incomingSupportEventVersion.value + 1;
     }
@@ -590,7 +608,7 @@ class NotificationController extends ChangeNotifier {
     if (error != null && error.trim().isNotEmpty) {
       return error.trim();
     }
-    return 'Không thể đồng bộ thông báo.';
+    return _notificationSyncUnavailableMarker;
   }
 
   NoticeType _mapRemoteType(String? raw) {

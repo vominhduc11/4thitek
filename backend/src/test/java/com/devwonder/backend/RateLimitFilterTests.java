@@ -32,13 +32,13 @@ class RateLimitFilterTests {
 
     @Test
     void doesNotCountCorsPreflightRequestsAgainstAuthRateLimit() throws Exception {
-        mockMvc.perform(options("/api/auth/login")
+        mockMvc.perform(options("/api/v1/auth/login")
                         .header("Origin", "http://localhost:4173")
                         .header("Access-Control-Request-Method", "POST")
                         .header("Access-Control-Request-Headers", "content-type"))
                 .andReturn();
 
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                         .header("Origin", "http://localhost:4173")
                         .contentType(APPLICATION_JSON)
                         .content("""
@@ -52,12 +52,12 @@ class RateLimitFilterTests {
 
     @Test
     void appliesRateLimitToSepayWebhookEndpoint() throws Exception {
-        mockMvc.perform(post("/api/webhooks/sepay")
+        mockMvc.perform(post("/api/v1/webhooks/sepay")
                         .contentType(APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk());
 
-        mockMvc.perform(post("/api/webhooks/sepay")
+        mockMvc.perform(post("/api/v1/webhooks/sepay")
                         .contentType(APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isTooManyRequests());

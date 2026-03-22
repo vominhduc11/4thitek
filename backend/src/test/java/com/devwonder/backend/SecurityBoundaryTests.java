@@ -30,7 +30,7 @@ class SecurityBoundaryTests {
 
     @Test
     void malformedBearerTokenReturnsUnauthorizedInsteadOfServerError() throws Exception {
-        mockMvc.perform(get("/api/admin/settings")
+        mockMvc.perform(get("/api/v1/admin/settings")
                         .header("Authorization", "Bearer definitely-not-a-jwt"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value("Invalid or expired token"));
@@ -40,13 +40,9 @@ class SecurityBoundaryTests {
     void removedCustomerEndpointsAreNotExposed() {
         boolean exposed = requestMappingHandlerMapping.getHandlerMethods().keySet().stream()
                 .flatMap(info -> info.getPatternValues().stream())
-                .anyMatch(pattern -> "/api/auth/register-customer".equals(pattern)
-                        || "/api/v1/auth/register-customer".equals(pattern)
-                        || "/api/admin/customers".equals(pattern)
+                .anyMatch(pattern -> "/api/v1/auth/register-customer".equals(pattern)
                         || "/api/v1/admin/customers".equals(pattern)
-                        || "/api/admin/customers/{id}".equals(pattern)
                         || "/api/v1/admin/customers/{id}".equals(pattern)
-                        || "/api/admin/customers/{id}/status".equals(pattern)
                         || "/api/v1/admin/customers/{id}/status".equals(pattern));
 
         assertThat(exposed).isFalse();

@@ -660,6 +660,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
     final validationError = warrantyController.validateSerialForExport(
       normalized,
+      isEnglish: texts.isEnglish,
     );
     if (validationError != null) {
       _showSnackBar(validationError);

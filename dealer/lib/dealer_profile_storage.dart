@@ -7,6 +7,67 @@ import 'api_config.dart';
 import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
 
+enum DealerProfileStorageMessageCode {
+  loadFailed,
+  saveFailed,
+  invalidPayload,
+  unauthenticated,
+  temporaryAvatarUnsupported,
+}
+
+const String _dealerProfileMessageTokenPrefix = 'dealer.profile.message.';
+
+String dealerProfileStorageMessageToken(
+  DealerProfileStorageMessageCode code,
+) => '$_dealerProfileMessageTokenPrefix${code.name}';
+
+String resolveDealerProfileStorageMessage(
+  String? message, {
+  required bool isEnglish,
+}) {
+  final normalized = message?.trim();
+  if (normalized == null || normalized.isEmpty) {
+    return isEnglish
+        ? 'Unable to load dealer profile.'
+        : 'Khong the tai ho so dai ly.';
+  }
+
+  switch (normalized) {
+    case 'dealer.profile.message.loadFailed':
+      return isEnglish
+          ? 'Unable to load dealer profile.'
+          : 'Khong the tai ho so dai ly.';
+    case 'dealer.profile.message.saveFailed':
+      return isEnglish
+          ? 'Unable to save dealer profile.'
+          : 'Khong the luu ho so dai ly.';
+    case 'dealer.profile.message.invalidPayload':
+      return isEnglish
+          ? 'Dealer profile data is invalid.'
+          : 'Du lieu ho so dai ly khong hop le.';
+    case 'dealer.profile.message.unauthenticated':
+      return isEnglish
+          ? 'You need to sign in before updating your profile.'
+          : 'Ban can dang nhap truoc khi cap nhat ho so.';
+    case 'dealer.profile.message.temporaryAvatarUnsupported':
+      return isEnglish
+          ? 'Temporary avatar data is not supported. Please upload the image again.'
+          : 'Avatar tam thoi khong duoc ho tro. Vui long tai anh len lai.';
+    default:
+      return normalized;
+  }
+}
+
+String dealerProfileStorageErrorMessage(
+  Object error, {
+  required bool isEnglish,
+}) {
+  final message = error is DealerProfileStorageException
+      ? error.message
+      : error.toString().trim();
+  return resolveDealerProfileStorageMessage(message, isEnglish: isEnglish);
+}
+
 const String _profileBusinessNameKey = 'dealer_profile_business_name';
 const String _profileContactNameKey = 'dealer_profile_contact_name';
 const String _profileEmailKey = 'dealer_profile_email';
@@ -53,13 +114,8 @@ class DealerProfile {
   final String? avatarUrl;
 
   /// Full address joined for display (checkout, account screen, etc.)
-  String get shippingAddress => _joinNonEmpty([
-    addressLine,
-    ward,
-    district,
-    city,
-    country,
-  ]);
+  String get shippingAddress =>
+      _joinNonEmpty([addressLine, ward, district, city, country]);
 
   DealerProfile copyWith({
     String? businessName,
@@ -124,19 +180,28 @@ Future<DealerProfile> loadDealerProfile() async {
 
   try {
     final response = await _authClient.get(
-      Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/profile')),
+      Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/profile')),
       headers: _authorizedHeaders(token),
     );
     final payload = _decodeBody(response.body);
     if (response.statusCode >= 400) {
       throw DealerProfileStorageException(
-        _extractErrorMessage(payload, fallback: 'Không thể tải hồ sơ đại lý.'),
+        _extractErrorMessage(
+          payload,
+          fallback: dealerProfileStorageMessageToken(
+            DealerProfileStorageMessageCode.loadFailed,
+          ),
+        ),
       );
     }
 
     final data = payload['data'];
     if (data is! Map<String, dynamic>) {
-      throw const DealerProfileStorageException('Dữ liệu hồ sơ không hợp lệ.');
+      throw DealerProfileStorageException(
+        dealerProfileStorageMessageToken(
+          DealerProfileStorageMessageCode.invalidPayload,
+        ),
+      );
     }
 
     final remoteProfile = _mapRemoteProfile(
@@ -172,20 +237,24 @@ Future<void> saveDealerProfile(DealerProfile profile) async {
 
   final token = await _readAccessToken();
   if (token == null) {
-    throw const DealerProfileStorageException(
-      'Không thể lưu hồ sơ khi chưa đăng nhập.',
+    throw DealerProfileStorageException(
+      dealerProfileStorageMessageToken(
+        DealerProfileStorageMessageCode.unauthenticated,
+      ),
     );
   }
 
   final avatarUrl = normalizedProfile.avatarUrl ?? '';
   if (avatarUrl.startsWith('data:')) {
-    throw const DealerProfileStorageException(
-      'Không thể lưu avatar tạm khi đang dùng backend. Vui lòng tải ảnh lên lại.',
+    throw DealerProfileStorageException(
+      dealerProfileStorageMessageToken(
+        DealerProfileStorageMessageCode.temporaryAvatarUnsupported,
+      ),
     );
   }
 
   final response = await _authClient.put(
-    Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/profile')),
+    Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/profile')),
     headers: _authorizedJsonHeaders(token),
     body: jsonEncode(<String, dynamic>{
       'businessName': normalizedProfile.businessName,
@@ -204,13 +273,22 @@ Future<void> saveDealerProfile(DealerProfile profile) async {
   final payload = _decodeBody(response.body);
   if (response.statusCode >= 400) {
     throw DealerProfileStorageException(
-      _extractErrorMessage(payload, fallback: 'Không thể lưu hồ sơ đại lý.'),
+      _extractErrorMessage(
+        payload,
+        fallback: dealerProfileStorageMessageToken(
+          DealerProfileStorageMessageCode.saveFailed,
+        ),
+      ),
     );
   }
 
   final data = payload['data'];
   if (data is! Map<String, dynamic>) {
-    throw const DealerProfileStorageException('Dữ liệu hồ sơ không hợp lệ.');
+    throw DealerProfileStorageException(
+      dealerProfileStorageMessageToken(
+        DealerProfileStorageMessageCode.invalidPayload,
+      ),
+    );
   }
 
   final savedProfile = _mapRemoteProfile(data, fallback: normalizedProfile);

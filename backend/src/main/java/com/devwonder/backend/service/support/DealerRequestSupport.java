@@ -40,4 +40,14 @@ public final class DealerRequestSupport {
             return false;
         }
     }
+
+    public static boolean isValidUrlOrUploadPath(String value) {
+        String normalized = normalize(value);
+        if (normalized == null) {
+            return false;
+        }
+        return normalized.startsWith("/api/v1/upload/")
+                || normalized.startsWith("/uploads/")
+                || isValidUrl(normalized);
+    }
 }

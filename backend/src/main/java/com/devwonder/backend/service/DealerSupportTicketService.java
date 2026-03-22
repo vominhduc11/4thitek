@@ -74,7 +74,8 @@ public class DealerSupportTicketService {
                 appMessageSupport.get("notification.support.created.title"),
                 appMessageSupport.get("notification.support.created.content", saved.getTicketCode()),
                 NotifyType.SYSTEM,
-                "/support"
+                "/support",
+                null
         ));
         return toResponse(saved);
     }

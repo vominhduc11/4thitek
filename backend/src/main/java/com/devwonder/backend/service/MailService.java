@@ -6,7 +6,6 @@ import jakarta.mail.internet.MimeMessage;
 import java.nio.charset.StandardCharsets;
 import java.io.UnsupportedEncodingException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -19,29 +18,23 @@ import org.springframework.util.StringUtils;
 public class MailService {
 
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
-
-    @Value("${app.mail.enabled:false}")
-    private boolean enabled;
-
-    @Value("${app.mail.from:}")
-    private String fromAddress;
-
-    @Value("${app.mail.from-name:4ThiTek}")
-    private String fromName;
+    private final AdminSettingsService adminSettingsService;
 
     public boolean isEnabled() {
-        return enabled && StringUtils.hasText(fromAddress) && mailSenderProvider.getIfAvailable() != null;
+        AdminSettingsService.EmailRuntimeSettings settings = adminSettingsService.getEmailSettings();
+        return settings.enabled() && StringUtils.hasText(settings.from()) && mailSenderProvider.getIfAvailable() != null;
     }
 
     public void sendText(String to, String subject, String body) {
         JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
-        if (!isEnabled() || mailSender == null) {
+        AdminSettingsService.EmailRuntimeSettings settings = adminSettingsService.getEmailSettings();
+        if (!settings.enabled() || !StringUtils.hasText(settings.from()) || mailSender == null) {
             throw new IllegalStateException("Email service is not configured");
         }
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
-            helper.setFrom(new InternetAddress(fromAddress, fromName, StandardCharsets.UTF_8.name()));
+            helper.setFrom(new InternetAddress(settings.from(), settings.fromName(), StandardCharsets.UTF_8.name()));
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(body, false);

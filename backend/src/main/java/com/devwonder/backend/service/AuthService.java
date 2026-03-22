@@ -12,7 +12,6 @@ import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Role;
 import com.devwonder.backend.entity.enums.CustomerStatus;
-import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ConflictException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.exception.UnauthorizedException;
@@ -23,11 +22,11 @@ import com.devwonder.backend.security.JWTUtils;
 import com.devwonder.backend.service.support.AccountValidationSupport;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -48,11 +47,8 @@ public class AuthService {
     private final WebSocketEventPublisher webSocketEventPublisher;
     private final DealerAccountLifecycleService dealerAccountLifecycleService;
 
-    @Value("${jwt.access-token-expiration-ms:1800000}")
-    private long accessTokenExpirationMs;
-
     public AuthResponse login(LoginRequest request) {
-        String identity = normalize(request.username());
+        String identity = normalizeLoginIdentity(request.username());
         if (identity == null) {
             throw new BadCredentialsException("Invalid credentials");
         }
@@ -61,13 +57,12 @@ public class AuthService {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(identity, request.password())
             );
-        } catch (DisabledException ex) {
+        } catch (BadCredentialsException | DisabledException ex) {
             throw new BadCredentialsException("Invalid credentials");
         }
 
-        Account account = accountRepository.findByUsernameOrEmail(identity, identity)
+        Account account = accountRepository.findByUsernameIgnoreCaseOrEmailIgnoreCase(identity, identity)
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
-        dealerAccountLifecycleService.assertDealerPortalAccess(account);
 
         String accessToken = jwtUtils.generateToken(account);
         String refreshToken = jwtUtils.generateRefreshToken(new HashMap<>(), account);
@@ -79,29 +74,28 @@ public class AuthService {
     public AuthResponse refreshToken(RefreshTokenRequest request) {
         try {
             if (jwtUtils.isTokenExpired(request.refreshToken())) {
-                throw new BadRequestException("Refresh token expired");
+                throw new UnauthorizedException("Refresh token expired");
             }
 
             String username = jwtUtils.extractUsername(request.refreshToken());
-            Account account = accountRepository.findByUsernameOrEmail(username, username)
+            Account account = accountRepository.findByUsernameIgnoreCaseOrEmailIgnoreCase(username, username)
                     .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
             if (!account.isEnabled()) {
                 throw new UnauthorizedException("Account is not active");
             }
-            dealerAccountLifecycleService.assertDealerPortalAccess(account);
 
             String accessToken = jwtUtils.generateToken(account);
             return buildAuthResponse(account, accessToken, request.refreshToken());
         } catch (JwtException | IllegalArgumentException ex) {
-            throw new BadRequestException("Refresh token is invalid");
+            throw new UnauthorizedException("Refresh token is invalid");
         }
     }
 
     @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
     public RegisterDealerResponse registerDealer(RegisterDealerRequest request) {
-        String username = normalize(request.username());
+        String username = normalizeLoginIdentity(request.username());
         AccountValidationSupport.assertUsernameLength(username, "username");
-        if (accountRepository.existsByUsername(username)) {
+        if (accountRepository.existsByUsernameIgnoreCase(username)) {
             throw new ConflictException("Username already exists");
         }
         AccountValidationSupport.assertStrongPassword(request.password(), "password");
@@ -136,7 +130,7 @@ public class AuthService {
         dealer.setCountry(normalize(request.country()));
         dealer.setAvatarUrl(normalize(request.avatarUrl()));
         dealer.setCustomerStatus(CustomerStatus.UNDER_REVIEW);
-        dealer.setRoles(new HashSet<>(Set.of(resolveRole("USER", "Default dealer role"))));
+        dealer.setRoles(new HashSet<>(Set.of(resolveRole("DEALER", "Default dealer role"))));
 
         Dealer saved = dealerRepository.save(dealer);
         dealerAccountLifecycleService.sendApplicationReceivedEmail(saved);
@@ -151,9 +145,9 @@ public class AuthService {
                 account.getUsername(),
                 account.getClass().getSimpleName().toUpperCase(),
                 account.getRoles().stream().map(Role::getName).collect(java.util.stream.Collectors.toSet()),
-                account instanceof Admin admin && Boolean.TRUE.equals(admin.getRequireLoginEmailConfirmation())
+                account instanceof Admin admin && Boolean.TRUE.equals(admin.getRequirePasswordChange())
         );
-        return new AuthResponse(accessToken, refreshToken, "Bearer", accessTokenExpirationMs, user);
+        return new AuthResponse(accessToken, refreshToken, "Bearer", jwtUtils.getAccessTokenExpirationMs(), user);
     }
 
     private Role resolveRole(String roleName, String description) {
@@ -168,5 +162,10 @@ public class AuthService {
 
     private String normalize(String value) {
         return AccountValidationSupport.normalize(value);
+    }
+
+    private String normalizeLoginIdentity(String value) {
+        String normalized = normalize(value);
+        return normalized == null ? null : normalized.toLowerCase(Locale.ROOT);
     }
 }

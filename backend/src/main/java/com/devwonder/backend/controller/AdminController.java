@@ -64,7 +64,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping({"/api/admin", "/api/v1/admin"})
+@RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor
 public class AdminController {
 
@@ -393,7 +393,7 @@ public class AdminController {
 
     @PutMapping("/settings")
     public ResponseEntity<ApiResponse<AdminSettingsResponse>> updateSettings(
-            @RequestBody UpdateAdminSettingsRequest request
+            @Valid @RequestBody UpdateAdminSettingsRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(adminSettingsService.updateSettings(request)));
     }

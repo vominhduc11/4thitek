@@ -12,6 +12,7 @@ import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ConflictException;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.PaymentRepository;
+import com.devwonder.backend.service.AdminSettingsService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -26,6 +27,7 @@ public class DealerPaymentSupport {
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
     private final DealerOrderNotificationSupport dealerOrderNotificationSupport;
+    private final AdminSettingsService adminSettingsService;
 
     public List<DealerPaymentResponse> getPayments(Long orderId) {
         return paymentRepository.findByOrderIdOrderByPaidAtDescIdDesc(orderId).stream()
@@ -45,10 +47,9 @@ public class DealerPaymentSupport {
     public DealerPaymentResponse recordAdminPayment(
             Order order,
             RecordPaymentRequest request,
-            boolean sepayEnabled,
             List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
     ) {
-        if (order.getPaymentMethod() == PaymentMethod.BANK_TRANSFER && sepayEnabled) {
+        if (order.getPaymentMethod() == PaymentMethod.BANK_TRANSFER && isSepayEnabled()) {
             throw new BadRequestException("Bank transfer payments are confirmed by SePay webhook");
         }
         return recordPaymentInternal(order.getDealer(), order, request, true, activeDiscountRules);
@@ -62,7 +63,7 @@ public class DealerPaymentSupport {
             List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
     ) {
         if (order.getPaymentMethod() == PaymentMethod.BANK_TRANSFER) {
-            if (!allowManualBankTransfer) {
+            if (!allowManualBankTransfer && isSepayEnabled()) {
                 throw new BadRequestException("Bank transfer payments are confirmed by SePay webhook");
             }
         }
@@ -116,5 +117,9 @@ public class DealerPaymentSupport {
         BigDecimal paidAmount = DealerOrderSupport.zeroIfNull(order.getPaidAmount());
         BigDecimal outstandingAmount = totalAmount.subtract(paidAmount);
         return outstandingAmount.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : outstandingAmount;
+    }
+
+    private boolean isSepayEnabled() {
+        return adminSettingsService.getSepaySettings().enabled();
     }
 }

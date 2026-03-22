@@ -7,6 +7,51 @@ import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
 import 'utils.dart';
 
+enum SupportMessageCode {
+  unauthenticated,
+  invalidTicketPayload,
+  invalidTicketPagePayload,
+  syncFailed,
+}
+
+const String _supportMessageTokenPrefix = 'support.message.';
+
+String supportServiceMessageToken(SupportMessageCode code) =>
+    '$_supportMessageTokenPrefix${code.name}';
+
+String resolveSupportServiceMessage(
+  String? message, {
+  required bool isEnglish,
+}) {
+  final normalized = message?.trim();
+  if (normalized == null || normalized.isEmpty) {
+    return isEnglish
+        ? 'Unable to sync support request.'
+        : 'Khong the dong bo yeu cau ho tro.';
+  }
+
+  switch (normalized) {
+    case 'support.message.unauthenticated':
+      return isEnglish
+          ? 'You need to sign in before contacting support.'
+          : 'Ban can dang nhap truoc khi lien he ho tro.';
+    case 'support.message.invalidTicketPayload':
+      return isEnglish
+          ? 'Support ticket data is invalid.'
+          : 'Du lieu yeu cau ho tro khong hop le.';
+    case 'support.message.invalidTicketPagePayload':
+      return isEnglish
+          ? 'Support request history data is invalid.'
+          : 'Du lieu lich su yeu cau ho tro khong hop le.';
+    case 'support.message.syncFailed':
+      return isEnglish
+          ? 'Unable to sync support request.'
+          : 'Khong the dong bo yeu cau ho tro.';
+    default:
+      return normalized;
+  }
+}
+
 class DealerSupportTicketRecord {
   const DealerSupportTicketRecord({
     required this.id,
@@ -73,7 +118,7 @@ class SupportService {
 
     final response = await _client.get(
       Uri.parse(
-        DealerApiConfig.resolveUrl('/api/dealer/support-tickets/latest'),
+        DealerApiConfig.resolveUrl('/api/v1/dealer/support-tickets/latest'),
       ),
       headers: await _authorizedHeaders(),
     );
@@ -86,7 +131,9 @@ class SupportService {
       return null;
     }
     if (data is! Map<String, dynamic>) {
-      throw const SupportException('Support ticket payload is invalid.');
+      throw SupportException(
+        supportServiceMessageToken(SupportMessageCode.invalidTicketPayload),
+      );
     }
     return _mapTicket(data);
   }
@@ -98,7 +145,7 @@ class SupportService {
     required String message,
   }) async {
     final response = await _client.post(
-      Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/support-tickets')),
+      Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/support-tickets')),
       headers: await _authorizedJsonHeaders(),
       body: jsonEncode(<String, dynamic>{
         'category': category,
@@ -113,7 +160,9 @@ class SupportService {
     }
     final data = payload['data'];
     if (data is! Map<String, dynamic>) {
-      throw const SupportException('Support ticket payload is invalid.');
+      throw SupportException(
+        supportServiceMessageToken(SupportMessageCode.invalidTicketPayload),
+      );
     }
     return _mapTicket(data);
   }
@@ -125,7 +174,7 @@ class SupportService {
     final response = await _client.get(
       Uri.parse(
         DealerApiConfig.resolveUrl(
-          '/api/dealer/support-tickets/page?page=$page&size=$size',
+          '/api/v1/dealer/support-tickets/page?page=$page&size=$size',
         ),
       ),
       headers: await _authorizedHeaders(),
@@ -136,7 +185,9 @@ class SupportService {
     }
     final data = payload['data'];
     if (data is! Map<String, dynamic>) {
-      throw const SupportException('Support ticket page payload is invalid.');
+      throw SupportException(
+        supportServiceMessageToken(SupportMessageCode.invalidTicketPagePayload),
+      );
     }
     final items = (data['items'] as List<dynamic>? ?? const <dynamic>[])
         .whereType<Map<String, dynamic>>()
@@ -169,8 +220,8 @@ class SupportService {
   Future<Map<String, String>> _authorizedHeaders() async {
     final token = await _readAccessToken();
     if (token == null) {
-      throw const SupportException(
-        'You need to sign in before contacting support.',
+      throw SupportException(
+        supportServiceMessageToken(SupportMessageCode.unauthenticated),
       );
     }
     return <String, String>{
@@ -200,7 +251,7 @@ class SupportService {
     if (error != null && error.isNotEmpty) {
       return error;
     }
-    return 'Could not sync support request.';
+    return supportServiceMessageToken(SupportMessageCode.syncFailed);
   }
 
   DealerSupportTicketRecord _mapTicket(Map<String, dynamic> json) {

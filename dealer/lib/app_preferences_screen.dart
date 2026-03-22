@@ -170,14 +170,14 @@ class AppPreferencesScreen extends StatelessWidget {
                           Text(texts.languageSubtitle),
                           const SizedBox(height: 10),
                           SegmentedButton<String>(
-                            segments: const [
+                            segments: [
                               ButtonSegment<String>(
                                 value: 'vi',
-                                label: Text('Tiếng Việt'),
+                                label: Text(texts.languageOptionLabel('vi')),
                               ),
                               ButtonSegment<String>(
                                 value: 'en',
-                                label: Text('English'),
+                                label: Text(texts.languageOptionLabel('en')),
                               ),
                             ],
                             selected: <String>{settings.locale.languageCode},
@@ -219,6 +219,21 @@ class _AppPreferencesTexts {
   String get previewBody => isEnglish
       ? 'Example body text for current mode.'
       : 'Văn bản mô phỏng theo giao diện hiện tại.';
+
+  String languageOptionLabel(String languageCode) {
+    if (isEnglish) {
+      return switch (languageCode) {
+        'vi' => 'Vietnamese',
+        'en' => 'English',
+        _ => languageCode,
+      };
+    }
+    return switch (languageCode) {
+      'vi' => 'Tiếng Việt',
+      'en' => 'Tiếng Anh',
+      _ => languageCode,
+    };
+  }
 
   String themeModeLabel(ThemeMode mode) {
     if (isEnglish) {

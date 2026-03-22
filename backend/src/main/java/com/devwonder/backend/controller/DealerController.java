@@ -17,6 +17,7 @@ import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
 import com.devwonder.backend.dto.dealer.UpdateDealerProfileRequest;
 import com.devwonder.backend.dto.dealer.UpdateDealerSerialStatusRequest;
 import com.devwonder.backend.dto.dealer.UpsertDealerCartItemRequest;
+import com.devwonder.backend.dto.customer.ChangePasswordRequest;
 import com.devwonder.backend.dto.notify.NotifyResponse;
 import com.devwonder.backend.dto.pagination.PagedResponse;
 import com.devwonder.backend.dto.warranty.CreateWarrantyRegistrationRequest;
@@ -48,7 +49,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping({"/api/dealer", "/api/v1/dealer"})
+@RequestMapping("/api/v1/dealer")
 @RequiredArgsConstructor
 public class DealerController {
 
@@ -76,7 +77,7 @@ public class DealerController {
     @PutMapping("/profile")
     public ResponseEntity<ApiResponse<DealerProfileResponse>> updateProfile(
             Authentication authentication,
-            @RequestBody UpdateDealerProfileRequest request
+            @Valid @RequestBody UpdateDealerProfileRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(dealerPortalService.updateProfile(extractUsername(authentication), request)));
     }
@@ -266,6 +267,14 @@ public class DealerController {
         return ResponseEntity.ok(ApiResponse.success(dealerPortalService.getSerials(extractUsername(authentication))));
     }
 
+    @PostMapping("/serials/import")
+    public ResponseEntity<ApiResponse<List<DealerProductSerialResponse>>> importSerials(
+            Authentication authentication,
+            @Valid @RequestBody CreateDealerSerialBatchRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(dealerPortalService.importSerials(extractUsername(authentication), request)));
+    }
+
     @PatchMapping("/serials/{id}/status")
     public ResponseEntity<ApiResponse<DealerProductSerialResponse>> updateSerialStatus(
             Authentication authentication,
@@ -300,6 +309,19 @@ public class DealerController {
             @Valid @RequestBody CreateDealerSupportTicketRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(dealerSupportTicketService.createTicket(extractUsername(authentication), request)));
+    }
+
+    @PatchMapping("/password")
+    public ResponseEntity<ApiResponse<Map<String, String>>> changePassword(
+            Authentication authentication,
+            @Valid @RequestBody ChangePasswordRequest request
+    ) {
+        dealerPortalService.changePassword(
+                extractUsername(authentication),
+                request.currentPassword(),
+                request.newPassword()
+        );
+        return ResponseEntity.ok(ApiResponse.success(Map.of("status", "updated")));
     }
 
     private String extractUsername(Authentication authentication) {

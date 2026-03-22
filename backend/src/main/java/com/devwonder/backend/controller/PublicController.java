@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping({"/api", "/api/v1"})
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class PublicController {
 
@@ -70,6 +70,14 @@ public class PublicController {
     @GetMapping("/user/dealer")
     public ResponseEntity<ApiResponse<Map<String, List<PublicDealerResponse>>>> dealers() {
         return ResponseEntity.ok(ApiResponse.success(Map.of("dealers", publicApiService.getDealers())));
+    }
+
+    @GetMapping("/user/dealer/page")
+    public ResponseEntity<ApiResponse<PagedResponse<PublicDealerResponse>>> dealersPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(publicApiService.getDealersPaged(page, size)));
     }
 
     @GetMapping("/warranty/check/{serial}")

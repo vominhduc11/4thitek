@@ -9,6 +9,92 @@ import 'dealer_auth_client.dart';
 import 'models.dart';
 import 'utils.dart';
 
+enum OrderMessageCode {
+  apiNotConfigured,
+  unauthenticated,
+  invalidOrderPayload,
+  invalidOrdersPayload,
+  invalidCreateOrderPayload,
+  statusUpdateFailed,
+  paymentFailed,
+  syncFailed,
+}
+
+const String _orderMessageTokenPrefix = 'order.message.';
+
+String orderControllerMessageToken(OrderMessageCode code) =>
+    '$_orderMessageTokenPrefix${code.name}';
+
+String resolveOrderControllerMessage(
+  String? message, {
+  required bool isEnglish,
+}) {
+  final normalized = message?.trim();
+  if (normalized == null || normalized.isEmpty) {
+    return isEnglish
+        ? 'Unable to sync order data.'
+        : 'Khong the dong bo du lieu don hang.';
+  }
+
+  switch (normalized) {
+    case 'order.message.apiNotConfigured':
+      return isEnglish
+          ? 'Order API is not configured.'
+          : 'API don hang chua duoc cau hinh.';
+    case 'order.message.unauthenticated':
+      return isEnglish
+          ? 'You need to sign in before managing orders.'
+          : 'Ban can dang nhap truoc khi thao tac don hang.';
+    case 'order.message.invalidOrderPayload':
+      return isEnglish
+          ? 'Order data is invalid.'
+          : 'Du lieu don hang khong hop le.';
+    case 'order.message.invalidOrdersPayload':
+      return isEnglish
+          ? 'Orders data is invalid.'
+          : 'Du lieu danh sach don hang khong hop le.';
+    case 'order.message.invalidCreateOrderPayload':
+      return isEnglish
+          ? 'Created order data is invalid.'
+          : 'Du lieu don hang vua tao khong hop le.';
+    case 'order.message.statusUpdateFailed':
+      return isEnglish
+          ? 'Unable to update the order status. Please try again.'
+          : 'Khong the cap nhat trang thai don hang. Vui long thu lai.';
+    case 'order.message.paymentFailed':
+      return isEnglish
+          ? 'Unable to record the payment. Please check again.'
+          : 'Khong the ghi nhan thanh toan. Vui long kiem tra lai.';
+    case 'order.message.syncFailed':
+      return isEnglish
+          ? 'Unable to sync order data.'
+          : 'Khong the dong bo du lieu don hang.';
+    default:
+      return normalized;
+  }
+}
+
+String orderControllerErrorMessage(
+  Object? error, {
+  required bool isEnglish,
+}) {
+  final message = switch (error) {
+    OrderControllerException() => error.message,
+    String() => error,
+    _ => error?.toString(),
+  };
+  return resolveOrderControllerMessage(message, isEnglish: isEnglish);
+}
+
+class OrderControllerException implements Exception {
+  const OrderControllerException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 class OrderController extends ChangeNotifier {
   OrderController({
     Product? Function(String productId)? productLookup,
@@ -41,8 +127,12 @@ class OrderController extends ChangeNotifier {
   bool _ordersCacheDirty = true;
   bool _debtOrdersCacheDirty = true;
   bool _paymentHistoryCacheDirty = true;
+  String? _lastActionMessage;
+
+  String? get lastActionMessage => _lastActionMessage;
 
   Future<void> load({bool forceRefresh = false}) async {
+    _lastActionMessage = null;
     final loadedRemote = await _loadRemoteOrdersAndPayments();
     if (loadedRemote) {
       return;
@@ -57,6 +147,7 @@ class OrderController extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
+    _lastActionMessage = null;
     final loadedRemote = await _loadRemoteOrdersAndPayments();
     if (!loadedRemote) {
       await Future<void>.delayed(const Duration(milliseconds: 300));
@@ -82,15 +173,18 @@ class OrderController extends ChangeNotifier {
         existing.paidAmount == newPaidAmount) {
       return;
     }
-    _replaceOrder(existing.copyWith(
-      status: newStatus,
-      paymentStatus: newPaymentStatus,
-      paidAmount: newPaidAmount,
-    ));
+    _replaceOrder(
+      existing.copyWith(
+        status: newStatus,
+        paymentStatus: newPaymentStatus,
+        paidAmount: newPaidAmount,
+      ),
+    );
     notifyListeners();
   }
 
   Future<void> clearSessionData() async {
+    _lastActionMessage = null;
     _remoteOrderIds.clear();
     _remoteOrderCodes.clear();
     _replaceOrders(const <Order>[]);
@@ -169,25 +263,35 @@ class OrderController extends ChangeNotifier {
   }
 
   Future<Order> addOrder(Order order) async {
+    _lastActionMessage = null;
     if (!await _canUseRemoteApi()) {
-      throw StateError('Backend API is not available.');
+      throw OrderControllerException(_unavailableActionMessage());
     }
-    return _createRemoteOrder(order);
+    try {
+      return await _createRemoteOrder(order);
+    } catch (error) {
+      _lastActionMessage = _normalizeOrderControllerFailure(
+        error,
+        fallbackCode: OrderMessageCode.invalidCreateOrderPayload,
+      );
+      rethrow;
+    }
   }
 
   static const Map<OrderStatus, Set<OrderStatus>> _validTransitions =
       <OrderStatus, Set<OrderStatus>>{
-    OrderStatus.pendingApproval: {
-      OrderStatus.approved,
-      OrderStatus.cancelled,
-    },
-    OrderStatus.approved: {OrderStatus.shipping, OrderStatus.cancelled},
-    OrderStatus.shipping: {OrderStatus.completed, OrderStatus.cancelled},
-    OrderStatus.completed: {},
-    OrderStatus.cancelled: {},
-  };
+        OrderStatus.pendingApproval: {
+          OrderStatus.approved,
+          OrderStatus.cancelled,
+        },
+        OrderStatus.approved: {OrderStatus.shipping, OrderStatus.cancelled},
+        OrderStatus.shipping: {OrderStatus.completed, OrderStatus.cancelled},
+        OrderStatus.completed: {},
+        OrderStatus.cancelled: {},
+      };
 
   Future<bool> updateOrderStatus(String orderId, OrderStatus status) async {
+    _lastActionMessage = null;
     final current = _orderById[orderId];
     if (current == null) {
       return false;
@@ -204,7 +308,7 @@ class OrderController extends ChangeNotifier {
         final response = await _client.patch(
           Uri.parse(
             DealerApiConfig.resolveUrl(
-              '/api/dealer/orders/$remoteOrderId/status',
+              '/api/v1/dealer/orders/$remoteOrderId/status',
             ),
           ),
           headers: await _authorizedJsonHeaders(),
@@ -214,21 +318,35 @@ class OrderController extends ChangeNotifier {
         );
         final payload = _decodeBody(response.body);
         if (response.statusCode >= 400) {
-          throw Exception(_extractErrorMessage(payload));
+          throw OrderControllerException(
+            _extractErrorMessageWithFallback(
+              payload,
+              orderControllerMessageToken(
+                OrderMessageCode.statusUpdateFailed,
+              ),
+            ),
+          );
         }
         final data = payload['data'];
         if (data is! Map<String, dynamic>) {
-          throw Exception('Invalid order payload');
+          throw const OrderControllerException(
+            'order.message.invalidOrderPayload',
+          );
         }
         final nextOrder = _mapRemoteOrder(data);
         _replaceOrder(nextOrder);
         notifyListeners();
         return true;
-      } catch (_) {
+      } catch (error) {
+        _lastActionMessage = _normalizeOrderControllerFailure(
+          error,
+          fallbackCode: OrderMessageCode.statusUpdateFailed,
+        );
         return false;
       }
     }
 
+    _lastActionMessage = _unavailableActionMessage();
     return false;
   }
 
@@ -240,6 +358,7 @@ class OrderController extends ChangeNotifier {
     String? proofFileName,
     OrderPaymentMethod? method,
   }) async {
+    _lastActionMessage = null;
     final current = _orderById[orderId];
     if (current == null) {
       return false;
@@ -275,7 +394,7 @@ class OrderController extends ChangeNotifier {
         final response = await _client.post(
           Uri.parse(
             DealerApiConfig.resolveUrl(
-              '/api/dealer/orders/$remoteOrderId/payments',
+              '/api/v1/dealer/orders/$remoteOrderId/payments',
             ),
           ),
           headers: await _authorizedJsonHeaders(),
@@ -290,7 +409,14 @@ class OrderController extends ChangeNotifier {
         );
         final payload = _decodeBody(response.body);
         if (response.statusCode >= 400) {
-          throw Exception(_extractErrorMessage(payload));
+          throw OrderControllerException(
+            _extractErrorMessageWithFallback(
+              payload,
+              orderControllerMessageToken(
+                OrderMessageCode.paymentFailed,
+              ),
+            ),
+          );
         }
         final paymentData = payload['data'];
         final nextPayment = paymentData is Map<String, dynamic>
@@ -305,11 +431,16 @@ class OrderController extends ChangeNotifier {
         }
         notifyListeners();
         return true;
-      } catch (_) {
+      } catch (error) {
+        _lastActionMessage = _normalizeOrderControllerFailure(
+          error,
+          fallbackCode: OrderMessageCode.paymentFailed,
+        );
         return false;
       }
     }
 
+    _lastActionMessage = _unavailableActionMessage();
     return false;
   }
 
@@ -320,16 +451,23 @@ class OrderController extends ChangeNotifier {
 
     try {
       final response = await _client.get(
-        Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/orders')),
+        Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/orders')),
         headers: await _authorizedHeaders(),
       );
       final payload = _decodeBody(response.body);
       if (response.statusCode >= 400) {
-        throw Exception(_extractErrorMessage(payload));
+        throw OrderControllerException(
+          _extractErrorMessageWithFallback(
+            payload,
+            orderControllerMessageToken(OrderMessageCode.syncFailed),
+          ),
+        );
       }
       final data = payload['data'];
       if (data is! List) {
-        throw Exception('Invalid orders payload');
+        throw const OrderControllerException(
+          'order.message.invalidOrdersPayload',
+        );
       }
 
       final remoteOrders = <Order>[];
@@ -347,14 +485,18 @@ class OrderController extends ChangeNotifier {
       _replacePaymentHistory(paymentsByOrder.expand((items) => items));
       notifyListeners();
       return true;
-    } catch (_) {
+    } catch (error) {
+      _lastActionMessage = _normalizeOrderControllerFailure(
+        error,
+        fallbackCode: OrderMessageCode.syncFailed,
+      );
       return false;
     }
   }
 
   Future<Order> _createRemoteOrder(Order order) async {
     final response = await _client.post(
-      Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/orders')),
+      Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/orders')),
       headers: await _authorizedJsonHeaders(),
       body: jsonEncode(<String, dynamic>{
         'paymentMethod': _toRemotePaymentMethod(order.paymentMethod),
@@ -376,11 +518,18 @@ class OrderController extends ChangeNotifier {
     );
     final payload = _decodeBody(response.body);
     if (response.statusCode >= 400) {
-      throw Exception(_extractErrorMessage(payload));
+      throw OrderControllerException(
+        _extractErrorMessageWithFallback(
+          payload,
+          orderControllerMessageToken(OrderMessageCode.paymentFailed),
+        ),
+      );
     }
     final data = payload['data'];
     if (data is! Map<String, dynamic>) {
-      throw Exception('Invalid create order payload');
+      throw const OrderControllerException(
+        'order.message.invalidCreateOrderPayload',
+      );
     }
     final remoteOrder = _mapRemoteOrder(data);
     _replaceOrder(remoteOrder);
@@ -392,17 +541,24 @@ class OrderController extends ChangeNotifier {
   Future<void> _reloadRemoteOrder(int remoteOrderId) async {
     final response = await _client.get(
       Uri.parse(
-        DealerApiConfig.resolveUrl('/api/dealer/orders/$remoteOrderId'),
+        DealerApiConfig.resolveUrl('/api/v1/dealer/orders/$remoteOrderId'),
       ),
       headers: await _authorizedHeaders(),
     );
     final payload = _decodeBody(response.body);
     if (response.statusCode >= 400) {
-      throw Exception(_extractErrorMessage(payload));
+      throw OrderControllerException(
+        _extractErrorMessageWithFallback(
+          payload,
+          orderControllerMessageToken(
+            OrderMessageCode.invalidOrderPayload,
+          ),
+        ),
+      );
     }
     final data = payload['data'];
     if (data is! Map<String, dynamic>) {
-      throw Exception('Invalid order payload');
+      throw const OrderControllerException('order.message.invalidOrderPayload');
     }
     _replaceOrder(_mapRemoteOrder(data));
   }
@@ -413,14 +569,19 @@ class OrderController extends ChangeNotifier {
     final response = await _client.get(
       Uri.parse(
         DealerApiConfig.resolveUrl(
-          '/api/dealer/orders/$remoteOrderId/payments',
+          '/api/v1/dealer/orders/$remoteOrderId/payments',
         ),
       ),
       headers: await _authorizedHeaders(),
     );
     final payload = _decodeBody(response.body);
     if (response.statusCode >= 400) {
-      throw Exception(_extractErrorMessage(payload));
+      throw OrderControllerException(
+        _extractErrorMessageWithFallback(
+          payload,
+          orderControllerMessageToken(OrderMessageCode.paymentFailed),
+        ),
+      );
     }
     final data = payload['data'];
     if (data is! List) {
@@ -612,7 +773,9 @@ class OrderController extends ChangeNotifier {
   Future<Map<String, String>> _authorizedHeaders() async {
     final token = await _readAccessToken();
     if (token == null) {
-      throw StateError('Unauthenticated request');
+      throw OrderControllerException(
+        orderControllerMessageToken(OrderMessageCode.unauthenticated),
+      );
     }
     return <String, String>{
       'Accept': 'application/json',
@@ -646,6 +809,45 @@ class OrderController extends ChangeNotifier {
 
   Product? _findProductById(String id) {
     return _productLookup?.call(id);
+  }
+
+  String _extractErrorMessageWithFallback(
+    Map<String, dynamic> payload,
+    String fallback,
+  ) {
+    final error = payload['error']?.toString();
+    if (error != null && error.trim().isNotEmpty) {
+      return _extractErrorMessage(payload);
+    }
+    return fallback;
+  }
+
+  String _unavailableActionMessage() {
+    if (!DealerApiConfig.isConfigured) {
+      return orderControllerMessageToken(OrderMessageCode.apiNotConfigured);
+    }
+    return orderControllerMessageToken(OrderMessageCode.unauthenticated);
+  }
+
+  String _normalizeOrderControllerFailure(
+    Object error, {
+    required OrderMessageCode fallbackCode,
+  }) {
+    final message = switch (error) {
+      OrderControllerException() => error.message,
+      String() => error,
+      _ => error.toString(),
+    };
+    final normalized = message
+        .replaceFirst(RegExp(r'^Exception:\s*'), '')
+        .trim();
+    if (normalized.isEmpty) {
+      return orderControllerMessageToken(fallbackCode);
+    }
+    if (normalized.contains('Unauthenticated request')) {
+      return orderControllerMessageToken(OrderMessageCode.unauthenticated);
+    }
+    return normalized;
   }
 
   int _parseInt(Object? value, {int fallback = 0}) {

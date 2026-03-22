@@ -48,31 +48,18 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(request -> request
                         .requestMatchers(
-                                "/admin/users",
-                                "/admin/users/**",
-                                "/api/admin/users",
-                                "/api/admin/users/**",
                                 "/api/v1/admin/users",
                                 "/api/v1/admin/users/**"
                         )
                         .hasAuthority("SUPER_ADMIN")
                         .requestMatchers(
-                                "/auth/**",
-                                "/api/auth/**",
                                 "/api/v1/auth/**",
-                                "/public/**",
                                 "/uploads/**",
-                                "/api/content/**",
                                 "/api/v1/content/**",
-                                "/api/blog/**",
                                 "/api/v1/blog/**",
-                                "/api/product/**",
                                 "/api/v1/product/**",
-                                "/api/warranty/check/**",
                                 "/api/v1/warranty/check/**",
-                                "/api/webhooks/sepay",
                                 "/api/v1/webhooks/sepay",
-                                "/api/health",
                                 "/api/v1/health",
                                 "/actuator/health",
                                 "/ws/**",
@@ -80,35 +67,27 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/user/dealer", "/api/v1/user/dealer").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/user/dealer/page", "/api/v1/user/dealer/page").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/user/dealer", "/api/v1/user/dealer").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/user/dealer").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/user/dealer/page").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/upload/**").permitAll()
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/api/upload/products",
                                 "/api/v1/upload/products",
-                                "/api/upload/blogs",
                                 "/api/v1/upload/blogs",
-                                "/api/upload/avatars",
                                 "/api/v1/upload/avatars"
                         ).hasAnyAuthority("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/api/upload/dealer-avatars",
                                 "/api/v1/upload/dealer-avatars",
-                                "/api/upload/payment-proofs",
                                 "/api/v1/upload/payment-proofs"
-                        ).hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
+                        ).hasAnyAuthority("DEALER", "ADMIN", "SUPER_ADMIN")
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/api/warranty-activation",
                                 "/api/v1/warranty-activation"
-                        ).hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/upload", "/api/v1/upload").hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
-                        .requestMatchers("/api/upload/**", "/api/v1/upload/**").authenticated()
-                        .requestMatchers("/admin/**", "/api/admin/**", "/api/v1/admin/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers("/user/**", "/api/dealer/**", "/api/v1/dealer/**").hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
-                        .requestMatchers("/adminuser/**").hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
+                        ).hasAuthority("DEALER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/upload").hasAnyAuthority("DEALER", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/v1/admin/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/v1/dealer/**").hasAuthority("DEALER")
                         .anyRequest().authenticated())
                 .sessionManagement(manager -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(daoAuthenticationProvider())

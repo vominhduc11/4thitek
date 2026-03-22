@@ -208,7 +208,7 @@ class AdminSerialInvariantTests {
         );
 
         assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
-                .isEqualTo(ProductSerialStatus.AVAILABLE);
+                .isEqualTo(ProductSerialStatus.WARRANTY);
     }
 
     private Dealer createDealer(String email) {

@@ -8,6 +8,60 @@ import 'api_config.dart';
 import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
 
+enum UploadMessageCode {
+  apiNotConfigured,
+  unauthenticated,
+  invalidJson,
+  uploadFailed,
+  missingMetadata,
+}
+
+const String _uploadMessageTokenPrefix = 'upload.message.';
+
+String uploadServiceMessageToken(UploadMessageCode code) =>
+    '$_uploadMessageTokenPrefix${code.name}';
+
+String resolveUploadServiceMessage(String? message, {required bool isEnglish}) {
+  final normalized = message?.trim();
+  if (normalized == null || normalized.isEmpty) {
+    return isEnglish ? 'Upload failed.' : 'Tai len that bai.';
+  }
+
+  switch (normalized) {
+    case 'upload.message.apiNotConfigured':
+      return isEnglish
+          ? 'Upload API is not configured.'
+          : 'API tai len chua duoc cau hinh.';
+    case 'upload.message.unauthenticated':
+      return isEnglish
+          ? 'You need to sign in before uploading files.'
+          : 'Ban can dang nhap truoc khi tai tep len.';
+    case 'upload.message.invalidJson':
+      return isEnglish
+          ? 'Upload response is invalid.'
+          : 'Phan hoi tai len khong hop le.';
+    case 'upload.message.uploadFailed':
+      return isEnglish ? 'Upload failed.' : 'Tai len that bai.';
+    case 'upload.message.missingMetadata':
+      return isEnglish
+          ? 'Upload response is missing file metadata.'
+          : 'Phan hoi tai len thieu thong tin tep.';
+    default:
+      return normalized;
+  }
+}
+
+String uploadServiceErrorMessage(
+  Object error, {
+  required bool isEnglish,
+}) {
+  final message = switch (error) {
+    UploadException() => error.message,
+    _ => error.toString().trim(),
+  };
+  return resolveUploadServiceMessage(message, isEnglish: isEnglish);
+}
+
 class UploadedFileRef {
   const UploadedFileRef({required this.url, required this.fileName});
 
@@ -32,13 +86,15 @@ class UploadService {
     required String category,
   }) async {
     if (!DealerApiConfig.isConfigured) {
-      throw const UploadException('API upload is not configured.');
+      throw UploadException(
+        uploadServiceMessageToken(UploadMessageCode.apiNotConfigured),
+      );
     }
 
     final accessToken = await _authStorage.readAccessToken();
     if (accessToken == null || accessToken.trim().isEmpty) {
-      throw const UploadException(
-        'You need to sign in before uploading files.',
+      throw UploadException(
+        uploadServiceMessageToken(UploadMessageCode.unauthenticated),
       );
     }
 
@@ -56,29 +112,44 @@ class UploadService {
 
     final streamedResponse = await _client.send(request);
     final response = await http.Response.fromStream(streamedResponse);
-    final decoded = jsonDecode(response.body);
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } catch (_) {
+      throw UploadException(
+        uploadServiceMessageToken(UploadMessageCode.invalidJson),
+      );
+    }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final message = decoded is Map<String, dynamic>
           ? decoded['error']?.toString()
           : null;
       throw UploadException(
-        message ?? 'Upload failed with status ${response.statusCode}.',
+        message ??
+            uploadServiceMessageToken(UploadMessageCode.uploadFailed),
       );
     }
     if (decoded is! Map<String, dynamic>) {
-      throw const UploadException('Upload response is not valid JSON.');
+      throw UploadException(
+        uploadServiceMessageToken(UploadMessageCode.invalidJson),
+      );
     }
 
     final success = decoded['success'] == true;
     final data = decoded['data'];
     if (!success || data is! Map<String, dynamic>) {
-      throw UploadException(decoded['error']?.toString() ?? 'Upload failed.');
+      throw UploadException(
+        decoded['error']?.toString() ??
+            uploadServiceMessageToken(UploadMessageCode.uploadFailed),
+      );
     }
 
     final rawUrl = data['url']?.toString() ?? '';
     final fileName = data['fileName']?.toString() ?? '';
     if (rawUrl.isEmpty || fileName.isEmpty) {
-      throw const UploadException('Upload response is missing file metadata.');
+      throw UploadException(
+        uploadServiceMessageToken(UploadMessageCode.missingMetadata),
+      );
     }
 
     return UploadedFileRef(

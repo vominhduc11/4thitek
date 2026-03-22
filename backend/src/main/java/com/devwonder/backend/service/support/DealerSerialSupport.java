@@ -15,9 +15,11 @@ import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -43,18 +45,13 @@ public class DealerSerialSupport {
         ProductSerial productSerial = productSerialRepository.findByIdAndDealerId(serialId, dealerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Serial not found"));
         ProductSerialStatus nextStatus = request.status();
-        if (nextStatus != ProductSerialStatus.AVAILABLE && nextStatus != ProductSerialStatus.DEFECTIVE) {
+        if (nextStatus != ProductSerialStatus.DEFECTIVE && nextStatus != ProductSerialStatus.RETURNED) {
             throw new BadRequestException("Unsupported serial status transition");
         }
 
         ProductSerialStatus currentStatus = productSerial.getStatus();
-        if (currentStatus == ProductSerialStatus.WARRANTY
-                || currentStatus == ProductSerialStatus.ASSIGNED
-                || productSerial.getWarranty() != null) {
-            throw new BadRequestException("Activated serial cannot change defective status");
-        }
-        if (currentStatus != ProductSerialStatus.AVAILABLE && currentStatus != ProductSerialStatus.DEFECTIVE) {
-            throw new BadRequestException("Only inventory serials can change defective status");
+        if (currentStatus != ProductSerialStatus.ASSIGNED && currentStatus != ProductSerialStatus.WARRANTY) {
+            throw new BadRequestException("Only ASSIGNED or WARRANTY serials can be marked DEFECTIVE or RETURNED");
         }
 
         productSerial.setStatus(nextStatus);
@@ -88,14 +85,25 @@ public class DealerSerialSupport {
         if (existingCount + request.serials().size() > orderedQuantity) {
             throw new BadRequestException("Imported serial count exceeds ordered quantity");
         }
+        ProductSerialStatus initialStatus = resolveImportedStatus(orderStatus, request.status());
+        Set<String> uniqueSerials = new LinkedHashSet<>();
+        for (String rawSerial : request.serials()) {
+            String normalizedSerial = DealerRequestSupport.requireNonBlank(rawSerial, "serial").toUpperCase(Locale.ROOT);
+            if (!uniqueSerials.add(normalizedSerial)) {
+                continue;
+            }
+            productSerialRepository.findBySerialIgnoreCase(normalizedSerial).ifPresent(existing -> {
+                throw new BadRequestException("Serial already exists: " + normalizedSerial);
+            });
+        }
         List<ProductSerial> toSave = new ArrayList<>();
-        for (String serialValue : request.serials()) {
+        for (String serialValue : uniqueSerials) {
             ProductSerial serial = new ProductSerial();
-            serial.setSerial(serialValue.toUpperCase(Locale.ROOT));
+            serial.setSerial(serialValue);
             serial.setProduct(product);
-            serial.setDealer(orderStatus == OrderStatus.COMPLETED ? order.getDealer() : null);
+            serial.setDealer(initialStatus == ProductSerialStatus.ASSIGNED ? order.getDealer() : null);
             serial.setOrder(order);
-            serial.setStatus(request.status() == null ? ProductSerialStatus.AVAILABLE : request.status());
+            serial.setStatus(initialStatus);
             serial.setWarehouseId(request.warehouseId());
             serial.setWarehouseName(request.warehouseName());
             toSave.add(serial);
@@ -103,6 +111,21 @@ public class DealerSerialSupport {
         return productSerialRepository.saveAll(toSave).stream()
                 .map(ProductSerialResponseMapper::toDealerProductSerialResponse)
                 .toList();
+    }
+
+    private ProductSerialStatus resolveImportedStatus(OrderStatus orderStatus, ProductSerialStatus requestedStatus) {
+        if (requestedStatus != null) {
+            if (requestedStatus != ProductSerialStatus.RESERVED && requestedStatus != ProductSerialStatus.ASSIGNED) {
+                throw new BadRequestException("Dealer imports only support RESERVED or ASSIGNED status");
+            }
+            if (requestedStatus == ProductSerialStatus.ASSIGNED && orderStatus != OrderStatus.COMPLETED) {
+                throw new BadRequestException("ASSIGNED status requires a completed order");
+            }
+            return requestedStatus;
+        }
+        return orderStatus == OrderStatus.COMPLETED
+                ? ProductSerialStatus.ASSIGNED
+                : ProductSerialStatus.RESERVED;
     }
 
 }

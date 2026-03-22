@@ -1,0 +1,138 @@
+import 'dart:convert';
+
+import 'package:dealer_hub/product_catalog_controller.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+
+void main() {
+  test('resolveProductCatalogMessage maps sync failure in English', () {
+    expect(
+      resolveProductCatalogMessage(
+        productCatalogMessageToken(ProductCatalogMessageCode.syncFailed),
+        isEnglish: true,
+      ),
+      'Unable to load product data.',
+    );
+  });
+
+  test('resolveProductCatalogMessage maps sync failure in Vietnamese', () {
+    expect(
+      resolveProductCatalogMessage(
+        productCatalogMessageToken(ProductCatalogMessageCode.syncFailed),
+        isEnglish: false,
+      ),
+      'Khong the tai du lieu san pham.',
+    );
+  });
+
+  test('ProductCatalogController stores tokenized load error for empty 500 body', () async {
+    final controller = ProductCatalogController(
+      client: _FakeClient((request) async {
+        return _jsonResponse(statusCode: 500, body: const <String, dynamic>{});
+      }),
+    );
+
+    await controller.load();
+
+    expect(
+      controller.errorMessage,
+      productCatalogMessageToken(ProductCatalogMessageCode.syncFailed),
+    );
+  });
+
+  test('ProductCatalogController stores tokenized invalid product payload error', () async {
+    final controller = ProductCatalogController(
+      client: _FakeClient((request) async {
+        return _jsonResponse(
+          statusCode: 200,
+          body: <String, dynamic>{
+            'data': <String, dynamic>{'unexpected': true},
+          },
+        );
+      }),
+    );
+
+    await controller.load();
+
+    expect(
+      controller.errorMessage,
+      productCatalogMessageToken(
+        ProductCatalogMessageCode.invalidProductPayload,
+      ),
+    );
+  });
+
+  test('ProductCatalogController fetchDetail throws tokenized invalid detail payload error', () async {
+    final controller = ProductCatalogController(
+      client: _FakeClient((request) async {
+        if (request.url.path.endsWith('/api/v1/product/products')) {
+          return _jsonResponse(
+            statusCode: 200,
+            body: <String, dynamic>{
+              'data': <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'id': '1',
+                  'name': 'Product A',
+                  'sku': 'SKU-1',
+                  'price': 1000,
+                  'stock': 10,
+                  'warrantyMonths': 12,
+                },
+              ],
+            },
+          );
+        }
+        return _jsonResponse(
+          statusCode: 200,
+          body: <String, dynamic>{
+            'data': <dynamic>['unexpected'],
+          },
+        );
+      }),
+    );
+
+    await controller.load();
+
+    expect(
+      controller.fetchDetail('1'),
+      throwsA(
+        isA<ProductCatalogException>().having(
+          (error) => error.message,
+          'message',
+          productCatalogMessageToken(
+            ProductCatalogMessageCode.invalidProductDetailPayload,
+          ),
+        ),
+      ),
+    );
+  });
+}
+
+class _FakeClient extends http.BaseClient {
+  _FakeClient(this._handler);
+
+  final Future<http.Response> Function(http.BaseRequest request) _handler;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    final response = await _handler(request);
+    return http.StreamedResponse(
+      Stream<List<int>>.fromIterable(<List<int>>[response.bodyBytes]),
+      response.statusCode,
+      headers: response.headers,
+      reasonPhrase: response.reasonPhrase,
+      request: request,
+    );
+  }
+}
+
+http.Response _jsonResponse({
+  required int statusCode,
+  required Map<String, dynamic> body,
+}) {
+  return http.Response(
+    jsonEncode(body),
+    statusCode,
+    headers: const <String, String>{'content-type': 'application/json'},
+  );
+}

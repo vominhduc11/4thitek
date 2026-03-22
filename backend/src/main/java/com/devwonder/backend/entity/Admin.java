@@ -19,8 +19,8 @@ import lombok.Setter;
 @NoArgsConstructor
 public class Admin extends Account {
 
-    @Column(name = "require_login_email_confirmation")
-    private Boolean requireLoginEmailConfirmation;
+    @Column(name = "require_password_change")
+    private Boolean requirePasswordChange;
 
     @Column(name = "display_name")
     private String displayName;

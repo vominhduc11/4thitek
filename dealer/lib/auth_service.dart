@@ -5,6 +5,54 @@ import 'package:http/http.dart' as http;
 
 import 'api_config.dart';
 
+enum AuthMessageCode {
+  apiNotConfigured,
+  loginSessionUnavailable,
+  requestTimeout,
+  serverUnavailable,
+  requestFailed,
+  passwordResetLinkSent,
+}
+
+const String _authMessageTokenPrefix = 'auth.message.';
+
+String authServiceMessageToken(AuthMessageCode code) =>
+    '$_authMessageTokenPrefix${code.name}';
+
+String resolveAuthServiceMessage(String? message, {required bool isEnglish}) {
+  final normalized = message?.trim();
+  if (normalized == null || normalized.isEmpty) {
+    return isEnglish ? 'Request failed.' : 'Yeu cau that bai.';
+  }
+
+  switch (normalized) {
+    case 'auth.message.apiNotConfigured':
+      return isEnglish
+          ? 'API base URL is not configured for the dealer app.'
+          : 'Chua cau hinh API_BASE_URL cho dealer app.';
+    case 'auth.message.loginSessionUnavailable':
+      return isEnglish
+          ? 'Unable to create a login session.'
+          : 'Khong the tao phien dang nhap.';
+    case 'auth.message.requestTimeout':
+      return isEnglish
+          ? 'The request timed out. Please try again.'
+          : 'Yeu cau het thoi gian. Vui long thu lai.';
+    case 'auth.message.serverUnavailable':
+      return isEnglish
+          ? 'Unable to connect to the server. Please try again.'
+          : 'Khong the ket noi may chu. Vui long thu lai.';
+    case 'auth.message.requestFailed':
+      return isEnglish ? 'Request failed.' : 'Yeu cau that bai.';
+    case 'auth.message.passwordResetLinkSent':
+      return isEnglish
+          ? 'If the email exists in our system, a password reset link has been sent.'
+          : 'Neu email ton tai trong he thong, chung toi da gui lien ket dat lai.';
+    default:
+      return normalized;
+  }
+}
+
 enum LoginFailureType {
   invalidCredentials,
   invalidEmail,
@@ -111,7 +159,7 @@ class RemoteAuthService implements AuthService {
     if (!DealerApiConfig.isConfigured) {
       return LoginResult.failure(
         type: LoginFailureType.network,
-        message: 'Chua cau hinh API_BASE_URL cho dealer app.',
+        message: authServiceMessageToken(AuthMessageCode.apiNotConfigured),
       );
     }
     try {
@@ -146,7 +194,9 @@ class RemoteAuthService implements AuthService {
       if (accessToken.isEmpty) {
         return LoginResult.failure(
           type: LoginFailureType.unknown,
-          message: 'Không thể tạo phiên đăng nhập.',
+          message: authServiceMessageToken(
+            AuthMessageCode.loginSessionUnavailable,
+          ),
         );
       }
 
@@ -158,12 +208,12 @@ class RemoteAuthService implements AuthService {
     } on TimeoutException {
       return LoginResult.failure(
         type: LoginFailureType.network,
-        message: 'Ket noi may chu qua thoi gian.',
+        message: authServiceMessageToken(AuthMessageCode.requestTimeout),
       );
     } on Exception {
       return LoginResult.failure(
         type: LoginFailureType.network,
-        message: 'Không thể kết nối máy chủ.',
+        message: authServiceMessageToken(AuthMessageCode.serverUnavailable),
       );
     }
   }
@@ -175,13 +225,15 @@ class RemoteAuthService implements AuthService {
     if (!DealerApiConfig.isConfigured) {
       return PasswordResetRequestResult.failure(
         type: LoginFailureType.network,
-        message: 'Chua cau hinh API_BASE_URL cho dealer app.',
+        message: authServiceMessageToken(AuthMessageCode.apiNotConfigured),
       );
     }
     try {
       final response = await _client
           .post(
-            Uri.parse(DealerApiConfig.resolveUrl('/api/auth/forgot-password')),
+            Uri.parse(
+              DealerApiConfig.resolveUrl('/api/v1/auth/forgot-password'),
+            ),
             headers: DealerApiConfig.jsonHeaders,
             body: jsonEncode(<String, String>{
               'email': email.trim().toLowerCase(),
@@ -200,18 +252,18 @@ class RemoteAuthService implements AuthService {
       return PasswordResetRequestResult.success(
         message: _extractSuccessMessage(
           payload,
-          'If the email exists in our system, a password reset link has been sent.',
+          authServiceMessageToken(AuthMessageCode.passwordResetLinkSent),
         ),
       );
     } on TimeoutException {
       return PasswordResetRequestResult.failure(
         type: LoginFailureType.network,
-        message: 'Ket noi may chu qua thoi gian.',
+        message: authServiceMessageToken(AuthMessageCode.requestTimeout),
       );
     } on Exception {
       return PasswordResetRequestResult.failure(
         type: LoginFailureType.network,
-        message: 'Không thể kết nối máy chủ.',
+        message: authServiceMessageToken(AuthMessageCode.serverUnavailable),
       );
     }
   }
@@ -240,7 +292,7 @@ class RemoteAuthService implements AuthService {
     if (error != null && error.trim().isNotEmpty) {
       return error.trim();
     }
-    return 'Yêu cầu thất bại.';
+    return authServiceMessageToken(AuthMessageCode.requestFailed);
   }
 
   String _extractSuccessMessage(Map<String, dynamic> payload, String fallback) {

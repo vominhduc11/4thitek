@@ -7,6 +7,7 @@ import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.enums.NotifyType;
 import com.devwonder.backend.entity.enums.StaffUserStatus;
 import com.devwonder.backend.repository.AdminRepository;
+import com.devwonder.backend.service.AdminSettingsService;
 import com.devwonder.backend.service.MailService;
 import com.devwonder.backend.service.NotificationService;
 import java.util.Locale;
@@ -26,14 +27,19 @@ public class DealerOrderNotificationSupport {
     private final NotificationService notificationService;
     private final AppMessageSupport appMessageSupport;
     private final MailService mailService;
+    private final AdminSettingsService adminSettingsService;
 
     public void notifyOrderCreated(Dealer dealer, Order order) {
+        if (!adminSettingsService.getEffectiveSettings().orderAlerts()) {
+            return;
+        }
         notificationService.create(new CreateNotifyRequest(
                 dealer.getId(),
                 appMessageSupport.get("notification.dealer.order.created.title"),
                 appMessageSupport.get("notification.dealer.order.created.content", order.getOrderCode()),
                 NotifyType.ORDER,
-                "/orders/" + order.getOrderCode()
+                "/orders/" + order.getOrderCode(),
+                null
         ));
         sendOrderConfirmationEmailIfPossible(dealer, order);
     }
@@ -76,6 +82,9 @@ public class DealerOrderNotificationSupport {
     }
 
     public void notifyPaymentRecorded(Dealer dealer, Order order, BigDecimal amount) {
+        if (!adminSettingsService.getEffectiveSettings().orderAlerts()) {
+            return;
+        }
         notificationService.create(new CreateNotifyRequest(
                 dealer.getId(),
                 appMessageSupport.get("notification.dealer.payment.recorded.title"),
@@ -85,11 +94,15 @@ public class DealerOrderNotificationSupport {
                         order.getOrderCode()
                 ),
                 NotifyType.ORDER,
-                "/orders/" + order.getOrderCode()
+                "/orders/" + order.getOrderCode(),
+                null
         ));
     }
 
     public void notifyAdminsDealerCancelled(Order order) {
+        if (!adminSettingsService.getEffectiveSettings().orderAlerts()) {
+            return;
+        }
         if (order == null || order.getId() == null) {
             return;
         }
@@ -110,7 +123,8 @@ public class DealerOrderNotificationSupport {
                     appMessageSupport.get("notification.admin.dealer-cancelled.title"),
                     appMessageSupport.get("notification.admin.dealer-cancelled.content", dealerName, orderCode),
                     NotifyType.ORDER,
-                    "/orders/" + order.getId()
+                    "/orders/" + order.getId(),
+                    null
             ));
         }
     }

@@ -8,9 +8,86 @@ import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
 import 'models.dart';
 
+enum ProductCatalogMessageCode {
+  apiNotConfigured,
+  syncFailed,
+  invalidProductPayload,
+  invalidPaginatedPayload,
+  invalidProductDetailPayload,
+  productNotFoundInCatalog,
+}
+
+const String _productCatalogMessageTokenPrefix = 'product.catalog.message.';
+
+String productCatalogMessageToken(ProductCatalogMessageCode code) =>
+    '$_productCatalogMessageTokenPrefix${code.name}';
+
+String resolveProductCatalogMessage(String? message, {required bool isEnglish}) {
+  final normalized = message?.trim();
+  if (normalized == null || normalized.isEmpty) {
+    return isEnglish
+        ? 'Unable to load product data.'
+        : 'Khong the tai du lieu san pham.';
+  }
+
+  switch (normalized) {
+    case 'product.catalog.message.apiNotConfigured':
+      return isEnglish
+          ? 'API backend is not configured.'
+          : 'Chua cau hinh API backend.';
+    case 'product.catalog.message.syncFailed':
+      return isEnglish
+          ? 'Unable to load product data.'
+          : 'Khong the tai du lieu san pham.';
+    case 'product.catalog.message.invalidProductPayload':
+      return isEnglish
+          ? 'Product data is invalid.'
+          : 'Du lieu san pham khong hop le.';
+    case 'product.catalog.message.invalidPaginatedPayload':
+      return isEnglish
+          ? 'Paginated product data is invalid.'
+          : 'Du lieu phan trang san pham khong hop le.';
+    case 'product.catalog.message.invalidProductDetailPayload':
+      return isEnglish
+          ? 'Product detail data is invalid.'
+          : 'Du lieu chi tiet san pham khong hop le.';
+    case 'product.catalog.message.productNotFoundInCatalog':
+      return isEnglish
+          ? 'Product is not available in the catalog.'
+          : 'San pham khong ton tai trong danh muc.';
+    default:
+      return normalized;
+  }
+}
+
+String productCatalogErrorMessage(
+  Object? error, {
+  required bool isEnglish,
+}) {
+  final message = switch (error) {
+    ProductCatalogException() => error.message,
+    String() => error,
+    _ => error?.toString(),
+  };
+  return resolveProductCatalogMessage(message, isEnglish: isEnglish);
+}
+
+class ProductCatalogException implements Exception {
+  const ProductCatalogException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 class ProductCatalogController extends ChangeNotifier {
   ProductCatalogController({http.Client? client, AuthStorage? authStorage})
-    : _client = client ?? (authStorage != null ? DealerAuthClient(authStorage: authStorage) : http.Client()),
+    : _client =
+          client ??
+          (authStorage != null
+              ? DealerAuthClient(authStorage: authStorage)
+              : http.Client()),
       _products = const <Product>[];
 
   final http.Client _client;
@@ -39,7 +116,9 @@ class ProductCatalogController extends ChangeNotifier {
     if (!DealerApiConfig.isConfigured) {
       _replaceProducts(const <Product>[]);
       _isUsingFallback = false;
-      _errorMessage = 'Chua cau hinh API backend.';
+      _errorMessage = productCatalogMessageToken(
+        ProductCatalogMessageCode.apiNotConfigured,
+      );
       _hasLoaded = true;
       notifyListeners();
       return;
@@ -51,16 +130,20 @@ class ProductCatalogController extends ChangeNotifier {
 
     try {
       final response = await _client.get(
-        Uri.parse(DealerApiConfig.resolveUrl('/api/product/products')),
+        Uri.parse(DealerApiConfig.resolveUrl('/api/v1/product/products')),
         headers: const <String, String>{'Accept': 'application/json'},
       );
       final payload = _decodePayload(response.body);
       if (response.statusCode >= 400) {
-        throw Exception(_extractErrorMessage(payload));
+        throw ProductCatalogException(_extractErrorMessage(payload));
       }
       final data = payload['data'];
       if (data is! List) {
-        throw Exception('Invalid product payload');
+        throw ProductCatalogException(
+          productCatalogMessageToken(
+            ProductCatalogMessageCode.invalidProductPayload,
+          ),
+        );
       }
       final remoteProducts = data
           .whereType<Map<String, dynamic>>()
@@ -71,9 +154,15 @@ class ProductCatalogController extends ChangeNotifier {
       _isUsingFallback = false;
       _errorMessage = null;
       _hasLoaded = true;
-    } catch (error) {
+    } on ProductCatalogException catch (error) {
       _isUsingFallback = false;
-      _errorMessage = error.toString();
+      _errorMessage = error.message;
+      _hasLoaded = true;
+    } catch (_) {
+      _isUsingFallback = false;
+      _errorMessage = productCatalogMessageToken(
+        ProductCatalogMessageCode.syncFailed,
+      );
       _hasLoaded = true;
     } finally {
       _isLoading = false;
@@ -81,16 +170,17 @@ class ProductCatalogController extends ChangeNotifier {
     }
   }
 
-  Future<({List<Product> items, bool isLast})> fetchPage(int pageIndex, int pageSize) async {
+  Future<({List<Product> items, bool isLast})> fetchPage(
+    int pageIndex,
+    int pageSize,
+  ) async {
     if (!DealerApiConfig.isConfigured) {
       return (items: const <Product>[], isLast: true);
     }
 
-    final uri = Uri.parse(DealerApiConfig.resolveUrl('/api/product/products/page'))
-        .replace(queryParameters: {
-      'page': '$pageIndex',
-      'size': '$pageSize',
-    });
+    final uri = Uri.parse(
+      DealerApiConfig.resolveUrl('/api/v1/product/products/page'),
+    ).replace(queryParameters: {'page': '$pageIndex', 'size': '$pageSize'});
 
     final response = await _client.get(
       uri,
@@ -98,12 +188,16 @@ class ProductCatalogController extends ChangeNotifier {
     );
     final payload = _decodePayload(response.body);
     if (response.statusCode >= 400) {
-      throw Exception(_extractErrorMessage(payload));
+      throw ProductCatalogException(_extractErrorMessage(payload));
     }
 
     final data = payload['data'];
     if (data is! Map<String, dynamic>) {
-      throw Exception('Invalid paginated product payload');
+      throw ProductCatalogException(
+        productCatalogMessageToken(
+          ProductCatalogMessageCode.invalidPaginatedPayload,
+        ),
+      );
     }
 
     final rawItems = data['items'];
@@ -125,24 +219,34 @@ class ProductCatalogController extends ChangeNotifier {
   Future<Product> fetchDetail(String productId) async {
     final fallbackProduct =
         findById(productId) ??
-        (throw StateError('Product $productId not found in catalog'));
+        (throw ProductCatalogException(
+          productCatalogMessageToken(
+            ProductCatalogMessageCode.productNotFoundInCatalog,
+          ),
+        ));
 
     if (!DealerApiConfig.isConfigured) {
-      throw StateError('Backend API is not configured.');
+      throw ProductCatalogException(
+        productCatalogMessageToken(ProductCatalogMessageCode.apiNotConfigured),
+      );
     }
 
     try {
       final response = await _client.get(
-        Uri.parse(DealerApiConfig.resolveUrl('/api/product/$productId')),
+        Uri.parse(DealerApiConfig.resolveUrl('/api/v1/product/$productId')),
         headers: const <String, String>{'Accept': 'application/json'},
       );
       final payload = _decodePayload(response.body);
       if (response.statusCode >= 400) {
-        throw Exception(_extractErrorMessage(payload));
+        throw ProductCatalogException(_extractErrorMessage(payload));
       }
       final data = payload['data'];
       if (data is! Map<String, dynamic>) {
-        throw Exception('Invalid product detail payload');
+        throw ProductCatalogException(
+          productCatalogMessageToken(
+            ProductCatalogMessageCode.invalidProductDetailPayload,
+          ),
+        );
       }
       final detailedProduct = _mapDetailProduct(data);
       _upsertProduct(detailedProduct);
@@ -201,7 +305,7 @@ class ProductCatalogController extends ChangeNotifier {
     if (error != null && error.trim().isNotEmpty) {
       return error.trim();
     }
-    return 'Không thể tải dữ liệu sản phẩm.';
+    return productCatalogMessageToken(ProductCatalogMessageCode.syncFailed);
   }
 
   Product _mapSummaryProduct(Map<String, dynamic> json) {

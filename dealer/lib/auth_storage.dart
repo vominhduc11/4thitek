@@ -31,6 +31,8 @@ class AuthStorage {
 
   int get sessionEventVersion => _sessionEventVersion.value;
 
+  static String? get currentAccessToken => _sessionAccessToken;
+
   Future<RememberedLogin> readRememberedLogin() async {
     final prefs = await SharedPreferences.getInstance();
     final rememberMe = prefs.getBool(rememberMeKey) ?? false;
@@ -88,7 +90,12 @@ class AuthStorage {
       return _sessionAccessToken;
     }
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(authAccessTokenKey) ?? prefs.getString('auth_token');
+    final storedToken =
+        prefs.getString(authAccessTokenKey) ?? prefs.getString('auth_token');
+    if (storedToken != null && storedToken.isNotEmpty) {
+      _sessionAccessToken = storedToken;
+    }
+    return storedToken;
   }
 
   Future<String?> readRefreshToken() async {

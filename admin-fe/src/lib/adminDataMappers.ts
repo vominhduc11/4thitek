@@ -240,6 +240,7 @@ export const mapUser = (user: BackendStaffUserResponse): StaffUser => ({
   id: String(user.id),
   name: user.name || user.username || '',
   role: user.role || '',
+  email: user.email || '',
   status: mapBackendUserStatus(user.status),
 })
 

@@ -48,6 +48,9 @@ class _DashboardTexts {
 
   final bool isEnglish;
 
+  String warrantyRangeLabel(int dayCount) =>
+      isEnglish ? '$dayCount days' : '$dayCount ng\u00E0y';
+
   String get loadErrorMessage => isEnglish
       ? 'Unable to load dashboard data. Please try again.'
       : 'Không thể tải dữ liệu dashboard. Vui lòng thử lại.';
@@ -971,13 +974,18 @@ class _DashboardQuickActionButton extends StatelessWidget {
 
     final child = Row(
       mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 18),
         const SizedBox(width: 8),
-        Text(
-          label,
-          style: theme.textTheme.labelLarge?.copyWith(
-            fontWeight: FontWeight.w700,
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],
@@ -4090,6 +4098,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isEnglish = AppSettingsScope.of(context).locale.languageCode == 'en';
+    final texts = _DashboardTexts(isEnglish: isEnglish);
     final enableHoverTooltip = kIsWeb;
     final filteredActivations = _filterByRange(
       widget.activations,
@@ -4206,7 +4215,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
                     for (final range in widget.ranges)
                       ButtonSegment<int>(
                         value: range,
-                        label: Text('$range ngày'),
+                        label: Text(texts.warrantyRangeLabel(range)),
                       ),
                   ],
                   selected: {_selectedRange},

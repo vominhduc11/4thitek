@@ -3,8 +3,8 @@ package com.devwonder.backend;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.devwonder.backend.dto.dealer.CreateDealerOrderItemRequest;
 import com.devwonder.backend.dto.dealer.CreateDealerSerialBatchRequest;
+import com.devwonder.backend.dto.dealer.UpdateDealerSerialStatusRequest;
 import com.devwonder.backend.dto.warranty.CreateWarrantyRegistrationRequest;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
@@ -38,7 +38,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "spring.datasource.url=jdbc:h2:mem:dealer_serial_warranty_guard;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
+        "app.mail.enabled=false",
+        "app.bootstrap-super-admin.enabled=false"
+})
 class DealerSerialWarrantyGuardTests {
 
     @Autowired
@@ -192,7 +196,7 @@ class DealerSerialWarrantyGuardTests {
                 )
         ))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("shipping or completed order");
+                .hasMessageContaining("completed order");
     }
 
     @Test
@@ -224,7 +228,7 @@ class DealerSerialWarrantyGuardTests {
     }
 
     @Test
-    void dealerCannotActivateWarrantyBeforeOrderShips() {
+    void dealerCannotActivateWarrantyBeforeOrderCompletes() {
         Dealer dealer = dealerRepository.save(createDealer("warranty-status-guard@example.com"));
         Product product = productRepository.save(createProduct("SKU-WARRANTY-9", BigDecimal.valueOf(100_000)));
         Order order = orderRepository.save(createOrder(
@@ -232,14 +236,14 @@ class DealerSerialWarrantyGuardTests {
                 product,
                 1,
                 "SERIAL-ORDER-STATUS-2",
-                OrderStatus.PENDING
+                OrderStatus.SHIPPING
         ));
         ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
                 dealer,
                 order,
                 product,
                 "SERIAL-WARRANTY-9",
-                ProductSerialStatus.AVAILABLE
+                ProductSerialStatus.ASSIGNED
         ));
 
         assertThatThrownBy(() -> dealerPortalService.activateWarranty(
@@ -254,11 +258,11 @@ class DealerSerialWarrantyGuardTests {
                 )
         ))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("shipping or completed order");
+                .hasMessageContaining("completed order");
     }
 
     @Test
-    void expiredWarrantyActivationMarksSerialAsSold() {
+    void expiredWarrantyActivationKeepsSerialInWarrantyState() {
         Dealer dealer = dealerRepository.save(createDealer("warranty-expired-status@example.com"));
         Product product = productRepository.save(createProduct("SKU-WARRANTY-3", BigDecimal.valueOf(100_000)));
         Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-3"));
@@ -276,7 +280,7 @@ class DealerSerialWarrantyGuardTests {
                 order,
                 product,
                 "SERIAL-WARRANTY-3",
-                ProductSerialStatus.AVAILABLE
+                ProductSerialStatus.ASSIGNED
         ));
 
         var response = dealerPortalService.activateWarranty(
@@ -293,7 +297,7 @@ class DealerSerialWarrantyGuardTests {
 
         assertThat(response.status().name()).isEqualTo("EXPIRED");
         assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
-                .isEqualTo(ProductSerialStatus.ASSIGNED);
+                .isEqualTo(ProductSerialStatus.WARRANTY);
     }
 
     @Test
@@ -306,7 +310,7 @@ class DealerSerialWarrantyGuardTests {
                 order,
                 product,
                 "SERIAL-WARRANTY-5",
-                ProductSerialStatus.AVAILABLE
+                ProductSerialStatus.ASSIGNED
         ));
         LocalDate purchaseDate = LocalDate.now(WarrantyDateSupport.APP_ZONE);
 
@@ -336,7 +340,7 @@ class DealerSerialWarrantyGuardTests {
                 order,
                 product,
                 "SERIAL-WARRANTY-6",
-                ProductSerialStatus.AVAILABLE
+                ProductSerialStatus.ASSIGNED
         ));
 
         assertThatThrownBy(() -> dealerPortalService.activateWarranty(
@@ -364,7 +368,7 @@ class DealerSerialWarrantyGuardTests {
                 order,
                 product,
                 "SERIAL-WARRANTY-7",
-                ProductSerialStatus.AVAILABLE
+                ProductSerialStatus.ASSIGNED
         ));
 
         assertThatThrownBy(() -> dealerPortalService.activateWarranty(
@@ -383,6 +387,128 @@ class DealerSerialWarrantyGuardTests {
     }
 
     @Test
+    void warrantyActivationFallsBackToOrderReceiverInfoWhenDealerLeavesFieldsBlank() {
+        Dealer dealer = dealerRepository.save(createDealer("warranty-fallback@example.com"));
+        Product product = productRepository.save(createProduct("SKU-WARRANTY-FALLBACK", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-FALLBACK"));
+        order.setReceiverName("Receiver Fallback");
+        order.setReceiverPhone("0912345601");
+        order.setReceiverAddress("501 Receiver Street");
+        orderRepository.save(order);
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-WARRANTY-FALLBACK",
+                ProductSerialStatus.ASSIGNED
+        ));
+
+        var response = dealerPortalService.activateWarranty(
+                dealer.getUsername(),
+                new CreateWarrantyRegistrationRequest(
+                        serial.getId(),
+                        "   ",
+                        "fallback@example.com",
+                        "   ",
+                        "   ",
+                        LocalDate.now(WarrantyDateSupport.APP_ZONE)
+                )
+        );
+
+        assertThat(response.customerName()).isEqualTo("Receiver Fallback");
+        assertThat(response.customerPhone()).isEqualTo("0912345601");
+        assertThat(response.customerAddress()).isEqualTo("501 Receiver Street");
+    }
+
+    @Test
+    void dealerCanMarkAssignedSerialAsReturned() {
+        Dealer dealer = dealerRepository.save(createDealer("serial-returned@example.com"));
+        Product product = productRepository.save(createProduct("SKU-SERIAL-RETURNED", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-RETURNED"));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-RETURNED-1",
+                ProductSerialStatus.ASSIGNED
+        ));
+
+        var response = dealerPortalService.updateSerialStatus(
+                dealer.getUsername(),
+                serial.getId(),
+                new UpdateDealerSerialStatusRequest(ProductSerialStatus.RETURNED)
+        );
+
+        assertThat(response.status()).isEqualTo(ProductSerialStatus.RETURNED);
+    }
+
+    @Test
+    void dealerCanMarkWarrantySerialAsDefective() {
+        Dealer dealer = dealerRepository.save(createDealer("serial-defective@example.com"));
+        Product product = productRepository.save(createProduct("SKU-SERIAL-DEFECTIVE", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-WARRANTY"));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-WARRANTY-STATUS-1",
+                ProductSerialStatus.WARRANTY
+        ));
+
+        var response = dealerPortalService.updateSerialStatus(
+                dealer.getUsername(),
+                serial.getId(),
+                new UpdateDealerSerialStatusRequest(ProductSerialStatus.DEFECTIVE)
+        );
+
+        assertThat(response.status()).isEqualTo(ProductSerialStatus.DEFECTIVE);
+    }
+
+    @Test
+    void dealerCannotMarkAvailableSerialAsReturned() {
+        Dealer dealer = dealerRepository.save(createDealer("serial-available-guard@example.com"));
+        Product product = productRepository.save(createProduct("SKU-SERIAL-AVAILABLE", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-AVAILABLE"));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-AVAILABLE-1",
+                ProductSerialStatus.AVAILABLE
+        ));
+
+        assertThatThrownBy(() -> dealerPortalService.updateSerialStatus(
+                dealer.getUsername(),
+                serial.getId(),
+                new UpdateDealerSerialStatusRequest(ProductSerialStatus.RETURNED)
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("ASSIGNED or WARRANTY");
+    }
+
+    @Test
+    void dealerCannotMoveAssignedSerialBackToAvailable() {
+        Dealer dealer = dealerRepository.save(createDealer("serial-unsupported-transition@example.com"));
+        Product product = productRepository.save(createProduct("SKU-SERIAL-UNSUPPORTED", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-UNSUPPORTED"));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-UNSUPPORTED-1",
+                ProductSerialStatus.ASSIGNED
+        ));
+
+        assertThatThrownBy(() -> dealerPortalService.updateSerialStatus(
+                dealer.getUsername(),
+                serial.getId(),
+                new UpdateDealerSerialStatusRequest(ProductSerialStatus.AVAILABLE)
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Unsupported serial status transition");
+    }
+
+    @Test
     void deletingWarrantyEvictsLookupAndRestoresSerialToSold() {
         Dealer dealer = dealerRepository.save(createDealer("warranty-delete-guard@example.com"));
         Product product = productRepository.save(createProduct("SKU-WARRANTY-4", BigDecimal.valueOf(100_000)));
@@ -392,7 +518,7 @@ class DealerSerialWarrantyGuardTests {
                 order,
                 product,
                 "SERIAL-WARRANTY-4",
-                ProductSerialStatus.AVAILABLE
+                ProductSerialStatus.ASSIGNED
         ));
 
         var warranty = dealerPortalService.activateWarranty(
@@ -414,9 +540,7 @@ class DealerSerialWarrantyGuardTests {
         assertThat(warrantyRegistrationRepository.findById(warranty.id())).isEmpty();
         assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
                 .isEqualTo(ProductSerialStatus.ASSIGNED);
-        assertThatThrownBy(() -> publicApiService.lookupWarranty(serial.getSerial()))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Warranty not found");
+        assertThat(publicApiService.lookupWarranty(serial.getSerial()).status()).isEqualTo("invalid");
     }
 
     private Dealer createDealer(String username) {
@@ -441,7 +565,7 @@ class DealerSerialWarrantyGuardTests {
     }
 
     private Order createOrder(Dealer dealer, Product product, int quantity, String orderCode) {
-        return createOrder(dealer, product, quantity, orderCode, OrderStatus.SHIPPING);
+        return createOrder(dealer, product, quantity, orderCode, OrderStatus.COMPLETED);
     }
 
     private Order createOrder(Dealer dealer, Product product, int quantity, String orderCode, OrderStatus status) {

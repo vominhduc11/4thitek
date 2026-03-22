@@ -27,6 +27,13 @@ enum _NoticeDetailAction { markUnread, openRelated }
 class _NotificationsScreenState extends State<NotificationsScreen> {
   static const double _tabletMaxWidth = 640;
 
+  String _notificationError(String error) {
+    return notificationSyncErrorMessage(
+      error,
+      isEnglish: Localizations.localeOf(context).languageCode == 'en',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final notificationController = NotificationScope.of(context);
@@ -195,7 +202,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (error != null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(error)));
+      ).showSnackBar(SnackBar(content: Text(_notificationError(error))));
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
@@ -212,7 +219,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (readError != null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(readError)));
+      ).showSnackBar(SnackBar(content: Text(_notificationError(readError))));
     }
 
     final action = await showModalBottomSheet<_NoticeDetailAction>(
@@ -314,7 +321,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         if (error != null) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text(error)));
+          ).showSnackBar(SnackBar(content: Text(_notificationError(error))));
           break;
         }
         ScaffoldMessenger.of(context).showSnackBar(
@@ -332,6 +339,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _openRelatedContent(DistributorNotice notice) async {
+    if (await _openNoticeLink(notice.deepLink)) {
+      return;
+    }
     if (await _openNoticeLink(notice.link)) {
       return;
     }
@@ -423,7 +433,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   String _relatedActionLabel(DistributorNotice notice) {
     final l10n = AppLocalizations.of(context)!;
-    final link = notice.link?.trim() ?? '';
+    final link = (notice.deepLink ?? notice.link)?.trim() ?? '';
     if (link.startsWith('/orders')) {
       return l10n.notificationsRelatedViewOrder;
     }

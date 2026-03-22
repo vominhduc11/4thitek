@@ -129,7 +129,7 @@ type AdminDataContextValue = {
   updateDealerStatus: (id: string, status: DealerStatus) => Promise<void>
   users: StaffUser[]
   usersState: AdminResourceState
-  addUser: (payload: Pick<StaffUser, 'name' | 'role'>) => Promise<StaffUser>
+  addUser: (payload: Pick<StaffUser, 'email' | 'name' | 'role'>) => Promise<StaffUser>
   updateUserStatus: (id: string, status: UserStatus) => Promise<void>
   discountRules: DiscountRule[]
   discountRulesState: AdminResourceState
@@ -549,6 +549,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   const addUser: AdminDataContextValue['addUser'] = async (payload) => {
     const token = requireToken()
     const created = await createAdminUser(token, {
+      email: payload.email.trim(),
       name: payload.name.trim(),
       role: payload.role.trim(),
       status: 'PENDING',

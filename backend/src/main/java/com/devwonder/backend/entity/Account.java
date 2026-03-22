@@ -14,7 +14,6 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.StaffUserStatus;
 import java.time.Instant;
 import java.util.Collection;
@@ -104,8 +103,9 @@ public class Account implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        if (this instanceof Dealer dealer) {
-            return dealer.getCustomerStatus() == null || dealer.getCustomerStatus() == CustomerStatus.ACTIVE;
+        if (this instanceof Dealer) {
+            // Dealer lifecycle is enforced at DealerController/WarrantyActivationController per BUSINESS_LOGIC.md.
+            return true;
         }
         if (this instanceof Admin admin) {
             return admin.getUserStatus() == null || admin.getUserStatus() == StaffUserStatus.ACTIVE;

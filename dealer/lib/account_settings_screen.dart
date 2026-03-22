@@ -12,7 +12,14 @@ import 'widgets/fade_slide_in.dart';
 import 'widgets/section_card.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
-  const AccountSettingsScreen({super.key});
+  const AccountSettingsScreen({
+    super.key,
+    this.loadProfile,
+    this.saveProfile,
+  });
+
+  final Future<DealerProfile> Function()? loadProfile;
+  final Future<void> Function(DealerProfile profile)? saveProfile;
 
   @override
   State<AccountSettingsScreen> createState() => _AccountSettingsScreenState();
@@ -37,6 +44,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   bool _isUploadingAvatar = false;
   bool _hasUnsavedChanges = false;
   bool _didLoadInitialData = false;
+  bool _didStartInitialLoad = false;
   bool _isEnglish = false;
   String _initialSnapshot = '';
   String? _avatarUrl;
@@ -63,20 +71,23 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     for (final controller in _editableControllers) {
       controller.addListener(_handleFormChanged);
     }
-    _loadData();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _isEnglish = AppSettingsScope.of(context).locale.languageCode == 'en';
+    if (!_didStartInitialLoad) {
+      _didStartInitialLoad = true;
+      _loadData();
+    }
   }
 
   Future<void> _loadData() async {
     final texts = _texts;
     DealerProfile profile;
     try {
-      profile = await loadDealerProfile();
+      profile = await (widget.loadProfile ?? loadDealerProfile)();
     } catch (error) {
       profile = DealerProfile.defaults;
       if (mounted) {
@@ -331,7 +342,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
     setState(() => _isSaving = true);
     try {
-      await saveDealerProfile(
+      await (widget.saveProfile ?? saveDealerProfile)(
         DealerProfile(
           businessName: _businessNameController.text.trim(),
           contactName: _contactNameController.text.trim(),
@@ -706,14 +717,14 @@ class _AccountSettingsTexts {
   final bool isEnglish;
 
   String loadProfileFailed(Object error) => isEnglish
-      ? 'Unable to load profile: $error'
-      : 'Không thể tải hồ sơ: $error';
+      ? dealerProfileStorageErrorMessage(error, isEnglish: true)
+      : dealerProfileStorageErrorMessage(error, isEnglish: false);
   String get avatarUpdatedMessage => isEnglish
       ? 'Avatar updated. Save changes to keep it.'
       : 'Đã cập nhật avatar. Nhấn Lưu để xác nhận.';
   String avatarUploadFailed(Object error) => isEnglish
-      ? 'Unable to upload avatar: $error'
-      : 'Không thể tải avatar: $error';
+      ? uploadServiceErrorMessage(error, isEnglish: true)
+      : uploadServiceErrorMessage(error, isEnglish: false);
   String get avatarRemovedMessage => isEnglish
       ? 'Avatar removed. Save changes to confirm.'
       : 'Đã xóa avatar. Nhấn Lưu để xác nhận.';
@@ -747,8 +758,8 @@ class _AccountSettingsTexts {
       ? 'Please review the highlighted fields.'
       : 'Vui lòng kiểm tra các trường đang báo lỗi.';
   String saveProfileFailed(Object error) => isEnglish
-      ? 'Unable to save profile: $error'
-      : 'Không thể lưu hồ sơ: $error';
+      ? dealerProfileStorageErrorMessage(error, isEnglish: true)
+      : dealerProfileStorageErrorMessage(error, isEnglish: false);
   String get profileSavedMessage =>
       isEnglish ? 'Profile saved successfully.' : 'Đã lưu thông tin tài khoản.';
   String get backAction => isEnglish ? 'Back' : 'Quay lại';

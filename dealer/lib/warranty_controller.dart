@@ -14,6 +14,132 @@ import 'dealer_auth_client.dart';
 import 'models.dart';
 import 'warranty_models.dart';
 
+enum WarrantySerialValidationErrorCode {
+  invalidSerial,
+  notImported,
+  wrongProduct,
+  wrongOrder,
+  alreadyActivated,
+  invalidOrderState,
+}
+
+String warrantySerialValidationMessage(
+  WarrantySerialValidationErrorCode code, {
+  required bool isEnglish,
+  required String serial,
+  String? productName,
+  String? actualOrderId,
+  String? expectedOrderId,
+}) {
+  switch (code) {
+    case WarrantySerialValidationErrorCode.invalidSerial:
+      return isEnglish ? 'Serial is invalid.' : 'Serial không hợp lệ.';
+    case WarrantySerialValidationErrorCode.notImported:
+      return isEnglish
+          ? 'Serial $serial is not available in inventory.'
+          : 'Serial $serial chưa được nhập kho.';
+    case WarrantySerialValidationErrorCode.wrongProduct:
+      return isEnglish
+          ? 'Serial $serial does not belong to product $productName.'
+          : 'Serial $serial không thuộc sản phẩm $productName.';
+    case WarrantySerialValidationErrorCode.wrongOrder:
+      return isEnglish
+          ? 'Serial $serial belongs to order $actualOrderId, not order $expectedOrderId.'
+          : 'Serial $serial thuộc đơn $actualOrderId, không thuộc đơn $expectedOrderId.';
+    case WarrantySerialValidationErrorCode.alreadyActivated:
+      return isEnglish
+          ? 'Serial $serial was already activated.'
+          : 'Serial $serial đã được kích hoạt trước đó.';
+    case WarrantySerialValidationErrorCode.invalidOrderState:
+      return isEnglish
+          ? 'Serial $serial is not linked to a valid order yet (must be shipping or completed).'
+          : 'Serial $serial chưa thuộc đơn hợp lệ (cần đang giao hoặc đã giao).';
+  }
+}
+
+enum WarrantySyncMessageCode {
+  apiNotConfigured,
+  unauthenticated,
+  invalidSerialPayload,
+  invalidWarrantyPayload,
+  serialSyncFailed,
+  remoteSerialNotFound,
+  activationFailed,
+  syncFailed,
+}
+
+const String _warrantySyncMessageTokenPrefix = 'warranty.sync.message.';
+
+String warrantySyncMessageToken(WarrantySyncMessageCode code) =>
+    '$_warrantySyncMessageTokenPrefix${code.name}';
+
+String resolveWarrantySyncMessage(String? message, {required bool isEnglish}) {
+  final normalized = message?.trim();
+  if (normalized == null || normalized.isEmpty) {
+    return isEnglish
+        ? 'Unable to sync warranty data.'
+        : 'Khong the dong bo du lieu bao hanh.';
+  }
+
+  switch (normalized) {
+    case 'warranty.sync.message.apiNotConfigured':
+      return isEnglish
+          ? 'Warranty API is not configured.'
+          : 'API bao hanh chua duoc cau hinh.';
+    case 'warranty.sync.message.unauthenticated':
+      return isEnglish
+          ? 'You need to sign in before activating warranty.'
+          : 'Ban can dang nhap truoc khi kich hoat bao hanh.';
+    case 'warranty.sync.message.invalidSerialPayload':
+      return isEnglish
+          ? 'Serial inventory data is invalid.'
+          : 'Du lieu serial ton kho khong hop le.';
+    case 'warranty.sync.message.invalidWarrantyPayload':
+      return isEnglish
+          ? 'Warranty activation data is invalid.'
+          : 'Du lieu kich hoat bao hanh khong hop le.';
+    case 'warranty.sync.message.serialSyncFailed':
+      return isEnglish
+          ? 'Unable to sync serial inventory.'
+          : 'Khong the dong bo serial ton kho.';
+    case 'warranty.sync.message.remoteSerialNotFound':
+      return isEnglish
+          ? 'The selected serial is not available for warranty activation.'
+          : 'Serial da chon khong san sang de kich hoat bao hanh.';
+    case 'warranty.sync.message.activationFailed':
+      return isEnglish
+          ? 'Unable to activate warranty. Please try again.'
+          : 'Khong the kich hoat bao hanh. Vui long thu lai.';
+    case 'warranty.sync.message.syncFailed':
+      return isEnglish
+          ? 'Unable to sync warranty data.'
+          : 'Khong the dong bo du lieu bao hanh.';
+    default:
+      return normalized;
+  }
+}
+
+String warrantySyncErrorMessage(
+  Object? error, {
+  required bool isEnglish,
+}) {
+  final message = switch (error) {
+    WarrantySyncException() => error.message,
+    String() => error,
+    _ => error?.toString(),
+  };
+  return resolveWarrantySyncMessage(message, isEnglish: isEnglish);
+}
+
+class WarrantySyncException implements Exception {
+  const WarrantySyncException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 class WarrantyController extends ChangeNotifier {
   static const String _activationsStorageKey = 'dealer_warranty_activations_v1';
   static const String _serialsStorageKey = 'dealer_warranty_serials_v1';
@@ -57,8 +183,12 @@ class WarrantyController extends ChangeNotifier {
   bool _activationsCacheDirty = true;
   bool _importedSerialsCacheDirty = true;
   bool _activationDerivedDirty = true;
+  String? _lastSyncMessage;
+
+  String? get lastSyncMessage => _lastSyncMessage;
 
   Future<void> load({bool forceRefresh = false}) async {
+    _lastSyncMessage = null;
     final loadedLocal = await _loadLocalState();
     final loadedRemote = await _loadRemoteState();
     if (!loadedRemote && !loadedLocal && forceRefresh) {
@@ -72,6 +202,7 @@ class WarrantyController extends ChangeNotifier {
     _resetToEmptyState();
     _remoteSerialIds.clear();
     _remoteWarrantyIds.clear();
+    _lastSyncMessage = null;
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_activationsStorageKey);
@@ -245,49 +376,92 @@ class WarrantyController extends ChangeNotifier {
     required String productId,
     required String productName,
     required String orderId,
+    required bool isEnglish,
   }) {
     final normalized = _normalizeSerial(serial);
     if (normalized.isEmpty) {
-      return 'Serial không hợp lệ.';
+      return warrantySerialValidationMessage(
+        WarrantySerialValidationErrorCode.invalidSerial,
+        isEnglish: isEnglish,
+        serial: normalized,
+      );
     }
 
     final imported = findImportedSerial(normalized);
     if (imported == null) {
-      return 'Serial $normalized chưa được nhập kho.';
+      return warrantySerialValidationMessage(
+        WarrantySerialValidationErrorCode.notImported,
+        isEnglish: isEnglish,
+        serial: normalized,
+      );
     }
     if (imported.productId != productId) {
-      return 'Serial $normalized không thuộc sản phẩm $productName.';
+      return warrantySerialValidationMessage(
+        WarrantySerialValidationErrorCode.wrongProduct,
+        isEnglish: isEnglish,
+        serial: normalized,
+        productName: productName,
+      );
     }
 
     if (imported.orderId != orderId) {
-      return 'Serial $normalized thuộc đơn ${imported.orderId}, không thuộc đơn $orderId.';
+      return warrantySerialValidationMessage(
+        WarrantySerialValidationErrorCode.wrongOrder,
+        isEnglish: isEnglish,
+        serial: normalized,
+        actualOrderId: imported.orderId,
+        expectedOrderId: orderId,
+      );
     }
 
     if (isSerialActivated(normalized)) {
-      return 'Serial $normalized đã được kích hoạt trước đó.';
+      return warrantySerialValidationMessage(
+        WarrantySerialValidationErrorCode.alreadyActivated,
+        isEnglish: isEnglish,
+        serial: normalized,
+      );
     }
 
     return null;
   }
 
   /// Validates a serial for the serial-first export flow (no orderId constraint).
-  String? validateSerialForExport(String serial) {
+  String? validateSerialForExport(
+    String serial, {
+    required bool isEnglish,
+  }) {
     final normalized = _normalizeSerial(serial);
     if (normalized.isEmpty) {
-      return 'Serial không hợp lệ.';
+      return warrantySerialValidationMessage(
+        WarrantySerialValidationErrorCode.invalidSerial,
+        isEnglish: isEnglish,
+        serial: normalized,
+      );
     }
     final imported = findImportedSerial(normalized);
     if (imported == null) {
-      return 'Serial $normalized chưa được nhập kho.';
+      return warrantySerialValidationMessage(
+        WarrantySerialValidationErrorCode.notImported,
+        isEnglish: isEnglish,
+        serial: normalized,
+      );
     }
     if (isSerialActivated(normalized)) {
-      return 'Serial $normalized đã được kích hoạt trước đó.';
+      return warrantySerialValidationMessage(
+        WarrantySerialValidationErrorCode.alreadyActivated,
+        isEnglish: isEnglish,
+        serial: normalized,
+      );
     }
     final order = _orderLookup?.call(imported.orderId);
     if (order == null ||
         (order.status != OrderStatus.completed &&
             order.status != OrderStatus.shipping)) {
-      return 'Serial $normalized chưa thuộc đơn hợp lệ (cần đang giao hoặc đã giao).';
+      return warrantySerialValidationMessage(
+        WarrantySerialValidationErrorCode.invalidOrderState,
+        isEnglish: isEnglish,
+        serial: normalized,
+      );
     }
     return null;
   }
@@ -295,53 +469,88 @@ class WarrantyController extends ChangeNotifier {
   Future<bool> addActivations(
     List<WarrantyActivationRecord> newActivations,
   ) async {
+    _lastSyncMessage = null;
     if (newActivations.isEmpty) {
       return true;
     }
 
-    if (await _canUseRemoteApi()) {
-      final requiresRemoteSync = newActivations.any((record) {
-        final remoteSerialId =
-            _remoteSerialIds[_normalizeSerial(record.serial)];
-        return remoteSerialId == null || remoteSerialId <= 0;
-      });
-      if (requiresRemoteSync && !await _loadRemoteState()) {
-        return false;
-      }
-
-      final results = await Future.wait<WarrantyActivationRecord?>(
-        newActivations.map((record) async {
-          try {
-            await _createRemoteActivation(record);
-            return record;
-          } catch (_) {
-            return null;
-          }
-        }),
+    if (!DealerApiConfig.isConfigured) {
+      _lastSyncMessage = warrantySyncMessageToken(
+        WarrantySyncMessageCode.apiNotConfigured,
       );
-      final successful = results.whereType<WarrantyActivationRecord>().toList(
-        growable: false,
-      );
-      final hasFailures = successful.length != newActivations.length;
-      if (hasFailures && successful.isNotEmpty) {
-        _upsertActivations(successful);
-        await _persist();
-      }
-      if (hasFailures) {
-        await _loadRemoteState();
-        _sanitizeState();
-        notifyListeners();
-        return false;
-      }
-      _upsertActivations(successful);
-      await _persist();
-      await _loadRemoteState();
-      _sanitizeState();
-      notifyListeners();
-      return true;
+      return false;
     }
 
-    return false;
+    if (!await _canUseRemoteApi()) {
+      _lastSyncMessage = warrantySyncMessageToken(
+        WarrantySyncMessageCode.unauthenticated,
+      );
+      return false;
+    }
+
+    final requiresRemoteSync = newActivations.any((record) {
+      final remoteSerialId = _remoteSerialIds[_normalizeSerial(record.serial)];
+      return remoteSerialId == null || remoteSerialId <= 0;
+    });
+    if (requiresRemoteSync && !await _loadRemoteState()) {
+      _lastSyncMessage ??= warrantySyncMessageToken(
+        WarrantySyncMessageCode.serialSyncFailed,
+      );
+      return false;
+    }
+
+    final results = await Future.wait<
+      ({WarrantyActivationRecord? record, String? errorMessage})
+    >(
+      newActivations.map((record) async {
+        try {
+          await _createRemoteActivation(record);
+          return (record: record, errorMessage: null);
+        } catch (error) {
+          return (
+            record: null,
+            errorMessage: _normalizeWarrantySyncFailure(
+              error,
+              fallbackCode: WarrantySyncMessageCode.activationFailed,
+            ),
+          );
+        }
+      }),
+    );
+    final successful = results
+        .where((result) => result.record != null)
+        .map((result) => result.record!)
+        .toList(growable: false);
+    String? firstErrorMessage;
+    for (final result in results) {
+      if (result.errorMessage != null) {
+        firstErrorMessage = result.errorMessage;
+        break;
+      }
+    }
+
+    final hasFailures = successful.length != newActivations.length;
+    if (hasFailures && successful.isNotEmpty) {
+      _upsertActivations(successful);
+      await _persist();
+    }
+    if (hasFailures) {
+      final failureMessage =
+          firstErrorMessage ??
+          warrantySyncMessageToken(WarrantySyncMessageCode.syncFailed);
+      await _loadRemoteState();
+      _lastSyncMessage = failureMessage;
+      _sanitizeState();
+      notifyListeners();
+      return false;
+    }
+
+    _upsertActivations(successful);
+    await _persist();
+    await _loadRemoteState();
+    _sanitizeState();
+    notifyListeners();
+    return true;
   }
 
   String normalizeSerial(String serial) {
@@ -399,16 +608,27 @@ class WarrantyController extends ChangeNotifier {
 
     try {
       final serialResponse = await _client.get(
-        Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/serials')),
+        Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/serials')),
         headers: _authorizedHeaders(token),
       );
       final serialPayload = _decodeBody(serialResponse.body);
       if (serialResponse.statusCode >= 400) {
-        throw Exception(_extractErrorMessage(serialPayload));
+        throw WarrantySyncException(
+          _extractErrorMessage(
+            serialPayload,
+            fallback: warrantySyncMessageToken(
+              WarrantySyncMessageCode.serialSyncFailed,
+            ),
+          ),
+        );
       }
       final serialData = serialPayload['data'];
       if (serialData is! List) {
-        throw Exception('Invalid serial payload');
+        throw WarrantySyncException(
+          warrantySyncMessageToken(
+            WarrantySyncMessageCode.invalidSerialPayload,
+          ),
+        );
       }
 
       final nextImportedSerials = <ImportedSerialRecord>[];
@@ -429,16 +649,27 @@ class WarrantyController extends ChangeNotifier {
       }
 
       final warrantyResponse = await _client.get(
-        Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/warranties')),
+        Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/warranties')),
         headers: _authorizedHeaders(token),
       );
       final warrantyPayload = _decodeBody(warrantyResponse.body);
       if (warrantyResponse.statusCode >= 400) {
-        throw Exception(_extractErrorMessage(warrantyPayload));
+        throw WarrantySyncException(
+          _extractErrorMessage(
+            warrantyPayload,
+            fallback: warrantySyncMessageToken(
+              WarrantySyncMessageCode.syncFailed,
+            ),
+          ),
+        );
       }
       final warrantyData = warrantyPayload['data'];
       if (warrantyData is! List) {
-        throw Exception('Invalid warranty payload');
+        throw WarrantySyncException(
+          warrantySyncMessageToken(
+            WarrantySyncMessageCode.invalidWarrantyPayload,
+          ),
+        );
       }
 
       final nextActivations = <WarrantyActivationRecord>[];
@@ -461,8 +692,13 @@ class WarrantyController extends ChangeNotifier {
       _syncMapContents(_remoteWarrantyIds, nextRemoteWarrantyIds);
       _sanitizeState();
       await _persist();
+      _lastSyncMessage = null;
       return true;
-    } catch (_) {
+    } catch (error) {
+      _lastSyncMessage = _normalizeWarrantySyncFailure(
+        error,
+        fallbackCode: WarrantySyncMessageCode.syncFailed,
+      );
       return false;
     }
   }
@@ -606,16 +842,25 @@ class WarrantyController extends ChangeNotifier {
     if (remoteSerialId == null || remoteSerialId <= 0) {
       final reloaded = await _loadRemoteState();
       if (!reloaded) {
-        throw Exception('Serial sync failed');
+        throw WarrantySyncException(
+          _lastSyncMessage ??
+              warrantySyncMessageToken(
+                WarrantySyncMessageCode.serialSyncFailed,
+              ),
+        );
       }
       remoteSerialId = _remoteSerialIds[_normalizeSerial(record.serial)];
       if (remoteSerialId == null || remoteSerialId <= 0) {
-        throw Exception('Remote serial not found');
+        throw WarrantySyncException(
+          warrantySyncMessageToken(
+            WarrantySyncMessageCode.remoteSerialNotFound,
+          ),
+        );
       }
     }
 
     final response = await _client.post(
-      Uri.parse(DealerApiConfig.resolveUrl('/api/warranty-activation')),
+      Uri.parse(DealerApiConfig.resolveUrl('/api/v1/warranty-activation')),
       headers: await _authorizedJsonHeaders(),
       body: jsonEncode(<String, dynamic>{
         'productSerialId': remoteSerialId,
@@ -628,7 +873,14 @@ class WarrantyController extends ChangeNotifier {
     );
     final payload = _decodeBody(response.body);
     if (response.statusCode >= 400) {
-      throw Exception(_extractErrorMessage(payload));
+      throw WarrantySyncException(
+        _extractErrorMessage(
+          payload,
+          fallback: warrantySyncMessageToken(
+            WarrantySyncMessageCode.activationFailed,
+          ),
+        ),
+      );
     }
 
     final data = payload['data'];
@@ -852,7 +1104,9 @@ class WarrantyController extends ChangeNotifier {
   Future<Map<String, String>> _authorizedJsonHeaders() async {
     final token = await _readAccessToken();
     if (token == null) {
-      throw StateError('Unauthenticated request');
+      throw WarrantySyncException(
+        warrantySyncMessageToken(WarrantySyncMessageCode.unauthenticated),
+      );
     }
     return <String, String>{
       ..._authorizedHeaders(token),
@@ -880,6 +1134,27 @@ class WarrantyController extends ChangeNotifier {
       return error.trim();
     }
     return fallback;
+  }
+
+  String _normalizeWarrantySyncFailure(
+    Object error, {
+    required WarrantySyncMessageCode fallbackCode,
+  }) {
+    final message = switch (error) {
+      WarrantySyncException() => error.message,
+      String() => error,
+      _ => error.toString(),
+    };
+    final normalized = message
+        .replaceFirst(RegExp(r'^Exception:\s*'), '')
+        .trim();
+    if (normalized.isEmpty) {
+      return warrantySyncMessageToken(fallbackCode);
+    }
+    if (normalized.contains('Unauthenticated request')) {
+      return warrantySyncMessageToken(WarrantySyncMessageCode.unauthenticated);
+    }
+    return normalized;
   }
 
   int _parseInt(Object? value, {int fallback = 0}) {

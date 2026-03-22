@@ -23,7 +23,7 @@ class SepayWebhookControllerTests {
 
     @Test
     void disabledWebhookReturnsOkInsteadOfBadRequest() throws Exception {
-        mockMvc.perform(post("/api/webhooks/sepay")
+        mockMvc.perform(post("/api/v1/webhooks/sepay")
                         .contentType(APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isOk())

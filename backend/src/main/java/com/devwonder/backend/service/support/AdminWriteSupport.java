@@ -37,6 +37,8 @@ public class AdminWriteSupport {
         }
         if (request.name() != null) {
             product.setName(requireNonBlank(request.name(), "name"));
+        } else if (creating) {
+            throw new BadRequestException("name is required");
         }
         if (request.shortDescription() != null) {
             product.setShortDescription(requireNonBlank(request.shortDescription(), "shortDescription"));
@@ -55,9 +57,18 @@ public class AdminWriteSupport {
         }
         if (request.retailPrice() != null) {
             product.setRetailPrice(request.retailPrice());
+        } else if (creating) {
+            throw new BadRequestException("retailPrice is required");
+        }
+        if (request.stock() != null) {
+            product.setStock(request.stock());
+        } else if (creating && product.getStock() == null) {
+            product.setStock(0);
         }
         if (request.warrantyPeriod() != null) {
-            product.setWarrantyPeriod(Math.min(120, Math.max(0, request.warrantyPeriod())));
+            product.setWarrantyPeriod(request.warrantyPeriod());
+        } else if (creating && product.getWarrantyPeriod() == null) {
+            product.setWarrantyPeriod(12);
         }
         if (request.showOnHomepage() != null) {
             product.setShowOnHomepage(request.showOnHomepage());
@@ -118,6 +129,9 @@ public class AdminWriteSupport {
     public BigDecimal requirePositivePercent(BigDecimal value) {
         if (value == null || value.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BadRequestException("percent must be greater than 0");
+        }
+        if (value.compareTo(BigDecimal.valueOf(100)) > 0) {
+            throw new BadRequestException("percent must not exceed 100");
         }
         return value;
     }

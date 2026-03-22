@@ -7,7 +7,7 @@ void main() {
     expect(DealerApiConfig.isConfigured, isTrue);
     expect(
       DealerApiConfig.authLoginUri,
-      Uri.parse('https://api.4thitek.vn/api/auth/login'),
+      Uri.parse('https://api.4thitek.vn/api/v1/auth/login'),
     );
   });
 }

@@ -32,6 +32,43 @@ class BankTransferInstructions {
   final String accountHolder;
 }
 
+enum BankTransferErrorCode { unauthenticated, invalidPayload, unavailable }
+
+String bankTransferLoadErrorMessage(
+  Object error, {
+  required bool isEnglish,
+}) {
+  if (error is BankTransferException) {
+    switch (error.code) {
+      case BankTransferErrorCode.unauthenticated:
+        return isEnglish
+            ? 'You need to sign in to view bank transfer information.'
+            : 'Bạn cần đăng nhập để xem thông tin chuyển khoản.';
+      case BankTransferErrorCode.invalidPayload:
+        return isEnglish
+            ? 'The system returned invalid bank transfer information.'
+            : 'Hệ thống trả về thông tin chuyển khoản không hợp lệ.';
+      case BankTransferErrorCode.unavailable:
+        return isEnglish
+            ? 'Unable to load bank transfer information.'
+            : 'Không thể tải thông tin chuyển khoản.';
+      case null:
+        final message = error.message.trim();
+        if (message.isNotEmpty) {
+          return message;
+        }
+    }
+  }
+
+  final message = error.toString().trim();
+  if (message.isNotEmpty) {
+    return message;
+  }
+  return isEnglish
+      ? 'Unable to load bank transfer information.'
+      : 'Không thể tải thông tin chuyển khoản.';
+}
+
 class BankTransferService {
   BankTransferService({AuthStorage? authStorage, http.Client? client})
     : _authStorage = authStorage ?? AuthStorage() {
@@ -47,13 +84,13 @@ class BankTransferService {
   Future<BankTransferInstructions> fetchInstructions() async {
     final accessToken = await _authStorage.readAccessToken();
     if (accessToken == null || accessToken.trim().isEmpty) {
-      throw const BankTransferException(
-        'Bạn cần đăng nhập để lấy thông tin chuyển khoản.',
-      );
+      throw const BankTransferException.unauthenticated();
     }
 
     final response = await _client.get(
-      Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/payment-instructions')),
+      Uri.parse(
+        DealerApiConfig.resolveUrl('/api/v1/dealer/payment-instructions'),
+      ),
       headers: <String, String>{
         HttpHeaders.authorizationHeader: 'Bearer ${accessToken.trim()}',
         HttpHeaders.acceptHeader: 'application/json',
@@ -61,13 +98,11 @@ class BankTransferService {
     );
     final payload = _decodeBody(response.body);
     if (response.statusCode >= 400) {
-      throw BankTransferException(_extractErrorMessage(payload));
+      throw _extractError(payload);
     }
     final data = payload['data'];
     if (data is! Map<String, dynamic>) {
-      throw const BankTransferException(
-        'Không nhận được thông tin chuyển khoản hợp lệ.',
-      );
+      throw const BankTransferException.invalidPayload();
     }
     return BankTransferInstructions(
       provider: data['provider']?.toString() ?? 'SePay',
@@ -92,19 +127,32 @@ class BankTransferService {
     return const <String, dynamic>{};
   }
 
-  String _extractErrorMessage(Map<String, dynamic> payload) {
+  BankTransferException _extractError(Map<String, dynamic> payload) {
     final error = payload['error']?.toString().trim();
     if (error != null && error.isNotEmpty) {
-      return error;
+      return BankTransferException(error);
     }
-    return 'Không thể tải thông tin chuyển khoản.';
+    return const BankTransferException.unavailable();
   }
 }
 
 class BankTransferException implements Exception {
-  const BankTransferException(this.message);
+  const BankTransferException(
+    this.message, {
+    this.code,
+  });
+
+  const BankTransferException.unauthenticated()
+    : this('', code: BankTransferErrorCode.unauthenticated);
+
+  const BankTransferException.invalidPayload()
+    : this('', code: BankTransferErrorCode.invalidPayload);
+
+  const BankTransferException.unavailable()
+    : this('', code: BankTransferErrorCode.unavailable);
 
   final String message;
+  final BankTransferErrorCode? code;
 
   @override
   String toString() => message;

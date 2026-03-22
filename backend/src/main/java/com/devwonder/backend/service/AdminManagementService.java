@@ -73,10 +73,10 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -106,6 +106,7 @@ public class AdminManagementService {
     private final PasswordEncoder passwordEncoder;
     private final MailService mailService;
     private final DealerAccountLifecycleService dealerAccountLifecycleService;
+    private final AdminSettingsService adminSettingsService;
     private final AdminWriteSupport adminWriteSupport;
     private final AdminIdentitySupport adminIdentitySupport;
     private final AdminOrderNotificationSupport adminOrderNotificationSupport;
@@ -114,22 +115,17 @@ public class AdminManagementService {
     private final OrderInventorySupport orderInventorySupport;
     private final ProductSerialOrderSupport productSerialOrderSupport;
 
-    @Value("${sepay.enabled:false}")
-    private boolean sepayEnabled;
-
     @Transactional(readOnly = true)
     public List<AdminProductResponse> getProducts() {
-        Map<Long, Integer> serialCounts = buildSerialCountMap();
         return productRepository.findByIsDeletedFalseOrderByUpdatedAtDesc().stream()
-                .map(p -> AdminResponseMapper.toProductResponse(p, serialCounts.getOrDefault(p.getId(), 0)))
+                .map(p -> AdminResponseMapper.toProductResponse(p, safeStock(p)))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public Page<AdminProductResponse> getProducts(Pageable pageable) {
-        Map<Long, Integer> serialCounts = buildSerialCountMap();
         return productRepository.findByIsDeletedFalse(pageable)
-                .map(p -> AdminResponseMapper.toProductResponse(p, serialCounts.getOrDefault(p.getId(), 0)));
+                .map(p -> AdminResponseMapper.toProductResponse(p, safeStock(p)));
     }
 
     @Transactional
@@ -144,7 +140,7 @@ public class AdminManagementService {
         Product product = new Product();
         adminWriteSupport.applyProduct(product, request, true);
         Product saved = productRepository.save(product);
-        return AdminResponseMapper.toProductResponse(saved, 0);
+        return AdminResponseMapper.toProductResponse(saved, safeStock(saved));
     }
 
     @Transactional
@@ -160,9 +156,7 @@ public class AdminManagementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
         adminWriteSupport.applyProduct(product, request, false);
         Product saved = productRepository.save(product);
-        int availableStock = (int) productSerialRepository.countByProductIdAndDealerIsNullAndStatus(
-                saved.getId(), com.devwonder.backend.entity.enums.ProductSerialStatus.AVAILABLE);
-        return AdminResponseMapper.toProductResponse(saved, availableStock);
+        return AdminResponseMapper.toProductResponse(saved, safeStock(saved));
     }
 
     @Transactional
@@ -201,31 +195,29 @@ public class AdminManagementService {
     @Transactional
     @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
     public AdminOrderResponse updateOrderStatus(Long id, UpdateDealerOrderStatusRequest request) {
-        Order order = orderRepository.findById(id)
+        Order order = orderRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         OrderStatus previousStatus = order.getStatus();
         OrderStatusTransitionPolicy.assertAdminTransitionAllowed(previousStatus, request.status());
         order.setStatus(request.status());
         applyCompletedAt(order, request.status(), previousStatus);
         if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
+            orderInventorySupport.restoreStock(order);
             productSerialOrderSupport.releaseNonWarrantySerials(order);
         }
-        if (previousStatus == OrderStatus.PENDING && request.status() == OrderStatus.CONFIRMED) {
-            List<ProductSerial> reserved = productSerialRepository.findByOrderIdAndStatus(id, ProductSerialStatus.RESERVED);
-            reserved.forEach(s -> s.setStatus(ProductSerialStatus.ASSIGNED));
-            if (!reserved.isEmpty()) {
-                productSerialRepository.saveAll(reserved);
-            }
-        }
-        if (request.status() == OrderStatus.COMPLETED && order.getDealer() != null) {
+        if (request.status() == OrderStatus.COMPLETED && previousStatus != OrderStatus.COMPLETED && order.getDealer() != null) {
             List<ProductSerial> orderSerials = productSerialRepository.findByOrderId(id);
             java.util.List<ProductSerial> toUpdate = new java.util.ArrayList<>();
             for (ProductSerial serial : orderSerials) {
                 if (serial.getDealer() == null) {
                     serial.setDealer(order.getDealer());
-                    serial.setStatus(ProductSerialStatus.AVAILABLE);
-                    toUpdate.add(serial);
                 }
+                if (serial.getStatus() == ProductSerialStatus.RESERVED || serial.getStatus() == ProductSerialStatus.AVAILABLE) {
+                    serial.setStatus(ProductSerialStatus.ASSIGNED);
+                    toUpdate.add(serial);
+                    continue;
+                }
+                toUpdate.add(serial);
             }
             if (!toUpdate.isEmpty()) {
                 productSerialRepository.saveAll(toUpdate);
@@ -287,6 +279,9 @@ public class AdminManagementService {
                 if (serial.getDealer() != null) {
                     throw new BadRequestException("Serial " + normalizedSerial + " is already assigned to a dealer");
                 }
+                if (serial.getOrder() != null && !Objects.equals(serial.getOrder().getId(), orderId)) {
+                    throw new BadRequestException("Serial " + normalizedSerial + " is already linked to another order");
+                }
                 if (serial.getStatus() != ProductSerialStatus.AVAILABLE) {
                     throw new BadRequestException("Serial " + normalizedSerial + " is not available");
                 }
@@ -294,7 +289,8 @@ public class AdminManagementService {
                     throw new BadRequestException("Serial " + normalizedSerial + " does not belong to product " + productId);
                 }
                 serial.setOrder(order);
-                serial.setStatus(ProductSerialStatus.ASSIGNED);
+                serial.setDealer(null);
+                serial.setStatus(ProductSerialStatus.RESERVED);
                 toSave.add(serial);
             }
         }
@@ -326,7 +322,7 @@ public class AdminManagementService {
         Order order = orderRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
-        dealerPaymentSupport.recordAdminPayment(order, request, sepayEnabled, activeDiscountRules);
+        dealerPaymentSupport.recordAdminPayment(order, request, activeDiscountRules);
         return AdminResponseMapper.toOrderResponse(order, activeDiscountRules);
     }
 
@@ -461,23 +457,30 @@ public class AdminManagementService {
     @Transactional
     @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
     public AdminStaffUserResponse createUser(AdminStaffUserUpsertRequest request) {
+        String email = AccountValidationSupport.normalizeEmail(request.email());
+        if (email == null) {
+            throw new BadRequestException("email is required");
+        }
+        if (accountRepository.existsByEmailIgnoreCase(email)) {
+            throw new ConflictException("Email already exists");
+        }
         String name = requireNonBlank(request.name(), "name");
         String roleTitle = requireNonBlank(request.role(), "role");
-        AdminIdentitySupport.UniqueIdentity identity = adminIdentitySupport.generateUniqueIdentity(name, "staff");
+        String username = adminIdentitySupport.generateUniqueUsername(name, "staff");
         String temporaryPassword = generateTemporaryPassword();
 
         Admin admin = new Admin();
-        admin.setUsername(identity.username());
-        admin.setEmail(identity.email());
+        admin.setUsername(username);
+        admin.setEmail(email);
         admin.setPassword(passwordEncoder.encode(temporaryPassword));
         admin.setDisplayName(name);
         admin.setRoleTitle(roleTitle);
         admin.setUserStatus(request.status() == null ? StaffUserStatus.PENDING : request.status());
-        admin.setRequireLoginEmailConfirmation(Boolean.TRUE);
+        admin.setRequirePasswordChange(Boolean.TRUE);
         admin.setRoles(new HashSet<>(List.of(resolveRole("ADMIN", "Admin role"))));
         Admin saved = adminRepository.save(admin);
-        sendWelcomeEmailIfPossible(saved, identity.username(), temporaryPassword);
-        return AdminResponseMapper.toStaffUserResponse(saved, temporaryPassword);
+        sendWelcomeEmailIfPossible(saved, username, temporaryPassword);
+        return AdminResponseMapper.toStaffUserResponse(saved);
     }
 
     private void sendWelcomeEmailIfPossible(Admin admin, String username, String temporaryPassword) {
@@ -515,7 +518,7 @@ public class AdminManagementService {
         }
         AccountValidationSupport.assertStrongPassword(request.newPassword(), "newPassword");
         admin.setPassword(passwordEncoder.encode(request.newPassword()));
-        admin.setRequireLoginEmailConfirmation(Boolean.FALSE);
+        admin.setRequirePasswordChange(Boolean.FALSE);
         adminRepository.save(admin);
     }
 
@@ -559,6 +562,7 @@ public class AdminManagementService {
     @Cacheable(CacheNames.ADMIN_DASHBOARD)
     public AdminDashboardResponse getDashboard() {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
+        boolean inventoryAlertsEnabled = adminSettingsService.getEffectiveSettings().inventoryAlerts();
         Instant dashboardStart = YearMonth.now(WarrantyDateSupport.APP_ZONE)
                 .minusMonths(5)
                 .atDay(1)
@@ -580,8 +584,8 @@ public class AdminManagementService {
                 Math.toIntExact(orderRepository.countVisibleOrdersByStatus(OrderStatus.COMPLETED)),
                 Math.toIntExact(orderRepository.countVisibleOrdersByStatus(OrderStatus.CANCELLED)),
                 Math.toIntExact(productRepository.countActiveProducts()),
-                Math.toIntExact(productRepository.countActiveProductsBelowStock(10)),
-                Math.toIntExact(productRepository.countActiveProductsBelowStock(5)),
+                inventoryAlertsEnabled ? Math.toIntExact(productRepository.countActiveProductsBelowStock(10)) : 0,
+                inventoryAlertsEnabled ? Math.toIntExact(productRepository.countActiveProductsBelowStock(5)) : 0,
                 Math.toIntExact(dealerRepository.count()),
                 Math.toIntExact(dealerRepository.countByCustomerStatus(CustomerStatus.UNDER_REVIEW)),
                 Math.toIntExact(adminRepository.count()),
@@ -633,17 +637,6 @@ public class AdminManagementService {
         return bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
     }
 
-    private Map<Long, Integer> buildSerialCountMap() {
-        Map<Long, Integer> counts = new java.util.HashMap<>();
-        for (Object[] row : productSerialRepository.countAvailableGroupByProduct(
-                com.devwonder.backend.entity.enums.ProductSerialStatus.AVAILABLE)) {
-            Long productId = (Long) row[0];
-            Long count = (Long) row[1];
-            counts.put(productId, count.intValue());
-        }
-        return counts;
-    }
-
     private void applyDiscountRuleRange(BulkDiscount rule, String rangeLabel) {
         OrderPricingSupport.QuantityRange range = OrderPricingSupport.parseRange(rangeLabel);
         if (range == null) {
@@ -690,6 +683,10 @@ public class AdminManagementService {
 
     private String valueAsString(Object value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    private int safeStock(Product product) {
+        return product == null || product.getStock() == null ? 0 : Math.max(0, product.getStock());
     }
 
     private void publishOrderStatusRealtime(Order order, OrderStatus previousStatus) {

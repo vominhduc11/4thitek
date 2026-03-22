@@ -31,7 +31,7 @@ class RateLimitDefaultsTests {
 
     @Test
     void fallsBackToSafeDefaultsWhenConfiguredAuthLimitIsNonPositive() throws Exception {
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                         .header("Origin", "http://localhost:4173")
                         .contentType(APPLICATION_JSON)
                         .content("""

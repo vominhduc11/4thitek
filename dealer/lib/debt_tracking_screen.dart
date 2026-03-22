@@ -640,11 +640,11 @@ class _DebtOrderCard extends StatelessWidget {
                                         ..hideCurrentSnackBar()
                                         ..showSnackBar(
                                           SnackBar(
-                                            content: Text(
-                                              texts.proofUploadFailed('$error'),
+                                              content: Text(
+                                                texts.proofUploadFailed(error),
+                                              ),
                                             ),
-                                          ),
-                                        );
+                                          );
                                     } finally {
                                       if (sheetRootContext.mounted) {
                                         setDialogState(() {
@@ -1310,12 +1310,9 @@ class _DebtTexts {
     return 'Đã đính kèm chứng từ $fileName.';
   }
 
-  String proofUploadFailed(String error) {
-    if (isEnglish) {
-      return 'Unable to upload proof: $error';
-    }
-    return 'Không thể tải chứng từ: $error';
-  }
+  String proofUploadFailed(Object error) => isEnglish
+      ? uploadServiceErrorMessage(error, isEnglish: true)
+      : uploadServiceErrorMessage(error, isEnglish: false);
 
   String largePaymentConfirmMessage({
     required String amount,

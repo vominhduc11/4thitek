@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 
 import 'api_config.dart';
+import 'auth_storage.dart';
 
 String resolveFileReference(String reference) {
   final trimmed = reference.trim();
@@ -42,8 +44,22 @@ ImageProvider<Object>? imageProviderFromReference(String? reference) {
 
   final resolved = resolveFileReference(trimmed);
   if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
-    return NetworkImage(resolved);
+    return NetworkImage(resolved, headers: authHeadersForResolvedUrl(resolved));
   }
 
   return null;
+}
+
+Map<String, String>? authHeadersForResolvedUrl(String? resolvedUrl) {
+  final trimmed = resolvedUrl?.trim() ?? '';
+  if (trimmed.isEmpty || !trimmed.contains('/api/v1/upload/')) {
+    return null;
+  }
+
+  final token = AuthStorage.currentAccessToken?.trim();
+  if (token == null || token.isEmpty) {
+    return null;
+  }
+
+  return <String, String>{HttpHeaders.authorizationHeader: 'Bearer $token'};
 }

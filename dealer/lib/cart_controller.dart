@@ -245,7 +245,7 @@ class CartController extends ChangeNotifier {
     try {
       final response = await _client
           .get(
-            Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/cart')),
+            Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/cart')),
             headers: _authorizedHeaders(token),
           )
           .timeout(_remoteRequestTimeout);
@@ -293,7 +293,9 @@ class CartController extends ChangeNotifier {
     try {
       final response = await _client
           .get(
-            Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/discount-rules')),
+            Uri.parse(
+              DealerApiConfig.resolveUrl('/api/v1/dealer/discount-rules'),
+            ),
             headers: _authorizedHeaders(token),
           )
           .timeout(_remoteRequestTimeout);
@@ -389,7 +391,7 @@ class CartController extends ChangeNotifier {
 
     final response = await _client
         .put(
-          Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/cart/items')),
+          Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/cart/items')),
           headers: _authorizedJsonHeaders(token),
           body: jsonEncode(<String, dynamic>{
             'productId': productId,
@@ -421,7 +423,7 @@ class CartController extends ChangeNotifier {
         .delete(
           Uri.parse(
             DealerApiConfig.resolveUrl(
-              '/api/dealer/cart/items/$numericProductId',
+              '/api/v1/dealer/cart/items/$numericProductId',
             ),
           ),
           headers: _authorizedHeaders(token),
@@ -437,7 +439,7 @@ class CartController extends ChangeNotifier {
     final token = await _requireAccessToken();
     final response = await _client
         .delete(
-          Uri.parse(DealerApiConfig.resolveUrl('/api/dealer/cart')),
+          Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/cart')),
           headers: _authorizedHeaders(token),
         )
         .timeout(_remoteRequestTimeout);

@@ -51,9 +51,9 @@ class BootstrapSuperAdminInitializerTests {
         assertThat(passwordEncoder.matches("InitPass#123", admin.getPassword())).isTrue();
         assertThat(admin.getRoles()).extracting(role -> role.getName())
                 .contains("ADMIN", "SUPER_ADMIN");
-        assertThat(admin.getRequireLoginEmailConfirmation()).isTrue();
+        assertThat(admin.getRequirePasswordChange()).isTrue();
 
-        MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON)
                         .content("""
                                 {
@@ -68,12 +68,12 @@ class BootstrapSuperAdminInitializerTests {
         JsonNode loginPayload = objectMapper.readTree(loginResult.getResponse().getContentAsString());
         String accessToken = loginPayload.path("data").path("accessToken").asText();
 
-        mockMvc.perform(get("/api/admin/settings")
+        mockMvc.perform(get("/api/v1/admin/settings")
                         .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("Password change required before accessing admin resources"));
 
-        mockMvc.perform(patch("/api/admin/password")
+        mockMvc.perform(patch("/api/v1/admin/password")
                         .header("Authorization", "Bearer " + accessToken)
                         .contentType(APPLICATION_JSON)
                         .content("""
@@ -85,11 +85,11 @@ class BootstrapSuperAdminInitializerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("updated"));
 
-        mockMvc.perform(get("/api/admin/settings")
+        mockMvc.perform(get("/api/v1/admin/settings")
                         .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk());
 
         assertThat(adminRepository.findByUsername("bootstrap.owner@example.com").orElseThrow()
-                .getRequireLoginEmailConfirmation()).isFalse();
+                .getRequirePasswordChange()).isFalse();
     }
 }

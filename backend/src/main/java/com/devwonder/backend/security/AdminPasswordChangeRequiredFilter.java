@@ -20,9 +20,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class AdminPasswordChangeRequiredFilter extends OncePerRequestFilter {
 
-    private static final String CHANGE_PASSWORD_PATH = "/api/admin/password";
-    private static final String VERSIONED_CHANGE_PASSWORD_PATH = "/api/v1/admin/password";
-    private static final String LEGACY_CHANGE_PASSWORD_PATH = "/admin/password";
+    private static final String ADMIN_API_PREFIX = "/api/v1/admin/";
+    private static final String CHANGE_PASSWORD_PATH = "/api/v1/admin/password";
 
     private final ObjectMapper objectMapper;
 
@@ -32,7 +31,11 @@ public class AdminPasswordChangeRequiredFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        if (HttpMethod.OPTIONS.matches(request.getMethod()) || isAllowedPath(request.getRequestURI())) {
+        String requestUri = request.getRequestURI();
+        if (HttpMethod.OPTIONS.matches(request.getMethod())
+                || requestUri == null
+                || !requestUri.startsWith(ADMIN_API_PREFIX)
+                || isAllowedPath(requestUri)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -40,7 +43,7 @@ public class AdminPasswordChangeRequiredFilter extends OncePerRequestFilter {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Object principal = authentication == null ? null : authentication.getPrincipal();
         if (!(principal instanceof Admin admin)
-                || !Boolean.TRUE.equals(admin.getRequireLoginEmailConfirmation())) {
+                || !Boolean.TRUE.equals(admin.getRequirePasswordChange())) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -58,11 +61,7 @@ public class AdminPasswordChangeRequiredFilter extends OncePerRequestFilter {
         if (requestUri == null) {
             return false;
         }
-        return requestUri.startsWith("/api/auth/")
-                || requestUri.startsWith("/api/v1/auth/")
-                || requestUri.startsWith("/auth/")
-                || CHANGE_PASSWORD_PATH.equals(requestUri)
-                || VERSIONED_CHANGE_PASSWORD_PATH.equals(requestUri)
-                || LEGACY_CHANGE_PASSWORD_PATH.equals(requestUri);
+        return requestUri.startsWith("/api/v1/auth/")
+                || CHANGE_PASSWORD_PATH.equals(requestUri);
     }
 }

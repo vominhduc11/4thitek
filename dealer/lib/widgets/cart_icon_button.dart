@@ -12,16 +12,19 @@ class CartIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final texts = _CartIconButtonTexts(
+      isEnglish: Localizations.localeOf(context).languageCode == 'en',
+    );
     final semanticLabel = count > 0
-        ? 'Giỏ hàng, $count sản phẩm'
-        : 'Giỏ hàng, chưa có sản phẩm';
+        ? texts.cartWithItemsLabel(count)
+        : texts.emptyCartLabel;
     return Semantics(
       button: true,
       label: semanticLabel,
       child: ExcludeSemantics(
         child: IconButton(
           onPressed: onPressed,
-          tooltip: 'Giỏ hàng',
+          tooltip: texts.tooltip,
           icon: Badge(
             isLabelVisible: count > 0,
             label: Text(count > 99 ? '99+' : '$count'),
@@ -31,4 +34,19 @@ class CartIconButton extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CartIconButtonTexts {
+  const _CartIconButtonTexts({required this.isEnglish});
+
+  final bool isEnglish;
+
+  String get tooltip => isEnglish ? 'Cart' : 'Giỏ hàng';
+
+  String cartWithItemsLabel(int count) => isEnglish
+      ? 'Cart, $count items'
+      : 'Giỏ hàng, $count sản phẩm';
+
+  String get emptyCartLabel =>
+      isEnglish ? 'Cart, no items yet' : 'Giỏ hàng, chưa có sản phẩm';
 }

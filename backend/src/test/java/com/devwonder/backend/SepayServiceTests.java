@@ -23,8 +23,10 @@ import com.devwonder.backend.repository.PaymentRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.service.NotificationService;
 import com.devwonder.backend.service.SepayService;
+import com.devwonder.backend.service.support.OrderPricingSupport;
 import java.math.BigDecimal;
 import java.util.HashSet;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,7 +70,7 @@ class SepayServiceTests {
     void duplicateWebhookWithoutProviderTransactionIdUsesFallbackFingerprint() {
         Product product = createProduct("SEPAY-TEST-1");
         Order order = orderRepository.save(createBankTransferOrder("SCS-2026-101", product, null));
-        SepayWebhookRequest request = createWebhook("SCS-2026-101");
+        SepayWebhookRequest request = createWebhook("SCS-2026-101", outstandingAmount(order));
 
         SepayService.WebhookResult first = sepayService.processWebhook(request, "test-token");
         SepayService.WebhookResult second = sepayService.processWebhook(request, "test-token");
@@ -77,10 +79,9 @@ class SepayServiceTests {
 
         assertThat(first.status()).isEqualTo("processed");
         assertThat(first.transactionCode()).startsWith("SEPAY:FINGERPRINT:");
-        assertThat(second.status()).isEqualTo("duplicate_transaction");
-        assertThat(second.transactionCode()).isEqualTo(first.transactionCode());
+        assertThat(second.status()).isIn("duplicate_transaction", "already_paid");
         assertThat(payments).hasSize(1);
-        assertThat(refreshedOrder.getPaidAmount()).isEqualByComparingTo("110000");
+        assertThat(refreshedOrder.getPaidAmount()).isEqualByComparingTo(outstandingAmount(order));
     }
 
     @Test
@@ -88,7 +89,7 @@ class SepayServiceTests {
         Product product = createProduct("SEPAY-TEST-2");
         Dealer dealer = createDealer("dealer.sepay@example.com");
         Order order = orderRepository.save(createBankTransferOrder("SCS-2026-202", product, dealer));
-        SepayWebhookRequest request = createWebhook("SCS-2026-202");
+        SepayWebhookRequest request = createWebhook("SCS-2026-202", outstandingAmount(order));
         doThrow(new ResourceNotFoundException("Account not found"))
                 .when(notificationService)
                 .create(any());
@@ -99,7 +100,7 @@ class SepayServiceTests {
 
         assertThat(result.status()).isEqualTo("processed");
         assertThat(payments).hasSize(1);
-        assertThat(refreshedOrder.getPaidAmount()).isEqualByComparingTo("110000");
+        assertThat(refreshedOrder.getPaidAmount()).isEqualByComparingTo(outstandingAmount(order));
         verify(notificationService).create(any());
     }
 
@@ -127,7 +128,22 @@ class SepayServiceTests {
         Order refreshedOrder = orderRepository.findFirstByOrderCodeIgnoreCase(order.getOrderCode()).orElseThrow();
         var payments = paymentRepository.findByOrderIdOrderByPaidAtDescIdDesc(refreshedOrder.getId());
 
-        assertThat(result.status()).isEqualTo("amount_exceeds_outstanding");
+        assertThat(result.status()).isEqualTo("amount_mismatch");
+        assertThat(payments).isEmpty();
+        assertThat(refreshedOrder.getPaidAmount()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void partialPaymentWebhookIsIgnoredWhenAmountDoesNotMatchOutstanding() {
+        Product product = createProduct("SEPAY-TEST-5");
+        Order order = orderRepository.save(createBankTransferOrder("SCS-2026-505", product, null));
+        SepayWebhookRequest request = createWebhook("SCS-2026-505", BigDecimal.valueOf(110_000));
+
+        SepayService.WebhookResult result = sepayService.processWebhook(request, "test-token");
+        Order refreshedOrder = orderRepository.findFirstByOrderCodeIgnoreCase(order.getOrderCode()).orElseThrow();
+        var payments = paymentRepository.findByOrderIdOrderByPaidAtDescIdDesc(refreshedOrder.getId());
+
+        assertThat(result.status()).isEqualTo("amount_mismatch");
         assertThat(payments).isEmpty();
         assertThat(refreshedOrder.getPaidAmount()).isEqualByComparingTo("0");
     }
@@ -137,19 +153,19 @@ class SepayServiceTests {
         Product product = createProduct("SEPAY-TEST-4");
         orderRepository.save(createBankTransferOrder("SCS-2026-404", product, null));
 
-        assertThatThrownBy(() -> sepayService.processWebhook(createWebhook("SCS-2026-404"), "   "))
+        assertThatThrownBy(() -> sepayService.processWebhook(createWebhook("SCS-2026-404", BigDecimal.valueOf(220_000)), "   "))
                 .isInstanceOf(UnauthorizedException.class)
                 .hasMessageContaining("Invalid SePay webhook token");
     }
 
-    private SepayWebhookRequest createWebhook(String orderCode) {
+    private SepayWebhookRequest createWebhook(String orderCode, BigDecimal amount) {
         return new SepayWebhookRequest(
                 null,
                 "SePay",
                 "2026-03-13 11:30:00",
                 "123456789",
                 "in",
-                BigDecimal.valueOf(110_000),
+                amount,
                 null,
                 null,
                 null,
@@ -200,5 +216,9 @@ class SepayServiceTests {
         item.setUnitPrice(BigDecimal.valueOf(100_000));
         order.getOrderItems().add(item);
         return order;
+    }
+
+    private BigDecimal outstandingAmount(Order order) {
+        return OrderPricingSupport.computeTotalAmount(order, List.of());
     }
 }

@@ -5,6 +5,7 @@ import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.enums.NotifyType;
 import com.devwonder.backend.entity.enums.OrderStatus;
+import com.devwonder.backend.service.AdminSettingsService;
 import com.devwonder.backend.service.MailService;
 import com.devwonder.backend.service.NotificationService;
 import java.util.Locale;
@@ -22,8 +23,12 @@ public class AdminOrderNotificationSupport {
     private final NotificationService notificationService;
     private final MailService mailService;
     private final AppMessageSupport appMessageSupport;
+    private final AdminSettingsService adminSettingsService;
 
     public void notifyStatusChange(Order order, OrderStatus previousStatus) {
+        if (!adminSettingsService.getEffectiveSettings().orderAlerts()) {
+            return;
+        }
         Dealer dealer = order.getDealer();
         OrderStatus currentStatus = order.getStatus();
         if (dealer == null || currentStatus == null || currentStatus == previousStatus) {
@@ -37,12 +42,16 @@ public class AdminOrderNotificationSupport {
                 title,
                 content,
                 NotifyType.ORDER,
-                "/orders/" + firstNonBlank(order.getOrderCode(), String.valueOf(order.getId()))
+                "/orders/" + firstNonBlank(order.getOrderCode(), String.valueOf(order.getId())),
+                null
         ));
         sendStatusEmailIfPossible(dealer, order, currentStatus);
     }
 
     public void notifyDeletion(Order order) {
+        if (!adminSettingsService.getEffectiveSettings().orderAlerts()) {
+            return;
+        }
         Dealer dealer = order.getDealer();
         if (dealer == null) {
             return;
@@ -54,7 +63,8 @@ public class AdminOrderNotificationSupport {
                 appMessageSupport.get("notification.order.deleted.title"),
                 appMessageSupport.get("notification.order.deleted.content", orderCode),
                 NotifyType.ORDER,
-                "/orders"
+                "/orders",
+                null
         ));
     }
 

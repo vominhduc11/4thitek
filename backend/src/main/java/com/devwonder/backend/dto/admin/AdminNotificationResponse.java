@@ -9,10 +9,11 @@ public record AdminNotificationResponse(
         String accountName,
         String accountType,
         String title,
-        String content,
+        String body,
         Boolean isRead,
         NotifyType type,
         String link,
+        String deepLink,
         Instant createdAt
 ) {
 }

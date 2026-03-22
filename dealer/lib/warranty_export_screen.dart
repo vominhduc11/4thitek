@@ -57,7 +57,10 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
 
     final warrantyController = WarrantyScope.of(context);
     final normalized = warrantyController.normalizeSerial(prefilled);
-    final error = warrantyController.validateSerialForExport(normalized);
+    final error = warrantyController.validateSerialForExport(
+      normalized,
+      isEnglish: _isEnglish,
+    );
     if (error != null) {
       _showSnackBarDeferred(error);
       return;
@@ -90,7 +93,10 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
       return;
     }
 
-    final error = warrantyController.validateSerialForExport(normalized);
+    final error = warrantyController.validateSerialForExport(
+      normalized,
+      isEnglish: texts.isEnglish,
+    );
     if (error != null) {
       _showSnackBar(error);
       return;
@@ -118,7 +124,10 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
       return;
     }
 
-    final error = warrantyController.validateSerialForExport(normalized);
+    final error = warrantyController.validateSerialForExport(
+      normalized,
+      isEnglish: texts.isEnglish,
+    );
     if (error != null) {
       _showSnackBar(error);
       return;
@@ -188,7 +197,10 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
     // Re-validate all serials before submit
     for (final record in _cart) {
       final normalized = warrantyController.normalizeSerial(record.serial);
-      final error = warrantyController.validateSerialForExport(normalized);
+      final error = warrantyController.validateSerialForExport(
+        normalized,
+        isEnglish: texts.isEnglish,
+      );
       if (error != null) {
         _showSnackBar(error);
         return;
@@ -230,7 +242,12 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
     setState(() => _isSubmitting = false);
 
     if (!success) {
-      _showSnackBar(texts.activationSyncFailedMessage);
+      _showSnackBar(
+        warrantySyncErrorMessage(
+          warrantyController.lastSyncMessage,
+          isEnglish: texts.isEnglish,
+        ),
+      );
       return;
     }
 

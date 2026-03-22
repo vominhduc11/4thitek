@@ -110,10 +110,12 @@ class PublicApiServiceTests {
         var response = publicApiService.lookupWarranty(serial.getSerial());
 
         assertThat(response.status()).isEqualTo("EXPIRED");
+        assertThat(response.productName()).isEqualTo("Product SPK-1");
+        assertThat(response.serialNumber()).isEqualTo("SERIAL-EXP-1");
         assertThat(response.purchaseDate()).isEqualTo(LocalDate.of(2024, 1, 1));
-        assertThat(response.warrantyStart()).isEqualTo(warrantyStart);
-        assertThat(response.warrantyEnd()).isEqualTo(warrantyEnd);
+        assertThat(response.warrantyEndDate()).isEqualTo(LocalDate.of(2024, 12, 31));
         assertThat(response.remainingDays()).isZero();
+        assertThat(response.warrantyCode()).isEqualTo("WH-EXP-1");
     }
 
     @Test
@@ -137,6 +139,22 @@ class PublicApiServiceTests {
     }
 
     @Test
+    void lookupWarrantyReturnsInvalidForMissingOrUnactivatedSerials() {
+        Product product = createProduct("SPK-3", PublishStatus.PUBLISHED);
+        createSerial(product, "SERIAL-UNACTIVATED-1");
+
+        var response = publicApiService.lookupWarranty(" serial-unactivated-1 ");
+
+        assertThat(response.status()).isEqualTo("invalid");
+        assertThat(response.serialNumber()).isEqualTo("SERIAL-UNACTIVATED-1");
+        assertThat(response.productName()).isNull();
+        assertThat(response.purchaseDate()).isNull();
+        assertThat(response.warrantyEndDate()).isNull();
+        assertThat(response.remainingDays()).isZero();
+        assertThat(response.warrantyCode()).isNull();
+    }
+
+    @Test
     void getDealersReturnsOnlyActiveDealerAccounts() {
         dealerRepository.save(createDealer("active-dealer@example.com", CustomerStatus.ACTIVE));
         dealerRepository.save(createDealer("pending-dealer@example.com", CustomerStatus.UNDER_REVIEW));
@@ -145,6 +163,19 @@ class PublicApiServiceTests {
 
         assertThat(response).hasSize(1);
         assertThat(response.get(0).email()).isEqualTo("active-dealer@example.com");
+    }
+
+    @Test
+    void getDealersPagedReturnsOnlyPublicDealers() {
+        dealerRepository.save(createDealer("active-dealer@example.com", CustomerStatus.ACTIVE));
+        dealerRepository.save(createDealer("legacy-active@example.com", null));
+        dealerRepository.save(createDealer("pending-dealer@example.com", CustomerStatus.UNDER_REVIEW));
+
+        var response = publicApiService.getDealersPaged(0, 10);
+
+        assertThat(response.totalElements()).isEqualTo(2);
+        assertThat(response.items()).extracting("email")
+                .containsExactlyInAnyOrder("active-dealer@example.com", "legacy-active@example.com");
     }
 
     private Product createProduct(String sku, PublishStatus publishStatus) {

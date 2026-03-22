@@ -152,10 +152,15 @@ public class DealerWarrantyManagementService {
             ProductSerial productSerial,
             Long forcedDealerId
     ) {
+        ProductSerial previousProductSerial = registration.getProductSerial();
         Dealer dealer = resolveDealer(forcedDealerId, productSerial);
-        assertWarrantyEligibleOrder(productSerial.getOrder());
+        Order order = productSerial.getOrder();
+        assertWarrantyEligibleOrder(order);
         if (productSerial.getStatus() == ProductSerialStatus.DEFECTIVE) {
             throw new BadRequestException("Defective serial cannot be activated for warranty");
+        }
+        if (productSerial.getStatus() == ProductSerialStatus.RETURNED) {
+            throw new BadRequestException("Returned serial cannot be activated for warranty");
         }
         LocalDate purchaseDate = request.purchaseDate();
         if (purchaseDate == null) {
@@ -165,8 +170,8 @@ public class DealerWarrantyManagementService {
         if (purchaseDate.isAfter(today)) {
             throw new BadRequestException("purchaseDate cannot be in the future");
         }
-        if (productSerial.getOrder() != null && productSerial.getOrder().getCreatedAt() != null) {
-            LocalDate orderDate = productSerial.getOrder().getCreatedAt()
+        if (order.getCreatedAt() != null) {
+            LocalDate orderDate = order.getCreatedAt()
                     .atZone(WarrantyDateSupport.APP_ZONE)
                     .toLocalDate();
             if (purchaseDate.isBefore(orderDate)) {
@@ -174,10 +179,10 @@ public class DealerWarrantyManagementService {
             }
         }
 
-        String customerName = normalize(request.customerName());
+        String customerName = fallbackToOrderReceiver(request.customerName(), order.getReceiverName());
         String customerEmail = normalize(request.customerEmail());
-        String customerPhone = normalize(request.customerPhone());
-        String customerAddress = normalize(request.customerAddress());
+        String customerPhone = fallbackToOrderReceiver(request.customerPhone(), order.getReceiverPhone());
+        String customerAddress = fallbackToOrderReceiver(request.customerAddress(), order.getReceiverAddress());
 
         if (customerName == null) {
             throw new BadRequestException("customerName is required");
@@ -200,7 +205,7 @@ public class DealerWarrantyManagementService {
 
         registration.setProductSerial(productSerial);
         registration.setDealer(dealer);
-        registration.setOrder(productSerial.getOrder());
+        registration.setOrder(order);
         registration.setCustomerName(customerName);
         registration.setCustomerEmail(customerEmail);
         registration.setCustomerPhone(customerPhone);
@@ -217,18 +222,27 @@ public class DealerWarrantyManagementService {
                 : resolveWarrantyStatus(warrantyEnd);
         registration.setStatus(nextStatus);
 
+        if (previousProductSerial != null
+                && previousProductSerial.getId() != null
+                && !previousProductSerial.getId().equals(productSerial.getId())) {
+            previousProductSerial.setWarranty(null);
+            previousProductSerial.setStatus(resolveStatusAfterWarrantyDeletion(previousProductSerial));
+            productSerialRepository.save(previousProductSerial);
+        }
+
         productSerial.setDealer(dealer);
-        productSerial.setStatus(resolveSerialStatus(productSerial, nextStatus));
+        productSerial.setWarranty(registration);
+        productSerial.setStatus(resolveSerialStatus());
         productSerialRepository.save(productSerial);
     }
 
     private void assertWarrantyEligibleOrder(Order order) {
         if (order == null) {
-            throw new BadRequestException("Warranty activation requires a shipping or completed order");
+            throw new BadRequestException("Warranty activation requires a completed order");
         }
         OrderStatus status = order.getStatus();
-        if (status != OrderStatus.SHIPPING && status != OrderStatus.COMPLETED) {
-            throw new BadRequestException("Warranty activation requires a shipping or completed order");
+        if (status != OrderStatus.COMPLETED) {
+            throw new BadRequestException("Warranty activation requires a completed order");
         }
     }
 
@@ -262,21 +276,16 @@ public class DealerWarrantyManagementService {
         return WarrantyDateSupport.isExpired(warrantyEnd) ? WarrantyStatus.EXPIRED : WarrantyStatus.ACTIVE;
     }
 
-    private ProductSerialStatus resolveSerialStatus(ProductSerial productSerial, WarrantyStatus warrantyStatus) {
-        if (warrantyStatus == WarrantyStatus.ACTIVE) {
-            return ProductSerialStatus.WARRANTY;
-        }
-        Order order = productSerial.getOrder();
-        return order == null || order.getStatus() == OrderStatus.COMPLETED
-                ? ProductSerialStatus.AVAILABLE
-                : ProductSerialStatus.ASSIGNED;
+    private ProductSerialStatus resolveSerialStatus() {
+        return ProductSerialStatus.WARRANTY;
     }
 
     private ProductSerialStatus resolveStatusAfterWarrantyDeletion(ProductSerial productSerial) {
         Order order = productSerial.getOrder();
-        return order == null || order.getStatus() == OrderStatus.COMPLETED
-                ? ProductSerialStatus.AVAILABLE
-                : ProductSerialStatus.ASSIGNED;
+        return productSerial.getStatus() == ProductSerialStatus.WARRANTY
+                || (order != null && order.getStatus() == OrderStatus.COMPLETED)
+                ? ProductSerialStatus.ASSIGNED
+                : ProductSerialStatus.AVAILABLE;
     }
 
     private WarrantyRegistrationResponse toResponse(WarrantyRegistration registration) {
@@ -365,5 +374,10 @@ public class DealerWarrantyManagementService {
 
     private String normalize(String value) {
         return AccountValidationSupport.normalize(value);
+    }
+
+    private String fallbackToOrderReceiver(String requestedValue, String receiverValue) {
+        String normalized = normalize(requestedValue);
+        return normalized != null ? normalized : normalize(receiverValue);
     }
 }
