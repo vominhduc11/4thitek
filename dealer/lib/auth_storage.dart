@@ -51,8 +51,24 @@ class AuthStorage {
       return false;
     }
 
-    final token = await _readPersistedAccessToken();
-    return token != null && token.isNotEmpty;
+    final accessToken = await _readPersistedAccessToken();
+    final refreshToken = await _readPersistedRefreshToken();
+    final hasValidSession =
+        accessToken != null &&
+        accessToken.isNotEmpty &&
+        refreshToken != null &&
+        refreshToken.isNotEmpty;
+    if (!hasValidSession) {
+      _sessionAccessToken = null;
+      _sessionRefreshToken = null;
+      await prefs.setBool(loggedInKey, false);
+      await _deletePersistedTokens(prefs);
+      return false;
+    }
+
+    _sessionAccessToken = accessToken;
+    _sessionRefreshToken = refreshToken;
+    return true;
   }
 
   Future<void> persistLogin({

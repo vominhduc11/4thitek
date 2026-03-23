@@ -180,11 +180,11 @@ Nháº­n `username` (email hoáº·c username) + `password`. Quy trĂ¬nh:
 3. Náº¿u tháº¥t báº¡i (sai credentials hoáº·c tĂ i khoáº£n disabled) â†’ tráº£ `invalidCredentials` (thĂ´ng bĂ¡o chung)
 4. PhĂ¡t hĂ nh `accessToken` (JWT, TTL **30 phĂºt**) + `refreshToken` (TTL **7 ngĂ y**, khĂ´ng rotate)
 
-> Dealer `UNDER_REVIEW` / `SUSPENDED` váº«n Ä‘Äƒng nháº­p Ä‘Æ°á»£c vĂ  nháº­n token â€” nhÆ°ng **khĂ´ng gá»i Ä‘Æ°á»£c** cĂ¡c dealer API, warranty activation, hoáº·c thao tĂ¡c upload private cá»§a dealer (dealer avatar, payment proof) khi chÆ°a `ACTIVE`.
+> Chỉ dealer `ACTIVE` mới đăng nhập thành công. Dealer `UNDER_REVIEW` / `SUSPENDED` bị trả `401` ngay tại bước login và không nhận token.
 
 #### Token Refresh â€” `POST /api/v1/auth/refresh`
 
-Tráº£ `accessToken` má»›i náº¿u `refreshToken` cĂ²n há»£p lá»‡ vĂ  tĂ i khoáº£n cĂ²n `enabled`. Háº¿t háº¡n â†’ `401` â†’ client buá»™c logout, xĂ³a token.
+Trả `accessToken` mới nếu `refreshToken` còn hợp lệ, tài khoản còn `enabled`, và dealer vẫn có `customerStatus = ACTIVE`. `UNDER_REVIEW` / `SUSPENDED` bị trả `401` tại bước refresh. Hết hạn → `401` → client buộc logout, xóa token.
 
 > **Giá»›i háº¡n thiáº¿t káº¿:** KhĂ´ng cĂ³ server-side token blacklist â€” token váº«n há»£p lá»‡ Ä‘áº¿n khi háº¿t TTL dĂ¹ Ä‘Ă£ Ä‘Äƒng xuáº¥t.
 
@@ -672,10 +672,9 @@ Admin duyá»‡t â†’ `ACTIVE`; táº¡m khĂ³a â†’ `SUSPENDED`. Admi
 **Email lifecycle:** ÄÄƒng kĂ½ má»›i â†’ gá»­i email nháº­n há»“ sÆ¡. Thay Ä‘á»•i status â†’ gá»­i email + in-app notification. Táº¥t cáº£ email gá»­i async (`@Async("mailTaskExecutor")`) â€” lá»—i email khĂ´ng block transaction.
 
 **Quy táº¯c truy cáº­p portal (`assertDealerPortalAccess`):**
-- Dealer `UNDER_REVIEW` / `SUSPENDED` **Ä‘Äƒng nháº­p Ä‘Æ°á»£c** vĂ  nháº­n token bĂ¬nh thÆ°á»ng
-- Chá»‰ `status = ACTIVE` Ä‘Æ°á»£c gá»i dealer API, kĂ­ch hoáº¡t báº£o hĂ nh, vĂ  thao tĂ¡c asset riĂªng cá»§a dealer (`dealer-avatars`, `payment-proofs`)
-- `UNDER_REVIEW` â†’ `401` vá»›i message *"TĂ i khoáº£n Ä‘ang chá» duyá»‡t..."* (khi gá»i dealer API)
-- `SUSPENDED` â†’ `401` vá»›i message tÆ°Æ¡ng á»©ng (khi gá»i dealer API)
+- Chỉ `status = ACTIVE` được đăng nhập, refresh token, gọi dealer API, kích hoạt bảo hành, và thao tác asset riêng của dealer (`dealer-avatars`, `payment-proofs`)
+- `UNDER_REVIEW` → `401` với message *"Tài khoản đang chờ duyệt..."* ở login, refresh, và dealer API
+- `SUSPENDED` → `401` với message tương ứng ở login, refresh, và dealer API
 - `null status` táº¡m coi lĂ  `ACTIVE` Ä‘á»ƒ tÆ°Æ¡ng thĂ­ch dá»¯ liá»‡u cÅ©; báº£n ghi má»›i pháº£i cĂ³ status rĂµ rĂ ng
 - Kiá»ƒm tra táº¡i: `DealerController`, `WarrantyActivationController`, `UploadController` (Ä‘á»‘i vá»›i asset private cá»§a dealer)
 

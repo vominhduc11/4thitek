@@ -49,9 +49,6 @@ public class DealerPaymentSupport {
             RecordPaymentRequest request,
             List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
     ) {
-        if (order.getPaymentMethod() == PaymentMethod.BANK_TRANSFER && isSepayEnabled()) {
-            throw new BadRequestException("Bank transfer payments are confirmed by SePay webhook");
-        }
         return recordPaymentInternal(order.getDealer(), order, request, true, activeDiscountRules);
     }
 

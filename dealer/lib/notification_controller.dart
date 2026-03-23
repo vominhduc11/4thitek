@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:meta/meta.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 
 import 'api_config.dart';
@@ -150,7 +151,7 @@ class NotificationController extends ChangeNotifier {
       return null;
     }
 
-    if (_remoteNoticeIds.isEmpty || !await _canUseRemoteApi()) {
+    if (!await _canUseRemoteApi()) {
       return _notificationSyncUnavailableMarker;
     }
 
@@ -164,6 +165,19 @@ class NotificationController extends ChangeNotifier {
       ..addAll(_notices.map((notice) => notice.id));
     notifyListeners();
     return null;
+  }
+
+  @visibleForTesting
+  void seedNoticesForTesting(
+    Iterable<DistributorNotice> notices, {
+    Iterable<String> readIds = const <String>[],
+  }) {
+    _notices
+      ..clear()
+      ..addAll(notices);
+    _readIds
+      ..clear()
+      ..addAll(readIds);
   }
 
   Future<void> refresh() async {
