@@ -191,14 +191,13 @@ class PublicApiServiceTests {
     @Test
     void getDealersPagedReturnsOnlyPublicDealers() {
         dealerRepository.save(createDealer("active-dealer@example.com", CustomerStatus.ACTIVE));
-        dealerRepository.save(createDealer("legacy-active@example.com", null));
         dealerRepository.save(createDealer("pending-dealer@example.com", CustomerStatus.UNDER_REVIEW));
 
         var response = publicApiService.getDealersPaged(0, 10);
 
-        assertThat(response.totalElements()).isEqualTo(2);
+        assertThat(response.totalElements()).isEqualTo(1);
         assertThat(response.items()).extracting("email")
-                .containsExactlyInAnyOrder("active-dealer@example.com", "legacy-active@example.com");
+                .containsExactly("active-dealer@example.com");
     }
 
     private Product createProduct(String sku, PublishStatus publishStatus) {

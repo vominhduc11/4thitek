@@ -101,8 +101,7 @@ public class PublicApiService {
     @Transactional(readOnly = true)
     @Cacheable(CacheNames.PUBLIC_DEALERS)
     public List<PublicDealerResponse> getDealers() {
-        return dealerRepository.findAll().stream()
-                .filter(dealer -> dealer.getCustomerStatus() == null || dealer.getCustomerStatus() == CustomerStatus.ACTIVE)
+        return dealerRepository.findAllByCustomerStatusOrderByCreatedAtDesc(CustomerStatus.ACTIVE).stream()
                 .map(this::toDealer)
                 .toList();
     }
@@ -110,7 +109,7 @@ public class PublicApiService {
     @Transactional(readOnly = true)
     public PagedResponse<PublicDealerResponse> getDealersPaged(int page, int size) {
         var pageable = PageRequest.of(validatePage(page), validatePageSize(size), Sort.by("createdAt").descending());
-        var dealerPage = dealerRepository.findPublicDealers(pageable);
+        var dealerPage = dealerRepository.findAllByCustomerStatus(CustomerStatus.ACTIVE, pageable);
         return PagedResponse.from(dealerPage.map(this::toDealer), "createdAt");
     }
 

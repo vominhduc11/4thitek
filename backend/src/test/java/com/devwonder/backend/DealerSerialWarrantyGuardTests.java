@@ -15,6 +15,7 @@ import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
+import com.devwonder.backend.entity.enums.WarrantyStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.DealerRepository;
@@ -467,6 +468,61 @@ class DealerSerialWarrantyGuardTests {
         assertThat(response.customerName()).isEqualTo("Receiver Fallback");
         assertThat(response.customerPhone()).isEqualTo("0912345601");
         assertThat(response.customerAddress()).isEqualTo("501 Receiver Street");
+    }
+
+    @Test
+    void createWarrantyIsAliasOfActivateWarranty() {
+        Dealer dealer = dealerRepository.save(createDealer("warranty-alias@example.com"));
+        Product product = productRepository.save(createProduct("SKU-WARRANTY-ALIAS", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 2, "SERIAL-ORDER-ALIAS"));
+        ProductSerial firstSerial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-WARRANTY-ALIAS-1",
+                ProductSerialStatus.ASSIGNED
+        ));
+        ProductSerial secondSerial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-WARRANTY-ALIAS-2",
+                ProductSerialStatus.ASSIGNED
+        ));
+        LocalDate purchaseDate = LocalDate.now(WarrantyDateSupport.APP_ZONE);
+
+        var createdViaCreate = dealerPortalService.createWarranty(
+                dealer.getUsername(),
+                new CreateWarrantyRegistrationRequest(
+                        firstSerial.getId(),
+                        "Customer Create Alias",
+                        "create-alias@example.com",
+                        "0912345604",
+                        "504 Warranty Street",
+                        purchaseDate
+                )
+        );
+        var createdViaActivate = dealerPortalService.activateWarranty(
+                dealer.getUsername(),
+                new CreateWarrantyRegistrationRequest(
+                        secondSerial.getId(),
+                        "Customer Activate Alias",
+                        "activate-alias@example.com",
+                        "0912345605",
+                        "505 Warranty Street",
+                        purchaseDate
+                )
+        );
+
+        assertThat(createdViaCreate.status()).isEqualTo(WarrantyStatus.ACTIVE);
+        assertThat(createdViaActivate.status()).isEqualTo(WarrantyStatus.ACTIVE);
+        assertThat(createdViaCreate.orderId()).isEqualTo(order.getId());
+        assertThat(createdViaActivate.orderId()).isEqualTo(order.getId());
+        assertThat(productSerialRepository.findById(firstSerial.getId()).orElseThrow().getStatus())
+                .isEqualTo(ProductSerialStatus.WARRANTY);
+        assertThat(productSerialRepository.findById(secondSerial.getId()).orElseThrow().getStatus())
+                .isEqualTo(ProductSerialStatus.WARRANTY);
+        assertThat(warrantyRegistrationRepository.findAll()).hasSize(2);
     }
 
     @Test

@@ -77,17 +77,17 @@ class PublicApiContractTests {
     }
 
     @Test
-    void publicDealerPageReturnsOnlyActiveOrLegacyDealers() throws Exception {
+    void publicDealerPageReturnsOnlyActiveDealers() throws Exception {
         dealerRepository.save(createDealer("active-public@example.com", CustomerStatus.ACTIVE));
-        dealerRepository.save(createDealer("legacy-public@example.com", null));
         dealerRepository.save(createDealer("pending-public@example.com", CustomerStatus.UNDER_REVIEW));
 
         mockMvc.perform(get("/api/v1/user/dealer/page")
                         .param("page", "0")
                         .param("size", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.totalElements").value(2))
-                .andExpect(jsonPath("$.data.items.length()").value(2));
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.items.length()").value(1))
+                .andExpect(jsonPath("$.data.items[0].email").value("active-public@example.com"));
     }
 
     private Product createProduct(String sku) {

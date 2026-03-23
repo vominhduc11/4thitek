@@ -451,7 +451,7 @@ Hiá»ƒn thá»‹ cĂ¡c Ä‘Æ¡n thá»a: `paymentMethod = DEBT AND outst
 
 Tá»•ng há»£p: tá»•ng ná»£ tá»“n (`Î£ outstandingAmount`), sá»‘ Ä‘Æ¡n cĂ²n ná»£, danh sĂ¡ch cĂ³ thá»ƒ báº¥m Ä‘á»ƒ ghi nháº­n thanh toĂ¡n.
 
-> Dealer cĂ³ thá»ƒ ghi nháº­n thanh toĂ¡n cho Ä‘Æ¡n cĂ²n ná»£ cá»§a mĂ¬nh; khi request thĂ nh cĂ´ng thĂ¬ `outstandingAmount` giáº£m ngay theo payment Ä‘Ă£ ghi.
+> Dealer cĂ³ thá»ƒ ghi nháº­n thanh toĂ¡n cho Ä‘Æ¡n cĂ²n ná»£ cá»§a mĂ¬nh; khi request thĂ nh cĂ´ng thĂ¬ payment cĂ³ hiá»‡u lá»±c ngay, `paidAmount` vĂ  `outstandingAmount` Ä‘Æ°á»£c cáº­p nháº­t ngay theo payment Ä‘Ă£ ghi. KhĂ´ng cĂ³ bÆ°á»›c kiá»ƒm duyá»‡t trung gian trong runtime hiá»‡n táº¡i.
 
 ---
 
@@ -530,6 +530,8 @@ Dealer chá»‰ cáº§n serial â€” há»‡ thá»‘ng tá»± resolve t
 
 **Validation:** má»™t serial chá»‰ kĂ­ch hoáº¡t má»™t láº§n; chá»‰ serial Ä‘Ă£ **chĂ­nh thá»©c thuá»™c dealer** (tá»©c Ä‘Ă£ vĂ o kho dealer qua Ä‘Æ¡n `COMPLETED`) má»›i Ä‘Æ°á»£c kĂ­ch hoáº¡t; `purchaseDate` khĂ´ng trÆ°á»›c ngĂ y táº¡o Ä‘Æ¡n, khĂ´ng sau hĂ´m nay; táº¥t cáº£ thĂ´ng tin khĂ¡ch hĂ ng báº¯t buá»™c.
 
+> Runtime hiá»‡n táº¡i coi `POST /api/v1/warranty-activation` lĂ  endpoint kĂ­ch hoáº¡t báº£o hĂ nh chuáº©n. `POST /api/v1/dealer/warranties` hiá»‡n lĂ  alias cĂ¹ng semantics cho hĂ nh vi activate/create warranty Ä‘áº§u tiĂªn, khĂ´ng pháº£i má»™t business action khĂ¡c.
+
 **Tráº¡ng thĂ¡i báº£o hĂ nh:**
 
 | Status | MĂ´ táº£ |
@@ -546,7 +548,7 @@ Dealer chá»‰ cáº§n serial â€” há»‡ thá»‘ng tá»± resolve t
   - náº¿u serial Ä‘ang `DEFECTIVE` hoáº·c `RETURNED` thĂ¬ giá»¯ nguyĂªn, khĂ´ng bá»‹ warranty update ghi Ä‘Ă¨
 - Má»i thay Ä‘á»•i clear cache `PUBLIC_WARRANTY_LOOKUP`
 
-**Dealer Warranty CRUD (`/api/v1/dealer/warranties`):** NgoĂ i luá»“ng serial-first, dealer cĂ³ thá»ƒ táº¡o/sá»­a/xĂ³a warranty record thá»§ cĂ´ng. Khi xĂ³a:
+**Dealer Warranty CRUD (`/api/v1/dealer/warranties`):** `POST /api/v1/dealer/warranties` hiá»‡n dĂ¹ng cĂ¹ng logic activate vá»›i `POST /api/v1/warranty-activation`; `PUT` vĂ  `DELETE` dĂ¹ng Ä‘á»ƒ sá»­a/xĂ³a báº£n ghi warranty Ä‘Ă£ tá»“n táº¡i. Khi xĂ³a:
 - ÄÆ¡n `COMPLETED` hoáº·c serial Ä‘ang `WARRANTY` â†’ serial vá» `ASSIGNED`
 - ÄÆ¡n chÆ°a hoĂ n thĂ nh â†’ serial vá» `AVAILABLE`
 
@@ -729,7 +731,7 @@ Admin duyá»‡t â†’ `ACTIVE`; táº¡m khĂ³a â†’ `SUSPENDED`. Admi
 - Chỉ `status = ACTIVE` được đăng nhập, refresh token, gọi dealer API, kích hoạt bảo hành, và thao tác asset riêng của dealer (`dealer-avatars`, `payment-proofs`)
 - `UNDER_REVIEW` → `401` với message *"Tài khoản đang chờ duyệt..."* ở login, refresh, và dealer API
 - `SUSPENDED` → `401` với message tương ứng ở login, refresh, và dealer API
-- `null status` táº¡m coi lĂ  `ACTIVE` Ä‘á»ƒ tÆ°Æ¡ng thĂ­ch dá»¯ liá»‡u cÅ©; báº£n ghi má»›i pháº£i cĂ³ status rĂµ rĂ ng
+- Sau migration dá»¯ liá»‡u, má»i dealer pháº£i cĂ³ `customerStatus` rĂµ rĂ ng; `null` lĂ  dá»¯ liá»‡u invalid, khĂ´ng cĂ²n Ä‘Æ°á»£c normalize thĂ nh `ACTIVE`
 - Kiá»ƒm tra táº¡i: `DealerController`, `WarrantyActivationController`, `UploadController` (Ä‘á»‘i vá»›i asset private cá»§a dealer)
 
 ---
@@ -785,7 +787,8 @@ WarrantyLookupResponse {
 - `GET /api/v1/user/dealer/page` â€” phĂ¢n trang
 
 **Visibility rule `[Implemented]`:**
-- Public dealer listing chá»‰ tráº£ dealer `ACTIVE`; legacy record `customerStatus = null` táº¡m Ä‘Æ°á»£c xem nhÆ° visible Ä‘á»ƒ tÆ°Æ¡ng thĂ­ch dá»¯ liá»‡u cÅ©
+- Public dealer listing chá»‰ tráº£ dealer `ACTIVE`
+- Cáº£ endpoint paged vĂ  non-paged Ä‘á»u dĂ¹ng cĂ¹ng má»™t rule filter `customerStatus = ACTIVE`
 - Field public hiá»‡n táº¡i gá»“m: `id`, `businessName`, `contactName`, `address`, `city`, `district`, `phone`, `email`
 - KhĂ´ng public cĂ¡c field nháº¡y cáº£m hoáº·c ná»™i bá»™ nhÆ° `creditLimit`, cĂ´ng ná»£, tax info, status history, auth/role, payment data
 

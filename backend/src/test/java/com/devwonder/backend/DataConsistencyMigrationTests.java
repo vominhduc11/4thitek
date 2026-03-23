@@ -108,4 +108,47 @@ class DataConsistencyMigrationTests {
             assertThat(resultSet.getString("TYPE_NAME")).containsIgnoringCase("TIME ZONE");
         }
     }
+
+    @Test
+    void v16BackfillsNullDealerStatusAndEnforcesNotNull() throws SQLException {
+        String url = "jdbc:h2:mem:dealer_status_migration;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE";
+        DataSource dataSource = new DriverManagerDataSource(url, "sa", "");
+
+        Flyway.configure()
+                .cleanDisabled(false)
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .target(MigrationVersion.fromVersion("15"))
+                .load()
+                .migrate();
+
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+        jdbcTemplate.update(
+                "insert into accounts (id, username, email, password, created_at, updated_at) values (?, ?, ?, ?, current_timestamp, current_timestamp)",
+                10L, "dealer-null-status@example.com", "dealer-null-status@example.com", "encoded-password"
+        );
+        jdbcTemplate.update(
+                "insert into dealers (id_account, business_name, customer_status) values (?, ?, ?)",
+                10L, "Dealer Null Status", null
+        );
+
+        Flyway.configure()
+                .cleanDisabled(false)
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .load()
+                .migrate();
+
+        assertThat(jdbcTemplate.queryForObject(
+                "select customer_status from dealers where id_account = ?",
+                String.class,
+                10L
+        )).isEqualTo("ACTIVE");
+
+        try (Connection connection = dataSource.getConnection();
+             ResultSet resultSet = connection.getMetaData().getColumns(null, null, "dealers", "customer_status")) {
+            assertThat(resultSet.next()).isTrue();
+            assertThat(resultSet.getInt("NULLABLE")).isEqualTo(java.sql.DatabaseMetaData.columnNoNulls);
+        }
+    }
 }

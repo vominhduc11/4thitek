@@ -57,6 +57,10 @@ public class DealerWarrantySupport {
     }
 
     public WarrantyRegistrationResponse createWarranty(Long dealerId, CreateWarrantyRegistrationRequest request) {
+        return activateWarranty(dealerId, request);
+    }
+
+    public WarrantyRegistrationResponse activateWarranty(Long dealerId, CreateWarrantyRegistrationRequest request) {
         return dealerWarrantyManagementService.create(dealerId, request);
     }
 

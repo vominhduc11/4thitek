@@ -17,6 +17,7 @@ import com.devwonder.backend.entity.Notify;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ConflictException;
+import com.devwonder.backend.exception.UnauthorizedException;
 import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.DealerSupportTicketRepository;
@@ -113,7 +114,7 @@ class DealerOnboardingFlowTests {
     }
 
     @Test
-    void underReviewDealerCanLoginAndActivationStillSendsStatusNotification() {
+    void underReviewDealerCannotLoginUntilActivatedAndActivationStillSendsStatusNotification() {
         authService.registerDealer(new RegisterDealerRequest(
                 "dealer.active@example.com",
                 "DealerPass#123",
@@ -131,10 +132,12 @@ class DealerOnboardingFlowTests {
         ));
         Dealer dealer = dealerRepository.findByUsername("dealer.active@example.com").orElseThrow();
 
-        assertThat(authService.login(new LoginRequest(
+        assertThatThrownBy(() -> authService.login(new LoginRequest(
                 "dealer.active@example.com",
                 "DealerPass#123"
-        )).accessToken()).isNotBlank();
+        )))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessageContaining("chờ duyệt");
 
         reset(javaMailSender);
         when(javaMailSender.createMimeMessage()).thenReturn(
@@ -184,7 +187,7 @@ class DealerOnboardingFlowTests {
     }
 
     @Test
-    void underReviewDealerCanRefreshToken() {
+    void underReviewDealerCannotRefreshToken() {
         authService.registerDealer(new RegisterDealerRequest(
                 "dealer.refresh@example.com",
                 "DealerPass#123",
@@ -203,7 +206,9 @@ class DealerOnboardingFlowTests {
         Dealer dealer = dealerRepository.findByUsername("dealer.refresh@example.com").orElseThrow();
         String refreshToken = jwtUtils.generateRefreshToken(new HashMap<>(), dealer);
 
-        assertThat(authService.refreshToken(new RefreshTokenRequest(refreshToken)).accessToken()).isNotBlank();
+        assertThatThrownBy(() -> authService.refreshToken(new RefreshTokenRequest(refreshToken)))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessageContaining("chờ duyệt");
     }
 
     @Test

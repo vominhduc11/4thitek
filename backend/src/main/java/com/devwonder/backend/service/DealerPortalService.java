@@ -249,14 +249,13 @@ public class DealerPortalService {
 
     @Transactional
     public WarrantyRegistrationResponse createWarranty(String username, CreateWarrantyRegistrationRequest request) {
-        Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
-        return dealerWarrantySupport.createWarranty(dealer.getId(), request);
+        return activateWarranty(username, request);
     }
 
     @Transactional
     public WarrantyRegistrationResponse activateWarranty(String username, CreateWarrantyRegistrationRequest request) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
-        return dealerWarrantySupport.createWarranty(dealer.getId(), request);
+        return dealerWarrantySupport.activateWarranty(dealer.getId(), request);
     }
 
     @Transactional

@@ -16,6 +16,7 @@ import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.repository.AdminRepository;
 import com.devwonder.backend.repository.DealerRepository;
+import com.devwonder.backend.security.JWTUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Base64;
@@ -62,6 +63,9 @@ class UploadAuthorizationTests {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private JWTUtils jwtUtils;
+
     @BeforeEach
     void prepareAdminAccount() {
         Admin admin = adminRepository.findByUsername("upload.admin@example.com").orElseThrow();
@@ -95,7 +99,7 @@ class UploadAuthorizationTests {
     @Test
     void underReviewDealerCannotUploadOwnAvatar() throws Exception {
         Dealer dealer = registerDealer("dealer-avatar-review", CustomerStatus.UNDER_REVIEW);
-        String dealerToken = login(dealer.getEmail(), "Dealer#123");
+        String dealerToken = jwtUtils.generateToken(dealer);
 
         mockMvc.perform(multipart("/api/v1/upload/dealer-avatars")
                         .file(sampleImage("dealer-avatar-review.png"))
@@ -106,7 +110,7 @@ class UploadAuthorizationTests {
     @Test
     void underReviewDealerCannotUploadPaymentProof() throws Exception {
         Dealer dealer = registerDealer("dealer-proof-review", CustomerStatus.UNDER_REVIEW);
-        String dealerToken = login(dealer.getEmail(), "Dealer#123");
+        String dealerToken = jwtUtils.generateToken(dealer);
 
         mockMvc.perform(multipart("/api/v1/upload/payment-proofs")
                         .file(sampleImage("dealer-proof-review.png"))

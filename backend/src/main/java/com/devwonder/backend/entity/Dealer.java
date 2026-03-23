@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
 import com.devwonder.backend.entity.enums.CustomerStatus;
@@ -60,7 +61,7 @@ public class Dealer extends Account {
     private BigDecimal creditLimit;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "customer_status")
+    @Column(name = "customer_status", nullable = false)
     private CustomerStatus customerStatus;
 
     @OneToMany(mappedBy = "dealer")
@@ -89,5 +90,12 @@ public class Dealer extends Account {
 
     public void setAddress(String address) {
         this.addressLine = address;
+    }
+
+    @PrePersist
+    void ensureCustomerStatus() {
+        if (customerStatus == null) {
+            customerStatus = CustomerStatus.UNDER_REVIEW;
+        }
     }
 }

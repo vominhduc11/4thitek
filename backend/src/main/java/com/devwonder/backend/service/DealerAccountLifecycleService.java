@@ -28,7 +28,10 @@ public class DealerAccountLifecycleService {
         if (!(account instanceof Dealer dealer)) {
             throw new UnauthorizedException("Dealer access required");
         }
-        CustomerStatus status = normalizeStatus(dealer.getCustomerStatus());
+        CustomerStatus status = dealer.getCustomerStatus();
+        if (status == null) {
+            throw new UnauthorizedException("Tài khoản đại lý chưa có trạng thái hợp lệ. Vui lòng liên hệ 4ThiTek.");
+        }
         if (status == CustomerStatus.ACTIVE) {
             return;
         }
@@ -55,8 +58,11 @@ public class DealerAccountLifecycleService {
     }
 
     public void notifyDealerStatusChanged(Dealer dealer, CustomerStatus previousStatus) {
-        CustomerStatus normalizedPreviousStatus = normalizeStatus(previousStatus);
-        CustomerStatus currentStatus = normalizeStatus(dealer.getCustomerStatus());
+        CustomerStatus currentStatus = dealer.getCustomerStatus();
+        if (currentStatus == null) {
+            throw new IllegalStateException("Dealer status must not be null");
+        }
+        CustomerStatus normalizedPreviousStatus = previousStatus == null ? currentStatus : previousStatus;
         if (currentStatus == normalizedPreviousStatus) {
             return;
         }
@@ -153,10 +159,6 @@ public class DealerAccountLifecycleService {
         } catch (RuntimeException ex) {
             log.warn("Could not send dealer lifecycle email to {}", recipient, ex);
         }
-    }
-
-    private CustomerStatus normalizeStatus(CustomerStatus status) {
-        return status == null ? CustomerStatus.ACTIVE : status;
     }
 
     private String resolveDisplayName(Dealer dealer) {
