@@ -110,6 +110,7 @@ class DealerAuthClient extends http.BaseClient {
   Future<String?> _performRefresh() async {
     final refreshToken = await _authStorage.readRefreshToken();
     if (refreshToken == null || refreshToken.trim().isEmpty) {
+      await _authStorage.expireSession();
       return null;
     }
 

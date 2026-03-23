@@ -515,15 +515,22 @@ public class AdminOperationsService {
     }
 
     private ProductSerialStatus resolveImportedStatus(ProductSerialStatus requestedStatus, Order order) {
-        if (requestedStatus != null) {
-            return requestedStatus;
-        }
         if (order == null) {
-            return ProductSerialStatus.AVAILABLE;
+            return requestedStatus == null ? ProductSerialStatus.AVAILABLE : requestedStatus;
         }
-        return order.getStatus() == OrderStatus.COMPLETED
+        ProductSerialStatus requiredStatus = order.getStatus() == OrderStatus.COMPLETED
                 ? ProductSerialStatus.ASSIGNED
                 : ProductSerialStatus.RESERVED;
+        if (requestedStatus == null || requestedStatus == requiredStatus) {
+            return requiredStatus;
+        }
+        if (requestedStatus == ProductSerialStatus.AVAILABLE) {
+            throw new BadRequestException("AVAILABLE status is not allowed when linking serials to an order");
+        }
+        if (requestedStatus == ProductSerialStatus.ASSIGNED || requestedStatus == ProductSerialStatus.RESERVED) {
+            return requiredStatus;
+        }
+        throw new BadRequestException("Order-linked serials must use status " + requiredStatus);
     }
 
     private void assertManualSerialStatusAllowed(ProductSerial productSerial, ProductSerialStatus nextStatus) {

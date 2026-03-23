@@ -37,17 +37,30 @@ public interface ProductSerialRepository extends JpaRepository<ProductSerial, Lo
 
     List<ProductSerial> findByOrderIdAndStatus(Long orderId, ProductSerialStatus status);
 
-    long countByProductIdAndDealerIsNullAndStatus(Long productId, ProductSerialStatus status);
+    long countByProductIdAndDealerIsNullAndOrderIsNullAndStatus(Long productId, ProductSerialStatus status);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT ps FROM ProductSerial ps WHERE ps.product.id = :productId AND ps.dealer IS NULL AND ps.status = :status ORDER BY ps.importedAt ASC")
+    @Query("""
+            SELECT ps FROM ProductSerial ps
+            WHERE ps.product.id = :productId
+              AND ps.dealer IS NULL
+              AND ps.order IS NULL
+              AND ps.status = :status
+            ORDER BY ps.importedAt ASC
+            """)
     List<ProductSerial> findAvailableForAssignment(
             @Param("productId") Long productId,
             @Param("status") ProductSerialStatus status,
             Pageable pageable
     );
 
-    @Query("SELECT ps.product.id, COUNT(ps) FROM ProductSerial ps WHERE ps.dealer IS NULL AND ps.status = :status GROUP BY ps.product.id")
+    @Query("""
+            SELECT ps.product.id, COUNT(ps) FROM ProductSerial ps
+            WHERE ps.dealer IS NULL
+              AND ps.order IS NULL
+              AND ps.status = :status
+            GROUP BY ps.product.id
+            """)
     List<Object[]> countAvailableGroupByProduct(@Param("status") ProductSerialStatus status);
 
 }

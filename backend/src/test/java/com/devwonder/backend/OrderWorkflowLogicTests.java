@@ -725,6 +725,50 @@ class OrderWorkflowLogicTests {
     }
 
     @Test
+    void dealerOrderCreationIgnoresAvailableSerialsAlreadyLinkedToAnotherOrder() {
+        Dealer dealer = dealerRepository.save(createDealer("linked-stock@example.com"));
+        Dealer existingDealer = dealerRepository.save(createDealer("linked-stock-existing@example.com"));
+        Product product = productRepository.save(createProduct("SKU-STOCK-LINKED", BigDecimal.valueOf(100_000), 2));
+        Order existingOrder = orderRepository.save(createOrder(existingDealer, OrderStatus.PENDING, "WF-LINKED-STOCK-1"));
+        ProductSerial linkedSerial = createSerial(
+                null,
+                null,
+                product,
+                "SERIAL-STOCK-LINKED-1",
+                ProductSerialStatus.AVAILABLE
+        );
+        linkedSerial.setOrder(existingOrder);
+        productSerialRepository.save(linkedSerial);
+        productSerialRepository.save(createSerial(
+                null,
+                null,
+                product,
+                "SERIAL-STOCK-LINKED-2",
+                ProductSerialStatus.AVAILABLE
+        ));
+
+        assertThatThrownBy(() -> dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer receiver",
+                        "123 Linked Stock Street",
+                        "0900000000",
+                        0,
+                        "Linked order serials must not be reused as stock",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 2, product.getRetailPrice()))
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Insufficient stock");
+
+        ProductSerial savedLinkedSerial = productSerialRepository.findById(linkedSerial.getId()).orElseThrow();
+        assertThat(savedLinkedSerial.getOrder()).isNotNull();
+        assertThat(savedLinkedSerial.getOrder().getId()).isEqualTo(existingOrder.getId());
+        assertThat(savedLinkedSerial.getStatus()).isEqualTo(ProductSerialStatus.AVAILABLE);
+    }
+
+    @Test
     void concurrentOrdersAcrossDealersDoNotOversellSharedSerialPool() throws Exception {
         Dealer firstDealer = dealerRepository.save(createDealer("pool-first@example.com"));
         Dealer secondDealer = dealerRepository.save(createDealer("pool-second@example.com"));

@@ -25,6 +25,7 @@ import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.AdminOperationsService;
+import com.devwonder.backend.service.support.ProductStockSyncSupport;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -57,6 +58,9 @@ class AdminSerialInvariantTests {
     @Autowired
     private WarrantyRegistrationRepository warrantyRegistrationRepository;
 
+    @Autowired
+    private ProductStockSyncSupport productStockSyncSupport;
+
     @BeforeEach
     void setUp() {
         warrantyRegistrationRepository.deleteAll();
@@ -81,6 +85,52 @@ class AdminSerialInvariantTests {
         )))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("ASSIGNED status requires a linked order");
+    }
+
+    @Test
+    void adminCannotImportOrderLinkedSerialAsAvailable() {
+        Dealer dealer = dealerRepository.save(createDealer("admin-serial-available-order@example.com"));
+        Product product = productRepository.save(createProduct("SKU-ADMIN-IMPORT-AVAILABLE"));
+        Order order = orderRepository.save(createPendingOrder(dealer, product, "ADMIN-ORDER-AVAILABLE"));
+
+        assertThatThrownBy(() -> adminOperationsService.importSerials(new AdminSerialImportRequest(
+                product.getId(),
+                dealer.getId(),
+                order.getId(),
+                ProductSerialStatus.AVAILABLE,
+                "main",
+                "Kho tong",
+                List.of("ADMIN-ORDER-AVAILABLE-1")
+        )))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("AVAILABLE status is not allowed");
+    }
+
+    @Test
+    void orderLinkedAvailableSerialIsExcludedFromAvailableStock() {
+        Dealer dealer = dealerRepository.save(createDealer("admin-serial-stock-order@example.com"));
+        Product product = productRepository.save(createProduct("SKU-ADMIN-STOCK-ORDER"));
+        Order order = orderRepository.save(createPendingOrder(dealer, product, "ADMIN-ORDER-STOCK"));
+        productSerialRepository.save(createSerial(
+                null,
+                order,
+                product,
+                "ADMIN-STOCK-LINKED-1",
+                ProductSerialStatus.AVAILABLE
+        ));
+        productSerialRepository.save(createSerial(
+                null,
+                null,
+                product,
+                "ADMIN-STOCK-CLEAN-1",
+                ProductSerialStatus.AVAILABLE
+        ));
+
+        assertThat(productStockSyncSupport.countAvailableStock(product.getId())).isEqualTo(1);
+
+        productStockSyncSupport.syncProductStock(product);
+
+        assertThat(productRepository.findById(product.getId()).orElseThrow().getStock()).isEqualTo(1);
     }
 
     @Test
@@ -380,6 +430,14 @@ class AdminSerialInvariantTests {
         Set<OrderItem> items = new LinkedHashSet<>();
         items.add(item);
         order.setOrderItems(items);
+        return order;
+    }
+
+    private Order createPendingOrder(Dealer dealer, Product product, String orderCode) {
+        Order order = createOrder(dealer, product, orderCode);
+        order.setStatus(OrderStatus.PENDING);
+        order.setPaymentStatus(PaymentStatus.PENDING);
+        order.setPaidAmount(BigDecimal.ZERO);
         return order;
     }
 

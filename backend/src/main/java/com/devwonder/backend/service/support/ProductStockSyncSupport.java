@@ -25,7 +25,7 @@ public class ProductStockSyncSupport {
         if (productId == null) {
             return 0;
         }
-        long availableCount = productSerialRepository.countByProductIdAndDealerIsNullAndStatus(
+        long availableCount = productSerialRepository.countByProductIdAndDealerIsNullAndOrderIsNullAndStatus(
                 productId,
                 ProductSerialStatus.AVAILABLE
         );
