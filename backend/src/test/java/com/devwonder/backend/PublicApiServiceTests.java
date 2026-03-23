@@ -18,6 +18,7 @@ import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.PublicApiService;
+import com.devwonder.backend.service.support.ProductStockSyncSupport;
 import java.time.Instant;
 import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +48,9 @@ class PublicApiServiceTests {
 
     @Autowired
     private OrderRepository orderRepository;
+
+    @Autowired
+    private ProductStockSyncSupport productStockSyncSupport;
 
     @BeforeEach
     void setUp() {
@@ -89,6 +93,25 @@ class PublicApiServiceTests {
 
         assertThat(response.shortDescription()).isEqualTo("Short summary");
         assertThat(response.description()).isEqualTo("Long form detail for the public product page");
+    }
+
+    @Test
+    void getProductReflectsUpdatedStockAfterDerivedStockSync() {
+        Product product = createProduct("SPK-STOCK-CACHE", PublishStatus.PUBLISHED);
+        product.setStock(1);
+        product = productRepository.save(product);
+
+        assertThat(publicApiService.getProduct(product.getId()).stock()).isEqualTo(1);
+
+        productSerialRepository.save(createAvailableSerial(product, "SERIAL-STOCK-CACHE-1"));
+        productStockSyncSupport.syncProductStock(product);
+
+        assertThat(publicApiService.getProduct(product.getId()).stock()).isEqualTo(1);
+
+        productSerialRepository.deleteAll();
+        productStockSyncSupport.syncProductStock(product);
+
+        assertThat(publicApiService.getProduct(product.getId()).stock()).isZero();
     }
 
     @Test
@@ -193,6 +216,14 @@ class PublicApiServiceTests {
         serial.setSerial(serialValue);
         serial.setStatus(ProductSerialStatus.WARRANTY);
         return productSerialRepository.save(serial);
+    }
+
+    private ProductSerial createAvailableSerial(Product product, String serialValue) {
+        ProductSerial serial = new ProductSerial();
+        serial.setProduct(product);
+        serial.setSerial(serialValue);
+        serial.setStatus(ProductSerialStatus.AVAILABLE);
+        return serial;
     }
 
     private Dealer createDealer(String email, CustomerStatus status) {

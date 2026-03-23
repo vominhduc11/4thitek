@@ -63,6 +63,7 @@ public class AuthService {
 
         Account account = accountRepository.findByUsernameIgnoreCaseOrEmailIgnoreCase(identity, identity)
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
+        assertDealerPortalAccessIfRequired(account);
 
         String accessToken = jwtUtils.generateToken(account);
         String refreshToken = jwtUtils.generateRefreshToken(new HashMap<>(), account);
@@ -90,6 +91,7 @@ public class AuthService {
             if (!account.isEnabled()) {
                 throw new UnauthorizedException("Account is not active");
             }
+            assertDealerPortalAccessIfRequired(account);
 
             String accessToken = jwtUtils.generateToken(account);
             return buildAuthResponse(account, accessToken, refreshToken);
@@ -155,6 +157,12 @@ public class AuthService {
                 account instanceof Admin admin && Boolean.TRUE.equals(admin.getRequirePasswordChange())
         );
         return new AuthResponse(accessToken, refreshToken, "Bearer", jwtUtils.getAccessTokenExpirationMs(), user);
+    }
+
+    private void assertDealerPortalAccessIfRequired(Account account) {
+        if (account instanceof Dealer) {
+            dealerAccountLifecycleService.assertDealerPortalAccess(account);
+        }
     }
 
     private Role resolveRole(String roleName, String description) {

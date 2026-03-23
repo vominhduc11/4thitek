@@ -2,7 +2,6 @@ package com.devwonder.backend;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -39,27 +38,67 @@ class DealerPortalAccessBoundaryTests {
     private DealerRepository dealerRepository;
 
     @Test
-    void underReviewDealerCanLoginButCannotAccessDealerApis() throws Exception {
+    void underReviewDealerCannotLoginToDealerPortal() throws Exception {
         registerDealer("Dealer.Access", CustomerStatus.UNDER_REVIEW);
 
-        String accessToken = loginAndExtractAccessToken("DEALER.ACCESS");
-
-        mockMvc.perform(get("/api/v1/dealer/profile")
-                        .header("Authorization", "Bearer " + accessToken))
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "DEALER.ACCESS@example.com",
+                                  "password": "DealerPass#123"
+                                }
+                                """))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value(containsString("Tài khoản đang chờ duyệt")));
+                .andExpect(jsonPath("$.error").value(containsString("ch\u1edd duy\u1ec7t")));
     }
 
     @Test
-    void suspendedDealerCanLoginButCannotAccessDealerApis() throws Exception {
+    void suspendedDealerCannotLoginToDealerPortal() throws Exception {
         registerDealer("Dealer.Suspend", CustomerStatus.SUSPENDED);
 
-        String accessToken = loginAndExtractAccessToken("DEALER.SUSPEND");
-
-        mockMvc.perform(get("/api/v1/dealer/profile")
-                        .header("Authorization", "Bearer " + accessToken))
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "DEALER.SUSPEND@example.com",
+                                  "password": "DealerPass#123"
+                                }
+                                """))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value(containsString("tạm khóa")));
+                .andExpect(jsonPath("$.error").value(containsString("t\u1ea1m kh\u00f3a")));
+    }
+
+    @Test
+    void refreshTokenIsRejectedWhenDealerLosesPortalAccess() throws Exception {
+        registerDealer("Dealer.Refresh", CustomerStatus.ACTIVE);
+
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "DEALER.REFRESH@example.com",
+                                  "password": "DealerPass#123"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode payload = objectMapper.readTree(loginResult.getResponse().getContentAsString());
+        String refreshToken = payload.path("data").path("refreshToken").asText();
+        Dealer dealer = dealerRepository.findByUsername("dealer.refresh@example.com").orElseThrow();
+        dealer.setCustomerStatus(CustomerStatus.SUSPENDED);
+        dealerRepository.save(dealer);
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "refreshToken": "%s"
+                                }
+                                """.formatted(refreshToken)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value(containsString("t\u1ea1m kh\u00f3a")));
     }
 
     private void registerDealer(String localPart, CustomerStatus status) throws Exception {
@@ -90,22 +129,6 @@ class DealerPortalAccessBoundaryTests {
         Dealer dealer = dealerRepository.findByUsername(username.toLowerCase()).orElseThrow();
         dealer.setCustomerStatus(status);
         dealerRepository.save(dealer);
-    }
-
-    private String loginAndExtractAccessToken(String localPart) throws Exception {
-        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "username": "%s@example.com",
-                                  "password": "DealerPass#123"
-                                }
-                                """.formatted(localPart)))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        JsonNode payload = objectMapper.readTree(loginResult.getResponse().getContentAsString());
-        return payload.path("data").path("accessToken").asText();
     }
 
     private String phoneDigitsFor(String seed) {

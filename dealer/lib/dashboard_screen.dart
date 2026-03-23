@@ -387,7 +387,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return;
     }
 
-    final warnings = <String>[];
+    final warnings = <String>{};
     if (orderController.lastActionMessage != null) {
       warnings.add(
         orderControllerErrorMessage(
@@ -404,6 +404,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       );
     }
+    final warningMessage = warnings.isEmpty ? null : warnings.join('\n');
     final shouldShowError =
         orderController.orders.isEmpty &&
         warrantyController.activations.isEmpty &&
@@ -415,11 +416,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _lastSnapshotActivations = null;
       _lastSnapshotFilter = null;
       _lastSnapshotPeriod = null;
-      _syncWarningMessage = warnings.isEmpty ? null : warnings.join('\n');
+      _syncWarningMessage = warningMessage;
       _loadState = shouldShowError
           ? _DashboardLoadState.error
           : _DashboardLoadState.ready;
-      _loadErrorMessage = shouldShowError ? loadErrorMessage : null;
+      _loadErrorMessage = shouldShowError
+          ? (warningMessage ?? loadErrorMessage)
+          : null;
     });
   }
 

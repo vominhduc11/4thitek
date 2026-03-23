@@ -1,5 +1,6 @@
 package com.devwonder.backend.service.support;
 
+import com.devwonder.backend.config.CacheNames;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.repository.ProductRepository;
@@ -10,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -30,6 +32,12 @@ public class ProductStockSyncSupport {
         return Math.toIntExact(Math.max(0L, availableCount));
     }
 
+    @CacheEvict(cacheNames = {
+            CacheNames.PUBLIC_PRODUCTS,
+            CacheNames.PUBLIC_PRODUCT_BY_ID,
+            CacheNames.PUBLIC_FEATURED_PRODUCTS,
+            CacheNames.PUBLIC_HOMEPAGE_PRODUCTS
+    }, allEntries = true)
     public void syncProductStock(Product product) {
         if (product == null || product.getId() == null) {
             return;
@@ -38,6 +46,12 @@ public class ProductStockSyncSupport {
         productRepository.save(product);
     }
 
+    @CacheEvict(cacheNames = {
+            CacheNames.PUBLIC_PRODUCTS,
+            CacheNames.PUBLIC_PRODUCT_BY_ID,
+            CacheNames.PUBLIC_FEATURED_PRODUCTS,
+            CacheNames.PUBLIC_HOMEPAGE_PRODUCTS
+    }, allEntries = true)
     public void syncProductStocks(Collection<Product> products) {
         if (products == null || products.isEmpty()) {
             return;
@@ -60,6 +74,12 @@ public class ProductStockSyncSupport {
         productRepository.saveAll(toSave);
     }
 
+    @CacheEvict(cacheNames = {
+            CacheNames.PUBLIC_PRODUCTS,
+            CacheNames.PUBLIC_PRODUCT_BY_ID,
+            CacheNames.PUBLIC_FEATURED_PRODUCTS,
+            CacheNames.PUBLIC_HOMEPAGE_PRODUCTS
+    }, allEntries = true)
     public void syncProductStocksByIds(Collection<Long> productIds) {
         if (productIds == null || productIds.isEmpty()) {
             return;

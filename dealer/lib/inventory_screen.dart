@@ -143,7 +143,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       return;
     }
 
-    final warnings = <String>[];
+    final warnings = <String>{};
     if (orderController.lastActionMessage != null) {
       warnings.add(
         orderControllerErrorMessage(
@@ -160,6 +160,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ),
       );
     }
+    final warningMessage = warnings.isEmpty ? null : warnings.join('\n');
 
     _inventoryCacheDirty = true;
     final nextInventoryItems = _buildInventoryItems(
@@ -174,8 +175,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
     setState(() {
       _inventoryCacheDirty = true;
       _visibleItemCount = _inventoryPageSize;
-      _syncWarningMessage = warnings.isEmpty ? null : warnings.join('\n');
-      _loadErrorMessage = shouldShowError ? texts.loadInventoryErrorMessage : null;
+      _syncWarningMessage = warningMessage;
+      _loadErrorMessage = shouldShowError
+          ? (warningMessage ?? texts.loadInventoryErrorMessage)
+          : null;
       _loadState = shouldShowError
           ? InventoryLoadState.error
           : InventoryLoadState.ready;

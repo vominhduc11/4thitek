@@ -181,9 +181,15 @@ class _AccountScreenState extends State<AccountScreen> {
 
     setState(() => _isLoggingOut = true);
     var shouldResetLoading = true;
+    final pushMessagingController = PushMessagingScope.maybeOf(context);
+    final cartController = CartScope.of(context);
+    final orderController = OrderScope.of(context);
+    final notificationController = NotificationScope.of(context);
+    final warrantyController = WarrantyScope.of(context);
+    final router = GoRouter.of(context);
     try {
       await Future.delayed(const Duration(milliseconds: 600));
-      await PushMessagingScope.maybeOf(context)?.unregisterCurrentToken();
+      await pushMessagingController?.unregisterCurrentToken();
       if (!mounted) {
         return;
       }
@@ -195,25 +201,25 @@ class _AccountScreenState extends State<AccountScreen> {
       if (!mounted) {
         return;
       }
-      await CartScope.of(context).clear(syncRemote: false);
+      await cartController.clear(syncRemote: false);
       if (!mounted) {
         return;
       }
-      await OrderScope.of(context).clearSessionData();
+      await orderController.clearSessionData();
       if (!mounted) {
         return;
       }
-      await NotificationScope.of(context).clearSessionData();
+      await notificationController.clearSessionData();
       if (!mounted) {
         return;
       }
-      await WarrantyScope.of(context).clearSessionData();
+      await warrantyController.clearSessionData();
       if (!mounted) {
         return;
       }
 
       shouldResetLoading = false;
-      context.go('/login');
+      router.go('/login');
     } finally {
       if (mounted && shouldResetLoading) {
         setState(() => _isLoggingOut = false);
@@ -252,6 +258,19 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
+  String? _profileErrorDetails(BuildContext context) {
+    final error = _profileError;
+    if (error == null) {
+      return null;
+    }
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final message = dealerProfileStorageErrorMessage(
+      error,
+      isEnglish: isEnglish,
+    ).trim();
+    return message.isEmpty ? null : message;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -285,6 +304,7 @@ class _AccountScreenState extends State<AccountScreen> {
     final shippingLabel = l10n.accountShippingLabel;
     final policyLabel = l10n.accountPolicyLabel;
     final profileErrorTitle = l10n.accountProfileLoadError;
+    final profileErrorDetails = _profileErrorDetails(context);
     final retryLabel = l10n.retryAction;
 
     Widget buildBody() {
@@ -314,6 +334,16 @@ class _AccountScreenState extends State<AccountScreen> {
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
+                  if (profileErrorDetails != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      profileErrorDetails,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   OutlinedButton(
                     onPressed: _loadProfile,
