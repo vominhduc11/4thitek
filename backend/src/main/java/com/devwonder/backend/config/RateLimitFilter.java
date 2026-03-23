@@ -141,10 +141,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
     ) {
         String path = request.getRequestURI();
         String method = request.getMethod();
-        if ("POST".equalsIgnoreCase(method) && path.startsWith("/api/v1/auth/login")) {
+        if ("POST".equalsIgnoreCase(method)
+                && (path.startsWith("/api/v1/auth/login") || path.startsWith("/api/auth/login"))) {
             return rule("auth", settings.auth());
         }
-        if ("POST".equalsIgnoreCase(method) && path.startsWith("/api/v1/auth/forgot-password")) {
+        if ("POST".equalsIgnoreCase(method)
+                && (path.startsWith("/api/v1/auth/forgot-password") || path.startsWith("/api/auth/forgot-password"))) {
             return rule("password-reset", settings.passwordReset());
         }
         if ("GET".equalsIgnoreCase(method) && path.startsWith("/api/v1/warranty/check/")) {

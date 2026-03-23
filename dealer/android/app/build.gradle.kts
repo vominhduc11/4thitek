@@ -33,7 +33,7 @@ if (isReleaseBuildRequested && !hasReleaseSigning) {
 }
 
 android {
-    namespace = "com.thitek.dealer"
+    namespace = "vn.fourthitek.dealerhub"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -48,7 +48,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.thitek.dealer"
+        applicationId = "vn.fourthitek.dealerhub"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

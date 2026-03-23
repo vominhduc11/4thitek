@@ -89,8 +89,11 @@ const normalizeApiBaseUrl = (value: string) => {
 
   const trimmed = trimTrailingSlash(value)
   if (!trimmed) return ''
-  if (trimmed.endsWith('/api') || trimmed.endsWith('/api/v1')) {
+  if (trimmed.endsWith('/api/v1')) {
     return trimmed
+  }
+  if (trimmed.endsWith('/api')) {
+    return `${trimmed}/v1`
   }
   return `${trimmed}/api/v1`
 }

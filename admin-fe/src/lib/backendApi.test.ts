@@ -51,8 +51,25 @@ describe('backendApi', () => {
 
     const api = await importBackendApi()
 
-    expect(api.getApiBaseUrl()).toBe('http://localhost:8080/api')
-    expect(api.buildApiUrl('/orders')).toBe('http://localhost:8080/api/orders')
+    expect(api.getApiBaseUrl()).toBe('http://localhost:8080/api/v1')
+    expect(api.buildApiUrl('/orders')).toBe('http://localhost:8080/api/v1/orders')
+  })
+
+  it('normalizes runtime values that already end with /api to /api/v1', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', '')
+    ;(globalThis as { window?: unknown }).window = {
+      __APP_CONFIG__: {
+        apiBaseUrl: 'https://api.4thitek.vn/api',
+      },
+      location: {
+        origin: 'https://admin.4thitek.vn',
+      },
+    }
+
+    const api = await importBackendApi()
+
+    expect(api.getApiBaseUrl()).toBe('https://api.4thitek.vn/api/v1')
+    expect(api.buildApiUrl('/auth/login')).toBe('https://api.4thitek.vn/api/v1/auth/login')
   })
 
   it('rewrites legacy storage host assets through the backend uploads path', async () => {

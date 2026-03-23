@@ -58,6 +58,7 @@ public class SecurityConfig {
                         .hasAuthority("SUPER_ADMIN")
                         .requestMatchers(
                                 "/api/v1/auth/**",
+                                "/api/auth/**",
                                 "/uploads/**",
                                 "/api/v1/content/**",
                                 "/api/v1/blog/**",
