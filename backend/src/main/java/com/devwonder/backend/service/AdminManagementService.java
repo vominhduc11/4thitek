@@ -57,11 +57,13 @@ import com.devwonder.backend.service.support.AdminResponseMapper;
 import com.devwonder.backend.service.support.AccountValidationSupport;
 import com.devwonder.backend.service.support.AdminWriteSupport;
 import com.devwonder.backend.service.support.DealerPaymentSupport;
+import com.devwonder.backend.service.support.DealerAccountStatusTransitionPolicy;
 import com.devwonder.backend.service.support.OrderInventorySupport;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import com.devwonder.backend.service.support.OrderStatusTransitionPolicy;
 import com.devwonder.backend.service.support.ProductSerialOrderSupport;
 import com.devwonder.backend.service.support.ProductSerialResponseMapper;
+import com.devwonder.backend.service.support.ProductStockSyncSupport;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
 import java.math.BigDecimal;
 import org.slf4j.Logger;
@@ -114,6 +116,7 @@ public class AdminManagementService {
     private final WebSocketEventPublisher webSocketEventPublisher;
     private final OrderInventorySupport orderInventorySupport;
     private final ProductSerialOrderSupport productSerialOrderSupport;
+    private final ProductStockSyncSupport productStockSyncSupport;
 
     @Transactional(readOnly = true)
     public List<AdminProductResponse> getProducts() {
@@ -140,6 +143,7 @@ public class AdminManagementService {
         Product product = new Product();
         adminWriteSupport.applyProduct(product, request, true);
         Product saved = productRepository.save(product);
+        productStockSyncSupport.syncProductStock(saved);
         return AdminResponseMapper.toProductResponse(saved, safeStock(saved));
     }
 
@@ -156,6 +160,7 @@ public class AdminManagementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
         adminWriteSupport.applyProduct(product, request, false);
         Product saved = productRepository.save(product);
+        productStockSyncSupport.syncProductStock(saved);
         return AdminResponseMapper.toProductResponse(saved, safeStock(saved));
     }
 
@@ -202,8 +207,8 @@ public class AdminManagementService {
         order.setStatus(request.status());
         applyCompletedAt(order, request.status(), previousStatus);
         if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
-            orderInventorySupport.restoreStock(order);
             productSerialOrderSupport.releaseNonWarrantySerials(order);
+            orderInventorySupport.restoreStock(order);
         }
         if (request.status() == OrderStatus.COMPLETED && previousStatus != OrderStatus.COMPLETED && order.getDealer() != null) {
             List<ProductSerial> orderSerials = productSerialRepository.findByOrderId(id);
@@ -312,9 +317,11 @@ public class AdminManagementService {
             }
         }
 
-        return productSerialRepository.saveAll(toSave).stream()
+        List<DealerProductSerialResponse> savedSerials = productSerialRepository.saveAll(toSave).stream()
                 .map(ProductSerialResponseMapper::toDealerProductSerialResponse)
                 .toList();
+        productStockSyncSupport.syncProductStocksByIds(requestedCounts.keySet());
+        return savedSerials;
     }
 
     @Transactional
@@ -459,6 +466,7 @@ public class AdminManagementService {
         Dealer dealer = dealerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Dealer account not found"));
         CustomerStatus previousStatus = dealer.getCustomerStatus();
+        DealerAccountStatusTransitionPolicy.assertTransitionAllowed(previousStatus, request.status());
         dealer.setCustomerStatus(request.status());
         Dealer saved = dealerRepository.save(dealer);
         dealerAccountLifecycleService.notifyDealerStatusChanged(saved, previousStatus);

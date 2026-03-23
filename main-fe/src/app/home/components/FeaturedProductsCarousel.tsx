@@ -7,6 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { useLanguage } from '@/context/LanguageContext';
+import { buildProductPath } from '@/lib/slug';
 import type { SimpleProduct } from '@/types/product';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
 
@@ -191,7 +192,7 @@ export default function FeaturedProductsCarousel({
                                     </p>
                                     <div className="mt-8 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
                                         <Link
-                                            href={`/products/${currentProduct.id}`}
+                                            href={buildProductPath(currentProduct.id, currentProduct.name)}
                                             className="rounded-full bg-cyan-400 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-950 transition hover:bg-cyan-300"
                                         >
                                             {t('products.featured.discoveryNow')}

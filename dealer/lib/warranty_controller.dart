@@ -33,27 +33,27 @@ String warrantySerialValidationMessage(
 }) {
   switch (code) {
     case WarrantySerialValidationErrorCode.invalidSerial:
-      return isEnglish ? 'Serial is invalid.' : 'Serial không hợp lệ.';
+      return isEnglish ? 'Serial is invalid.' : 'Serial khong hop le.';
     case WarrantySerialValidationErrorCode.notImported:
       return isEnglish
           ? 'Serial $serial is not available in inventory.'
-          : 'Serial $serial chưa được nhập kho.';
+          : 'Serial $serial chua duoc nhap kho.';
     case WarrantySerialValidationErrorCode.wrongProduct:
       return isEnglish
           ? 'Serial $serial does not belong to product $productName.'
-          : 'Serial $serial không thuộc sản phẩm $productName.';
+          : 'Serial $serial khong thuoc san pham $productName.';
     case WarrantySerialValidationErrorCode.wrongOrder:
       return isEnglish
           ? 'Serial $serial belongs to order $actualOrderId, not order $expectedOrderId.'
-          : 'Serial $serial thuộc đơn $actualOrderId, không thuộc đơn $expectedOrderId.';
+          : 'Serial $serial thuoc don $actualOrderId, khong thuoc don $expectedOrderId.';
     case WarrantySerialValidationErrorCode.alreadyActivated:
       return isEnglish
           ? 'Serial $serial was already activated.'
-          : 'Serial $serial đã được kích hoạt trước đó.';
+          : 'Serial $serial da duoc kich hoat truoc do.';
     case WarrantySerialValidationErrorCode.invalidOrderState:
       return isEnglish
-          ? 'Serial $serial is not linked to a valid order yet (must be shipping or completed).'
-          : 'Serial $serial chưa thuộc đơn hợp lệ (cần đang giao hoặc đã giao).';
+          ? 'Serial $serial is not linked to a completed order yet.'
+          : 'Serial $serial chua thuoc don da hoan thanh.';
   }
 }
 
@@ -184,13 +184,20 @@ class WarrantyController extends ChangeNotifier {
   bool _importedSerialsCacheDirty = true;
   bool _activationDerivedDirty = true;
   String? _lastSyncMessage;
+  DateTime? _lastLocalStateLoadedAt;
+  DateTime? _lastRemoteSyncAt;
+  bool _usingLocalFallback = false;
 
   String? get lastSyncMessage => _lastSyncMessage;
+  DateTime? get lastLocalStateLoadedAt => _lastLocalStateLoadedAt;
+  DateTime? get lastRemoteSyncAt => _lastRemoteSyncAt;
+  bool get isUsingLocalFallback => _usingLocalFallback;
 
   Future<void> load({bool forceRefresh = false}) async {
     _lastSyncMessage = null;
     final loadedLocal = await _loadLocalState();
     final loadedRemote = await _loadRemoteState();
+    _usingLocalFallback = loadedLocal && !loadedRemote;
     if (!loadedRemote && !loadedLocal && forceRefresh) {
       _resetToEmptyState();
     }
@@ -203,6 +210,9 @@ class WarrantyController extends ChangeNotifier {
     _remoteSerialIds.clear();
     _remoteWarrantyIds.clear();
     _lastSyncMessage = null;
+    _lastLocalStateLoadedAt = null;
+    _lastRemoteSyncAt = null;
+    _usingLocalFallback = false;
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_activationsStorageKey);
@@ -422,6 +432,15 @@ class WarrantyController extends ChangeNotifier {
       );
     }
 
+
+    final order = _orderLookup?.call(orderId);
+    if (order == null || order.status != OrderStatus.completed) {
+      return warrantySerialValidationMessage(
+        WarrantySerialValidationErrorCode.invalidOrderState,
+        isEnglish: isEnglish,
+        serial: normalized,
+      );
+    }
     return null;
   }
 
@@ -454,9 +473,7 @@ class WarrantyController extends ChangeNotifier {
       );
     }
     final order = _orderLookup?.call(imported.orderId);
-    if (order == null ||
-        (order.status != OrderStatus.completed &&
-            order.status != OrderStatus.shipping)) {
+    if (order == null || order.status != OrderStatus.completed) {
       return warrantySerialValidationMessage(
         WarrantySerialValidationErrorCode.invalidOrderState,
         isEnglish: isEnglish,
@@ -584,6 +601,7 @@ class WarrantyController extends ChangeNotifier {
             .map(_serialFromJson)
             .whereType<ImportedSerialRecord>(),
       );
+      _lastLocalStateLoadedAt = DateTime.now();
       _sanitizeState();
       return true;
     } catch (_) {
@@ -693,6 +711,8 @@ class WarrantyController extends ChangeNotifier {
       _sanitizeState();
       await _persist();
       _lastSyncMessage = null;
+      _lastRemoteSyncAt = DateTime.now();
+      _usingLocalFallback = false;
       return true;
     } catch (error) {
       _lastSyncMessage = _normalizeWarrantySyncFailure(
@@ -747,6 +767,9 @@ class WarrantyController extends ChangeNotifier {
           _parseDateTimeValue(json['importedAt']) ??
           cached?.importedAt ??
           DateTime.now(),
+      status: parseImportedSerialStatus(
+        _normalizeString(json['status']) ?? cached?.status.name,
+      ),
       warehouseId:
           _normalizeString(json['warehouseId']) ??
           cached?.warehouseId ??
@@ -933,6 +956,7 @@ class WarrantyController extends ChangeNotifier {
             productName: activation.productName,
             productSku: activation.productSku,
             importedAt: activation.purchaseDate,
+            status: ImportedSerialStatus.warranty,
           ),
         );
         _importedSerialsByNormalized[normalized] = _importedSerials.last;
@@ -1074,6 +1098,7 @@ class WarrantyController extends ChangeNotifier {
       productName: _normalizeString(json['productName']) ?? 'Product',
       productSku: _normalizeString(json['productSku']) ?? '',
       importedAt: _parseDateTimeValue(json['importedAt']) ?? DateTime.now(),
+      status: parseImportedSerialStatus(_normalizeString(json['status'])),
       warehouseId: _normalizeString(json['warehouseId']) ?? 'main',
       warehouseName: _normalizeString(json['warehouseName']) ?? 'Kho',
     );
@@ -1127,7 +1152,7 @@ class WarrantyController extends ChangeNotifier {
 
   String _extractErrorMessage(
     Map<String, dynamic> payload, {
-    String fallback = 'Không thể đồng bộ dữ liệu.',
+    String fallback = 'Khong the dong bo du lieu.',
   }) {
     final error = payload['error']?.toString();
     if (error != null && error.trim().isNotEmpty) {
@@ -1267,6 +1292,7 @@ Map<String, dynamic> _serialToJson(ImportedSerialRecord record) {
     'productName': record.productName,
     'productSku': record.productSku,
     'importedAt': record.importedAt.toIso8601String(),
+    'status': record.status.name.toUpperCase(),
     'warehouseId': record.warehouseId,
     'warehouseName': record.warehouseName,
   };

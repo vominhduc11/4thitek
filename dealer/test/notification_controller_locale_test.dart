@@ -1,4 +1,4 @@
-import 'package:dealer_hub/notification_controller.dart';
+﻿import 'package:dealer_hub/notification_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -18,7 +18,7 @@ void main() {
         'notification.sync.unavailable',
         isEnglish: false,
       ),
-      'Không thể đồng bộ thông báo.',
+      'Khong the dong bo thong bao.',
     );
   });
 

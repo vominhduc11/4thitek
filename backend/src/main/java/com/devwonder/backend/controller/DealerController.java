@@ -13,6 +13,7 @@ import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
 import com.devwonder.backend.dto.dealer.DealerProfileResponse;
 import com.devwonder.backend.dto.dealer.DealerSupportTicketResponse;
 import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
+import com.devwonder.backend.dto.dealer.RegisterPushTokenRequest;
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
 import com.devwonder.backend.dto.dealer.UpdateDealerProfileRequest;
 import com.devwonder.backend.dto.dealer.UpdateDealerSerialStatusRequest;
@@ -20,6 +21,7 @@ import com.devwonder.backend.dto.dealer.UpsertDealerCartItemRequest;
 import com.devwonder.backend.dto.customer.ChangePasswordRequest;
 import com.devwonder.backend.dto.notify.NotifyResponse;
 import com.devwonder.backend.dto.pagination.PagedResponse;
+import com.devwonder.backend.dto.serial.SerialImportSummaryResponse;
 import com.devwonder.backend.dto.warranty.CreateWarrantyRegistrationRequest;
 import com.devwonder.backend.dto.warranty.WarrantyRegistrationResponse;
 import com.devwonder.backend.entity.Account;
@@ -210,6 +212,24 @@ public class DealerController {
         return ResponseEntity.ok(ApiResponse.success(Map.of("status", "updated", "updatedCount", updated)));
     }
 
+    @PostMapping("/push-tokens")
+    public ResponseEntity<ApiResponse<Map<String, String>>> registerPushToken(
+            Authentication authentication,
+            @Valid @RequestBody RegisterPushTokenRequest request
+    ) {
+        dealerPortalService.registerPushToken(extractUsername(authentication), request);
+        return ResponseEntity.ok(ApiResponse.success(Map.of("status", "registered")));
+    }
+
+    @DeleteMapping("/push-tokens")
+    public ResponseEntity<ApiResponse<Map<String, String>>> unregisterPushToken(
+            Authentication authentication,
+            @RequestParam("token") String token
+    ) {
+        dealerPortalService.unregisterPushToken(extractUsername(authentication), token);
+        return ResponseEntity.ok(ApiResponse.success(Map.of("status", "unregistered")));
+    }
+
     @GetMapping("/warranties")
     public ResponseEntity<ApiResponse<List<WarrantyRegistrationResponse>>> warranties(Authentication authentication) {
         return ResponseEntity.ok(ApiResponse.success(dealerPortalService.getWarranties(extractUsername(authentication))));
@@ -268,7 +288,7 @@ public class DealerController {
     }
 
     @PostMapping("/serials/import")
-    public ResponseEntity<ApiResponse<List<DealerProductSerialResponse>>> importSerials(
+    public ResponseEntity<ApiResponse<SerialImportSummaryResponse<DealerProductSerialResponse>>> importSerials(
             Authentication authentication,
             @Valid @RequestBody CreateDealerSerialBatchRequest request
     ) {

@@ -12,6 +12,8 @@ import com.devwonder.backend.dto.admin.UpdateAdminSupportTicketRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminWarrantyStatusRequest;
 import com.devwonder.backend.config.CacheNames;
 import com.devwonder.backend.dto.notify.CreateNotifyRequest;
+import com.devwonder.backend.dto.serial.SerialImportSkippedItem;
+import com.devwonder.backend.dto.serial.SerialImportSummaryResponse;
 import com.devwonder.backend.entity.Account;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.DealerSupportTicket;
@@ -39,6 +41,7 @@ import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.support.AccountValidationSupport;
 import com.devwonder.backend.service.support.AppMessageSupport;
+import com.devwonder.backend.service.support.ProductStockSyncSupport;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -75,6 +78,7 @@ public class AdminOperationsService {
     private final MailService mailService;
     private final AsyncMailService asyncMailService;
     private final AppMessageSupport appMessageSupport;
+    private final ProductStockSyncSupport productStockSyncSupport;
 
     @Transactional(readOnly = true)
     public Page<AdminSupportTicketResponse> getSupportTickets(Pageable pageable) {
@@ -138,6 +142,7 @@ public class AdminOperationsService {
         if (productSerial != null) {
             productSerial.setStatus(resolveSerialStatusForWarranty(registration, productSerial));
             productSerialRepository.save(productSerial);
+            productStockSyncSupport.syncProductStock(productSerial.getProduct());
         }
 
         WarrantyRegistration saved = warrantyRegistrationRepository.save(registration);
@@ -151,7 +156,7 @@ public class AdminOperationsService {
 
     @Transactional
     @CacheEvict(cacheNames = CacheNames.PUBLIC_WARRANTY_LOOKUP, allEntries = true)
-    public List<AdminSerialResponse> importSerials(AdminSerialImportRequest request) {
+    public SerialImportSummaryResponse<AdminSerialResponse> importSerials(AdminSerialImportRequest request) {
         Product product = productRepository.findById(request.productId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
@@ -173,18 +178,17 @@ public class AdminOperationsService {
         }
 
         Set<String> uniqueSerials = new LinkedHashSet<>();
+        List<SerialImportSkippedItem> skippedItems = new ArrayList<>();
         for (String rawSerial : request.serials()) {
-            String serial = requireNonBlank(rawSerial, "serial").toUpperCase(Locale.ROOT);
-            if (!uniqueSerials.add(serial)) {
+            String normalized = normalize(rawSerial);
+            if (normalized == null) {
+                skippedItems.add(new SerialImportSkippedItem("", "serial must not be blank"));
                 continue;
             }
-            productSerialRepository.findBySerialIgnoreCase(serial).ifPresent(existing -> {
-                throw new ConflictException("Serial already exists: " + serial);
-            });
-        }
-
-        if (uniqueSerials.isEmpty()) {
-            throw new BadRequestException("No valid serials supplied");
+            String serial = normalized.toUpperCase(Locale.ROOT);
+            if (!uniqueSerials.add(serial)) {
+                skippedItems.add(new SerialImportSkippedItem(serial, "Duplicate serial in request"));
+            }
         }
         ProductSerialStatus initialStatus = resolveImportedStatus(request.status(), order);
         if (initialStatus != ProductSerialStatus.AVAILABLE
@@ -202,15 +206,33 @@ public class AdminOperationsService {
         if (initialStatus == ProductSerialStatus.ASSIGNED && dealer == null) {
             throw new BadRequestException("ASSIGNED status requires a linked dealer");
         }
-        if (order != null) {
-            long existingSerialCount = productSerialRepository.countByOrderIdAndProductId(order.getId(), product.getId());
-            if (existingSerialCount + uniqueSerials.size() > orderedQuantity) {
-                throw new BadRequestException("Imported serial count exceeds ordered quantity");
+        long existingSerialCount = order == null
+                ? 0L
+                : productSerialRepository.countByOrderIdAndProductId(order.getId(), product.getId());
+
+        List<String> importableSerials = new ArrayList<>();
+        for (String serial : uniqueSerials) {
+            if (productSerialRepository.findBySerialIgnoreCase(serial).isPresent()) {
+                skippedItems.add(new SerialImportSkippedItem(serial, "Serial already exists"));
+                continue;
             }
+            importableSerials.add(serial);
+        }
+
+        int remainingCapacity = order == null
+                ? Integer.MAX_VALUE
+                : Math.max(0, orderedQuantity - Math.toIntExact(existingSerialCount));
+        List<String> acceptedSerials = new ArrayList<>();
+        for (String serial : importableSerials) {
+            if (acceptedSerials.size() >= remainingCapacity) {
+                skippedItems.add(new SerialImportSkippedItem(serial, "Imported serial count exceeds ordered quantity"));
+                continue;
+            }
+            acceptedSerials.add(serial);
         }
 
         List<ProductSerial> serialsToSave = new ArrayList<>();
-        for (String serial : uniqueSerials) {
+        for (String serial : acceptedSerials) {
             ProductSerial productSerial = new ProductSerial();
             productSerial.setSerial(serial);
             productSerial.setProduct(product);
@@ -221,13 +243,14 @@ public class AdminOperationsService {
             productSerial.setWarehouseName(defaultIfBlank(request.warehouseName(), "Kho tong"));
             serialsToSave.add(productSerial);
         }
-        List<AdminSerialResponse> responses = productSerialRepository.saveAll(serialsToSave).stream()
-                .map(this::toSerialResponse)
-                .toList();
-        if (initialStatus == ProductSerialStatus.AVAILABLE) {
-            adjustProductStock(product, uniqueSerials.size());
+        List<AdminSerialResponse> responses = List.of();
+        if (!serialsToSave.isEmpty()) {
+            responses = productSerialRepository.saveAll(serialsToSave).stream()
+                    .map(this::toSerialResponse)
+                    .toList();
         }
-        return responses;
+        productStockSyncSupport.syncProductStock(product);
+        return SerialImportSummaryResponse.of(responses, skippedItems);
     }
 
     @Transactional
@@ -243,7 +266,6 @@ public class AdminOperationsService {
             return toSerialResponse(productSerial);
         }
         assertManualSerialStatusAllowed(productSerial, nextStatus);
-        adjustAvailableInventoryForStatusChange(productSerial, nextStatus);
         if (nextStatus == ProductSerialStatus.ASSIGNED) {
             Dealer resolvedDealer = productSerial.getDealer();
             if (resolvedDealer == null && productSerial.getOrder() != null) {
@@ -255,7 +277,9 @@ public class AdminOperationsService {
             productSerial.setDealer(resolvedDealer);
         }
         productSerial.setStatus(nextStatus);
-        return toSerialResponse(productSerialRepository.save(productSerial));
+        AdminSerialResponse response = toSerialResponse(productSerialRepository.save(productSerial));
+        productStockSyncSupport.syncProductStock(productSerial.getProduct());
+        return response;
     }
 
     @Transactional
@@ -270,10 +294,9 @@ public class AdminOperationsService {
         if (productSerial.getOrder() != null || productSerial.getDealer() != null) {
             throw new BadRequestException("Serial is linked to an order or dealer and cannot be deleted");
         }
-        if (status == ProductSerialStatus.AVAILABLE) {
-            adjustProductStock(productSerial.getProduct(), -1);
-        }
+        Product product = productSerial.getProduct();
         productSerialRepository.delete(productSerial);
+        productStockSyncSupport.syncProductStock(product);
     }
 
     @Transactional(readOnly = true)
@@ -542,33 +565,6 @@ public class AdminOperationsService {
                 throw new BadRequestException("Serial already belongs to a dealer and cannot be marked defective by admin");
             }
         }
-    }
-
-    private void adjustAvailableInventoryForStatusChange(ProductSerial productSerial, ProductSerialStatus nextStatus) {
-        ProductSerialStatus currentStatus = productSerial.getStatus();
-        if (currentStatus == nextStatus) {
-            return;
-        }
-        if (currentStatus == ProductSerialStatus.AVAILABLE && nextStatus != ProductSerialStatus.AVAILABLE) {
-            adjustProductStock(productSerial.getProduct(), -1);
-            return;
-        }
-        if (currentStatus != ProductSerialStatus.AVAILABLE && nextStatus == ProductSerialStatus.AVAILABLE) {
-            adjustProductStock(productSerial.getProduct(), 1);
-        }
-    }
-
-    private void adjustProductStock(Product product, int delta) {
-        if (product == null || delta == 0) {
-            return;
-        }
-        int nextStock = Math.max(0, safeStock(product) + delta);
-        product.setStock(nextStock);
-        productRepository.save(product);
-    }
-
-    private int safeStock(Product product) {
-        return product == null || product.getStock() == null ? 0 : Math.max(0, product.getStock());
     }
 
     private long computeRemainingDays(Instant warrantyEnd) {

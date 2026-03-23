@@ -11,6 +11,7 @@ import 'global_search.dart';
 import 'models.dart';
 import 'order_controller.dart';
 import 'order_success_screen.dart';
+import 'product_catalog_controller.dart';
 import 'utils.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
@@ -463,7 +464,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         : () async {
                             setState(() => _isSubmitting = true);
                             try {
-                              final issues = _validateCart(cart);
+                              final issues = await _validateCart(cart);
                               if (issues.isNotEmpty) {
                                 await _showValidationDialog(context, issues);
                                 return;
@@ -543,15 +544,40 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  List<String> _validateCart(CartController cart) {
+  Future<List<String>> _validateCart(CartController cart) async {
     final texts = _texts;
     final List<String> issues = [];
+    if (cart.isSyncing) {
+      issues.add(texts.cartSyncInProgressMessage);
+      return issues;
+    }
+    final catalog = ProductCatalogScope.maybeOf(context);
     for (final item in cart.items) {
-      if (item.quantity > item.product.stock) {
-        issues.add(texts.stockIssue(item.product.name, item.product.stock));
+      final latestProduct = await _resolveLatestProduct(item.product, catalog);
+      final availableStock = latestProduct?.stock ?? item.product.stock;
+      if (availableStock <= 0) {
+        issues.add(texts.outOfStockIssue(item.product.name));
+        continue;
+      }
+      if (item.quantity > availableStock) {
+        issues.add(texts.stockIssue(item.product.name, availableStock));
       }
     }
     return issues;
+  }
+
+  Future<Product?> _resolveLatestProduct(
+    Product product,
+    ProductCatalogController? catalog,
+  ) async {
+    if (catalog == null) {
+      return null;
+    }
+    try {
+      return await catalog.fetchDetail(product.id);
+    } catch (_) {
+      return catalog.findById(product.id) ?? product;
+    }
   }
 
   Future<bool?> _showDebtConfirmDialog(
@@ -819,7 +845,13 @@ class _CheckoutTexts {
       isEnglish ? 'Order needs adjustments' : 'Cần điều chỉnh đơn hàng';
   String get validationDialogSubtitle =>
       isEnglish ? 'Please review:' : 'Vui lòng kiểm tra:';
+  String get cartSyncInProgressMessage => isEnglish
+      ? 'The cart is still syncing. Please wait a moment and try again.'
+      : 'Giỏ hàng vẫn đang đồng bộ. Vui lòng đợi một chút rồi thử lại.';
   String get closeAction => isEnglish ? 'Close' : 'Đóng';
+  String outOfStockIssue(String productName) => isEnglish
+      ? '$productName is currently out of stock.'
+      : '$productName hiện đã hết hàng.';
 
   String paymentStatusLabel(OrderPaymentStatus status) {
     switch (status) {

@@ -22,6 +22,7 @@ public class DealerCartSupport {
     private final DealerCartItemRepository dealerCartItemRepository;
     private final ProductOfCartRepository productOfCartRepository;
     private final ProductRepository productRepository;
+    private final ProductStockSyncSupport productStockSyncSupport;
 
     public List<DealerCartItemResponse> getCart(Long dealerId) {
         return dealerCartItemRepository.findByDealerIdOrderByUpdatedAtDesc(dealerId).stream()
@@ -36,7 +37,7 @@ public class DealerCartSupport {
 
         Product product = productRepository.findById(request.productId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-        int availableStock = product.getStock() == null ? 0 : Math.max(0, product.getStock());
+        int availableStock = productStockSyncSupport.countAvailableStock(product.getId());
         if (availableStock <= 0) {
             throw new BadRequestException("Product is out of stock");
         }

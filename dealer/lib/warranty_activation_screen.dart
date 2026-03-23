@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -44,8 +46,11 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   final Map<String, List<TextEditingController>> _serialControllers = {};
   DateTime _purchaseDate = DateTime.now();
   bool _isInitialized = false;
+  bool _didStartInitialSync = false;
+  bool _isInitialSyncing = true;
   bool _isSubmitting = false;
   bool _didApplyPrefill = false;
+  String? _initialSyncWarning;
 
   _WarrantyActivationTexts get _texts => _WarrantyActivationTexts(
     isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
@@ -54,22 +59,62 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_isInitialized) {
+    if (_didStartInitialSync) {
       return;
     }
+    _didStartInitialSync = true;
+    unawaited(_initializeScreen());
+  }
 
-    final order = OrderScope.of(context).findById(widget.orderId);
-    if (order == null) {
-      _isInitialized = true;
-      return;
-    }
-
+  Future<void> _initializeScreen() async {
+    final texts = _texts;
+    final orderController = OrderScope.of(context);
     final warrantyController = WarrantyScope.of(context);
-    _syncSerialInputs(order, warrantyController);
-    _applyPrefilledSerial(order, warrantyController);
-    _prefillCustomerFromOrder(order);
-    _purchaseDate = DateUtils.dateOnly(order.createdAt.toLocal());
-    _isInitialized = true;
+    await Future.wait<void>([
+      orderController.refresh(),
+      warrantyController.load(forceRefresh: true),
+    ]);
+    final warnings = <String>[];
+    if (orderController.lastActionMessage != null) {
+      warnings.add(
+        orderControllerErrorMessage(
+          orderController.lastActionMessage,
+          isEnglish: texts.isEnglish,
+        ),
+      );
+    }
+    if (warrantyController.lastSyncMessage != null) {
+      warnings.add(
+        warrantySyncErrorMessage(
+          warrantyController.lastSyncMessage,
+          isEnglish: texts.isEnglish,
+        ),
+      );
+    }
+    _initialSyncWarning = warnings.isEmpty
+        ? null
+        : warnings.join('\n');
+
+    if (!mounted) {
+      return;
+    }
+    final order = orderController.findById(widget.orderId);
+    if (order == null) {
+      setState(() {
+        _isInitialized = true;
+        _isInitialSyncing = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _syncSerialInputs(order, warrantyController);
+      _applyPrefilledSerial(order, warrantyController);
+      _prefillCustomerFromOrder(order);
+      _purchaseDate = DateUtils.dateOnly(order.createdAt.toLocal());
+      _isInitialized = true;
+      _isInitialSyncing = false;
+    });
   }
 
   @override
@@ -90,6 +135,12 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   @override
   Widget build(BuildContext context) {
     final texts = _texts;
+    if (_isInitialSyncing && !_isInitialized) {
+      return Scaffold(
+        appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     final order = OrderScope.of(context).findById(widget.orderId);
     if (order == null) {
       return Scaffold(
@@ -98,9 +149,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
       );
     }
 
-    final canProcess =
-        order.status == OrderStatus.completed ||
-        order.status == OrderStatus.shipping;
+    final canProcess = order.status == OrderStatus.completed;
     if (!canProcess) {
       return Scaffold(
         appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
@@ -177,6 +226,15 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
             controller: _scrollController,
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
             children: [
+              if (_initialSyncWarning != null) ...[
+                FadeSlideIn(
+                  child: _SectionCard(
+                    title: texts.syncWarningTitle,
+                    child: Text(_initialSyncWarning!),
+                  ),
+                ),
+                const SizedBox(height: _serialSectionGap),
+              ],
               FadeSlideIn(
                 child: _SectionCard(
                   title: texts.processingInfoTitle,
@@ -1044,116 +1102,121 @@ class _WarrantyActivationTexts {
 
   final bool isEnglish;
 
-  String get screenTitle => isEnglish ? 'Serial processing' : 'Xử lý serial';
+  String get screenTitle => isEnglish ? 'Serial processing' : 'Xu ly serial';
   String get orderNotFoundMessage => isEnglish
       ? 'Cannot find the order for serial processing.'
-      : 'Không tìm thấy đơn hàng để xử lý serial.';
+      : 'Khong tim thay don hang de xu ly serial.';
+  String get syncWarningTitle =>
+      isEnglish ? 'Sync warning' : 'Canh bao dong bo';
+  String get initialSyncWarning => isEnglish
+      ? 'Latest warranty data could not be refreshed. The screen is using the current local data.'
+      : 'Khong the lam moi du lieu bao hanh moi nhat. Man hinh dang dung du lieu hien co tren may.';
   String get cannotProcessMessage => isEnglish
-      ? 'Only shipping or completed orders can be processed for serials.'
-      : 'Chỉ đơn đang giao hoặc đã giao mới được xử lý serial.';
+      ? 'Only completed orders can be processed for serials.'
+      : 'Chi don da hoan thanh moi duoc xu ly serial.';
   String currentStatusLabel(String statusLabel) => isEnglish
       ? 'Current status: $statusLabel'
-      : 'Trạng thái hiện tại: $statusLabel';
+      : 'Trang thai hien tai: $statusLabel';
   String get processingInfoTitle =>
-      isEnglish ? 'Serial processing information' : 'Thông tin xử lý serial';
-  String get orderIdLabel => isEnglish ? 'Order ID' : 'Mã đơn hàng';
-  String get orderDateLabel => isEnglish ? 'Order date' : 'Ngày đặt';
-  String get progressLabel => isEnglish ? 'Progress' : 'Tiến độ';
+      isEnglish ? 'Serial processing information' : 'Thong tin xu ly serial';
+  String get orderIdLabel => isEnglish ? 'Order ID' : 'Ma don hang';
+  String get orderDateLabel => isEnglish ? 'Order date' : 'Ngay dat';
+  String get progressLabel => isEnglish ? 'Progress' : 'Tien do';
   String serialProgressValue(int activatedCount, int totalCount) => isEnglish
       ? '$activatedCount/$totalCount serials'
       : '$activatedCount/$totalCount serial';
   String get inventoryValidationHint => isEnglish
       ? 'Only serials already in inventory and matching the order item can be activated.'
-      : 'Chỉ serial đã nhập kho và thuộc sản phẩm trong đơn mới được kích hoạt.';
+      : 'Chi serial da nhap kho va thuoc san pham trong don moi duoc kich hoat.';
   String get customerNameLabel =>
-      isEnglish ? 'Customer name' : 'Tên khách hàng';
+      isEnglish ? 'Customer name' : 'Ten khach hang';
   String get customerEmailLabel =>
-      isEnglish ? 'Customer email *' : 'Email khách hàng *';
+      isEnglish ? 'Customer email *' : 'Email khach hang *';
   String get customerEmailHelper => isEnglish
       ? 'Required. Used to store warranty activation details and support contact.'
-      : 'Bắt buộc. Dùng để lưu thông tin kích hoạt bảo hành và liên hệ hỗ trợ.';
+      : 'Bat buoc. Dung de luu thong tin kich hoat bao hanh va lien he ho tro.';
   String get customerPhoneLabel =>
-      isEnglish ? 'Customer phone number' : 'Số điện thoại khách hàng';
+      isEnglish ? 'Customer phone number' : 'So dien thoai khach hang';
   String get customerAddressLabel =>
-      isEnglish ? 'Customer address' : 'Địa chỉ khách hàng';
+      isEnglish ? 'Customer address' : 'Dia chi khach hang';
   String purchaseDateLabel(String dateLabel) =>
-      isEnglish ? 'Purchase date: $dateLabel' : 'Ngày mua: $dateLabel';
+      isEnglish ? 'Purchase date: $dateLabel' : 'Ngay mua: $dateLabel';
   String get purchaseDateHint => isEnglish
       ? 'Dealers can adjust the in-store purchase date before activating warranty.'
-      : 'Đại lý có thể chọn lại ngày khách mua tại cửa hàng trước khi kích hoạt bảo hành.';
+      : 'Dai ly co the chon lai ngay khach mua tai cua hang truoc khi kich hoat bao hanh.';
   String get prefilledCustomerHint => isEnglish
       ? 'Customer information is prefilled from the order and can still be edited if needed.'
-      : 'Thông tin khách hàng đã được điền sẵn từ đơn hàng, đại lý có thể chỉnh sửa nếu cần.';
-  String get quantityLabel => isEnglish ? 'Quantity' : 'Số lượng';
-  String get activatedCountLabel => isEnglish ? 'Activated' : 'Đã kích hoạt';
+      : 'Thong tin khach hang duoc dien san tu don hang, van co the chinh sua neu can.';
+  String get quantityLabel => isEnglish ? 'Quantity' : 'So luong';
+  String get activatedCountLabel => isEnglish ? 'Activated' : 'Da kich hoat';
   String get availableInventorySerialsLabel =>
-      isEnglish ? 'Valid serials in inventory' : 'Serial hợp lệ trong kho';
+      isEnglish ? 'Valid serials in inventory' : 'Serial hop le trong kho';
   String remainingSerialsLabel(int remaining) => isEnglish
       ? 'Enter $remaining remaining serials'
-      : 'Nhập $remaining serial còn thiếu';
-  String get scanQrAction => isEnglish ? 'Scan QR' : 'Quét QR';
+      : 'Nhap $remaining serial con thieu';
+  String get scanQrAction => isEnglish ? 'Scan QR' : 'Quet QR';
   String get bulkPasteAction =>
-      isEnglish ? 'Paste multiple serials' : 'Dán nhiều serial';
+      isEnglish ? 'Paste multiple serials' : 'Dan nhieu serial';
   String serialFieldLabel(int index, int remaining) =>
       isEnglish ? 'Serial $index/$remaining' : 'Serial $index/$remaining';
   String get serialFieldHelper => isEnglish
       ? 'Example: SN-ABC-12345 (letters, numbers, and - only)'
-      : 'Ví dụ: SN-ABC-12345 (chỉ gồm chữ, số và dấu -)';
+      : 'Vi du: SN-ABC-12345 (chi gom chu, so va dau -)';
   String get fullyActivatedButtonLabel => isEnglish
       ? 'Order already has all serials activated'
-      : 'Đơn đã kích hoạt đủ serial';
+      : 'Don da kich hoat du serial';
   String get confirmActivationAction =>
-      isEnglish ? 'Confirm serial activation' : 'Xác nhận kích hoạt serial';
+      isEnglish ? 'Confirm serial activation' : 'Xac nhan kich hoat serial';
 
   String serialNotFoundInInventory(String serial) => isEnglish
       ? 'Cannot find serial $serial in inventory.'
-      : 'Không tìm thấy serial $serial trong kho.';
+      : 'Khong tim thay serial $serial trong kho.';
   String serialBelongsToOtherOrder(
     String serial,
     String importedOrderId,
     String currentOrderId,
   ) => isEnglish
       ? 'Serial $serial belongs to order $importedOrderId, not order $currentOrderId.'
-      : 'Serial $serial thuộc đơn $importedOrderId, không thuộc đơn $currentOrderId.';
+      : 'Serial $serial thuoc don $importedOrderId, khong thuoc don $currentOrderId.';
   String serialProductMismatch(String serial) => isEnglish
       ? 'Serial $serial does not match the product being processed.'
-      : 'Serial $serial không khớp sản phẩm cần xử lý.';
+      : 'Serial $serial khong khop san pham can xu ly.';
   String noEmptySerialSlot(String productName) => isEnglish
       ? 'There is no empty serial slot left for $productName.'
-      : 'Không còn ô serial trống cho $productName.';
+      : 'Khong con o serial trong cho $productName.';
   String productAlreadyFull(String productName) => isEnglish
       ? '$productName already has enough serials and cannot be auto-filled.'
-      : 'Đã đủ serial cho $productName, không thể tự điền thêm.';
+      : 'Da du serial cho $productName, khong the tu dien them.';
   String prefilledSerialAssigned(String serial) => isEnglish
       ? 'Assigned scanned serial: $serial'
-      : 'Đã điền serial quét: $serial';
+      : 'Da dien serial quet: $serial';
   String get pickPurchaseDateHelp =>
-      isEnglish ? 'Select purchase date' : 'Chọn ngày mua';
+      isEnglish ? 'Select purchase date' : 'Chon ngay mua';
   String purchaseDateBeforeOrder(String minimumDate) => isEnglish
       ? 'Purchase date cannot be before the order date $minimumDate.'
-      : 'Ngày mua không được trước ngày đặt hàng $minimumDate.';
+      : 'Ngay mua khong duoc truoc ngay dat hang $minimumDate.';
   String get purchaseDateAfterToday => isEnglish
       ? 'Purchase date cannot be after today.'
-      : 'Ngày mua không được sau ngày hôm nay.';
+      : 'Ngay mua khong duoc sau hom nay.';
   String scannedSerialAssigned(String productName) => isEnglish
       ? 'Assigned scanned serial for $productName.'
-      : 'Đã điền serial quét cho $productName.';
+      : 'Da dien serial quet cho $productName.';
   String get duplicateScannedSerialMessage => isEnglish
       ? 'This serial is already in the input list.'
-      : 'Serial này đã có trong danh sách nhập.';
+      : 'Serial nay da co trong danh sach nhap.';
   String get invalidScannedSerialMessage => isEnglish
       ? 'The scanned serial is not valid for this product.'
-      : 'Serial quét không hợp lệ cho sản phẩm này.';
+      : 'Serial quet khong hop le cho san pham nay.';
   String get bulkPasteTitle =>
-      isEnglish ? 'Paste multiple serials' : 'Dán nhiều serial';
+      isEnglish ? 'Paste multiple serials' : 'Dan nhieu serial';
   String get bulkPasteHint => isEnglish
       ? 'One serial per line, or separate them with commas'
-      : 'Mỗi serial một dòng, hoặc phân tách bằng dấu phẩy';
-  String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
-  String get fillSerialsAction => isEnglish ? 'Fill serials' : 'Điền serial';
+      : 'Moi serial mot dong, hoac phan tach bang dau phay';
+  String get cancelAction => isEnglish ? 'Cancel' : 'Huy';
+  String get fillSerialsAction => isEnglish ? 'Fill serials' : 'Dien serial';
   String get noValidSerialsFoundMessage => isEnglish
       ? 'No valid serial was found to fill.'
-      : 'Không tìm thấy serial hợp lệ để điền.';
+      : 'Khong tim thay serial hop le de dien.';
   String bulkPasteSummary(
     int assignedCount,
     int duplicateCount,
@@ -1161,41 +1224,41 @@ class _WarrantyActivationTexts {
     int fullCount,
   ) => isEnglish
       ? 'Assigned $assignedCount serials. Duplicates: $duplicateCount, invalid: $invalidCount, no slots: $fullCount.'
-      : 'Đã điền $assignedCount serial. Trùng: $duplicateCount, lỗi: $invalidCount, hết ô: $fullCount.';
+      : 'Da dien $assignedCount serial. Trung: $duplicateCount, loi: $invalidCount, het o: $fullCount.';
   String get customerInfoRequiredMessage => isEnglish
       ? 'Please enter all customer information.'
-      : 'Vui lòng nhập đầy đủ thông tin khách hàng.';
+      : 'Vui long nhap day du thong tin khach hang.';
   String get invalidEmailMessage => isEnglish
       ? 'Please enter a valid email address.'
-      : 'Vui lòng nhập email hợp lệ.';
+      : 'Vui long nhap email hop le.';
   String serialRequiredForProduct(String productName) => isEnglish
       ? 'Please enter all serials for $productName.'
-      : 'Vui lòng nhập đầy đủ serial cho $productName.';
+      : 'Vui long nhap day du serial cho $productName.';
   String duplicateSerialInSubmission(String serial) => isEnglish
       ? 'Serial $serial is duplicated in this submission.'
-      : 'Serial $serial đang bị trùng trong lần nhập này.';
+      : 'Serial $serial bi trung trong lan nhap nay.';
   String get orderAlreadyFullyActivatedMessage => isEnglish
       ? 'This order already has all serials activated.'
-      : 'Đơn hàng này đã kích hoạt đủ serial.';
+      : 'Don hang nay da kich hoat du serial.';
   String get activationSyncFailedMessage => isEnglish
       ? 'Cannot sync warranty activation. Please check again.'
-      : 'Không thể đồng bộ kích hoạt bảo hành. Vui lòng kiểm tra lại.';
+      : 'Khong the dong bo kich hoat bao hanh. Vui long kiem tra lai.';
   String activationSuccessMessage(int count) => isEnglish
       ? 'Successfully activated $count serials.'
-      : 'Đã kích hoạt thành công $count serial.';
+      : 'Da kich hoat thanh cong $count serial.';
 
   String orderStatusLabel(OrderStatus status) {
     switch (status) {
       case OrderStatus.pendingApproval:
-        return isEnglish ? 'Pending approval' : 'Chờ duyệt';
+        return isEnglish ? 'Pending approval' : 'Cho duyet';
       case OrderStatus.approved:
-        return isEnglish ? 'Approved' : 'Đã duyệt';
+        return isEnglish ? 'Approved' : 'Da duyet';
       case OrderStatus.shipping:
-        return isEnglish ? 'Shipping' : 'Đang giao';
+        return isEnglish ? 'Shipping' : 'Dang giao';
       case OrderStatus.completed:
-        return isEnglish ? 'Completed' : 'Hoàn thành';
+        return isEnglish ? 'Completed' : 'Hoan thanh';
       case OrderStatus.cancelled:
-        return isEnglish ? 'Cancelled' : 'Đã hủy';
+        return isEnglish ? 'Cancelled' : 'Da huy';
     }
   }
 }

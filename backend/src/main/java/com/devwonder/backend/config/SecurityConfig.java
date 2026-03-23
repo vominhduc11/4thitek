@@ -41,12 +41,16 @@ public class SecurityConfig {
     @Value("${app.cors.allowed-origin-patterns:}")
     private String allowedOriginPatterns;
 
+    @Value("${app.docs.public-enabled:false}")
+    private boolean docsPublicEnabled;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
-                .authorizeHttpRequests(request -> request
+                .authorizeHttpRequests(request -> {
+                    var registry = request
                         .requestMatchers(
                                 "/api/v1/admin/users",
                                 "/api/v1/admin/users/**"
@@ -62,10 +66,7 @@ public class SecurityConfig {
                                 "/api/v1/webhooks/sepay",
                                 "/api/v1/health",
                                 "/actuator/health",
-                                "/ws/**",
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html"
+                                "/ws/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/user/dealer").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/user/dealer/page").permitAll()
@@ -88,7 +89,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/upload").hasAnyAuthority("DEALER", "ADMIN", "SUPER_ADMIN")
                         .requestMatchers("/api/v1/admin/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
                         .requestMatchers("/api/v1/dealer/**").hasAuthority("DEALER")
-                        .anyRequest().authenticated())
+                        .anyRequest().authenticated();
+                    if (docsPublicEnabled) {
+                        registry.requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll();
+                    }
+                })
                 .sessionManagement(manager -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(daoAuthenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

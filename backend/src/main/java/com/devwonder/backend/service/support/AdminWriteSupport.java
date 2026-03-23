@@ -64,9 +64,7 @@ public class AdminWriteSupport {
         } else if (creating) {
             throw new BadRequestException("retailPrice is required");
         }
-        if (request.stock() != null) {
-            product.setStock(request.stock());
-        } else if (creating && product.getStock() == null) {
+        if (creating && product.getStock() == null) {
             product.setStock(0);
         }
         if (request.warrantyPeriod() != null) {

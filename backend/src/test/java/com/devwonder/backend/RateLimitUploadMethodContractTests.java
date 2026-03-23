@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Base64;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -32,6 +33,10 @@ import org.springframework.test.web.servlet.MvcResult;
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class RateLimitUploadMethodContractTests {
+
+    private static final byte[] SAMPLE_PNG_BYTES = Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+lmLsAAAAASUVORK5CYII="
+    );
 
     @Autowired
     private MockMvc mockMvc;
@@ -67,7 +72,7 @@ class RateLimitUploadMethodContractTests {
     }
 
     private MockMultipartFile sampleImage(String fileName) {
-        return new MockMultipartFile("file", fileName, "image/png", "test-image".getBytes(UTF_8));
+        return new MockMultipartFile("file", fileName, "image/png", SAMPLE_PNG_BYTES);
     }
 
     private String login(String username, String password) throws Exception {

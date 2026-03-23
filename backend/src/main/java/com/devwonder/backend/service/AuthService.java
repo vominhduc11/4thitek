@@ -72,12 +72,19 @@ public class AuthService {
     }
 
     public AuthResponse refreshToken(RefreshTokenRequest request) {
+        return refreshToken(request == null ? null : request.refreshToken());
+    }
+
+    public AuthResponse refreshToken(String refreshToken) {
         try {
-            if (jwtUtils.isTokenExpired(request.refreshToken())) {
+            if (refreshToken == null || refreshToken.isBlank()) {
+                throw new UnauthorizedException("Refresh token is invalid");
+            }
+            if (jwtUtils.isTokenExpired(refreshToken)) {
                 throw new UnauthorizedException("Refresh token expired");
             }
 
-            String username = jwtUtils.extractUsername(request.refreshToken());
+            String username = jwtUtils.extractUsername(refreshToken);
             Account account = accountRepository.findByUsernameIgnoreCaseOrEmailIgnoreCase(username, username)
                     .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
             if (!account.isEnabled()) {
@@ -85,7 +92,7 @@ public class AuthService {
             }
 
             String accessToken = jwtUtils.generateToken(account);
-            return buildAuthResponse(account, accessToken, request.refreshToken());
+            return buildAuthResponse(account, accessToken, refreshToken);
         } catch (JwtException | IllegalArgumentException ex) {
             throw new UnauthorizedException("Refresh token is invalid");
         }

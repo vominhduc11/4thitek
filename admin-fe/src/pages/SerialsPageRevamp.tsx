@@ -7,6 +7,7 @@ import {
   importAdminSerials,
   updateAdminSerialStatus,
   deleteAdminSerial,
+  type BackendSerialImportSummary,
   type BackendProductSerialStatus,
   type BackendSerialResponse,
 } from '../lib/adminApi'
@@ -16,6 +17,7 @@ import { useProducts } from '../context/ProductsContext'
 import { useToast } from '../context/ToastContext'
 import { formatDateTime } from '../lib/formatters'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
+import { buildSkippedSerialRetryValue } from './serialImportViewState'
 import {
   EmptyState,
   ErrorState,
@@ -108,6 +110,10 @@ const copyByLanguage = {
     reload: 'Tải lại',
     loadingStats: 'Đang tải...',
     importSuccess: 'Import thành công {count} serial.',
+    importSummary: 'Đã import {imported} serial, bỏ qua {skipped} serial.',
+    skippedItemsTitle: 'Serial bị bỏ qua',
+    skippedEmptySerial: '(trống)',
+    skippedReason: 'Lý do',
     markDefective: 'Đánh dấu lỗi',
     markAvailable: 'Đưa về kho',
     confirmDefectiveTitle: 'Xác nhận đánh dấu hàng lỗi',
@@ -168,6 +174,10 @@ const copyByLanguage = {
     reload: 'Reload',
     loadingStats: 'Loading...',
     importSuccess: 'Successfully imported {count} serial(s).',
+    importSummary: 'Imported {imported} serial(s), skipped {skipped} serial(s).',
+    skippedItemsTitle: 'Skipped serials',
+    skippedEmptySerial: '(blank)',
+    skippedReason: 'Reason',
     markDefective: 'Mark as defective',
     markAvailable: 'Restore to stock',
     confirmDefectiveTitle: 'Confirm mark as defective',
@@ -214,6 +224,7 @@ function SerialsPageRevamp() {
   const [isLoading, setIsLoading] = useState(true)
   const [isFilterLoading, setIsFilterLoading] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
+  const [lastImportResult, setLastImportResult] = useState<BackendSerialImportSummary<BackendSerialResponse> | null>(null)
   const [error, setError] = useState<string | null>(null)
   const hasActiveFilters = query.trim().length > 0 || statusFilter !== 'ALL'
   const [form, setForm] = useState({
@@ -317,21 +328,34 @@ function SerialsPageRevamp() {
 
     setIsImporting(true)
     try {
-      const imported = await importAdminSerials(accessToken, {
+      const importResult = await importAdminSerials(accessToken, {
         productId,
         serials,
       })
-      setForm({
-        productId: '',
-        serials: '',
-      })
-      setShowImport(false)
+      setLastImportResult(importResult)
+      if (importResult.skippedCount === 0) {
+        setForm({
+          productId: '',
+          serials: '',
+        })
+        setShowImport(false)
+      } else {
+        setForm((current) => ({
+          ...current,
+          serials: buildSkippedSerialRetryValue(importResult.skippedItems),
+        }))
+      }
       setPage(0)
       await Promise.all([loadData(0), loadAllItems()])
-      notify(copy.importSuccess.replace('{count}', String(imported.length)), {
-        title: copy.importTitle,
-        variant: 'success',
-      })
+      notify(
+        copy.importSummary
+          .replace('{imported}', String(importResult.importedCount))
+          .replace('{skipped}', String(importResult.skippedCount)),
+        {
+          title: copy.importTitle,
+          variant: 'success',
+        },
+      )
     } catch (importError) {
       notify(importError instanceof Error ? importError.message : copy.loadFallback, {
         title: copy.title,
@@ -451,7 +475,15 @@ function SerialsPageRevamp() {
           <GhostButton aria-label={copy.reload} icon={<RefreshCw className="h-4 w-4" />} onClick={() => void handleReload()} type="button">
             {copy.reload}
           </GhostButton>
-          <PrimaryButton aria-label={copy.import} icon={<Upload className="h-4 w-4" />} onClick={() => setShowImport((current) => !current)} type="button">
+          <PrimaryButton
+            aria-label={copy.import}
+            icon={<Upload className="h-4 w-4" />}
+            onClick={() => {
+              setShowImport((current) => !current)
+              setLastImportResult(null)
+            }}
+            type="button"
+          >
             {copy.import}
           </PrimaryButton>
         </div>
@@ -476,7 +508,10 @@ function SerialsPageRevamp() {
               <select
                 className={inputClass}
                 value={form.productId}
-                onChange={(event) => setForm((current) => ({ ...current, productId: event.target.value }))}
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, productId: event.target.value }))
+                  setLastImportResult(null)
+                }}
               >
                 <option value="">{copy.product}</option>
                 {products.map((product) => (
@@ -492,7 +527,10 @@ function SerialsPageRevamp() {
                 className={textareaClass}
                 placeholder={copy.serialsPlaceholder}
                 value={form.serials}
-                onChange={(event) => setForm((current) => ({ ...current, serials: event.target.value }))}
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, serials: event.target.value }))
+                  setLastImportResult(null)
+                }}
               />
             </label>
           </div>
@@ -500,10 +538,44 @@ function SerialsPageRevamp() {
             <PrimaryButton className="w-full sm:w-auto" disabled={isImporting} onClick={() => void handleImport()} type="button">
               {isImporting ? `${copy.import}...` : copy.save}
             </PrimaryButton>
-            <GhostButton className="w-full sm:w-auto" onClick={() => setShowImport(false)} type="button">
+            <GhostButton
+              className="w-full sm:w-auto"
+              onClick={() => {
+                setShowImport(false)
+                setLastImportResult(null)
+              }}
+              type="button"
+            >
               {copy.cancel}
             </GhostButton>
           </div>
+          {lastImportResult ? (
+            <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4">
+              <p className="text-sm font-semibold text-[var(--ink)]">
+                {copy.importSummary
+                  .replace('{imported}', String(lastImportResult.importedCount))
+                  .replace('{skipped}', String(lastImportResult.skippedCount))}
+              </p>
+              {lastImportResult.skippedCount > 0 ? (
+                <div className="mt-3 space-y-2">
+                  <p className={tableMetaClass}>{copy.skippedItemsTitle}</p>
+                  <div className="space-y-2">
+                    {lastImportResult.skippedItems.map((item, index) => (
+                      <div
+                        key={`${item.serial}-${index}`}
+                        className="rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-sm text-[var(--ink)]"
+                      >
+                        <p className="font-medium">{item.serial || copy.skippedEmptySerial}</p>
+                        <p className={tableMetaClass}>
+                          {copy.skippedReason}: {item.reason}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
 

@@ -127,6 +127,10 @@ public class JWTUtils {
         return resolveAccessTokenExpirationMs();
     }
 
+    public long getRefreshTokenExpirationMs() {
+        return refreshTokenExpirationMs;
+    }
+
     private long resolveAccessTokenExpirationMs() {
         AdminSettingsService.EffectiveAdminSettings effectiveSettings = adminSettingsService.getEffectiveSettings();
         int sessionTimeoutMinutes = effectiveSettings.sessionTimeoutMinutes();

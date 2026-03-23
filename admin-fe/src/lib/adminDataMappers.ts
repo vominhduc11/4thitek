@@ -188,6 +188,7 @@ export const mapOrder = (order: BackendOrderResponse): Order => {
 
   return {
     id: String(order.id),
+    orderCode: order.orderCode?.trim() || `#${order.id}`,
     dealer: order.dealerName || '',
     total: totalAmount,
     status: mapBackendOrderStatus(order.status),
@@ -258,6 +259,60 @@ export const mapBackendSettings = (settings: BackendAdminSettingsResponse): AppS
   sessionTimeoutMinutes: Number(settings.sessionTimeoutMinutes ?? initialSettings.sessionTimeoutMinutes),
   orderAlerts: Boolean(settings.orderAlerts),
   inventoryAlerts: Boolean(settings.inventoryAlerts),
+  sepay: {
+    enabled: Boolean(settings.sepay?.enabled),
+    webhookToken: settings.sepay?.webhookToken?.trim() || '',
+    bankName: settings.sepay?.bankName?.trim() || '',
+    accountNumber: settings.sepay?.accountNumber?.trim() || '',
+    accountHolder: settings.sepay?.accountHolder?.trim() || '',
+  },
+  emailSettings: {
+    enabled: Boolean(settings.emailSettings?.enabled),
+    from: settings.emailSettings?.from?.trim() || '',
+    fromName: settings.emailSettings?.fromName?.trim() || '',
+  },
+  rateLimitOverrides: {
+    enabled:
+      typeof settings.rateLimitOverrides?.enabled === 'boolean'
+        ? settings.rateLimitOverrides.enabled
+        : initialSettings.rateLimitOverrides.enabled,
+    auth: {
+      requests: Number(settings.rateLimitOverrides?.auth?.requests ?? initialSettings.rateLimitOverrides.auth.requests),
+      windowSeconds: Number(
+        settings.rateLimitOverrides?.auth?.windowSeconds ?? initialSettings.rateLimitOverrides.auth.windowSeconds,
+      ),
+    },
+    passwordReset: {
+      requests: Number(
+        settings.rateLimitOverrides?.passwordReset?.requests ?? initialSettings.rateLimitOverrides.passwordReset.requests,
+      ),
+      windowSeconds: Number(
+        settings.rateLimitOverrides?.passwordReset?.windowSeconds ??
+          initialSettings.rateLimitOverrides.passwordReset.windowSeconds,
+      ),
+    },
+    warrantyLookup: {
+      requests: Number(
+        settings.rateLimitOverrides?.warrantyLookup?.requests ?? initialSettings.rateLimitOverrides.warrantyLookup.requests,
+      ),
+      windowSeconds: Number(
+        settings.rateLimitOverrides?.warrantyLookup?.windowSeconds ??
+          initialSettings.rateLimitOverrides.warrantyLookup.windowSeconds,
+      ),
+    },
+    upload: {
+      requests: Number(settings.rateLimitOverrides?.upload?.requests ?? initialSettings.rateLimitOverrides.upload.requests),
+      windowSeconds: Number(
+        settings.rateLimitOverrides?.upload?.windowSeconds ?? initialSettings.rateLimitOverrides.upload.windowSeconds,
+      ),
+    },
+    webhook: {
+      requests: Number(settings.rateLimitOverrides?.webhook?.requests ?? initialSettings.rateLimitOverrides.webhook.requests),
+      windowSeconds: Number(
+        settings.rateLimitOverrides?.webhook?.windowSeconds ?? initialSettings.rateLimitOverrides.webhook.windowSeconds,
+      ),
+    },
+  },
 })
 
 export const toBlogUpsertRequest = (payload: {
@@ -266,6 +321,7 @@ export const toBlogUpsertRequest = (payload: {
   title?: string
   excerpt?: string
   imageUrl?: string
+  content?: string
   status?: BlogStatus
   showOnHomepage?: boolean
 }): BackendBlogUpsertRequest => ({
@@ -274,9 +330,18 @@ export const toBlogUpsertRequest = (payload: {
   title: payload.title?.trim() || undefined,
   description: payload.excerpt?.trim() || undefined,
   image: payload.imageUrl ? JSON.stringify({ imageUrl: payload.imageUrl }) : undefined,
-  introduction: payload.excerpt?.trim()
-    ? JSON.stringify([{ type: 'paragraph', text: payload.excerpt.trim() }])
-    : undefined,
+  introduction:
+    payload.content?.trim()
+      ? JSON.stringify(
+          payload.content
+            .split(/\n{2,}/)
+            .map((block) => block.trim())
+            .filter(Boolean)
+            .map((text) => ({ type: 'paragraph', text })),
+        )
+      : payload.excerpt?.trim()
+        ? JSON.stringify([{ type: 'paragraph', text: payload.excerpt.trim() }])
+        : undefined,
   status: payload.status ? toBackendBlogStatus(payload.status) : undefined,
   showOnHomepage:
     payload.showOnHomepage === undefined

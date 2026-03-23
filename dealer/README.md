@@ -23,6 +23,36 @@ Neu chay Android emulator, dung:
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080 --dart-define=PUBLIC_SITE_BASE_URL=http://10.0.2.2:3000
 ```
 
+## Cau hinh Firebase FCM
+
+Push notification nen chi hoat dong khi app duoc build voi Firebase config that. Android uu tien `google-services.json`; neu khong co file nay thi app co the fallback sang `--dart-define`. Khong commit service account secret vao repo.
+
+Android theo cach chuan Firebase:
+
+1. Copy file `google-services.json` vao:
+
+```text
+dealer/android/app/google-services.json
+```
+
+2. Chay app Android. Khi file nay ton tai, Gradle se tu ap dung Google Services plugin va app se khoi tao Firebase bang config trong file, khong can `FIREBASE_ANDROID_*` dart-define nua.
+
+Android local/dev khong co `google-services.json`:
+
+```bash
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080 --dart-define=PUBLIC_SITE_BASE_URL=http://10.0.2.2:3000 --dart-define=FIREBASE_PROJECT_ID=your-project-id --dart-define=FIREBASE_MESSAGING_SENDER_ID=your-sender-id --dart-define=FIREBASE_STORAGE_BUCKET=your-project-id.firebasestorage.app --dart-define=FIREBASE_ANDROID_API_KEY=your-android-api-key --dart-define=FIREBASE_ANDROID_APP_ID=your-android-app-id
+```
+
+Neu build iOS, bo sung:
+
+```bash
+--dart-define=FIREBASE_IOS_API_KEY=your-ios-api-key --dart-define=FIREBASE_IOS_APP_ID=your-ios-app-id --dart-define=FIREBASE_IOS_BUNDLE_ID=vn.4thitek.dealer
+```
+
+Neu khong truyen cac `FIREBASE_*` value nay, app van chay binh thuong nhung se khong dang ky push token va khong nhan FCM notification.
+
+Luu y iOS can them buoc Xcode/APNs tren may Mac: bat `Push Notifications`, bat `Background Modes > Remote notifications`, cau hinh APNs key/certificate cho Firebase, va cap provisioning profile co `aps-environment`. Repo nay moi wire phan code Flutter va `Info.plist`. Neu muon iOS dung setup chuan nhu Android, can them `GoogleService-Info.plist` trong Xcode.
+
 Neu can test socket qua domain rieng tren production build:
 
 ```bash

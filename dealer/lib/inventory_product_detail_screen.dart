@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,7 +14,7 @@ import 'warranty_export_screen.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/product_image.dart';
 
-enum InventorySerialFilter { all, available, sold }
+enum InventorySerialFilter { all, ready, warranty, issue }
 
 const double _detailSectionSpacing = 16;
 const double _detailSectionSpacingLarge = 18;
@@ -31,17 +31,19 @@ class InventoryProductDetailScreen extends StatefulWidget {
   const InventoryProductDetailScreen({
     super.key,
     required this.product,
-    required this.availableQuantity,
+    required this.readyQuantity,
     required this.importedQuantity,
-    required this.soldQuantity,
+    required this.warrantyQuantity,
+    required this.issueQuantity,
     required this.orderIds,
     required this.latestImportedAt,
   });
 
   final Product product;
-  final int availableQuantity;
+  final int readyQuantity;
   final int importedQuantity;
-  final int soldQuantity;
+  final int warrantyQuantity;
+  final int issueQuantity;
   final List<String> orderIds;
   final DateTime latestImportedAt;
 
@@ -119,42 +121,43 @@ class _InventoryProductDetailScreenState
         .importedSerialsForProduct(widget.product.id)
         .where((record) => orderIdSet.contains(record.orderId))
         .toList(growable: false);
-    final activatedSet = warrantyController.activations
-        .map((record) => warrantyController.normalizeSerial(record.serial))
-        .toSet();
 
     // Compute live metrics from serial statuses (not stale widget params).
-    int availableCount = 0;
-    int soldCount = 0;
-    final serialStatuses = <String, String>{};
+    int readyCount = 0;
+    int warrantyCount = 0;
+    int issueCount = 0;
+    final serialStatuses = <String, ImportedSerialStatus>{};
     for (final record in serials) {
-      final status = _serialStatus(
-        record.serial,
-        warrantyController,
-        activatedSet: activatedSet,
-      );
+      final status = _serialStatus(record);
       serialStatuses[record.serial] = status;
-      switch (status) {
-        case 'available':
-          availableCount++;
-        case 'sold':
-          soldCount++;
+      if (_isReadyStatus(status)) {
+        readyCount++;
+      } else if (status == ImportedSerialStatus.warranty) {
+        warrantyCount++;
+      } else {
+        issueCount++;
       }
     }
     final importedCount = serials.length;
-    final canExport = availableCount > 0;
+    final canExport = readyCount > 0;
     final filterAllLabel = texts.filterAllLabel(importedCount);
-    final filterAvailableLabel = texts.filterAvailableLabel(availableCount);
-    final filterSoldLabel = texts.filterSoldLabel(soldCount);
+    final filterReadyLabel = texts.filterReadyLabel(readyCount);
+    final filterWarrantyLabel = texts.filterWarrantyLabel(warrantyCount);
+    final filterIssueLabel = texts.filterIssueLabel(issueCount);
 
     final filtered = serials
         .where((record) {
           final status = serialStatuses[record.serial]!;
-          if (_filter == InventorySerialFilter.available &&
-              status != 'available') {
+          if (_filter == InventorySerialFilter.ready && !_isReadyStatus(status)) {
             return false;
           }
-          if (_filter == InventorySerialFilter.sold && status != 'sold') {
+          if (_filter == InventorySerialFilter.warranty &&
+              status != ImportedSerialStatus.warranty) {
+            return false;
+          }
+          if (_filter == InventorySerialFilter.issue &&
+              (_isReadyStatus(status) ||
+                  status == ImportedSerialStatus.warranty)) {
             return false;
           }
           return true;
@@ -290,8 +293,8 @@ class _InventoryProductDetailScreenState
                                 columns;
                             final metrics = <Widget>[
                               _InventoryMetric(
-                                label: texts.availableMetricLabel,
-                                value: '$availableCount',
+                                label: texts.readyMetricLabel,
+                                value: '$readyCount',
                                 color: colorScheme.primary,
                                 icon: Icons.inventory_2_outlined,
                               ),
@@ -302,10 +305,16 @@ class _InventoryProductDetailScreenState
                                 icon: Icons.south_west_rounded,
                               ),
                               _InventoryMetric(
-                                label: texts.soldMetricLabel,
-                                value: '$soldCount',
+                                label: texts.warrantyMetricLabel,
+                                value: '$warrantyCount',
                                 color: colorScheme.tertiary,
-                                icon: Icons.north_east_rounded,
+                                icon: Icons.verified_outlined,
+                              ),
+                              _InventoryMetric(
+                                label: texts.issueMetricLabel,
+                                value: '$issueCount',
+                                color: colorScheme.error,
+                                icon: Icons.report_problem_outlined,
                               ),
                             ];
                             return Wrap(
@@ -388,14 +397,19 @@ class _InventoryProductDetailScreenState
                       onTap: () => _setFilter(InventorySerialFilter.all),
                     ),
                     _SerialFilterChip(
-                      label: filterAvailableLabel,
-                      selected: _filter == InventorySerialFilter.available,
-                      onTap: () => _setFilter(InventorySerialFilter.available),
+                      label: filterReadyLabel,
+                      selected: _filter == InventorySerialFilter.ready,
+                      onTap: () => _setFilter(InventorySerialFilter.ready),
                     ),
                     _SerialFilterChip(
-                      label: filterSoldLabel,
-                      selected: _filter == InventorySerialFilter.sold,
-                      onTap: () => _setFilter(InventorySerialFilter.sold),
+                      label: filterWarrantyLabel,
+                      selected: _filter == InventorySerialFilter.warranty,
+                      onTap: () => _setFilter(InventorySerialFilter.warranty),
+                    ),
+                    _SerialFilterChip(
+                      label: filterIssueLabel,
+                      selected: _filter == InventorySerialFilter.issue,
+                      onTap: () => _setFilter(InventorySerialFilter.issue),
                     ),
                   ],
                 ),
@@ -452,16 +466,17 @@ class _InventoryProductDetailScreenState
     _jumpToTop();
   }
 
-  String _serialStatus(
-    String serial,
-    WarrantyController controller, {
-    required Set<String> activatedSet,
-  }) {
-    final normalized = controller.normalizeSerial(serial);
-    if (activatedSet.contains(normalized)) {
-      return 'sold';
+  ImportedSerialStatus _serialStatus(ImportedSerialRecord record) {
+    final normalized = record.status;
+    if (normalized == ImportedSerialStatus.unknown) {
+      return ImportedSerialStatus.unknown;
     }
-    return 'available';
+    return normalized;
+  }
+
+  bool _isReadyStatus(ImportedSerialStatus status) {
+    return status == ImportedSerialStatus.available ||
+        status == ImportedSerialStatus.assigned;
   }
 
   Future<void> _handleScanSerialForProduct(
@@ -652,7 +667,7 @@ class _SerialTile extends StatelessWidget {
   });
 
   final ImportedSerialRecord record;
-  final String status;
+  final ImportedSerialStatus status;
   final VoidCallback onOpenOrder;
   final VoidCallback onCopy;
 
@@ -662,12 +677,30 @@ class _SerialTile extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final color = switch (status) {
-      'sold' => isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
-      _ => isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
+      ImportedSerialStatus.available ||
+      ImportedSerialStatus.assigned => isDark
+          ? const Color(0xFF4ADE80)
+          : const Color(0xFF15803D),
+      ImportedSerialStatus.warranty => isDark
+          ? const Color(0xFFFBBF24)
+          : const Color(0xFFB45309),
+      ImportedSerialStatus.defective ||
+      ImportedSerialStatus.returned => isDark
+          ? const Color(0xFFFCA5A5)
+          : const Color(0xFFB91C1C),
+      ImportedSerialStatus.reserved ||
+      ImportedSerialStatus.unknown => isDark
+          ? const Color(0xFF93C5FD)
+          : const Color(0xFF1D4ED8),
     };
     final statusLabel = switch (status) {
-      'sold' => texts.soldStatusLabel,
-      _ => texts.availableStatusLabel,
+      ImportedSerialStatus.available || ImportedSerialStatus.assigned =>
+        texts.readyStatusLabel,
+      ImportedSerialStatus.warranty => texts.warrantyStatusLabel,
+      ImportedSerialStatus.defective => texts.defectiveStatusLabel,
+      ImportedSerialStatus.returned => texts.returnedStatusLabel,
+      ImportedSerialStatus.reserved => texts.reservedStatusLabel,
+      ImportedSerialStatus.unknown => texts.unknownStatusLabel,
     };
 
     return Card(
@@ -782,41 +815,51 @@ class _InventoryProductDetailTexts {
 
   final bool isEnglish;
 
-  String get screenTitle => isEnglish ? 'Inventory details' : 'Chi tiết kho';
+  String get screenTitle => isEnglish ? 'Inventory details' : 'Chi tiet kho';
   String filterAllLabel(int count) =>
-      isEnglish ? 'All ($count)' : 'Tất cả ($count)';
-  String filterAvailableLabel(int count) =>
-      isEnglish ? 'Available ($count)' : 'Sẵn sàng ($count)';
-  String filterSoldLabel(int count) =>
-      isEnglish ? 'Sold ($count)' : 'Đã bán ($count)';
+      isEnglish ? 'All ($count)' : 'Tat ca ($count)';
+  String filterReadyLabel(int count) =>
+      isEnglish ? 'Ready ($count)' : 'San sang ($count)';
+  String filterWarrantyLabel(int count) =>
+      isEnglish ? 'Warranty ($count)' : 'Bao hanh ($count)';
+  String filterIssueLabel(int count) =>
+      isEnglish ? 'Issue ($count)' : 'Loi / tra ve ($count)';
   String productImageLabel(String productName) => isEnglish
       ? 'Product image for $productName'
-      : 'Ảnh sản phẩm $productName';
+      : 'Anh san pham $productName';
   String latestImportedLabel(String dateTimeLabel) => isEnglish
       ? 'Latest import: $dateTimeLabel'
-      : 'Nhập gần nhất: $dateTimeLabel';
-  String get availableMetricLabel => isEnglish ? 'Available' : 'Tồn kho';
-  String get importedMetricLabel => isEnglish ? 'Imported' : 'Đã nhập';
-  String get soldMetricLabel => isEnglish ? 'Sold' : 'Đã bán';
-  String get exportAction => isEnglish ? 'Export stock' : 'Xuất hàng';
-  String get scanQrAction => isEnglish ? 'Scan QR' : 'Quét QR';
+      : 'Nhap gan nhat: $dateTimeLabel';
+  String get readyMetricLabel => isEnglish ? 'Ready' : 'San sang';
+  String get importedMetricLabel => isEnglish ? 'Imported' : 'Da nhap';
+  String get warrantyMetricLabel => isEnglish ? 'Warranty' : 'Bao hanh';
+  String get issueMetricLabel => isEnglish ? 'Issue' : 'Loi / tra ve';
+  String get exportAction => isEnglish ? 'Export stock' : 'Xuat hang';
+  String get scanQrAction => isEnglish ? 'Scan QR' : 'Quet QR';
   String get noSerialsMessage => isEnglish
       ? 'This product does not have any serials yet.'
-      : 'Sản phẩm này chưa có danh sách serial.';
+      : 'San pham nay chua co danh sach serial.';
   String get filterEmptyMessage => isEnglish
       ? 'No serial matches the selected filter.'
-      : 'Không có serial phù hợp bộ lọc.';
+      : 'Khong co serial phu hop bo loc.';
   String get invalidScannedCodeMessage =>
-      isEnglish ? 'The scanned code is not valid.' : 'Mã quét không hợp lệ.';
+      isEnglish ? 'The scanned code is not valid.' : 'Ma quet khong hop le.';
   String copiedSerialMessage(String serial) =>
-      isEnglish ? 'Copied serial $serial.' : 'Đã sao chép serial $serial.';
-  String get availableStatusLabel => isEnglish ? 'Available' : 'Sẵn sàng';
-  String get soldStatusLabel => isEnglish ? 'Sold' : 'Đã bán';
+      isEnglish ? 'Copied serial $serial.' : 'Da sao chep serial $serial.';
+  String get readyStatusLabel => isEnglish ? 'Ready' : 'San sang';
+  String get warrantyStatusLabel =>
+      isEnglish ? 'Under warranty' : 'Dang bao hanh';
+  String get defectiveStatusLabel => isEnglish ? 'Defective' : 'Loi';
+  String get returnedStatusLabel => isEnglish ? 'Returned' : 'Tra ve';
+  String get reservedStatusLabel => isEnglish ? 'Reserved' : 'Da giu cho';
+  String get unknownStatusLabel =>
+      isEnglish ? 'Unknown status' : 'Trang thai khong xac dinh';
   String importedAtLabel(String dateTimeLabel) =>
-      isEnglish ? 'Imported: $dateTimeLabel' : 'Nhập: $dateTimeLabel';
+      isEnglish ? 'Imported: $dateTimeLabel' : 'Nhap: $dateTimeLabel';
   String orderLinkLabel(String orderId) =>
-      isEnglish ? 'Order $orderId' : 'Đơn $orderId';
+      isEnglish ? 'Order $orderId' : 'Don $orderId';
   String get serialOptionsTooltip =>
-      isEnglish ? 'Serial options' : 'Tùy chọn serial';
-  String get copySerialAction => isEnglish ? 'Copy serial' : 'Sao chép serial';
+      isEnglish ? 'Serial options' : 'Tuy chon serial';
+  String get copySerialAction =>
+      isEnglish ? 'Copy serial' : 'Sao chep serial';
 }

@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { publicApiServer } from '@/lib/publicApiServer';
-import { buildBlogPath } from '@/lib/slug';
+import { buildBlogPath, buildProductPath } from '@/lib/slug';
 import { SITE_URL } from '@/lib/site';
 
 const STATIC_ROUTES = [
@@ -42,7 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ]);
 
     const productRoutes: MetadataRoute.Sitemap = (productsResponse.data ?? []).map((product) => ({
-        url: `${SITE_URL}/products/${product.id}`,
+        url: `${SITE_URL}${buildProductPath(product.id, product.name)}`,
         changeFrequency: 'weekly' as const,
         priority: 0.8
     }));

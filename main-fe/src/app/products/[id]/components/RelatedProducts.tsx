@@ -5,6 +5,7 @@ import { FiArrowUpRight, FiHeadphones } from 'react-icons/fi';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
+import { buildProductPath } from '@/lib/slug';
 import type { Product } from '@/types/product';
 
 interface RelatedProductsProps {
@@ -35,7 +36,7 @@ export default function RelatedProducts({ products }: RelatedProductsProps) {
                                 transition={{ duration: 0.6, delay: Math.min(index * 0.1, 0.5), ease: 'easeOut' }}
                                 className="relative w-full"
                             >
-                                <Link href={`/products/${product.id}`}>
+                                <Link href={buildProductPath(product.id, product.name)}>
                                     <div className="group relative grid h-[380px] cursor-pointer grid-rows-[auto_1fr_auto] overflow-hidden border border-gray-700/30 bg-gradient-to-b from-gray-900/40 to-gray-800/60 shadow-lg backdrop-blur-sm transition-colors duration-300 hover:border-[#4FC8FF]/40 hover:from-gray-800/60 hover:to-gray-700/70 sm:h-[420px] md:h-[460px] xl:h-[500px] 2xl:h-[560px]">
                                         {/* Vertical label */}
                                         <div className="absolute left-3 top-3 z-20 sm:left-4 sm:top-4">

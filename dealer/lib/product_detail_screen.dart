@@ -68,15 +68,24 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Product get _currentProduct => _product;
 
+  Future<Product> _resolveLatestProductSnapshot(Product baseProduct) async {
+    final catalog = ProductCatalogScope.maybeOf(context);
+    if (catalog == null) {
+      return baseProduct;
+    }
+    try {
+      return await catalog.fetchDetail(baseProduct.id);
+    } catch (_) {
+      return catalog.findById(baseProduct.id) ?? baseProduct;
+    }
+  }
+
   Future<void> _loadProductDetail() async {
     await Future.delayed(_detailApiLatency);
     if (!mounted) {
       return;
     }
-    final catalog = ProductCatalogScope.maybeOf(context);
-    final detailedProduct = catalog == null
-        ? _currentProduct
-        : await catalog.fetchDetail(_currentProduct.id);
+    final detailedProduct = await _resolveLatestProductSnapshot(_currentProduct);
     if (!mounted) {
       return;
     }
@@ -91,33 +100,40 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (_isAddingToCart || cart.isSyncingProduct(_currentProduct.id)) {
       return;
     }
-    final remainingStock = cart.remainingStockFor(_currentProduct);
-    if (remainingStock <= 0) {
-      _showMaxStockMessage();
-      return;
-    }
-    final addQuantity = await _showAddQuantityDialog(
-      title: texts.addToCartTitle,
-      confirmLabel: texts.addToCartAction,
-      productName: _currentProduct.name,
-      maxQuantity: remainingStock,
-      quantityInCart: cart.quantityFor(_currentProduct.id),
-    );
-    if (!mounted) {
-      return;
-    }
-    if (addQuantity == null) {
-      return;
-    }
-    if (!cart.canAdd(_currentProduct, quantity: addQuantity)) {
-      _showMaxStockMessage();
-      return;
-    }
-
     setState(() => _isAddingToCart = true);
     try {
+      final latestProduct = await _resolveLatestProductSnapshot(_currentProduct);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _product = latestProduct);
+
+      final remainingStock = cart.remainingStockFor(latestProduct);
+      if (remainingStock <= 0) {
+        _showMaxStockMessage();
+        return;
+      }
+
+      final addQuantity = await _showAddQuantityDialog(
+        title: texts.addToCartTitle,
+        confirmLabel: texts.addToCartAction,
+        productName: latestProduct.name,
+        maxQuantity: remainingStock,
+        quantityInCart: cart.quantityFor(latestProduct.id),
+      );
+      if (!mounted) {
+        return;
+      }
+      if (addQuantity == null) {
+        return;
+      }
+      if (!cart.canAdd(latestProduct, quantity: addQuantity)) {
+        _showMaxStockMessage();
+        return;
+      }
+
       final didAdd = await cart.addWithApiSimulation(
-        _currentProduct,
+        latestProduct,
         quantity: addQuantity,
       );
       if (!mounted) {
@@ -131,7 +147,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             behavior: SnackBarBehavior.floating,
             content: Text(
               didAdd
-                  ? texts.addedToCartMessage(_currentProduct.name, addQuantity)
+                  ? texts.addedToCartMessage(latestProduct.name, addQuantity)
                   : texts.stockLimitReachedMessage,
             ),
             action: didAdd
@@ -160,30 +176,37 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (_isBuyingNow || cart.isSyncingProduct(_currentProduct.id)) {
       return;
     }
-    final remainingStock = cart.remainingStockFor(_currentProduct);
-    if (remainingStock <= 0) {
-      _showMaxStockMessage();
-      return;
-    }
-    final addQuantity = await _showAddQuantityDialog(
-      title: texts.buyNowTitle,
-      confirmLabel: texts.continueAction,
-      productName: _currentProduct.name,
-      maxQuantity: remainingStock,
-      quantityInCart: cart.quantityFor(_currentProduct.id),
-    );
-    if (!mounted || addQuantity == null) {
-      return;
-    }
-    if (!cart.canAdd(_currentProduct, quantity: addQuantity)) {
-      _showMaxStockMessage();
-      return;
-    }
-
     setState(() => _isBuyingNow = true);
     try {
+      final latestProduct = await _resolveLatestProductSnapshot(_currentProduct);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _product = latestProduct);
+
+      final remainingStock = cart.remainingStockFor(latestProduct);
+      if (remainingStock <= 0) {
+        _showMaxStockMessage();
+        return;
+      }
+
+      final addQuantity = await _showAddQuantityDialog(
+        title: texts.buyNowTitle,
+        confirmLabel: texts.continueAction,
+        productName: latestProduct.name,
+        maxQuantity: remainingStock,
+        quantityInCart: cart.quantityFor(latestProduct.id),
+      );
+      if (!mounted || addQuantity == null) {
+        return;
+      }
+      if (!cart.canAdd(latestProduct, quantity: addQuantity)) {
+        _showMaxStockMessage();
+        return;
+      }
+
       final didAdd = await cart.addWithApiSimulation(
-        _currentProduct,
+        latestProduct,
         quantity: addQuantity,
       );
       if (!mounted) {

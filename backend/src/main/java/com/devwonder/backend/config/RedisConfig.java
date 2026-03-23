@@ -11,6 +11,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisPassword;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.StringUtils;
 
 @Configuration
@@ -30,6 +31,12 @@ public class RedisConfig {
             configuration.setPassword(RedisPassword.of(redisPassword));
         }
         return new LettuceConnectionFactory(configuration);
+    }
+
+    @Bean
+    @Conditional(RedisHostConfiguredCondition.class)
+    public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory redisConnectionFactory) {
+        return new StringRedisTemplate(redisConnectionFactory);
     }
 
     static final class RedisHostConfiguredCondition implements Condition {

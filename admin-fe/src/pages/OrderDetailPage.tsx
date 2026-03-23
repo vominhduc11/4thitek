@@ -160,7 +160,8 @@ function OrderDetailPage() {
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
         <div className="rounded-3xl border border-slate-200/70 bg-white/80 p-5">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('Đơn hàng')}</p>
-          <h3 className="mt-2 text-2xl font-semibold text-slate-900">#{order.id}</h3>
+          <h3 className="mt-2 text-2xl font-semibold text-slate-900">{order.orderCode}</h3>
+          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">#{order.id}</p>
           <p className="mt-2 text-sm text-slate-500">{formatDateTime(order.createdAt)}</p>
           <div className="mt-4 space-y-2 text-sm text-slate-700">
             <p>
@@ -246,7 +247,7 @@ function OrderDetailPage() {
               onClick={async () => {
                 const approved = await confirm({
                   title: t('Xác nhận hoàn tất đơn'),
-                  message: t('Đánh dấu đơn {id} đã hoàn tất?', { id: order.id }),
+                  message: t('Đánh dấu đơn {id} đã hoàn tất?', { id: order.orderCode }),
                   tone: 'info',
                   confirmLabel: t('Hoàn tất'),
                 })
@@ -256,7 +257,7 @@ function OrderDetailPage() {
 
                 try {
                   await updateOrderStatus(order.id, 'completed')
-                  notify(t('Đơn {id} đã hoàn tất', { id: order.id }), {
+                  notify(t('Đơn {id} đã hoàn tất', { id: order.orderCode }), {
                     title: t('Đơn hàng'),
                     variant: 'success',
                   })
@@ -364,7 +365,7 @@ function OrderDetailPage() {
                         transactionCode: transactionCode.trim() || undefined,
                         note: paymentNote.trim() || undefined,
                       })
-                      notify(t('Đã ghi nhận thanh toán cho đơn {id}', { id: order.id }), {
+                      notify(t('Đã ghi nhận thanh toán cho đơn {id}', { id: order.orderCode }), {
                         title: t('Đơn hàng'),
                         variant: 'success',
                       })

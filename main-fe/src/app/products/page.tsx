@@ -7,9 +7,10 @@ import { createBaseMetadata } from '@/lib/seo';
 export const metadata: Metadata = createBaseMetadata({
     locale: 'vi',
     path: '/products',
-    title: 'Sản phẩm tai nghe SCS - 4ThiTek',
-    description: 'Khám phá dòng sản phẩm tai nghe SCS chính hãng tại 4ThiTek. Tai nghe chuyên nghiệp cho môtô, xe máy với chất lượng cao và bảo hành chính hãng.',
-    keywords: ['tai nghe SCS', 'tai nghe xe máy', 'tai nghe mũ bảo hiểm', 'SCS headset', '4ThiTek sản phẩm']
+    title: 'San pham tai nghe SCS - 4ThiTek',
+    description:
+        'Kham pha dong san pham tai nghe SCS chinh hang tai 4ThiTek. Tai nghe chuyen nghiep cho moto, xe may voi chat luong cao va bao hanh chinh hang.',
+    keywords: ['tai nghe SCS', 'tai nghe xe may', 'tai nghe mu bao hiem', 'SCS headset', '4ThiTek san pham']
 });
 
 export default async function ProductsPage() {

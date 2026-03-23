@@ -18,7 +18,6 @@ import {
 } from 'lucide-react'
 import Modal, { type Styles } from 'react-modal'
 import { ProductVideoPreview } from '../components/ProductVideoPreview'
-import Quill from 'quill'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { ErrorState, LoadingRows, PaginationNav } from '../components/ui-kit'
 import { useAuth } from '../context/AuthContext'
@@ -683,9 +682,10 @@ function ProductsPage() {
   )
 
   useEffect(() => {
+    const trackedUploads = createUploadedAssetUrlsRef.current
     return () => {
-      if (createUploadedAssetUrlsRef.current.size > 0) {
-        void cleanupCreateUploadedAssets(Array.from(createUploadedAssetUrlsRef.current))
+      if (trackedUploads.size > 0) {
+        void cleanupCreateUploadedAssets(Array.from(trackedUploads))
       }
     }
   }, [cleanupCreateUploadedAssets])
@@ -954,13 +954,6 @@ function ProductsPage() {
           [{ list: 'ordered' }, { list: 'bullet' }],
           ['divider', 'clean'],
         ],
-        handlers: {
-          divider(this: { quill: Quill }) {
-            const range = this.quill.getSelection(true)
-            this.quill.insertEmbed(range.index, 'divider', true, 'user')
-            this.quill.setSelection(range.index + 1, 0, 'silent')
-          },
-        },
       },
     }),
     [],
@@ -1832,7 +1825,7 @@ function ProductsPage() {
               const csv = [header, ...rows]
                 .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
                 .join('\n')
-              const csvContent = `﻿${csv}`
+              const csvContent = `\uFEFF${csv}`
               const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
               const url = URL.createObjectURL(blob)
               const link = document.createElement('a')

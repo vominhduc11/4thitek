@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const String rememberMeKey = 'remember_me';
@@ -17,6 +19,7 @@ class RememberedLogin {
 }
 
 class AuthStorage {
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   static String? _sessionAccessToken;
   static String? _sessionRefreshToken;
   static final ValueNotifier<int> _sessionEventVersion = ValueNotifier<int>(0);
@@ -48,8 +51,7 @@ class AuthStorage {
       return false;
     }
 
-    final token =
-        prefs.getString(authAccessTokenKey) ?? prefs.getString('auth_token');
+    final token = await _readPersistedAccessToken();
     return token != null && token.isNotEmpty;
   }
 
@@ -66,9 +68,7 @@ class AuthStorage {
       await prefs.setBool(rememberMeKey, false);
       await prefs.setBool(loggedInKey, false);
       await prefs.remove(rememberEmailKey);
-      await prefs.remove(authAccessTokenKey);
-      await prefs.remove(authRefreshTokenKey);
-      await prefs.remove('auth_token');
+      await _deletePersistedTokens(prefs);
       _emitSessionEvent(AuthSessionEventType.signedIn);
       return;
     }
@@ -76,11 +76,27 @@ class AuthStorage {
     await prefs.setBool(rememberMeKey, true);
     await prefs.setBool(loggedInKey, true);
     await prefs.setString(rememberEmailKey, email);
-    await prefs.setString(authAccessTokenKey, accessToken);
+    final storedAccessToken = await _writeSecureValue(
+      authAccessTokenKey,
+      accessToken,
+    );
     if (refreshToken != null && refreshToken.isNotEmpty) {
-      await prefs.setString(authRefreshTokenKey, refreshToken);
+      final storedRefreshToken = await _writeSecureValue(
+        authRefreshTokenKey,
+        refreshToken,
+      );
+      if (!storedRefreshToken) {
+        await prefs.setString(authRefreshTokenKey, refreshToken);
+      }
     } else {
+      await _deleteSecureValue(authRefreshTokenKey);
       await prefs.remove(authRefreshTokenKey);
+    }
+    if (storedAccessToken) {
+      await prefs.remove(authAccessTokenKey);
+      await prefs.remove('auth_token');
+    } else {
+      await prefs.setString(authAccessTokenKey, accessToken);
     }
     _emitSessionEvent(AuthSessionEventType.signedIn);
   }
@@ -89,9 +105,7 @@ class AuthStorage {
     if (_sessionAccessToken != null && _sessionAccessToken!.isNotEmpty) {
       return _sessionAccessToken;
     }
-    final prefs = await SharedPreferences.getInstance();
-    final storedToken =
-        prefs.getString(authAccessTokenKey) ?? prefs.getString('auth_token');
+    final storedToken = await _readPersistedAccessToken();
     if (storedToken != null && storedToken.isNotEmpty) {
       _sessionAccessToken = storedToken;
     }
@@ -102,8 +116,11 @@ class AuthStorage {
     if (_sessionRefreshToken != null && _sessionRefreshToken!.isNotEmpty) {
       return _sessionRefreshToken;
     }
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(authRefreshTokenKey);
+    final storedToken = await _readPersistedRefreshToken();
+    if (storedToken != null && storedToken.isNotEmpty) {
+      _sessionRefreshToken = storedToken;
+    }
+    return storedToken;
   }
 
   Future<void> updateTokens({
@@ -127,10 +144,26 @@ class AuthStorage {
       return;
     }
 
-    await prefs.setString(authAccessTokenKey, normalizedAccessToken);
-    await prefs.setString('auth_token', normalizedAccessToken);
+    final storedAccessToken = await _writeSecureValue(
+      authAccessTokenKey,
+      normalizedAccessToken,
+    );
     if (refreshToken != null && refreshToken.trim().isNotEmpty) {
-      await prefs.setString(authRefreshTokenKey, refreshToken.trim());
+      final storedRefreshToken = await _writeSecureValue(
+        authRefreshTokenKey,
+        refreshToken.trim(),
+      );
+      if (!storedRefreshToken) {
+        await prefs.setString(authRefreshTokenKey, refreshToken.trim());
+      }
+    } else {
+      await prefs.remove(authRefreshTokenKey);
+    }
+    if (storedAccessToken) {
+      await prefs.remove(authAccessTokenKey);
+      await prefs.remove('auth_token');
+    } else {
+      await prefs.setString(authAccessTokenKey, normalizedAccessToken);
     }
   }
 
@@ -139,9 +172,7 @@ class AuthStorage {
     _sessionRefreshToken = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(loggedInKey, false);
-    await prefs.remove(authAccessTokenKey);
-    await prefs.remove(authRefreshTokenKey);
-    await prefs.remove('auth_token');
+    await _deletePersistedTokens(prefs);
     _emitSessionEvent(AuthSessionEventType.expired, message: message);
   }
 
@@ -152,10 +183,101 @@ class AuthStorage {
     await prefs.setBool(rememberMeKey, false);
     await prefs.setBool(loggedInKey, false);
     await prefs.remove(rememberEmailKey);
+    await _deletePersistedTokens(prefs);
+    _emitSessionEvent(AuthSessionEventType.loggedOut);
+  }
+
+  Future<String?> _readPersistedAccessToken() async {
+    final secureToken = await _readSecureValue(authAccessTokenKey);
+    if (secureToken != null && secureToken.isNotEmpty) {
+      return secureToken;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final legacyToken =
+        prefs.getString(authAccessTokenKey) ?? prefs.getString('auth_token');
+    if (legacyToken != null && legacyToken.isNotEmpty) {
+      final storedSecurely = await _writeSecureValue(
+        authAccessTokenKey,
+        legacyToken,
+      );
+      if (storedSecurely) {
+        await prefs.remove(authAccessTokenKey);
+        await prefs.remove('auth_token');
+      }
+    }
+    return legacyToken;
+  }
+
+  Future<String?> _readPersistedRefreshToken() async {
+    final secureToken = await _readSecureValue(authRefreshTokenKey);
+    if (secureToken != null && secureToken.isNotEmpty) {
+      return secureToken;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final legacyToken = prefs.getString(authRefreshTokenKey);
+    if (legacyToken != null && legacyToken.isNotEmpty) {
+      final storedSecurely = await _writeSecureValue(
+        authRefreshTokenKey,
+        legacyToken,
+      );
+      if (storedSecurely) {
+        await prefs.remove(authRefreshTokenKey);
+      }
+    }
+    return legacyToken;
+  }
+
+  Future<void> _deletePersistedTokens(SharedPreferences prefs) async {
+    await _deleteSecureValue(authAccessTokenKey);
+    await _deleteSecureValue(authRefreshTokenKey);
     await prefs.remove(authAccessTokenKey);
     await prefs.remove(authRefreshTokenKey);
     await prefs.remove('auth_token');
-    _emitSessionEvent(AuthSessionEventType.loggedOut);
+  }
+
+  Future<String?> _readSecureValue(String key) async {
+    try {
+      return await _secureStorage.read(key: key);
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
+    } on FlutterError {
+      return null;
+    } on AssertionError {
+      return null;
+    }
+  }
+
+  Future<bool> _writeSecureValue(String key, String value) async {
+    try {
+      await _secureStorage.write(key: key, value: value);
+      return true;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException {
+      return false;
+    } on FlutterError {
+      return false;
+    } on AssertionError {
+      return false;
+    }
+  }
+
+  Future<void> _deleteSecureValue(String key) async {
+    try {
+      await _secureStorage.delete(key: key);
+    } on MissingPluginException {
+      return;
+    } on PlatformException {
+      return;
+    } on FlutterError {
+      return;
+    } on AssertionError {
+      return;
+    }
   }
 
   void _emitSessionEvent(AuthSessionEventType eventType, {String? message}) {

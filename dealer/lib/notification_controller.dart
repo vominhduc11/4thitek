@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -15,14 +15,11 @@ import 'utils.dart';
 const String _notificationSyncUnavailableMarker =
     'notification.sync.unavailable';
 
-String notificationSyncErrorMessage(
-  String error, {
-  required bool isEnglish,
-}) {
+String notificationSyncErrorMessage(String error, {required bool isEnglish}) {
   if (error == _notificationSyncUnavailableMarker) {
     return isEnglish
         ? 'Unable to sync notifications.'
-        : 'Không thể đồng bộ thông báo.';
+        : 'Khong the dong bo thong bao.';
   }
   return error;
 }
@@ -46,6 +43,7 @@ class NotificationController extends ChangeNotifier {
   }
 
   static const Duration _reconnectDelay = Duration(seconds: 5);
+  static const Duration _fallbackRefreshInterval = Duration(seconds: 45);
 
   late final AuthStorage _authStorage;
   late final http.Client _client;
@@ -64,10 +62,12 @@ class NotificationController extends ChangeNotifier {
   final Map<String, int> _remoteNoticeIds = <String, int>{};
   StompClient? _stompClient;
   Timer? _reconnectTimer;
+  Timer? _fallbackRefreshTimer;
   int _socketGeneration = 0;
   int _handledSessionEventVersion = 0;
   bool _maintainRealtimeConnection = false;
   bool _realtimeConnecting = false;
+  bool _fallbackRefreshInFlight = false;
   bool _disposed = false;
   String? _realtimeToken;
   DistributorNotice? _latestIncomingNotice;
@@ -215,7 +215,7 @@ class NotificationController extends ChangeNotifier {
           DistributorNotice(
             id: noticeId,
             type: _mapRemoteType(entry['type']?.toString()),
-            title: _normalizeString(entry['title']) ?? 'Thông báo',
+            title: _normalizeString(entry['title']) ?? 'ThĂ´ng bĂ¡o',
             message: _normalizeString(entry['body']) ?? '',
             createdAt: parseApiDateTime(entry['createdAt']) ?? DateTime.now(),
             link: _normalizeString(entry['link']),
@@ -330,6 +330,7 @@ class NotificationController extends ChangeNotifier {
 
   Future<void> _reloadAndReconnect() async {
     await _loadRemoteNotifications();
+    await _emitOrderSignal();
     await _syncRealtimeConnection(forceReconnect: true);
   }
 
@@ -346,6 +347,7 @@ class NotificationController extends ChangeNotifier {
     }
 
     _maintainRealtimeConnection = true;
+    _ensureFallbackRefresh();
     if (!forceReconnect &&
         _stompClient != null &&
         _stompClient!.isActive &&
@@ -424,6 +426,28 @@ class NotificationController extends ChangeNotifier {
     });
   }
 
+  void _ensureFallbackRefresh() {
+    if (_fallbackRefreshTimer != null) {
+      return;
+    }
+    _fallbackRefreshTimer = Timer.periodic(_fallbackRefreshInterval, (_) {
+      unawaited(_runFallbackRefresh());
+    });
+  }
+
+  Future<void> _runFallbackRefresh() async {
+    if (_disposed || !_maintainRealtimeConnection || _fallbackRefreshInFlight) {
+      return;
+    }
+    _fallbackRefreshInFlight = true;
+    try {
+      await _loadRemoteNotifications();
+      await _emitOrderSignal();
+    } finally {
+      _fallbackRefreshInFlight = false;
+    }
+  }
+
   void _handleRealtimeFrame(int connectionId, StompFrame frame) {
     if (_disposed || connectionId != _socketGeneration) {
       return;
@@ -439,7 +463,7 @@ class NotificationController extends ChangeNotifier {
     final notice = DistributorNotice(
       id: remoteId.toString(),
       type: _mapRemoteType(payload['type']?.toString()),
-      title: _normalizeString(payload['title']) ?? 'Thông báo',
+      title: _normalizeString(payload['title']) ?? 'ThĂ´ng bĂ¡o',
       message: _normalizeString(payload['body']) ?? '',
       createdAt: parseApiDateTime(payload['createdAt']) ?? DateTime.now(),
       link: _normalizeString(payload['link']),
@@ -523,6 +547,8 @@ class NotificationController extends ChangeNotifier {
     _realtimeToken = null;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
+    _fallbackRefreshTimer?.cancel();
+    _fallbackRefreshTimer = null;
     _socketGeneration += 1;
 
     final activeClient = _stompClient;
@@ -618,6 +644,7 @@ class NotificationController extends ChangeNotifier {
       case 'PROMOTION':
         return NoticeType.promotion;
       case 'WARRANTY':
+        return NoticeType.warranty;
       case 'SYSTEM':
       default:
         return NoticeType.system;

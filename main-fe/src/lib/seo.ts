@@ -26,11 +26,7 @@ export const createBaseMetadata = ({
     ...(keywords && keywords.length > 0 ? { keywords } : {}),
     ...(noindex ? { robots: { index: false, follow: false } } : {}),
     alternates: {
-        canonical: buildCanonicalUrl(path),
-        languages: {
-            'vi': `${SITE_URL}${path}`,
-            'en': `${SITE_URL}${path}`
-        }
+        canonical: buildCanonicalUrl(path)
     },
     openGraph: {
         title,
@@ -86,11 +82,11 @@ export const localBusinessJsonLd = () => ({
         url: `${SITE_URL}/logo.png`
     },
     image: `${SITE_URL}/logo.png`,
-    description: 'Nhà phân phối chính hãng tai nghe SCS tại Việt Nam',
+    description: 'Nha phan phoi chinh hang tai nghe SCS tai Viet Nam',
     address: {
         '@type': 'PostalAddress',
         addressCountry: 'VN',
-        addressLocality: 'Việt Nam'
+        addressLocality: 'Viet Nam'
     },
     contactPoint: {
         '@type': 'ContactPoint',
@@ -131,7 +127,8 @@ export const productJsonLd = ({
     description,
     image,
     sku,
-    price
+    price,
+    path
 }: {
     id: string;
     name: string;
@@ -139,6 +136,7 @@ export const productJsonLd = ({
     image?: string;
     sku?: string;
     price?: number;
+    path?: string;
 }) => ({
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -150,7 +148,7 @@ export const productJsonLd = ({
         '@type': 'Brand',
         name: SITE_NAME
     },
-    url: `${SITE_URL}/products/${id}`,
+    url: buildCanonicalUrl(path ?? `/products/${id}`).toString(),
     ...(price
         ? {
               offers: {
@@ -158,7 +156,7 @@ export const productJsonLd = ({
                   price,
                   priceCurrency: 'VND',
                   availability: 'https://schema.org/InStock',
-                  url: `${SITE_URL}/products/${id}`,
+                  url: buildCanonicalUrl(path ?? `/products/${id}`).toString(),
                   seller: {
                       '@type': 'Organization',
                       name: SITE_NAME

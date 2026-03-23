@@ -18,6 +18,7 @@ import com.devwonder.backend.repository.AdminRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Base64;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,10 @@ import org.springframework.test.web.servlet.MvcResult;
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class UploadAuthorizationTests {
+
+    private static final byte[] SAMPLE_PNG_BYTES = Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+lmLsAAAAASUVORK5CYII="
+    );
 
     @Autowired
     private MockMvc mockMvc;
@@ -158,7 +163,7 @@ class UploadAuthorizationTests {
 
         mockMvc.perform(get(uploadedUrl))
                 .andExpect(status().isOk())
-                .andExpect(content().bytes("test-image".getBytes(UTF_8)));
+                .andExpect(content().bytes(SAMPLE_PNG_BYTES));
     }
 
     @Test
@@ -181,7 +186,7 @@ class UploadAuthorizationTests {
         mockMvc.perform(get(uploadedUrl)
                         .header("Authorization", "Bearer " + dealerToken))
                 .andExpect(status().isOk())
-                .andExpect(content().bytes("test-image".getBytes(UTF_8)));
+                .andExpect(content().bytes(SAMPLE_PNG_BYTES));
 
         mockMvc.perform(get(uploadedUrl.replace("/api/v1/upload/", "/uploads/")))
                 .andExpect(status().isNotFound());
@@ -217,7 +222,7 @@ class UploadAuthorizationTests {
     }
 
     private MockMultipartFile sampleImage(String fileName) {
-        return new MockMultipartFile("file", fileName, "image/png", "test-image".getBytes(UTF_8));
+        return new MockMultipartFile("file", fileName, "image/png", SAMPLE_PNG_BYTES);
     }
 
     private String registerDealerAndExtractAccessToken(String prefix) throws Exception {

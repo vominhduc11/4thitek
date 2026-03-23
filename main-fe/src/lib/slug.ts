@@ -2,7 +2,8 @@ const normalizeVietnamese = (value: string) =>
     value
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
-        .replace(/đ/gi, 'd');
+        .replace(/[đĐ]/g, 'd')
+        .replace(/Ä‘/gi, 'd');
 
 export const slugify = (value: string) =>
     normalizeVietnamese(value)
@@ -20,4 +21,10 @@ export const buildBlogPath = (id: string | number, title: string) => {
     const safeId = String(id).trim();
     const slug = slugify(title);
     return slug ? `/blogs/${safeId}-${slug}` : `/blogs/${safeId}`;
+};
+
+export const buildProductPath = (id: string | number, name: string) => {
+    const safeId = String(id).trim();
+    const slug = slugify(name);
+    return slug ? `/products/${safeId}-${slug}` : `/products/${safeId}`;
 };

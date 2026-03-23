@@ -32,8 +32,11 @@ void main() {
       300,
     );
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).at(0), 'Need help');
-    await tester.enterText(find.byType(TextField).at(1), 'Order stuck');
+    await tester.enterText(find.byType(TextField).at(0), 'Need help soon');
+    await tester.enterText(
+      find.byType(TextField).at(1),
+      'Order status has been stuck for two days and needs support.',
+    );
     await tester.ensureVisible(
       find.widgetWithText(ElevatedButton, 'Submit request'),
     );
@@ -67,8 +70,11 @@ void main() {
         300,
       );
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).at(0), 'Can ho tro');
-      await tester.enterText(find.byType(TextField).at(1), 'Don hang bi tre');
+      await tester.enterText(find.byType(TextField).at(0), 'Can ho tro gap');
+      await tester.enterText(
+        find.byType(TextField).at(1),
+        'Don hang bi tre qua lau va can duoc kiem tra ngay hom nay.',
+      );
       await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Gửi yêu cầu'));
     await tester.tap(find.widgetWithText(ElevatedButton, 'Gửi yêu cầu'));
     await tester.pumpAndSettle();

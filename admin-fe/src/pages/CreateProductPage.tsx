@@ -2,7 +2,6 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, GripVertical, RotateCcw, X } from 'lucide-react'
-import Quill from 'quill'
 import { ProductVideoPreview } from '../components/ProductVideoPreview'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { PagePanel } from '../components/ui-kit'
@@ -364,9 +363,10 @@ function CreateProductPage() {
 
   // Cleanup uploaded assets on unmount
   useEffect(() => {
+    const trackedUploads = uploadedAssetUrlsRef.current
     return () => {
-      if (uploadedAssetUrlsRef.current.size > 0) {
-        void cleanupUploadedAssets(Array.from(uploadedAssetUrlsRef.current))
+      if (trackedUploads.size > 0) {
+        void cleanupUploadedAssets(Array.from(trackedUploads))
       }
     }
   }, [cleanupUploadedAssets])
@@ -626,13 +626,6 @@ function CreateProductPage() {
           [{ list: 'ordered' }, { list: 'bullet' }],
           ['divider', 'clean'],
         ],
-        handlers: {
-          divider(this: { quill: Quill }) {
-            const range = this.quill.getSelection(true)
-            this.quill.insertEmbed(range.index, 'divider', true, 'user')
-            this.quill.setSelection(range.index + 1, 0, 'silent')
-          },
-        },
       },
     }),
     [],

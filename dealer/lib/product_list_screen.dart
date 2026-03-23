@@ -1204,6 +1204,18 @@ class _ProductListScreenState extends State<ProductListScreen> {
     ).toString();
   }
 
+  Future<Product> _resolveLatestProductSnapshot(Product baseProduct) async {
+    final catalog = _productCatalog ?? ProductCatalogScope.maybeOf(context);
+    if (catalog == null) {
+      return baseProduct;
+    }
+    try {
+      return await catalog.fetchDetail(baseProduct.id);
+    } catch (_) {
+      return catalog.findById(baseProduct.id) ?? baseProduct;
+    }
+  }
+
   Future<void> _handleAddToCart(
     CartController cart,
     Product product, {
@@ -1213,44 +1225,53 @@ class _ProductListScreenState extends State<ProductListScreen> {
         cart.isSyncingProduct(product.id)) {
       return;
     }
-    final remainingStock = cart.remainingStockFor(product);
-    if (remainingStock <= 0) {
-      return;
-    }
-
-    final quickQuantity = cart.suggestedAddQuantity(product);
-    if (quickQuantity <= 0) {
-      return;
-    }
-
-    final addQuantity = openQuantityDialog
-        ? await _promptQuantity(
-            product,
-            remainingStock,
-            initialQuantity: quickQuantity,
-          )
-        : quickQuantity;
-
-    if (!mounted) {
-      return;
-    }
-    if (addQuantity == null) {
-      return;
-    }
-    if (!cart.canAdd(product, quantity: addQuantity)) {
-      return;
-    }
-
     setState(() => _addingProductIds.add(product.id));
     try {
+      final latestProduct = await _resolveLatestProductSnapshot(product);
+      if (!mounted) {
+        return;
+      }
+
+      final remainingStock = cart.remainingStockFor(latestProduct);
+      if (remainingStock <= 0) {
+        _showCartLimitSnackBar();
+        return;
+      }
+
+      final quickQuantity = cart.suggestedAddQuantity(latestProduct);
+      if (quickQuantity <= 0) {
+        _showCartLimitSnackBar();
+        return;
+      }
+
+      final addQuantity = openQuantityDialog
+          ? await _promptQuantity(
+              latestProduct,
+              remainingStock,
+              initialQuantity: quickQuantity,
+            )
+          : quickQuantity;
+
+      if (!mounted) {
+        return;
+      }
+      if (addQuantity == null) {
+        return;
+      }
+      if (!cart.canAdd(latestProduct, quantity: addQuantity)) {
+        _showCartLimitSnackBar();
+        return;
+      }
+
       final didAdd = await cart.addWithApiSimulation(
-        product,
+        latestProduct,
         quantity: addQuantity,
       );
       if (!mounted) {
         return;
       }
       if (!didAdd) {
+        _showCartLimitSnackBar();
         return;
       }
       HapticFeedback.lightImpact();
@@ -1281,6 +1302,24 @@ class _ProductListScreenState extends State<ProductListScreen> {
             ).push(MaterialPageRoute(builder: (_) => const CartScreen()));
           },
         ),
+      ),
+    );
+  }
+
+  void _showCartLimitSnackBar() {
+    if (!mounted) {
+      return;
+    }
+    final texts = _productListTexts(context);
+    final message = texts.isEnglish
+        ? 'Product is out of stock or the cart limit has been reached.'
+        : 'San pham da het hang hoac da dat gioi han trong gio.';
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(message),
       ),
     );
   }

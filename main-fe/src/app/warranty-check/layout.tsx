@@ -6,9 +6,10 @@ import { SITE_URL } from '@/lib/site';
 export const metadata: Metadata = createBaseMetadata({
     locale: 'vi',
     path: '/warranty-check',
-    title: '4ThiTek | Kiểm tra bảo hành',
-    description: 'Tra cứu tình trạng bảo hành sản phẩm tai nghe SCS của bạn tại 4ThiTek. Nhập số serial để xem thông tin bảo hành chi tiết và ngày hết hạn.',
-    keywords: ['kiểm tra bảo hành', 'tra cứu bảo hành SCS', 'bảo hành tai nghe 4ThiTek', 'số serial SCS']
+    title: '4ThiTek | Kiem tra bao hanh',
+    description:
+        'Tra cuu tinh trang bao hanh san pham tai nghe SCS cua ban tai 4ThiTek. Nhap so serial de xem thong tin bao hanh chi tiet va ngay het han.',
+    keywords: ['kiem tra bao hanh', 'tra cuu bao hanh SCS', 'bao hanh tai nghe 4ThiTek', 'so serial SCS']
 });
 
 export default function WarrantyCheckLayout({ children }: { children: React.ReactNode }) {
@@ -16,8 +17,8 @@ export default function WarrantyCheckLayout({ children }: { children: React.Reac
         <>
             <JsonLd
                 data={breadcrumbJsonLd([
-                    { name: 'Trang chủ', url: SITE_URL },
-                    { name: 'Kiểm tra bảo hành', url: `${SITE_URL}/warranty-check` }
+                    { name: 'Trang chu', url: SITE_URL },
+                    { name: 'Kiem tra bao hanh', url: `${SITE_URL}/warranty-check` }
                 ])}
             />
             {children}

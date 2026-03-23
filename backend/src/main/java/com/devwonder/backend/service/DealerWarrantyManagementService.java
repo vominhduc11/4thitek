@@ -18,6 +18,7 @@ import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.support.AccountValidationSupport;
+import com.devwonder.backend.service.support.ProductStockSyncSupport;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -46,6 +47,7 @@ public class DealerWarrantyManagementService {
     private final ProductSerialRepository productSerialRepository;
     private final DealerRepository dealerRepository;
     private final AsyncMailService asyncMailService;
+    private final ProductStockSyncSupport productStockSyncSupport;
 
     @Transactional(readOnly = true)
     public List<WarrantyRegistrationResponse> list(Long dealerId) {
@@ -101,6 +103,9 @@ public class DealerWarrantyManagementService {
         WarrantyRegistration registration = new WarrantyRegistration();
         apply(registration, request, productSerial, forcedDealerId);
         WarrantyRegistration saved = warrantyRegistrationRepository.save(registration);
+        if (saved.getProductSerial() != null) {
+            productStockSyncSupport.syncProductStock(saved.getProductSerial().getProduct());
+        }
         sendWarrantyConfirmationEmailIfPossible(saved, productSerial);
         return toResponse(saved);
     }
@@ -126,6 +131,9 @@ public class DealerWarrantyManagementService {
 
         apply(registration, request, productSerial, forcedDealerId);
         WarrantyRegistration saved = warrantyRegistrationRepository.save(registration);
+        if (saved.getProductSerial() != null) {
+            productStockSyncSupport.syncProductStock(saved.getProductSerial().getProduct());
+        }
         return toResponse(saved);
     }
 
@@ -143,6 +151,7 @@ public class DealerWarrantyManagementService {
         if (productSerial != null) {
             productSerial.setStatus(resolveStatusAfterWarrantyDeletion(productSerial));
             productSerialRepository.save(productSerial);
+            productStockSyncSupport.syncProductStock(productSerial.getProduct());
         }
     }
 
@@ -228,6 +237,7 @@ public class DealerWarrantyManagementService {
             previousProductSerial.setWarranty(null);
             previousProductSerial.setStatus(resolveStatusAfterWarrantyDeletion(previousProductSerial));
             productSerialRepository.save(previousProductSerial);
+            productStockSyncSupport.syncProductStock(previousProductSerial.getProduct());
         }
 
         productSerial.setDealer(dealer);
@@ -281,6 +291,10 @@ public class DealerWarrantyManagementService {
     }
 
     private ProductSerialStatus resolveStatusAfterWarrantyDeletion(ProductSerial productSerial) {
+        if (productSerial.getStatus() == ProductSerialStatus.DEFECTIVE
+                || productSerial.getStatus() == ProductSerialStatus.RETURNED) {
+            return productSerial.getStatus();
+        }
         Order order = productSerial.getOrder();
         return productSerial.getStatus() == ProductSerialStatus.WARRANTY
                 || (order != null && order.getStatus() == OrderStatus.COMPLETED)

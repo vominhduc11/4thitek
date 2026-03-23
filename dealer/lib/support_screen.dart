@@ -39,6 +39,8 @@ class _SupportScreenState extends State<SupportScreen> {
   SupportPriority? _lastPriority;
   String? _lastStatus;
   String? _lastAdminReply;
+  String? _latestTicketLoadErrorMessage;
+  String? _ticketHistoryLoadErrorMessage;
   final List<DealerSupportTicketRecord> _ticketHistory = [];
   int _ticketPage = 0;
   bool _isHistoryLoading = false;
@@ -51,6 +53,8 @@ class _SupportScreenState extends State<SupportScreen> {
   static const _supportEmail = 'support@4thitek.vn';
   static const _subjectMax = 80;
   static const _messageMax = 500;
+  static const _subjectMin = 5;
+  static const _messageMin = 20;
 
   @override
   void initState() {
@@ -84,12 +88,25 @@ class _SupportScreenState extends State<SupportScreen> {
   Future<void> _loadLatestTicket() async {
     try {
       final ticket = await _supportService.fetchLatestTicket();
-      if (!mounted || ticket == null) {
+      if (!mounted) {
         return;
       }
+      if (ticket == null) {
+        setState(() => _latestTicketLoadErrorMessage = null);
+        return;
+      }
+      setState(() => _latestTicketLoadErrorMessage = null);
       _applyTicket(ticket);
-    } on SupportException {
-      // Keep the support form usable even if the latest-ticket read fails.
+    } on SupportException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _latestTicketLoadErrorMessage = resolveSupportServiceMessage(
+          error.message,
+          isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+        );
+      });
     }
   }
 
@@ -126,6 +143,7 @@ class _SupportScreenState extends State<SupportScreen> {
         return;
       }
       setState(() {
+        _ticketHistoryLoadErrorMessage = null;
         if (!loadMore) {
           _ticketHistory
             ..clear()
@@ -136,8 +154,16 @@ class _SupportScreenState extends State<SupportScreen> {
         _ticketPage = response.page;
         _hasMoreTickets = response.page + 1 < response.totalPages;
       });
-    } on SupportException {
-      // Keep the main support flow usable even if history loading fails.
+    } on SupportException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _ticketHistoryLoadErrorMessage = resolveSupportServiceMessage(
+          error.message,
+          isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
+        );
+      });
     } finally {
       if (mounted) {
         setState(() {
@@ -275,6 +301,19 @@ class _SupportScreenState extends State<SupportScreen> {
                   ),
                 if (_lastTicketId != null && _lastSubmittedAt != null)
                   const SizedBox(height: 14),
+                if (_latestTicketLoadErrorMessage != null &&
+                    (_lastTicketId == null || _lastSubmittedAt == null)) ...[
+                  FadeSlideIn(
+                    delay: const Duration(milliseconds: 100),
+                    child: _InlineSupportWarning(
+                      title: texts.statusSyncWarningTitle,
+                      message: texts.latestTicketLoadWarning,
+                      actionLabel: texts.retryAction,
+                      onRetry: _loadLatestTicket,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 120),
                   child: SectionCard(
@@ -285,7 +324,11 @@ class _SupportScreenState extends State<SupportScreen> {
                       isLoading: _isHistoryLoading,
                       isLoadingMore: _isLoadingMoreTickets,
                       hasMore: _hasMoreTickets,
+                      errorMessage: _ticketHistoryLoadErrorMessage == null
+                          ? null
+                          : texts.historyLoadWarning,
                       onLoadMore: () => _loadTicketHistory(loadMore: true),
+                      onRetry: _loadTicketHistory,
                     ),
                   ),
                 ),
@@ -512,6 +555,14 @@ class _SupportScreenState extends State<SupportScreen> {
       _showSnackBar(texts.missingFieldsMessage);
       return;
     }
+    if (subject.length < _subjectMin) {
+      _showSnackBar(texts.subjectTooShortMessage(_subjectMin));
+      return;
+    }
+    if (message.length < _messageMin) {
+      _showSnackBar(texts.messageTooShortMessage(_messageMin));
+      return;
+    }
 
     final shouldSubmit = await _confirmSubmit(texts);
     if (shouldSubmit != true) {
@@ -536,10 +587,7 @@ class _SupportScreenState extends State<SupportScreen> {
       });
     } on SupportException catch (error) {
       _showSnackBar(
-        resolveSupportServiceMessage(
-          error.message,
-          isEnglish: texts.isEnglish,
-        ),
+        resolveSupportServiceMessage(error.message, isEnglish: texts.isEnglish),
       );
     } finally {
       if (mounted) {
@@ -690,6 +738,15 @@ class _SupportTexts {
   String get confirmSubmitDescription => isEnglish
       ? 'Please review the request details before submitting.'
       : 'Vui lòng kiểm tra thông tin yêu cầu trước khi gửi.';
+  String get latestTicketLoadWarning => isEnglish
+      ? 'Unable to load the latest support status right now.'
+      : 'Chưa thể tải trạng thái hỗ trợ mới nhất lúc này.';
+  String get historyLoadWarning => isEnglish
+      ? 'Unable to load support request history right now.'
+      : 'Chưa thể tải lịch sử yêu cầu hỗ trợ lúc này.';
+  String get statusSyncWarningTitle =>
+      isEnglish ? 'Support status' : 'Trạng thái hỗ trợ';
+  String get retryAction => isEnglish ? 'Retry' : 'Thử lại';
   String get missingFieldsMessage => isEnglish
       ? 'Please enter both subject and description.'
       : 'Vui lòng nhập tiêu đề và nội dung.';
@@ -823,6 +880,55 @@ class _SupportTexts {
             icon: Icons.shield_outlined,
           ),
         ];
+}
+
+extension _SupportTextsValidationMessages on _SupportTexts {
+  String subjectTooShortMessage(int minLength) => isEnglish
+      ? 'Subject must be at least $minLength characters.'
+      : 'Tieu de phai co it nhat $minLength ky tu.';
+
+  String messageTooShortMessage(int minLength) => isEnglish
+      ? 'Description must be at least $minLength characters.'
+      : 'Noi dung phai co it nhat $minLength ky tu.';
+}
+
+class _InlineSupportWarning extends StatelessWidget {
+  const _InlineSupportWarning({
+    required this.title,
+    required this.message,
+    required this.actionLabel,
+    required this.onRetry,
+  });
+
+  final String title;
+  final String message;
+  final String actionLabel;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return SectionCard(
+      title: title,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: colors.error),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(message, style: Theme.of(context).textTheme.bodyMedium),
+                const SizedBox(height: 10),
+                OutlinedButton(onPressed: onRetry, child: Text(actionLabel)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ContactTile extends StatelessWidget {

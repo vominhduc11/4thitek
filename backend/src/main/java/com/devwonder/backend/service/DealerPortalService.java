@@ -8,12 +8,14 @@ import com.devwonder.backend.dto.dealer.DealerOrderResponse;
 import com.devwonder.backend.dto.dealer.DealerPaymentResponse;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
 import com.devwonder.backend.dto.dealer.DealerProfileResponse;
+import com.devwonder.backend.dto.dealer.RegisterPushTokenRequest;
 import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
 import com.devwonder.backend.dto.dealer.UpdateDealerProfileRequest;
 import com.devwonder.backend.dto.dealer.UpdateDealerSerialStatusRequest;
 import com.devwonder.backend.dto.dealer.UpsertDealerCartItemRequest;
 import com.devwonder.backend.dto.notify.NotifyResponse;
+import com.devwonder.backend.dto.serial.SerialImportSummaryResponse;
 import com.devwonder.backend.dto.warranty.CreateWarrantyRegistrationRequest;
 import com.devwonder.backend.dto.warranty.WarrantyRegistrationResponse;
 import com.devwonder.backend.config.CacheNames;
@@ -56,6 +58,7 @@ public class DealerPortalService {
     private final DealerWarrantySupport dealerWarrantySupport;
     private final DealerNotificationSupport dealerNotificationSupport;
     private final DealerOrderWorkflowSupport dealerOrderWorkflowSupport;
+    private final PushTokenRegistrationService pushTokenRegistrationService;
 
     @Transactional(readOnly = true)
     public DealerProfileResponse getProfile(String username) {
@@ -214,6 +217,18 @@ public class DealerPortalService {
         return dealerNotificationSupport.markAllNotificationsRead(dealer.getId());
     }
 
+    @Transactional
+    public void registerPushToken(String username, RegisterPushTokenRequest request) {
+        dealerPortalLookupSupport.requireDealerByUsername(username);
+        pushTokenRegistrationService.register(username, request);
+    }
+
+    @Transactional
+    public void unregisterPushToken(String username, String token) {
+        dealerPortalLookupSupport.requireDealerByUsername(username);
+        pushTokenRegistrationService.unregister(username, token);
+    }
+
     @Transactional(readOnly = true)
     public List<WarrantyRegistrationResponse> getWarranties(String username) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
@@ -263,7 +278,10 @@ public class DealerPortalService {
     }
 
     @Transactional
-    public List<DealerProductSerialResponse> importSerials(String username, CreateDealerSerialBatchRequest request) {
+    public SerialImportSummaryResponse<DealerProductSerialResponse> importSerials(
+            String username,
+            CreateDealerSerialBatchRequest request
+    ) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         return dealerSerialSupport.importSerials(dealer.getId(), request);
     }

@@ -12,7 +12,6 @@ import {
 } from 'lucide-react'
 import productPlaceholder from '../assets/product-placeholder.svg'
 import { ProductVideoPreview } from '../components/ProductVideoPreview'
-import Quill from 'quill'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { FieldErrorMessage } from '../components/ui-kit'
 import { useAuth } from '../context/AuthContext'
@@ -227,6 +226,7 @@ function ProductDetailPage() {
   const [actionMessage, setActionMessage] = useState('')
   const [mainImagePreviewUrl, setMainImagePreviewUrl] = useState('')
   const editUploadedAssetUrlsRef = useRef<Set<string>>(new Set())
+  const cleanupEditDepsRef = useRef({ accessToken, notify, t })
 
   void descriptionVideoErrors
   void productVideoErrors
@@ -266,42 +266,48 @@ function ProductDetailPage() {
     editUploadedAssetUrlsRef.current.clear()
   }
 
-  const cleanupEditUploadedAssets = useCallback(
-    async (urls: Array<string | null | undefined>) => {
-      const trackedUrls = getTrackedEditUploadUrls(urls)
-      if (trackedUrls.length === 0) {
+  useEffect(() => {
+    cleanupEditDepsRef.current = { accessToken, notify, t }
+  }, [accessToken, notify, t])
+
+  const cleanupEditUploadedAssets = async (urls: Array<string | null | undefined>) => {
+    const {
+      accessToken: currentAccessToken,
+      notify: currentNotify,
+      t: translate,
+    } = cleanupEditDepsRef.current
+    const trackedUrls = getTrackedEditUploadUrls(urls)
+    if (trackedUrls.length === 0) {
+      return
+    }
+
+    const results = await Promise.allSettled(
+      trackedUrls.map(async (url) => {
+        await deleteStoredFileReference({
+          url,
+          accessToken: currentAccessToken,
+        })
+        return url
+      }),
+    )
+
+    const failedUrls: string[] = []
+    results.forEach((result, index) => {
+      const url = trackedUrls[index]
+      if (result.status === 'fulfilled') {
+        editUploadedAssetUrlsRef.current.delete(url)
         return
       }
+      failedUrls.push(url)
+    })
 
-      const results = await Promise.allSettled(
-        trackedUrls.map(async (url) => {
-          await deleteStoredFileReference({
-            url,
-            accessToken,
-          })
-          return url
-        }),
-      )
-
-      const failedUrls: string[] = []
-      results.forEach((result, index) => {
-        const url = trackedUrls[index]
-        if (result.status === 'fulfilled') {
-          editUploadedAssetUrlsRef.current.delete(url)
-          return
-        }
-        failedUrls.push(url)
+    if (failedUrls.length > 0) {
+      currentNotify(translate('Khong the don mot so anh tam tren may chu. Vui long thu lai.'), {
+        title: 'Products',
+        variant: 'error',
       })
-
-      if (failedUrls.length > 0) {
-        notify(t('Không thể dọn một số ảnh tạm trên máy chủ. Vui lòng thử lại.'), {
-          title: 'Products',
-          variant: 'error',
-        })
-      }
-    },
-    [accessToken, notify, t],
-  )
+    }
+  }
 
   const productStatusLabelMap: Record<Product['status'], string> = {
     Active: 'Đang bán',
@@ -343,6 +349,7 @@ function ProductDetailPage() {
 
   useEffect(() => {
     if (product && !isEditing) {
+      // Draft state is intentionally reset when the server-backed product changes outside edit mode.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setDraft(buildDraft(product))
       setMainImagePreviewUrl('')
@@ -366,12 +373,52 @@ function ProductDetailPage() {
   }, [mainImagePreviewUrl])
 
   useEffect(() => {
+    const trackedUploads = editUploadedAssetUrlsRef.current
     return () => {
-      if (editUploadedAssetUrlsRef.current.size > 0) {
-        void cleanupEditUploadedAssets(Array.from(editUploadedAssetUrlsRef.current))
+      if (trackedUploads.size > 0) {
+        const {
+          accessToken: currentAccessToken,
+          notify: currentNotify,
+          t: translate,
+        } = cleanupEditDepsRef.current
+        const trackedUrls = Array.from(trackedUploads)
+          .map((url) => String(url ?? '').trim())
+          .filter((url) => url && trackedUploads.has(url))
+        if (trackedUrls.length === 0) {
+          return
+        }
+        void Promise.allSettled(
+          trackedUrls.map(async (url) => {
+            await deleteStoredFileReference({
+              url,
+              accessToken: currentAccessToken,
+            })
+            return url
+          }),
+        ).then((results) => {
+          const failedUrls: string[] = []
+          results.forEach((result, index) => {
+            const url = trackedUrls[index]
+            if (result.status === 'fulfilled') {
+              trackedUploads.delete(url)
+              return
+            }
+            failedUrls.push(url)
+          })
+
+          if (failedUrls.length > 0) {
+            currentNotify(
+              translate('Khong the don mot so anh tam tren may chu. Vui long thu lai.'),
+              {
+                title: 'Products',
+                variant: 'error',
+              },
+            )
+          }
+        })
       }
     }
-  }, [cleanupEditUploadedAssets])
+  }, [])
 
   const descriptionEditorModules = useMemo(
     () => ({
@@ -382,13 +429,6 @@ function ProductDetailPage() {
           [{ list: 'ordered' }, { list: 'bullet' }],
           ['divider', 'clean'],
         ],
-        handlers: {
-          divider(this: { quill: Quill }) {
-            const range = this.quill.getSelection(true)
-            this.quill.insertEmbed(range.index, 'divider', true, 'user')
-            this.quill.setSelection(range.index + 1, 0, 'silent')
-          },
-        },
       },
     }),
     [],

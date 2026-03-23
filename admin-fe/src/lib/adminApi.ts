@@ -291,6 +291,18 @@ export type BackendSerialResponse = {
   importedAt?: string | null
 }
 
+export type BackendSerialImportSkippedItem = {
+  serial: string
+  reason: string
+}
+
+export type BackendSerialImportSummary<T> = {
+  importedItems: T[]
+  skippedItems: BackendSerialImportSkippedItem[]
+  importedCount: number
+  skippedCount: number
+}
+
 export type BackendSerialImportRequest = {
   productId: number
   serials: string[]
@@ -345,6 +357,41 @@ export type BackendAdminSettingsResponse = {
   sessionTimeoutMinutes: number
   orderAlerts: boolean
   inventoryAlerts: boolean
+  sepay?: {
+    enabled?: boolean | null
+    webhookToken?: string | null
+    bankName?: string | null
+    accountNumber?: string | null
+    accountHolder?: string | null
+  } | null
+  emailSettings?: {
+    enabled?: boolean | null
+    from?: string | null
+    fromName?: string | null
+  } | null
+  rateLimitOverrides?: {
+    enabled?: boolean | null
+    auth?: {
+      requests?: number | null
+      windowSeconds?: number | null
+    } | null
+    passwordReset?: {
+      requests?: number | null
+      windowSeconds?: number | null
+    } | null
+    warrantyLookup?: {
+      requests?: number | null
+      windowSeconds?: number | null
+    } | null
+    upload?: {
+      requests?: number | null
+      windowSeconds?: number | null
+    } | null
+    webhook?: {
+      requests?: number | null
+      windowSeconds?: number | null
+    } | null
+  } | null
   createdAt?: string | null
   updatedAt?: string | null
 }
@@ -354,6 +401,41 @@ export type BackendAdminSettingsUpdateRequest = {
   sessionTimeoutMinutes?: number
   orderAlerts?: boolean
   inventoryAlerts?: boolean
+  sepay?: {
+    enabled?: boolean
+    webhookToken?: string
+    bankName?: string
+    accountNumber?: string
+    accountHolder?: string
+  }
+  emailSettings?: {
+    enabled?: boolean
+    from?: string
+    fromName?: string
+  }
+  rateLimitOverrides?: {
+    enabled?: boolean
+    auth?: {
+      requests?: number
+      windowSeconds?: number
+    }
+    passwordReset?: {
+      requests?: number
+      windowSeconds?: number
+    }
+    warrantyLookup?: {
+      requests?: number
+      windowSeconds?: number
+    }
+    upload?: {
+      requests?: number
+      windowSeconds?: number
+    }
+    webhook?: {
+      requests?: number
+      windowSeconds?: number
+    }
+  }
 }
 
 export type BackendChangePasswordRequest = {
@@ -881,7 +963,7 @@ export const fetchAllAdminSerials = (token: string, size?: number) =>
   fetchAllPagedItems((params) => fetchAdminSerialsPaged(token, params), size)
 
 export const importAdminSerials = (token: string, body: BackendSerialImportRequest) =>
-  authorizedJsonRequest<BackendSerialResponse[]>({
+  authorizedJsonRequest<BackendSerialImportSummary<BackendSerialResponse>>({
     path: '/admin/serials/import',
     token,
     method: 'POST',

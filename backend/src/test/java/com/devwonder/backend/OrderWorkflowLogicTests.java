@@ -148,7 +148,7 @@ class OrderWorkflowLogicTests {
     @Test
     void adminCancellationDetachesLegacyNonWarrantySerials() {
         Dealer dealer = dealerRepository.save(createDealer("admin-cancel-serial@example.com"));
-        Product product = productRepository.save(createProduct("SKU-CANCEL-SERIAL-ADMIN", BigDecimal.valueOf(100_000)));
+        Product product = saveProduct("SKU-CANCEL-SERIAL-ADMIN", BigDecimal.valueOf(100_000));
         Order order = orderRepository.save(createOrder(dealer, OrderStatus.PENDING, "WF-CANCEL-SERIAL-ADMIN"));
         ProductSerial serial = productSerialRepository.save(createSerial(
                 dealer,
@@ -171,7 +171,7 @@ class OrderWorkflowLogicTests {
     @Test
     void adminConfirmationKeepsReservedSerialsReserved() {
         Dealer dealer = dealerRepository.save(createDealer("admin-confirm-serial@example.com"));
-        Product product = productRepository.save(createProduct("SKU-CONFIRM-SERIAL-ADMIN", BigDecimal.valueOf(100_000)));
+        Product product = saveProduct("SKU-CONFIRM-SERIAL-ADMIN", BigDecimal.valueOf(100_000));
         Order order = orderRepository.save(createOrder(dealer, OrderStatus.PENDING, "WF-CONFIRM-SERIAL-ADMIN"));
         ProductSerial serial = productSerialRepository.save(createSerial(
                 null,
@@ -194,7 +194,7 @@ class OrderWorkflowLogicTests {
     @Test
     void adminCompletionAssignsReservedSerialsToDealerInventory() {
         Dealer dealer = dealerRepository.save(createDealer("admin-complete-serial@example.com"));
-        Product product = productRepository.save(createProduct("SKU-COMPLETE-SERIAL-ADMIN", BigDecimal.valueOf(100_000)));
+        Product product = saveProduct("SKU-COMPLETE-SERIAL-ADMIN", BigDecimal.valueOf(100_000));
         Order order = orderRepository.save(createOrder(dealer, OrderStatus.SHIPPING, "WF-COMPLETE-SERIAL-ADMIN"));
         ProductSerial serial = productSerialRepository.save(createSerial(
                 null,
@@ -220,7 +220,7 @@ class OrderWorkflowLogicTests {
         Dealer dealer = createDealer("credit-limit@example.com");
         dealer.setCreditLimit(BigDecimal.valueOf(100_000));
         Dealer savedDealer = dealerRepository.save(dealer);
-        Product product = productRepository.save(createProduct("SKU-CREDIT-1", BigDecimal.valueOf(100_000)));
+        Product product = saveProduct("SKU-CREDIT-1", BigDecimal.valueOf(100_000));
 
         CreateDealerOrderRequest request = new CreateDealerOrderRequest(
                 PaymentMethod.DEBT,
@@ -240,7 +240,7 @@ class OrderWorkflowLogicTests {
     @Test
     void dealerCannotCreateDebtOrderWithoutConfiguredCreditLimit() {
         Dealer dealer = dealerRepository.save(createDealer("credit-not-configured@example.com"));
-        Product product = productRepository.save(createProduct("SKU-CREDIT-0", BigDecimal.valueOf(100_000)));
+        Product product = saveProduct("SKU-CREDIT-0", BigDecimal.valueOf(100_000));
 
         CreateDealerOrderRequest request = new CreateDealerOrderRequest(
                 PaymentMethod.DEBT,
@@ -262,7 +262,7 @@ class OrderWorkflowLogicTests {
         Dealer dealer = createDealer("credit-limit-race@example.com");
         dealer.setCreditLimit(BigDecimal.valueOf(150_000));
         Dealer savedDealer = dealerRepository.save(dealer);
-        Product product = productRepository.save(createProduct("SKU-CREDIT-RACE-1", BigDecimal.valueOf(100_000), 10));
+        Product product = saveProduct("SKU-CREDIT-RACE-1", BigDecimal.valueOf(100_000), 10);
 
         CreateDealerOrderRequest request = new CreateDealerOrderRequest(
                 PaymentMethod.DEBT,
@@ -312,7 +312,7 @@ class OrderWorkflowLogicTests {
     @Test
     void discountPercentUsesActiveBulkDiscountRuleRange() {
         Dealer dealer = dealerRepository.save(createDealer("discount-rule@example.com"));
-        Product product = productRepository.save(createProduct("SKU-DISCOUNT-1", BigDecimal.valueOf(100_000)));
+        Product product = saveProduct("SKU-DISCOUNT-1", BigDecimal.valueOf(100_000));
         bulkDiscountRepository.save(createBulkDiscount("3 - 5", BigDecimal.valueOf(15)));
 
         var response = dealerPortalService.createOrder(
@@ -335,7 +335,7 @@ class OrderWorkflowLogicTests {
     @Test
     void dealerCannotCreateOrderBeyondAvailableStock() {
         Dealer dealer = dealerRepository.save(createDealer("stock-check@example.com"));
-        Product product = productRepository.save(createProduct("SKU-STOCK-1", BigDecimal.valueOf(100_000), 5));
+        Product product = saveProduct("SKU-STOCK-1", BigDecimal.valueOf(100_000), 5);
 
         assertThatThrownBy(() -> dealerPortalService.createOrder(
                 dealer.getUsername(),
@@ -356,7 +356,7 @@ class OrderWorkflowLogicTests {
     @Test
     void creatingOrderReservesStockAndCancellingOrderRestoresIt() {
         Dealer dealer = dealerRepository.save(createDealer("stock-reserve@example.com"));
-        Product product = productRepository.save(createProduct("SKU-STOCK-2", BigDecimal.valueOf(100_000), 5));
+        Product product = saveProduct("SKU-STOCK-2", BigDecimal.valueOf(100_000), 5);
 
         var createdOrder = dealerPortalService.createOrder(
                 dealer.getUsername(),
@@ -385,7 +385,7 @@ class OrderWorkflowLogicTests {
     @Test
     void dealerCancellationDetachesLegacyNonWarrantySerials() {
         Dealer dealer = dealerRepository.save(createDealer("dealer-cancel-serial@example.com"));
-        Product product = productRepository.save(createProduct("SKU-CANCEL-SERIAL-DEALER", BigDecimal.valueOf(100_000), 5));
+        Product product = saveProduct("SKU-CANCEL-SERIAL-DEALER", BigDecimal.valueOf(100_000), 5);
 
         var createdOrder = dealerPortalService.createOrder(
                 dealer.getUsername(),
@@ -422,8 +422,8 @@ class OrderWorkflowLogicTests {
     @Test
     void mixedOrderAppliesProductSpecificDiscountPerMatchingLine() {
         Dealer dealer = dealerRepository.save(createDealer("mixed-discount@example.com"));
-        Product discountedProduct = productRepository.save(createProduct("SKU-MIX-1", BigDecimal.valueOf(100_000)));
-        Product regularProduct = productRepository.save(createProduct("SKU-MIX-2", BigDecimal.valueOf(50_000)));
+        Product discountedProduct = saveProduct("SKU-MIX-1", BigDecimal.valueOf(100_000));
+        Product regularProduct = saveProduct("SKU-MIX-2", BigDecimal.valueOf(50_000));
 
         BulkDiscount productRule = createBulkDiscount(">=1", BigDecimal.valueOf(20));
         productRule.setProduct(discountedProduct);
@@ -455,7 +455,7 @@ class OrderWorkflowLogicTests {
     @Test
     void dealerPayloadCannotOverrideServerProductPrice() {
         Dealer dealer = dealerRepository.save(createDealer("price-guard@example.com"));
-        Product product = productRepository.save(createProduct("SKU-PRICE-1", BigDecimal.valueOf(100_000)));
+        Product product = saveProduct("SKU-PRICE-1", BigDecimal.valueOf(100_000));
 
         var response = dealerPortalService.createOrder(
                 dealer.getUsername(),
@@ -478,7 +478,7 @@ class OrderWorkflowLogicTests {
     @Test
     void dealerPayloadCannotOverrideServerShippingFee() {
         Dealer dealer = dealerRepository.save(createDealer("shipping-fee-guard@example.com"));
-        Product product = productRepository.save(createProduct("SKU-SHIP-1", BigDecimal.valueOf(100_000)));
+        Product product = saveProduct("SKU-SHIP-1", BigDecimal.valueOf(100_000));
 
         assertThatThrownBy(() -> dealerPortalService.createOrder(
                 dealer.getUsername(),
@@ -499,7 +499,7 @@ class OrderWorkflowLogicTests {
     @Test
     void adminCanRecordBankTransferPaymentWhenSepayIsDisabled() {
         Dealer dealer = dealerRepository.save(createDealer("manual-bank-payment@example.com"));
-        Product product = productRepository.save(createProduct("SKU-BANK-1", BigDecimal.valueOf(100_000)));
+        Product product = saveProduct("SKU-BANK-1", BigDecimal.valueOf(100_000));
         var createdOrder = dealerPortalService.createOrder(
                 dealer.getUsername(),
                 new CreateDealerOrderRequest(
@@ -533,7 +533,7 @@ class OrderWorkflowLogicTests {
     @Test
     void dealerCanRecordBankTransferPaymentWhenSepayIsDisabled() {
         Dealer dealer = dealerRepository.save(createDealer("dealer-bank-payment@example.com"));
-        Product product = productRepository.save(createProduct("SKU-BANK-DEALER-1", BigDecimal.valueOf(100_000)));
+        Product product = saveProduct("SKU-BANK-DEALER-1", BigDecimal.valueOf(100_000));
         var createdOrder = dealerPortalService.createOrder(
                 dealer.getUsername(),
                 new CreateDealerOrderRequest(
@@ -570,7 +570,7 @@ class OrderWorkflowLogicTests {
     @Test
     void adminCannotRecordPaymentAboveOutstandingBalance() {
         Dealer dealer = dealerRepository.save(createDealer("manual-overpay@example.com"));
-        Product product = productRepository.save(createProduct("SKU-BANK-2", BigDecimal.valueOf(100_000)));
+        Product product = saveProduct("SKU-BANK-2", BigDecimal.valueOf(100_000));
         var createdOrder = dealerPortalService.createOrder(
                 dealer.getUsername(),
                 new CreateDealerOrderRequest(
@@ -605,7 +605,7 @@ class OrderWorkflowLogicTests {
         Dealer dealer = createDealer("manual-duplicate@example.com");
         dealer.setCreditLimit(BigDecimal.valueOf(500_000));
         Dealer savedDealer = dealerRepository.save(dealer);
-        Product product = productRepository.save(createProduct("SKU-DUP-1", BigDecimal.valueOf(100_000)));
+        Product product = saveProduct("SKU-DUP-1", BigDecimal.valueOf(100_000));
         var createdOrder = dealerPortalService.createOrder(
                 savedDealer.getUsername(),
                 new CreateDealerOrderRequest(
@@ -667,7 +667,7 @@ class OrderWorkflowLogicTests {
     void dealerCancellationCreatesNotificationForActiveAdmins() {
         Dealer dealer = dealerRepository.save(createDealer("dealer-cancel@example.com"));
         Admin admin = adminRepository.save(createAdmin("ops.admin@example.com"));
-        Product product = productRepository.save(createProduct("SKU-CANCEL-1", BigDecimal.valueOf(100_000)));
+        Product product = saveProduct("SKU-CANCEL-1", BigDecimal.valueOf(100_000));
         var createdOrder = dealerPortalService.createOrder(
                 dealer.getUsername(),
                 new CreateDealerOrderRequest(
@@ -691,6 +691,82 @@ class OrderWorkflowLogicTests {
         assertThat(notifications).hasSize(1);
         assertThat(notifications.get(0).getContent()).contains("hủy đơn");
         assertThat(notifications.get(0).getLink()).isEqualTo("/orders/" + createdOrder.id());
+    }
+
+    @Test
+    void dealerOrderCreationUsesSerialPoolInsteadOfStaleProductStock() {
+        Dealer dealer = dealerRepository.save(createDealer("stale-stock@example.com"));
+        Product product = productRepository.save(createProduct("SKU-STOCK-STALE", BigDecimal.valueOf(100_000), 5));
+        productSerialRepository.saveAll(createAvailableSerials(product, 3, "SERIAL-STOCK-STALE"));
+
+        assertThatThrownBy(() -> dealerPortalService.createOrder(
+                dealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer receiver",
+                        "123 Stale Stock Street",
+                        "0900000000",
+                        0,
+                        "Should fail because serial pool only has three items",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 4, product.getRetailPrice()))
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Insufficient stock");
+
+        List<ProductSerial> savedSerials = productSerialRepository.findAll().stream()
+                .filter(serial -> serial.getProduct() != null && product.getId().equals(serial.getProduct().getId()))
+                .toList();
+        assertThat(savedSerials).hasSize(3);
+        assertThat(savedSerials).allSatisfy(serial -> {
+            assertThat(serial.getOrder()).isNull();
+            assertThat(serial.getStatus()).isEqualTo(ProductSerialStatus.AVAILABLE);
+        });
+    }
+
+    @Test
+    void concurrentOrdersAcrossDealersDoNotOversellSharedSerialPool() throws Exception {
+        Dealer firstDealer = dealerRepository.save(createDealer("pool-first@example.com"));
+        Dealer secondDealer = dealerRepository.save(createDealer("pool-second@example.com"));
+        Product product = saveProduct("SKU-SHARED-POOL", BigDecimal.valueOf(100_000), 3);
+
+        CreateDealerOrderRequest request = new CreateDealerOrderRequest(
+                PaymentMethod.BANK_TRANSFER,
+                "Dealer receiver",
+                "123 Shared Pool Street",
+                "0900000000",
+                0,
+                "Shared serial pool race",
+                List.of(new CreateDealerOrderItemRequest(product.getId(), 2, product.getRetailPrice()))
+        );
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+
+        try {
+            Future<String> first = executor.submit(() -> attemptCreateOrder(firstDealer.getUsername(), request, ready, start));
+            Future<String> second = executor.submit(() -> attemptCreateOrder(secondDealer.getUsername(), request, ready, start));
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+
+            List<String> results = List.of(first.get(10, TimeUnit.SECONDS), second.get(10, TimeUnit.SECONDS));
+            assertThat(results).containsExactlyInAnyOrder("created", "stock");
+        } finally {
+            executor.shutdownNow();
+        }
+
+        int visibleOrders = orderRepository.findVisibleByDealerIdOrderByCreatedAtDesc(firstDealer.getId()).size()
+                + orderRepository.findVisibleByDealerIdOrderByCreatedAtDesc(secondDealer.getId()).size();
+        assertThat(visibleOrders).isEqualTo(1);
+
+        List<ProductSerial> savedSerials = productSerialRepository.findAll().stream()
+                .filter(serial -> serial.getProduct() != null && product.getId().equals(serial.getProduct().getId()))
+                .toList();
+        assertThat(savedSerials.stream().filter(serial -> serial.getStatus() == ProductSerialStatus.RESERVED).count())
+                .isEqualTo(2);
+        assertThat(savedSerials.stream().filter(serial -> serial.getStatus() == ProductSerialStatus.AVAILABLE).count())
+                .isEqualTo(1);
     }
 
     @Test
@@ -744,6 +820,49 @@ class OrderWorkflowLogicTests {
         product.setStock(stock);
         product.setIsDeleted(false);
         return product;
+    }
+
+    private Product saveProduct(String sku, BigDecimal retailPrice) {
+        return saveProduct(sku, retailPrice, 100);
+    }
+
+    private Product saveProduct(String sku, BigDecimal retailPrice, int stock) {
+        Product product = productRepository.save(createProduct(sku, retailPrice, stock));
+        if (stock > 0) {
+            productSerialRepository.saveAll(createAvailableSerials(product, stock, "SERIAL-" + sku));
+        }
+        return productRepository.findById(product.getId()).orElseThrow();
+    }
+
+    private List<ProductSerial> createAvailableSerials(Product product, int count, String prefix) {
+        List<ProductSerial> serials = new ArrayList<>();
+        for (int index = 0; index < count; index++) {
+            ProductSerial serial = new ProductSerial();
+            serial.setProduct(product);
+            serial.setSerial(prefix + "-" + (index + 1));
+            serial.setStatus(ProductSerialStatus.AVAILABLE);
+            serials.add(serial);
+        }
+        return serials;
+    }
+
+    private String attemptCreateOrder(
+            String dealerUsername,
+            CreateDealerOrderRequest request,
+            CountDownLatch ready,
+            CountDownLatch start
+    ) throws Exception {
+        ready.countDown();
+        start.await(5, TimeUnit.SECONDS);
+        try {
+            dealerPortalService.createOrder(dealerUsername, request);
+            return "created";
+        } catch (BadRequestException ex) {
+            if (ex.getMessage() != null && ex.getMessage().contains("Insufficient stock")) {
+                return "stock";
+            }
+            throw ex;
+        }
     }
 
     private BulkDiscount createBulkDiscount(String rangeLabel, BigDecimal percent) {

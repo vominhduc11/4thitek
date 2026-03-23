@@ -38,6 +38,7 @@ import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
 import com.devwonder.backend.dto.pagination.PagedResponse;
+import com.devwonder.backend.dto.serial.SerialImportSummaryResponse;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.service.AdminManagementService;
 import com.devwonder.backend.service.AdminOperationsService;
@@ -225,7 +226,7 @@ public class AdminController {
     }
 
     @PostMapping("/serials/import")
-    public ResponseEntity<ApiResponse<List<AdminSerialResponse>>> importSerials(
+    public ResponseEntity<ApiResponse<SerialImportSummaryResponse<AdminSerialResponse>>> importSerials(
             @Valid @RequestBody AdminSerialImportRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(adminOperationsService.importSerials(request)));

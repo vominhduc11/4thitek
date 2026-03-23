@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { articleJsonLd, createBaseMetadata, organizationJsonLd, productJsonLd, websiteJsonLd } from './seo';
+import { articleJsonLd, createBaseMetadata, localBusinessJsonLd, organizationJsonLd, productJsonLd, websiteJsonLd } from './seo';
 
 describe('seo helpers', () => {
     it('builds canonical metadata without fake hreflang alternates', () => {
@@ -27,11 +27,12 @@ describe('seo helpers', () => {
             productJsonLd({
                 id: '42',
                 name: 'SCS S10',
-                description: 'Mo ta'
+                description: 'Mo ta',
+                path: '/products/42-scs-s10'
             })
         ).toMatchObject({
             '@type': 'Product',
-            url: 'https://4thitek.vn/products/42'
+            url: 'https://4thitek.vn/products/42-scs-s10'
         });
         expect(
             articleJsonLd({
@@ -44,6 +45,12 @@ describe('seo helpers', () => {
         ).toMatchObject({
             '@type': 'Article',
             mainEntityOfPage: 'https://4thitek.vn/blogs/99-review'
+        });
+        expect(localBusinessJsonLd()).toMatchObject({
+            description: 'Nha phan phoi chinh hang tai nghe SCS tai Viet Nam',
+            address: {
+                addressLocality: 'Viet Nam'
+            }
         });
     });
 });

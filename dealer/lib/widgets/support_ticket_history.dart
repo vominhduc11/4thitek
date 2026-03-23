@@ -10,7 +10,9 @@ class SupportTicketHistory extends StatelessWidget {
     required this.isLoading,
     required this.isLoadingMore,
     required this.hasMore,
+    this.errorMessage,
     required this.onLoadMore,
+    this.onRetry,
   });
 
   final bool isEnglish;
@@ -18,7 +20,9 @@ class SupportTicketHistory extends StatelessWidget {
   final bool isLoading;
   final bool isLoadingMore;
   final bool hasMore;
+  final String? errorMessage;
   final Future<void> Function() onLoadMore;
+  final Future<void> Function()? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +31,35 @@ class SupportTicketHistory extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (errorMessage != null) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              color: Theme.of(
+                context,
+              ).colorScheme.errorContainer.withValues(alpha: 0.45),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  errorMessage!,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                if (onRetry != null) ...[
+                  const SizedBox(height: 10),
+                  OutlinedButton(
+                    onPressed: onRetry,
+                    child: Text(texts.retryLabel),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
         if (isLoading && items.isEmpty)
           const Center(child: CircularProgressIndicator())
         else if (items.isEmpty)
@@ -237,6 +270,7 @@ class _SupportHistoryTexts {
   String get emptyMessage =>
       isEnglish ? 'No support requests yet.' : 'Chưa có yêu cầu hỗ trợ nào.';
   String get loadMoreLabel => isEnglish ? 'Load more' : 'Xem thêm';
+  String get retryLabel => isEnglish ? 'Retry' : 'Thử lại';
   String get ticketLabel => isEnglish ? 'Ticket' : 'Mã';
   String get adminReplyLabel => isEnglish ? 'Admin reply' : 'Phản hồi';
   String get priorityLabel => isEnglish ? 'Priority' : 'Ưu tiên';

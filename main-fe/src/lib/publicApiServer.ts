@@ -45,12 +45,22 @@ export const publicApiServer = {
         >(API_ENDPOINTS.PRODUCT.PRODUCTS_FEATURED, 60),
     fetchProducts: () =>
         fetchEnvelope<
-            Array<{ id: number | string; name: string; sku?: string; shortDescription: string; image: string; price?: number }>
+            Array<{
+                id: number | string;
+                name: string;
+                sku?: string;
+                shortDescription: string;
+                image: string;
+                price?: number;
+                stock?: number;
+                warrantyMonths?: number;
+            }>
         >(API_ENDPOINTS.PRODUCT.PRODUCTS, 60),
     fetchProductById: (id: string) =>
         fetchEnvelope<{
             id: number | string;
             name: string;
+            sku?: string;
             shortDescription: string;
             description: string;
             image: string;
@@ -58,6 +68,8 @@ export const publicApiServer = {
             videos: string;
             descriptions?: string;
             price?: number;
+            stock?: number;
+            warrantyMonths?: number;
         }>(API_ENDPOINTS.PRODUCT.PRODUCT_BY_ID(id), 60),
     fetchLatestBlogs: () =>
         fetchEnvelope<
@@ -78,7 +90,9 @@ export const publicApiServer = {
             image: string;
             category: string;
             createdAt: string;
+            updatedAt?: string;
             introduction?: string;
+            showOnHomepage?: boolean;
         }>(API_ENDPOINTS.BLOG.BLOG_BY_ID(id), 1800),
     fetchContentSection: <T>(section: string, language: string) =>
         fetchEnvelope<T>(API_ENDPOINTS.CONTENT.SECTION(section, language), 86400)

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'breakpoints.dart';
+import 'dealer_routes.dart';
 import 'dashboard_screen.dart';
 import 'global_search.dart';
 import 'l10n/app_localizations.dart';
@@ -12,6 +14,7 @@ import 'orders_screen.dart';
 import 'product_list_screen.dart';
 import 'support_screen.dart';
 import 'utils.dart';
+import 'warranty_hub_screen.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
@@ -349,6 +352,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final destination = switch (notice.type) {
       NoticeType.order => const OrdersScreen(),
       NoticeType.promotion => const ProductListScreen(),
+      NoticeType.warranty => const WarrantyHubScreen(),
       NoticeType.system => const DashboardScreen(),
     };
 
@@ -386,37 +390,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       return launched;
     }
 
-    final path = uri.path;
-    final orderId =
-        uri.pathSegments.length >= 2 && uri.pathSegments.first == 'orders'
-        ? uri.pathSegments[1]
-        : null;
-    final destination = path == '/orders'
-        ? const OrdersScreen()
-        : orderId != null && orderId.isNotEmpty
-        ? OrderDetailScreen(orderId: orderId)
-        : path == '/products' || path.startsWith('/products/')
-        ? const ProductListScreen()
-        : path == '/account/support' ||
-              path == '/dealer/support' ||
-              path == '/support'
-        ? const SupportScreen()
-        : path == '/notifications'
-        ? const NotificationsScreen()
-        : path == '/home' || path == '/'
-        ? const DashboardScreen()
-        : null;
-
-    if (destination == null) {
+    final normalizedRoute = normalizeDealerInternalRoute(link);
+    if (normalizedRoute == null) {
       return false;
     }
     if (!mounted) {
       return true;
     }
 
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => destination));
+    if (isDealerTopLevelRoute(normalizedRoute)) {
+      context.go(normalizedRoute);
+    } else {
+      await context.push(normalizedRoute);
+    }
     return true;
   }
 
@@ -426,6 +412,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return l10n.notificationsTypeOrder;
       case NoticeType.promotion:
         return l10n.notificationsTypePromotion;
+      case NoticeType.warranty:
+        return Localizations.localeOf(context).languageCode == 'en'
+            ? 'Warranty'
+            : 'Bao hanh';
       case NoticeType.system:
         return l10n.notificationsTypeSystem;
     }
@@ -445,6 +435,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         link == '/support') {
       return l10n.notificationsRelatedViewSupport;
     }
+    if (link.startsWith('/warranty')) {
+      return Localizations.localeOf(context).languageCode == 'en'
+          ? 'View warranty'
+          : 'Xem bao hanh';
+    }
     if (link.startsWith('/notifications')) {
       return l10n.notificationsRelatedViewNotifications;
     }
@@ -457,6 +452,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return l10n.notificationsRelatedViewOrder;
       case NoticeType.promotion:
         return l10n.notificationsRelatedViewProducts;
+      case NoticeType.warranty:
+        return Localizations.localeOf(context).languageCode == 'en'
+            ? 'View warranty'
+            : 'Xem bao hanh';
       case NoticeType.system:
         return l10n.notificationsRelatedOpenOverview;
     }
@@ -475,11 +474,13 @@ class _NoticeTypeAvatar extends StatelessWidget {
     final tint = switch (type) {
       NoticeType.order => colorScheme.primary,
       NoticeType.promotion => colorScheme.tertiary,
+      NoticeType.warranty => colorScheme.secondary,
       NoticeType.system => colorScheme.secondary,
     };
     final icon = switch (type) {
       NoticeType.order => Icons.local_shipping_outlined,
       NoticeType.promotion => Icons.campaign_outlined,
+      NoticeType.warranty => Icons.verified_outlined,
       NoticeType.system => Icons.build_outlined,
     };
     final backgroundColor = tint.withValues(alpha: isRead ? 0.1 : 0.18);

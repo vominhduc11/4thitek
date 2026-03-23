@@ -7,12 +7,14 @@ import 'app_preferences_screen.dart';
 import 'auth_storage.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
+import 'change_password_screen.dart';
 import 'dealer_profile_storage.dart';
 import 'file_reference.dart';
 import 'global_search.dart';
 import 'l10n/app_localizations.dart';
 import 'notification_controller.dart';
 import 'order_controller.dart';
+import 'push_messaging_controller.dart';
 import 'support_screen.dart';
 import 'warranty_hub_screen.dart';
 import 'warranty_controller.dart';
@@ -94,9 +96,25 @@ class _AccountScreenState extends State<AccountScreen> {
     if (_isLoggingOut) {
       return;
     }
+    await Future.wait<void>([
+      OrderScope.of(context).refresh(),
+      WarrantyScope.of(context).load(forceRefresh: true),
+    ]);
+    if (!mounted) {
+      return;
+    }
     await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (context) => const WarrantyHubScreen()));
+  }
+
+  Future<void> _openChangePassword() async {
+    if (_isLoggingOut) {
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
+    );
   }
 
   Future<void> _openAppPreferences() async {
@@ -165,6 +183,10 @@ class _AccountScreenState extends State<AccountScreen> {
     var shouldResetLoading = true;
     try {
       await Future.delayed(const Duration(milliseconds: 600));
+      await PushMessagingScope.maybeOf(context)?.unregisterCurrentToken();
+      if (!mounted) {
+        return;
+      }
       await _authStorage.clearSession();
       if (!mounted) {
         return;
@@ -247,6 +269,13 @@ class _AccountScreenState extends State<AccountScreen> {
     final menuWarrantySubtitle = l10n.accountMenuWarrantySubtitle;
     final menuPreferencesTitle = l10n.accountMenuPreferencesTitle;
     final menuPreferencesSubtitle = l10n.accountMenuPreferencesSubtitle;
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final menuChangePasswordTitle = isEnglish
+        ? 'Change password'
+        : 'Đổi mật khẩu';
+    final menuChangePasswordSubtitle = isEnglish
+        ? 'Update your sign-in password'
+        : 'Cập nhật mật khẩu đăng nhập';
     final logoutLabel = l10n.accountLogoutAction;
     final editProfileLabel = l10n.accountEditProfileAction;
     final versionLabel = l10n.accountVersionLabel(_appVersion);
@@ -434,6 +463,14 @@ class _AccountScreenState extends State<AccountScreen> {
                     subtitle: Text(menuWarrantySubtitle),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: _isLoggingOut ? null : _openWarrantyHub,
+                  ),
+                  const Divider(height: 0),
+                  ListTile(
+                    leading: const Icon(Icons.lock_reset_outlined),
+                    title: Text(menuChangePasswordTitle),
+                    subtitle: Text(menuChangePasswordSubtitle),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: _isLoggingOut ? null : _openChangePassword,
                   ),
                   const Divider(height: 0),
                   ListTile(

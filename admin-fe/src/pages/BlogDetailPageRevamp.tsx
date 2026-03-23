@@ -1,5 +1,5 @@
 import { ArrowLeft, FileText, Pencil, Save, Trash2, X } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   DestructiveButton,
@@ -30,9 +30,9 @@ const BLOG_STATUS_ORDER: BlogStatus[] = ['published', 'scheduled', 'draft']
 
 const statusLabelsByLanguage = {
   vi: {
-    published: 'Đã đăng',
-    scheduled: 'Hẹn giờ',
-    draft: 'Bản nháp',
+    published: 'Da dang',
+    scheduled: 'Hen gio',
+    draft: 'Ban nhap',
   },
   en: {
     published: 'Published',
@@ -43,35 +43,38 @@ const statusLabelsByLanguage = {
 
 const copyByLanguage = {
   vi: {
-    back: 'Về danh sách bài viết',
-    loadTitle: 'Không thể tải bài viết',
-    loadFallback: 'Không tải được chi tiết bài viết',
-    notFoundTitle: 'Không tìm thấy bài viết',
-    notFoundMessage: 'Bài {id} không tồn tại hoặc đã bị xóa.',
-    summaryFallback: 'Chưa có tóm tắt cho bài viết này.',
-    contentFallback: 'Bài viết này chưa có nội dung.',
-    uncategorized: 'Chưa phân loại',
-    summaryLabel: 'Tóm tắt',
-    contentLabel: 'Nội dung',
-    titleLabel: 'Tiêu đề',
-    categoryLabel: 'Danh mục',
-    imageLabel: 'Ảnh đại diện (URL)',
-    statusTitle: 'Cập nhật trạng thái',
-    statusHelp: 'Thay đổi trạng thái hiển thị của bài viết trong khu vực quản trị.',
-    changeStatusTitle: 'Xác nhận đổi trạng thái',
-    changeStatusMessage: 'Bạn có chắc muốn chuyển bài viết này sang trạng thái "{status}" không?',
-    updateFailed: 'Không cập nhật được bài viết',
-    metaLabel: 'Cập nhật lần cuối',
-    deleteTitle: 'Xóa bài viết',
-    deleteMessage: 'Hành động này sẽ xóa bài viết khỏi hệ thống quản trị.',
-    deleteHelp: 'Chỉ xóa khi bạn chắc chắn bài viết không còn được sử dụng.',
-    confirmDelete: 'Xóa bài',
-    deleteLabel: 'Xóa bài',
-    deleteFailed: 'Không xóa được bài viết',
-    edit: 'Chỉnh sửa',
-    save: 'Lưu thay đổi',
-    cancel: 'Huỷ',
-    saveFailed: 'Không lưu được bài viết',
+    back: 'Ve danh sach bai viet',
+    loadTitle: 'Khong the tai bai viet',
+    loadFallback: 'Khong tai duoc chi tiet bai viet',
+    notFoundTitle: 'Khong tim thay bai viet',
+    notFoundMessage: 'Bai {id} khong ton tai hoac da bi xoa.',
+    summaryFallback: 'Chua co tom tat cho bai viet nay.',
+    contentFallback: 'Bai viet nay chua co noi dung.',
+    uncategorized: 'Chua phan loai',
+    summaryLabel: 'Tom tat',
+    contentLabel: 'Noi dung',
+    homepageLabel: 'Hien tren trang chu',
+    titleLabel: 'Tieu de',
+    categoryLabel: 'Danh muc',
+    imageLabel: 'Anh dai dien (URL)',
+    statusTitle: 'Cap nhat trang thai',
+    statusHelp: 'Thay doi trang thai va kha nang xuat hien tren public site.',
+    changeStatusTitle: 'Xac nhan doi trang thai',
+    changeStatusMessage: 'Chuyen bai viet nay sang trang thai "{status}"?',
+    updateFailed: 'Khong cap nhat duoc bai viet',
+    metaLabel: 'Cap nhat lan cuoi',
+    deleteTitle: 'Xoa bai viet',
+    deleteMessage: 'Hanh dong nay se xoa bai viet khoi he thong quan tri.',
+    deleteHelp: 'Chi xoa khi ban chac chan bai viet khong con duoc su dung.',
+    confirmDelete: 'Xoa bai',
+    deleteLabel: 'Xoa bai',
+    deleteFailed: 'Khong xoa duoc bai viet',
+    edit: 'Chinh sua',
+    save: 'Luu thay doi',
+    cancel: 'Huy',
+    saveFailed: 'Khong luu duoc bai viet',
+    yes: 'Co',
+    no: 'Khong',
   },
   en: {
     back: 'Back to posts',
@@ -84,11 +87,12 @@ const copyByLanguage = {
     uncategorized: 'Uncategorized',
     summaryLabel: 'Summary',
     contentLabel: 'Content',
+    homepageLabel: 'Show on homepage',
     titleLabel: 'Title',
     categoryLabel: 'Category',
     imageLabel: 'Cover image (URL)',
     statusTitle: 'Update status',
-    statusHelp: 'Change how this post is surfaced in the admin workspace.',
+    statusHelp: 'Change how this post is surfaced in the admin workspace and public site.',
     changeStatusTitle: 'Confirm status change',
     changeStatusMessage: 'Change this post to "{status}"?',
     updateFailed: 'Could not update the post',
@@ -103,6 +107,8 @@ const copyByLanguage = {
     save: 'Save changes',
     cancel: 'Cancel',
     saveFailed: 'Could not save the post',
+    yes: 'Yes',
+    no: 'No',
   },
 } as const
 
@@ -113,10 +119,9 @@ const parseContent = (raw?: string): string[] => {
   try {
     const blocks = JSON.parse(raw) as IntroductionBlock[]
     if (Array.isArray(blocks)) {
-      return blocks.map((b) => b.text ?? '').filter(Boolean)
+      return blocks.map((block) => block.text ?? '').filter(Boolean)
     }
   } catch {
-    // fallback: treat raw string as single paragraph
     if (raw.trim()) return [raw.trim()]
   }
   return []
@@ -129,18 +134,21 @@ function BlogDetailPageRevamp() {
   const { language } = useLanguage()
   const { notify } = useToast()
   const { confirm, confirmDialog } = useConfirmDialog()
-  const { posts, postsState, updatePost, updatePostStatus, deletePost, reloadResource } =
-    useAdminData()
+  const { posts, postsState, updatePost, updatePostStatus, deletePost, reloadResource } = useAdminData()
 
   const copy = copyByLanguage[language]
   const statusLabels = statusLabelsByLanguage[language]
   const post = posts.find((item) => item.id === postId)
 
+  const contentParagraphs = useMemo(() => parseContent(post?.content), [post?.content])
+
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState('')
   const [editCategory, setEditCategory] = useState('')
   const [editExcerpt, setEditExcerpt] = useState('')
+  const [editContent, setEditContent] = useState('')
   const [editImageUrl, setEditImageUrl] = useState('')
+  const [editShowOnHomepage, setEditShowOnHomepage] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
   if (postsState.status === 'loading' || postsState.status === 'idle') {
@@ -166,27 +174,19 @@ function BlogDetailPageRevamp() {
   if (!post) {
     return (
       <PagePanel>
-        <EmptyState
-          icon={FileText}
-          title={copy.notFoundTitle}
-          message={copy.notFoundMessage.replace('{id}', postId)}
-        />
+        <EmptyState icon={FileText} title={copy.notFoundTitle} message={copy.notFoundMessage.replace('{id}', postId)} />
       </PagePanel>
     )
   }
-
-  const contentParagraphs = parseContent(post.content)
 
   const handleStartEdit = () => {
     setEditTitle(post.title)
     setEditCategory(post.category)
     setEditExcerpt(post.excerpt)
+    setEditContent(contentParagraphs.join('\n\n'))
     setEditImageUrl(post.imageUrl ?? '')
+    setEditShowOnHomepage(Boolean(post.showOnHomepage))
     setIsEditing(true)
-  }
-
-  const handleCancelEdit = () => {
-    setIsEditing(false)
   }
 
   const handleSave = async () => {
@@ -196,8 +196,10 @@ function BlogDetailPageRevamp() {
         title: editTitle,
         category: editCategory,
         excerpt: editExcerpt,
+        content: editContent,
         status: post.status,
         imageUrl: editImageUrl || undefined,
+        showOnHomepage: editShowOnHomepage,
       })
       setIsEditing(false)
     } catch (error) {
@@ -225,11 +227,7 @@ function BlogDetailPageRevamp() {
           <div className="flex items-start justify-between gap-3">
             <p className={labelClass}>{post.id}</p>
             {!isEditing ? (
-              <GhostButton
-                icon={<Pencil className="h-4 w-4" />}
-                onClick={handleStartEdit}
-                type="button"
-              >
+              <GhostButton icon={<Pencil className="h-4 w-4" />} onClick={handleStartEdit} type="button">
                 {copy.edit}
               </GhostButton>
             ) : null}
@@ -239,52 +237,38 @@ function BlogDetailPageRevamp() {
             <div className="mt-4 space-y-4">
               <label className="block space-y-1">
                 <span className={labelClass}>{copy.titleLabel}</span>
-                <input
-                  className={`${inputClass} w-full`}
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                />
+                <input className={`${inputClass} w-full`} value={editTitle} onChange={(event) => setEditTitle(event.target.value)} />
               </label>
               <label className="block space-y-1">
                 <span className={labelClass}>{copy.categoryLabel}</span>
-                <input
-                  className={`${inputClass} w-full`}
-                  value={editCategory}
-                  onChange={(e) => setEditCategory(e.target.value)}
-                />
+                <input className={`${inputClass} w-full`} value={editCategory} onChange={(event) => setEditCategory(event.target.value)} />
               </label>
               <label className="block space-y-1">
                 <span className={labelClass}>{copy.imageLabel}</span>
-                <input
-                  className={`${inputClass} w-full`}
-                  value={editImageUrl}
-                  onChange={(e) => setEditImageUrl(e.target.value)}
-                />
+                <input className={`${inputClass} w-full`} value={editImageUrl} onChange={(event) => setEditImageUrl(event.target.value)} />
               </label>
               <label className="block space-y-1">
                 <span className={labelClass}>{copy.summaryLabel}</span>
-                <textarea
-                  className={`${textareaClass} w-full`}
-                  rows={4}
-                  value={editExcerpt}
-                  onChange={(e) => setEditExcerpt(e.target.value)}
+                <textarea className={`${textareaClass} w-full`} rows={4} value={editExcerpt} onChange={(event) => setEditExcerpt(event.target.value)} />
+              </label>
+              <label className="block space-y-1">
+                <span className={labelClass}>{copy.contentLabel}</span>
+                <textarea className={`${textareaClass} w-full`} rows={8} value={editContent} onChange={(event) => setEditContent(event.target.value)} />
+              </label>
+              <label className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+                <span className="text-sm font-semibold text-[var(--ink)]">{copy.homepageLabel}</span>
+                <input
+                  checked={editShowOnHomepage}
+                  className="h-5 w-5 accent-[var(--accent)]"
+                  onChange={(event) => setEditShowOnHomepage(event.target.checked)}
+                  type="checkbox"
                 />
               </label>
               <div className="flex gap-2">
-                <PrimaryButton
-                  disabled={isSaving}
-                  icon={<Save className="h-4 w-4" />}
-                  onClick={() => void handleSave()}
-                  type="button"
-                >
+                <PrimaryButton disabled={isSaving} icon={<Save className="h-4 w-4" />} onClick={() => void handleSave()} type="button">
                   {isSaving ? `${copy.save}...` : copy.save}
                 </PrimaryButton>
-                <GhostButton
-                  disabled={isSaving}
-                  icon={<X className="h-4 w-4" />}
-                  onClick={handleCancelEdit}
-                  type="button"
-                >
+                <GhostButton disabled={isSaving} icon={<X className="h-4 w-4" />} onClick={() => setIsEditing(false)} type="button">
                   {copy.cancel}
                 </GhostButton>
               </div>
@@ -292,27 +276,22 @@ function BlogDetailPageRevamp() {
           ) : (
             <>
               <h2 className="mt-2 text-2xl font-semibold text-[var(--ink)]">{post.title}</h2>
-              <p className="mt-2 text-sm text-[var(--muted)]">
-                {post.category || copy.uncategorized}
+              <p className="mt-2 text-sm text-[var(--muted)]">{post.category || copy.uncategorized}</p>
+              <p className="mt-2 text-xs text-[var(--muted)]">
+                {copy.homepageLabel}: {post.showOnHomepage ? copy.yes : copy.no}
               </p>
               {post.imageUrl ? (
                 <div className="mt-5 overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)]">
-                  <img
-                    src={resolveBackendAssetUrl(post.imageUrl)}
-                    alt={post.title}
-                    className="aspect-[16/9] w-full object-cover"
-                  />
+                  <img src={resolveBackendAssetUrl(post.imageUrl)} alt={post.title} className="aspect-[16/9] w-full object-cover" />
                 </div>
               ) : null}
               <div className="mt-6 space-y-3">
                 <p className={labelClass}>{copy.summaryLabel}</p>
-                <p className="text-sm leading-7 text-[var(--ink)]">
-                  {post.excerpt || copy.summaryFallback}
-                </p>
+                <p className="text-sm leading-7 text-[var(--ink)]">{post.excerpt || copy.summaryFallback}</p>
               </div>
-              {contentParagraphs.length > 0 ? (
-                <div className="mt-6 space-y-3">
-                  <p className={labelClass}>{copy.contentLabel}</p>
+              <div className="mt-6 space-y-3">
+                <p className={labelClass}>{copy.contentLabel}</p>
+                {contentParagraphs.length > 0 ? (
                   <div className="space-y-4">
                     {contentParagraphs.map((paragraph, index) => (
                       <p key={index} className="text-sm leading-7 text-[var(--ink)]">
@@ -320,8 +299,10 @@ function BlogDetailPageRevamp() {
                       </p>
                     ))}
                   </div>
-                </div>
-              ) : null}
+                ) : (
+                  <p className="text-sm leading-7 text-[var(--ink)]">{copy.contentFallback}</p>
+                )}
+              </div>
             </>
           )}
 
@@ -341,9 +322,7 @@ function BlogDetailPageRevamp() {
               className={`${inputClass} mt-2 w-full`}
               onChange={async (event) => {
                 const next = event.target.value as BlogStatus
-                if (next === post.status) {
-                  return
-                }
+                if (next === post.status) return
 
                 const approved = await confirm({
                   title: copy.changeStatusTitle,
@@ -389,9 +368,7 @@ function BlogDetailPageRevamp() {
                   tone: 'danger',
                   confirmLabel: copy.confirmDelete,
                 })
-                if (!approved) {
-                  return
-                }
+                if (!approved) return
 
                 try {
                   await deletePost(post.id)

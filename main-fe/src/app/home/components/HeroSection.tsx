@@ -5,6 +5,7 @@ import { motion, Variants } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
+import { buildProductPath } from '@/lib/slug';
 import type { SimpleProduct } from '@/types/product';
 
 const HERO_VIDEO = '/videos/motorbike-road-trip-2022-07-26-01-49-02-utc.mp4';
@@ -83,6 +84,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
     const productVariants = makeProductVariants(enableDecorativeAnimations);
     const contentVariants = makeContentVariants(enableDecorativeAnimations);
     const buttonVariants = makeButtonVariants(enableDecorativeAnimations);
+    const productPath = product?.id ? buildProductPath(product.id, product.name) : '/products';
 
     return (
         <section
@@ -160,7 +162,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                     className="w-full text-center sm:text-left text-2xl leading-tight text-white xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl cursor-pointer hover:text-[#4FC8FF] transition-colors duration-300"
                     variants={titleVariants} initial="hidden" animate="visible"
                     title={displayName}
-                    onClick={() => product?.id ? router.push(`/products/${product.id}`) : router.push('/products')}
+                    onClick={() => router.push(productPath)}
                 >
                     {displayName}
                 </motion.h1>
@@ -170,7 +172,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                     className="flex flex-1 items-center justify-center py-4 w-full cursor-pointer relative group"
                     variants={productVariants} initial="hidden" animate="visible"
                     whileHover="hover"
-                    onClick={() => product?.id ? router.push(`/products/${product.id}`) : router.push('/products')}
+                    onClick={() => router.push(productPath)}
                 >
                     {displayImage ? (
                         <Image
@@ -200,7 +202,7 @@ export default function HeroSection({ initialProduct = null }: HeroSectionProps)
                         className="min-w-[160px] rounded-full bg-[#4FC8FF] px-4 py-2.5 text-sm font-semibold text-[#0c131d] transition hover:bg-[#38dfff] sm:px-6 sm:py-3 sm:text-base"
                         variants={buttonVariants} initial="hidden" animate="visible"
                         whileHover="hover" whileTap="tap"
-                        onClick={() => product?.id ? router.push(`/products/${product.id}`) : router.push('/products')}
+                        onClick={() => router.push(productPath)}
                         aria-label={t('hero.discoverAria').replace('{product}', displayName)}
                     >
                         {t('hero.cta')}

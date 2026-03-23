@@ -468,7 +468,7 @@ class DebtPaymentRecord {
   final String? proofFileName;
 }
 
-enum NoticeType { system, promotion, order }
+enum NoticeType { system, promotion, order, warranty }
 
 class DistributorNotice {
   const DistributorNotice({

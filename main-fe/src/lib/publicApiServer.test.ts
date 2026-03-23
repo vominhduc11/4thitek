@@ -33,7 +33,7 @@ describe('publicApiServer', () => {
             'https://api.4thitek.vn/api/v1/product/products',
             expect.objectContaining({
                 cache: 'force-cache',
-                next: { revalidate: 3600 }
+                next: { revalidate: 60 }
             })
         );
     });

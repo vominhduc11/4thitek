@@ -1,6 +1,7 @@
 package com.devwonder.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
@@ -18,6 +19,7 @@ import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.repository.AdminRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.NotifyRepository;
+import com.devwonder.backend.service.PushNotificationDispatchService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -66,11 +68,15 @@ class NotificationApiContractTests {
     @MockBean
     private SimpMessagingTemplate messagingTemplate;
 
+    @MockBean
+    private PushNotificationDispatchService pushNotificationDispatchService;
+
     @BeforeEach
     void setUp() {
         notifyRepository.deleteAll();
         dealerRepository.deleteAll();
         reset(messagingTemplate);
+        reset(pushNotificationDispatchService);
 
         Admin admin = adminRepository.findByUsername("notifications.admin@example.com").orElseThrow();
         admin.setPassword(passwordEncoder.encode("ChangedPass#456"));
@@ -121,6 +127,10 @@ class NotificationApiContractTests {
         assertThat(notificationPayload.body()).isEqualTo("Mời kiểm tra quy trình bảo hành mới.");
         assertThat(notificationPayload.link()).isEqualTo("https://4thitek.vn/warranty-policy");
         assertThat(notificationPayload.deepLink()).isEqualTo("/warranty");
+        verify(pushNotificationDispatchService).sendNotificationCreated(
+                argThat(account -> account != null && account.getId().equals(dealer.getId())),
+                eq(notificationPayload)
+        );
     }
 
     @Test

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.devwonder.backend.dto.admin.AdminSerialImportRequest;
+import com.devwonder.backend.dto.admin.AdminSerialResponse;
 import com.devwonder.backend.dto.admin.UpdateAdminSerialStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminWarrantyStatusRequest;
 import com.devwonder.backend.entity.Dealer;
@@ -239,6 +240,105 @@ class AdminSerialInvariantTests {
 
         assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
                 .isEqualTo(ProductSerialStatus.ASSIGNED);
+    }
+
+    @Test
+    void adminImportSerialsReturnsPartialSuccessSummaryAndSyncsDerivedStock() {
+        Product product = productRepository.save(createProduct("SKU-ADMIN-IMPORT-SUMMARY"));
+        productSerialRepository.save(createSerial(
+                null,
+                null,
+                product,
+                "ADMIN-IMPORT-EXISTING",
+                ProductSerialStatus.AVAILABLE
+        ));
+
+        var result = adminOperationsService.importSerials(new AdminSerialImportRequest(
+                product.getId(),
+                null,
+                null,
+                ProductSerialStatus.AVAILABLE,
+                "main",
+                "Kho tong",
+                List.of("admin-import-01", "admin-import-01", "   ", "ADMIN-IMPORT-EXISTING", "admin-import-02")
+        ));
+
+        assertThat(result.importedCount()).isEqualTo(2);
+        assertThat(result.skippedCount()).isEqualTo(3);
+        assertThat(result.importedItems()).extracting(AdminSerialResponse::serial)
+                .containsExactly("ADMIN-IMPORT-01", "ADMIN-IMPORT-02");
+        assertThat(result.skippedItems()).extracting(item -> item.serial() + ":" + item.reason())
+                .containsExactly(
+                        "ADMIN-IMPORT-01:Duplicate serial in request",
+                        ":serial must not be blank",
+                        "ADMIN-IMPORT-EXISTING:Serial already exists"
+                );
+        assertThat(productRepository.findById(product.getId()).orElseThrow().getStock()).isEqualTo(3);
+    }
+
+    @Test
+    void adminImportSerialsSkipsEntriesThatExceedOrderedQuantity() {
+        Dealer dealer = dealerRepository.save(createDealer("admin-serial-import-order@example.com"));
+        Product product = productRepository.save(createProduct("SKU-ADMIN-IMPORT-ORDER"));
+        Order order = orderRepository.save(createOrder(dealer, product, "ADMIN-ORDER-IMPORT"));
+
+        var result = adminOperationsService.importSerials(new AdminSerialImportRequest(
+                product.getId(),
+                dealer.getId(),
+                order.getId(),
+                null,
+                "main",
+                "Kho tong",
+                List.of("ADMIN-ORDER-SERIAL-1", "ADMIN-ORDER-SERIAL-2")
+        ));
+
+        assertThat(result.importedCount()).isEqualTo(1);
+        assertThat(result.skippedCount()).isEqualTo(1);
+        assertThat(result.importedItems()).singleElement().satisfies(item -> {
+            assertThat(item.serial()).isEqualTo("ADMIN-ORDER-SERIAL-1");
+            assertThat(item.status()).isEqualTo(ProductSerialStatus.ASSIGNED);
+            assertThat(item.dealerId()).isEqualTo(dealer.getId());
+            assertThat(item.orderId()).isEqualTo(order.getId());
+        });
+        assertThat(result.skippedItems()).singleElement().satisfies(item -> {
+            assertThat(item.serial()).isEqualTo("ADMIN-ORDER-SERIAL-2");
+            assertThat(item.reason()).isEqualTo("Imported serial count exceeds ordered quantity");
+        });
+    }
+
+    @Test
+    void adminUpdatingSerialStatusSyncsDerivedProductStock() {
+        Product product = productRepository.save(createProduct("SKU-ADMIN-STOCK-SYNC"));
+        ProductSerial serial = productSerialRepository.save(createSerial(
+                null,
+                null,
+                product,
+                "ADMIN-STOCK-SYNC-1",
+                ProductSerialStatus.AVAILABLE
+        ));
+
+        adminOperationsService.updateSerialStatus(
+                serial.getId(),
+                new UpdateAdminSerialStatusRequest(ProductSerialStatus.DEFECTIVE)
+        );
+
+        assertThat(productRepository.findById(product.getId()).orElseThrow().getStock()).isZero();
+    }
+
+    @Test
+    void adminDeletingAvailableSerialSyncsDerivedProductStock() {
+        Product product = productRepository.save(createProduct("SKU-ADMIN-STOCK-DELETE"));
+        ProductSerial serial = productSerialRepository.save(createSerial(
+                null,
+                null,
+                product,
+                "ADMIN-STOCK-DELETE-1",
+                ProductSerialStatus.AVAILABLE
+        ));
+
+        adminOperationsService.deleteSerial(serial.getId());
+
+        assertThat(productRepository.findById(product.getId()).orElseThrow().getStock()).isZero();
     }
 
     private Dealer createDealer(String email) {

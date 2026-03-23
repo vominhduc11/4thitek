@@ -1,4 +1,4 @@
-package vn.fourthitek.dealerhub
+package com.thitek.dealer
 
 import io.flutter.embedding.android.FlutterActivity
 

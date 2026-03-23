@@ -62,7 +62,8 @@ void main() {
         reason: 'Layout exception on ${c.name}: ${exceptions.join('\n')}',
       );
 
-      expect(find.byType(Card), findsWidgets);
+      expect(find.byType(Scaffold), findsOneWidget);
+      expect(find.byType(RefreshIndicator), findsOneWidget);
       expect(
         find.byWidgetPredicate(
           (widget) => widget is ListView && widget.scrollDirection == Axis.vertical,

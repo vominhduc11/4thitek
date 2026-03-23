@@ -6,6 +6,7 @@ import { FiArrowRight, FiHeadphones } from 'react-icons/fi';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useLanguage } from '@/context/LanguageContext';
+import { buildProductPath } from '@/lib/slug';
 import type { SimpleProduct } from '@/types/product';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
 
@@ -123,7 +124,7 @@ export default function ProductSeries({ initialProducts = [] }: ProductSeriesPro
                                                 </div>
                                                 <div className="flex flex-wrap gap-4">
                                                     <Link
-                                                        href={`/products/${selectedProduct.id}`}
+                                                        href={buildProductPath(selectedProduct.id, selectedProduct.name)}
                                                         className="inline-flex items-center gap-2 rounded-full bg-[#4FC8FF] px-6 py-3 font-semibold text-[#0c131d] transition hover:bg-[#38dfff]"
                                                     >
                                                         {t('products.showcase.viewDetails')}

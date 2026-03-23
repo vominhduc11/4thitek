@@ -2,6 +2,7 @@ package com.devwonder.backend.service;
 
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -117,6 +118,8 @@ public class FileStorageService implements DisposableBean {
         }
 
         String extension = extractExtension(file.getOriginalFilename());
+        byte[] content = readContent(file);
+        String contentType = resolveTrustedContentType(extension, content);
         String generatedName = UUID.randomUUID() + "." + extension;
 
         if (LOCAL_PROVIDER.equals(provider)) {
@@ -131,7 +134,7 @@ public class FileStorageService implements DisposableBean {
             Path targetPath = targetDirectory.resolve(generatedName).normalize();
             ensureInsideUploadDir(targetPath);
 
-            try (InputStream inputStream = file.getInputStream()) {
+            try (InputStream inputStream = new ByteArrayInputStream(content)) {
                 Files.copy(inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException ex) {
                 throw new IllegalStateException("Cannot store uploaded file", ex);
@@ -146,12 +149,12 @@ public class FileStorageService implements DisposableBean {
                     PutObjectRequest.builder()
                             .bucket(bucket)
                             .key(key)
-                            .contentType(file.getContentType())
+                            .contentType(contentType)
                             .build(),
-                    RequestBody.fromInputStream(file.getInputStream(), file.getSize())
+                    RequestBody.fromBytes(content)
             );
-        } catch (IOException ex) {
-            throw new IllegalStateException("Cannot read uploaded file", ex);
+        } catch (RuntimeException ex) {
+            throw new IllegalStateException("Cannot store uploaded file", ex);
         }
         return key;
     }
@@ -274,6 +277,107 @@ public class FileStorageService implements DisposableBean {
             throw new BadRequestException("Unsupported file extension: " + normalizedExtension);
         }
         return normalizedExtension;
+    }
+
+    private byte[] readContent(MultipartFile file) {
+        try {
+            return file.getBytes();
+        } catch (IOException ex) {
+            throw new IllegalStateException("Cannot read uploaded file", ex);
+        }
+    }
+
+    private String resolveTrustedContentType(String extension, byte[] content) {
+        if (content == null || content.length == 0) {
+            throw new BadRequestException("Uploaded file is empty");
+        }
+        return switch (extension) {
+            case "jpg", "jpeg" -> {
+                if (!matchesJpeg(content)) {
+                    throw new BadRequestException("Uploaded file content does not match .jpeg");
+                }
+                yield "image/jpeg";
+            }
+            case "png" -> {
+                if (!matchesPng(content)) {
+                    throw new BadRequestException("Uploaded file content does not match .png");
+                }
+                yield "image/png";
+            }
+            case "gif" -> {
+                if (!matchesGif(content)) {
+                    throw new BadRequestException("Uploaded file content does not match .gif");
+                }
+                yield "image/gif";
+            }
+            case "webp" -> {
+                if (!matchesWebp(content)) {
+                    throw new BadRequestException("Uploaded file content does not match .webp");
+                }
+                yield "image/webp";
+            }
+            case "pdf" -> {
+                if (!matchesPdf(content)) {
+                    throw new BadRequestException("Uploaded file content does not match .pdf");
+                }
+                yield "application/pdf";
+            }
+            default -> throw new BadRequestException("Unsupported file extension: " + extension);
+        };
+    }
+
+    private boolean matchesJpeg(byte[] content) {
+        return content.length >= 3
+                && unsigned(content[0]) == 0xFF
+                && unsigned(content[1]) == 0xD8
+                && unsigned(content[2]) == 0xFF;
+    }
+
+    private boolean matchesPng(byte[] content) {
+        return content.length >= 8
+                && unsigned(content[0]) == 0x89
+                && unsigned(content[1]) == 0x50
+                && unsigned(content[2]) == 0x4E
+                && unsigned(content[3]) == 0x47
+                && unsigned(content[4]) == 0x0D
+                && unsigned(content[5]) == 0x0A
+                && unsigned(content[6]) == 0x1A
+                && unsigned(content[7]) == 0x0A;
+    }
+
+    private boolean matchesGif(byte[] content) {
+        return content.length >= 6
+                && content[0] == 'G'
+                && content[1] == 'I'
+                && content[2] == 'F'
+                && content[3] == '8'
+                && (content[4] == '7' || content[4] == '9')
+                && content[5] == 'a';
+    }
+
+    private boolean matchesWebp(byte[] content) {
+        return content.length >= 12
+                && content[0] == 'R'
+                && content[1] == 'I'
+                && content[2] == 'F'
+                && content[3] == 'F'
+                && content[8] == 'W'
+                && content[9] == 'E'
+                && content[10] == 'B'
+                && content[11] == 'P';
+    }
+
+    private boolean matchesPdf(byte[] content) {
+        return content.length >= 5
+                && content[0] == '%'
+                && content[1] == 'P'
+                && content[2] == 'D'
+                && content[3] == 'F'
+                && content[4] == '-';
+    }
+
+    private int unsigned(byte value) {
+        return value & 0xFF;
     }
 
     private Path resolveSubfolder(String subfolder) {

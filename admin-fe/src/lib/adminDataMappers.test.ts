@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mapOrder } from './adminDataMappers'
+import { mapBackendSettings, mapOrder, toBlogUpsertRequest } from './adminDataMappers'
 
 describe('adminDataMappers', () => {
   it('falls back to zero when numeric order fields are malformed', () => {
@@ -21,5 +21,57 @@ describe('adminDataMappers', () => {
     expect(mapped.total).toBe(0)
     expect(mapped.paidAmount).toBe(0)
     expect(mapped.outstandingAmount).toBe(0)
+    expect(mapped.orderCode).toBe('SCS-42')
+  })
+
+  it('maps nested admin settings payloads', () => {
+    const mapped = mapBackendSettings({
+      id: 1,
+      emailConfirmation: true,
+      sessionTimeoutMinutes: 45,
+      orderAlerts: true,
+      inventoryAlerts: false,
+      sepay: {
+        enabled: true,
+        webhookToken: 'token-123',
+        bankName: 'ACB',
+        accountNumber: '123456789',
+        accountHolder: '4thitek',
+      },
+      emailSettings: {
+        enabled: true,
+        from: 'noreply@example.com',
+        fromName: '4thitek Admin',
+      },
+      rateLimitOverrides: {
+        enabled: true,
+        auth: { requests: 12, windowSeconds: 60 },
+        passwordReset: { requests: 6, windowSeconds: 300 },
+        warrantyLookup: { requests: 40, windowSeconds: 60 },
+        upload: { requests: 25, windowSeconds: 60 },
+        webhook: { requests: 180, windowSeconds: 60 },
+      },
+    })
+
+    expect(mapped.sepay.enabled).toBe(true)
+    expect(mapped.sepay.webhookToken).toBe('token-123')
+    expect(mapped.emailSettings.from).toBe('noreply@example.com')
+    expect(mapped.rateLimitOverrides.auth.requests).toBe(12)
+    expect(mapped.rateLimitOverrides.webhook.requests).toBe(180)
+  })
+
+  it('preserves full blog content when building an upsert request', () => {
+    const request = toBlogUpsertRequest({
+      title: 'Launch update',
+      category: 'News',
+      excerpt: 'Short summary',
+      content: 'Paragraph one.\n\nParagraph two.',
+      status: 'published',
+      showOnHomepage: false,
+    })
+
+    expect(request.showOnHomepage).toBe(false)
+    expect(request.introduction).toContain('Paragraph one.')
+    expect(request.introduction).toContain('Paragraph two.')
   })
 })

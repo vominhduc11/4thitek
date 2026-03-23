@@ -16,6 +16,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +26,7 @@ public class NotificationService {
     private final NotifyRepository notifyRepository;
     private final AccountRepository accountRepository;
     private final WebSocketEventPublisher webSocketEventPublisher;
+    private final PushNotificationDispatchService pushNotificationDispatchService;
 
     @Transactional(readOnly = true)
     public List<NotifyResponse> getByAccount(Long accountId) {
@@ -51,6 +54,7 @@ public class NotificationService {
         notify.setIsRead(false);
         NotifyResponse created = toResponse(notifyRepository.save(notify));
         webSocketEventPublisher.publishNotificationCreated(account.getUsername(), created);
+        afterCommitOrNow(() -> pushNotificationDispatchService.sendNotificationCreated(account, created));
         return created;
     }
 
@@ -109,5 +113,18 @@ public class NotificationService {
                 pageable.getPageSize(),
                 Sort.by(Sort.Direction.DESC, defaultSortBy)
         );
+    }
+
+    private void afterCommitOrNow(Runnable task) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            task.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                task.run();
+            }
+        });
     }
 }

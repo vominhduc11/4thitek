@@ -47,25 +47,20 @@ export default function Newsroom({ initialBlogs = [] }: NewsroomProps) {
                 transition={{ duration: 0.8 }}
                 viewport={{ once: true, amount: 0.2 }}
             >
-                {/* Subtle dot-grid */}
                 <div className="absolute inset-0 bg-dot-grid opacity-20 pointer-events-none" />
                 <div className="px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
                     <div className="mb-8 text-center text-white sm:mb-10 md:mb-12">
                         <h2 id="newsroom-heading" className="text-2xl font-semibold sm:text-3xl md:text-4xl lg:text-5xl">
                             {t('newsroom.title')}
                         </h2>
-                        <p className="mt-3 text-sm uppercase tracking-wider sm:text-base">
-                            {t('newsroom.subtitle')}
-                        </p>
-                        <span className="mt-2 block text-xs text-white/70 sm:text-sm">
-                            {t('newsroom.tagline')}
-                        </span>
+                        <p className="mt-3 text-sm uppercase tracking-wider sm:text-base">{t('newsroom.subtitle')}</p>
+                        <span className="mt-2 block text-xs text-white/70 sm:text-sm">{t('newsroom.tagline')}</span>
                     </div>
 
                     {blogs.length === 0 ? (
                         <div className="rounded-2xl border border-white/10 bg-white/4 px-6 py-16 text-center text-gray-400">
                             <FiArrowUpRight className="mx-auto mb-4 h-10 w-10 opacity-40" />
-                            <p className="text-base">{t('newsroom.empty') || 'Chưa có bài viết nào.'}</p>
+                            <p className="text-base">{t('newsroom.empty') || 'Chua co bai viet nao.'}</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -16,6 +16,7 @@ export type OrderItem = {
 
 export type Order = {
   id: string
+  orderCode: string
   dealer: string
   total: number
   status: OrderStatus
@@ -74,11 +75,42 @@ export type DiscountRule = {
   updatedAt: string
 }
 
+export type RateLimitBucketSettings = {
+  requests: number
+  windowSeconds: number
+}
+
+export type SepayAppSettings = {
+  enabled: boolean
+  webhookToken: string
+  bankName: string
+  accountNumber: string
+  accountHolder: string
+}
+
+export type EmailAppSettings = {
+  enabled: boolean
+  from: string
+  fromName: string
+}
+
+export type RateLimitOverridesSettings = {
+  enabled: boolean
+  auth: RateLimitBucketSettings
+  passwordReset: RateLimitBucketSettings
+  warrantyLookup: RateLimitBucketSettings
+  upload: RateLimitBucketSettings
+  webhook: RateLimitBucketSettings
+}
+
 export type AppSettings = {
   emailConfirmation: boolean
   sessionTimeoutMinutes: number
   orderAlerts: boolean
   inventoryAlerts: boolean
+  sepay: SepayAppSettings
+  emailSettings: EmailAppSettings
+  rateLimitOverrides: RateLimitOverridesSettings
 }
 
 export const initialSettings: AppSettings = {
@@ -86,4 +118,24 @@ export const initialSettings: AppSettings = {
   sessionTimeoutMinutes: 30,
   orderAlerts: true,
   inventoryAlerts: true,
+  sepay: {
+    enabled: false,
+    webhookToken: '',
+    bankName: '',
+    accountNumber: '',
+    accountHolder: '',
+  },
+  emailSettings: {
+    enabled: false,
+    from: '',
+    fromName: '',
+  },
+  rateLimitOverrides: {
+    enabled: true,
+    auth: { requests: 10, windowSeconds: 60 },
+    passwordReset: { requests: 5, windowSeconds: 300 },
+    warrantyLookup: { requests: 30, windowSeconds: 60 },
+    upload: { requests: 20, windowSeconds: 60 },
+    webhook: { requests: 120, windowSeconds: 60 },
+  },
 }

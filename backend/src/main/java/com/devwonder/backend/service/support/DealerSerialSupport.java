@@ -3,6 +3,8 @@ package com.devwonder.backend.service.support;
 import com.devwonder.backend.dto.dealer.CreateDealerSerialBatchRequest;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
 import com.devwonder.backend.dto.dealer.UpdateDealerSerialStatusRequest;
+import com.devwonder.backend.dto.serial.SerialImportSkippedItem;
+import com.devwonder.backend.dto.serial.SerialImportSummaryResponse;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.OrderItem;
 import com.devwonder.backend.entity.Product;
@@ -30,6 +32,7 @@ public class DealerSerialSupport {
     private final ProductSerialRepository productSerialRepository;
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
+    private final ProductStockSyncSupport productStockSyncSupport;
 
     public List<DealerProductSerialResponse> getSerials(Long dealerId) {
         return productSerialRepository.findDealerInventorySerials(dealerId).stream()
@@ -58,7 +61,10 @@ public class DealerSerialSupport {
         return ProductSerialResponseMapper.toDealerProductSerialResponse(productSerialRepository.save(productSerial));
     }
 
-    public List<DealerProductSerialResponse> importSerials(Long dealerId, CreateDealerSerialBatchRequest request) {
+    public SerialImportSummaryResponse<DealerProductSerialResponse> importSerials(
+            Long dealerId,
+            CreateDealerSerialBatchRequest request
+    ) {
         Long orderId = request.orderId();
         if (orderId == null) {
             throw new BadRequestException("orderId is required");
@@ -82,22 +88,42 @@ public class DealerSerialSupport {
             throw new BadRequestException("Product is not part of the selected order");
         }
         long existingCount = productSerialRepository.countByOrderIdAndProductId(orderId, product.getId());
-        if (existingCount + request.serials().size() > orderedQuantity) {
-            throw new BadRequestException("Imported serial count exceeds ordered quantity");
-        }
         ProductSerialStatus initialStatus = resolveImportedStatus(orderStatus, request.status());
         Set<String> uniqueSerials = new LinkedHashSet<>();
+        List<SerialImportSkippedItem> skippedItems = new ArrayList<>();
         for (String rawSerial : request.serials()) {
-            String normalizedSerial = DealerRequestSupport.requireNonBlank(rawSerial, "serial").toUpperCase(Locale.ROOT);
-            if (!uniqueSerials.add(normalizedSerial)) {
+            String normalizedValue = DealerRequestSupport.normalize(rawSerial);
+            if (normalizedValue == null) {
+                skippedItems.add(new SerialImportSkippedItem("", "serial must not be blank"));
                 continue;
             }
-            productSerialRepository.findBySerialIgnoreCase(normalizedSerial).ifPresent(existing -> {
-                throw new BadRequestException("Serial already exists: " + normalizedSerial);
-            });
+            String normalizedSerial = normalizedValue.toUpperCase(Locale.ROOT);
+            if (!uniqueSerials.add(normalizedSerial)) {
+                skippedItems.add(new SerialImportSkippedItem(normalizedSerial, "Duplicate serial in request"));
+            }
         }
+
+        List<String> importableSerials = new ArrayList<>();
+        for (String serial : uniqueSerials) {
+            if (productSerialRepository.findBySerialIgnoreCase(serial).isPresent()) {
+                skippedItems.add(new SerialImportSkippedItem(serial, "Serial already exists"));
+                continue;
+            }
+            importableSerials.add(serial);
+        }
+
+        int remainingCapacity = Math.max(0, orderedQuantity - Math.toIntExact(existingCount));
+        List<String> acceptedSerials = new ArrayList<>();
+        for (String serial : importableSerials) {
+            if (acceptedSerials.size() >= remainingCapacity) {
+                skippedItems.add(new SerialImportSkippedItem(serial, "Imported serial count exceeds ordered quantity"));
+                continue;
+            }
+            acceptedSerials.add(serial);
+        }
+
         List<ProductSerial> toSave = new ArrayList<>();
-        for (String serialValue : uniqueSerials) {
+        for (String serialValue : acceptedSerials) {
             ProductSerial serial = new ProductSerial();
             serial.setSerial(serialValue);
             serial.setProduct(product);
@@ -108,9 +134,14 @@ public class DealerSerialSupport {
             serial.setWarehouseName(request.warehouseName());
             toSave.add(serial);
         }
-        return productSerialRepository.saveAll(toSave).stream()
-                .map(ProductSerialResponseMapper::toDealerProductSerialResponse)
-                .toList();
+        List<DealerProductSerialResponse> importedItems = List.of();
+        if (!toSave.isEmpty()) {
+            importedItems = productSerialRepository.saveAll(toSave).stream()
+                    .map(ProductSerialResponseMapper::toDealerProductSerialResponse)
+                    .toList();
+        }
+        productStockSyncSupport.syncProductStock(product);
+        return SerialImportSummaryResponse.of(importedItems, skippedItems);
     }
 
     private ProductSerialStatus resolveImportedStatus(OrderStatus orderStatus, ProductSerialStatus requestedStatus) {

@@ -11,7 +11,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useDebounce } from '@/hooks/useDebounce';
 import Hero from '@/components/ui/Hero';
 import { parseImageUrl } from '@/utils/media';
-import { buildBlogPath } from '@/lib/slug';
+import { buildBlogPath, buildProductPath } from '@/lib/slug';
 
 interface SearchResult {
     type: 'product' | 'blog';
@@ -137,7 +137,7 @@ function SearchContent() {
                         title: product.name,
                         subtitle: product.shortDescription,
                         image: parseImageUrl(product.image),
-                        href: `/products/${productId}`,
+                        href: buildProductPath(productId, product.name),
                         category: t('search.type.product')
                     });
                 });

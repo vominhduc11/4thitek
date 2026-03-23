@@ -101,24 +101,33 @@ class DealerSerialWarrantyGuardTests {
     }
 
     @Test
-    void dealerCannotImportMoreSerialsThanOrderedQuantity() {
+    void dealerImportSkipsSerialsThatExceedOrderedQuantity() {
         Dealer dealer = dealerRepository.save(createDealer("serial-quantity-guard@example.com"));
         Product product = productRepository.save(createProduct("SKU-SERIAL-3", BigDecimal.valueOf(100_000)));
         Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-2"));
 
-        assertThatThrownBy(() -> dealerPortalService.importSerials(
+        var result = dealerPortalService.importSerials(
                 dealer.getUsername(),
                 new CreateDealerSerialBatchRequest(
                         product.getId(),
                         order.getId(),
-                        ProductSerialStatus.AVAILABLE,
+                        ProductSerialStatus.ASSIGNED,
                         "main",
                         "Kho",
                         List.of("SERIAL-X-02", "SERIAL-X-03")
                 )
-        ))
-                .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("Imported serial count exceeds ordered quantity");
+        );
+
+        assertThat(result.importedCount()).isEqualTo(1);
+        assertThat(result.skippedCount()).isEqualTo(1);
+        assertThat(result.importedItems()).singleElement().satisfies(item -> {
+            assertThat(item.serial()).isEqualTo("SERIAL-X-02");
+            assertThat(item.status()).isEqualTo(ProductSerialStatus.ASSIGNED);
+        });
+        assertThat(result.skippedItems()).singleElement().satisfies(item -> {
+            assertThat(item.serial()).isEqualTo("SERIAL-X-03");
+            assertThat(item.reason()).isEqualTo("Imported serial count exceeds ordered quantity");
+        });
     }
 
     @Test
@@ -146,6 +155,46 @@ class DealerSerialWarrantyGuardTests {
         ))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("shipping or completed order");
+    }
+
+    @Test
+    void dealerImportReturnsPartialSuccessSummaryForDuplicateAndExistingSerials() {
+        Dealer dealer = dealerRepository.save(createDealer("serial-import-summary@example.com"));
+        Product product = productRepository.save(createProduct("SKU-SERIAL-SUMMARY", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 2, "SERIAL-ORDER-SUMMARY"));
+        productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-EXISTING-1",
+                ProductSerialStatus.ASSIGNED
+        ));
+
+        var result = dealerPortalService.importSerials(
+                dealer.getUsername(),
+                new CreateDealerSerialBatchRequest(
+                        product.getId(),
+                        order.getId(),
+                        ProductSerialStatus.ASSIGNED,
+                        "main",
+                        "Kho",
+                        List.of("SERIAL-NEW-1", "SERIAL-NEW-1", "SERIAL-EXISTING-1", "SERIAL-NEW-2")
+                )
+        );
+
+        assertThat(result.importedCount()).isEqualTo(1);
+        assertThat(result.skippedCount()).isEqualTo(3);
+        assertThat(result.importedItems()).singleElement().satisfies(item -> {
+            assertThat(item.serial()).isEqualTo("SERIAL-NEW-1");
+            assertThat(item.status()).isEqualTo(ProductSerialStatus.ASSIGNED);
+            assertThat(item.orderId()).isEqualTo(order.getId());
+        });
+        assertThat(result.skippedItems()).extracting(item -> item.serial() + ":" + item.reason())
+                .containsExactly(
+                        "SERIAL-NEW-1:Duplicate serial in request",
+                        "SERIAL-EXISTING-1:Serial already exists",
+                        "SERIAL-NEW-2:Imported serial count exceeds ordered quantity"
+                );
     }
 
     @Test
@@ -541,6 +590,76 @@ class DealerSerialWarrantyGuardTests {
         assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
                 .isEqualTo(ProductSerialStatus.ASSIGNED);
         assertThat(publicApiService.lookupWarranty(serial.getSerial()).status()).isEqualTo("invalid");
+    }
+
+    @Test
+    void deletingWarrantyKeepsDefectiveSerialStatus() {
+        Dealer dealer = dealerRepository.save(createDealer("warranty-delete-defective@example.com"));
+        Product product = productRepository.save(createProduct("SKU-WARRANTY-DELETE-DEFECTIVE", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-DELETE-DEFECTIVE"));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-WARRANTY-DELETE-DEFECTIVE",
+                ProductSerialStatus.ASSIGNED
+        ));
+
+        var warranty = dealerPortalService.activateWarranty(
+                dealer.getUsername(),
+                new CreateWarrantyRegistrationRequest(
+                        serial.getId(),
+                        "Customer Delete Defective",
+                        "delete-defective@example.com",
+                        "0912345602",
+                        "502 Warranty Street",
+                        LocalDate.now()
+                )
+        );
+
+        ProductSerial warrantySerial = productSerialRepository.findById(serial.getId()).orElseThrow();
+        warrantySerial.setStatus(ProductSerialStatus.DEFECTIVE);
+        productSerialRepository.save(warrantySerial);
+
+        dealerPortalService.deleteWarranty(dealer.getUsername(), warranty.id());
+
+        assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
+                .isEqualTo(ProductSerialStatus.DEFECTIVE);
+    }
+
+    @Test
+    void deletingWarrantyKeepsReturnedSerialStatus() {
+        Dealer dealer = dealerRepository.save(createDealer("warranty-delete-returned@example.com"));
+        Product product = productRepository.save(createProduct("SKU-WARRANTY-DELETE-RETURNED", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-DELETE-RETURNED"));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-WARRANTY-DELETE-RETURNED",
+                ProductSerialStatus.ASSIGNED
+        ));
+
+        var warranty = dealerPortalService.activateWarranty(
+                dealer.getUsername(),
+                new CreateWarrantyRegistrationRequest(
+                        serial.getId(),
+                        "Customer Delete Returned",
+                        "delete-returned@example.com",
+                        "0912345603",
+                        "503 Warranty Street",
+                        LocalDate.now()
+                )
+        );
+
+        ProductSerial warrantySerial = productSerialRepository.findById(serial.getId()).orElseThrow();
+        warrantySerial.setStatus(ProductSerialStatus.RETURNED);
+        productSerialRepository.save(warrantySerial);
+
+        dealerPortalService.deleteWarranty(dealer.getUsername(), warranty.id());
+
+        assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
+                .isEqualTo(ProductSerialStatus.RETURNED);
     }
 
     private Dealer createDealer(String username) {

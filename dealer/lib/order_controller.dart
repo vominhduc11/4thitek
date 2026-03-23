@@ -15,6 +15,7 @@ enum OrderMessageCode {
   invalidOrderPayload,
   invalidOrdersPayload,
   invalidCreateOrderPayload,
+  createOrderFailed,
   statusUpdateFailed,
   paymentFailed,
   syncFailed,
@@ -57,6 +58,10 @@ String resolveOrderControllerMessage(
       return isEnglish
           ? 'Created order data is invalid.'
           : 'Du lieu don hang vua tao khong hop le.';
+    case 'order.message.createOrderFailed':
+      return isEnglish
+          ? 'Unable to create the order. Please try again.'
+          : 'Khong the tao don hang. Vui long thu lai.';
     case 'order.message.statusUpdateFailed':
       return isEnglish
           ? 'Unable to update the order status. Please try again.'
@@ -128,8 +133,10 @@ class OrderController extends ChangeNotifier {
   bool _debtOrdersCacheDirty = true;
   bool _paymentHistoryCacheDirty = true;
   String? _lastActionMessage;
+  DateTime? _lastRemoteSyncAt;
 
   String? get lastActionMessage => _lastActionMessage;
+  DateTime? get lastRemoteSyncAt => _lastRemoteSyncAt;
 
   Future<void> load({bool forceRefresh = false}) async {
     _lastActionMessage = null;
@@ -185,6 +192,7 @@ class OrderController extends ChangeNotifier {
 
   Future<void> clearSessionData() async {
     _lastActionMessage = null;
+    _lastRemoteSyncAt = null;
     _remoteOrderIds.clear();
     _remoteOrderCodes.clear();
     _replaceOrders(const <Order>[]);
@@ -335,6 +343,7 @@ class OrderController extends ChangeNotifier {
         }
         final nextOrder = _mapRemoteOrder(data);
         _replaceOrder(nextOrder);
+        _lastRemoteSyncAt = DateTime.now();
         notifyListeners();
         return true;
       } catch (error) {
@@ -429,6 +438,7 @@ class OrderController extends ChangeNotifier {
           _paymentHistory.add(nextPayment);
           _markPaymentsDirty();
         }
+        _lastRemoteSyncAt = DateTime.now();
         notifyListeners();
         return true;
       } catch (error) {
@@ -483,6 +493,7 @@ class OrderController extends ChangeNotifier {
 
       _replaceOrders(remoteOrders);
       _replacePaymentHistory(paymentsByOrder.expand((items) => items));
+      _lastRemoteSyncAt = DateTime.now();
       notifyListeners();
       return true;
     } catch (error) {
@@ -521,7 +532,7 @@ class OrderController extends ChangeNotifier {
       throw OrderControllerException(
         _extractErrorMessageWithFallback(
           payload,
-          orderControllerMessageToken(OrderMessageCode.paymentFailed),
+          orderControllerMessageToken(OrderMessageCode.createOrderFailed),
         ),
       );
     }
@@ -534,6 +545,7 @@ class OrderController extends ChangeNotifier {
     final remoteOrder = _mapRemoteOrder(data);
     _replaceOrder(remoteOrder);
     await _reloadRemotePaymentsForOrder(_remoteOrderIds[remoteOrder.id]!);
+    _lastRemoteSyncAt = DateTime.now();
     notifyListeners();
     return remoteOrder;
   }

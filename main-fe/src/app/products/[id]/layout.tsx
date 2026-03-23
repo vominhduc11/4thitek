@@ -2,12 +2,14 @@ import type { Metadata } from 'next';
 import JsonLd from '@/components/seo/JsonLd';
 import { createBaseMetadata, productJsonLd } from '@/lib/seo';
 import { publicApiServer } from '@/lib/publicApiServer';
+import { buildProductPath, extractRouteId } from '@/lib/slug';
 import { parseImageUrl } from '@/utils/media';
 
 export async function generateStaticParams() {
     const response = await publicApiServer.fetchProducts();
     return (response.data ?? []).flatMap((product) => {
-        const id = String(product.id).trim();
+        const path = buildProductPath(product.id, product.name);
+        const id = path.replace('/products/', '');
         return id ? [{ id }] : [];
     });
 }
@@ -17,7 +19,8 @@ export async function generateMetadata({
 }: {
     params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-    const { id } = await params;
+    const { id: rawId } = await params;
+    const id = extractRouteId(rawId);
     const response = await publicApiServer.fetchProductById(id);
     if (!response.success || !response.data) {
         return createBaseMetadata({
@@ -29,13 +32,14 @@ export async function generateMetadata({
     }
 
     const product = response.data;
+    const canonicalPath = buildProductPath(product.id, product.name);
     return createBaseMetadata({
         locale: 'vi',
-        path: `/products/${id}`,
+        path: canonicalPath,
         title: `${product.name} | 4ThiTek`,
         description: product.shortDescription || product.description || product.name,
         image: parseImageUrl(product.image, '') || undefined,
-        keywords: ['tai nghe SCS', product.name, '4ThiTek', 'tai nghe chính hãng']
+        keywords: ['tai nghe SCS', product.name, '4ThiTek', 'tai nghe chinh hang']
     });
 }
 
@@ -46,7 +50,8 @@ export default async function ProductLayout({
     children: React.ReactNode;
     params: Promise<{ id: string }>;
 }) {
-    const { id } = await params;
+    const { id: rawId } = await params;
+    const id = extractRouteId(rawId);
     const response = await publicApiServer.fetchProductById(id);
     const product = response.success ? response.data : null;
 
@@ -60,7 +65,8 @@ export default async function ProductLayout({
                             name: product.name,
                             description: product.shortDescription || product.description || product.name,
                             image: parseImageUrl(product.image, '') || undefined,
-                            price: product.price
+                            price: product.price,
+                            path: buildProductPath(product.id, product.name)
                         })}
                     />
                 ) : null}

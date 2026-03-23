@@ -1,3 +1,32 @@
+enum ImportedSerialStatus {
+  available,
+  reserved,
+  assigned,
+  warranty,
+  defective,
+  returned,
+  unknown,
+}
+
+ImportedSerialStatus parseImportedSerialStatus(String? raw) {
+  switch ((raw ?? '').trim().toUpperCase()) {
+    case 'AVAILABLE':
+      return ImportedSerialStatus.available;
+    case 'RESERVED':
+      return ImportedSerialStatus.reserved;
+    case 'ASSIGNED':
+      return ImportedSerialStatus.assigned;
+    case 'WARRANTY':
+      return ImportedSerialStatus.warranty;
+    case 'DEFECTIVE':
+      return ImportedSerialStatus.defective;
+    case 'RETURNED':
+      return ImportedSerialStatus.returned;
+    default:
+      return ImportedSerialStatus.unknown;
+  }
+}
+
 class WarrantyActivationRecord {
   const WarrantyActivationRecord({
     required this.orderId,
@@ -54,6 +83,7 @@ class ImportedSerialRecord {
     required this.productName,
     required this.productSku,
     required this.importedAt,
+    this.status = ImportedSerialStatus.assigned,
     this.warehouseId = 'main',
     this.warehouseName = 'Kho',
   });
@@ -64,6 +94,7 @@ class ImportedSerialRecord {
   final String productName;
   final String productSku;
   final DateTime importedAt;
+  final ImportedSerialStatus status;
   final String warehouseId;
   final String warehouseName;
 
@@ -74,6 +105,7 @@ class ImportedSerialRecord {
     String? productName,
     String? productSku,
     DateTime? importedAt,
+    ImportedSerialStatus? status,
     String? warehouseId,
     String? warehouseName,
   }) {
@@ -84,6 +116,7 @@ class ImportedSerialRecord {
       productName: productName ?? this.productName,
       productSku: productSku ?? this.productSku,
       importedAt: importedAt ?? this.importedAt,
+      status: status ?? this.status,
       warehouseId: warehouseId ?? this.warehouseId,
       warehouseName: warehouseName ?? this.warehouseName,
     );

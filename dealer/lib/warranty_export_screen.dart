@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -38,9 +40,12 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
 
   final List<ImportedSerialRecord> _cart = [];
   DateTime _purchaseDate = DateUtils.dateOnly(DateTime.now());
+  bool _didStartInitialSync = false;
+  bool _isInitialSyncing = true;
   bool _isSubmitting = false;
   bool _didApplyPrefill = false;
   bool _isEnglish = false;
+  String? _initialSyncWarning;
 
   _WarrantyExportTexts get _texts =>
       _WarrantyExportTexts(isEnglish: _isEnglish);
@@ -49,26 +54,62 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _isEnglish = AppSettingsScope.of(context).locale.languageCode == 'en';
-    if (_didApplyPrefill) return;
-    _didApplyPrefill = true;
-
-    final prefilled = widget.prefilledSerial?.trim();
-    if (prefilled == null || prefilled.isEmpty) return;
-
-    final warrantyController = WarrantyScope.of(context);
-    final normalized = warrantyController.normalizeSerial(prefilled);
-    final error = warrantyController.validateSerialForExport(
-      normalized,
-      isEnglish: _isEnglish,
-    );
-    if (error != null) {
-      _showSnackBarDeferred(error);
+    if (_didStartInitialSync) {
       return;
     }
-    final record = warrantyController.findImportedSerial(normalized);
-    if (record != null) {
-      _cart.add(record);
+    _didStartInitialSync = true;
+    unawaited(_initializeScreen());
+  }
+
+  Future<void> _initializeScreen() async {
+    final orderController = OrderScope.of(context);
+    final warrantyController = WarrantyScope.of(context);
+    await Future.wait<void>([
+      orderController.refresh(),
+      warrantyController.load(forceRefresh: true),
+    ]);
+    final warnings = <String>[];
+    if (orderController.lastActionMessage != null) {
+      warnings.add(
+        orderControllerErrorMessage(
+          orderController.lastActionMessage,
+          isEnglish: _isEnglish,
+        ),
+      );
     }
+    if (warrantyController.lastSyncMessage != null) {
+      warnings.add(
+        warrantySyncErrorMessage(
+          warrantyController.lastSyncMessage,
+          isEnglish: _isEnglish,
+        ),
+      );
+    }
+    _initialSyncWarning = warnings.isEmpty
+        ? null
+        : warnings.join('\n');
+
+    if (!mounted) {
+      return;
+    }
+    _didApplyPrefill = true;
+    final prefilled = widget.prefilledSerial?.trim();
+    if (prefilled != null && prefilled.isNotEmpty) {
+      final normalized = warrantyController.normalizeSerial(prefilled);
+      final error = warrantyController.validateSerialForExport(
+        normalized,
+        isEnglish: _isEnglish,
+      );
+      if (error != null) {
+        _showSnackBarDeferred(error);
+      } else {
+        final record = warrantyController.findImportedSerial(normalized);
+        if (record != null) {
+          _cart.add(record);
+        }
+      }
+    }
+    setState(() => _isInitialSyncing = false);
   }
 
   @override
@@ -270,6 +311,12 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
   @override
   Widget build(BuildContext context) {
     final texts = _texts;
+    if (_isInitialSyncing) {
+      return Scaffold(
+        appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     final warrantyController = WarrantyScope.of(context);
     final orderController = OrderScope.of(context);
     final colorScheme = Theme.of(context).colorScheme;
@@ -322,6 +369,15 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
             controller: _scrollController,
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
             children: [
+              if (_initialSyncWarning != null) ...[
+                FadeSlideIn(
+                  child: _ExportSectionCard(
+                    title: texts.syncWarningTitle,
+                    child: Text(_initialSyncWarning!),
+                  ),
+                ),
+                const SizedBox(height: _exportSectionGap),
+              ],
               // Serial input section
               FadeSlideIn(
                 child: _ExportSectionCard(
@@ -653,6 +709,11 @@ class _WarrantyExportTexts {
   final bool isEnglish;
 
   String get screenTitle => isEnglish ? 'Export stock' : 'Xuất hàng';
+  String get syncWarningTitle =>
+      isEnglish ? 'Sync warning' : 'Cảnh báo đồng bộ';
+  String get initialSyncWarning => isEnglish
+      ? 'Latest warranty inventory could not be refreshed. The screen is using the current local data.'
+      : 'Không thể làm mới tồn kho bảo hành mới nhất. Màn hình đang dùng dữ liệu hiện có trên máy.';
   String serialAlreadyInCartMessage(String serial) => isEnglish
       ? 'Serial $serial is already in the export cart.'
       : 'Serial $serial đã có trong giỏ xuất hàng.';

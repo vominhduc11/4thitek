@@ -5,7 +5,6 @@ import 'quill/dist/quill.snow.css'
 // Register divider (horizontal rule) blot once
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const BlockEmbed = Quill.import('blots/block/embed') as any
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
 class DividerBlot extends BlockEmbed {
   static blotName = 'divider'
   static tagName = 'hr'
@@ -21,6 +20,18 @@ type RichTextEditorProps = {
   placeholder?: string
   readOnly?: boolean
   ariaLabel?: string
+}
+
+type QuillToolbarModule = {
+  container?: HTMLElement
+  addHandler?: (format: string, handler: () => void) => void
+}
+
+const insertDivider = (instance: Quill) => {
+  const range = instance.getSelection(true)
+  const index = range?.index ?? instance.getLength()
+  instance.insertEmbed(index, 'divider', true, 'user')
+  instance.setSelection(index + 1, 0, 'silent')
 }
 
 export const RichTextEditor = ({
@@ -72,8 +83,11 @@ export const RichTextEditor = ({
     })
 
     quillRef.current = instance
-    const toolbarModule = instance.getModule('toolbar') as { container?: HTMLElement } | null
+    const toolbarModule = instance.getModule('toolbar') as QuillToolbarModule | null
     toolbarRef.current = toolbarModule?.container ?? null
+    toolbarModule?.addHandler?.('divider', () => {
+      insertDivider(instance)
+    })
 
     const handleChange = () => {
       const html = instance.root.innerHTML

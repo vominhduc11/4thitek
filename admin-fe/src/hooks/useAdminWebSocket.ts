@@ -36,7 +36,10 @@ type AdminWsCallbacks = {
 
 export function useAdminWebSocket(token: string | null, callbacks: AdminWsCallbacks) {
   const callbacksRef = useRef(callbacks)
-  callbacksRef.current = callbacks
+
+  useEffect(() => {
+    callbacksRef.current = callbacks
+  }, [callbacks])
 
   useEffect(() => {
     if (!token) {

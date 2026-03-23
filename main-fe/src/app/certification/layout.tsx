@@ -6,9 +6,10 @@ import { SITE_URL } from '@/lib/site';
 export const metadata: Metadata = createBaseMetadata({
     locale: 'vi',
     path: '/certification',
-    title: '4ThiTek | Chứng nhận & Giải thưởng',
-    description: 'Xem các chứng nhận chất lượng và giải thưởng của 4ThiTek trong lĩnh vực phân phối tai nghe SCS chính hãng tại Việt Nam.',
-    keywords: ['chứng nhận 4ThiTek', 'giải thưởng SCS', 'tai nghe SCS chính hãng', 'chứng chỉ chất lượng']
+    title: '4ThiTek | Chung nhan & Giai thuong',
+    description:
+        'Xem cac chung nhan chat luong va giai thuong cua 4ThiTek trong linh vuc phan phoi tai nghe SCS chinh hang tai Viet Nam.',
+    keywords: ['chung nhan 4ThiTek', 'giai thuong SCS', 'tai nghe SCS chinh hang', 'chung chi chat luong']
 });
 
 export default function CertificationLayout({ children }: { children: React.ReactNode }) {
@@ -16,8 +17,8 @@ export default function CertificationLayout({ children }: { children: React.Reac
         <>
             <JsonLd
                 data={breadcrumbJsonLd([
-                    { name: 'Trang chủ', url: SITE_URL },
-                    { name: 'Chứng nhận', url: `${SITE_URL}/certification` }
+                    { name: 'Trang chu', url: SITE_URL },
+                    { name: 'Chung nhan', url: `${SITE_URL}/certification` }
                 ])}
             />
             {children}

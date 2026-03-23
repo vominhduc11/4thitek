@@ -1,2 +1,11 @@
 .env
 .env.production
+backend/.env
+admin-fe/.env
+main-fe/.env
+dealer/.env
+service_account.json
+service_account*.json
+google-services.json
+dealer/android/app/google-services.json
+dealer/ios/Runner/GoogleService-Info.plist

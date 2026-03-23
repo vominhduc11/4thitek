@@ -7,6 +7,7 @@ import { FiHeadphones } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
+import { buildProductPath } from '@/lib/slug';
 import type { Product } from '@/types/product';
 
 interface ProductImageWithFallbackProps {
@@ -82,7 +83,7 @@ export default function ProductHero({
         setIsShuffling(true);
         const seed = Date.now() + product.id.charCodeAt(0);
         const randomProduct = relatedProducts[seed % relatedProducts.length];
-        router.push(`/products/${randomProduct.id}`);
+        router.push(buildProductPath(randomProduct.id, randomProduct.name));
     };
 
     return (

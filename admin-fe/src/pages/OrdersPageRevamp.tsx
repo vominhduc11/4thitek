@@ -118,6 +118,7 @@ function OrdersPageRevamp() {
         const matchesQuery =
           !normalizedQuery ||
           order.id.toLowerCase().includes(normalizedQuery) ||
+          order.orderCode.toLowerCase().includes(normalizedQuery) ||
           order.dealer.toLowerCase().includes(normalizedQuery)
         return matchesStatus && matchesQuery
       }),
@@ -259,8 +260,8 @@ function OrdersPageRevamp() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className={tableValueClass}>#{order.id}</p>
-                        <p className={tableMetaClass}>{order.dealer}</p>
+                        <p className={tableValueClass}>{order.orderCode}</p>
+                        <p className={tableMetaClass}>#{order.id} · {order.dealer}</p>
                       </div>
                       <StatusBadge tone={orderStatusTone[order.status]}>
                         {t(orderStatusLabel[order.status])}
@@ -327,7 +328,8 @@ function OrdersPageRevamp() {
                       role="row"
                     >
                       <td className="rounded-l-2xl px-3 py-3 font-semibold text-[var(--ink)]">
-                        #{order.id}
+                        <div>{order.orderCode}</div>
+                        <div className={tableMetaClass}>#{order.id}</div>
                       </td>
                       <td className="px-3 py-3">{order.dealer}</td>
                       <td className="px-3 py-3 font-semibold text-[var(--accent)]">

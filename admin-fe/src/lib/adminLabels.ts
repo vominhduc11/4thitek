@@ -64,6 +64,19 @@ export const dealerStatusTone: Record<DealerStatus, BadgeTone> = {
   suspended: 'danger',
 }
 
+export const getAllowedDealerStatuses = (current: DealerStatus): DealerStatus[] => {
+  switch (current) {
+    case 'under_review':
+      return ['under_review', 'active', 'suspended']
+    case 'active':
+      return ['active', 'suspended']
+    case 'suspended':
+      return ['suspended', 'active']
+    default:
+      return [current]
+  }
+}
+
 export const dealerStatusDescription: Record<DealerStatus, string> = {
   active: 'Đại lý đã được phê duyệt và có thể đăng nhập ứng dụng dealer.',
   under_review: 'Hồ sơ đang chờ admin xác minh trước khi kích hoạt.',

@@ -26,9 +26,19 @@ export const metadata: Metadata = {
     ...createBaseMetadata({
         locale: 'vi',
         path: '/',
-        title: '4ThiTek - Nhà phân phối tai nghe SCS chính hãng tại Việt Nam',
-        description: 'Website chính thức của 4ThiTek – nhà phân phối chính hãng tai nghe SCS tại Việt Nam. Khám phá sản phẩm, kiểm tra bảo hành và đăng ký trở thành đại lý.',
-        keywords: ['4ThiTek', 'tai nghe SCS', 'tai nghe chính hãng', 'SCS headset', 'đại lý tai nghe SCS', 'bảo hành tai nghe SCS', 'mua tai nghe SCS', 'SCS Vietnam']
+        title: '4ThiTek - Nha phan phoi tai nghe SCS chinh hang tai Viet Nam',
+        description:
+            'Website chinh thuc cua 4ThiTek - nha phan phoi chinh hang tai nghe SCS tai Viet Nam. Kham pha san pham, kiem tra bao hanh va dang ky tro thanh dai ly.',
+        keywords: [
+            '4ThiTek',
+            'tai nghe SCS',
+            'tai nghe chinh hang',
+            'SCS headset',
+            'dai ly tai nghe SCS',
+            'bao hanh tai nghe SCS',
+            'mua tai nghe SCS',
+            'SCS Vietnam'
+        ]
     }),
     applicationName: SITE_NAME,
     authors: [{ name: SITE_NAME, url: 'https://4thitek.vn' }],

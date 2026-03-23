@@ -61,6 +61,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
   bool _inventoryCacheDirty = true;
   InventoryLoadState _loadState = InventoryLoadState.loading;
   bool _hasScheduledInitialReload = false;
+  String? _syncWarningMessage;
+  String? _loadErrorMessage;
 
   String _query = '';
   InventoryStockFilter _stockFilter = InventoryStockFilter.all;
@@ -124,29 +126,60 @@ class _InventoryScreenState extends State<InventoryScreen> {
     if (!mounted) {
       return;
     }
+    final texts = _inventoryTexts(context);
+    final orderController = OrderScope.of(context);
+    final warrantyController = WarrantyScope.of(context);
     setState(() {
       _loadState = InventoryLoadState.loading;
       _visibleItemCount = _inventoryPageSize;
+      _syncWarningMessage = null;
+      _loadErrorMessage = null;
     });
-    try {
-      await Future.wait<void>([
-        OrderScope.of(context).refresh(),
-        WarrantyScope.of(context).load(forceRefresh: true),
-      ]);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _inventoryCacheDirty = true;
-        _loadState = InventoryLoadState.ready;
-        _visibleItemCount = _inventoryPageSize;
-      });
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _loadState = InventoryLoadState.error);
+    await Future.wait<void>([
+      orderController.refresh(),
+      warrantyController.load(forceRefresh: true),
+    ]);
+    if (!mounted) {
+      return;
     }
+
+    final warnings = <String>[];
+    if (orderController.lastActionMessage != null) {
+      warnings.add(
+        orderControllerErrorMessage(
+          orderController.lastActionMessage,
+          isEnglish: texts.isEnglish,
+        ),
+      );
+    }
+    if (warrantyController.lastSyncMessage != null) {
+      warnings.add(
+        warrantySyncErrorMessage(
+          warrantyController.lastSyncMessage,
+          isEnglish: texts.isEnglish,
+        ),
+      );
+    }
+
+    _inventoryCacheDirty = true;
+    final nextInventoryItems = _buildInventoryItems(
+      orderController: orderController,
+      warrantyController: warrantyController,
+    );
+    final hasFreshData =
+        orderController.lastActionMessage == null &&
+        warrantyController.lastSyncMessage == null;
+    final shouldShowError = nextInventoryItems.isEmpty && !hasFreshData;
+
+    setState(() {
+      _inventoryCacheDirty = true;
+      _visibleItemCount = _inventoryPageSize;
+      _syncWarningMessage = warnings.isEmpty ? null : warnings.join('\n');
+      _loadErrorMessage = shouldShowError ? texts.loadInventoryErrorMessage : null;
+      _loadState = shouldShowError
+          ? InventoryLoadState.error
+          : InventoryLoadState.ready;
+    });
   }
 
   void _handleListScroll() {
@@ -324,7 +357,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
             InventoryLoadState.loading => _InventoryLoadingView(
               bottomPadding: listBottomPadding,
             ),
-            InventoryLoadState.error => _InventoryErrorView(onRetry: _reload),
+            InventoryLoadState.error => _InventoryErrorView(
+              onRetry: _reload,
+              message: _loadErrorMessage,
+              details: _syncWarningMessage,
+            ),
             InventoryLoadState.ready => RefreshIndicator(
               onRefresh: _reload,
               child: ListView(
@@ -334,6 +371,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: EdgeInsets.fromLTRB(16, 12, 16, listBottomPadding),
                 children: [
+                  _InventorySyncBanner(
+                    summary: texts.inventorySourceSummary(
+                      warrantyController.lastRemoteSyncAt == null
+                          ? null
+                          : formatDateTime(warrantyController.lastRemoteSyncAt!),
+                    ),
+                    warningMessage: _syncWarningMessage,
+                  ),
+                  const SizedBox(height: _inventorySectionSpacing),
                   Semantics(
                     textField: true,
                     label: texts.searchSemantic,
@@ -451,9 +497,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                               MaterialPageRoute(
                                 builder: (_) => InventoryProductDetailScreen(
                                   product: item.product,
-                                  availableQuantity: item.availableQuantity,
+                                  readyQuantity: item.readyQuantity,
                                   importedQuantity: item.importedQuantity,
-                                  soldQuantity: item.soldQuantity,
+                                  warrantyQuantity: item.warrantyQuantity,
+                                  issueQuantity: item.issueQuantity,
                                   orderIds: item.orderIds.toList(
                                     growable: false,
                                   ),
@@ -703,8 +750,9 @@ class InventoryProductItem {
   const InventoryProductItem({
     required this.product,
     required this.importedQuantity,
-    required this.availableQuantity,
-    required this.soldQuantity,
+    required this.readyQuantity,
+    required this.warrantyQuantity,
+    required this.issueQuantity,
     required this.latestImportedAt,
     required this.orderIds,
     required this.serialSearchIndex,
@@ -712,17 +760,18 @@ class InventoryProductItem {
 
   final Product product;
   final int importedQuantity;
-  final int availableQuantity;
-  final int soldQuantity;
+  final int readyQuantity;
+  final int warrantyQuantity;
+  final int issueQuantity;
   final DateTime latestImportedAt;
   final Set<String> orderIds;
   final String serialSearchIndex;
 
   InventoryStockStatus get stockStatus {
-    if (availableQuantity <= 0) {
+    if (readyQuantity <= 0) {
       return InventoryStockStatus.outOfStock;
     }
-    if (availableQuantity <= _lowStockThreshold) {
+    if (readyQuantity <= _lowStockThreshold) {
       return InventoryStockStatus.lowStock;
     }
     return InventoryStockStatus.inStock;
@@ -733,27 +782,15 @@ List<InventoryProductItem> _buildInventoryItems({
   required OrderController orderController,
   required WarrantyController warrantyController,
 }) {
-  // Build lookups from all orders
   final productMap = <String, Product>{};
-  final completedOrderIds = <String>{};
   for (final order in orderController.orders) {
     for (final item in order.items) {
       productMap[item.product.id] = item.product;
     }
-    if (order.status == OrderStatus.completed) {
-      completedOrderIds.add(order.id);
-    }
   }
-
-  final activatedSet = warrantyController.activations
-      .map((record) => warrantyController.normalizeSerial(record.serial))
-      .toSet();
 
   final map = <String, _InventoryAccumulator>{};
   for (final record in warrantyController.importedSerials) {
-    // Only include serials whose order is completed (goods delivered to dealer)
-    if (!completedOrderIds.contains(record.orderId)) continue;
-
     final product =
         productMap[record.productId] ??
         Product(
@@ -789,10 +826,17 @@ List<InventoryProductItem> _buildInventoryItems({
     }
 
     current.importedQuantity += 1;
-    if (activatedSet.contains(normalized)) {
-      current.serialSold += 1;
-    } else {
-      current.serialAvailable += 1;
+    switch (record.status) {
+      case ImportedSerialStatus.available:
+      case ImportedSerialStatus.assigned:
+        current.readyQuantity += 1;
+      case ImportedSerialStatus.warranty:
+        current.warrantyQuantity += 1;
+      case ImportedSerialStatus.reserved:
+      case ImportedSerialStatus.defective:
+      case ImportedSerialStatus.returned:
+      case ImportedSerialStatus.unknown:
+        current.issueQuantity += 1;
     }
     map[record.productId] = current;
   }
@@ -802,8 +846,9 @@ List<InventoryProductItem> _buildInventoryItems({
         (entry) => InventoryProductItem(
           product: entry.product,
           importedQuantity: entry.importedQuantity,
-          availableQuantity: entry.serialAvailable,
-          soldQuantity: entry.serialSold,
+          readyQuantity: entry.readyQuantity,
+          warrantyQuantity: entry.warrantyQuantity,
+          issueQuantity: entry.issueQuantity,
           latestImportedAt: entry.latestImportedAt,
           orderIds: entry.orderIds,
           serialSearchIndex: entry.serials.join(' '),
@@ -850,8 +895,8 @@ List<InventoryProductItem> _filterAndSortItems({
       InventorySortOption.name => a.product.name.toLowerCase().compareTo(
         b.product.name.toLowerCase(),
       ),
-      InventorySortOption.quantity => a.availableQuantity.compareTo(
-        b.availableQuantity,
+      InventorySortOption.quantity => a.readyQuantity.compareTo(
+        b.readyQuantity,
       ),
       InventorySortOption.importedDate => a.latestImportedAt.compareTo(
         b.latestImportedAt,
@@ -866,7 +911,7 @@ InventorySummary _buildSummary(List<InventoryProductItem> items) {
   var totalQuantity = 0;
   var lowStockProducts = 0;
   for (final item in items) {
-    totalQuantity += item.availableQuantity;
+    totalQuantity += item.readyQuantity;
     if (item.stockStatus == InventoryStockStatus.lowStock) {
       lowStockProducts++;
     }
@@ -892,8 +937,9 @@ class _InventoryAccumulator {
   DateTime latestImportedAt;
   final Set<String> orderIds;
   final Set<String> serials;
-  int serialAvailable = 0;
-  int serialSold = 0;
+  int readyQuantity = 0;
+  int warrantyQuantity = 0;
+  int issueQuantity = 0;
 }
 
 class _SummaryChip extends StatelessWidget {
@@ -1268,7 +1314,7 @@ class _InventoryProductTile extends StatelessWidget {
       label: texts.productTileSemantic(
         item.product.name,
         item.product.sku,
-        item.availableQuantity,
+        item.readyQuantity,
         status,
       ),
       child: Card(
@@ -1341,7 +1387,7 @@ class _InventoryProductTile extends StatelessWidget {
                           children: [
                             TextSpan(text: texts.stockLabelPrefix),
                             TextSpan(
-                              text: '${item.availableQuantity}',
+                              text: '${item.readyQuantity}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                               ),
@@ -1349,10 +1395,22 @@ class _InventoryProductTile extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (item.soldQuantity > 0) ...[
+                      if (item.warrantyQuantity > 0) ...[
                         const SizedBox(height: 4),
                         Text(
-                          texts.soldCountLabel(item.soldQuantity),
+                          texts.warrantyCountLabel(item.warrantyQuantity),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                                fontSize: 12,
+                                height: 1.25,
+                              ),
+                        ),
+                      ],
+                      if (item.issueQuantity > 0) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          texts.issueCountLabel(item.issueQuantity),
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
@@ -1473,6 +1531,72 @@ class _InventoryLoadingView extends StatelessWidget {
   }
 }
 
+class _InventorySyncBanner extends StatelessWidget {
+  const _InventorySyncBanner({
+    required this.summary,
+    this.warningMessage,
+  });
+
+  final String summary;
+  final String? warningMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final hasWarning = warningMessage != null && warningMessage!.trim().isNotEmpty;
+    final backgroundColor = hasWarning
+        ? colorScheme.errorContainer.withValues(alpha: 0.55)
+        : colorScheme.primaryContainer.withValues(alpha: 0.38);
+    final borderColor = hasWarning
+        ? colorScheme.error.withValues(alpha: 0.35)
+        : colorScheme.primary.withValues(alpha: 0.24);
+    final iconColor = hasWarning ? colorScheme.error : colorScheme.primary;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            hasWarning ? Icons.sync_problem_outlined : Icons.info_outline,
+            color: iconColor,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  summary,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (hasWarning) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    warningMessage!,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SkeletonBox extends StatefulWidget {
   const _SkeletonBox({
     this.width = double.infinity,
@@ -1534,9 +1658,15 @@ class _SkeletonBoxState extends State<_SkeletonBox>
 }
 
 class _InventoryErrorView extends StatelessWidget {
-  const _InventoryErrorView({required this.onRetry});
+  const _InventoryErrorView({
+    required this.onRetry,
+    this.message,
+    this.details,
+  });
 
   final VoidCallback onRetry;
+  final String? message;
+  final String? details;
 
   @override
   Widget build(BuildContext context) {
@@ -1549,7 +1679,20 @@ class _InventoryErrorView extends StatelessWidget {
           children: [
             const Icon(Icons.error_outline, size: 52),
             const SizedBox(height: 10),
-            Text(texts.loadInventoryErrorMessage, textAlign: TextAlign.center),
+            Text(
+              message ?? texts.loadInventoryErrorMessage,
+              textAlign: TextAlign.center,
+            ),
+            if (details != null && details!.trim().isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                details!,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: onRetry,
@@ -1641,6 +1784,18 @@ class _InventoryTexts {
   const _InventoryTexts({required this.isEnglish});
 
   final bool isEnglish;
+  String inventorySourceSummary(String? warrantySyncAt) {
+    if (isEnglish) {
+      if (warrantySyncAt != null) {
+        return 'Inventory is synced from dealer-owned serials. Latest serial sync: $warrantySyncAt.';
+      }
+      return 'Inventory is synced from dealer-owned serials in the backend inventory.';
+    }
+    if (warrantySyncAt != null) {
+      return 'Kho dang dong bo truc tiep tu serial thuoc dealer. Lan dong bo serial gan nhat: $warrantySyncAt.';
+    }
+    return 'Kho dang dong bo truc tiep tu serial thuoc dealer tren backend.';
+  }
 
   String get screenTitle => isEnglish ? 'Inventory' : 'Kho';
   String get searchSemantic => isEnglish
@@ -1655,7 +1810,7 @@ class _InventoryTexts {
       case InventorySortOption.name:
         return isEnglish ? 'Sort: Name' : 'Sắp xếp: Tên';
       case InventorySortOption.quantity:
-        return isEnglish ? 'Sort: Stock' : 'Sắp xếp: Tồn kho';
+        return isEnglish ? 'Sort: Ready stock' : 'Sap xep: San sang';
       case InventorySortOption.importedDate:
         return isEnglish ? 'Sort: Imported date' : 'Sắp xếp: Ngày nhập';
     }
@@ -1666,19 +1821,19 @@ class _InventoryTexts {
   String get totalProductsHelperText =>
       isEnglish ? 'Tracked SKUs' : 'SKU đang theo dõi';
   String get totalInventoryLabel =>
-      isEnglish ? 'Total inventory' : 'Tổng tồn kho';
+      isEnglish ? 'Ready inventory' : 'Ton kho san sang';
   String get totalInventoryHelperText =>
-      isEnglish ? 'Units available' : 'Đơn vị còn khả dụng';
+      isEnglish ? 'Ready serials' : 'Serial san sang';
   String get lowStockSummaryLabel => isEnglish ? 'Low stock' : 'Sắp hết hàng';
   String get lowStockSummaryHelperText =>
       isEnglish ? 'Needs replenishment soon' : 'Cần nhập thêm sớm';
   String get filterAllLabel => isEnglish ? 'All' : 'Tất cả';
-  String get filterInStockLabel => isEnglish ? 'In stock' : 'Còn hàng';
+  String get filterInStockLabel => isEnglish ? 'Ready' : 'San sang';
   String get filterLowStockLabel => isEnglish ? 'Low stock' : 'Sắp hết';
   String get filterOutOfStockLabel => isEnglish ? 'Out of stock' : 'Hết hàng';
   String get sortByNameOption => isEnglish ? 'By name' : 'Theo tên';
   String get sortByQuantityOption =>
-      isEnglish ? 'By stock quantity' : 'Theo số lượng tồn';
+      isEnglish ? 'By ready quantity' : 'Theo so luong san sang';
   String get sortByImportedDateOption =>
       isEnglish ? 'By imported date' : 'Theo ngày nhập';
   String get openSortMenuSemantic =>
@@ -1708,7 +1863,7 @@ class _InventoryTexts {
       : 'Tra cứu serial bằng camera';
   String get invalidScannedCodeMessage =>
       isEnglish ? 'The scanned code is not valid.' : 'Mã quét không hợp lệ.';
-  String get inStockStatus => isEnglish ? 'In stock' : 'Còn hàng';
+  String get inStockStatus => isEnglish ? 'Ready' : 'San sang';
   String get lowStockStatus => isEnglish ? 'Low stock' : 'Sắp hết';
   String get outOfStockStatus => isEnglish ? 'Out of stock' : 'Hết hàng';
   String productTileSemantic(
@@ -1717,14 +1872,17 @@ class _InventoryTexts {
     int quantity,
     String status,
   ) => isEnglish
-      ? '$name, SKU $sku, stock $quantity, status $status'
-      : '$name, SKU $sku, tồn $quantity, trạng thái $status';
+      ? '$name, SKU $sku, ready $quantity, status $status'
+      : '$name, SKU $sku, san sang $quantity, trang thai $status';
   String productImageLabel(String productName) => isEnglish
       ? 'Product image for $productName'
       : 'Ảnh sản phẩm $productName';
-  String get stockLabelPrefix => isEnglish ? 'Stock: ' : 'Tồn: ';
-  String soldCountLabel(int count) =>
-      isEnglish ? 'Sold: $count' : 'Đã bán: $count';
+  String get stockLabelPrefix => isEnglish ? 'Ready: ' : 'San sang: ';
+  String warrantyCountLabel(int count) =>
+      isEnglish ? 'Warranty: $count' : 'Bao hanh: $count';
+  String issueCountLabel(int count) => isEnglish
+      ? 'Issue / unavailable: $count'
+      : 'Loi / khong kha dung: $count';
   String latestImportedLabel(String dateLabel) =>
       isEnglish ? 'Latest import: $dateLabel' : 'Nhập gần nhất: $dateLabel';
   String get loadInventoryErrorMessage => isEnglish

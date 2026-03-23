@@ -112,11 +112,11 @@ type AdminDataContextValue = {
   posts: BlogPost[]
   postsState: AdminResourceState
   addPost: (
-    payload: Pick<BlogPost, 'title' | 'category' | 'excerpt' | 'status' | 'imageUrl'>,
+    payload: Pick<BlogPost, 'title' | 'category' | 'excerpt' | 'status' | 'imageUrl' | 'content' | 'showOnHomepage'>,
   ) => Promise<BlogPost>
   updatePost: (
     id: string,
-    payload: Pick<BlogPost, 'title' | 'category' | 'excerpt' | 'status' | 'imageUrl'>,
+    payload: Pick<BlogPost, 'title' | 'category' | 'excerpt' | 'status' | 'imageUrl' | 'content' | 'showOnHomepage'>,
   ) => Promise<void>
   updatePostStatus: (id: string, status: BlogStatus) => Promise<void>
   deletePost: (id: string) => Promise<void>
@@ -468,6 +468,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
         excerpt: payload.excerpt,
         imageUrl: payload.imageUrl,
         status: payload.status,
+        content: payload.content,
+        showOnHomepage: payload.showOnHomepage,
       }),
     )
     const nextPost = mapBlog(created)
@@ -487,6 +489,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
         excerpt: payload.excerpt,
         imageUrl: payload.imageUrl,
         status: payload.status,
+        content: payload.content,
+        showOnHomepage: payload.showOnHomepage,
       }),
     )
     const nextPost = mapBlog(updated)

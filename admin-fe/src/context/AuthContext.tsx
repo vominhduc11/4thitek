@@ -92,21 +92,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [isInitializing, setIsInitializing] = useState(() => {
     const storedSession = readStoredAuthSession()
-    return Boolean(storedSession?.refreshToken && !storedSession.accessToken)
+    return Boolean(storedSession?.refreshCookieIssued && !storedSession.accessToken)
   })
 
   useEffect(() => {
     return subscribeToAuthSession(() => {
       const storedSession = readStoredAuthSession()
       setUser(mapSessionToUser(storedSession))
-      setIsInitializing(Boolean(storedSession?.refreshToken && !storedSession.accessToken))
+      setIsInitializing(Boolean(storedSession?.refreshCookieIssued && !storedSession.accessToken))
     })
   }, [])
 
   useEffect(() => {
     const storedSession = readStoredAuthSession()
 
-    if (!storedSession?.refreshToken || storedSession.accessToken) {
+    if (!storedSession?.refreshCookieIssued || storedSession.accessToken) {
       setIsInitializing(false)
       return
     }
@@ -152,12 +152,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const response = await fetch(buildApiUrl('/auth/login'), {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           username,
           password,
+          remember: payload.remember,
         }),
       })
 
@@ -175,7 +177,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      const nextSession = createAuthSessionFromResponse(payloadData.data, username)
+      const nextSession = createAuthSessionFromResponse(payloadData.data, username, null, {
+        remember: payload.remember,
+      })
 
       if (!nextSession) {
         return {
@@ -200,6 +204,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [])
 
   const logout = useCallback(() => {
+    if (hasBackendApi()) {
+      void fetch(buildApiUrl('/auth/logout'), {
+        method: 'POST',
+        credentials: 'include',
+      }).catch(() => undefined)
+    }
     setUser(null)
     setIsInitializing(false)
     clearStoredAuthSession()

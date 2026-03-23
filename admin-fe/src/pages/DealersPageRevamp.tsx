@@ -26,6 +26,7 @@ import {
   dealerStatusDescription,
   dealerStatusLabel,
   dealerStatusTone,
+  getAllowedDealerStatuses,
 } from '../lib/adminLabels'
 import { formatCurrency, formatDateTime } from '../lib/formatters'
 
@@ -264,9 +265,9 @@ function DealersPageRevamp() {
                     }}
                     value={dealer.status}
                   >
-                    {DEALER_STATUS_OPTIONS.filter((option) => option.value !== 'all').map((option) => (
-                      <option key={`${dealer.id}-${option.value}`} value={option.value}>
-                        {option.label}
+                    {getAllowedDealerStatuses(dealer.status).map((status) => (
+                      <option key={`${dealer.id}-${status}`} value={status}>
+                        {t(dealerStatusLabel[status])}
                       </option>
                     ))}
                   </select>
@@ -355,9 +356,9 @@ function DealersPageRevamp() {
                           }}
                           value={dealer.status}
                         >
-                          {DEALER_STATUS_OPTIONS.filter((option) => option.value !== 'all').map((option) => (
-                            <option key={`${dealer.id}-${option.value}`} value={option.value}>
-                              {option.label}
+                          {getAllowedDealerStatuses(dealer.status).map((status) => (
+                            <option key={`${dealer.id}-${status}`} value={status}>
+                              {t(dealerStatusLabel[status])}
                             </option>
                           ))}
                         </select>

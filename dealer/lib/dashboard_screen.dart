@@ -48,6 +48,19 @@ class _DashboardTexts {
 
   final bool isEnglish;
 
+  String dashboardSourceSummary(String? orderSyncAt, String? warrantySyncAt) {
+    if (isEnglish) {
+      if (orderSyncAt != null && warrantySyncAt != null) {
+        return 'Dashboard is summarized from synced orders and warranty activity. Orders synced $orderSyncAt, warranty synced $warrantySyncAt.';
+      }
+      return 'Dashboard is summarized from synced orders and warranty activity.';
+    }
+    if (orderSyncAt != null && warrantySyncAt != null) {
+      return 'Dashboard tong hop tu don hang va hoat dong bao hanh da dong bo. Don hang dong bo luc $orderSyncAt, bao hanh dong bo luc $warrantySyncAt.';
+    }
+    return 'Dashboard tong hop tu don hang va hoat dong bao hanh da dong bo.';
+  }
+
   String warrantyRangeLabel(int dayCount) =>
       isEnglish ? '$dayCount days' : '$dayCount ng\u00E0y';
 
@@ -330,6 +343,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   _DashboardLoadState _loadState = _DashboardLoadState.loading;
   String? _loadErrorMessage;
+  String? _syncWarningMessage;
   _DashboardTimeFilter _timeFilter = _DashboardTimeFilter.month;
   DateTime _selectedPeriod = DateTime.now();
 
@@ -355,39 +369,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
       isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
     );
     final loadErrorMessage = texts.loadErrorMessage;
+    final orderController = OrderScope.of(context);
+    final warrantyController = WarrantyScope.of(context);
     if (showLoadingState && mounted) {
       setState(() {
         _loadState = _DashboardLoadState.loading;
         _loadErrorMessage = null;
+        _syncWarningMessage = null;
       });
     }
 
-    try {
-      await Future.wait<void>([
-        OrderScope.of(context).refresh(),
-        WarrantyScope.of(context).load(forceRefresh: true),
-      ]);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _cachedSnapshot = null;
-        _lastSnapshotOrders = null;
-        _lastSnapshotActivations = null;
-        _lastSnapshotFilter = null;
-        _lastSnapshotPeriod = null;
-        _loadState = _DashboardLoadState.ready;
-        _loadErrorMessage = null;
-      });
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _loadState = _DashboardLoadState.error;
-        _loadErrorMessage = loadErrorMessage;
-      });
+    await Future.wait<void>([
+      orderController.refresh(),
+      warrantyController.load(forceRefresh: true),
+    ]);
+    if (!mounted) {
+      return;
     }
+
+    final warnings = <String>[];
+    if (orderController.lastActionMessage != null) {
+      warnings.add(
+        orderControllerErrorMessage(
+          orderController.lastActionMessage,
+          isEnglish: texts.isEnglish,
+        ),
+      );
+    }
+    if (warrantyController.lastSyncMessage != null) {
+      warnings.add(
+        warrantySyncErrorMessage(
+          warrantyController.lastSyncMessage,
+          isEnglish: texts.isEnglish,
+        ),
+      );
+    }
+    final shouldShowError =
+        orderController.orders.isEmpty &&
+        warrantyController.activations.isEmpty &&
+        warnings.isNotEmpty;
+
+    setState(() {
+      _cachedSnapshot = null;
+      _lastSnapshotOrders = null;
+      _lastSnapshotActivations = null;
+      _lastSnapshotFilter = null;
+      _lastSnapshotPeriod = null;
+      _syncWarningMessage = warnings.isEmpty ? null : warnings.join('\n');
+      _loadState = shouldShowError
+          ? _DashboardLoadState.error
+          : _DashboardLoadState.ready;
+      _loadErrorMessage = shouldShowError ? loadErrorMessage : null;
+    });
   }
 
   void _openCreateOrderFlow() {
@@ -442,7 +475,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _openWarrantyHub() {
+  Future<void> _openWarrantyHub() async {
+    await Future.wait<void>([
+      OrderScope.of(context).refresh(),
+      WarrantyScope.of(context).load(forceRefresh: true),
+    ]);
+    if (!mounted) {
+      return;
+    }
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const WarrantyHubScreen()));
@@ -454,9 +494,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
     );
     final orderController = OrderScope.of(context);
-    final warrantyCtrl =
-        context.dependOnInheritedWidgetOfExactType<WarrantyScope>()?.notifier ??
-        WarrantyController();
+    final warrantyCtrl = WarrantyScope.of(context);
     final lowStockProducts = _buildLowStockProducts(
       orderController: orderController,
       warrantyController: warrantyCtrl,
@@ -591,6 +629,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
             listBottomPadding,
           ),
           children: [
+            FadeSlideIn(
+              child: _DashboardSyncBanner(
+                summary: texts.dashboardSourceSummary(
+                  orderController.lastRemoteSyncAt == null
+                      ? null
+                      : formatDateTime(orderController.lastRemoteSyncAt!),
+                  warrantyCtrl.lastRemoteSyncAt == null
+                      ? null
+                      : formatDateTime(warrantyCtrl.lastRemoteSyncAt!),
+                ),
+                warningMessage: _syncWarningMessage,
+              ),
+            ),
+            const SizedBox(height: 14),
             FadeSlideIn(
               child: _OverviewCard(
                 totalDebt: totalOutstandingDebt,
@@ -3277,6 +3329,69 @@ class _EmptyCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DashboardSyncBanner extends StatelessWidget {
+  const _DashboardSyncBanner({
+    required this.summary,
+    this.warningMessage,
+  });
+
+  final String summary;
+  final String? warningMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final hasWarning = warningMessage != null && warningMessage!.trim().isNotEmpty;
+    final backgroundColor = hasWarning
+        ? colorScheme.errorContainer.withValues(alpha: 0.52)
+        : colorScheme.primaryContainer.withValues(alpha: 0.34);
+    final borderColor = hasWarning
+        ? colorScheme.error.withValues(alpha: 0.34)
+        : colorScheme.primary.withValues(alpha: 0.22);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            hasWarning ? Icons.sync_problem_outlined : Icons.insights_outlined,
+            color: hasWarning ? colorScheme.error : colorScheme.primary,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  summary,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (hasWarning) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    warningMessage!,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

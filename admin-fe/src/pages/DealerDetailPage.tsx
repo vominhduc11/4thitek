@@ -8,6 +8,7 @@ import {
   dealerStatusDescription,
   dealerStatusLabel,
   dealerStatusTone,
+  getAllowedDealerStatuses,
 } from '../lib/adminLabels'
 import { formatCurrency, formatDateTime } from '../lib/formatters'
 import {
@@ -24,8 +25,6 @@ import {
   labelClass,
 } from '../components/ui-kit'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
-
-const DEALER_STATUS_OPTIONS: DealerStatus[] = ['active', 'under_review', 'suspended']
 
 function DealerDetailPage() {
   const { id = '' } = useParams()
@@ -244,7 +243,7 @@ function DealerDetailPage() {
             }}
             value={dealer.status}
           >
-            {DEALER_STATUS_OPTIONS.map((status) => (
+            {getAllowedDealerStatuses(dealer.status).map((status) => (
               <option key={status} value={status}>
                 {t(dealerStatusLabel[status])}
               </option>

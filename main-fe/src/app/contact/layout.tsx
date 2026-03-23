@@ -6,9 +6,10 @@ import { SITE_URL } from '@/lib/site';
 export const metadata: Metadata = createBaseMetadata({
     locale: 'vi',
     path: '/contact',
-    title: '4ThiTek | Liên hệ',
-    description: 'Liên hệ với 4ThiTek để được tư vấn sản phẩm tai nghe SCS, hỗ trợ kỹ thuật và giải đáp mọi thắc mắc. Chúng tôi luôn sẵn sàng hỗ trợ bạn.',
-    keywords: ['liên hệ 4ThiTek', 'hỗ trợ khách hàng', 'tư vấn tai nghe SCS', 'chăm sóc khách hàng 4ThiTek']
+    title: '4ThiTek | Lien he',
+    description:
+        'Lien he voi 4ThiTek de duoc tu van san pham tai nghe SCS, ho tro ky thuat va giai dap moi thac mac. Chung toi luon san sang ho tro ban.',
+    keywords: ['lien he 4ThiTek', 'ho tro khach hang', 'tu van tai nghe SCS', 'cham soc khach hang 4ThiTek']
 });
 
 export default function ContactLayout({ children }: { children: React.ReactNode }) {
@@ -16,8 +17,8 @@ export default function ContactLayout({ children }: { children: React.ReactNode 
         <>
             <JsonLd
                 data={breadcrumbJsonLd([
-                    { name: 'Trang chủ', url: SITE_URL },
-                    { name: 'Liên hệ', url: `${SITE_URL}/contact` }
+                    { name: 'Trang chu', url: SITE_URL },
+                    { name: 'Lien he', url: `${SITE_URL}/contact` }
                 ])}
             />
             {children}

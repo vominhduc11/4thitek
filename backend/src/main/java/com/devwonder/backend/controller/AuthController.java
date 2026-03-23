@@ -9,16 +9,24 @@ import com.devwonder.backend.dto.auth.RefreshTokenRequest;
 import com.devwonder.backend.dto.auth.RegisterDealerRequest;
 import com.devwonder.backend.dto.auth.RegisterDealerResponse;
 import com.devwonder.backend.dto.auth.ResetPasswordRequest;
+import com.devwonder.backend.exception.ResourceNotFoundException;
+import com.devwonder.backend.exception.UnauthorizedException;
+import com.devwonder.backend.service.AuthRefreshCookieService;
 import com.devwonder.backend.service.AuthService;
 import com.devwonder.backend.service.PasswordResetService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -27,16 +35,65 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final AuthRefreshCookieService authRefreshCookieService;
     private final PasswordResetService passwordResetService;
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(authService.login(request)));
+    public ResponseEntity<ApiResponse<AuthResponse>> login(
+            @Valid @RequestBody LoginRequest request,
+            HttpServletResponse response
+    ) {
+        AuthResponse authResponse = authService.login(request);
+        HttpHeaders headers = new HttpHeaders();
+        authRefreshCookieService.writeRefreshToken(
+                headers,
+                authResponse.refreshToken(),
+                Boolean.TRUE.equals(request.remember())
+        );
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(ApiResponse.success(authResponse));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<AuthResponse>> refresh(@Valid @RequestBody RefreshTokenRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(authService.refreshToken(request)));
+    public ResponseEntity<ApiResponse<AuthResponse>> refresh(
+            @RequestBody(required = false) RefreshTokenRequest request,
+            @RequestParam(value = "remember", required = false) Boolean remember,
+            @RequestHeader(value = "X-Remember-Session", required = false) String rememberHeader,
+            HttpServletRequest httpServletRequest,
+            HttpServletResponse httpServletResponse
+    ) {
+        String refreshToken = request == null ? null : request.refreshToken();
+        if (refreshToken == null || refreshToken.isBlank()) {
+            refreshToken = authRefreshCookieService.extractRefreshToken(httpServletRequest);
+        }
+        try {
+            AuthResponse authResponse = authService.refreshToken(refreshToken);
+            HttpHeaders headers = new HttpHeaders();
+            authRefreshCookieService.writeRefreshToken(
+                    headers,
+                    authResponse.refreshToken(),
+                    resolveRememberSession(remember, rememberHeader)
+            );
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(ApiResponse.success(authResponse));
+        } catch (UnauthorizedException | ResourceNotFoundException ex) {
+            httpServletResponse.addHeader(
+                    HttpHeaders.SET_COOKIE,
+                    authRefreshCookieService.clearRefreshTokenCookie().toString()
+            );
+            throw ex;
+        }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Map<String, String>>> logout() {
+        HttpHeaders headers = new HttpHeaders();
+        authRefreshCookieService.clearRefreshToken(headers);
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(ApiResponse.success(Map.of("status", "logged_out")));
     }
 
     @PostMapping("/forgot-password")
@@ -65,6 +122,16 @@ public class AuthController {
             @Valid @RequestBody RegisterDealerRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(authService.registerDealer(request)));
+    }
+
+    private boolean resolveRememberSession(Boolean remember, String rememberHeader) {
+        if (remember != null) {
+            return remember;
+        }
+        if (rememberHeader == null || rememberHeader.isBlank()) {
+            return false;
+        }
+        return Boolean.parseBoolean(rememberHeader.trim());
     }
 
 }

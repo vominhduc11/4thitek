@@ -25,6 +25,7 @@ public class OrderInventorySupport {
 
     private final ProductRepository productRepository;
     private final ProductSerialRepository productSerialRepository;
+    private final ProductStockSyncSupport productStockSyncSupport;
 
     public Map<Long, Product> lockProductsForRequests(Collection<CreateDealerOrderItemRequest> itemRequests) {
         Map<Long, Integer> requestedQuantities = new LinkedHashMap<>();
@@ -41,7 +42,6 @@ public class OrderInventorySupport {
 
     public void reserveStock(Map<Long, Integer> requestedQuantities, Map<Long, Product> lockedProducts, Order order) {
         List<ProductSerial> toReserve = new ArrayList<>();
-        List<Product> toUpdate = new ArrayList<>();
         for (Map.Entry<Long, Integer> entry : requestedQuantities.entrySet()) {
             Product product = lockedProducts.get(entry.getKey());
             if (product == null) {
@@ -51,27 +51,21 @@ public class OrderInventorySupport {
             if (requestedQuantity <= 0) {
                 continue;
             }
-            int availableStock = safeQuantity(product.getStock());
-            if (availableStock < requestedQuantity) {
-                throw new BadRequestException("Insufficient stock for product " + product.getName());
-            }
-            product.setStock(availableStock - requestedQuantity);
-            toUpdate.add(product);
-
             List<ProductSerial> picked = productSerialRepository.findAvailableForAssignment(
                     product.getId(), ProductSerialStatus.AVAILABLE, PageRequest.of(0, requestedQuantity));
+            if (picked.size() < requestedQuantity) {
+                throw new BadRequestException("Insufficient stock for product " + product.getName());
+            }
             for (ProductSerial serial : picked) {
                 serial.setOrder(order);
                 serial.setStatus(ProductSerialStatus.RESERVED);
                 toReserve.add(serial);
             }
         }
-        if (!toUpdate.isEmpty()) {
-            productRepository.saveAll(toUpdate);
-        }
         if (!toReserve.isEmpty()) {
             productSerialRepository.saveAll(toReserve);
         }
+        productStockSyncSupport.syncProductStocks(lockedProducts.values());
     }
 
     public void restoreStock(Order order) {
@@ -80,22 +74,7 @@ public class OrderInventorySupport {
             return;
         }
         Map<Long, Product> lockedProducts = lockProducts(orderedQuantities.keySet());
-        List<Product> toUpdate = new ArrayList<>();
-        for (Map.Entry<Long, Integer> entry : orderedQuantities.entrySet()) {
-            Product product = lockedProducts.get(entry.getKey());
-            if (product == null) {
-                throw new ResourceNotFoundException("Product not found");
-            }
-            int restoredQuantity = safeQuantity(entry.getValue());
-            if (restoredQuantity <= 0) {
-                continue;
-            }
-            product.setStock(safeQuantity(product.getStock()) + restoredQuantity);
-            toUpdate.add(product);
-        }
-        if (!toUpdate.isEmpty()) {
-            productRepository.saveAll(toUpdate);
-        }
+        productStockSyncSupport.syncProductStocks(lockedProducts.values());
     }
 
     private Map<Long, Product> lockProducts(Collection<Long> productIds) {

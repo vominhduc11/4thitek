@@ -13,7 +13,9 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -28,10 +30,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final Map<String, WindowState> windows = new ConcurrentHashMap<>();
     private final long cleanupGraceSeconds;
     private final boolean trustForwardedFor;
+    private final StringRedisTemplate stringRedisTemplate;
 
     public RateLimitFilter(
             AdminSettingsService adminSettingsService,
             ObjectMapper objectMapper,
+            ObjectProvider<StringRedisTemplate> stringRedisTemplateProvider,
             @Value("${app.rate-limit.cleanup-grace-seconds:300}") long cleanupGraceSeconds,
             @Value("${app.rate-limit.trust-forwarded-for:false}") boolean trustForwardedFor
     ) {
@@ -39,6 +43,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         this.objectMapper = objectMapper;
         this.cleanupGraceSeconds = Math.max(60L, cleanupGraceSeconds);
         this.trustForwardedFor = trustForwardedFor;
+        this.stringRedisTemplate = stringRedisTemplateProvider.getIfAvailable();
     }
 
     @Override
@@ -65,6 +70,16 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         String key = rule.bucketKey() + ":" + clientKey(request);
+        try {
+            if (tryAcquireWithRedis(rule, key)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+        } catch (RateLimitExceededException ex) {
+            writeRateLimitResponse(response);
+            return;
+        }
+
         WindowState state = windows.computeIfAbsent(
                 key,
                 ignored -> new WindowState(Instant.now(), new AtomicInteger(), rule.windowSeconds(), Instant.now())
@@ -77,14 +92,47 @@ public class RateLimitFilter extends OncePerRequestFilter {
             state.touch(now);
             int next = state.counter().incrementAndGet();
             if (next > rule.requestLimit()) {
-                response.setStatus(429);
-                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                objectMapper.writeValue(response.getWriter(), ApiResponse.failure("Too many requests"));
+                writeRateLimitResponse(response);
                 return;
             }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private boolean tryAcquireWithRedis(LimitRule rule, String key) {
+        if (stringRedisTemplate == null) {
+            return false;
+        }
+        String redisKey = "rate-limit:" + key;
+        try {
+            Long next = stringRedisTemplate.opsForValue().increment(redisKey);
+            if (next == null) {
+                return false;
+            }
+            if (next == 1L) {
+                stringRedisTemplate.expire(redisKey, Duration.ofSeconds(rule.windowSeconds()));
+            } else {
+                Long ttl = stringRedisTemplate.getExpire(redisKey);
+                if (ttl == null || ttl < 0) {
+                    stringRedisTemplate.expire(redisKey, Duration.ofSeconds(rule.windowSeconds()));
+                }
+            }
+            if (next > rule.requestLimit()) {
+                throw new RateLimitExceededException();
+            }
+            return true;
+        } catch (RateLimitExceededException ex) {
+            throw ex;
+        } catch (RuntimeException ex) {
+            return false;
+        }
+    }
+
+    private void writeRateLimitResponse(HttpServletResponse response) throws IOException {
+        response.setStatus(429);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        objectMapper.writeValue(response.getWriter(), ApiResponse.failure("Too many requests"));
     }
 
     private LimitRule resolveRule(
@@ -139,6 +187,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private record LimitRule(String bucketKey, int requestLimit, long windowSeconds) {
+    }
+
+    private static final class RateLimitExceededException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
     }
 
     private static final class WindowState {

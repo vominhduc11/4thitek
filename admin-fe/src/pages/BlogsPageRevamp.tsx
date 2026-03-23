@@ -40,9 +40,9 @@ const BLOG_STATUS_ORDER: BlogStatus[] = ['published', 'scheduled', 'draft']
 
 const statusLabelsByLanguage = {
   vi: {
-    published: 'Đã đăng',
-    scheduled: 'Hẹn giờ',
-    draft: 'Bản nháp',
+    published: 'Da dang',
+    scheduled: 'Hen gio',
+    draft: 'Ban nhap',
   },
   en: {
     published: 'Published',
@@ -53,65 +53,68 @@ const statusLabelsByLanguage = {
 
 const copyByLanguage = {
   vi: {
-    title: 'Bài viết',
-    description:
-      'Quản lý bài viết, lịch đăng, hình ảnh đại diện và tóm tắt SEO.',
-    searchLabel: 'Tìm bài viết',
-    searchPlaceholder: 'Tìm theo mã bài, tiêu đề hoặc danh mục...',
-    filterLabel: 'Lọc trạng thái bài viết',
-    allStatuses: 'Tất cả',
-    newPost: 'Tạo bài mới',
-    hideComposer: 'Ẩn form tạo',
-    totalPosts: 'Tổng bài viết',
-    publishedPosts: 'Đã đăng',
-    queuedPosts: 'Lên lịch / bản nháp',
-    emptyTitle: 'Không có bài viết',
-    emptyMessage: 'Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.',
-    loadTitle: 'Không thể tải bài viết',
-    loadFallback: 'Không tải được danh sách bài viết',
-    composerTitle: 'Tạo bài viết mới',
-    composerDescription: 'Điền thông tin cơ bản để khởi tạo bài viết.',
-    titleField: 'Tiêu đề',
-    titlePlaceholder: 'Nhập tiêu đề bài viết',
-    categoryField: 'Danh mục',
-    categoryPlaceholder: 'Nhập danh mục',
-    excerptField: 'Tóm tắt',
-    excerptPlaceholder: 'Viết đoạn mô tả ngắn cho bài viết',
-    statusField: 'Trạng thái',
-    coverField: 'Ảnh đại diện',
-    uploadImage: 'Tải ảnh đại diện',
-    uploadingImage: 'Đang tải ảnh...',
-    savePost: 'Lưu bài viết',
-    cancel: 'Hủy',
-    requiredError: 'Vui lòng nhập đầy đủ tiêu đề và danh mục.',
-    uploadFailed: 'Không thể tải ảnh bài viết.',
-    createFailed: 'Không thể tạo bài viết',
-    createSuccess: 'Đã tạo bài {id}.',
-    postColumn: 'Bài viết',
-    categoryColumn: 'Danh mục',
-    statusColumn: 'Trạng thái',
-    updatedColumn: 'Cập nhật',
-    actionsColumn: 'Thao tác',
-    noCategory: 'Chưa phân loại',
-    noExcerpt: 'Chưa có tóm tắt.',
-    changeStatusTitle: 'Xác nhận đổi trạng thái',
-    changeStatusMessage:
-      'Bạn có chắc muốn chuyển bài viết này sang trạng thái "{status}" không?',
-    updateFailed: 'Không cập nhật được bài viết',
-    deleteTitle: 'Xóa bài viết',
-    deleteMessage:
-      'Hành động này sẽ xóa bài viết khỏi danh sách quản trị.',
-    confirmDelete: 'Xóa bài',
-    deleteLabel: 'Xóa',
-    deleteFailed: 'Không xóa được bài viết',
-    previewAlt: 'Xem trước bài viết',
+    title: 'Bai viet',
+    description: 'Quan ly bai viet, noi dung chi tiet, anh dai dien va trang thai hien thi tren trang chu.',
+    searchLabel: 'Tim bai viet',
+    searchPlaceholder: 'Tim theo id, tieu de hoac danh muc...',
+    filterLabel: 'Loc trang thai',
+    allStatuses: 'Tat ca',
+    newPost: 'Tao bai moi',
+    hideComposer: 'An form tao',
+    totalPosts: 'Tong bai viet',
+    publishedPosts: 'Da dang',
+    queuedPosts: 'Hen gio / nhap',
+    emptyTitle: 'Khong co bai viet',
+    emptyMessage: 'Thu thay doi bo loc hoac tu khoa tim kiem.',
+    loadTitle: 'Khong the tai bai viet',
+    loadFallback: 'Khong tai duoc danh sach bai viet',
+    composerTitle: 'Tao bai viet moi',
+    composerDescription: 'Nhap day du metadata va noi dung de bai viet khop voi public site.',
+    titleField: 'Tieu de',
+    titlePlaceholder: 'Nhap tieu de bai viet',
+    categoryField: 'Danh muc',
+    categoryPlaceholder: 'Nhap danh muc',
+    excerptField: 'Tom tat',
+    excerptPlaceholder: 'Nhap tom tat ngan',
+    contentField: 'Noi dung',
+    contentPlaceholder: 'Nhap noi dung chi tiet cho bai viet',
+    statusField: 'Trang thai',
+    coverField: 'Anh dai dien',
+    homepageField: 'Hien tren trang chu',
+    uploadImage: 'Tai anh dai dien',
+    uploadingImage: 'Dang tai anh...',
+    savePost: 'Luu bai viet',
+    cancel: 'Huy',
+    requiredError: 'Vui long nhap day du tieu de va danh muc.',
+    uploadFailed: 'Khong the tai anh bai viet.',
+    createFailed: 'Khong the tao bai viet',
+    createSuccess: 'Da tao bai {id}.',
+    postColumn: 'Bai viet',
+    categoryColumn: 'Danh muc',
+    statusColumn: 'Trang thai',
+    updatedColumn: 'Cap nhat',
+    actionsColumn: 'Thao tac',
+    homepageColumn: 'Trang chu',
+    yes: 'Co',
+    no: 'Khong',
+    noCategory: 'Chua phan loai',
+    noExcerpt: 'Chua co tom tat.',
+    changeStatusTitle: 'Xac nhan doi trang thai',
+    changeStatusMessage: 'Chuyen bai viet nay sang trang thai "{status}"?',
+    updateFailed: 'Khong cap nhat duoc bai viet',
+    deleteTitle: 'Xoa bai viet',
+    deleteMessage: 'Hanh dong nay se xoa bai viet khoi danh sach quan tri.',
+    confirmDelete: 'Xoa bai',
+    deleteLabel: 'Xoa',
+    deleteFailed: 'Khong xoa duoc bai viet',
+    previewAlt: 'Xem truoc bai viet',
   },
   en: {
     title: 'Posts',
-    description: 'Manage posts, publish schedules, cover images, and SEO-friendly summaries.',
+    description: 'Manage post metadata, full content, cover images, and homepage visibility.',
     searchLabel: 'Search posts',
-    searchPlaceholder: 'Search by ID, title, or category...',
-    filterLabel: 'Filter post status',
+    searchPlaceholder: 'Search by id, title, or category...',
+    filterLabel: 'Filter status',
     allStatuses: 'All',
     newPost: 'Create post',
     hideComposer: 'Hide composer',
@@ -121,17 +124,20 @@ const copyByLanguage = {
     emptyTitle: 'No posts found',
     emptyMessage: 'Try adjusting filters or your search keywords.',
     loadTitle: 'Unable to load posts',
-    loadFallback: 'Could not load the posts list',
+    loadFallback: 'Could not load the post list',
     composerTitle: 'Create a new post',
-    composerDescription: 'Fill in the basics to bootstrap a post draft.',
+    composerDescription: 'Capture the full content so public pages render the intended article.',
     titleField: 'Title',
     titlePlaceholder: 'Enter the post title',
     categoryField: 'Category',
     categoryPlaceholder: 'Enter a category',
     excerptField: 'Summary',
-    excerptPlaceholder: 'Write a short summary for this post',
+    excerptPlaceholder: 'Write a short summary',
+    contentField: 'Content',
+    contentPlaceholder: 'Enter the full post content',
     statusField: 'Status',
     coverField: 'Cover image',
+    homepageField: 'Show on homepage',
     uploadImage: 'Upload cover image',
     uploadingImage: 'Uploading image...',
     savePost: 'Save post',
@@ -145,6 +151,9 @@ const copyByLanguage = {
     statusColumn: 'Status',
     updatedColumn: 'Updated',
     actionsColumn: 'Actions',
+    homepageColumn: 'Homepage',
+    yes: 'Yes',
+    no: 'No',
     noCategory: 'Uncategorized',
     noExcerpt: 'No summary yet.',
     changeStatusTitle: 'Confirm status change',
@@ -163,7 +172,9 @@ type CreateFormState = {
   title: string
   category: string
   excerpt: string
+  content: string
   status: BlogStatus
+  showOnHomepage: boolean
   imageUrl: string
   imageName: string
 }
@@ -172,7 +183,9 @@ const createInitialForm = (): CreateFormState => ({
   title: '',
   category: '',
   excerpt: '',
+  content: '',
   status: 'draft',
+  showOnHomepage: false,
   imageUrl: '',
   imageName: '',
 })
@@ -183,8 +196,7 @@ function BlogsPageRevamp() {
   const { language } = useLanguage()
   const { notify } = useToast()
   const { confirm, confirmDialog } = useConfirmDialog()
-  const { posts, postsState, addPost, updatePostStatus, deletePost, reloadResource } =
-    useAdminData()
+  const { posts, postsState, addPost, updatePostStatus, deletePost, reloadResource } = useAdminData()
 
   const copy = copyByLanguage[language]
   const statusLabels = statusLabelsByLanguage[language]
@@ -199,22 +211,14 @@ function BlogsPageRevamp() {
   const toolbarSearchClass = 'w-full sm:max-w-sm lg:w-72 xl:w-80'
 
   const normalizedQuery = query.trim().toLowerCase()
-  const searchablePosts = useMemo(
-    () =>
-      posts.map((post) => ({
-        post,
-        searchText: `${post.id} ${post.title} ${post.category}`.toLowerCase(),
-      })),
-    [posts],
-  )
   const filteredPosts = useMemo(
     () =>
-      searchablePosts.filter(({ post, searchText }) => {
+      posts.filter((post) => {
         const matchesStatus = statusFilter === 'all' ? true : post.status === statusFilter
-        const matchesQuery = !normalizedQuery || searchText.includes(normalizedQuery)
-        return matchesStatus && matchesQuery
-      }).map(({ post }) => post),
-    [normalizedQuery, searchablePosts, statusFilter],
+        const haystack = `${post.id} ${post.title} ${post.category} ${post.excerpt}`.toLowerCase()
+        return matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery))
+      }),
+    [normalizedQuery, posts, statusFilter],
   )
 
   const stats = useMemo(() => {
@@ -227,10 +231,7 @@ function BlogsPageRevamp() {
   const statusOptions = useMemo(
     () => [
       { value: 'all' as const, label: copy.allStatuses },
-      ...BLOG_STATUS_ORDER.map((status) => ({
-        value: status,
-        label: statusLabels[status],
-      })),
+      ...BLOG_STATUS_ORDER.map((status) => ({ value: status, label: statusLabels[status] })),
     ],
     [copy.allStatuses, statusLabels],
   )
@@ -251,10 +252,7 @@ function BlogsPageRevamp() {
 
       const results = await Promise.allSettled(
         trackedUrls.map(async (url) => {
-          await deleteStoredFileReference({
-            url,
-            accessToken,
-          })
+          await deleteStoredFileReference({ url, accessToken })
           return url
         }),
       )
@@ -276,25 +274,15 @@ function BlogsPageRevamp() {
   }
 
   const handleImageChange = async (file: File | null) => {
-    if (!file) {
-      return
-    }
+    if (!file) return
 
     const previousImageUrl = form.imageUrl.trim()
     setCreateError('')
     setIsUploadingImage(true)
     try {
-      const stored = await storeFileReference({
-        file,
-        category: 'blogs',
-        accessToken,
-      })
+      const stored = await storeFileReference({ file, category: 'blogs', accessToken })
       composerUploadedAssetUrlsRef.current.add(stored.url)
-      setForm((previous) => ({
-        ...previous,
-        imageUrl: stored.url,
-        imageName: file.name,
-      }))
+      setForm((previous) => ({ ...previous, imageUrl: stored.url, imageName: file.name }))
       void cleanupComposerUploadedAssets([previousImageUrl])
     } catch {
       setCreateError(copy.uploadFailed)
@@ -315,13 +303,12 @@ function BlogsPageRevamp() {
         title: form.title.trim(),
         category: form.category.trim(),
         excerpt: form.excerpt.trim(),
+        content: form.content.trim() || undefined,
         status: form.status,
-        imageUrl: form.imageUrl,
+        showOnHomepage: form.showOnHomepage,
+        imageUrl: form.imageUrl || undefined,
       })
-      notify(copy.createSuccess.replace('{id}', created.id), {
-        title: copy.title,
-        variant: 'success',
-      })
+      notify(copy.createSuccess.replace('{id}', created.id), { title: copy.title, variant: 'success' })
       composerUploadedAssetUrlsRef.current.clear()
       closeComposer()
     } catch (error) {
@@ -391,18 +378,8 @@ function BlogsPageRevamp() {
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <StatCard icon={FileText} label={copy.totalPosts} value={posts.length} tone="neutral" />
-        <StatCard
-          icon={Tag}
-          label={copy.publishedPosts}
-          value={stats.published}
-          tone="success"
-        />
-        <StatCard
-          icon={Clock3}
-          label={copy.queuedPosts}
-          value={stats.queued}
-          tone="warning"
-        />
+        <StatCard icon={Tag} label={copy.publishedPosts} value={stats.published} tone="success" />
+        <StatCard icon={Clock3} label={copy.queuedPosts} value={stats.queued} tone="warning" />
       </div>
 
       {showCreate ? (
@@ -416,9 +393,7 @@ function BlogsPageRevamp() {
               <span className={labelClass}>{copy.titleField}</span>
               <input
                 className={`${inputClass} w-full`}
-                onChange={(event) =>
-                  setForm((previous) => ({ ...previous, title: event.target.value }))
-                }
+                onChange={(event) => setForm((previous) => ({ ...previous, title: event.target.value }))}
                 placeholder={copy.titlePlaceholder}
                 value={form.title}
               />
@@ -427,9 +402,7 @@ function BlogsPageRevamp() {
               <span className={labelClass}>{copy.categoryField}</span>
               <input
                 className={`${inputClass} w-full`}
-                onChange={(event) =>
-                  setForm((previous) => ({ ...previous, category: event.target.value }))
-                }
+                onChange={(event) => setForm((previous) => ({ ...previous, category: event.target.value }))}
                 placeholder={copy.categoryPlaceholder}
                 value={form.category}
               />
@@ -439,12 +412,7 @@ function BlogsPageRevamp() {
               <select
                 aria-label={copy.statusField}
                 className={`${inputClass} w-full`}
-                onChange={(event) =>
-                  setForm((previous) => ({
-                    ...previous,
-                    status: event.target.value as BlogStatus,
-                  }))
-                }
+                onChange={(event) => setForm((previous) => ({ ...previous, status: event.target.value as BlogStatus }))}
                 value={form.status}
               >
                 {BLOG_STATUS_ORDER.map((status) => (
@@ -457,46 +425,75 @@ function BlogsPageRevamp() {
             <label className="space-y-2 lg:col-span-2">
               <span className={labelClass}>{copy.excerptField}</span>
               <textarea
-                className={textareaClass}
-                onChange={(event) =>
-                  setForm((previous) => ({ ...previous, excerpt: event.target.value }))
-                }
+                className={`${textareaClass} w-full`}
+                onChange={(event) => setForm((previous) => ({ ...previous, excerpt: event.target.value }))}
                 placeholder={copy.excerptPlaceholder}
                 rows={4}
                 value={form.excerpt}
               />
             </label>
-            <div className="space-y-2 lg:col-span-2">
+            <label className="space-y-2 lg:col-span-2">
+              <span className={labelClass}>{copy.contentField}</span>
+              <textarea
+                className={`${textareaClass} w-full`}
+                onChange={(event) => setForm((previous) => ({ ...previous, content: event.target.value }))}
+                placeholder={copy.contentPlaceholder}
+                rows={8}
+                value={form.content}
+              />
+            </label>
+            <label className="space-y-2 lg:col-span-2">
               <span className={labelClass}>{copy.coverField}</span>
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
-                <ImagePlus className="h-4 w-4" />
-                <input
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={(event) => handleImageChange(event.target.files?.[0] ?? null)}
-                  type="file"
-                />
-                {isUploadingImage ? copy.uploadingImage : form.imageName || copy.uploadImage}
-              </label>
-              {form.imageUrl ? (
-                <div className="overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)]">
-                  <img
-                    src={resolveBackendAssetUrl(form.imageUrl)}
-                    alt={form.title || copy.previewAlt}
-                    className="h-48 w-full object-cover"
-                  />
+              <div className="space-y-3 rounded-3xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)] p-4">
+                {form.imageUrl ? (
+                  <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+                    <img
+                      alt={copy.previewAlt}
+                      className="aspect-[16/9] w-full object-cover"
+                      src={resolveBackendAssetUrl(form.imageUrl)}
+                    />
+                  </div>
+                ) : null}
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:border-[var(--accent)]">
+                    <ImagePlus className="h-4 w-4" />
+                    <span>{isUploadingImage ? copy.uploadingImage : copy.uploadImage}</span>
+                    <input
+                      accept="image/*"
+                      className="hidden"
+                      disabled={isUploadingImage}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] ?? null
+                        void handleImageChange(file)
+                        event.currentTarget.value = ''
+                      }}
+                      type="file"
+                    />
+                  </label>
+                  {form.imageName ? <span className={tableMetaClass}>{form.imageName}</span> : null}
                 </div>
-              ) : null}
-            </div>
+              </div>
+            </label>
+            <label className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 lg:col-span-2">
+              <span className="text-sm font-semibold text-[var(--ink)]">{copy.homepageField}</span>
+              <input
+                checked={form.showOnHomepage}
+                className="h-5 w-5 accent-[var(--accent)]"
+                onChange={(event) => setForm((previous) => ({ ...previous, showOnHomepage: event.target.checked }))}
+                type="checkbox"
+              />
+            </label>
           </div>
-          {createError ? <FieldErrorMessage>{createError}</FieldErrorMessage> : null}
-          <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-            <GhostButton className="w-full sm:w-auto" onClick={closeComposer} type="button">
-              {copy.cancel}
-            </GhostButton>
-            <PrimaryButton className="w-full sm:w-auto" onClick={handleCreate} type="button">
+          {createError ? (
+            <FieldErrorMessage>{createError}</FieldErrorMessage>
+          ) : null}
+          <div className="flex flex-wrap gap-3">
+            <PrimaryButton onClick={() => void handleCreate()} type="button">
               {copy.savePost}
             </PrimaryButton>
+            <GhostButton onClick={closeComposer} type="button">
+              {copy.cancel}
+            </GhostButton>
           </div>
         </section>
       ) : null}
@@ -509,69 +506,38 @@ function BlogsPageRevamp() {
             <div className="grid gap-3 md:hidden">
               {filteredPosts.map((post) => (
                 <article key={post.id} className={tableCardClass}>
-                  <button
-                    className="w-full text-left"
-                    onClick={() => navigate(`/blogs/${encodeURIComponent(post.id)}`)}
-                    type="button"
-                  >
-                    <div className="flex items-start gap-3">
-                      {post.imageUrl ? (
-                        <img
-                          src={resolveBackendAssetUrl(post.imageUrl)}
-                          alt={post.title}
-                          className="h-16 w-16 rounded-2xl border border-[var(--border)] bg-[var(--surface)] object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="grid h-16 w-16 place-items-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)]">
-                          <FileText className="h-5 w-5" />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className={tableValueClass}>{post.title}</p>
-                            <p className={tableMetaClass}>{post.id}</p>
-                          </div>
-                          <StatusBadge tone={blogStatusTone[post.status]}>
-                            {statusLabels[post.status]}
-                          </StatusBadge>
-                        </div>
-                        <p className="mt-3 text-sm text-[var(--ink)]">
-                          {post.excerpt || copy.noExcerpt}
+                  <button className="w-full text-left" onClick={() => navigate(`/blogs/${encodeURIComponent(post.id)}`)} type="button">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className={tableValueClass}>{post.title}</p>
+                        <p className={tableMetaClass}>
+                          {post.id} · {post.category || copy.noCategory}
                         </p>
-                        <div className="mt-3 flex flex-wrap gap-3 text-xs text-[var(--muted)]">
-                          <span>{post.category || copy.noCategory}</span>
-                          <span>{formatDateTime(post.updatedAt)}</span>
-                        </div>
                       </div>
+                      <StatusBadge tone={blogStatusTone[post.status]}>{statusLabels[post.status]}</StatusBadge>
                     </div>
+                    <p className="mt-3 text-sm text-[var(--ink)]">{post.excerpt || copy.noExcerpt}</p>
+                    <p className={`mt-3 ${tableMetaClass}`}>
+                      {copy.homepageColumn}: {post.showOnHomepage ? copy.yes : copy.no}
+                    </p>
                   </button>
-                  <div className="mt-4 grid gap-2">
+                  <div className="mt-4 flex flex-wrap gap-2">
                     <select
                       aria-label={`${copy.statusColumn} ${post.id}`}
-                      className={`${inputClass} w-full`}
+                      className={`w-full ${tableActionSelectClass}`}
                       onChange={async (event) => {
                         const next = event.target.value as BlogStatus
-                        if (next === post.status) {
-                          return
-                        }
-
+                        if (next === post.status) return
                         const approved = await confirm({
                           title: copy.changeStatusTitle,
-                          message: copy.changeStatusMessage.replace(
-                            '{status}',
-                            statusLabels[next],
-                          ),
+                          message: copy.changeStatusMessage.replace('{status}', statusLabels[next]),
                           tone: next === 'draft' ? 'warning' : 'info',
                           confirmLabel: statusLabels[next],
                         })
-
                         if (!approved) {
                           event.currentTarget.value = post.status
                           return
                         }
-
                         try {
                           await updatePostStatus(post.id, next)
                         } catch (error) {
@@ -599,10 +565,7 @@ function BlogsPageRevamp() {
                           tone: 'danger',
                           confirmLabel: copy.confirmDelete,
                         })
-                        if (!approved) {
-                          return
-                        }
-
+                        if (!approved) return
                         try {
                           await deletePost(post.id)
                         } catch (error) {
@@ -622,82 +585,49 @@ function BlogsPageRevamp() {
             </div>
 
             <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-full border-separate border-spacing-y-2" role="table">
+              <table className="min-w-full border-separate border-spacing-y-2">
                 <thead>
                   <tr className={tableHeadClass}>
                     <th className="px-3 py-2 font-semibold">{copy.postColumn}</th>
                     <th className="px-3 py-2 font-semibold">{copy.categoryColumn}</th>
                     <th className="px-3 py-2 font-semibold">{copy.statusColumn}</th>
+                    <th className="px-3 py-2 font-semibold">{copy.homepageColumn}</th>
                     <th className="px-3 py-2 font-semibold">{copy.updatedColumn}</th>
                     <th className="px-3 py-2 font-semibold">{copy.actionsColumn}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredPosts.map((post) => (
-                    <tr
-                      key={post.id}
-                      className={tableRowClass}
-                      onClick={() => navigate(`/blogs/${encodeURIComponent(post.id)}`)}
-                      role="row"
-                    >
+                    <tr key={post.id} className={tableRowClass} onClick={() => navigate(`/blogs/${encodeURIComponent(post.id)}`)}>
                       <td className="rounded-l-2xl px-3 py-3">
-                        <div className="flex items-center gap-3">
-                          {post.imageUrl ? (
-                            <img
-                              src={resolveBackendAssetUrl(post.imageUrl)}
-                              alt={post.title}
-                              className="h-16 w-16 rounded-2xl border border-[var(--border)] bg-[var(--surface)] object-cover"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="grid h-16 w-16 place-items-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)]">
-                              <FileText className="h-4 w-4" />
-                            </div>
-                          )}
-                          <div className="min-w-0">
-                            <p className={tableValueClass}>{post.title}</p>
-                            <p className={tableMetaClass}>{post.id}</p>
-                          </div>
-                        </div>
+                        <p className="font-semibold text-[var(--ink)]">{post.title}</p>
+                        <p className={tableMetaClass}>{post.id}</p>
+                        <p className={tableMetaClass}>{post.excerpt || copy.noExcerpt}</p>
                       </td>
                       <td className="px-3 py-3">{post.category || copy.noCategory}</td>
                       <td className="px-3 py-3">
-                        <StatusBadge tone={blogStatusTone[post.status]}>
-                          {statusLabels[post.status]}
-                        </StatusBadge>
+                        <StatusBadge tone={blogStatusTone[post.status]}>{statusLabels[post.status]}</StatusBadge>
                       </td>
-                      <td className="px-3 py-3 text-xs text-[var(--muted)]">
-                        {formatDateTime(post.updatedAt)}
-                      </td>
-                      <td
-                        className="rounded-r-2xl px-3 py-3"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
+                      <td className="px-3 py-3">{post.showOnHomepage ? copy.yes : copy.no}</td>
+                      <td className="px-3 py-3">{formatDateTime(post.updatedAt)}</td>
+                      <td className="rounded-r-2xl px-3 py-3" onClick={(event) => event.stopPropagation()}>
+                        <div className="flex flex-wrap gap-2">
                           <select
                             aria-label={`${copy.statusColumn} ${post.id}`}
                             className={tableActionSelectClass}
                             onChange={async (event) => {
                               const next = event.target.value as BlogStatus
-                              if (next === post.status) {
-                                return
-                              }
-
+                              if (next === post.status) return
                               const approved = await confirm({
                                 title: copy.changeStatusTitle,
-                                message: copy.changeStatusMessage.replace(
-                                  '{status}',
-                                  statusLabels[next],
-                                ),
+                                message: copy.changeStatusMessage.replace('{status}', statusLabels[next]),
                                 tone: next === 'draft' ? 'warning' : 'info',
                                 confirmLabel: statusLabels[next],
                               })
-
                               if (!approved) {
                                 event.currentTarget.value = post.status
                                 return
                               }
-
                               try {
                                 await updatePostStatus(post.id, next)
                               } catch (error) {
@@ -725,10 +655,7 @@ function BlogsPageRevamp() {
                                 tone: 'danger',
                                 confirmLabel: copy.confirmDelete,
                               })
-                              if (!approved) {
-                                return
-                              }
-
+                              if (!approved) return
                               try {
                                 await deletePost(post.id)
                               } catch (error) {
