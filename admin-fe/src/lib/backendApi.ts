@@ -1,6 +1,8 @@
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '')
 const trimLeadingSlash = (value: string) => value.replace(/^\/+/, '')
 const CANONICAL_API_BASE_URL = 'https://api.4thitek.vn/api/v1'
+const CANONICAL_API_ORIGIN = 'https://api.4thitek.vn'
+const CANONICAL_API_VERSION = 'v1'
 const LEGACY_STORAGE_HOST_PATTERN = /(^|\.)storage\.4thitek\.vn$/i
 const LEGACY_STORAGE_BUCKET_PREFIX = '/4thitek-uploads/'
 
@@ -13,8 +15,26 @@ declare global {
   interface Window {
     __APP_CONFIG__?: {
       apiBaseUrl?: string
+      apiOrigin?: string
+      apiVersion?: string
     }
   }
+}
+
+type ApiConfigSource = {
+  apiBaseUrl?: string
+  apiOrigin?: string
+  apiVersion?: string
+}
+
+type ResolvedApiConfig = {
+  apiBaseUrl: string
+  apiOrigin: string
+  apiVersion: string
+}
+
+type ApiUrlOptions = {
+  version?: string
 }
 
 const isPlaceholderHost = (value: string) => {
@@ -36,6 +56,22 @@ const readRuntimeApiBaseUrl = () => {
   }
 
   return window.__APP_CONFIG__?.apiBaseUrl?.trim() ?? ''
+}
+
+const readRuntimeApiOrigin = () => {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+
+  return window.__APP_CONFIG__?.apiOrigin?.trim() ?? ''
+}
+
+const readRuntimeApiVersion = () => {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+
+  return window.__APP_CONFIG__?.apiVersion?.trim() ?? ''
 }
 
 const readWindowHostname = () => {
@@ -60,8 +96,98 @@ const readWindowHostname = () => {
   }
 }
 
-const shouldPreferEnvApiBaseUrl = (runtimeValue: string, envValue: string) => {
-  if (!envValue) {
+const hasApiConfigValue = (value: string | undefined) => Boolean(value?.trim())
+
+const hasApiConfigSource = (source: ApiConfigSource) =>
+  hasApiConfigValue(source.apiBaseUrl) ||
+  hasApiConfigValue(source.apiOrigin) ||
+  hasApiConfigValue(source.apiVersion)
+
+const normalizeApiVersion = (value: string) => {
+  const trimmed = value.trim().replace(/^\/+|\/+$/g, '')
+  if (!trimmed) {
+    return ''
+  }
+  if (/^\d+$/.test(trimmed)) {
+    return `v${trimmed}`
+  }
+  const lowered = trimmed.toLowerCase()
+  if (/^v\d+$/.test(lowered)) {
+    return lowered
+  }
+  return lowered.startsWith('v') ? lowered : `v${lowered}`
+}
+
+const stripApiSuffix = (value: string) => value.replace(/\/api(?:\/v[^/]+)?$/i, '')
+
+const normalizeApiOrigin = (value: string) => {
+  if (!value) return ''
+
+  const trimmed = trimTrailingSlash(value)
+  if (!trimmed || isPlaceholderHost(trimmed)) {
+    return ''
+  }
+
+  if (trimmed.startsWith('/')) {
+    return stripApiSuffix(trimmed)
+  }
+
+  return stripApiSuffix(trimmed)
+}
+
+const normalizeApiBaseUrl = (value: string) => {
+  if (!value) return ''
+
+  const trimmed = trimTrailingSlash(value)
+  if (!trimmed || isPlaceholderHost(trimmed)) {
+    return ''
+  }
+  const versionMatch = trimmed.match(/\/api\/(v[^/]+)$/i)
+  if (versionMatch) {
+    return `${stripApiSuffix(trimmed) || ''}/api/${normalizeApiVersion(versionMatch[1])}`
+  }
+  if (/\/api$/i.test(trimmed)) {
+    return `${trimmed}/${CANONICAL_API_VERSION}`
+  }
+  return `${stripApiSuffix(trimmed)}/api/${CANONICAL_API_VERSION}`
+}
+
+const deriveApiVersionFromBaseUrl = (value: string) => {
+  if (!value) {
+    return ''
+  }
+  const normalized = normalizeApiBaseUrl(value)
+  const match = normalized.match(/\/api\/(v[^/]+)$/i)
+  return match ? normalizeApiVersion(match[1]) : ''
+}
+
+const joinApiBaseUrl = (origin: string, version: string) => {
+  const normalizedVersion = normalizeApiVersion(version) || CANONICAL_API_VERSION
+  return origin ? `${origin}/api/${normalizedVersion}` : `/api/${normalizedVersion}`
+}
+
+const resolveConfiguredApi = (source: ApiConfigSource): ResolvedApiConfig | null => {
+  if (!hasApiConfigSource(source)) {
+    return null
+  }
+
+  const normalizedBaseUrl = normalizeApiBaseUrl(source.apiBaseUrl ?? '')
+  const normalizedOrigin =
+    normalizeApiOrigin(source.apiOrigin ?? '') || normalizeApiOrigin(normalizedBaseUrl)
+  const normalizedVersion =
+    normalizeApiVersion(source.apiVersion ?? '') ||
+    deriveApiVersionFromBaseUrl(normalizedBaseUrl) ||
+    CANONICAL_API_VERSION
+
+  return {
+    apiBaseUrl: normalizedBaseUrl || joinApiBaseUrl(normalizedOrigin, normalizedVersion),
+    apiOrigin: normalizedOrigin,
+    apiVersion: normalizedVersion,
+  }
+}
+
+const shouldPreferEnvApiConfig = (runtimeSource: ApiConfigSource, envSource: ApiConfigSource) => {
+  if (!hasApiConfigSource(envSource)) {
     return false
   }
 
@@ -69,47 +195,59 @@ const shouldPreferEnvApiBaseUrl = (runtimeValue: string, envValue: string) => {
     return true
   }
 
-  return Boolean(runtimeValue) && isLocalHostname(readWindowHostname())
+  return hasApiConfigSource(runtimeSource) && isLocalHostname(readWindowHostname())
 }
 
-const rawApiBaseUrl = (() => {
-  const runtimeApiBaseUrl = readRuntimeApiBaseUrl()
-  const envApiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').trim()
-  const trimmed = shouldPreferEnvApiBaseUrl(runtimeApiBaseUrl, envApiBaseUrl)
-    ? envApiBaseUrl
-    : runtimeApiBaseUrl || envApiBaseUrl
-  if (!trimmed || isPlaceholderHost(trimmed)) {
-    return CANONICAL_API_BASE_URL
+const resolvedApiConfig = (() => {
+  const runtimeSource: ApiConfigSource = {
+    apiBaseUrl: readRuntimeApiBaseUrl(),
+    apiOrigin: readRuntimeApiOrigin(),
+    apiVersion: readRuntimeApiVersion(),
   }
-  return trimmed
+  const envSource: ApiConfigSource = {
+    apiBaseUrl: (import.meta.env.VITE_API_BASE_URL ?? '').trim(),
+    apiOrigin: (import.meta.env.VITE_API_ORIGIN ?? '').trim(),
+    apiVersion: (import.meta.env.VITE_API_VERSION ?? '').trim(),
+  }
+  const preferredSource = shouldPreferEnvApiConfig(runtimeSource, envSource)
+    ? envSource
+    : hasApiConfigSource(runtimeSource)
+      ? runtimeSource
+      : envSource
+
+  return (
+    resolveConfiguredApi(preferredSource) ??
+    resolveConfiguredApi({
+      apiBaseUrl: CANONICAL_API_BASE_URL,
+      apiOrigin: CANONICAL_API_ORIGIN,
+      apiVersion: CANONICAL_API_VERSION,
+    })!
+  )
 })()
 
-const normalizeApiBaseUrl = (value: string) => {
-  if (!value) return ''
+const joinOriginAndPath = (origin: string, path: string) => (origin ? `${origin}${path}` : path)
 
-  const trimmed = trimTrailingSlash(value)
-  if (!trimmed) return ''
-  if (trimmed.endsWith('/api/v1')) {
-    return trimmed
+export const hasBackendApi = () => resolvedApiConfig.apiBaseUrl.length > 0
+
+export const getApiOrigin = () => resolvedApiConfig.apiOrigin
+
+export const getApiVersion = () => resolvedApiConfig.apiVersion
+
+export const getApiBaseUrl = (options?: ApiUrlOptions) => {
+  const requestedVersion = normalizeApiVersion(options?.version ?? '')
+  if (!requestedVersion || requestedVersion === resolvedApiConfig.apiVersion) {
+    return resolvedApiConfig.apiBaseUrl
   }
-  if (trimmed.endsWith('/api')) {
-    return `${trimmed}/v1`
-  }
-  return `${trimmed}/api/v1`
+
+  return joinApiBaseUrl(resolvedApiConfig.apiOrigin, requestedVersion)
 }
 
-const stripApiSuffix = (value: string) => value.replace(/\/api(?:\/v1)?$/i, '')
-
-export const hasBackendApi = () => normalizeApiBaseUrl(rawApiBaseUrl).length > 0
-
-export const getApiBaseUrl = () => normalizeApiBaseUrl(rawApiBaseUrl)
-
-export const buildApiUrl = (path: string) => {
+export const buildApiUrl = (path: string, options?: ApiUrlOptions) => {
   if (isAbsoluteUrl(path)) {
     return path
   }
 
-  const apiBaseUrl = getApiBaseUrl()
+  const apiBaseUrl = getApiBaseUrl(options)
   if (!apiBaseUrl) {
     return ''
   }
@@ -118,16 +256,26 @@ export const buildApiUrl = (path: string) => {
   if (
     normalizedPath === '/api' ||
     normalizedPath.startsWith('/api/') ||
-    normalizedPath === '/api/v1' ||
-    normalizedPath.startsWith('/api/v1/')
+    /^\/api\/v[^/]+(?:\/|$)/i.test(normalizedPath)
   ) {
-    return `${stripApiSuffix(apiBaseUrl)}${normalizedPath}`
+    return joinOriginAndPath(getApiOrigin(), normalizedPath)
   }
 
   return `${apiBaseUrl}${normalizedPath}`
 }
 
 export const getBackendOrigin = () => {
+  const apiOrigin = getApiOrigin()
+  if (apiOrigin) {
+    try {
+      return new URL(apiOrigin, typeof window !== 'undefined' ? window.location.origin : undefined).origin
+    } catch {
+      if (apiOrigin.startsWith('/')) {
+        return typeof window !== 'undefined' ? window.location.origin : ''
+      }
+    }
+  }
+
   const apiBaseUrl = getApiBaseUrl()
   if (!apiBaseUrl) {
     return typeof window !== 'undefined' ? window.location.origin : ''

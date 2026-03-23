@@ -7,11 +7,15 @@ RUN flutter config --enable-web && flutter pub get
 
 COPY . .
 
-ARG API_BASE_URL=https://api.4thitek.vn
+ARG API_ORIGIN=
+ARG API_VERSION=
+ARG API_BASE_URL=https://api.4thitek.vn/api/v1
 ARG WS_BASE_URL=
 ARG PUBLIC_SITE_BASE_URL=https://4thitek.vn
 
 RUN flutter build web --release \
+    --dart-define=API_ORIGIN=${API_ORIGIN} \
+    --dart-define=API_VERSION=${API_VERSION} \
     --dart-define=API_BASE_URL=${API_BASE_URL} \
     --dart-define=WS_BASE_URL=${WS_BASE_URL} \
     --dart-define=PUBLIC_SITE_BASE_URL=${PUBLIC_SITE_BASE_URL}

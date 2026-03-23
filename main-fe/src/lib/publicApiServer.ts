@@ -1,4 +1,4 @@
-import { API_BASE_URL, API_ENDPOINTS } from '@/constants/api';
+import { API_ENDPOINTS, buildApiUrl } from '@/constants/api';
 
 type Envelope<T> = {
     success: boolean;
@@ -6,9 +6,17 @@ type Envelope<T> = {
     error?: string;
 };
 
-async function fetchEnvelope<T>(path: string, revalidate: number): Promise<Envelope<T>> {
+type PublicApiRequestOptions = {
+    version?: string;
+};
+
+async function fetchEnvelope<T>(
+    path: string,
+    revalidate: number,
+    options?: PublicApiRequestOptions
+): Promise<Envelope<T>> {
     try {
-        const response = await fetch(`${API_BASE_URL}${path}`, {
+        const response = await fetch(buildApiUrl(path, { version: options?.version }), {
             cache: 'force-cache',
             next: { revalidate },
             headers: {
@@ -35,15 +43,15 @@ async function fetchEnvelope<T>(path: string, revalidate: number): Promise<Envel
 }
 
 export const publicApiServer = {
-    fetchNewProducts: () =>
+    fetchNewProducts: (options?: PublicApiRequestOptions) =>
         fetchEnvelope<
             Array<{ id: number | string; name: string; sku?: string; shortDescription: string; image: string; price?: number }>
-        >(API_ENDPOINTS.PRODUCT.PRODUCTS_NEW, 60),
-    fetchFeaturedProducts: () =>
+        >(API_ENDPOINTS.PRODUCT.PRODUCTS_NEW, 60, options),
+    fetchFeaturedProducts: (options?: PublicApiRequestOptions) =>
         fetchEnvelope<
             Array<{ id: number | string; name: string; sku?: string; shortDescription: string; image: string; price?: number }>
-        >(API_ENDPOINTS.PRODUCT.PRODUCTS_FEATURED, 60),
-    fetchProducts: () =>
+        >(API_ENDPOINTS.PRODUCT.PRODUCTS_FEATURED, 60, options),
+    fetchProducts: (options?: PublicApiRequestOptions) =>
         fetchEnvelope<
             Array<{
                 id: number | string;
@@ -55,8 +63,8 @@ export const publicApiServer = {
                 stock?: number;
                 warrantyMonths?: number;
             }>
-        >(API_ENDPOINTS.PRODUCT.PRODUCTS, 60),
-    fetchProductById: (id: string) =>
+        >(API_ENDPOINTS.PRODUCT.PRODUCTS, 60, options),
+    fetchProductById: (id: string, options?: PublicApiRequestOptions) =>
         fetchEnvelope<{
             id: number | string;
             name: string;
@@ -70,19 +78,20 @@ export const publicApiServer = {
             price?: number;
             stock?: number;
             warrantyMonths?: number;
-        }>(API_ENDPOINTS.PRODUCT.PRODUCT_BY_ID(id), 60),
-    fetchLatestBlogs: () =>
+        }>(API_ENDPOINTS.PRODUCT.PRODUCT_BY_ID(id), 60, options),
+    fetchLatestBlogs: (options?: PublicApiRequestOptions) =>
         fetchEnvelope<
             Array<{ id: number | string; title: string; description: string; image: string; category: string; createdAt: string }>
-        >(API_ENDPOINTS.BLOG.BLOGS_LATEST, 1800),
-    fetchBlogs: () =>
+        >(API_ENDPOINTS.BLOG.BLOGS_LATEST, 1800, options),
+    fetchBlogs: (options?: PublicApiRequestOptions) =>
         fetchEnvelope<Array<{ id: number | string; title: string; description: string; image: string; category: string; createdAt: string }>>(
             API_ENDPOINTS.BLOG.BLOGS,
-            1800
+            1800,
+            options
         ),
-    fetchBlogCategories: () =>
-        fetchEnvelope<Array<{ id: number | string; name: string }>>(API_ENDPOINTS.BLOG.CATEGORIES, 1800),
-    fetchBlogById: (id: string) =>
+    fetchBlogCategories: (options?: PublicApiRequestOptions) =>
+        fetchEnvelope<Array<{ id: number | string; name: string }>>(API_ENDPOINTS.BLOG.CATEGORIES, 1800, options),
+    fetchBlogById: (id: string, options?: PublicApiRequestOptions) =>
         fetchEnvelope<{
             id: number | string;
             title: string;
@@ -93,7 +102,7 @@ export const publicApiServer = {
             updatedAt?: string;
             introduction?: string;
             showOnHomepage?: boolean;
-        }>(API_ENDPOINTS.BLOG.BLOG_BY_ID(id), 1800),
-    fetchContentSection: <T>(section: string, language: string) =>
-        fetchEnvelope<T>(API_ENDPOINTS.CONTENT.SECTION(section, language), 86400)
+        }>(API_ENDPOINTS.BLOG.BLOG_BY_ID(id), 1800, options),
+    fetchContentSection: <T>(section: string, language: string, options?: PublicApiRequestOptions) =>
+        fetchEnvelope<T>(API_ENDPOINTS.CONTENT.SECTION(section, language), 86400, options)
 };

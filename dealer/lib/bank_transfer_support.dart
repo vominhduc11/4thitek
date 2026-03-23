@@ -88,9 +88,7 @@ class BankTransferService {
     }
 
     final response = await _client.get(
-      Uri.parse(
-        DealerApiConfig.resolveUrl('/api/v1/dealer/payment-instructions'),
-      ),
+      DealerApiConfig.resolveApiUri('/dealer/payment-instructions'),
       headers: <String, String>{
         HttpHeaders.authorizationHeader: 'Bearer ${accessToken.trim()}',
         HttpHeaders.acceptHeader: 'application/json',

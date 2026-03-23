@@ -51,8 +51,8 @@ class DealerAuthClient extends http.BaseClient {
       return false;
     }
     final path = url.path.toLowerCase();
-    if (path.endsWith('/api/v1/auth/login') ||
-        path.endsWith('/api/v1/auth/refresh')) {
+    if (path.endsWith(DealerApiConfig.apiPath('/auth/login').toLowerCase()) ||
+        path.endsWith(DealerApiConfig.apiPath('/auth/refresh').toLowerCase())) {
       return false;
     }
     return true;

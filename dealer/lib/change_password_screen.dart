@@ -291,7 +291,7 @@ class _ChangePasswordService {
     }
 
     final response = await _client.patch(
-      Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/password')),
+      DealerApiConfig.resolveApiUri('/dealer/password'),
       headers: <String, String>{
         'Accept': 'application/json',
         'Content-Type': 'application/json',

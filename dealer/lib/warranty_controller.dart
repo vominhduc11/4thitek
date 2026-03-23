@@ -626,7 +626,7 @@ class WarrantyController extends ChangeNotifier {
 
     try {
       final serialResponse = await _client.get(
-        Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/serials')),
+        DealerApiConfig.resolveApiUri('/dealer/serials'),
         headers: _authorizedHeaders(token),
       );
       final serialPayload = _decodeBody(serialResponse.body);
@@ -667,7 +667,7 @@ class WarrantyController extends ChangeNotifier {
       }
 
       final warrantyResponse = await _client.get(
-        Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/warranties')),
+        DealerApiConfig.resolveApiUri('/dealer/warranties'),
         headers: _authorizedHeaders(token),
       );
       final warrantyPayload = _decodeBody(warrantyResponse.body);
@@ -883,7 +883,7 @@ class WarrantyController extends ChangeNotifier {
     }
 
     final response = await _client.post(
-      Uri.parse(DealerApiConfig.resolveUrl('/api/v1/warranty-activation')),
+      DealerApiConfig.resolveApiUri('/warranty-activation'),
       headers: await _authorizedJsonHeaders(),
       body: jsonEncode(<String, dynamic>{
         'productSerialId': remoteSerialId,

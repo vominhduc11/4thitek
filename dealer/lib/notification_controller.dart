@@ -191,7 +191,7 @@ class NotificationController extends ChangeNotifier {
 
     try {
       final response = await _client.get(
-        Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/notifications')),
+        DealerApiConfig.resolveApiUri('/dealer/notifications'),
         headers: _authorizedHeaders(token),
       );
       final payload = _decodeBody(response.body);
@@ -244,11 +244,7 @@ class NotificationController extends ChangeNotifier {
   Future<String?> _markRemoteRead(int remoteId) async {
     try {
       final response = await _client.patch(
-        Uri.parse(
-          DealerApiConfig.resolveUrl(
-            '/api/v1/dealer/notifications/$remoteId/read',
-          ),
-        ),
+        DealerApiConfig.resolveApiUri('/dealer/notifications/$remoteId/read'),
         headers: await _authorizedJsonHeaders(),
       );
       final payload = _decodeBody(response.body);
@@ -264,11 +260,7 @@ class NotificationController extends ChangeNotifier {
   Future<String?> _markRemoteUnread(int remoteId) async {
     try {
       final response = await _client.patch(
-        Uri.parse(
-          DealerApiConfig.resolveUrl(
-            '/api/v1/dealer/notifications/$remoteId/unread',
-          ),
-        ),
+        DealerApiConfig.resolveApiUri('/dealer/notifications/$remoteId/unread'),
         headers: await _authorizedJsonHeaders(),
       );
       final payload = _decodeBody(response.body);
@@ -284,9 +276,7 @@ class NotificationController extends ChangeNotifier {
   Future<String?> _markAllRemoteRead() async {
     try {
       final response = await _client.patch(
-        Uri.parse(
-          DealerApiConfig.resolveUrl('/api/v1/dealer/notifications/read-all'),
-        ),
+        DealerApiConfig.resolveApiUri('/dealer/notifications/read-all'),
         headers: await _authorizedJsonHeaders(),
       );
       final payload = _decodeBody(response.body);

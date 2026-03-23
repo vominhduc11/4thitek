@@ -1,8 +1,11 @@
 // API Constants - centralized API configuration and endpoints
 
 // Base URLs
-const trimTrailingSlash = (value: string) => value.replace(/\/$/, '');
-const stripApiSuffix = (value: string) => trimTrailingSlash(value).replace(/\/api(?:\/v1)?$/i, '');
+const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '');
+const stripApiSuffix = (value: string) => trimTrailingSlash(value).replace(/\/api(?:\/v[^/]+)?$/i, '');
+const CANONICAL_API_ORIGIN = 'https://api.4thitek.vn';
+const CANONICAL_API_VERSION = 'v1';
+const CANONICAL_API_BASE_URL = `${CANONICAL_API_ORIGIN}/api/${CANONICAL_API_VERSION}`;
 
 const isPlaceholderHost = (value: string) => {
     if (!value || value.startsWith('/')) {
@@ -17,27 +20,102 @@ const isPlaceholderHost = (value: string) => {
     }
 };
 
+const normalizeConfiguredApiVersion = (value?: string | null) => {
+    const trimmed = (value || '').trim();
+    if (!trimmed || isPlaceholderHost(trimmed)) {
+        return '';
+    }
+    if (/^\d+$/.test(trimmed)) {
+        return `v${trimmed}`;
+    }
+    const lowered = trimmed.replace(/^\/+|\/+$/g, '').toLowerCase();
+    if (!lowered) {
+        return '';
+    }
+    if (/^v\d+$/.test(lowered)) {
+        return lowered;
+    }
+    return lowered.startsWith('v') ? lowered : `v${lowered}`;
+};
+
+const normalizeConfiguredApiOrigin = (value?: string | null) => {
+    const trimmed = (value || '').trim();
+    if (!trimmed || isPlaceholderHost(trimmed)) {
+        return '';
+    }
+    return stripApiSuffix(trimTrailingSlash(trimmed));
+};
+
 const normalizeConfiguredApiBaseUrl = (value?: string | null) => {
     const trimmed = (value || '').trim();
     if (!trimmed || isPlaceholderHost(trimmed)) {
         return '';
     }
     const normalized = trimTrailingSlash(trimmed);
-    if (normalized.startsWith('/')) {
-        return normalized;
+    const versionMatch = normalized.match(/\/api\/(v[^/]+)$/i);
+    if (versionMatch) {
+        return `${stripApiSuffix(normalized)}/api/${normalizeConfiguredApiVersion(versionMatch[1])}`;
     }
-    if (/\/api(?:\/v1)?$/i.test(normalized)) {
-        return normalized;
+    if (/\/api$/i.test(normalized)) {
+        return `${normalized}/${CANONICAL_API_VERSION}`;
     }
-    return `${stripApiSuffix(normalized)}/api/v1`;
+    return `${stripApiSuffix(normalized)}/api/${CANONICAL_API_VERSION}`;
 };
 
-const CANONICAL_API_BASE_URL = 'https://api.4thitek.vn/api/v1';
+const deriveApiVersionFromBaseUrl = (value?: string | null) => {
+    const normalized = normalizeConfiguredApiBaseUrl(value);
+    const match = normalized.match(/\/api\/(v[^/]+)$/i);
+    return match ? normalizeConfiguredApiVersion(match[1]) : '';
+};
+
+const joinApiBaseUrl = (origin: string, version: string) => {
+    const effectiveVersion = normalizeConfiguredApiVersion(version) || CANONICAL_API_VERSION;
+    return origin ? `${origin}/api/${effectiveVersion}` : `/api/${effectiveVersion}`;
+};
+
+const ensureLeadingSlash = (value: string) => (value.startsWith('/') ? value : `/${value}`);
+
+export const API_ORIGIN =
+    normalizeConfiguredApiOrigin(process.env.NEXT_PUBLIC_API_ORIGIN) ||
+    normalizeConfiguredApiOrigin(process.env.INTERNAL_API_ORIGIN) ||
+    normalizeConfiguredApiOrigin(process.env.NEXT_PUBLIC_API_BASE_URL) ||
+    normalizeConfiguredApiOrigin(process.env.INTERNAL_API_BASE_URL) ||
+    CANONICAL_API_ORIGIN;
+
+export const API_VERSION =
+    normalizeConfiguredApiVersion(process.env.NEXT_PUBLIC_API_VERSION) ||
+    normalizeConfiguredApiVersion(process.env.INTERNAL_API_VERSION) ||
+    deriveApiVersionFromBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL) ||
+    deriveApiVersionFromBaseUrl(process.env.INTERNAL_API_BASE_URL) ||
+    CANONICAL_API_VERSION;
 
 export const API_BASE_URL =
     normalizeConfiguredApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL) ||
     normalizeConfiguredApiBaseUrl(process.env.INTERNAL_API_BASE_URL) ||
+    joinApiBaseUrl(API_ORIGIN, API_VERSION) ||
     CANONICAL_API_BASE_URL;
+
+export const buildApiBaseUrl = (version?: string) => {
+    const normalizedVersion = normalizeConfiguredApiVersion(version);
+    if (!normalizedVersion || normalizedVersion === API_VERSION) {
+        return API_BASE_URL;
+    }
+    return joinApiBaseUrl(API_ORIGIN, normalizedVersion);
+};
+
+export const buildApiUrl = (path: string, options?: { version?: string }) => {
+    const trimmed = path.trim();
+    if (/^https?:\/\//i.test(trimmed)) {
+        return trimmed;
+    }
+
+    const normalizedPath = ensureLeadingSlash(trimmed);
+    if (normalizedPath.startsWith('/api/')) {
+        return `${API_ORIGIN}${normalizedPath}`;
+    }
+
+    return `${buildApiBaseUrl(options?.version)}${normalizedPath}`;
+};
 
 // API Endpoints
 export const API_ENDPOINTS = {

@@ -52,7 +52,7 @@ ImageProvider<Object>? imageProviderFromReference(String? reference) {
 
 Map<String, String>? authHeadersForResolvedUrl(String? resolvedUrl) {
   final trimmed = resolvedUrl?.trim() ?? '';
-  if (trimmed.isEmpty || !trimmed.contains('/api/v1/upload/')) {
+  if (trimmed.isEmpty || !DealerApiConfig.isResolvedApiUploadUrl(trimmed)) {
     return null;
   }
 

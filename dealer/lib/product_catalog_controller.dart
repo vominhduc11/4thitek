@@ -130,7 +130,7 @@ class ProductCatalogController extends ChangeNotifier {
 
     try {
       final response = await _client.get(
-        Uri.parse(DealerApiConfig.resolveUrl('/api/v1/product/products')),
+        DealerApiConfig.resolveApiUri('/product/products'),
         headers: const <String, String>{'Accept': 'application/json'},
       );
       final payload = _decodePayload(response.body);
@@ -178,9 +178,9 @@ class ProductCatalogController extends ChangeNotifier {
       return (items: const <Product>[], isLast: true);
     }
 
-    final uri = Uri.parse(
-      DealerApiConfig.resolveUrl('/api/v1/product/products/page'),
-    ).replace(queryParameters: {'page': '$pageIndex', 'size': '$pageSize'});
+    final uri = DealerApiConfig.resolveApiUri('/product/products/page').replace(
+      queryParameters: {'page': '$pageIndex', 'size': '$pageSize'},
+    );
 
     final response = await _client.get(
       uri,
@@ -233,7 +233,7 @@ class ProductCatalogController extends ChangeNotifier {
 
     try {
       final response = await _client.get(
-        Uri.parse(DealerApiConfig.resolveUrl('/api/v1/product/$productId')),
+        DealerApiConfig.resolveApiUri('/product/$productId'),
         headers: const <String, String>{'Accept': 'application/json'},
       );
       final payload = _decodePayload(response.body);

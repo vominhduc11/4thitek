@@ -117,9 +117,7 @@ class SupportService {
     }
 
     final response = await _client.get(
-      Uri.parse(
-        DealerApiConfig.resolveUrl('/api/v1/dealer/support-tickets/latest'),
-      ),
+      DealerApiConfig.resolveApiUri('/dealer/support-tickets/latest'),
       headers: await _authorizedHeaders(),
     );
     final payload = _decodeBody(response.body);
@@ -145,7 +143,7 @@ class SupportService {
     required String message,
   }) async {
     final response = await _client.post(
-      Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/support-tickets')),
+      DealerApiConfig.resolveApiUri('/dealer/support-tickets'),
       headers: await _authorizedJsonHeaders(),
       body: jsonEncode(<String, dynamic>{
         'category': category,
@@ -172,11 +170,9 @@ class SupportService {
     int size = 10,
   }) async {
     final response = await _client.get(
-      Uri.parse(
-        DealerApiConfig.resolveUrl(
-          '/api/v1/dealer/support-tickets/page?page=$page&size=$size',
-        ),
-      ),
+      DealerApiConfig.resolveApiUri(
+        '/dealer/support-tickets/page',
+      ).replace(queryParameters: <String, String>{'page': '$page', 'size': '$size'}),
       headers: await _authorizedHeaders(),
     );
     final payload = _decodeBody(response.body);

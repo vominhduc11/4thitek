@@ -314,11 +314,7 @@ class OrderController extends ChangeNotifier {
     if (remoteOrderId != null && await _canUseRemoteApi()) {
       try {
         final response = await _client.patch(
-          Uri.parse(
-            DealerApiConfig.resolveUrl(
-              '/api/v1/dealer/orders/$remoteOrderId/status',
-            ),
-          ),
+          DealerApiConfig.resolveApiUri('/dealer/orders/$remoteOrderId/status'),
           headers: await _authorizedJsonHeaders(),
           body: jsonEncode(<String, dynamic>{
             'status': _toRemoteOrderStatus(status),
@@ -401,11 +397,7 @@ class OrderController extends ChangeNotifier {
     if (remoteOrderId != null && await _canUseRemoteApi()) {
       try {
         final response = await _client.post(
-          Uri.parse(
-            DealerApiConfig.resolveUrl(
-              '/api/v1/dealer/orders/$remoteOrderId/payments',
-            ),
-          ),
+          DealerApiConfig.resolveApiUri('/dealer/orders/$remoteOrderId/payments'),
           headers: await _authorizedJsonHeaders(),
           body: jsonEncode(<String, dynamic>{
             'amount': safeAmount,
@@ -461,7 +453,7 @@ class OrderController extends ChangeNotifier {
 
     try {
       final response = await _client.get(
-        Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/orders')),
+        DealerApiConfig.resolveApiUri('/dealer/orders'),
         headers: await _authorizedHeaders(),
       );
       final payload = _decodeBody(response.body);
@@ -507,7 +499,7 @@ class OrderController extends ChangeNotifier {
 
   Future<Order> _createRemoteOrder(Order order) async {
     final response = await _client.post(
-      Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/orders')),
+      DealerApiConfig.resolveApiUri('/dealer/orders'),
       headers: await _authorizedJsonHeaders(),
       body: jsonEncode(<String, dynamic>{
         'paymentMethod': _toRemotePaymentMethod(order.paymentMethod),
@@ -552,9 +544,7 @@ class OrderController extends ChangeNotifier {
 
   Future<void> _reloadRemoteOrder(int remoteOrderId) async {
     final response = await _client.get(
-      Uri.parse(
-        DealerApiConfig.resolveUrl('/api/v1/dealer/orders/$remoteOrderId'),
-      ),
+      DealerApiConfig.resolveApiUri('/dealer/orders/$remoteOrderId'),
       headers: await _authorizedHeaders(),
     );
     final payload = _decodeBody(response.body);
@@ -579,11 +569,7 @@ class OrderController extends ChangeNotifier {
     int remoteOrderId,
   ) async {
     final response = await _client.get(
-      Uri.parse(
-        DealerApiConfig.resolveUrl(
-          '/api/v1/dealer/orders/$remoteOrderId/payments',
-        ),
-      ),
+      DealerApiConfig.resolveApiUri('/dealer/orders/$remoteOrderId/payments'),
       headers: await _authorizedHeaders(),
     );
     final payload = _decodeBody(response.body);

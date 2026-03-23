@@ -180,7 +180,7 @@ Future<DealerProfile> loadDealerProfile() async {
 
   try {
     final response = await _authClient.get(
-      Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/profile')),
+      DealerApiConfig.resolveApiUri('/dealer/profile'),
       headers: _authorizedHeaders(token),
     );
     final payload = _decodeBody(response.body);
@@ -254,7 +254,7 @@ Future<void> saveDealerProfile(DealerProfile profile) async {
   }
 
   final response = await _authClient.put(
-    Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/profile')),
+    DealerApiConfig.resolveApiUri('/dealer/profile'),
     headers: _authorizedJsonHeaders(token),
     body: jsonEncode(<String, dynamic>{
       'businessName': normalizedProfile.businessName,

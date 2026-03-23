@@ -163,7 +163,7 @@ class PushMessagingController extends ChangeNotifier {
 
     try {
       final uri = Uri.parse(
-        DealerApiConfig.resolveUrl('/api/v1/dealer/push-tokens'),
+        DealerApiConfig.resolveApiUrl('/dealer/push-tokens'),
       ).replace(queryParameters: <String, String>{'token': token.trim()});
       await _client.delete(
         uri,
@@ -203,7 +203,7 @@ class PushMessagingController extends ChangeNotifier {
 
     try {
       final response = await _client.post(
-        Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/push-tokens')),
+        DealerApiConfig.resolveApiUri('/dealer/push-tokens'),
         headers: <String, String>{
           'Accept': 'application/json',
           'Content-Type': 'application/json',

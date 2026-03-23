@@ -245,7 +245,7 @@ class CartController extends ChangeNotifier {
     try {
       final response = await _client
           .get(
-            Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/cart')),
+            DealerApiConfig.resolveApiUri('/dealer/cart'),
             headers: _authorizedHeaders(token),
           )
           .timeout(_remoteRequestTimeout);
@@ -293,9 +293,7 @@ class CartController extends ChangeNotifier {
     try {
       final response = await _client
           .get(
-            Uri.parse(
-              DealerApiConfig.resolveUrl('/api/v1/dealer/discount-rules'),
-            ),
+            DealerApiConfig.resolveApiUri('/dealer/discount-rules'),
             headers: _authorizedHeaders(token),
           )
           .timeout(_remoteRequestTimeout);
@@ -391,7 +389,7 @@ class CartController extends ChangeNotifier {
 
     final response = await _client
         .put(
-          Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/cart/items')),
+          DealerApiConfig.resolveApiUri('/dealer/cart/items'),
           headers: _authorizedJsonHeaders(token),
           body: jsonEncode(<String, dynamic>{
             'productId': productId,
@@ -421,11 +419,7 @@ class CartController extends ChangeNotifier {
 
     final response = await _client
         .delete(
-          Uri.parse(
-            DealerApiConfig.resolveUrl(
-              '/api/v1/dealer/cart/items/$numericProductId',
-            ),
-          ),
+          DealerApiConfig.resolveApiUri('/dealer/cart/items/$numericProductId'),
           headers: _authorizedHeaders(token),
         )
         .timeout(_remoteRequestTimeout);
@@ -439,7 +433,7 @@ class CartController extends ChangeNotifier {
     final token = await _requireAccessToken();
     final response = await _client
         .delete(
-          Uri.parse(DealerApiConfig.resolveUrl('/api/v1/dealer/cart')),
+          DealerApiConfig.resolveApiUri('/dealer/cart'),
           headers: _authorizedHeaders(token),
         )
         .timeout(_remoteRequestTimeout);

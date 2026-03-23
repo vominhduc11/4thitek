@@ -231,9 +231,7 @@ class RemoteAuthService implements AuthService {
     try {
       final response = await _client
           .post(
-            Uri.parse(
-              DealerApiConfig.resolveUrl('/api/v1/auth/forgot-password'),
-            ),
+            DealerApiConfig.resolveApiUri('/auth/forgot-password'),
             headers: DealerApiConfig.jsonHeaders,
             body: jsonEncode(<String, String>{
               'email': email.trim().toLowerCase(),
