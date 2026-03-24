@@ -56,7 +56,8 @@
       "Bash(xargs cat:*)",
       "Bash(npx eslint:*)",
       "Bash(npm run:*)",
-      "Bash(mvn compile:*)"
+      "Bash(mvn compile:*)",
+      "Bash(./mvnw test:*)"
     ]
   }
 }

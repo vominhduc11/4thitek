@@ -28,6 +28,7 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const ChangePasswordPage = lazy(() => import('./pages/ChangePasswordPage'))
 const UnmatchedPaymentsPage = lazy(() => import('./pages/UnmatchedPaymentsPage'))
+const FinancialSettlementsPage = lazy(() => import('./pages/FinancialSettlementsPage'))
 
 const renderLazyElement = (Component: LazyExoticComponent<ComponentType>) => (
   <RouteErrorBoundary>
@@ -92,6 +93,10 @@ function App() {
           <Route
             path="/unmatched-payments"
             element={renderLazyElement(UnmatchedPaymentsPage)}
+          />
+          <Route
+            path="/financial-settlements"
+            element={renderLazyElement(FinancialSettlementsPage)}
           />
           <Route element={<SuperAdminRoute />}>
             <Route path="/users" element={renderLazyElement(UsersPage)} />

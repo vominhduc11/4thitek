@@ -36,6 +36,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -232,7 +233,7 @@ class OrderWorkflowLogicTests {
                 List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
         );
 
-        assertThatThrownBy(() -> dealerPortalService.createOrder(savedDealer.getUsername(), request))
+        assertThatThrownBy(() -> dealerPortalService.createOrder(savedDealer.getUsername(), request, UUID.randomUUID().toString()))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Credit limit exceeded");
     }
@@ -252,7 +253,7 @@ class OrderWorkflowLogicTests {
                 List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
         );
 
-        assertThatThrownBy(() -> dealerPortalService.createOrder(dealer.getUsername(), request))
+        assertThatThrownBy(() -> dealerPortalService.createOrder(dealer.getUsername(), request, UUID.randomUUID().toString()))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Credit limit is not configured");
     }
@@ -281,7 +282,7 @@ class OrderWorkflowLogicTests {
             ready.countDown();
             start.await(5, TimeUnit.SECONDS);
             try {
-                dealerPortalService.createOrder(savedDealer.getUsername(), request);
+                dealerPortalService.createOrder(savedDealer.getUsername(), request, UUID.randomUUID().toString());
                 return "created";
             } catch (BadRequestException ex) {
                 if (ex.getMessage() != null && ex.getMessage().contains("Credit limit exceeded")) {
@@ -325,7 +326,8 @@ class OrderWorkflowLogicTests {
                         0,
                         "Discount should use active rule",
                         List.of(new CreateDealerOrderItemRequest(product.getId(), 3, product.getRetailPrice()))
-                )
+                ),
+                UUID.randomUUID().toString()
         );
 
         assertThat(response.discountPercent()).isEqualTo(15);
@@ -347,7 +349,8 @@ class OrderWorkflowLogicTests {
                         0,
                         "Should fail because stock is low",
                         List.of(new CreateDealerOrderItemRequest(product.getId(), 6, product.getRetailPrice()))
-                )
+                ),
+                UUID.randomUUID().toString()
         ))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Insufficient stock");
@@ -368,7 +371,8 @@ class OrderWorkflowLogicTests {
                         0,
                         "Reserve stock",
                         List.of(new CreateDealerOrderItemRequest(product.getId(), 3, product.getRetailPrice()))
-                )
+                ),
+                UUID.randomUUID().toString()
         );
 
         assertThat(productRepository.findById(product.getId()).orElseThrow().getStock()).isEqualTo(2);
@@ -397,7 +401,8 @@ class OrderWorkflowLogicTests {
                         0,
                         "Legacy serial cleanup",
                         List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
-                )
+                ),
+                UUID.randomUUID().toString()
         );
         Order order = orderRepository.findById(createdOrder.id()).orElseThrow();
         ProductSerial serial = productSerialRepository.save(createSerial(
@@ -443,7 +448,8 @@ class OrderWorkflowLogicTests {
                                 new CreateDealerOrderItemRequest(discountedProduct.getId(), 1, discountedProduct.getRetailPrice()),
                                 new CreateDealerOrderItemRequest(regularProduct.getId(), 1, regularProduct.getRetailPrice())
                         )
-                )
+                ),
+                UUID.randomUUID().toString()
         );
 
         assertThat(response.subtotal()).isEqualByComparingTo("150000");
@@ -467,7 +473,8 @@ class OrderWorkflowLogicTests {
                         0,
                         "Client price should be ignored",
                         List.of(new CreateDealerOrderItemRequest(product.getId(), 1, BigDecimal.ONE))
-                )
+                ),
+                UUID.randomUUID().toString()
         );
 
         assertThat(response.subtotal()).isEqualByComparingTo("100000");
@@ -490,7 +497,8 @@ class OrderWorkflowLogicTests {
                         25_000,
                         "Client shipping fee should be ignored",
                         List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
-                )
+                ),
+                UUID.randomUUID().toString()
         ))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("shippingFee is controlled by the server");
@@ -510,7 +518,8 @@ class OrderWorkflowLogicTests {
                         0,
                         "Admin should confirm payment manually",
                         List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
-                )
+                ),
+                UUID.randomUUID().toString()
         );
 
         var updatedOrder = adminManagementService.recordOrderPayment(
@@ -544,7 +553,8 @@ class OrderWorkflowLogicTests {
                         0,
                         "Dealer should confirm payment manually when SePay is disabled",
                         List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
-                )
+                ),
+                UUID.randomUUID().toString()
         );
 
         var recordedPayment = dealerPortalService.recordPayment(
@@ -581,7 +591,8 @@ class OrderWorkflowLogicTests {
                         0,
                         "Overpayment should be rejected",
                         List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
-                )
+                ),
+                UUID.randomUUID().toString()
         );
 
         assertThatThrownBy(() -> adminManagementService.recordOrderPayment(
@@ -616,7 +627,8 @@ class OrderWorkflowLogicTests {
                         0,
                         "Concurrent duplicate payment test",
                         List.of(new CreateDealerOrderItemRequest(product.getId(), 2, product.getRetailPrice()))
-                )
+                ),
+                UUID.randomUUID().toString()
         );
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
@@ -678,7 +690,8 @@ class OrderWorkflowLogicTests {
                         0,
                         "Dealer may cancel this order",
                         List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
-                )
+                ),
+                UUID.randomUUID().toString()
         );
 
         dealerPortalService.updateOrderStatus(
@@ -709,7 +722,8 @@ class OrderWorkflowLogicTests {
                         0,
                         "Should fail because serial pool only has three items",
                         List.of(new CreateDealerOrderItemRequest(product.getId(), 4, product.getRetailPrice()))
-                )
+                ),
+                UUID.randomUUID().toString()
         ))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Insufficient stock");
@@ -757,7 +771,8 @@ class OrderWorkflowLogicTests {
                         0,
                         "Linked order serials must not be reused as stock",
                         List.of(new CreateDealerOrderItemRequest(product.getId(), 2, product.getRetailPrice()))
-                )
+                ),
+                UUID.randomUUID().toString()
         ))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Insufficient stock");
@@ -899,7 +914,7 @@ class OrderWorkflowLogicTests {
         ready.countDown();
         start.await(5, TimeUnit.SECONDS);
         try {
-            dealerPortalService.createOrder(dealerUsername, request);
+            dealerPortalService.createOrder(dealerUsername, request, UUID.randomUUID().toString());
             return "created";
         } catch (BadRequestException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("Insufficient stock")) {

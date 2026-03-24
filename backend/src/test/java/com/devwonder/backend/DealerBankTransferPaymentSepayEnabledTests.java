@@ -23,6 +23,7 @@ import com.devwonder.backend.service.DealerPortalService;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,7 +83,8 @@ class DealerBankTransferPaymentSepayEnabledTests {
                         0,
                         "Dealer manual payment when SePay is enabled",
                         List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
-                )
+                ),
+                UUID.randomUUID().toString()
         );
 
         assertThatThrownBy(() -> dealerPortalService.recordPayment(
@@ -118,7 +120,8 @@ class DealerBankTransferPaymentSepayEnabledTests {
                         0,
                         "Admin manual payment when SePay is enabled",
                         List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
-                )
+                ),
+                UUID.randomUUID().toString()
         );
 
         var updatedOrder = adminManagementService.recordOrderPayment(

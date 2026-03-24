@@ -1,19 +1,36 @@
 package com.devwonder.backend.service;
 
 import com.devwonder.backend.config.OrderProperties;
+import com.devwonder.backend.entity.Order;
+import com.devwonder.backend.repository.OrderRepository;
 import java.time.Instant;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * In-memory idempotency key store for order creation.
- * Stores idempotencyKey → cached orderId mapping for configured TTL.
- * Cleanup runs every 5 minutes via scheduler.
+ * DB-backed idempotency key store for order creation.
+ *
+ * <p>Previously used a {@code ConcurrentHashMap} which was lost on restart and incorrect
+ * for multi-instance deployments. This implementation delegates directly to the
+ * {@code orders.idempotency_key} column which already carries a unique DB constraint,
+ * making it restart-safe and consistent across instances without an additional table.
+ *
+ * <p>TTL semantics are preserved: {@link #get} returns a hit only when the order was
+ * created within the configured window ({@code app.order.idempotency-ttl-minutes}).
+ * After the TTL expires the same key can be used to create a fresh order, exactly as
+ * the in-memory implementation behaved.
+ *
+ * <p>{@link #put} is intentionally a no-op: the idempotency key is stored on the
+ * {@code Order} entity at creation time by
+ * {@link com.devwonder.backend.service.support.DealerOrderWorkflowSupport}, so the
+ * DB already holds the entry by the time {@code put} would be called.
+ *
+ * <p>The scheduled {@link #evictExpired} is also a no-op: there are no separate rows
+ * to clean up. Expired idempotency entries age out naturally as orders are never
+ * returned by {@link #get} once past the TTL window.
  *
  * Per BUSINESS_LOGIC.md Section 3.4 [Policy]:
  *   - Client sends X-Idempotency-Key (UUID v4) with every order creation request.
@@ -25,50 +42,43 @@ public class IdempotencyStore {
 
     private static final Logger log = LoggerFactory.getLogger(IdempotencyStore.class);
 
+    private final OrderRepository orderRepository;
     private final OrderProperties orderProperties;
-    // key → (orderId, expiresAt)
-    private final Map<String, Entry> store = new ConcurrentHashMap<>();
 
-    public IdempotencyStore(OrderProperties orderProperties) {
+    public IdempotencyStore(OrderRepository orderRepository, OrderProperties orderProperties) {
+        this.orderRepository = orderRepository;
         this.orderProperties = orderProperties;
     }
 
-    /** Returns the cached orderId if the key exists and has not expired. */
+    /**
+     * Returns the cached orderId if an order with this key was created within the TTL window.
+     * Returns empty if the key is unknown or the TTL has expired.
+     */
     public Optional<Long> get(String idempotencyKey) {
         if (idempotencyKey == null) {
             return Optional.empty();
         }
-        Entry entry = store.get(idempotencyKey);
-        if (entry == null) {
-            return Optional.empty();
-        }
-        if (Instant.now().isAfter(entry.expiresAt())) {
-            store.remove(idempotencyKey);
-            return Optional.empty();
-        }
-        return Optional.of(entry.orderId());
+        Instant ttlCutoff = Instant.now().minusSeconds(orderProperties.getIdempotencyTtlMinutes() * 60L);
+        return orderRepository
+                .findByIdempotencyKeyAndCreatedAtAfter(idempotencyKey, ttlCutoff)
+                .map(Order::getId);
     }
 
-    /** Stores the mapping. Overwrites any existing entry (safe — order already created). */
+    /**
+     * No-op: the Order entity stores its own idempotency key at creation time.
+     * This method is retained for API compatibility with callers in
+     * {@link com.devwonder.backend.service.DealerPortalService}.
+     */
     public void put(String idempotencyKey, Long orderId) {
-        if (idempotencyKey == null || orderId == null) {
-            return;
-        }
-        Instant expiresAt = Instant.now().plusSeconds(orderProperties.getIdempotencyTtlMinutes() * 60);
-        store.put(idempotencyKey, new Entry(orderId, expiresAt));
+        // intentionally empty — key is already persisted on the Order row
     }
 
-    /** Scheduled cleanup of expired entries every 5 minutes. */
+    /**
+     * No-op: DB-backed storage requires no in-process eviction.
+     * Expired entries are naturally excluded by the TTL cutoff in {@link #get}.
+     */
     @Scheduled(fixedDelayString = "${app.rate-limit.cleanup-interval-ms:300000}")
     public void evictExpired() {
-        Instant now = Instant.now();
-        int before = store.size();
-        store.entrySet().removeIf(e -> now.isAfter(e.getValue().expiresAt()));
-        int removed = before - store.size();
-        if (removed > 0) {
-            log.debug("IdempotencyStore evicted {} expired entries", removed);
-        }
+        log.debug("IdempotencyStore evictExpired: no-op (DB-backed, TTL enforced at query time)");
     }
-
-    private record Entry(Long orderId, Instant expiresAt) {}
 }

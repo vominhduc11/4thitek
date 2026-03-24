@@ -20,6 +20,7 @@ import com.devwonder.backend.service.DealerPortalService;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,7 +73,8 @@ class DealerBankTransferPaymentContractTests {
                         0,
                         "Dealer manual payment when SePay is disabled",
                         List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
-                )
+                ),
+                UUID.randomUUID().toString()
         );
 
         dealerPortalService.recordPayment(

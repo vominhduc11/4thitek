@@ -17,10 +17,12 @@ import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.exception.UnauthorizedException;
+import com.devwonder.backend.entity.enums.UnmatchedPaymentReason;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.PaymentRepository;
 import com.devwonder.backend.repository.ProductRepository;
+import com.devwonder.backend.repository.UnmatchedPaymentRepository;
 import com.devwonder.backend.service.NotificationService;
 import com.devwonder.backend.service.SepayService;
 import com.devwonder.backend.service.support.OrderPricingSupport;
@@ -55,12 +57,16 @@ class SepayServiceTests {
     @Autowired
     private DealerRepository dealerRepository;
 
+    @Autowired
+    private UnmatchedPaymentRepository unmatchedPaymentRepository;
+
     @MockBean
     private NotificationService notificationService;
 
     @BeforeEach
     void setUp() {
         paymentRepository.deleteAll();
+        unmatchedPaymentRepository.deleteAll();
         orderRepository.deleteAll();
         dealerRepository.deleteAll();
         productRepository.deleteAll();
@@ -146,6 +152,72 @@ class SepayServiceTests {
         assertThat(result.status()).isEqualTo("amount_mismatch");
         assertThat(payments).isEmpty();
         assertThat(refreshedOrder.getPaidAmount()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void unmatchedPaymentIsPersistedWhenNotificationFails() {
+        // amount_mismatch path: unmatched payment must be saved even when admin notification throws
+        Product product = createProduct("SEPAY-UNMATCHED-1");
+        orderRepository.save(createBankTransferOrder("SCS-2026-601", product, null));
+        SepayWebhookRequest request = new SepayWebhookRequest(
+                "TX-UNMATCHED-601", "SePay", "2026-03-13 11:30:00", "123456789", "in",
+                BigDecimal.valueOf(1L), // wrong amount — triggers amount_mismatch
+                null, null, null, null,
+                "Thanh toan SCS-2026-601", "Thanh toan SCS-2026-601", null
+        );
+        doThrow(new RuntimeException("Notification service unavailable"))
+                .when(notificationService).create(any());
+
+        SepayService.WebhookResult result = sepayService.processWebhook(request, "test-token");
+
+        assertThat(result.status()).isEqualTo("amount_mismatch");
+        assertThat(unmatchedPaymentRepository.count()).isEqualTo(1L);
+        var saved = unmatchedPaymentRepository.findAll().get(0);
+        assertThat(saved.getOrderCodeHint()).isEqualTo("SCS-2026-601");
+        assertThat(saved.getReason()).isEqualTo(UnmatchedPaymentReason.AMOUNT_MISMATCH);
+        assertThat(saved.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(1L));
+    }
+
+    @Test
+    void unmatchedPaymentIsPersistedForNoOrderCodeWebhook() {
+        // order_not_found path with no recognisable order code in content
+        SepayWebhookRequest request = new SepayWebhookRequest(
+                "TX-NOCODE-001", "SePay", "2026-03-13 11:30:00", "123456789", "in",
+                BigDecimal.valueOf(200_000L),
+                null, null, null, null,
+                "Random content without order code", "Random content without order code", null
+        );
+
+        SepayService.WebhookResult result = sepayService.processWebhook(request, "test-token");
+
+        assertThat(result.status()).isEqualTo("order_not_found");
+        assertThat(unmatchedPaymentRepository.count()).isEqualTo(1L);
+        var saved = unmatchedPaymentRepository.findAll().get(0);
+        assertThat(saved.getReason()).isEqualTo(UnmatchedPaymentReason.ORDER_NOT_FOUND);
+        assertThat(saved.getOrderCodeHint()).isNull();
+        assertThat(saved.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(200_000L));
+    }
+
+    @Test
+    void unmatchedPaymentNotificationFailurePerAdminDoesNotAbortOtherNotifications() {
+        // Per-admin notification failures must be isolated; the record is persisted and
+        // the webhook result is still the expected ignored status.
+        Product product = createProduct("SEPAY-UNMATCHED-2");
+        orderRepository.save(createBankTransferOrder("SCS-2026-602", product, null));
+        SepayWebhookRequest request = new SepayWebhookRequest(
+                "TX-UNMATCHED-602", "SePay", "2026-03-13 11:30:00", "123456789", "in",
+                BigDecimal.valueOf(1L), // wrong amount
+                null, null, null, null,
+                "Thanh toan SCS-2026-602", "Thanh toan SCS-2026-602", null
+        );
+        // First call throws, simulating one admin notification failing
+        doThrow(new RuntimeException("SMTP timeout")).when(notificationService).create(any());
+
+        SepayService.WebhookResult result = sepayService.processWebhook(request, "test-token");
+
+        assertThat(result.status()).isEqualTo("amount_mismatch");
+        // Record must be durably saved regardless of notification outcome
+        assertThat(unmatchedPaymentRepository.count()).isEqualTo(1L);
     }
 
     @Test

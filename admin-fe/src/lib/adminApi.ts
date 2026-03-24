@@ -1072,3 +1072,41 @@ export const resolveAdminUnmatchedPayment = (
     method: 'PATCH',
     body,
   })
+
+export type BackendFinancialSettlementStatus = 'PENDING' | 'REFUNDED' | 'WRITTEN_OFF' | 'CREDITED'
+
+export type BackendFinancialSettlementResponse = {
+  id: number
+  orderId?: number | null
+  orderCode?: string | null
+  type?: string | null
+  amount?: number | string | null
+  status: BackendFinancialSettlementStatus
+  createdBy?: string | null
+  createdAt?: string | null
+  resolution?: string | null
+  resolvedBy?: string | null
+  resolvedAt?: string | null
+}
+
+export const fetchAdminFinancialSettlements = (
+  token: string,
+  params?: { status?: string },
+) =>
+  authorizedJsonRequest<BackendFinancialSettlementResponse[]>({
+    path: '/admin/financial-settlements',
+    token,
+    params,
+  })
+
+export const resolveAdminFinancialSettlement = (
+  token: string,
+  id: number,
+  body: { status: BackendFinancialSettlementStatus; resolution: string },
+) =>
+  authorizedJsonRequest<BackendFinancialSettlementResponse>({
+    path: `/admin/financial-settlements/${id}`,
+    token,
+    method: 'PATCH',
+    body,
+  })

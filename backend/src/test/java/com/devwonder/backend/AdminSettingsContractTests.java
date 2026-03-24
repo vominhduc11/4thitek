@@ -42,6 +42,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -218,7 +219,8 @@ class AdminSettingsContractTests {
                         0,
                         "Settings-driven SePay block",
                         List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
-                )
+                ),
+                UUID.randomUUID().toString()
         );
 
         assertThatThrownBy(() -> dealerPortalService.recordPayment(

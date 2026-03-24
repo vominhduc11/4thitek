@@ -152,17 +152,6 @@ public class DealerPortalService {
         return response;
     }
 
-    /**
-     * Convenience overload that generates a random idempotency key.
-     * Used by internal callers (e.g. tests) that do not supply an external key.
-     * The HTTP controller layer MUST enforce key presence; this method is NOT exposed to clients.
-     */
-    @Transactional
-    @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
-    public DealerOrderResponse createOrder(String username, CreateDealerOrderRequest request) {
-        return createOrder(username, request, java.util.UUID.randomUUID().toString());
-    }
-
     @Transactional
     @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
     public DealerOrderResponse updateOrderStatus(String username, Long orderId, UpdateDealerOrderStatusRequest request) {

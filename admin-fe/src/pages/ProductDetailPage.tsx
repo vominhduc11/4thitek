@@ -61,7 +61,7 @@ type ProductDraft = {
 }
 
 type DescriptionItem = {
-  type: 'description' | 'image' | 'gallery' | 'video'
+  type: 'title' | 'description' | 'image' | 'gallery' | 'video'
   text?: string
   url?: string
   caption?: string
@@ -83,7 +83,7 @@ type VideoItem = {
 
 type VideoDraftItem = {
   title: string
-  descriptions: string
+  description: string
   url: string
 }
 
@@ -133,7 +133,7 @@ const parseJsonArray = <T,>(value: string, fallback: T[] = []): T[] => {
 const parseVideoItems = (value: string): VideoDraftItem[] =>
   parseJsonArray<VideoItem>(value, []).map((item) => ({
     title: String(item.title ?? '').trim(),
-    descriptions: String(item.descriptions ?? item.description ?? '').trim(),
+    description: String(item.description ?? item.descriptions ?? '').trim(),
     url: String(item.url ?? (item as { videoUrl?: string }).videoUrl ?? '').trim(),
   }))
 
@@ -511,7 +511,7 @@ function ProductDetailPage() {
       .filter((spec) => spec.label || spec.value)
     const cleanedDescriptions = draft.descriptions
       .map((item) => {
-        if (item.type === 'description') {
+        if (item.type === 'title' || item.type === 'description') {
           const text = String(item.text || '').trim()
           return { type: item.type, text }
         }
@@ -533,7 +533,7 @@ function ProductDetailPage() {
         return item
       })
       .filter((item) => {
-        if (item.type === 'description') {
+        if (item.type === 'title' || item.type === 'description') {
           return !!item.text
         }
         if (item.type === 'image' || item.type === 'video') {
@@ -547,13 +547,13 @@ function ProductDetailPage() {
     const cleanedVideos = draft.videos
       .map((video) => ({
         title: String(video.title || '').trim(),
-        descriptions: String(video.descriptions || '').trim(),
+        description: String(video.description || '').trim(),
         url: (() => {
           const rawUrl = String(video.url || '').trim()
           return isLocalBlobUrl(rawUrl) ? '' : rawUrl
         })(),
       }))
-      .filter((video) => video.title || video.descriptions || video.url)
+      .filter((video) => video.title || video.description || video.url)
     const retainedTrackedUrls = getDraftTrackedUploadUrls(draft)
     const discardedTrackedUrls = Array.from(editUploadedAssetUrlsRef.current).filter(
       (url) => !retainedTrackedUrls.includes(url),
@@ -643,6 +643,7 @@ function ProductDetailPage() {
   }
 
   const descriptionTypeOptions: Array<{ id: DescriptionItem['type']; label: string }> = [
+    { id: 'title', label: t('Tiêu đề') },
     { id: 'description', label: t('Mô tả') },
     { id: 'image', label: t('Hình ảnh') },
     { id: 'gallery', label: t('Nhiều hình ảnh') },
@@ -656,7 +657,7 @@ function ProductDetailPage() {
       const current = nextDescriptions[index] ?? { type: nextType }
       const nextItem: DescriptionItem = { type: nextType }
 
-      if (nextType === 'description') {
+      if (nextType === 'title' || nextType === 'description') {
         nextItem.text = current.text ?? ''
       }
       if (nextType === 'image' || nextType === 'video') {
@@ -863,6 +864,14 @@ function ProductDetailPage() {
   }
 
   const renderDescriptionItem = (item: DescriptionItem, index: number) => {
+    if (item.type === 'title') {
+      return (
+        <h4 key={`desc-title-${index}`} className="text-base font-semibold text-slate-900">
+          {item.text || ''}
+        </h4>
+      )
+    }
+
     if (item.type === 'description') {
       const content = toPlainText(item.text ?? '')
       return (
@@ -1596,6 +1605,18 @@ function ProductDetailPage() {
                       {t('Xóa')}
                     </button>
                   </div>
+                  {item.type === 'title' && (
+                    <input
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold"
+                      placeholder={t('Nhập tiêu đề')}
+                      value={item.text ?? ''}
+                      onChange={(event) => {
+                        const nextDescriptions = [...draft.descriptions]
+                        nextDescriptions[index] = { ...nextDescriptions[index], text: event.target.value }
+                        setDraft({ ...draft, descriptions: nextDescriptions })
+                      }}
+                    />
+                  )}
                   {item.type === 'description' && (
                     <div className="richtext-editor">
                       <RichTextEditor
@@ -1970,7 +1991,7 @@ function ProductDetailPage() {
                   onClick={() =>
                     setDraft({
                       ...draft,
-                      videos: [{ title: '', descriptions: '', url: '' }],
+                      videos: [{ title: '', description: '', url: '' }],
                     })
                   }
                 >
@@ -2030,10 +2051,10 @@ function ProductDetailPage() {
                       className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                       placeholder={t('Nhập mô tả')}
                       rows={2}
-                      value={video.descriptions}
+                      value={video.description}
                       onChange={(event) => {
                         const nextVideos = [...draft.videos]
-                        nextVideos[index] = { ...nextVideos[index], descriptions: event.target.value }
+                        nextVideos[index] = { ...nextVideos[index], description: event.target.value }
                         setDraft({ ...draft, videos: nextVideos })
                       }}
                     />
@@ -2073,7 +2094,7 @@ function ProductDetailPage() {
                     ...draft,
                     videos: [
                       ...draft.videos,
-                      { title: '', descriptions: '', url: '' },
+                      { title: '', description: '', url: '' },
                     ],
                   })
                 }
@@ -2115,9 +2136,9 @@ function ProductDetailPage() {
                         {t('URL video')}: -
                       </p>
                     )}
-                    {video.descriptions && (
+                    {video.description && (
                       <p className="mt-3 text-sm text-slate-600 whitespace-pre-line">
-                        {video.descriptions}
+                        {video.description}
                       </p>
                     )}
                   </div>

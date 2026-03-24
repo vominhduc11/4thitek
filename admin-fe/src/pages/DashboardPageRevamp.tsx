@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, CircleDollarSign, Package, ShoppingCart, TrendingUp } from 'lucide-react'
+import { AlertTriangle, CircleDollarSign, Landmark, Package, ShoppingCart, TrendingUp } from 'lucide-react'
 import {
   ArcElement,
   BarElement,
@@ -40,6 +40,8 @@ const copyByLanguage = {
     restock: 'SKU cần bổ sung',
     unmatchedPayments: 'Thanh toán không khớp',
     unmatchedPendingHint: 'giao dịch chờ xử lý',
+    financialSettlements: 'Quyết toán tài chính',
+    settlementPendingHint: 'mục chờ xử lý',
   },
   en: {
     title: 'System overview',
@@ -58,6 +60,8 @@ const copyByLanguage = {
     restock: 'restock',
     unmatchedPayments: 'Unmatched payments',
     unmatchedPendingHint: 'transactions pending',
+    financialSettlements: 'Financial settlements',
+    settlementPendingHint: 'items pending',
   },
 } as const
 
@@ -396,6 +400,24 @@ function DashboardPageRevamp() {
                     </div>
                   </div>
                   <StatusBadge tone="warning">{String(dashboard.unmatchedPendingCount)}</StatusBadge>
+                </div>
+              </div>
+            )}
+            {(dashboard.settlementPendingCount ?? 0) > 0 && (
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800/40 dark:bg-blue-900/20">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Landmark className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                    <div>
+                      <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">
+                        {copy.financialSettlements}
+                      </p>
+                      <p className="text-xs text-blue-700 dark:text-blue-400">
+                        {dashboard.settlementPendingCount} {copy.settlementPendingHint}
+                      </p>
+                    </div>
+                  </div>
+                  <StatusBadge tone="info">{String(dashboard.settlementPendingCount)}</StatusBadge>
                 </div>
               </div>
             )}

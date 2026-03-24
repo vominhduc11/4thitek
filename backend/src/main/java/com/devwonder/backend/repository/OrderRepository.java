@@ -101,6 +101,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "dealer", "payments"})
     Optional<Order> findFirstByOrderCodeIgnoreCase(String orderCode);
 
+    /**
+     * Idempotency lookup: returns the order that was created with {@code idempotencyKey}
+     * within the configured TTL window (createdAt strictly after {@code ttlCutoff}).
+     * Used by {@link com.devwonder.backend.service.IdempotencyStore} to replace the
+     * previous in-memory map with a DB-backed, restart-safe check.
+     */
+    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "dealer", "payments"})
+    Optional<Order> findByIdempotencyKeyAndCreatedAtAfter(String idempotencyKey, Instant ttlCutoff);
+
     @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "dealer", "payments"})
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

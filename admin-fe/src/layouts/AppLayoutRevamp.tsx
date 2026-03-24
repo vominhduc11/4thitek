@@ -9,6 +9,7 @@ import {
   ChevronRight,
   CircleDollarSign,
   FileText,
+  Landmark,
   LayoutDashboard,
   LifeBuoy,
   LogOut,
@@ -122,6 +123,7 @@ const copyByLanguage = {
       notifications: 'Thông báo',
       support: 'Hỗ trợ',
       unmatchedPayments: 'Thanh toán không khớp',
+      financialSettlements: 'Quyết toán tài chính',
       reports: 'Báo cáo',
       users: 'Người dùng',
       settings: 'Cài đặt',
@@ -193,6 +195,7 @@ const copyByLanguage = {
       notifications: 'Notifications',
       support: 'Support',
       unmatchedPayments: 'Unmatched payments',
+      financialSettlements: 'Financial settlements',
       reports: 'Reports',
       users: 'Users',
       settings: 'Settings',
@@ -367,6 +370,7 @@ function AppLayoutRevamp() {
       { to: '/notifications', label: copy.nav.notifications, icon: Bell, group: 'service' },
       { to: '/support-tickets', label: copy.nav.support, icon: LifeBuoy, group: 'service' },
       { to: '/unmatched-payments', label: copy.nav.unmatchedPayments, icon: CircleDollarSign, group: 'service' },
+      { to: '/financial-settlements', label: copy.nav.financialSettlements, icon: Landmark, group: 'service' },
       { to: '/settings', label: copy.nav.settings, icon: Settings, group: 'system' },
     ]
 

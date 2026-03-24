@@ -414,9 +414,18 @@ public class SepayService {
     }
 
     /**
-     * Creates an UnmatchedPayment record and notifies all ACTIVE admins.
+     * Creates an UnmatchedPayment record and notifies all ACTIVE admins after commit.
      * Called when SePay webhook receives a payment that cannot be matched to an order.
      * Per BUSINESS_LOGIC.md Section 3.21: must NOT silently ignore — create a record and alert admins.
+     *
+     * <p>Persistence is intentionally NOT wrapped in a try-catch: if the save fails the exception
+     * propagates to {@code processWebhook()}, the transaction rolls back, and SePay receives a
+     * non-200 response which triggers a retry. Swallowing the save failure (previous behaviour)
+     * caused silent data loss because SePay would not retry on 200 OK.
+     *
+     * <p>Admin notifications are scheduled via {@code afterCommit()} — the same pattern used by
+     * {@link #queuePaymentNotificationAfterCommit} — so a notification failure can never mark the
+     * outer transaction rollback-only or prevent the record from being persisted.
      */
     private void recordUnmatchedPayment(
             SepayWebhookRequest request,
@@ -424,48 +433,73 @@ public class SepayService {
             String orderCodeHint,
             UnmatchedPaymentReason reason
     ) {
-        try {
-            UnmatchedPayment unmatched = new UnmatchedPayment();
-            unmatched.setTransactionCode(
-                    request.id() != null ? "SEPAY:" + request.id() : null
-            );
-            unmatched.setAmount(amount);
-            unmatched.setSenderInfo(normalize(request.subAccount()));
-            unmatched.setContent(normalize(request.transferContent() != null
-                    ? request.transferContent() : request.content()));
-            unmatched.setOrderCodeHint(orderCodeHint);
-            unmatched.setReceivedAt(parsePaidAt(request.transactionDate()));
-            unmatched.setReason(reason);
-            unmatched.setStatus(UnmatchedPaymentStatus.PENDING);
-            unmatchedPaymentRepository.save(unmatched);
+        UnmatchedPayment unmatched = new UnmatchedPayment();
+        unmatched.setTransactionCode(
+                request.id() != null ? "SEPAY:" + request.id() : null
+        );
+        unmatched.setAmount(amount);
+        unmatched.setSenderInfo(normalize(request.subAccount()));
+        unmatched.setContent(normalize(request.transferContent() != null
+                ? request.transferContent() : request.content()));
+        unmatched.setOrderCodeHint(orderCodeHint);
+        unmatched.setReceivedAt(parsePaidAt(request.transactionDate()));
+        unmatched.setReason(reason);
+        unmatched.setStatus(UnmatchedPaymentStatus.PENDING);
+        unmatchedPaymentRepository.save(unmatched);
 
-            // Notify all ACTIVE admins
-            String txCode = normalize(request.id() != null ? request.id() : request.referenceCode());
-            String displayCode = txCode != null ? txCode : "(unknown)";
-            for (Admin admin : adminRepository.findAll()) {
-                if (admin == null || admin.getId() == null) {
-                    continue;
+        String txCode = normalize(request.id() != null ? request.id() : request.referenceCode());
+        String displayCode = txCode != null ? txCode : "(unknown)";
+        queueUnmatchedPaymentNotificationsAfterCommit(displayCode, amount, reason);
+    }
+
+    private void queueUnmatchedPaymentNotificationsAfterCommit(
+            String displayCode,
+            BigDecimal amount,
+            UnmatchedPaymentReason reason
+    ) {
+        Runnable notifyTask = () -> {
+            try {
+                for (Admin admin : adminRepository.findAll()) {
+                    if (admin == null || admin.getId() == null) {
+                        continue;
+                    }
+                    if (admin.getUserStatus() != null && admin.getUserStatus() != StaffUserStatus.ACTIVE) {
+                        continue;
+                    }
+                    try {
+                        notificationService.create(new CreateNotifyRequest(
+                                admin.getId(),
+                                appMessageSupport.get("notification.admin.unmatched-payment.title"),
+                                appMessageSupport.get(
+                                        "notification.admin.unmatched-payment.content",
+                                        displayCode,
+                                        amount.toPlainString(),
+                                        reason.name()
+                                ),
+                                NotifyType.ORDER,
+                                "/unmatched-payments",
+                                null
+                        ));
+                    } catch (RuntimeException ex) {
+                        log.warn("Could not notify admin id={} for unmatched payment: reason={}, amount={}",
+                                admin.getId(), reason, amount, ex);
+                    }
                 }
-                if (admin.getUserStatus() != null && admin.getUserStatus() != StaffUserStatus.ACTIVE) {
-                    continue;
-                }
-                notificationService.create(new CreateNotifyRequest(
-                        admin.getId(),
-                        appMessageSupport.get("notification.admin.unmatched-payment.title"),
-                        appMessageSupport.get(
-                                "notification.admin.unmatched-payment.content",
-                                displayCode,
-                                amount.toPlainString(),
-                                reason.name()
-                        ),
-                        NotifyType.ORDER,
-                        "/unmatched-payments",
-                        null
-                ));
+            } catch (RuntimeException ex) {
+                log.warn("Could not send admin notifications for unmatched payment: reason={}, amount={}", reason, amount, ex);
             }
-        } catch (RuntimeException ex) {
-            log.warn("Could not record UnmatchedPayment for reason={}, amount={}", reason, amount, ex);
+        };
+
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            notifyTask.run();
+            return;
         }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                notifyTask.run();
+            }
+        });
     }
 
     public record WebhookResult(
