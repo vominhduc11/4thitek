@@ -154,6 +154,21 @@ class OrderController extends ChangeNotifier {
     }
   }
 
+  Future<void> refreshSingleOrder(String orderId) async {
+    final remoteOrderId = _remoteOrderIds[orderId];
+    if (remoteOrderId == null) {
+      await refresh();
+      return;
+    }
+    try {
+      await _reloadRemoteOrder(remoteOrderId);
+      await _reloadRemotePaymentsForOrder(remoteOrderId);
+      notifyListeners();
+    } catch (_) {
+      // silently ignore — stale data is acceptable here
+    }
+  }
+
   Future<void> refresh() async {
     _lastActionMessage = null;
     final loadedRemote = await _loadRemoteOrdersAndPayments();

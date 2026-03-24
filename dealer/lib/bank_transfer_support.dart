@@ -205,17 +205,27 @@ class _BankTransferInfoSheet extends StatefulWidget {
   State<_BankTransferInfoSheet> createState() => _BankTransferInfoSheetState();
 }
 
-class _BankTransferInfoSheetState extends State<_BankTransferInfoSheet> {
+class _BankTransferInfoSheetState extends State<_BankTransferInfoSheet>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
     widget.orderController.addListener(_onOrderChanged);
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     widget.orderController.removeListener(_onOrderChanged);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      widget.orderController.refreshSingleOrder(widget.orderId);
+    }
   }
 
   void _onOrderChanged() {
