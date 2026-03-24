@@ -8,10 +8,16 @@ import com.devwonder.backend.dto.admin.UpdateAdminSettingsRequest;
 import com.devwonder.backend.entity.AdminSettings;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.FieldValidationException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import com.devwonder.backend.repository.AdminSettingsRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AdminSettingsService {
 
+    private static final Logger log = LoggerFactory.getLogger(AdminSettingsService.class);
     private static final int DEFAULT_SESSION_TIMEOUT_MINUTES = 30;
     private static final int MIN_SESSION_TIMEOUT_MINUTES = 5;
     private static final int MAX_SESSION_TIMEOUT_MINUTES = 480;
@@ -88,6 +95,34 @@ public class AdminSettingsService {
             }
             return cachedEffectiveSettings;
         }
+    }
+
+    /**
+     * Fails fast at startup if SePay is enabled at the environment level but any required
+     * environment variable is missing. This prevents silent use of unconfigured bank details.
+     *
+     * <p>Required when {@code SEPAY_ENABLED=true}:
+     * {@code SEPAY_WEBHOOK_TOKEN}, {@code SEPAY_BANK_NAME},
+     * {@code SEPAY_ACCOUNT_NUMBER}, {@code SEPAY_ACCOUNT_HOLDER}.
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    void validateSepayConfigOnStartup() {
+        if (!sepayProperties.enabled()) {
+            return;
+        }
+        List<String> missing = new ArrayList<>();
+        if (normalize(sepayProperties.webhookToken()) == null) missing.add("SEPAY_WEBHOOK_TOKEN");
+        if (normalize(sepayProperties.bankName()) == null)    missing.add("SEPAY_BANK_NAME");
+        if (normalize(sepayProperties.accountNumber()) == null) missing.add("SEPAY_ACCOUNT_NUMBER");
+        if (normalize(sepayProperties.accountHolder()) == null) missing.add("SEPAY_ACCOUNT_HOLDER");
+        if (!missing.isEmpty()) {
+            throw new IllegalStateException(
+                    "SEPAY_ENABLED=true but required environment variables are not configured: "
+                    + String.join(", ", missing)
+                    + ". Set these variables or set SEPAY_ENABLED=false."
+            );
+        }
+        log.info("SePay configuration validated successfully.");
     }
 
     public SepayRuntimeSettings getSepaySettings() {

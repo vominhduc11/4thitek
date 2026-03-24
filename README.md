@@ -59,60 +59,62 @@ Admin dashboard doc `runtime-config.js` luc start container, nen co the doi `API
 
 ## Docker Compose
 
-`docker-compose.yaml` gio la stack mac dinh de bring-up nhanh, van uu tien gia tri trong `.env` neu co. Stack nay gom san `postgres`, `redis`, `minio`, `backend`, `main-fe`, `admin-fe` va job khoi tao bucket MinIO.
+Ba file compose phu trach ba muc dich khac nhau:
 
-Tren cloud server:
+| File | Dung cho | Secret handling |
+|------|----------|-----------------|
+| `docker-compose.yaml` | Local / staging nhanh | Co fallback default local-safe |
+| `docker-compose.dev.yaml` | Local dev voi hot-reload | Hardcode gia tri local-only |
+| `docker-compose.prod.yaml` | **Production** | Khong co default — fail ngay neu thieu |
 
-1. Tao file `.env` tu [.env.example](.env.example)
-2. It nhat thay `POSTGRES_PASSWORD`, `REDIS_PASSWORD`, `MINIO_ROOT_PASSWORD` va `JWT_SECRET`; neu deploy public thi dien tiep domain, storage URL, API URL that
-3. Chay:
+### Local / staging
 
 ```bash
+cp .env.example .env
+# Sua POSTGRES_PASSWORD, REDIS_PASSWORD, MINIO_ROOT_PASSWORD, JWT_SECRET
 docker compose up -d
 ```
 
-Neu muon rebuild image sau khi `git pull` hoac sua code:
+Fallback default neu khong co `.env`: `app_password` (postgres), `redis_password` (redis), `minioadmin123` (minio), `change-me-to-a-32-byte-secret` (jwt). **Cac gia tri nay chi du de boot local, khong duoc dung tren internet-facing server.**
+
+Neu da tung tao volume Postgres bang password cu, can reset volume:
 
 ```bash
-docker compose up -d --build
+docker compose down -v && docker compose up -d --build
 ```
 
-Mac dinh stack nay tu fallback duoc cac gia tri toi thieu de boot:
+Stack nay khong kem reverse proxy/TLS. Deploy internet-facing phai dat them Nginx, Caddy hoac load balancer ben ngoai.
 
-- Postgres password mac dinh: `app_password`
-- Redis password mac dinh: `redis_password`
-- JWT secret mac dinh: `change-me-to-a-32-byte-secret`
-- `main-fe` va `admin-fe` mac dinh dung `https://api.4thitek.vn/api/v1` la API base URL duy nhat trong production
-- MinIO bucket mac dinh: `4thitek-uploads`
-- `admin-fe` render `runtime-config.js` tu bien moi truong `API_BASE_URL` luc container boot
-
-Neu da tung tao volume Postgres bang password sai hoac rong, can reset volume mot lan sau khi sua env:
+### Production
 
 ```bash
-docker compose down -v
-docker compose up -d --build
+cp .env.production.example .env
+# Sua tat ca gia tri CHANGE_ME_* — xem chu thich trong file
+docker compose -f docker-compose.prod.yaml --env-file .env up -d
 ```
 
-Stack nay khong kem reverse proxy/TLS. Neu deploy internet-facing, phai thay secret mac dinh, dat `APP_STORAGE_S3_PUBLIC_BASE_URL`, va dat them Nginx, Caddy hoac load balancer ben ngoai.
+`docker-compose.prod.yaml` khong co fallback default cho bat ky secret nao. Thieu bat ky bien nao trong nhom sau se khien stack tu choi start:
 
-## Docker Compose Dev
+- `POSTGRES_PASSWORD`, `REDIS_PASSWORD`, `JWT_SECRET`
+- `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`, `MINIO_BUCKET`
+- `APP_STORAGE_S3_PUBLIC_BASE_URL`, `APP_CORS_ALLOWED_ORIGIN_PATTERNS`
 
-Stack local/dev duoc tach rieng tai [docker-compose.dev.yaml](docker-compose.dev.yaml).
+Xem day du danh sach bien va giai thich trong [.env.production.example](.env.production.example).
 
-Chay dev stack:
+### Local dev (hot-reload)
+
+Stack dev chay source code truc tiep voi Maven/Node, khong can build image:
 
 ```bash
 docker compose -f docker-compose.dev.yaml up --build
 ```
 
-Mac dinh dev stack se bootstrap tai khoan admin local:
+Dev stack tu dong bootstrap tai khoan admin local:
 
-- Email: `owner@4thitek.vn`
+- Email: `admin@localhost.dev` (chi la dia chi dev, khong phai tai khoan that)
 - Password tam thoi: `YourStrongPassword123!`
 
-Lan dang nhap dau tien se duoc chuyen sang man hinh doi mat khau.
-
-File [docker-compose.prod.yaml](docker-compose.prod.yaml) duoc giu lai nhu alias production de tuong thich nguoc voi lenh cu.
+Lan dang nhap dau tien se chuyen sang man hinh doi mat khau.
 
 ## CI
 

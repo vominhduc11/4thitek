@@ -48,8 +48,50 @@ class UploadAssetPublicS3Tests {
     }
 
     @Test
-    void s3PrivateUploadPathsAreNotPubliclyServed() throws Exception {
+    void s3PaymentProofIsNotPubliclyServedViaUploadsEndpoint() throws Exception {
         mockMvc.perform(get("/uploads/payments/proofs/dealers/12/private-proof.png"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void s3DealerAvatarIsNotPubliclyServedViaUploadsEndpoint() throws Exception {
+        mockMvc.perform(get("/uploads/avatars/dealers/42/avatar.png"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void s3AdminAvatarIsNotPubliclyServedViaUploadsEndpoint() throws Exception {
+        mockMvc.perform(get("/uploads/avatars/7/profile.png"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void s3ProductAssetIsPubliclyServedViaUploadsEndpoint() throws Exception {
+        byte[] body = "img".getBytes(UTF_8);
+        when(fileStorageService.open("products/thumbnail.webp"))
+                .thenReturn(new FileStorageService.StoredFile(
+                        new ByteArrayInputStream(body),
+                        "image/webp",
+                        body.length
+                ));
+
+        mockMvc.perform(get("/uploads/products/thumbnail.webp"))
+                .andExpect(status().isOk())
+                .andExpect(content().bytes(body));
+    }
+
+    @Test
+    void s3BlogAssetIsPubliclyServedViaUploadsEndpoint() throws Exception {
+        byte[] body = "blog-img".getBytes(UTF_8);
+        when(fileStorageService.open("blogs/cover.jpg"))
+                .thenReturn(new FileStorageService.StoredFile(
+                        new ByteArrayInputStream(body),
+                        "image/jpeg",
+                        body.length
+                ));
+
+        mockMvc.perform(get("/uploads/blogs/cover.jpg"))
+                .andExpect(status().isOk())
+                .andExpect(content().bytes(body));
     }
 }

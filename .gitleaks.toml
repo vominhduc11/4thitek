@@ -1,0 +1,26 @@
+title = "4thitek Gitleaks Configuration"
+# gitleaks v8 — https://github.com/gitleaks/gitleaks
+
+[allowlist]
+description = "Template files and known-safe placeholder strings"
+
+# These files are deployment guides that intentionally contain placeholder strings.
+# They have been audited to contain no real credentials — only CHANGE_ME_ markers
+# and local-only dev defaults that are not valid on internet-facing systems.
+paths = [
+    '''(^|/)\.env\.example$''',
+    '''(^|/)\.env\.production\.example$''',
+    '''(^|/)docker-compose\.dev\.yaml$''',
+]
+
+# Explicit placeholder patterns used throughout example files, README, and docs.
+# If a new REAL secret accidentally matches one of these regexes, the allowlist
+# entry should be narrowed — do not broaden it to hide the new finding.
+regexes = [
+    # Sentinel prefixes used in production example files
+    '''CHANGE_ME_''',
+    # Template JWT secret value in backend/.env.example
+    '''change-me-to-a-32-byte-secret''',
+    # Dev-stack bootstrap admin password documented in README
+    '''YourStrongPassword123!''',
+]

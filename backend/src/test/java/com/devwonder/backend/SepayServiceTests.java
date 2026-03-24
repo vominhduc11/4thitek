@@ -38,7 +38,10 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:sepay_service;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
         "sepay.enabled=true",
-        "sepay.webhook-token=test-token"
+        "sepay.webhook-token=test-token",
+        "sepay.bank-name=Test Bank",
+        "sepay.account-number=0000000000",
+        "sepay.account-holder=Test Account Holder"
 })
 class SepayServiceTests {
 

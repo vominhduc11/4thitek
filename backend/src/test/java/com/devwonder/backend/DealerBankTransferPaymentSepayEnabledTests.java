@@ -33,7 +33,11 @@ import org.springframework.boot.test.context.SpringBootTest;
         "spring.datasource.url=jdbc:h2:mem:dealer_bank_transfer_payment_sepay_enabled;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
         "app.mail.enabled=false",
         "app.bootstrap-super-admin.enabled=false",
-        "sepay.enabled=true"
+        "sepay.enabled=true",
+        "sepay.webhook-token=test-webhook-token",
+        "sepay.bank-name=Test Bank",
+        "sepay.account-number=0000000000",
+        "sepay.account-holder=Test Account Holder"
 })
 class DealerBankTransferPaymentSepayEnabledTests {
 

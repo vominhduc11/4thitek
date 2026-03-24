@@ -170,6 +170,100 @@
                     </excludes>
                 </configuration>
             </plugin>
+            <!-- Code coverage — report and threshold enforced on every build -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.12</version>
+                <configuration>
+                    <!-- Exclude generated/trivial classes from coverage metrics.
+                         Business logic in service/, controller/, and filter/ packages
+                         is intentionally left in scope. -->
+                    <excludes>
+                        <exclude>**/entity/**</exclude>
+                        <exclude>**/dto/**</exclude>
+                        <exclude>**/config/**</exclude>
+                        <exclude>**/exception/**</exclude>
+                        <exclude>**/*Application.class</exclude>
+                        <exclude>**/*Initializer.class</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <!-- Injects the JaCoCo agent before tests run -->
+                    <execution>
+                        <id>jacoco-prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <!-- Generates the HTML/XML report under target/site/jacoco/ -->
+                    <execution>
+                        <id>jacoco-report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <!-- Fails the build if coverage drops below the threshold.
+                         60% instruction coverage is intentionally conservative:
+                         raise incrementally as the test suite matures. -->
+                    <execution>
+                        <id>jacoco-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>INSTRUCTION</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.60</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
+
+    <!-- security-scan profile: activated explicitly in the weekly CI job.
+         Never activates during normal builds so it does not slow down PRs. -->
+    <profiles>
+        <profile>
+            <id>security-scan</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <version>10.0.2</version>
+                        <configuration>
+                            <!-- Fail on CVSS >= 7.0 (HIGH or CRITICAL) -->
+                            <failBuildOnCVSS>7</failBuildOnCVSS>
+                            <!-- Skip test-scope deps — they never reach production -->
+                            <skipTestScope>true</skipTestScope>
+                            <!-- Suppression file for accepted/false-positive findings.
+                                 Create backend/dependency-check-suppressions.xml as needed. -->
+                            <suppressionFile>dependency-check-suppressions.xml</suppressionFile>
+                            <format>HTML</format>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
