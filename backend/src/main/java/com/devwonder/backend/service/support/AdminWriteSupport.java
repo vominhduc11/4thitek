@@ -15,6 +15,7 @@ import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.CategoryBlogRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -112,6 +113,14 @@ public class AdminWriteSupport {
         } else if (creating) {
             blog.setStatus(BlogStatus.DRAFT);
         }
+        if (request.scheduledAt() != null) {
+            blog.setScheduledAt(request.scheduledAt());
+        } else if (BlogStatus.SCHEDULED.equals(blog.getStatus()) && blog.getScheduledAt() == null) {
+            throw new BadRequestException("scheduledAt is required when status is SCHEDULED");
+        }
+        if (!BlogStatus.SCHEDULED.equals(blog.getStatus())) {
+            blog.setScheduledAt(null);
+        }
         if (request.showOnHomepage() != null) {
             blog.setShowOnHomepage(request.showOnHomepage());
         } else if (creating) {
@@ -137,6 +146,13 @@ public class AdminWriteSupport {
         validateOptionalText(request.categoryName(), "categoryName", errors);
         if (creating && request.categoryId() == null && normalize(request.categoryName()) == null) {
             errors.put("categoryId", "categoryId or categoryName is required");
+        }
+        if (BlogStatus.SCHEDULED.equals(request.status())) {
+            if (request.scheduledAt() == null) {
+                errors.put("scheduledAt", "scheduledAt is required when status is SCHEDULED");
+            } else if (!request.scheduledAt().isAfter(Instant.now())) {
+                errors.put("scheduledAt", "scheduledAt must be in the future");
+            }
         }
         throwIfErrors(errors);
     }

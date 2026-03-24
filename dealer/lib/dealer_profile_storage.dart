@@ -175,7 +175,7 @@ class DealerProfileStorageException implements Exception {
 Future<DealerProfile> loadDealerProfile() async {
   final token = await _readAccessToken();
   if (token == null) {
-    return DealerProfile.defaults;
+    return (await _loadLocalDealerProfile()) ?? DealerProfile.defaults;
   }
 
   try {
@@ -211,8 +211,12 @@ Future<DealerProfile> loadDealerProfile() async {
     await _saveLocalDealerProfile(remoteProfile);
     return remoteProfile;
   } on DealerProfileStorageException {
+    final cached = await _loadLocalDealerProfile();
+    if (cached != null) return cached;
     rethrow;
   } catch (error) {
+    final cached = await _loadLocalDealerProfile();
+    if (cached != null) return cached;
     throw DealerProfileStorageException(error.toString());
   }
 }
@@ -311,6 +315,26 @@ Future<void> clearDealerProfileCache() async {
     prefs.remove(_profileAvatarUrlKey),
     prefs.remove(_profileCreditLimitKey),
   ]);
+}
+
+Future<DealerProfile?> _loadLocalDealerProfile() async {
+  final prefs = await SharedPreferences.getInstance();
+  final businessName = prefs.getString(_profileBusinessNameKey);
+  if (businessName == null) return null;
+  return DealerProfile(
+    businessName: businessName,
+    contactName: prefs.getString(_profileContactNameKey) ?? '',
+    email: prefs.getString(_profileEmailKey) ?? '',
+    phone: prefs.getString(_profilePhoneKey) ?? '',
+    addressLine: prefs.getString(_profileAddressLineKey) ?? '',
+    ward: prefs.getString(_profileWardKey) ?? '',
+    district: prefs.getString(_profileDistrictKey) ?? '',
+    city: prefs.getString(_profileCityKey) ?? '',
+    country: prefs.getString(_profileCountryKey) ?? 'Việt Nam',
+    salesPolicy: prefs.getString(_profilePolicyKey) ?? '',
+    creditLimit: prefs.getInt(_profileCreditLimitKey) ?? 0,
+    avatarUrl: prefs.getString(_profileAvatarUrlKey),
+  );
 }
 
 Future<void> _saveLocalDealerProfile(DealerProfile profile) async {

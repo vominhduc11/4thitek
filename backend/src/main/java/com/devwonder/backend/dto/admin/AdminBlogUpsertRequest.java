@@ -2,6 +2,7 @@ package com.devwonder.backend.dto.admin;
 
 import com.devwonder.backend.entity.enums.BlogStatus;
 import jakarta.validation.constraints.Size;
+import java.time.Instant;
 
 public record AdminBlogUpsertRequest(
         Long categoryId,
@@ -16,6 +17,7 @@ public record AdminBlogUpsertRequest(
         @Size(max = 10000, message = "introduction must be 10000 characters or fewer")
         String introduction,
         BlogStatus status,
+        Instant scheduledAt,
         Boolean showOnHomepage,
         Boolean isDeleted
 ) {

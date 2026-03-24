@@ -568,27 +568,26 @@ class OrderController extends ChangeNotifier {
   Future<List<DebtPaymentRecord>> _fetchRemotePaymentsForOrder(
     int remoteOrderId,
   ) async {
-    final response = await _client.get(
-      DealerApiConfig.resolveApiUri('/dealer/orders/$remoteOrderId/payments'),
-      headers: await _authorizedHeaders(),
-    );
-    final payload = _decodeBody(response.body);
-    if (response.statusCode >= 400) {
-      throw OrderControllerException(
-        _extractErrorMessageWithFallback(
-          payload,
-          orderControllerMessageToken(OrderMessageCode.paymentFailed),
-        ),
+    try {
+      final response = await _client.get(
+        DealerApiConfig.resolveApiUri('/dealer/orders/$remoteOrderId/payments'),
+        headers: await _authorizedHeaders(),
       );
-    }
-    final data = payload['data'];
-    if (data is! List) {
+      final payload = _decodeBody(response.body);
+      if (response.statusCode >= 400) {
+        return const <DebtPaymentRecord>[];
+      }
+      final data = payload['data'];
+      if (data is! List) {
+        return const <DebtPaymentRecord>[];
+      }
+      return data
+          .whereType<Map<String, dynamic>>()
+          .map(_mapRemotePayment)
+          .toList(growable: false);
+    } catch (_) {
       return const <DebtPaymentRecord>[];
     }
-    return data
-        .whereType<Map<String, dynamic>>()
-        .map(_mapRemotePayment)
-        .toList(growable: false);
   }
 
   Future<void> _reloadRemotePaymentsForOrder(int remoteOrderId) async {

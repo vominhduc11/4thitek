@@ -2,6 +2,7 @@ package com.devwonder.backend.repository;
 
 import com.devwonder.backend.entity.Blog;
 import com.devwonder.backend.entity.enums.BlogStatus;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -63,4 +64,14 @@ public interface BlogRepository extends JpaRepository<Blog, Long> {
               and (b.status is null or b.status <> :status)
             """)
     long countActiveByStatusNot(@Param("status") BlogStatus status);
+
+    @Query("""
+            select b
+            from Blog b
+            where b.isDeleted = false
+              and b.status = 'SCHEDULED'
+              and b.scheduledAt is not null
+              and b.scheduledAt <= :now
+            """)
+    List<Blog> findScheduledBlogsDueBy(@Param("now") Instant now);
 }

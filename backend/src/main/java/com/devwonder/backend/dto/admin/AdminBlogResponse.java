@@ -12,6 +12,7 @@ public record AdminBlogResponse(
         String image,
         String introduction,
         BlogStatus status,
+        Instant scheduledAt,
         Boolean showOnHomepage,
         Boolean isDeleted,
         Instant createdAt,

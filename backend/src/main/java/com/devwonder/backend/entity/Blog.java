@@ -55,6 +55,9 @@ public class Blog {
     @Column(name = "status")
     private BlogStatus status = BlogStatus.DRAFT;
 
+    @Column(name = "scheduled_at")
+    private Instant scheduledAt;
+
     @Column(name = "is_deleted")
     private Boolean isDeleted = false;
 

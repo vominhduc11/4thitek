@@ -118,6 +118,7 @@ public final class AdminResponseMapper {
                 blog.getImage(),
                 blog.getIntroduction(),
                 blog.getStatus(),
+                blog.getScheduledAt(),
                 blog.getShowOnHomepage(),
                 blog.getIsDeleted(),
                 blog.getCreatedAt(),

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -22,9 +23,11 @@ public class SepayWebhookController {
     @PostMapping
     public ResponseEntity<Map<String, Object>> receiveWebhook(
             @RequestBody SepayWebhookRequest request,
+            @RequestParam(name = "token", required = false) String queryToken,
             @RequestHeader(name = "X-Webhook-Token", required = false) String headerToken
     ) {
-        SepayService.WebhookResult result = sepayService.processWebhook(request, headerToken);
+        String effectiveToken = (queryToken != null && !queryToken.isBlank()) ? queryToken : headerToken;
+        SepayService.WebhookResult result = sepayService.processWebhook(request, effectiveToken);
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("success", true);
