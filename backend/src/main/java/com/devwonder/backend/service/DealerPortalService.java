@@ -59,6 +59,7 @@ public class DealerPortalService {
     private final DealerNotificationSupport dealerNotificationSupport;
     private final DealerOrderWorkflowSupport dealerOrderWorkflowSupport;
     private final PushTokenRegistrationService pushTokenRegistrationService;
+    private final IdempotencyStore idempotencyStore;
 
     @Transactional(readOnly = true)
     public DealerProfileResponse getProfile(String username) {
@@ -135,9 +136,31 @@ public class DealerPortalService {
 
     @Transactional
     @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
-    public DealerOrderResponse createOrder(String username, CreateDealerOrderRequest request) {
+    public DealerOrderResponse createOrder(String username, CreateDealerOrderRequest request, String idempotencyKey) {
+        // Idempotency check: return cached response if key seen within TTL (BUSINESS_LOGIC.md 3.4 [Policy])
+        java.util.Optional<Long> cachedOrderId = idempotencyStore.get(idempotencyKey);
+        if (cachedOrderId.isPresent()) {
+            Order cachedOrder = orderRepository.findById(cachedOrderId.get()).orElse(null);
+            if (cachedOrder != null) {
+                return DealerPortalResponseMapper.toOrderResponse(cachedOrder, activeDiscountRules());
+            }
+            // If order was somehow deleted, fall through to create a new one
+        }
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsernameForUpdate(username);
-        return dealerOrderWorkflowSupport.createOrder(dealer, request, activeDiscountRules());
+        DealerOrderResponse response = dealerOrderWorkflowSupport.createOrder(dealer, request, activeDiscountRules(), idempotencyKey);
+        idempotencyStore.put(idempotencyKey, response.id());
+        return response;
+    }
+
+    /**
+     * Convenience overload that generates a random idempotency key.
+     * Used by internal callers (e.g. tests) that do not supply an external key.
+     * The HTTP controller layer MUST enforce key presence; this method is NOT exposed to clients.
+     */
+    @Transactional
+    @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
+    public DealerOrderResponse createOrder(String username, CreateDealerOrderRequest request) {
+        return createOrder(username, request, java.util.UUID.randomUUID().toString());
     }
 
     @Transactional

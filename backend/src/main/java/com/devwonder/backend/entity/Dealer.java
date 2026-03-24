@@ -10,6 +10,7 @@ import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 import lombok.Getter;
@@ -63,6 +64,16 @@ public class Dealer extends Account {
     @Enumerated(EnumType.STRING)
     @Column(name = "customer_status", nullable = false)
     private CustomerStatus customerStatus;
+
+    /**
+     * Timestamp when dealer was most recently moved to SUSPENDED status.
+     * Used by the PendingOrderTimeoutJob to apply the 24h grace period:
+     * PENDING orders are auto-cancelled only after (suspendedAt + 24h).
+     * Set by AdminManagementService when transitioning to SUSPENDED.
+     * See BUSINESS_LOGIC.md Section 8.2 [Policy].
+     */
+    @Column(name = "suspended_at")
+    private Instant suspendedAt;
 
     @OneToMany(mappedBy = "dealer")
     private Set<DealerCartItem> cartItems = new HashSet<>();

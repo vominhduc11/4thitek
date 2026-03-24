@@ -113,9 +113,14 @@ public class DealerController {
     @PostMapping("/orders")
     public ResponseEntity<ApiResponse<DealerOrderResponse>> createOrder(
             Authentication authentication,
+            @org.springframework.web.bind.annotation.RequestHeader(name = "X-Idempotency-Key", required = false) String idempotencyKey,
             @Valid @RequestBody CreateDealerOrderRequest request
     ) {
-        return ResponseEntity.ok(ApiResponse.success(dealerPortalService.createOrder(extractUsername(authentication), request)));
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new BadRequestException("X-Idempotency-Key header is required for order creation");
+        }
+        return ResponseEntity.ok(ApiResponse.success(
+                dealerPortalService.createOrder(extractUsername(authentication), request, idempotencyKey.trim())));
     }
 
     @PatchMapping("/orders/{id}/status")

@@ -18,11 +18,16 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class DealerPaymentSupport {
+
+    /** Dealer payments on orders with outstandingAmount >= this threshold MUST include proofFileName. */
+    @Value("${app.payment.large-amount-proof-threshold:10000000}")
+    private long largeAmountProofThreshold;
 
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
@@ -75,6 +80,20 @@ public class DealerPaymentSupport {
         }
         if (amount.compareTo(outstandingAmount) > 0) {
             throw new BadRequestException("Payment amount exceeds outstanding balance");
+        }
+        // BUSINESS_LOGIC.md Section 3.13 [Policy]: dealer payments on large-outstanding orders
+        // (outstandingAmount >= 10,000,000 VNĐ) MUST include proofFileName.
+        if (!allowManualBankTransfer) {
+            BigDecimal proofThreshold = BigDecimal.valueOf(largeAmountProofThreshold);
+            if (outstandingAmount.compareTo(proofThreshold) >= 0) {
+                String proof = DealerRequestSupport.normalize(request.proofFileName());
+                if (proof == null) {
+                    throw new BadRequestException(
+                            "proofFileName is required for payments on orders with outstanding amount >= "
+                            + proofThreshold.toPlainString() + " VNĐ"
+                    );
+                }
+            }
         }
         Instant duplicateWindow = Instant.now().minusSeconds(5);
         if (paymentRepository.existsByOrderIdAndAmountAndCreatedAtAfter(order.getId(), amount, duplicateWindow)) {

@@ -27,6 +27,7 @@ import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.Blog;
 import com.devwonder.backend.entity.BulkDiscount;
 import com.devwonder.backend.entity.Dealer;
+import com.devwonder.backend.entity.FinancialSettlement;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.OrderItem;
 import com.devwonder.backend.entity.Product;
@@ -34,6 +35,7 @@ import com.devwonder.backend.entity.ProductSerial;
 import com.devwonder.backend.entity.Role;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.DiscountRuleStatus;
+import com.devwonder.backend.entity.enums.FinancialSettlementStatus;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.entity.enums.StaffUserStatus;
@@ -46,6 +48,7 @@ import com.devwonder.backend.repository.BlogRepository;
 import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.repository.CategoryBlogRepository;
 import com.devwonder.backend.repository.DealerRepository;
+import com.devwonder.backend.repository.FinancialSettlementRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
@@ -56,6 +59,7 @@ import com.devwonder.backend.service.support.AdminOrderNotificationSupport;
 import com.devwonder.backend.service.support.AdminResponseMapper;
 import com.devwonder.backend.service.support.AccountValidationSupport;
 import com.devwonder.backend.service.support.AdminWriteSupport;
+import com.devwonder.backend.service.support.DealerOrderNotificationSupport;
 import com.devwonder.backend.service.support.DealerPaymentSupport;
 import com.devwonder.backend.service.support.DealerAccountStatusTransitionPolicy;
 import com.devwonder.backend.service.support.OrderInventorySupport;
@@ -117,6 +121,8 @@ public class AdminManagementService {
     private final OrderInventorySupport orderInventorySupport;
     private final ProductSerialOrderSupport productSerialOrderSupport;
     private final ProductStockSyncSupport productStockSyncSupport;
+    private final FinancialSettlementRepository financialSettlementRepository;
+    private final DealerOrderNotificationSupport dealerOrderNotificationSupport;
 
     @Transactional(readOnly = true)
     public List<AdminProductResponse> getProducts() {
@@ -229,8 +235,25 @@ public class AdminManagementService {
             }
         }
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
+        BigDecimal paidAmount = order.getPaidAmount() == null ? BigDecimal.ZERO : order.getPaidAmount();
+        if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED
+                && paidAmount.compareTo(BigDecimal.ZERO) > 0) {
+            order.setFinancialSettlementRequired(Boolean.TRUE);
+        }
         order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
         Order saved = orderRepository.save(order);
+        // Create FinancialSettlement when admin cancels an order with paidAmount > 0
+        if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED
+                && paidAmount.compareTo(BigDecimal.ZERO) > 0) {
+            FinancialSettlement settlement = new FinancialSettlement();
+            settlement.setOrder(saved);
+            settlement.setType("CANCELLATION_REFUND");
+            settlement.setAmount(paidAmount);
+            settlement.setStatus(FinancialSettlementStatus.PENDING);
+            settlement.setCreatedBy("admin");
+            financialSettlementRepository.save(settlement);
+            dealerOrderNotificationSupport.notifyAdminsFinancialSettlementRequired(saved, paidAmount);
+        }
         adminOrderNotificationSupport.notifyStatusChange(saved, previousStatus);
         publishOrderStatusRealtime(saved, previousStatus);
         return AdminResponseMapper.toOrderResponse(saved, activeDiscountRules);
@@ -468,6 +491,13 @@ public class AdminManagementService {
         CustomerStatus previousStatus = dealer.getCustomerStatus();
         DealerAccountStatusTransitionPolicy.assertTransitionAllowed(previousStatus, request.status());
         dealer.setCustomerStatus(request.status());
+        // Record suspension timestamp for 24h grace period (BUSINESS_LOGIC.md Section 8.2)
+        if (request.status() == CustomerStatus.SUSPENDED
+                && previousStatus != CustomerStatus.SUSPENDED) {
+            dealer.setSuspendedAt(Instant.now());
+        } else if (request.status() != CustomerStatus.SUSPENDED) {
+            dealer.setSuspendedAt(null);
+        }
         Dealer saved = dealerRepository.save(dealer);
         dealerAccountLifecycleService.notifyDealerStatusChanged(saved, previousStatus);
         return AdminResponseMapper.toDealerAccountResponse(saved, activeDiscountRules());

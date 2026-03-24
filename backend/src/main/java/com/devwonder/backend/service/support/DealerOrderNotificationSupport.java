@@ -129,6 +129,93 @@ public class DealerOrderNotificationSupport {
         }
     }
 
+    /**
+     * Notifies all ACTIVE admins that a cancelled order has a FinancialSettlement pending resolution.
+     * Called when order is cancelled and paidAmount > 0 (BUSINESS_LOGIC.md Section 3.4 [Policy]).
+     */
+    public void notifyAdminsFinancialSettlementRequired(Order order, BigDecimal paidAmount) {
+        if (order == null || order.getId() == null) {
+            return;
+        }
+        String orderCode = firstNonBlank(order.getOrderCode(), String.valueOf(order.getId()));
+        for (Admin admin : adminRepository.findAll()) {
+            if (admin == null || admin.getId() == null) {
+                continue;
+            }
+            if (admin.getUserStatus() != null && admin.getUserStatus() != StaffUserStatus.ACTIVE) {
+                continue;
+            }
+            notificationService.create(new CreateNotifyRequest(
+                    admin.getId(),
+                    appMessageSupport.get("notification.admin.financial-settlement.title"),
+                    appMessageSupport.get(
+                            "notification.admin.financial-settlement.content",
+                            orderCode,
+                            paidAmount.toPlainString()
+                    ),
+                    NotifyType.ORDER,
+                    "/financial-settlements",
+                    null
+            ));
+        }
+    }
+
+    /**
+     * Notifies all ACTIVE admins that a PENDING order was auto-cancelled by the stale-order job.
+     */
+    public void notifyAdminsOrderAutoCancelled(Order order) {
+        if (order == null || order.getId() == null) {
+            return;
+        }
+        String orderCode = firstNonBlank(order.getOrderCode(), String.valueOf(order.getId()));
+        for (Admin admin : adminRepository.findAll()) {
+            if (admin == null || admin.getId() == null) {
+                continue;
+            }
+            if (admin.getUserStatus() != null && admin.getUserStatus() != StaffUserStatus.ACTIVE) {
+                continue;
+            }
+            notificationService.create(new CreateNotifyRequest(
+                    admin.getId(),
+                    appMessageSupport.get("notification.admin.order-auto-cancelled.title"),
+                    appMessageSupport.get("notification.admin.order-auto-cancelled.content", orderCode),
+                    NotifyType.ORDER,
+                    "/orders/" + order.getId(),
+                    null
+            ));
+        }
+    }
+
+    /**
+     * Notifies all ACTIVE admins that a PENDING order with paidAmount > 0 entered stale review queue.
+     */
+    public void notifyAdminsOrderStaleReview(Order order, BigDecimal paidAmount) {
+        if (order == null || order.getId() == null) {
+            return;
+        }
+        String orderCode = firstNonBlank(order.getOrderCode(), String.valueOf(order.getId()));
+        for (Admin admin : adminRepository.findAll()) {
+            if (admin == null || admin.getId() == null) {
+                continue;
+            }
+            if (admin.getUserStatus() != null && admin.getUserStatus() != StaffUserStatus.ACTIVE) {
+                continue;
+            }
+            notificationService.create(new CreateNotifyRequest(
+                    admin.getId(),
+                    appMessageSupport.get("notification.admin.order-stale-review.title"),
+                    appMessageSupport.get(
+                            "notification.admin.order-stale-review.content",
+                            orderCode,
+                            paidAmount.toPlainString()
+                    ),
+                    NotifyType.ORDER,
+                    "/orders/" + order.getId(),
+                    null
+            ));
+        }
+    }
+
     private String firstNonBlank(String... values) {
         for (String value : values) {
             if (value == null) {

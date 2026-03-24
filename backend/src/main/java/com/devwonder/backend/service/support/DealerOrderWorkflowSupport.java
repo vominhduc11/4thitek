@@ -5,15 +5,18 @@ import com.devwonder.backend.dto.dealer.CreateDealerOrderRequest;
 import com.devwonder.backend.dto.dealer.DealerOrderResponse;
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
 import com.devwonder.backend.entity.Dealer;
+import com.devwonder.backend.entity.FinancialSettlement;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.OrderItem;
 import com.devwonder.backend.entity.Product;
+import com.devwonder.backend.entity.enums.FinancialSettlementStatus;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
 import com.devwonder.backend.dto.realtime.AdminNewOrderEvent;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
+import com.devwonder.backend.repository.FinancialSettlementRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.service.WebSocketEventPublisher;
 import java.math.BigDecimal;
@@ -34,16 +37,29 @@ public class DealerOrderWorkflowSupport {
     private final ProductSerialOrderSupport productSerialOrderSupport;
     private final DealerOrderNotificationSupport dealerOrderNotificationSupport;
     private final WebSocketEventPublisher webSocketEventPublisher;
+    private final FinancialSettlementRepository financialSettlementRepository;
 
     public DealerOrderResponse createOrder(
             Dealer dealer,
             CreateDealerOrderRequest request,
             List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
     ) {
+        return createOrder(dealer, request, activeDiscountRules, null);
+    }
+
+    public DealerOrderResponse createOrder(
+            Dealer dealer,
+            CreateDealerOrderRequest request,
+            List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules,
+            String idempotencyKey
+    ) {
         Order order = new Order();
         order.setDealer(dealer);
         order.setOrderCode(DealerOrderSupport.buildOrderCode(dealer.getId()));
         order.setStatus(OrderStatus.PENDING);
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            order.setIdempotencyKey(idempotencyKey);
+        }
         order.setPaymentMethod(request.paymentMethod());
         order.setIsDeleted(false);
         order.setReceiverName(DealerRequestSupport.defaultIfBlank(request.receiverName(), dealer.getBusinessName()));
@@ -103,15 +119,33 @@ public class DealerOrderWorkflowSupport {
             productSerialOrderSupport.releaseNonWarrantySerials(order);
             orderInventorySupport.restoreStock(order);
         }
-        if (request.status() == OrderStatus.CANCELLED
-                && DealerOrderSupport.zeroIfNull(order.getPaidAmount()).compareTo(BigDecimal.ZERO) <= 0) {
+        BigDecimal paidAmount = DealerOrderSupport.zeroIfNull(order.getPaidAmount());
+        if (request.status() == OrderStatus.CANCELLED && paidAmount.compareTo(BigDecimal.ZERO) <= 0) {
             order.setPaymentStatus(PaymentStatus.CANCELLED);
         } else {
             order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
         }
+        // FinancialSettlement: if cancelling with paidAmount > 0, create a CANCELLATION_REFUND record
+        if (previousStatus != OrderStatus.CANCELLED
+                && request.status() == OrderStatus.CANCELLED
+                && paidAmount.compareTo(BigDecimal.ZERO) > 0) {
+            order.setFinancialSettlementRequired(Boolean.TRUE);
+        }
         Order saved = orderRepository.save(order);
         if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED) {
             dealerOrderNotificationSupport.notifyAdminsDealerCancelled(saved);
+            if (paidAmount.compareTo(BigDecimal.ZERO) > 0) {
+                FinancialSettlement settlement = new FinancialSettlement();
+                settlement.setOrder(saved);
+                settlement.setType("CANCELLATION_REFUND");
+                settlement.setAmount(paidAmount);
+                settlement.setStatus(com.devwonder.backend.entity.enums.FinancialSettlementStatus.PENDING);
+                settlement.setCreatedBy(
+                        saved.getDealer() != null ? saved.getDealer().getUsername() : "dealer"
+                );
+                financialSettlementRepository.save(settlement);
+                dealerOrderNotificationSupport.notifyAdminsFinancialSettlementRequired(saved, paidAmount);
+            }
         }
         return DealerPortalResponseMapper.toOrderResponse(saved, activeDiscountRules);
     }

@@ -96,4 +96,13 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.REMOVE)
     @OrderBy("paidAt DESC, createdAt DESC")
     private Set<Payment> payments = new HashSet<>();
+
+    @Column(name = "financial_settlement_required")
+    private Boolean financialSettlementRequired;
+
+    @Column(name = "stale_review_required")
+    private Boolean staleReviewRequired;
+
+    @Column(name = "idempotency_key", unique = true)
+    private String idempotencyKey;
 }

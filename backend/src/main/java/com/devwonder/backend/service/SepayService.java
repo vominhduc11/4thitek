@@ -4,19 +4,26 @@ import com.devwonder.backend.dto.dealer.DealerBankTransferInstructionResponse;
 import com.devwonder.backend.dto.notify.CreateNotifyRequest;
 import com.devwonder.backend.dto.realtime.DealerOrderStatusEvent;
 import com.devwonder.backend.dto.webhook.SepayWebhookRequest;
+import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.Payment;
+import com.devwonder.backend.entity.UnmatchedPayment;
 import com.devwonder.backend.entity.enums.DiscountRuleStatus;
 import com.devwonder.backend.entity.enums.NotifyType;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
+import com.devwonder.backend.entity.enums.StaffUserStatus;
+import com.devwonder.backend.entity.enums.UnmatchedPaymentReason;
+import com.devwonder.backend.entity.enums.UnmatchedPaymentStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.UnauthorizedException;
+import com.devwonder.backend.repository.AdminRepository;
 import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.PaymentRepository;
+import com.devwonder.backend.repository.UnmatchedPaymentRepository;
 import com.devwonder.backend.service.support.AppMessageSupport;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import java.math.BigDecimal;
@@ -58,6 +65,8 @@ public class SepayService {
     private final WebSocketEventPublisher webSocketEventPublisher;
     private final AppMessageSupport appMessageSupport;
     private final AdminSettingsService adminSettingsService;
+    private final UnmatchedPaymentRepository unmatchedPaymentRepository;
+    private final AdminRepository adminRepository;
 
     @Transactional(readOnly = true)
     public DealerBankTransferInstructionResponse getBankTransferInstructions() {
@@ -98,6 +107,7 @@ public class SepayService {
         if (orderCode == null) {
             log.warn("SePay webhook ignored: no order code found in content='{}', transferContent='{}'",
                     request.content(), request.transferContent());
+            recordUnmatchedPayment(request, amount, null, UnmatchedPaymentReason.ORDER_NOT_FOUND);
             return WebhookResult.ignored("order_not_found", null, null, "No order code found in transfer content");
         }
 
@@ -105,10 +115,12 @@ public class SepayService {
                 .orElse(null);
         if (order == null) {
             log.warn("SePay webhook ignored: order_not_found, orderCode={}", orderCode);
+            recordUnmatchedPayment(request, amount, orderCode, UnmatchedPaymentReason.ORDER_NOT_FOUND);
             return WebhookResult.ignored("order_not_found", orderCode, null, "Order does not exist");
         }
         if (Boolean.TRUE.equals(order.getIsDeleted())) {
             log.warn("SePay webhook ignored: order_deleted, orderCode={}", orderCode);
+            recordUnmatchedPayment(request, amount, orderCode, UnmatchedPaymentReason.ORDER_NOT_FOUND);
             return WebhookResult.ignored("order_deleted", orderCode, null, "Order is deleted");
         }
         if (order.getPaymentMethod() != PaymentMethod.BANK_TRANSFER) {
@@ -117,6 +129,7 @@ public class SepayService {
         }
         if (order.getStatus() == OrderStatus.CANCELLED) {
             log.warn("SePay webhook ignored: order_cancelled, orderCode={}", orderCode);
+            recordUnmatchedPayment(request, amount, orderCode, UnmatchedPaymentReason.ORDER_CANCELLED);
             return WebhookResult.ignored("order_cancelled", orderCode, null, "Cancelled order cannot receive payment");
         }
         var activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
@@ -124,6 +137,7 @@ public class SepayService {
         BigDecimal outstandingAmount = remainingOutstandingAmount(order, totalAmount);
         if (outstandingAmount.compareTo(BigDecimal.ZERO) <= 0) {
             log.info("SePay webhook ignored: already_paid, orderCode={}", orderCode);
+            recordUnmatchedPayment(request, amount, orderCode, UnmatchedPaymentReason.ORDER_ALREADY_SETTLED);
             return WebhookResult.duplicate("already_paid", orderCode, null, "Order is already fully paid");
         }
 
@@ -131,6 +145,7 @@ public class SepayService {
         if (normalizedAmount.compareTo(outstandingAmount) != 0) {
             log.warn("SePay webhook ignored: amount_mismatch, orderCode={}, amount={}, outstanding={}",
                     orderCode, normalizedAmount, outstandingAmount);
+            recordUnmatchedPayment(request, normalizedAmount, orderCode, UnmatchedPaymentReason.AMOUNT_MISMATCH);
             return WebhookResult.ignored(
                     "amount_mismatch",
                     orderCode,
@@ -396,6 +411,61 @@ public class SepayService {
 
     private boolean isBlank(String value) {
         return normalize(value) == null;
+    }
+
+    /**
+     * Creates an UnmatchedPayment record and notifies all ACTIVE admins.
+     * Called when SePay webhook receives a payment that cannot be matched to an order.
+     * Per BUSINESS_LOGIC.md Section 3.21: must NOT silently ignore — create a record and alert admins.
+     */
+    private void recordUnmatchedPayment(
+            SepayWebhookRequest request,
+            BigDecimal amount,
+            String orderCodeHint,
+            UnmatchedPaymentReason reason
+    ) {
+        try {
+            UnmatchedPayment unmatched = new UnmatchedPayment();
+            unmatched.setTransactionCode(
+                    request.id() != null ? "SEPAY:" + request.id() : null
+            );
+            unmatched.setAmount(amount);
+            unmatched.setSenderInfo(normalize(request.subAccount()));
+            unmatched.setContent(normalize(request.transferContent() != null
+                    ? request.transferContent() : request.content()));
+            unmatched.setOrderCodeHint(orderCodeHint);
+            unmatched.setReceivedAt(parsePaidAt(request.transactionDate()));
+            unmatched.setReason(reason);
+            unmatched.setStatus(UnmatchedPaymentStatus.PENDING);
+            unmatchedPaymentRepository.save(unmatched);
+
+            // Notify all ACTIVE admins
+            String txCode = normalize(request.id() != null ? request.id() : request.referenceCode());
+            String displayCode = txCode != null ? txCode : "(unknown)";
+            for (Admin admin : adminRepository.findAll()) {
+                if (admin == null || admin.getId() == null) {
+                    continue;
+                }
+                if (admin.getUserStatus() != null && admin.getUserStatus() != StaffUserStatus.ACTIVE) {
+                    continue;
+                }
+                notificationService.create(new CreateNotifyRequest(
+                        admin.getId(),
+                        appMessageSupport.get("notification.admin.unmatched-payment.title"),
+                        appMessageSupport.get(
+                                "notification.admin.unmatched-payment.content",
+                                displayCode,
+                                amount.toPlainString(),
+                                reason.name()
+                        ),
+                        NotifyType.ORDER,
+                        "/unmatched-payments",
+                        null
+                ));
+            }
+        } catch (RuntimeException ex) {
+            log.warn("Could not record UnmatchedPayment for reason={}, amount={}", reason, amount, ex);
+        }
     }
 
     public record WebhookResult(

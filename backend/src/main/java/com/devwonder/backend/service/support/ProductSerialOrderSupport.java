@@ -31,7 +31,12 @@ public class ProductSerialOrderSupport {
             }
             serial.setOrder(null);
             serial.setDealer(null);
-            if (serial.getStatus() != ProductSerialStatus.DEFECTIVE) {
+            // DEFECTIVE, RETURNED, INSPECTING, SCRAPPED serials must not be reset to AVAILABLE
+            // on order cancel — they have their own RMA lifecycle (BUSINESS_LOGIC.md 7.3)
+            if (serial.getStatus() != ProductSerialStatus.DEFECTIVE
+                    && serial.getStatus() != ProductSerialStatus.RETURNED
+                    && serial.getStatus() != ProductSerialStatus.INSPECTING
+                    && serial.getStatus() != ProductSerialStatus.SCRAPPED) {
                 serial.setStatus(ProductSerialStatus.AVAILABLE);
             }
             serialsToUpdate.add(serial);

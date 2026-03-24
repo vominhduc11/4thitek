@@ -31,6 +31,13 @@ import com.devwonder.backend.dto.admin.UpdateAdminDealerAccountStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminSupportTicketRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminSettingsRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminDiscountRuleStatusRequest;
+import com.devwonder.backend.dto.admin.AdminFinancialSettlementResponse;
+import com.devwonder.backend.dto.admin.AdminOrderAdjustmentRequest;
+import com.devwonder.backend.dto.admin.AdminOrderAdjustmentResponse;
+import com.devwonder.backend.dto.admin.AdminRmaRequest;
+import com.devwonder.backend.dto.admin.AdminUnmatchedPaymentResponse;
+import com.devwonder.backend.dto.admin.AdminUpdateFinancialSettlementRequest;
+import com.devwonder.backend.dto.admin.AdminUpdateUnmatchedPaymentRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminStaffUserStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminWarrantyStatusRequest;
 import com.devwonder.backend.dto.customer.ChangePasswordRequest;
@@ -40,9 +47,11 @@ import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
 import com.devwonder.backend.dto.pagination.PagedResponse;
 import com.devwonder.backend.dto.serial.SerialImportSummaryResponse;
 import com.devwonder.backend.exception.BadRequestException;
+import com.devwonder.backend.service.AdminFinancialService;
 import com.devwonder.backend.service.AdminManagementService;
 import com.devwonder.backend.service.AdminOperationsService;
 import com.devwonder.backend.service.AdminReportingService;
+import com.devwonder.backend.service.AdminRmaService;
 import com.devwonder.backend.service.AdminSettingsService;
 import com.devwonder.backend.util.PaginationUtils;
 import jakarta.validation.Valid;
@@ -77,6 +86,8 @@ public class AdminController {
     private final AdminOperationsService adminOperationsService;
     private final AdminReportingService adminReportingService;
     private final AdminSettingsService adminSettingsService;
+    private final AdminFinancialService adminFinancialService;
+    private final AdminRmaService adminRmaService;
 
     @GetMapping("/products")
     public ResponseEntity<ApiResponse<List<AdminProductResponse>>> products() {
@@ -418,6 +429,93 @@ public class AdminController {
             @Valid @RequestBody UpdateAdminSettingsRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(adminSettingsService.updateSettings(request)));
+    }
+
+    // ---- RMA: Serial lifecycle (BUSINESS_LOGIC.md Section 7.3) ----
+
+    @PatchMapping("/serials/{id}/rma")
+    public ResponseEntity<ApiResponse<AdminSerialResponse>> applyRmaAction(
+            Authentication authentication,
+            @PathVariable("id") Long id,
+            @Valid @RequestBody AdminRmaRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                adminRmaService.applyRmaAction(id, request, extractUsername(authentication))));
+    }
+
+    // ---- FinancialSettlement (BUSINESS_LOGIC.md Section 3.4) ----
+
+    @GetMapping("/financial-settlements")
+    public ResponseEntity<ApiResponse<List<AdminFinancialSettlementResponse>>> financialSettlements(
+            @RequestParam(name = "status", required = false) String status
+    ) {
+        if (status != null) {
+            com.devwonder.backend.entity.enums.FinancialSettlementStatus s =
+                    com.devwonder.backend.entity.enums.FinancialSettlementStatus.valueOf(status.toUpperCase());
+            return ResponseEntity.ok(ApiResponse.success(adminFinancialService.getFinancialSettlementsByStatus(s)));
+        }
+        return ResponseEntity.ok(ApiResponse.success(adminFinancialService.getFinancialSettlements()));
+    }
+
+    @PatchMapping("/financial-settlements/{id}")
+    public ResponseEntity<ApiResponse<AdminFinancialSettlementResponse>> resolveFinancialSettlement(
+            Authentication authentication,
+            @PathVariable("id") Long id,
+            @Valid @RequestBody AdminUpdateFinancialSettlementRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                adminFinancialService.resolveFinancialSettlement(id, request, extractUsername(authentication))));
+    }
+
+    // ---- OrderAdjustment (BUSINESS_LOGIC.md Section 3.25) ----
+
+    @GetMapping("/orders/{id}/adjustments")
+    public ResponseEntity<ApiResponse<List<AdminOrderAdjustmentResponse>>> getOrderAdjustments(
+            @PathVariable("id") Long id
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(adminFinancialService.getOrderAdjustments(id)));
+    }
+
+    @PostMapping("/orders/{id}/adjustments")
+    public ResponseEntity<ApiResponse<AdminOrderAdjustmentResponse>> createOrderAdjustment(
+            Authentication authentication,
+            @PathVariable("id") Long id,
+            @Valid @RequestBody AdminOrderAdjustmentRequest request
+    ) {
+        String username = extractUsername(authentication);
+        String role = authentication.getAuthorities().stream()
+                .findFirst()
+                .map(a -> a.getAuthority())
+                .orElse("ADMIN");
+        return ResponseEntity.ok(ApiResponse.success(
+                adminFinancialService.createOrderAdjustment(id, request, username, role)));
+    }
+
+    // ---- UnmatchedPayment (BUSINESS_LOGIC.md Section 3.21) ----
+
+    @GetMapping("/unmatched-payments")
+    public ResponseEntity<ApiResponse<PagedResponse<AdminUnmatchedPaymentResponse>>> getUnmatchedPayments(
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "reason", required = false) String reason,
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sortBy", required = false) String sortBy,
+            @RequestParam(name = "sortDir", required = false) String sortDir
+    ) {
+        Pageable pageable = PaginationUtils.toPageable(page, size, sortBy, sortDir, "createdAt");
+        Page<AdminUnmatchedPaymentResponse> result =
+                adminFinancialService.getUnmatchedPayments(status, reason, pageable);
+        return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "createdAt")));
+    }
+
+    @PatchMapping("/unmatched-payments/{id}")
+    public ResponseEntity<ApiResponse<AdminUnmatchedPaymentResponse>> resolveUnmatchedPayment(
+            Authentication authentication,
+            @PathVariable("id") Long id,
+            @Valid @RequestBody AdminUpdateUnmatchedPaymentRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                adminFinancialService.resolveUnmatchedPayment(id, request, extractUsername(authentication))));
     }
 
     private String extractUsername(Authentication authentication) {

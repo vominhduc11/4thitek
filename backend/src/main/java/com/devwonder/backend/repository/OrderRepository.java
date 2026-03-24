@@ -152,6 +152,24 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             """)
     long countVisibleOrdersByStatus(@Param("status") OrderStatus status);
 
+    /**
+     * Finds PENDING orders belonging to SUSPENDED dealers whose suspension timestamp
+     * is before the given grace period cutoff (i.e., suspended more than 24h ago).
+     * Used by PendingOrderTimeoutJob to auto-cancel on dealer suspension grace expiry.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select o
+            from Order o
+            where o.status = com.devwonder.backend.entity.enums.OrderStatus.PENDING
+              and (o.isDeleted = false or o.isDeleted is null)
+              and o.dealer is not null
+              and o.dealer.customerStatus = com.devwonder.backend.entity.enums.CustomerStatus.SUSPENDED
+              and o.dealer.suspendedAt is not null
+              and o.dealer.suspendedAt < :graceCutoff
+            """)
+    List<Order> findPendingOrdersOfSuspendedDealersBefore(@Param("graceCutoff") Instant graceCutoff);
+
     @Query("""
             select p.id, p.name, p.sku, coalesce(sum(oi.quantity), 0)
             from OrderItem oi
@@ -165,6 +183,36 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Object[]> findTopProductsForDashboard(
             @Param("status") OrderStatus status,
             Pageable pageable
+    );
+
+    /**
+     * Finds PENDING orders whose createdAt is before the given cutoff (for timeout job).
+     * Uses SELECT FOR UPDATE to avoid concurrent processing.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select o
+            from Order o
+            where o.status = com.devwonder.backend.entity.enums.OrderStatus.PENDING
+              and (o.isDeleted = false or o.isDeleted is null)
+              and o.createdAt < :cutoff
+            """)
+    List<Order> findPendingOrdersCreatedBefore(@Param("cutoff") Instant cutoff);
+
+    /**
+     * Finds PENDING orders whose createdAt is between warningFrom and warningTo (for warning notifications).
+     */
+    @Query("""
+            select o
+            from Order o
+            where o.status = com.devwonder.backend.entity.enums.OrderStatus.PENDING
+              and (o.isDeleted = false or o.isDeleted is null)
+              and o.createdAt >= :warningFrom
+              and o.createdAt < :warningTo
+            """)
+    List<Order> findPendingOrdersInWarningWindow(
+            @Param("warningFrom") Instant warningFrom,
+            @Param("warningTo") Instant warningTo
     );
 
     @Query(value = """
