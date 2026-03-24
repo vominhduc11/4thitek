@@ -37,7 +37,8 @@ import org.springframework.test.web.servlet.MvcResult;
         "app.bootstrap-super-admin.name=System Owner",
         "app.mail.enabled=true",
         "app.mail.from=ops@4thitek.local",
-        "app.mail.from-name=4ThiTek Ops"
+        "app.mail.from-name=4ThiTek Ops",
+        "app.password-reset.base-url=https://admin.4thitek.local/reset"
 })
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -140,10 +141,14 @@ class AdminStaffUserContractTests {
         verify(javaMailSender).send(messageCaptor.capture());
 
         MimeMessage message = messageCaptor.getValue();
+        String body = message.getContent().toString();
         assertThat(message.getRecipients(Message.RecipientType.TO)[0].toString()).isEqualTo("staff.ops@example.com");
-        assertThat(message.getSubject()).contains("4ThiTek");
-        assertThat(message.getContent().toString()).contains(username);
-        assertThat(message.getContent().toString()).contains("Mật khẩu tạm thời:");
+        assertThat(message.getSubject()).contains("4ThiTek").contains("Kích hoạt");
+        assertThat(body)
+                .contains("Support Agent")
+                .contains("https://admin.4thitek.local/reset")
+                .doesNotContain("Mật khẩu tạm thời:")
+                .doesNotContain("temporaryPassword");
     }
 
     private String login(String username, String password) throws Exception {

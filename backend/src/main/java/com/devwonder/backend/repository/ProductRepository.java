@@ -2,6 +2,7 @@ package com.devwonder.backend.repository;
 
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.enums.PublishStatus;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -46,6 +47,34 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
               and p.publishStatus = :publishStatus
             """)
     long countActiveProductsByPublishStatus(@Param("publishStatus") PublishStatus publishStatus);
+
+    /**
+     * Filters published products at the database level.
+     *
+     * Rules preserved from the previous in-memory implementation:
+     *   - Text match is a case-insensitive substring on name, sku, or shortDescription.
+     *   - null {@code query} skips text filtering entirely.
+     *   - null {@code retailPrice} is treated as 0 for price-range checks (COALESCE).
+     *   - Results are ordered case-insensitively by name ascending; null names sort last.
+     */
+    @Query("""
+            select p from Product p
+            where p.isDeleted = false
+              and p.publishStatus = :publishStatus
+              and (:query is null
+                   or lower(p.name) like lower(concat('%', :query, '%'))
+                   or lower(p.sku) like lower(concat('%', :query, '%'))
+                   or lower(p.shortDescription) like lower(concat('%', :query, '%')))
+              and (:minPrice is null or coalesce(p.retailPrice, 0) >= :minPrice)
+              and (:maxPrice is null or coalesce(p.retailPrice, 0) <= :maxPrice)
+            order by lower(p.name) asc nulls last
+            """)
+    List<Product> searchPublished(
+            @Param("publishStatus") PublishStatus publishStatus,
+            @Param("query") String query,
+            @Param("minPrice") BigDecimal minPrice,
+            @Param("maxPrice") BigDecimal maxPrice
+    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

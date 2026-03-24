@@ -211,10 +211,10 @@ export function mapProductDetailToViewModel(
         name: string;
         shortDescription: string;
         description?: string;
-        descriptions?: string;
+        descriptions?: Array<Record<string, unknown>>;
         image: string;
-        videos: string;
-        specifications: string | unknown;
+        videos: Array<Record<string, unknown>>;
+        specifications: unknown;
         tags?: string[];
     },
     videoTitleFallback: string
@@ -225,10 +225,10 @@ export function mapProductDetailToViewModel(
     hasApiSpecifications: boolean;
 } {
     const id = toEntityId(productData.id) ?? '';
-    const descriptions = parseJsonArray(productData.descriptions || '[]', []).map((entry) => normalizeMediaPayload(entry));
+    const descriptions = parseJsonArray(productData.descriptions || [], []).map((entry) => normalizeMediaPayload(entry));
     const image = parseImageUrl(productData.image, '');
 
-    const videos = parseJsonArray<unknown>(productData.videos || '[]', []).reduce<ProductVideo[]>((acc, entry, index) => {
+    const videos = parseJsonArray<unknown>(productData.videos || [], []).reduce<ProductVideo[]>((acc, entry, index) => {
         if (!entry || typeof entry !== 'object') return acc;
         const video = entry as {
             title?: unknown;

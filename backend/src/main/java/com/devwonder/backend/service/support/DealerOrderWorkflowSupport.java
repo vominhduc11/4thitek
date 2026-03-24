@@ -39,14 +39,18 @@ public class DealerOrderWorkflowSupport {
     private final WebSocketEventPublisher webSocketEventPublisher;
     private final FinancialSettlementRepository financialSettlementRepository;
 
-    public DealerOrderResponse createOrder(
-            Dealer dealer,
-            CreateDealerOrderRequest request,
-            List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
-    ) {
-        return createOrder(dealer, request, activeDiscountRules, null);
-    }
-
+    /**
+     * Creates a dealer order and persists the idempotency key on the order record.
+     *
+     * <p>{@code idempotencyKey} SHOULD be a non-blank, caller-supplied UUID.  A null or blank
+     * value is accepted for internal/test scenarios (the field is simply not set on the order),
+     * but every production entry point MUST supply a key so that duplicate-request detection
+     * works correctly (see BUSINESS_LOGIC.md §3.4).
+     *
+     * <p>The no-key convenience overload was intentionally removed to prevent silent bypasses:
+     * callers that genuinely need key-less order creation must pass an explicit value or
+     * generate one with {@code UUID.randomUUID().toString()}.
+     */
     public DealerOrderResponse createOrder(
             Dealer dealer,
             CreateDealerOrderRequest request,

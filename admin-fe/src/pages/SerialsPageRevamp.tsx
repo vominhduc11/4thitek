@@ -1,4 +1,4 @@
-import { AlertTriangle, Barcode, Loader2, Printer, QrCode, RefreshCw, RotateCcw, Trash2, Upload, X } from 'lucide-react'
+import { AlertTriangle, Ban, Barcode, CheckCircle2, Loader2, Microscope, Printer, QrCode, RefreshCw, RotateCcw, Trash2, Upload, X } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -7,8 +7,10 @@ import {
   importAdminSerials,
   updateAdminSerialStatus,
   deleteAdminSerial,
+  applyAdminRmaAction,
   type BackendSerialImportSummary,
   type BackendProductSerialStatus,
+  type BackendRmaAction,
   type BackendSerialResponse,
 } from '../lib/adminApi'
 import { useAuth } from '../context/AuthContext'
@@ -45,6 +47,8 @@ const SERIAL_STATUS_FILTER_OPTIONS: BackendProductSerialStatus[] = [
   'AVAILABLE',
   'RESERVED',
   'DEFECTIVE',
+  'INSPECTING',
+  'SCRAPPED',
   'ASSIGNED',
   'WARRANTY',
   'RETURNED',
@@ -54,6 +58,8 @@ const statusTone = {
   AVAILABLE: 'success',
   RESERVED: 'warning',
   DEFECTIVE: 'danger',
+  INSPECTING: 'warning',
+  SCRAPPED: 'neutral',
   ASSIGNED: 'neutral',
   WARRANTY: 'info',
   RETURNED: 'warning',
@@ -133,10 +139,25 @@ const copyByLanguage = {
       AVAILABLE: 'Khả dụng',
       RESERVED: 'Đang giữ chỗ',
       DEFECTIVE: 'Hàng lỗi',
+      INSPECTING: 'Đang kiểm định',
+      SCRAPPED: 'Đã hủy',
       ASSIGNED: 'Đã gán',
       WARRANTY: 'Bảo hành',
       RETURNED: 'Trả lại',
     } as Record<BackendProductSerialStatus, string>,
+    rmaStartInspectionTitle: 'Bắt đầu kiểm định',
+    rmaPassQcTitle: 'Đạt kiểm định — đưa về kho',
+    rmaScrapTitle: 'Hủy hàng',
+    rmaStartInspectionBtn: 'Kiểm định',
+    rmaPassQcBtn: 'Đạt QC',
+    rmaScrapBtn: 'Hủy hàng',
+    rmaReasonLabel: 'Lý do',
+    rmaReasonPlaceholder: 'Mô tả lý do...',
+    rmaProofUrlsLabel: 'URL bằng chứng (mỗi dòng một URL)',
+    rmaProofUrlsPlaceholder: 'https://cdn.example.com/proof-1.jpg',
+    rmaReasonRequired: 'Vui lòng nhập lý do.',
+    rmaProofUrlsRequired: 'Cần ít nhất một URL bằng chứng.',
+    rmaConfirm: 'Xác nhận',
   },
   en: {
     title: 'Serials',
@@ -197,22 +218,47 @@ const copyByLanguage = {
       AVAILABLE: 'Available',
       RESERVED: 'Reserved',
       DEFECTIVE: 'Defective',
+      INSPECTING: 'Inspecting',
+      SCRAPPED: 'Scrapped',
       ASSIGNED: 'Assigned',
       WARRANTY: 'Warranty',
       RETURNED: 'Returned',
     } as Record<BackendProductSerialStatus, string>,
+    rmaStartInspectionTitle: 'Start Inspection',
+    rmaPassQcTitle: 'Pass QC — Return to stock',
+    rmaScrapTitle: 'Scrap serial',
+    rmaStartInspectionBtn: 'Inspect',
+    rmaPassQcBtn: 'Pass QC',
+    rmaScrapBtn: 'Scrap',
+    rmaReasonLabel: 'Reason',
+    rmaReasonPlaceholder: 'Describe the reason...',
+    rmaProofUrlsLabel: 'Proof URLs (one per line)',
+    rmaProofUrlsPlaceholder: 'https://cdn.example.com/proof-1.jpg',
+    rmaReasonRequired: 'Please enter a reason.',
+    rmaProofUrlsRequired: 'At least one proof URL is required.',
+    rmaConfirm: 'Confirm',
   },
 } as const
 
 function SerialsPageRevamp() {
   const { language } = useLanguage()
   const copy = copyByLanguage[language]
+  const rmaModalTitles: Record<BackendRmaAction, string> = {
+    START_INSPECTION: copy.rmaStartInspectionTitle,
+    PASS_QC: copy.rmaPassQcTitle,
+    SCRAP: copy.rmaScrapTitle,
+  }
   const { accessToken } = useAuth()
   const { notify } = useToast()
   const { products } = useProducts()
   const { confirm, confirmDialog } = useConfirmDialog()
   const [qrItem, setQrItem] = useState<BackendSerialResponse | null>(null)
   const qrRef = useRef<HTMLDivElement>(null)
+  const [rmaModal, setRmaModal] = useState<{ item: BackendSerialResponse; action: BackendRmaAction } | null>(null)
+  const [rmaReason, setRmaReason] = useState('')
+  const [rmaProofUrls, setRmaProofUrls] = useState('')
+  const [isRmaSubmitting, setIsRmaSubmitting] = useState(false)
+  const [rmaError, setRmaError] = useState<string | null>(null)
   const [items, setItems] = useState<BackendSerialResponse[]>([])
   const [allItems, setAllItems] = useState<BackendSerialResponse[]>([])
   const [page, setPage] = useState(0)
@@ -399,6 +445,46 @@ function SerialsPageRevamp() {
       setAllItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
     } catch (err) {
       notify(err instanceof Error ? err.message : copy.loadFallback, { title: copy.title, variant: 'error' })
+    }
+  }
+
+  const openRmaModal = (item: BackendSerialResponse, action: BackendRmaAction) => {
+    setRmaModal({ item, action })
+    setRmaReason('')
+    setRmaProofUrls('')
+    setRmaError(null)
+  }
+
+  const handleRmaAction = async () => {
+    if (!accessToken || !rmaModal) return
+    const trimmedReason = rmaReason.trim()
+    if (!trimmedReason) {
+      setRmaError(copy.rmaReasonRequired)
+      return
+    }
+    const proofUrls =
+      rmaModal.action === 'PASS_QC'
+        ? rmaProofUrls.split('\n').map((s) => s.trim()).filter(Boolean)
+        : []
+    if (rmaModal.action === 'PASS_QC' && proofUrls.length === 0) {
+      setRmaError(copy.rmaProofUrlsRequired)
+      return
+    }
+    setIsRmaSubmitting(true)
+    setRmaError(null)
+    try {
+      const updated = await applyAdminRmaAction(accessToken, rmaModal.item.id, {
+        action: rmaModal.action,
+        reason: trimmedReason,
+        ...(proofUrls.length > 0 && { proofUrls }),
+      })
+      setItems((current) => current.map((e) => (e.id === updated.id ? updated : e)))
+      setAllItems((current) => current.map((e) => (e.id === updated.id ? updated : e)))
+      setRmaModal(null)
+    } catch (err) {
+      setRmaError(err instanceof Error ? err.message : copy.loadFallback)
+    } finally {
+      setIsRmaSubmitting(false)
     }
   }
 
@@ -669,11 +755,51 @@ function SerialsPageRevamp() {
                       </button>
                       <button
                         type="button"
+                        onClick={() => openRmaModal(item, 'START_INSPECTION')}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-amber-200 py-2 text-sm font-medium text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
+                      >
+                        <Microscope className="h-3.5 w-3.5" />
+                        {copy.rmaStartInspectionBtn}
+                      </button>
+                      <button
+                        type="button"
                         title={copy.deleteSerial}
                         onClick={() => void handleDeleteSerial(item)}
                         className="flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-slate-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:hover:border-rose-800 dark:hover:bg-rose-950 dark:hover:text-rose-400"
                       >
                         <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                  {item.status === 'RETURNED' && (
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openRmaModal(item, 'START_INSPECTION')}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-amber-200 py-2 text-sm font-medium text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
+                      >
+                        <Microscope className="h-3.5 w-3.5" />
+                        {copy.rmaStartInspectionBtn}
+                      </button>
+                    </div>
+                  )}
+                  {item.status === 'INSPECTING' && (
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openRmaModal(item, 'PASS_QC')}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        {copy.rmaPassQcBtn}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openRmaModal(item, 'SCRAP')}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+                      >
+                        <Ban className="h-3.5 w-3.5" />
+                        {copy.rmaScrapBtn}
                       </button>
                     </div>
                   )}
@@ -753,6 +879,39 @@ function SerialsPageRevamp() {
                               <RotateCcw className="h-3.5 w-3.5" />
                               {copy.markAvailable}
                             </button>
+                          )}
+                          {(item.status === 'DEFECTIVE' || item.status === 'RETURNED') && (
+                            <button
+                              type="button"
+                              title={copy.rmaStartInspectionBtn}
+                              onClick={() => openRmaModal(item, 'START_INSPECTION')}
+                              className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950"
+                            >
+                              <Microscope className="h-3.5 w-3.5" />
+                              {copy.rmaStartInspectionBtn}
+                            </button>
+                          )}
+                          {item.status === 'INSPECTING' && (
+                            <>
+                              <button
+                                type="button"
+                                title={copy.rmaPassQcBtn}
+                                onClick={() => openRmaModal(item, 'PASS_QC')}
+                                className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                {copy.rmaPassQcBtn}
+                              </button>
+                              <button
+                                type="button"
+                                title={copy.rmaScrapBtn}
+                                onClick={() => openRmaModal(item, 'SCRAP')}
+                                className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                              >
+                                <Ban className="h-3.5 w-3.5" />
+                                {copy.rmaScrapBtn}
+                              </button>
+                            </>
                           )}
                           {(item.status === 'AVAILABLE' || item.status === 'DEFECTIVE') && (
                             <button
@@ -844,6 +1003,86 @@ function SerialsPageRevamp() {
                 className="rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-[var(--surface-raised)]"
               >
                 {copy.close}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RMA action modal */}
+      {rmaModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setRmaModal(null)}
+        >
+          <div
+            className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              aria-label={copy.close}
+              onClick={() => setRmaModal(null)}
+              className="absolute right-3 top-3 rounded-full p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <p className="pr-6 text-sm font-semibold text-[var(--ink)]">
+              {rmaModalTitles[rmaModal.action]}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">{rmaModal.item.serial}</p>
+
+            <div className="mt-4 flex flex-col gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                  {copy.rmaReasonLabel}
+                </span>
+                <textarea
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  rows={2}
+                  placeholder={copy.rmaReasonPlaceholder}
+                  value={rmaReason}
+                  onChange={(e) => setRmaReason(e.target.value)}
+                />
+              </label>
+
+              {rmaModal.action === 'PASS_QC' && (
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                    {copy.rmaProofUrlsLabel}
+                  </span>
+                  <textarea
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    rows={3}
+                    placeholder={copy.rmaProofUrlsPlaceholder}
+                    value={rmaProofUrls}
+                    onChange={(e) => setRmaProofUrls(e.target.value)}
+                  />
+                </label>
+              )}
+
+              {rmaError && (
+                <p className="text-xs text-rose-500">{rmaError}</p>
+              )}
+            </div>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                disabled={isRmaSubmitting}
+                onClick={() => void handleRmaAction()}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+              >
+                {isRmaSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {copy.rmaConfirm}
+              </button>
+              <button
+                type="button"
+                onClick={() => setRmaModal(null)}
+                className="rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-[var(--surface-raised)]"
+              >
+                {copy.cancel}
               </button>
             </div>
           </div>

@@ -25,8 +25,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.util.Locale;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -80,12 +80,11 @@ public class PublicApiService {
         String normalizedQuery = normalize(query);
         validateSearchRange(minPrice, maxPrice);
 
-        return productRepository.findByIsDeletedFalseAndPublishStatusOrderByNameAsc(PublishStatus.PUBLISHED)
+        BigDecimal minPriceBd = minPrice != null ? BigDecimal.valueOf(minPrice) : null;
+        BigDecimal maxPriceBd = maxPrice != null ? BigDecimal.valueOf(maxPrice) : null;
+
+        return productRepository.searchPublished(PublishStatus.PUBLISHED, normalizedQuery, minPriceBd, maxPriceBd)
                 .stream()
-                .filter(product -> matchesQuery(product, normalizedQuery))
-                .filter(product -> matchesMinPrice(product, minPrice))
-                .filter(product -> matchesMaxPrice(product, maxPrice))
-                .sorted(Comparator.comparing(Product::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                 .map(this::toSummary)
                 .toList();
     }
@@ -231,38 +230,6 @@ public class PublicApiService {
         } catch (JsonProcessingException ex) {
             return null;
         }
-    }
-
-    private boolean matchesQuery(Product product, String normalizedQuery) {
-        if (normalizedQuery == null) {
-            return true;
-        }
-        return containsIgnoreCase(product.getName(), normalizedQuery)
-                || containsIgnoreCase(product.getSku(), normalizedQuery)
-                || containsIgnoreCase(product.getShortDescription(), normalizedQuery);
-    }
-
-    private boolean matchesMinPrice(Product product, Double minPrice) {
-        if (minPrice == null) {
-            return true;
-        }
-        double effectivePrice = product.getRetailPrice() == null ? 0D : product.getRetailPrice().doubleValue();
-        return effectivePrice >= minPrice;
-    }
-
-    private boolean matchesMaxPrice(Product product, Double maxPrice) {
-        if (maxPrice == null) {
-            return true;
-        }
-        double effectivePrice = product.getRetailPrice() == null ? 0D : product.getRetailPrice().doubleValue();
-        return effectivePrice <= maxPrice;
-    }
-
-    private boolean containsIgnoreCase(String source, String term) {
-        if (term == null) {
-            return true;
-        }
-        return source != null && source.toLowerCase().contains(term.toLowerCase());
     }
 
     private String extractDescriptionText(Product product) {

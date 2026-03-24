@@ -1972,7 +1972,7 @@ function ProductDetailPage() {
                     videos: [
                       {
                         title: '',
-                        descriptions: '',
+                        description: '',
                         url: '',
                       },
                     ],

@@ -112,7 +112,6 @@ public class AdminManagementService {
     private final RoleRepository roleRepository;
     private final AccountRepository accountRepository;
     private final PasswordEncoder passwordEncoder;
-    private final MailService mailService;
     private final DealerAccountLifecycleService dealerAccountLifecycleService;
     private final AdminSettingsService adminSettingsService;
     private final AdminWriteSupport adminWriteSupport;
@@ -126,6 +125,7 @@ public class AdminManagementService {
     private final FinancialSettlementRepository financialSettlementRepository;
     private final UnmatchedPaymentRepository unmatchedPaymentRepository;
     private final DealerOrderNotificationSupport dealerOrderNotificationSupport;
+    private final PasswordResetService passwordResetService;
 
     @Transactional(readOnly = true)
     public List<AdminProductResponse> getProducts() {
@@ -539,34 +539,8 @@ public class AdminManagementService {
         admin.setRequirePasswordChange(Boolean.TRUE);
         admin.setRoles(new HashSet<>(List.of(resolveRole("ADMIN", "Admin role"))));
         Admin saved = adminRepository.save(admin);
-        sendWelcomeEmailIfPossible(saved, username, temporaryPassword);
+        passwordResetService.sendStaffOnboardingLink(saved);
         return AdminResponseMapper.toStaffUserResponse(saved);
-    }
-
-    private void sendWelcomeEmailIfPossible(Admin admin, String username, String temporaryPassword) {
-        String recipient = admin.getEmail();
-        if (recipient == null || recipient.isBlank() || !mailService.isEnabled()) {
-            return;
-        }
-        try {
-            String subject = "4ThiTek — Tài khoản quản trị của bạn đã được tạo";
-            String body = """
-                    Xin chào %s,
-
-                    Tài khoản quản trị hệ thống 4ThiTek của bạn đã được tạo thành công.
-
-                    Tên đăng nhập: %s
-                    Mật khẩu tạm thời: %s
-
-                    Vui lòng đăng nhập và đổi mật khẩu ngay khi có thể để đảm bảo an toàn tài khoản.
-
-                    Trân trọng,
-                    4ThiTek
-                    """.formatted(admin.getDisplayName() != null ? admin.getDisplayName() : username, username, temporaryPassword);
-            mailService.sendText(recipient, subject, body);
-        } catch (RuntimeException ex) {
-            log.warn("Could not send welcome email to new staff user {}", username, ex);
-        }
     }
 
     @Transactional

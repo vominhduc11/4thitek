@@ -72,9 +72,9 @@ export const publicApiServer = {
             shortDescription: string;
             description: string;
             image: string;
-            specifications: string;
-            videos: string;
-            descriptions?: string;
+            specifications: Array<Record<string, unknown>>;
+            videos: Array<Record<string, unknown>>;
+            descriptions?: Array<Record<string, unknown>>;
             price?: number;
             stock?: number;
             warrantyMonths?: number;

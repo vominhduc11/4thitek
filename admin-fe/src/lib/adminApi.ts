@@ -30,7 +30,13 @@ export type BackendDealerAccountStatus = 'ACTIVE' | 'UNDER_REVIEW' | 'SUSPENDED'
 export type BackendStaffUserStatus = 'ACTIVE' | 'PENDING'
 export type BackendDiscountRuleStatus = 'ACTIVE' | 'PENDING' | 'DRAFT'
 export type BackendWarrantyStatus = 'ACTIVE' | 'EXPIRED' | 'VOID'
-export type BackendProductSerialStatus = 'AVAILABLE' | 'RESERVED' | 'DEFECTIVE' | 'ASSIGNED' | 'WARRANTY' | 'RETURNED'
+export type BackendProductSerialStatus = 'AVAILABLE' | 'RESERVED' | 'DEFECTIVE' | 'ASSIGNED' | 'WARRANTY' | 'RETURNED' | 'INSPECTING' | 'SCRAPPED'
+export type BackendRmaAction = 'START_INSPECTION' | 'PASS_QC' | 'SCRAP'
+export type BackendRmaRequest = {
+  action: BackendRmaAction
+  reason: string
+  proofUrls?: string[]
+}
 export type BackendNotifyType = 'SYSTEM' | 'PROMOTION' | 'ORDER' | 'WARRANTY'
 export type BackendSupportPriority = 'NORMAL' | 'HIGH' | 'URGENT'
 export type BackendSupportCategory = 'ORDER' | 'WARRANTY' | 'PRODUCT' | 'PAYMENT' | 'RETURN' | 'OTHER'
@@ -1013,6 +1019,14 @@ export const deleteAdminSerial = (token: string, id: number) =>
     path: `/admin/serials/${id}`,
     token,
     method: 'DELETE',
+  })
+
+export const applyAdminRmaAction = (token: string, id: number, body: BackendRmaRequest) =>
+  authorizedJsonRequest<BackendSerialResponse>({
+    path: `/admin/serials/${id}/rma`,
+    token,
+    method: 'PATCH',
+    body,
   })
 
 export const fetchAdminNotifications = (

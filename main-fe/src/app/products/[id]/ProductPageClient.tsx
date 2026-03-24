@@ -19,10 +19,10 @@ interface ProductPageClientProps {
         name: string;
         shortDescription: string;
         description?: string;
-        descriptions?: string;
+        descriptions?: Array<Record<string, unknown>>;
         image: string;
-        videos: string;
-        specifications: string | unknown;
+        videos: Array<Record<string, unknown>>;
+        specifications: unknown;
         price?: number;
         category?: string;
         tags?: string[];

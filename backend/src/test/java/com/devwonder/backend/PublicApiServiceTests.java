@@ -17,14 +17,17 @@ import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
+import com.devwonder.backend.config.CacheNames;
 import com.devwonder.backend.service.PublicApiService;
 import com.devwonder.backend.service.support.ProductStockSyncSupport;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
 import java.util.List;
 import java.util.Map;
 
@@ -52,6 +55,9 @@ class PublicApiServiceTests {
     @Autowired
     private ProductStockSyncSupport productStockSyncSupport;
 
+    @Autowired
+    private CacheManager cacheManager;
+
     @BeforeEach
     void setUp() {
         warrantyRegistrationRepository.deleteAll();
@@ -59,6 +65,8 @@ class PublicApiServiceTests {
         orderRepository.deleteAll();
         productRepository.deleteAll();
         dealerRepository.deleteAll();
+        var cache = cacheManager.getCache(CacheNames.PUBLIC_PRODUCTS);
+        if (cache != null) cache.clear();
     }
 
     @Test
@@ -198,6 +206,136 @@ class PublicApiServiceTests {
         assertThat(response.totalElements()).isEqualTo(1);
         assertThat(response.items()).extracting("email")
                 .containsExactly("active-dealer@example.com");
+    }
+
+    // ── searchProducts ──────────────────────────────────────────────────────────
+
+    @Test
+    void searchProducts_nullQueryAndNoPriceReturnsAllPublished() {
+        saveProduct("SQ-A", "Alpha Speaker", null, null, PublishStatus.PUBLISHED);
+        saveProduct("SQ-B", "Beta Speaker", null, null, PublishStatus.PUBLISHED);
+        saveProduct("SQ-C", "Draft Speaker", null, null, PublishStatus.DRAFT);
+
+        var results = publicApiService.searchProducts(null, null, null);
+
+        assertThat(results).extracting("sku").containsExactlyInAnyOrder("SQ-A", "SQ-B");
+    }
+
+    @Test
+    void searchProducts_queryMatchesNameCaseInsensitive() {
+        saveProduct("SQ-NAME1", "Tai Nghe Cao Cấp", null, null, PublishStatus.PUBLISHED);
+        saveProduct("SQ-NAME2", "Loa Bluetooth", null, null, PublishStatus.PUBLISHED);
+
+        var results = publicApiService.searchProducts("cao cấp", null, null);
+
+        assertThat(results).extracting("sku").containsExactly("SQ-NAME1");
+    }
+
+    @Test
+    void searchProducts_queryMatchesSku() {
+        saveProduct("PRO-MX2000", "Headset Pro", null, null, PublishStatus.PUBLISHED);
+        saveProduct("BASIC-100", "Basic Headset", null, null, PublishStatus.PUBLISHED);
+
+        var results = publicApiService.searchProducts("mx2000", null, null);
+
+        assertThat(results).extracting("sku").containsExactly("PRO-MX2000");
+    }
+
+    @Test
+    void searchProducts_queryMatchesShortDescription() {
+        saveProduct("SQ-DESC1", "Product One", "wireless earbuds with ANC", null, PublishStatus.PUBLISHED);
+        saveProduct("SQ-DESC2", "Product Two", "basic wired headphones", null, PublishStatus.PUBLISHED);
+
+        var results = publicApiService.searchProducts("ANC", null, null);
+
+        assertThat(results).extracting("sku").containsExactly("SQ-DESC1");
+    }
+
+    @Test
+    void searchProducts_noMatchReturnsEmpty() {
+        saveProduct("SQ-NM1", "Alpha", null, null, PublishStatus.PUBLISHED);
+
+        var results = publicApiService.searchProducts("xyznomatch", null, null);
+
+        assertThat(results).isEmpty();
+    }
+
+    @Test
+    void searchProducts_minPriceExcludesCheaperProducts() {
+        saveProduct("SQ-P1", "Budget", null, BigDecimal.valueOf(500_000), PublishStatus.PUBLISHED);
+        saveProduct("SQ-P2", "Premium", null, BigDecimal.valueOf(2_000_000), PublishStatus.PUBLISHED);
+
+        var results = publicApiService.searchProducts(null, 1_000_000.0, null);
+
+        assertThat(results).extracting("sku").containsExactly("SQ-P2");
+    }
+
+    @Test
+    void searchProducts_maxPriceExcludesExpensiveProducts() {
+        saveProduct("SQ-P3", "Budget", null, BigDecimal.valueOf(500_000), PublishStatus.PUBLISHED);
+        saveProduct("SQ-P4", "Premium", null, BigDecimal.valueOf(2_000_000), PublishStatus.PUBLISHED);
+
+        var results = publicApiService.searchProducts(null, null, 999_999.0);
+
+        assertThat(results).extracting("sku").containsExactly("SQ-P3");
+    }
+
+    @Test
+    void searchProducts_nullRetailPriceIsTreeatedAsZeroForPriceRange() {
+        saveProduct("SQ-NULL-PRICE", "No Price Tag", null, null, PublishStatus.PUBLISHED);
+
+        // null price → treated as 0, so maxPrice=100 should include it
+        assertThat(publicApiService.searchProducts(null, null, 100.0))
+                .extracting("sku").containsExactly("SQ-NULL-PRICE");
+
+        // null price → treated as 0, so minPrice=1 should exclude it
+        assertThat(publicApiService.searchProducts(null, 1.0, null)).isEmpty();
+    }
+
+    @Test
+    void searchProducts_deletedProductsExcluded() {
+        Product deleted = saveProduct("SQ-DEL", "Deleted Product", null, null, PublishStatus.PUBLISHED);
+        deleted.setIsDeleted(true);
+        productRepository.save(deleted);
+
+        var results = publicApiService.searchProducts(null, null, null);
+
+        assertThat(results).isEmpty();
+    }
+
+    @Test
+    void searchProducts_resultsOrderedCaseInsensitiveByNameAsc() {
+        saveProduct("SQ-ORD1", "zebra Headset", null, null, PublishStatus.PUBLISHED);
+        saveProduct("SQ-ORD2", "Alpha Speaker", null, null, PublishStatus.PUBLISHED);
+        saveProduct("SQ-ORD3", "Mango Earphone", null, null, PublishStatus.PUBLISHED);
+
+        var results = publicApiService.searchProducts(null, null, null);
+
+        assertThat(results).extracting("name")
+                .containsExactly("Alpha Speaker", "Mango Earphone", "zebra Headset");
+    }
+
+    @Test
+    void searchProducts_combinedQueryAndPriceFilter() {
+        saveProduct("SQ-C1", "Gaming Headset Pro", null, BigDecimal.valueOf(3_000_000), PublishStatus.PUBLISHED);
+        saveProduct("SQ-C2", "Gaming Headset Lite", null, BigDecimal.valueOf(800_000), PublishStatus.PUBLISHED);
+        saveProduct("SQ-C3", "Studio Monitor", null, BigDecimal.valueOf(5_000_000), PublishStatus.PUBLISHED);
+
+        var results = publicApiService.searchProducts("gaming", null, 1_000_000.0);
+
+        assertThat(results).extracting("sku").containsExactly("SQ-C2");
+    }
+
+    private Product saveProduct(String sku, String name, String shortDescription,
+                                BigDecimal retailPrice, PublishStatus publishStatus) {
+        Product product = new Product();
+        product.setSku(sku);
+        product.setName(name);
+        product.setShortDescription(shortDescription);
+        product.setRetailPrice(retailPrice);
+        product.setIsDeleted(false);
+        product.setPublishStatus(publishStatus);
+        return productRepository.save(product);
     }
 
     private Product createProduct(String sku, PublishStatus publishStatus) {
