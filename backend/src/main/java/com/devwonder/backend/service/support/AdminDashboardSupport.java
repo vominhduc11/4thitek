@@ -92,7 +92,9 @@ public final class AdminDashboardSupport {
                         .count(),
                 revenueOrders,
                 aggregateTopProducts(revenueOrders),
-                activeRules
+                activeRules,
+                0,
+                0
         ));
     }
 
@@ -145,7 +147,9 @@ public final class AdminDashboardSupport {
                 ),
                 buildTopProducts(safeSnapshot.topProducts()),
                 buildSystemItems(safeSnapshot),
-                buildTrend(revenueOrders, activeRules)
+                buildTrend(revenueOrders, activeRules),
+                safeSnapshot.unmatchedPendingCount(),
+                safeSnapshot.settlementPendingCount()
         );
     }
 
@@ -369,7 +373,9 @@ public final class AdminDashboardSupport {
             int pendingRules,
             List<Order> revenueOrders,
             List<TopProductStat> topProducts,
-            List<BulkDiscount> activeRules
+            List<BulkDiscount> activeRules,
+            int unmatchedPendingCount,
+            int settlementPendingCount
     ) {
         public static DashboardSnapshot empty() {
             return new DashboardSnapshot(
@@ -394,7 +400,9 @@ public final class AdminDashboardSupport {
                     0,
                     List.of(),
                     List.of(),
-                    List.of()
+                    List.of(),
+                    0,
+                    0
             );
         }
     }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, Package, ShoppingCart, TrendingUp } from 'lucide-react'
+import { AlertTriangle, CircleDollarSign, Package, ShoppingCart, TrendingUp } from 'lucide-react'
 import {
   ArcElement,
   BarElement,
@@ -38,6 +38,8 @@ const copyByLanguage = {
     revenueProgress: 'Tiến độ',
     pendingOrders: 'đơn chờ xử lý',
     restock: 'SKU cần bổ sung',
+    unmatchedPayments: 'Thanh toán không khớp',
+    unmatchedPendingHint: 'giao dịch chờ xử lý',
   },
   en: {
     title: 'System overview',
@@ -54,6 +56,8 @@ const copyByLanguage = {
     revenueProgress: 'Progress',
     pendingOrders: 'pending',
     restock: 'restock',
+    unmatchedPayments: 'Unmatched payments',
+    unmatchedPendingHint: 'transactions pending',
   },
 } as const
 
@@ -377,6 +381,24 @@ function DashboardPageRevamp() {
                 </div>
               </div>
             ))}
+            {(dashboard.unmatchedPendingCount ?? 0) > 0 && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/40 dark:bg-amber-900/20">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <CircleDollarSign className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <div>
+                      <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                        {copy.unmatchedPayments}
+                      </p>
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                        {dashboard.unmatchedPendingCount} {copy.unmatchedPendingHint}
+                      </p>
+                    </div>
+                  </div>
+                  <StatusBadge tone="warning">{String(dashboard.unmatchedPendingCount)}</StatusBadge>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

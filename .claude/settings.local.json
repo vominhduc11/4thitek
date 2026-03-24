@@ -52,7 +52,11 @@
       "Bash(./mvnw compile:*)",
       "Bash(git commit:*)",
       "Bash(npx tsc:*)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(xargs cat:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npm run:*)",
+      "Bash(mvn compile:*)"
     ]
   }
 }

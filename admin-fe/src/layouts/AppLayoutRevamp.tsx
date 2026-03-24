@@ -7,6 +7,7 @@ import {
   Boxes,
   ChevronDown,
   ChevronRight,
+  CircleDollarSign,
   FileText,
   LayoutDashboard,
   LifeBuoy,
@@ -120,6 +121,7 @@ const copyByLanguage = {
       serials: 'Serial',
       notifications: 'Thông báo',
       support: 'Hỗ trợ',
+      unmatchedPayments: 'Thanh toán không khớp',
       reports: 'Báo cáo',
       users: 'Người dùng',
       settings: 'Cài đặt',
@@ -133,7 +135,7 @@ const copyByLanguage = {
     },
     alertDescriptions: {
       pendingOrders: 'Kiểm tra và xác nhận các đơn hàng mới trước khi trễ SLA.',
-      lowStock: 'Ưu tiên kiểm tra SKU tồn dưới 20 để tránh gián đoạn đơn hàng.',
+      lowStock: 'Ưu tiên kiểm tra SKU tồn dưới hoặc bằng 10 để tránh gián đoạn đơn hàng.',
       scheduledPosts: 'Rà soát nội dung trước thời điểm đăng tự động.',
       dealerAttention: 'Hoàn tất xác minh để tránh ảnh hưởng kích hoạt dealer app.',
       pendingUsers: 'Duyệt quyền truy cập cho tài khoản nội bộ mới.',
@@ -190,6 +192,7 @@ const copyByLanguage = {
       serials: 'Serials',
       notifications: 'Notifications',
       support: 'Support',
+      unmatchedPayments: 'Unmatched payments',
       reports: 'Reports',
       users: 'Users',
       settings: 'Settings',
@@ -203,7 +206,7 @@ const copyByLanguage = {
     },
     alertDescriptions: {
       pendingOrders: 'Review and confirm new orders before they impact SLA.',
-      lowStock: 'Check SKUs below 20 units before they block order fulfillment.',
+      lowStock: 'Check SKUs at or below 10 units before they block order fulfillment.',
       scheduledPosts: 'Review content before automatic publishing time.',
       dealerAttention: 'Complete verification to avoid dealer-app activation delays.',
       pendingUsers: 'Approve access for newly invited internal users.',
@@ -363,6 +366,7 @@ function AppLayoutRevamp() {
       { to: '/serials', label: copy.nav.serials, icon: Warehouse, group: 'service' },
       { to: '/notifications', label: copy.nav.notifications, icon: Bell, group: 'service' },
       { to: '/support-tickets', label: copy.nav.support, icon: LifeBuoy, group: 'service' },
+      { to: '/unmatched-payments', label: copy.nav.unmatchedPayments, icon: CircleDollarSign, group: 'service' },
       { to: '/settings', label: copy.nav.settings, icon: Settings, group: 'system' },
     ]
 
@@ -394,7 +398,7 @@ function AppLayoutRevamp() {
     const items: AlertItem[] = []
     const pendingOrders = orders.filter((item) => item.status === 'pending').length
     const lowStockProducts = products.filter(
-      (item) => !item.isDeleted && item.availableStock > 0 && item.availableStock < 20,
+      (item) => !item.isDeleted && item.availableStock > 0 && item.availableStock <= 10,
     ).length
     const scheduledPosts = posts.filter((item) => item.status === 'scheduled').length
     const dealerAttention = dealers.filter((item) => item.status === 'suspended').length

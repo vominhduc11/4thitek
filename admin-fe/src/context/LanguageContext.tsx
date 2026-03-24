@@ -231,7 +231,7 @@ const translations: Record<Language, TranslationMap> = {
     'Trang chủ': 'Homepage',
     'Không ở trang chủ': 'Not on homepage',
     'Tồn kho: Tất cả': 'Stock: All',
-    'Tồn kho thấp (<20)': 'Low stock (<20)',
+    'Tồn kho thấp (≤10)': 'Low stock (≤10)',
     'Hết hàng': 'Out of stock',
     'Tất cả': 'All',
     'Tồn kho thấp': 'Low stock',

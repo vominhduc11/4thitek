@@ -33,7 +33,7 @@ const deriveStatus = (product: Product): Product['status'] => {
   if (product.publishStatus !== 'PUBLISHED' || product.isDeleted) {
     return 'Draft'
   }
-  if (product.availableStock < 20) return 'Low Stock'
+  if (product.availableStock <= 10) return 'Low Stock'
   return 'Active'
 }
 

@@ -50,6 +50,8 @@ import com.devwonder.backend.repository.CategoryBlogRepository;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.FinancialSettlementRepository;
 import com.devwonder.backend.repository.OrderRepository;
+import com.devwonder.backend.repository.UnmatchedPaymentRepository;
+import com.devwonder.backend.entity.enums.UnmatchedPaymentStatus;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.RoleRepository;
@@ -122,6 +124,7 @@ public class AdminManagementService {
     private final ProductSerialOrderSupport productSerialOrderSupport;
     private final ProductStockSyncSupport productStockSyncSupport;
     private final FinancialSettlementRepository financialSettlementRepository;
+    private final UnmatchedPaymentRepository unmatchedPaymentRepository;
     private final DealerOrderNotificationSupport dealerOrderNotificationSupport;
 
     @Transactional(readOnly = true)
@@ -656,7 +659,9 @@ public class AdminManagementService {
                 Math.toIntExact(bulkDiscountRepository.countByStatus(DiscountRuleStatus.PENDING)),
                 revenueOrders,
                 topProducts,
-                activeDiscountRules
+                activeDiscountRules,
+                Math.toIntExact(unmatchedPaymentRepository.countByStatus(UnmatchedPaymentStatus.PENDING)),
+                Math.toIntExact(financialSettlementRepository.countByStatus(FinancialSettlementStatus.PENDING))
         ));
     }
 

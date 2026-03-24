@@ -14,4 +14,6 @@ public interface FinancialSettlementRepository extends JpaRepository<FinancialSe
     List<FinancialSettlement> findByStatusOrderByCreatedAtDesc(FinancialSettlementStatus status);
 
     boolean existsByOrderIdAndStatus(Long orderId, FinancialSettlementStatus status);
+
+    long countByStatus(FinancialSettlementStatus status);
 }

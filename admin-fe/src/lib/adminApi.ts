@@ -233,6 +233,8 @@ export type BackendDashboardResponse = {
       value: number
     }>
   }
+  unmatchedPendingCount?: number
+  settlementPendingCount?: number
 }
 
 export type BackendSupportTicketResponse = {
@@ -441,6 +443,30 @@ export type BackendAdminSettingsUpdateRequest = {
 export type BackendChangePasswordRequest = {
   currentPassword: string
   newPassword: string
+}
+
+export type BackendUnmatchedPaymentStatus = 'PENDING' | 'MATCHED' | 'REFUNDED' | 'WRITTEN_OFF'
+export type BackendUnmatchedPaymentReason =
+  | 'ORDER_NOT_FOUND'
+  | 'AMOUNT_MISMATCH'
+  | 'ORDER_ALREADY_SETTLED'
+  | 'ORDER_CANCELLED'
+
+export type BackendUnmatchedPaymentResponse = {
+  id: number
+  transactionCode?: string | null
+  amount?: number | string | null
+  senderInfo?: string | null
+  content?: string | null
+  orderCodeHint?: string | null
+  receivedAt?: string | null
+  reason?: BackendUnmatchedPaymentReason | null
+  status?: BackendUnmatchedPaymentStatus | null
+  createdAt?: string | null
+  resolution?: string | null
+  resolvedBy?: string | null
+  resolvedAt?: string | null
+  matchedOrderId?: number | null
 }
 
 const defaultErrorMessage = 'Request failed'
@@ -1023,4 +1049,26 @@ export const exportAdminReport = (
     token,
     params: { type, format },
     fallbackFileName: `${type.toLowerCase()}-report.${format.toLowerCase()}`,
+  })
+
+export const fetchAdminUnmatchedPayments = (
+  token: string,
+  params?: { page?: number; size?: number; status?: string; reason?: string },
+) =>
+  authorizedJsonRequest<BackendPagedResponse<BackendUnmatchedPaymentResponse>>({
+    path: '/admin/unmatched-payments',
+    token,
+    params,
+  })
+
+export const resolveAdminUnmatchedPayment = (
+  token: string,
+  id: number,
+  body: { status: BackendUnmatchedPaymentStatus; resolution?: string; matchedOrderId?: number },
+) =>
+  authorizedJsonRequest<BackendUnmatchedPaymentResponse>({
+    path: `/admin/unmatched-payments/${id}`,
+    token,
+    method: 'PATCH',
+    body,
   })

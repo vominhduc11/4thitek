@@ -10,7 +10,9 @@ public record AdminDashboardResponse(
         List<StatusItem> orderStatus,
         List<TopProduct> topProducts,
         List<SystemItem> system,
-        Trend trend
+        Trend trend,
+        int unmatchedPendingCount,
+        int settlementPendingCount
 ) {
     public record Metric(
             String label,
