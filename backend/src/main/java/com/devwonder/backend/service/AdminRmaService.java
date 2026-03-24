@@ -12,6 +12,7 @@ import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.ProductSerialRepository;
+import com.devwonder.backend.service.support.ProductStockSyncSupport;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -45,6 +46,7 @@ public class AdminRmaService {
 
     private final ProductSerialRepository productSerialRepository;
     private final AuditLogService auditLogService;
+    private final ProductStockSyncSupport productStockSyncSupport;
 
     @Transactional
     public AdminSerialResponse applyRmaAction(Long serialId, AdminRmaRequest request, String actorUsername) {
@@ -93,6 +95,10 @@ public class AdminRmaService {
 
         serial.setStatus(newStatus);
         ProductSerial saved = productSerialRepository.save(serial);
+
+        if (newStatus == ProductSerialStatus.AVAILABLE) {
+            productStockSyncSupport.syncProductStock(saved.getProduct());
+        }
 
         // Audit log entry
         AuditLog auditLog = new AuditLog();

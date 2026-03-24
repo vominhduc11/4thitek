@@ -3,6 +3,8 @@ package com.devwonder.backend;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.devwonder.backend.dto.admin.AdminRmaRequest;
+import com.devwonder.backend.dto.admin.AdminRmaRequest.RmaAction;
 import com.devwonder.backend.dto.admin.AdminSerialImportRequest;
 import com.devwonder.backend.dto.admin.AdminSerialResponse;
 import com.devwonder.backend.dto.admin.UpdateAdminSerialStatusRequest;
@@ -25,6 +27,7 @@ import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.AdminOperationsService;
+import com.devwonder.backend.service.AdminRmaService;
 import com.devwonder.backend.service.support.ProductStockSyncSupport;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -42,6 +45,9 @@ class AdminSerialInvariantTests {
 
     @Autowired
     private AdminOperationsService adminOperationsService;
+
+    @Autowired
+    private AdminRmaService adminRmaService;
 
     @Autowired
     private DealerRepository dealerRepository;
@@ -389,6 +395,28 @@ class AdminSerialInvariantTests {
         adminOperationsService.deleteSerial(serial.getId());
 
         assertThat(productRepository.findById(product.getId()).orElseThrow().getStock()).isZero();
+    }
+
+    @Test
+    void rmaPassQcSyncsDerivedProductStock() {
+        Product product = productRepository.save(createProduct("SKU-RMA-PASSQC-STOCK"));
+        ProductSerial serial = productSerialRepository.save(createSerial(
+                null,
+                null,
+                product,
+                "RMA-PASSQC-1",
+                ProductSerialStatus.INSPECTING
+        ));
+
+        adminRmaService.applyRmaAction(
+                serial.getId(),
+                new AdminRmaRequest(RmaAction.PASS_QC, "Passed inspection", List.of("https://proof.example/img.jpg")),
+                "admin"
+        );
+
+        assertThat(productSerialRepository.findById(serial.getId()).orElseThrow().getStatus())
+                .isEqualTo(ProductSerialStatus.AVAILABLE);
+        assertThat(productRepository.findById(product.getId()).orElseThrow().getStock()).isEqualTo(1);
     }
 
     private Dealer createDealer(String email) {
