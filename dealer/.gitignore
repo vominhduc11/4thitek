@@ -43,3 +43,12 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# ── Android signing credentials ──────────────────────────────────────────────
+# Keystore files and key.properties must NOT be committed.
+# Store them in a password manager or CI secret store.
+# NOTE: upload-keystore.jks is currently still in git history — it should be
+#       rotated once purged from history (BFG Repo Cleaner or git filter-repo).
+/android/key.properties
+*.jks
+*.keystore

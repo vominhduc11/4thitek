@@ -1,3 +1,16 @@
+# docker-compose.yaml — single compose file for local, staging, and production
+#
+# USAGE:
+#   cp .env.example .env          # for local / staging
+#   cp .env.production.example .env  # for production — fill in every CHANGE_ME_*
+#   docker compose up -d
+#
+# SECRETS: No fallback defaults for the five required credentials below.
+#          Missing variables cause an immediate error before any container starts.
+#
+# NOTE: This file does not include TLS termination or a reverse proxy.
+#       For internet-facing deployments, put Nginx / Caddy in front.
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -5,7 +18,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-app_db}
       POSTGRES_USER: ${POSTGRES_USER:-app}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app_password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (cp .env.example .env)}
       POSTGRES_INITDB_ARGS: --encoding=UTF8
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -18,10 +31,13 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    # $${REDIS_PASSWORD} — double-$ escapes Compose interpolation; the shell
+    # inside the container sees ${REDIS_PASSWORD} which is always set because
+    # the environment block below forces it to be present at parse time.
     command: >
-      sh -c "redis-server --appendonly yes --requirepass \"$${REDIS_PASSWORD:-redis_password}\""
+      sh -c "redis-server --appendonly yes --requirepass \"$${REDIS_PASSWORD}\""
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_password}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env (cp .env.example .env)}
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
@@ -30,7 +46,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "redis-cli -a \"$${REDIS_PASSWORD:-redis_password}\" ping | grep PONG",
+          "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG",
         ]
       interval: 10s
       timeout: 5s
@@ -41,8 +57,8 @@ services:
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env (cp .env.example .env)}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env (cp .env.example .env)}
     ports:
       - "${MINIO_API_PORT:-9000}:9000"
       - "${MINIO_CONSOLE_PORT:-9001}:9001"
@@ -64,7 +80,7 @@ services:
       - /bin/sh
       - -c
       - >
-        mc alias set local http://minio:9000 "${MINIO_ROOT_USER:-minioadmin}" "${MINIO_ROOT_PASSWORD:-minioadmin123}" &&
+        mc alias set local http://minio:9000 "${MINIO_ROOT_USER}" "${MINIO_ROOT_PASSWORD}" &&
         mc mb --ignore-existing local/${MINIO_BUCKET:-4thitek-uploads} &&
         echo '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::${MINIO_BUCKET:-4thitek-uploads}/products/*","arn:aws:s3:::${MINIO_BUCKET:-4thitek-uploads}/blogs/*"]}]}' > /tmp/public-policy.json &&
         mc anonymous set-json /tmp/public-policy.json local/${MINIO_BUCKET:-4thitek-uploads}
@@ -85,7 +101,7 @@ services:
       SERVER_PORT: 8080
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-app_db}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-app}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-app_password}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
       SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:-10}
       SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:-2}
@@ -97,11 +113,13 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-validate}
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_password}
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
       SPRING_DATA_REDIS_DATABASE: ${SPRING_DATA_REDIS_DATABASE:-0}
-      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-32-byte-secret}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env — generate with: openssl rand -hex 32}
       APP_SEED_DEMO_DATA: ${APP_SEED_DEMO_DATA:-false}
-      APP_BOOTSTRAP_SUPER_ADMIN_ENABLED: ${APP_BOOTSTRAP_SUPER_ADMIN_ENABLED:-true}
+      # Bootstrap defaults to disabled — set APP_BOOTSTRAP_SUPER_ADMIN_ENABLED=true
+      # in .env only on first deploy, then revert to false.
+      APP_BOOTSTRAP_SUPER_ADMIN_ENABLED: ${APP_BOOTSTRAP_SUPER_ADMIN_ENABLED:-false}
       APP_BOOTSTRAP_SUPER_ADMIN_EMAIL: ${APP_BOOTSTRAP_SUPER_ADMIN_EMAIL:-}
       APP_BOOTSTRAP_SUPER_ADMIN_PASSWORD: ${APP_BOOTSTRAP_SUPER_ADMIN_PASSWORD:-}
       APP_BOOTSTRAP_SUPER_ADMIN_NAME: ${APP_BOOTSTRAP_SUPER_ADMIN_NAME:-System Owner}
@@ -112,8 +130,8 @@ services:
       APP_STORAGE_S3_BUCKET: ${MINIO_BUCKET:-4thitek-uploads}
       APP_STORAGE_S3_ENDPOINT: ${APP_STORAGE_S3_ENDPOINT:-http://minio:9000}
       APP_STORAGE_S3_REGION: ${APP_STORAGE_S3_REGION:-ap-southeast-1}
-      APP_STORAGE_S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
-      APP_STORAGE_S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      APP_STORAGE_S3_ACCESS_KEY: ${MINIO_ROOT_USER}
+      APP_STORAGE_S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       APP_STORAGE_S3_PATH_STYLE_ACCESS: ${APP_STORAGE_S3_PATH_STYLE_ACCESS:-true}
       APP_STORAGE_S3_PUBLIC_BASE_URL: ${APP_STORAGE_S3_PUBLIC_BASE_URL:-http://localhost:${MINIO_API_PORT:-9000}/${MINIO_BUCKET:-4thitek-uploads}}
       APP_SECURITY_REQUIRE_STRONG_JWT_SECRET: ${APP_SECURITY_REQUIRE_STRONG_JWT_SECRET:-true}
@@ -145,6 +163,19 @@ services:
       SEPAY_BANK_NAME: ${SEPAY_BANK_NAME:-}
       SEPAY_ACCOUNT_NUMBER: ${SEPAY_ACCOUNT_NUMBER:-}
       SEPAY_ACCOUNT_HOLDER: ${SEPAY_ACCOUNT_HOLDER:-}
+      APP_DOCS_PUBLIC_ENABLED: ${APP_DOCS_PUBLIC_ENABLED:-false}
+      APP_AUTH_REFRESH_COOKIE_NAME: ${APP_AUTH_REFRESH_COOKIE_NAME:-fourthitek_refresh}
+      APP_AUTH_REFRESH_COOKIE_PATH: ${APP_AUTH_REFRESH_COOKIE_PATH:-/api/v1/auth}
+      APP_AUTH_REFRESH_COOKIE_DOMAIN: ${APP_AUTH_REFRESH_COOKIE_DOMAIN:-}
+      APP_AUTH_REFRESH_COOKIE_SECURE: ${APP_AUTH_REFRESH_COOKIE_SECURE:-true}
+      APP_AUTH_REFRESH_COOKIE_SAME_SITE: ${APP_AUTH_REFRESH_COOKIE_SAME_SITE:-Lax}
+      # Set to true when running behind a reverse proxy that sets X-Forwarded-For
+      APP_AUDIT_TRUST_FORWARDED_FOR: ${APP_AUDIT_TRUST_FORWARDED_FOR:-false}
+      APP_RATE_LIMIT_TRUST_FORWARDED_FOR: ${APP_RATE_LIMIT_TRUST_FORWARDED_FOR:-false}
+      APP_FCM_ENABLED: ${APP_FCM_ENABLED:-false}
+      APP_FCM_PROJECT_ID: ${APP_FCM_PROJECT_ID:-}
+      APP_FCM_CREDENTIALS_PATH: ${APP_FCM_CREDENTIALS_PATH:-}
+      APP_FCM_CREDENTIALS_JSON_BASE64: ${APP_FCM_CREDENTIALS_JSON_BASE64:-}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     volumes:
@@ -161,7 +192,11 @@ services:
       context: ./main-fe
       dockerfile: Dockerfile
       args:
+        NEXT_PUBLIC_API_ORIGIN: ${NEXT_PUBLIC_API_ORIGIN:-https://api.4thitek.vn}
+        NEXT_PUBLIC_API_VERSION: ${NEXT_PUBLIC_API_VERSION:-v1}
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.4thitek.vn/api/v1}
+        INTERNAL_API_ORIGIN: ${INTERNAL_API_ORIGIN:-https://api.4thitek.vn}
+        INTERNAL_API_VERSION: ${INTERNAL_API_VERSION:-v1}
         INTERNAL_API_BASE_URL: ${INTERNAL_API_BASE_URL:-https://api.4thitek.vn/api/v1}
     restart: unless-stopped
     depends_on:
@@ -175,30 +210,36 @@ services:
       context: ./admin-fe
       dockerfile: Dockerfile
       args:
+        VITE_API_ORIGIN: ${VITE_API_ORIGIN:-https://api.4thitek.vn}
+        VITE_API_VERSION: ${VITE_API_VERSION:-v1}
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://api.4thitek.vn/api/v1}
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
     environment:
+      API_ORIGIN: ${API_ORIGIN:-https://api.4thitek.vn}
+      API_VERSION: ${API_VERSION:-v1}
       API_BASE_URL: ${API_BASE_URL:-https://api.4thitek.vn/api/v1}
     ports:
       - "${ADMIN_FE_PORT:-4173}:80"
 
-  # dealer:
-  #   build:
-  #     context: ./dealer
-  #     dockerfile: Dockerfile
-  #     args:
-  #       API_BASE_URL: ${DEALER_API_BASE_URL}
-  #       WS_BASE_URL: ${DEALER_WS_BASE_URL:-}
-  #       PUBLIC_SITE_BASE_URL: ${PUBLIC_SITE_BASE_URL}
-  #   restart: unless-stopped
-  #   depends_on:
-  #     backend:
-  #       condition: service_healthy
-  #   ports:
-  #     - "${DEALER_PORT:-4174}:80"
+  dealer:
+    build:
+      context: ./dealer
+      dockerfile: Dockerfile
+      args:
+        API_ORIGIN: ${DEALER_API_ORIGIN:-https://api.4thitek.vn}
+        API_VERSION: ${DEALER_API_VERSION:-v1}
+        API_BASE_URL: ${DEALER_API_BASE_URL:-https://api.4thitek.vn/api/v1}
+        WS_BASE_URL: ${DEALER_WS_BASE_URL:-}
+        PUBLIC_SITE_BASE_URL: ${PUBLIC_SITE_BASE_URL:-https://4thitek.vn}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${DEALER_PORT:-4174}:80"
 
 volumes:
   pgdata:

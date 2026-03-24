@@ -59,23 +59,17 @@ Admin dashboard doc `runtime-config.js` luc start container, nen co the doi `API
 
 ## Docker Compose
 
-Ba file compose phu trach ba muc dich khac nhau:
+Chi co mot file: `docker-compose.yaml` — dung cho ca local, staging va production.
 
-| File | Dung cho | Secret handling |
-|------|----------|-----------------|
-| `docker-compose.yaml` | Local / staging nhanh | Co fallback default local-safe |
-| `docker-compose.dev.yaml` | Local dev voi hot-reload | Hardcode gia tri local-only |
-| `docker-compose.prod.yaml` | **Production** | Khong co default — fail ngay neu thieu |
-
-### Local / staging
+### Chay local
 
 ```bash
 cp .env.example .env
-# Sua POSTGRES_PASSWORD, REDIS_PASSWORD, MINIO_ROOT_PASSWORD, JWT_SECRET
+# Bat buoc phai doi: POSTGRES_PASSWORD, REDIS_PASSWORD,
+#                    MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, JWT_SECRET
+# Xem comment trong .env.example de biet cach generate JWT_SECRET.
 docker compose up -d
 ```
-
-Fallback default neu khong co `.env`: `app_password` (postgres), `redis_password` (redis), `minioadmin123` (minio), `change-me-to-a-32-byte-secret` (jwt). **Cac gia tri nay chi du de boot local, khong duoc dung tren internet-facing server.**
 
 Neu da tung tao volume Postgres bang password cu, can reset volume:
 
@@ -83,47 +77,39 @@ Neu da tung tao volume Postgres bang password cu, can reset volume:
 docker compose down -v && docker compose up -d --build
 ```
 
-Stack nay khong kem reverse proxy/TLS. Deploy internet-facing phai dat them Nginx, Caddy hoac load balancer ben ngoai.
-
-### Production
+### Deploy production
 
 ```bash
 cp .env.production.example .env
 # Sua tat ca gia tri CHANGE_ME_* — xem chu thich trong file
-docker compose -f docker-compose.prod.yaml --env-file .env up -d
+docker compose up -d
 ```
 
-`docker-compose.prod.yaml` khong co fallback default cho bat ky secret nao. Thieu bat ky bien nao trong nhom sau se khien stack tu choi start:
+Cac secret bat buoc phai co (thieu bat ky bien nao se khien stack tu choi start):
 
 - `POSTGRES_PASSWORD`, `REDIS_PASSWORD`, `JWT_SECRET`
-- `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`, `MINIO_BUCKET`
-- `APP_STORAGE_S3_PUBLIC_BASE_URL`, `APP_CORS_ALLOWED_ORIGIN_PATTERNS`
+- `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`
 
 Xem day du danh sach bien va giai thich trong [.env.production.example](.env.production.example).
 
-### Local dev (hot-reload)
-
-Stack dev chay source code truc tiep voi Maven/Node, khong can build image:
-
-```bash
-docker compose -f docker-compose.dev.yaml up --build
-```
-
-Dev stack tu dong bootstrap tai khoan admin local:
-
-- Email: `admin@localhost.dev` (chi la dia chi dev, khong phai tai khoan that)
-- Password tam thoi: `YourStrongPassword123!`
-
-Lan dang nhap dau tien se chuyen sang man hinh doi mat khau.
+Stack khong kem reverse proxy/TLS. Deploy internet-facing phai dat them Nginx, Caddy hoac load balancer ben ngoai.
 
 ## CI
 
 Workflow GitHub Actions nam o [.github/workflows/ci.yml](.github/workflows/ci.yml) va chay:
 
-- `backend`: `./mvnw -B test`
-- `main-fe`: `npm run test -- --run` va `npm run build`
-- `admin-fe`: `npm run test -- --run` va `npm run build`
+- `secret-scan`: Gitleaks quet toan bo working tree, chan PR neu phat hien credential.
+- `backend`: `./mvnw -B verify` — chay tat ca tests + JaCoCo coverage check (60% minimum). Bao gom:
+  - Integration tests voi MockMvc + H2 cho cac endpoint cua tat ca client
+  - `AuthResponseShapeTests` — kiem tra day du cac field cua auth response (`accessToken`, `refreshToken`, `tokenType`, `expiresIn`, `user.*`) ma moi client phu thuoc vao
+  - `PublicApiResponseShapeTests` — kiem tra field names cua public product / blog / dealer API ma main-fe va dealer app doc
+- `main-fe`: `npm audit` (high CVEs) → `npm run test -- --run` → `npm run build`
+- `admin-fe`: `npm audit` (high CVEs) → `npm run test -- --run` → `npm run build`
 - `dealer`: `flutter analyze` va `flutter test`
+
+Tat ca jobs chay song song, la blocking PR gates (khong the merge neu co job fail).
+
+Scan dependency scan hang tuan (OWASP, npm audit moderate) nam o [.github/workflows/security-scan.yml](.github/workflows/security-scan.yml) — non-blocking, bao cao duoc upload len artifacts.
 
 ## Production domains hien tai
 

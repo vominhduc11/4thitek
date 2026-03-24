@@ -1,3 +1,4 @@
+# ── Environment / secrets ────────────────────────────────────────────────────
 .env
 .env.production
 backend/.env
@@ -9,3 +10,21 @@ service_account*.json
 google-services.json
 dealer/android/app/google-services.json
 dealer/ios/Runner/GoogleService-Info.plist
+
+# ── Node dependencies ────────────────────────────────────────────────────────
+# Root package.json is a local tooling helper; its node_modules must never be
+# committed. Each app subdirectory manages its own node_modules via its own
+# .gitignore.
+node_modules/
+
+# ── Claude Code / IDE tool artifacts ─────────────────────────────────────────
+# .playwright-cli/ and output/ are written by the Claude Code browser
+# automation tool during development sessions. They contain session logs and
+# are entirely regenerated on each run — never source of truth.
+.playwright-cli/
+output/
+
+# ── OS artifacts ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini

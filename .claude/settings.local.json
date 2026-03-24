@@ -58,7 +58,8 @@
       "Bash(npm run:*)",
       "Bash(mvn compile:*)",
       "Bash(./mvnw test:*)",
-      "Bash(./mvnw -q test -pl .)"
+      "Bash(./mvnw -q test -pl .)",
+      "Bash(git check-ignore:*)"
     ]
   }
 }

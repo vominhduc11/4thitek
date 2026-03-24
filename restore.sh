@@ -1,8 +1,32 @@
 #!/bin/bash
 set -euo pipefail
 
+# ─────────────────────────────────────────────────────────────────
+#  restore.sh — Full-stack restore from a backup produced by backup.sh
+#
+#  USAGE:
+#    ./restore.sh BACKUP_FOLDER
+#
+#  EXAMPLE:
+#    ./restore.sh backups/20260316_140000
+#
+#  WHAT IT DOES:
+#    Phase 1 — Validate backup files and checksums (before touching anything)
+#    Phase 2 — Stop backend and minio (prevent writes during restore)
+#    Phase 3 — Ensure postgres is running and ready (starts it if needed)
+#    Phase 4 — Drop, recreate, and restore the PostgreSQL database
+#    Phase 5 — Wipe and restore the MinIO data volume
+#    Phase 6 — Restart minio and backend
+#
+#  WARNING: Phase 4 permanently replaces all current database data.
+#           Run backup.sh first if you want a safety snapshot.
+#
+#  COMPOSE FILE: uses docker-compose.yaml in the current directory.
+# ─────────────────────────────────────────────────────────────────
+
 if [ -z "${1:-}" ]; then
   echo "Usage: ./restore.sh BACKUP_FOLDER"
+  echo ""
   echo "Example:"
   echo "  ./restore.sh backups/20260316_140000"
   exit 1
@@ -10,8 +34,9 @@ fi
 
 BACKUP_DIR="${1%/}"  # strip any trailing slash
 
-# Load .env if present so POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD
-# are picked up automatically without hardcoding them here.
+# ─── Load .env ───────────────────────────────────────────────────
+# Picks up POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, MINIO_VOLUME
+# without hardcoding them in this script.
 if [ -f .env ]; then
   set -a
   # shellcheck disable=SC1091
@@ -23,7 +48,7 @@ POSTGRES_CONTAINER="postgres"
 POSTGRES_DB="${POSTGRES_DB:-app_db}"
 POSTGRES_USER="${POSTGRES_USER:-app}"
 
-# Detect MinIO data volume dynamically.
+# ─── Detect MinIO data volume ────────────────────────────────────
 # Override by setting MINIO_VOLUME in the environment or .env file.
 if [ -z "${MINIO_VOLUME:-}" ]; then
   MINIO_VOLUME=$(docker volume ls --format '{{.Name}}' | grep '_minio-data$' | head -1)
@@ -40,9 +65,70 @@ echo "PostgreSQL DB:  $POSTGRES_DB  (user: $POSTGRES_USER)"
 echo "MinIO volume:   $MINIO_VOLUME"
 echo "===================================="
 
-#################################
-# Pre-flight checks
-#################################
+# ─────────────────────────────────────────────────────────────────
+# Helper: stop a service only if it is currently running.
+# Skips silently if the service is already stopped or never started.
+# ─────────────────────────────────────────────────────────────────
+stop_if_running() {
+  local service="$1"
+  if docker compose ps "$service" 2>/dev/null | grep -qiE 'up|running'; then
+    echo "  Stopping $service..."
+    docker compose stop "$service"
+  else
+    echo "  $service is not running — nothing to stop."
+  fi
+}
+
+# ─────────────────────────────────────────────────────────────────
+# Helper: ensure a service is running.
+# Uses 'up -d' (not 'start') so it also works on a fresh environment
+# where the container has never been created.
+# ─────────────────────────────────────────────────────────────────
+ensure_running() {
+  local service="$1"
+  if docker compose ps "$service" 2>/dev/null | grep -qiE 'up|running'; then
+    echo "  $service is already running."
+  else
+    echo "  $service is not running — starting it..."
+    docker compose up -d "$service"
+  fi
+}
+
+# ─────────────────────────────────────────────────────────────────
+# Helper: wait for PostgreSQL to accept connections.
+# Polls pg_isready up to MAX_WAIT seconds before giving up.
+# ─────────────────────────────────────────────────────────────────
+wait_for_postgres() {
+  local max_wait=60
+  local interval=2
+  local waited=0
+
+  echo "  Waiting for PostgreSQL to be ready (up to ${max_wait}s)..."
+  while [ "$waited" -lt "$max_wait" ]; do
+    if docker compose exec -T "$POSTGRES_CONTAINER" \
+        pg_isready -U "$POSTGRES_USER" -d postgres -q 2>/dev/null; then
+      echo "  PostgreSQL is ready."
+      return 0
+    fi
+    sleep "$interval"
+    waited=$((waited + interval))
+    echo "  Still waiting... (${waited}s elapsed)"
+  done
+
+  echo "" >&2
+  echo "ERROR: PostgreSQL did not become ready within ${max_wait}s." >&2
+  echo "       Check logs: docker compose logs $POSTGRES_CONTAINER" >&2
+  return 1
+}
+
+# ═════════════════════════════════════════════════════════════════
+# Phase 1 — Pre-flight: validate backup files and checksums
+#
+# All checks run before any service is stopped or any data is
+# modified. A failed check here is completely safe to retry.
+# ═════════════════════════════════════════════════════════════════
+echo ""
+echo "--- Phase 1: pre-flight checks ---"
 
 PG_ARCHIVE="$BACKUP_DIR/postgres.sql.gz"
 MINIO_ARCHIVE="$BACKUP_DIR/minio.tar.gz"
@@ -58,71 +144,124 @@ for f in "$PG_ARCHIVE" "$MINIO_ARCHIVE"; do
   fi
 done
 
-# Verify SHA-256 checksums when present.
+# Checksum verification — a mismatch means the backup is corrupt or
+# was truncated in transit. Hard-stop before touching any live data.
 for f in "$PG_ARCHIVE" "$MINIO_ARCHIVE"; do
   checksum_file="${f}.sha256"
   if [ -f "$checksum_file" ]; then
-    echo "Verifying checksum: $(basename "$checksum_file")"
+    echo "  Verifying checksum: $(basename "$checksum_file")"
+    # sha256sum --check reads the stored hash and re-hashes the file;
+    # exits non-zero (caught by set -e) if hashes do not match.
     sha256sum --check "$checksum_file"
   else
-    echo "WARNING: No checksum file for $(basename "$f") — skipping integrity check"
+    echo "  WARNING: No checksum file for $(basename "$f") — skipping integrity check"
   fi
 done
 
-# PostgreSQL container must be running for the DB restore.
-if ! docker compose ps "$POSTGRES_CONTAINER" | grep -qiE 'up|running'; then
-  echo "ERROR: PostgreSQL container '$POSTGRES_CONTAINER' is not running." >&2
+# Resolve absolute path now; needed for the Docker volume mount in Phase 5.
+BACKUP_ABS=$(cd "$BACKUP_DIR" && pwd)
+
+echo "  Pre-flight checks passed."
+
+# ═════════════════════════════════════════════════════════════════
+# Phase 2 — Stop dependent services
+#
+# backend must be stopped before the DB is wiped to prevent it from
+# writing new data (transactions, cache flushes) between dropdb and
+# the restore completing. minio must be stopped before the volume is
+# cleared to avoid partial-write corruption.
+# ═════════════════════════════════════════════════════════════════
+echo ""
+echo "--- Phase 2: stopping dependent services ---"
+
+stop_if_running "backend"
+stop_if_running "minio"
+
+# Hard check: neither service must be running before we touch any data.
+if docker compose ps backend minio 2>/dev/null | grep -qiE 'up|running'; then
+  echo "ERROR: backend or minio did not stop cleanly." >&2
+  echo "       Aborting to protect live data." >&2
   exit 1
 fi
 
-# Resolve absolute path now (needed for Docker volume mount later).
-BACKUP_ABS=$(cd "$BACKUP_DIR" && pwd)
+echo "  Dependent services are down."
 
-#################################
-# Restore PostgreSQL
-#################################
+# ═════════════════════════════════════════════════════════════════
+# Phase 3 — Ensure PostgreSQL is running and ready
+#
+# postgres is kept running (or started if it was stopped) because
+# we need it to execute dropdb / createdb / psql restore.
+# If it was never started, 'docker compose up -d postgres' creates
+# and starts it from scratch.
+# ═════════════════════════════════════════════════════════════════
+echo ""
+echo "--- Phase 3: ensuring PostgreSQL is running ---"
 
-echo "Restoring PostgreSQL..."
+ensure_running "$POSTGRES_CONTAINER"
+wait_for_postgres
 
-# Terminate active connections so dropdb succeeds.
+# ═════════════════════════════════════════════════════════════════
+# Phase 4 — Restore PostgreSQL
+# ═════════════════════════════════════════════════════════════════
+echo ""
+echo "--- Phase 4: restoring PostgreSQL ---"
+
+# Terminate any lingering connections (e.g., pgAdmin, monitoring tools)
+# so that dropdb can acquire an exclusive lock. Suppress output — the
+# row count is not meaningful here; errors still surface via stderr.
 docker compose exec -T "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" postgres \
-  -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$POSTGRES_DB' AND pid <> pg_backend_pid();"
+  -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$POSTGRES_DB' AND pid <> pg_backend_pid();" \
+  > /dev/null
 
-docker compose exec -T "$POSTGRES_CONTAINER" dropdb -U "$POSTGRES_USER" "$POSTGRES_DB"
-docker compose exec -T "$POSTGRES_CONTAINER" createdb -U "$POSTGRES_USER" "$POSTGRES_DB"
+# --if-exists handles a fresh postgres volume where the DB does not
+# exist yet (e.g., restoring onto a newly provisioned server).
+docker compose exec -T "$POSTGRES_CONTAINER" \
+  dropdb --if-exists -U "$POSTGRES_USER" "$POSTGRES_DB"
 
+docker compose exec -T "$POSTGRES_CONTAINER" \
+  createdb -U "$POSTGRES_USER" "$POSTGRES_DB"
+
+echo "  Streaming backup into PostgreSQL (this may take a while)..."
 gunzip -c "$PG_ARCHIVE" \
   | docker compose exec -T "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" "$POSTGRES_DB"
 
-echo "PostgreSQL restore completed"
+echo "  PostgreSQL restore completed."
 
-#################################
-# Restore MinIO
-#################################
-
-echo "Stopping backend and MinIO before data restore..."
-
-docker compose stop backend minio
-
-# Confirm services are down before wiping data.
-if docker compose ps backend minio | grep -qiE 'up|running'; then
-  echo "ERROR: Services did not stop cleanly — aborting MinIO restore." >&2
-  exit 1
-fi
-
-echo "Restoring MinIO data..."
+# ═════════════════════════════════════════════════════════════════
+# Phase 5 — Restore MinIO data volume
+#
+# minio is confirmed stopped (Phase 2). The volume is wiped and the
+# backup archive is extracted. The bucket policy set by minio-init
+# is embedded in the volume and will be restored automatically.
+# ═════════════════════════════════════════════════════════════════
+echo ""
+echo "--- Phase 5: restoring MinIO data ---"
 
 docker run --rm \
   -v "$MINIO_VOLUME:/data" \
   -v "$BACKUP_ABS:/backup:ro" \
   alpine sh -c "rm -rf /data/* && tar xzf /backup/minio.tar.gz -C /data"
 
-echo "MinIO restore completed"
+echo "  MinIO data restore completed."
 
-echo "Starting MinIO and backend..."
+# ═════════════════════════════════════════════════════════════════
+# Phase 6 — Restart services
+# ═════════════════════════════════════════════════════════════════
+echo ""
+echo "--- Phase 6: starting services ---"
+
 docker compose start minio backend
-echo "Services started"
 
+echo ""
+echo "Post-restore service status:"
+docker compose ps "$POSTGRES_CONTAINER" minio backend
+
+echo ""
 echo "===================================="
-echo "Restore finished successfully"
+echo "Restore finished."
+echo ""
+echo "Next steps:"
+echo "  Verify health:  docker compose ps"
+echo "  Backend logs:   docker compose logs --tail=50 backend"
+echo "  Minio logs:     docker compose logs --tail=20 minio"
 echo "===================================="

@@ -1,7 +1,0 @@
-[GET] http://localhost:8080/api/admin/products => [200] 
-[GET] http://localhost:8080/api/admin/orders => [200] 
-[GET] http://localhost:8080/api/admin/blogs => [200] 
-[GET] http://localhost:8080/api/admin/dealers/accounts => [200] 
-[GET] http://localhost:8080/api/admin/discount-rules => [200] 
-[GET] http://localhost:8080/api/admin/users => [200] 
-[GET] http://localhost:8080/api/admin/products => [200] 

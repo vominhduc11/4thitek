@@ -90,13 +90,9 @@ Mọi mục **không** gắn `[Pending Decision]` phải được xem là rule p
 
 > Nguyên tắc thay đổi: mọi thay đổi behavior ở các vùng `[Implemented]` hoặc `[Policy]` phải cập nhật file này cùng lúc với code trong cùng một batch thay đổi.
 
-### 0.5 Companion Documents
+### 0.5 Nguyên tắc bổ sung
 
-- `BUSINESS_LOGIC.md`: quy tắc nghiệp vụ, lifecycle, contract production
-- `RUNTIME_BEHAVIOR.md`: runtime behavior, cache, sync, transport, compatibility notes
-- `CLIENT_NOTES.md`: ghi chú implementation cho Flutter/React/Next.js
-
-> Các chi tiết thuần implementation như local persistence, optimistic update, widget lifecycle, hay tên màn hình legacy không nên được dùng để thay đổi business contract. Các ghi chú đó thuộc `RUNTIME_BEHAVIOR.md` hoặc `CLIENT_NOTES.md`.
+> Các chi tiết thuần implementation như local persistence, optimistic update, widget lifecycle, hay tên màn hình legacy không nên được dùng để thay đổi business contract. File này là nguồn duy nhất cho contract nghiệp vụ.
 
 ---
 
@@ -681,6 +677,11 @@ Dealer chỉ cần serial — hệ thống tự resolve thông tin đơn. Không
 - Dealer App `DistributorNotice`: `order` | `system` | `promotion` | `warranty`
 - Mapping hiện tại: `WARRANTY` được render như `warranty` trong Dealer App
 
+**Push notification (FCM):**
+- Khi app ở background hoặc terminated, WebSocket không hoạt động; backend gửi FCM push notification để đánh thức app.
+- FCM chỉ kích hoạt khi `APP_FCM_ENABLED=true` và credentials được cấu hình (`APP_FCM_PROJECT_ID`, `APP_FCM_CREDENTIALS_JSON_BASE64`).
+- Payload FCM chứa `notificationId` để Dealer App fetch chi tiết qua REST sau khi nhận push.
+
 ---
 
 ### 3.11 Hỗ trợ (Support Ticket)
@@ -1157,12 +1158,16 @@ Xem đơn PENDING → Duyệt (CONFIRMED) → Chuẩn bị hàng (SHIPPING) → 
 
 ### 5.4 Giỏ hàng
 
-- Xem `RUNTIME_BEHAVIOR.md` cho optimistic update, sync retry, và mutation conflict handling.
+- **Optimistic update:** UI cập nhật ngay (add/remove/qty), rollback nếu backend trả error.
+- **Mutation conflict:** khi response về sau khi local state đã thay đổi (ví dụ: user thêm item khác trong lúc request đang pending), local state thắng — response cũ không ghi đè state hiện tại.
+- **Sync retry:** Dealer App dùng reconnect + refetch sau khi WebSocket reconnect; không có polling loop định kỳ.
 - Business contract cốt lõi vẫn là: cart mutation không được phá vỡ inventory rule và auth rule của backend.
 
 ### 5.5 Giao diện & Cài đặt
 
-- Xem `CLIENT_NOTES.md` cho widget lifecycle, local preference persistence, và các implementation detail không thuộc business contract.
+- **Widget lifecycle:** `_showSnackBar` luôn kiểm tra `!mounted` trước khi gọi `ScaffoldMessenger`. Khi gọi từ `didChangeDependencies`, dùng `addPostFrameCallback` để tránh gọi trong build phase.
+- **Local preference persistence:** ThemeMode persist dưới dạng string `'system'`/`'light'`/`'dark'`. Tên màn hình `WarrantyExportScreen` là legacy name — chức năng là import serial từ file (không phải export).
+- **ApiResponse envelope:** Client chỉ render `message` từ error response khi `status != "success"`; không đọc `data` khi có lỗi.
 - Business contract cốt lõi ở section này chỉ gồm: user có thể chọn theme `light|dark|system` và ngôn ngữ `vi|en`.
 
 ### 5.6 Tình huống tài chính và inventory nâng cao
@@ -1317,6 +1322,8 @@ RETURNED  ──► INSPECTING ──► AVAILABLE
 
 ---
 
-*Cập nhật: 2026-03-23 — Siết lại `BUSINESS_LOGIC.md` thành canonical contract, bổ sung matrix order/payment, error contract, audit/traceability, refund/reversal notes, public dealer visibility, và tách implementation detail sang `RUNTIME_BEHAVIOR.md` / `CLIENT_NOTES.md`.*
+*Cập nhật: 2026-03-23 — Siết lại `BUSINESS_LOGIC.md` thành canonical contract, bổ sung matrix order/payment, error contract, audit/traceability, refund/reversal notes, public dealer visibility.*
+
+*Cập nhật: 2026-03-24 — Hợp nhất nội dung từ `RUNTIME_BEHAVIOR.md` và `CLIENT_NOTES.md` vào file này; xóa 2 file companion. `BUSINESS_LOGIC.md` là nguồn duy nhất cho contract và implementation notes.*
 
 *Cập nhật: 2026-03-23 (audit pass) — Chốt 6 pending decisions thành `[Policy]`: reserved timeout (48h auto-cancel), RMA/serial reset qua INSPECTING→AVAILABLE/SCRAPPED, dealer lifecycle ACTIVE↔SUSPENDED, debt payment accepted risk + compensating controls, SePay exact-match + unmatched payment queue, guard condition hủy đơn có paidAmount>0 (FinancialSettlement). Thêm: idempotency tạo đơn (X-Idempotency-Key), admin financial adjustment endpoint (Section 3.25), edge cases Section 5.6. Cập nhật serial status model (+INSPECTING, +SCRAPPED). Cập nhật Section 0.3/0.4 phản ánh phạm vi đã chặt mới.*

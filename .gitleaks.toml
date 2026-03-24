@@ -10,7 +10,6 @@ description = "Template files and known-safe placeholder strings"
 paths = [
     '''(^|/)\.env\.example$''',
     '''(^|/)\.env\.production\.example$''',
-    '''(^|/)docker-compose\.dev\.yaml$''',
 ]
 
 # Explicit placeholder patterns used throughout example files, README, and docs.
@@ -19,8 +18,6 @@ paths = [
 regexes = [
     # Sentinel prefixes used in production example files
     '''CHANGE_ME_''',
-    # Template JWT secret value in backend/.env.example
-    '''change-me-to-a-32-byte-secret''',
-    # Dev-stack bootstrap admin password documented in README
-    '''YourStrongPassword123!''',
+    # Template placeholder values used in .env.example (root and backend)
+    '''change-me-''',
 ]
