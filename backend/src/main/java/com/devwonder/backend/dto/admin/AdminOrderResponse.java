@@ -22,6 +22,7 @@ public record AdminOrderResponse(
         Integer itemCount,
         String address,
         String note,
-        List<AdminOrderItemResponse> orderItems
+        List<AdminOrderItemResponse> orderItems,
+        Boolean staleReviewRequired
 ) {
 }

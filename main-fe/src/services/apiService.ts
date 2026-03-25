@@ -348,10 +348,6 @@ class ApiService {
         });
     }
 
-    async fetchDealers(): Promise<ApiResponse<unknown>> {
-        return this.fetchResellers();
-    }
-
     async checkWarranty(serialNumber: string): Promise<ApiResponse<WarrantyCheckData>> {
         const response = await this.request<WarrantyCheckData>(API_ENDPOINTS.WARRANTY.CHECK(serialNumber), {
             cache: 'no-store'

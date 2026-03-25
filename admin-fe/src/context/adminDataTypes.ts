@@ -29,6 +29,7 @@ export type Order = {
   note: string
   createdAt: string
   orderItems: OrderItem[]
+  staleReviewRequired?: boolean
 }
 
 export type BlogPost = {
@@ -42,6 +43,7 @@ export type BlogPost = {
   imageUrl?: string
   showOnHomepage?: boolean
   content?: string
+  scheduledAt?: string
 }
 
 export type Dealer = {

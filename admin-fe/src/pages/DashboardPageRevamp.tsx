@@ -42,6 +42,8 @@ const copyByLanguage = {
     unmatchedPendingHint: 'giao dịch chờ xử lý',
     financialSettlements: 'Quyết toán tài chính',
     settlementPendingHint: 'mục chờ xử lý',
+    staleOrders: 'Đơn hàng cần xem xét',
+    staleOrdersHint: 'đơn có thanh toán không xác nhận được',
   },
   en: {
     title: 'System overview',
@@ -62,6 +64,8 @@ const copyByLanguage = {
     unmatchedPendingHint: 'transactions pending',
     financialSettlements: 'Financial settlements',
     settlementPendingHint: 'items pending',
+    staleOrders: 'Orders need review',
+    staleOrdersHint: 'with unresolved payments',
   },
 } as const
 
@@ -418,6 +422,24 @@ function DashboardPageRevamp() {
                     </div>
                   </div>
                   <StatusBadge tone="info">{String(dashboard.settlementPendingCount)}</StatusBadge>
+                </div>
+              </div>
+            )}
+            {(dashboard.staleOrdersCount ?? 0) > 0 && (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 dark:border-rose-800/40 dark:bg-rose-900/20">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
+                    <div>
+                      <p className="text-sm font-semibold text-rose-900 dark:text-rose-200">
+                        {copy.staleOrders}
+                      </p>
+                      <p className="text-xs text-rose-700 dark:text-rose-400">
+                        {dashboard.staleOrdersCount} {copy.staleOrdersHint}
+                      </p>
+                    </div>
+                  </div>
+                  <StatusBadge tone="danger">{String(dashboard.staleOrdersCount)}</StatusBadge>
                 </div>
               </div>
             )}

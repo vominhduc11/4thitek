@@ -1,7 +1,8 @@
-import { ArrowLeft } from 'lucide-react'
+import { AlertTriangle, ArrowLeft } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAdminData, type OrderStatus } from '../context/AdminDataContext'
+import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { getAllowedOrderStatuses, orderStatusLabel, orderStatusTone } from '../lib/adminLabels'
@@ -20,6 +21,12 @@ import {
   labelClass,
 } from '../components/ui-kit'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
+import {
+  fetchAdminOrderAdjustments,
+  createAdminOrderAdjustment,
+  type BackendOrderAdjustmentType,
+  type BackendOrderAdjustmentResponse,
+} from '../lib/adminApi'
 
 const canDeleteOrder = (status: OrderStatus) => status === 'cancelled'
 
@@ -32,10 +39,20 @@ function OrderDetailPage() {
   const { confirm, confirmDialog } = useConfirmDialog()
   const { orders, ordersState, updateOrderStatus, recordOrderPayment, deleteOrder, reloadResource } =
     useAdminData()
+  const { accessToken } = useAuth()
   const [paymentAmount, setPaymentAmount] = useState('')
   const [transactionCode, setTransactionCode] = useState('')
   const [paymentNote, setPaymentNote] = useState('')
   const [paymentError, setPaymentError] = useState('')
+
+  // Adjustments state
+  const [adjustments, setAdjustments] = useState<BackendOrderAdjustmentResponse[]>([])
+  const [adjType, setAdjType] = useState<BackendOrderAdjustmentType>('CORRECTION')
+  const [adjAmount, setAdjAmount] = useState('')
+  const [adjReason, setAdjReason] = useState('')
+  const [adjRef, setAdjRef] = useState('')
+  const [adjError, setAdjError] = useState('')
+  const [adjSubmitting, setAdjSubmitting] = useState(false)
 
   const order = orders.find((item) => item.id === decodedId)
   const initialPaymentAmount =
@@ -86,6 +103,15 @@ function OrderDetailPage() {
     }, 0)
     return () => window.clearTimeout(timer)
   }, [order, resetPaymentForm])
+
+  useEffect(() => {
+    if (!accessToken || !order) return
+    let cancelled = false
+    fetchAdminOrderAdjustments(accessToken, Number(order.id))
+      .then((data) => { if (!cancelled) setAdjustments(data) })
+      .catch(() => { /* non-critical, silently ignore */ })
+    return () => { cancelled = true }
+  }, [accessToken, order?.id])
 
   if (ordersState.status === 'loading' || ordersState.status === 'idle') {
     return (
@@ -156,6 +182,15 @@ function OrderDetailPage() {
         </Link>
         <StatusBadge tone={orderStatusTone[order.status]}>{t(orderStatusLabel[order.status])}</StatusBadge>
       </div>
+
+      {order.staleReviewRequired && (
+        <div className="mt-4 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-800/40 dark:bg-rose-900/20 dark:text-rose-200">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
+          <span>
+            {t('Đơn này đã hết hạn xử lý nhưng có thanh toán ghi nhận — cần xem xét thủ công trước khi hủy.')}
+          </span>
+        </div>
+      )}
 
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
         <div className="rounded-3xl border border-slate-200/70 bg-white/80 p-5">
@@ -443,6 +478,126 @@ function OrderDetailPage() {
         </div>
       </div>
 
+
+      <div className="mt-6 rounded-3xl border border-slate-200/70 bg-white/80 p-5">
+        <p className="text-sm font-semibold text-slate-900">{t('Điều chỉnh tài chính')}</p>
+        <p className="mt-1 text-xs text-slate-500">{t('Ghi nhận điều chỉnh, bù trừ hoặc hoàn tiền cho đơn hàng.')}</p>
+
+        {adjustments.length > 0 && (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-xs text-slate-700">
+              <thead>
+                <tr className="border-b border-slate-100 text-left text-slate-400 uppercase tracking-wide">
+                  <th className="pb-2 pr-4">{t('Loại')}</th>
+                  <th className="pb-2 pr-4">{t('Số tiền')}</th>
+                  <th className="pb-2 pr-4">{t('Lý do')}</th>
+                  <th className="pb-2 pr-4">{t('Mã tham chiếu')}</th>
+                  <th className="pb-2 pr-4">{t('Người tạo')}</th>
+                  <th className="pb-2">{t('Thời gian')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {adjustments.map((adj) => (
+                  <tr key={adj.id}>
+                    <td className="py-2 pr-4 font-medium">{adj.type}</td>
+                    <td className="py-2 pr-4">{formatCurrency(Number(adj.amount))}</td>
+                    <td className="py-2 pr-4 max-w-xs break-words">{adj.reason}</td>
+                    <td className="py-2 pr-4 text-slate-400">{adj.referenceCode || '—'}</td>
+                    <td className="py-2 pr-4">{adj.createdBy || '—'}</td>
+                    <td className="py-2 whitespace-nowrap">{adj.createdAt ? formatDateTime(adj.createdAt) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <label className="space-y-1">
+            <span className={labelClass}>{t('Loại điều chỉnh')}</span>
+            <select
+              className={`${inputClass} bg-white text-slate-700`}
+              value={adjType}
+              onChange={(e) => setAdjType(e.target.value as BackendOrderAdjustmentType)}
+            >
+              <option value="CORRECTION">{t('Điều chỉnh (CORRECTION)')}</option>
+              <option value="WRITE_OFF">{t('Xóa nợ (WRITE_OFF)')}</option>
+              <option value="CREDIT_NOTE">{t('Ghi có (CREDIT_NOTE)')}</option>
+              <option value="REFUND_RECORD">{t('Ghi nhận hoàn tiền (REFUND_RECORD)')}</option>
+            </select>
+          </label>
+          <label className="space-y-1">
+            <span className={labelClass}>{t('Số tiền')}</span>
+            <input
+              className={`${inputClass} bg-white text-slate-700`}
+              min="0"
+              type="number"
+              value={adjAmount}
+              onChange={(e) => setAdjAmount(e.target.value)}
+            />
+          </label>
+          <label className="space-y-1 sm:col-span-2">
+            <span className={labelClass}>{t('Lý do (tối thiểu 10 ký tự)')}</span>
+            <textarea
+              className="min-h-20 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              value={adjReason}
+              onChange={(e) => setAdjReason(e.target.value)}
+            />
+          </label>
+          <label className="space-y-1 sm:col-span-2">
+            <span className={labelClass}>{t('Mã tham chiếu (tuỳ chọn)')}</span>
+            <input
+              className={`${inputClass} bg-white text-slate-700`}
+              value={adjRef}
+              onChange={(e) => setAdjRef(e.target.value)}
+            />
+          </label>
+        </div>
+
+        {adjError && (
+          <FieldErrorMessage className={fieldErrorClass}>{adjError}</FieldErrorMessage>
+        )}
+
+        <div className="mt-3">
+          <PrimaryButton
+            disabled={adjSubmitting}
+            type="button"
+            onClick={async () => {
+              if (!accessToken) return
+              const amount = Number(adjAmount)
+              if (Number.isNaN(amount) || amount <= 0) {
+                setAdjError(t('Số tiền không hợp lệ'))
+                return
+              }
+              if (adjReason.trim().length < 10) {
+                setAdjError(t('Lý do phải có ít nhất 10 ký tự'))
+                return
+              }
+              setAdjError('')
+              setAdjSubmitting(true)
+              try {
+                const created = await createAdminOrderAdjustment(accessToken, Number(order.id), {
+                  type: adjType,
+                  amount,
+                  reason: adjReason.trim(),
+                  referenceCode: adjRef.trim() || undefined,
+                })
+                setAdjustments((prev) => [created, ...prev])
+                setAdjAmount('')
+                setAdjReason('')
+                setAdjRef('')
+                notify(t('Đã thêm điều chỉnh tài chính'), { title: t('Điều chỉnh'), variant: 'success' })
+              } catch (err) {
+                setAdjError(err instanceof Error ? err.message : t('Không thêm được điều chỉnh'))
+              } finally {
+                setAdjSubmitting(false)
+              }
+            }}
+          >
+            {t('Thêm điều chỉnh')}
+          </PrimaryButton>
+        </div>
+      </div>
 
       {confirmDialog}
     </PagePanel>

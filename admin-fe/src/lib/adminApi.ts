@@ -89,6 +89,7 @@ export type BackendBlogResponse = {
   image?: string | null
   introduction?: string | null
   status?: BackendBlogStatus | null
+  scheduledAt?: string | null
   showOnHomepage?: boolean | null
   isDeleted?: boolean | null
   createdAt?: string | null
@@ -103,6 +104,7 @@ export type BackendBlogUpsertRequest = {
   image?: string
   introduction?: string
   status?: BackendBlogStatus
+  scheduledAt?: string | null
   showOnHomepage?: boolean
   isDeleted?: boolean
 }
@@ -136,6 +138,41 @@ export type BackendOrderResponse = {
   createdAt?: string | null
   updatedAt?: string | null
   orderItems?: BackendOrderItemResponse[] | null
+  staleReviewRequired?: boolean | null
+}
+
+export type BackendOrderAdjustmentType = 'CORRECTION' | 'WRITE_OFF' | 'CREDIT_NOTE' | 'REFUND_RECORD'
+
+export type BackendOrderAdjustmentResponse = {
+  id: number
+  orderId: number
+  type: BackendOrderAdjustmentType
+  amount: number | string
+  reason: string
+  referenceCode?: string | null
+  createdBy?: string | null
+  createdByRole?: string | null
+  createdAt?: string | null
+}
+
+export type BackendOrderAdjustmentRequest = {
+  type: BackendOrderAdjustmentType
+  amount: number
+  reason: string
+  referenceCode?: string
+}
+
+export type BackendAuditLogResponse = {
+  id: number
+  createdAt?: string | null
+  actor?: string | null
+  actorRole?: string | null
+  action?: string | null
+  requestMethod?: string | null
+  requestPath?: string | null
+  entityType?: string | null
+  entityId?: string | null
+  ipAddress?: string | null
 }
 
 export type BackendDealerAccountResponse = {
@@ -241,6 +278,7 @@ export type BackendDashboardResponse = {
   }
   unmatchedPendingCount?: number
   settlementPendingCount?: number
+  staleOrdersCount?: number
 }
 
 export type BackendSupportTicketResponse = {
@@ -1123,4 +1161,29 @@ export const resolveAdminFinancialSettlement = (
     token,
     method: 'PATCH',
     body,
+  })
+
+export const fetchAdminOrderAdjustments = (token: string, orderId: number) =>
+  authorizedJsonRequest<BackendOrderAdjustmentResponse[]>({
+    path: `/admin/orders/${orderId}/adjustments`,
+    token,
+  })
+
+export const createAdminOrderAdjustment = (
+  token: string,
+  orderId: number,
+  body: BackendOrderAdjustmentRequest,
+) =>
+  authorizedJsonRequest<BackendOrderAdjustmentResponse>({
+    path: `/admin/orders/${orderId}/adjustments`,
+    token,
+    method: 'POST',
+    body,
+  })
+
+export const fetchAdminAuditLogs = (token: string, page?: number, size?: number) =>
+  authorizedJsonRequest<BackendPagedResponse<BackendAuditLogResponse>>({
+    path: '/admin/audit-logs',
+    token,
+    params: { page: page ?? 0, size: size ?? 50 },
   })

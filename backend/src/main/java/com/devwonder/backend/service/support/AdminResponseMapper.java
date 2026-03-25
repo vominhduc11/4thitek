@@ -79,7 +79,8 @@ public final class AdminResponseMapper {
                 countOrderItems(order),
                 order.getReceiverAddress(),
                 order.getNote(),
-                orderItems
+                orderItems,
+                order.getStaleReviewRequired()
         );
     }
 

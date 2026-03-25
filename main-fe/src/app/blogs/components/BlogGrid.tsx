@@ -61,16 +61,6 @@ const BlogGrid = memo(function BlogGrid({ blogs }: BlogGridProps) {
         return '#9ca3af';
     }, []);
 
-    // Helper function to parse blog image JSON (commented out as unused)
-    // const parseImageUrl = (imageData: string): string => {
-    //     try {
-    //         const parsed = JSON.parse(imageData);
-    //         return parsed.imageUrl || '';
-    //     } catch {
-    //         return '';
-    //     }
-    // };
-
     // Memoized processed blogs data
     const processedBlogs = useMemo(() => {
         return blogs.map(blog => ({

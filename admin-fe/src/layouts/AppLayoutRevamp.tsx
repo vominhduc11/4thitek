@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronRight,
   CircleDollarSign,
+  ClipboardList,
   FileText,
   Landmark,
   LayoutDashboard,
@@ -126,6 +127,7 @@ const copyByLanguage = {
       financialSettlements: 'Quyết toán tài chính',
       reports: 'Báo cáo',
       users: 'Người dùng',
+      auditLogs: 'Nhật ký hệ thống',
       settings: 'Cài đặt',
     },
     alertTemplates: {
@@ -198,6 +200,7 @@ const copyByLanguage = {
       financialSettlements: 'Financial settlements',
       reports: 'Reports',
       users: 'Users',
+      auditLogs: 'Audit logs',
       settings: 'Settings',
     },
     alertTemplates: {
@@ -376,6 +379,7 @@ function AppLayoutRevamp() {
 
     if (hasRole('SUPER_ADMIN')) {
       items.unshift({ to: '/users', label: copy.nav.users, icon: Users, group: 'system' })
+      items.push({ to: '/audit-logs', label: copy.nav.auditLogs, icon: ClipboardList, group: 'system' })
     }
 
     return items

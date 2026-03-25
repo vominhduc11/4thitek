@@ -207,6 +207,7 @@ export const mapOrder = (order: BackendOrderResponse): Order => {
       quantity: Number(item.quantity ?? 0),
       unitPrice: parseFiniteNumber(item.unitPrice),
     })),
+    staleReviewRequired: Boolean(order.staleReviewRequired) || false,
   }
 }
 
@@ -221,6 +222,7 @@ export const mapBlog = (blog: BackendBlogResponse): BlogPost => ({
   imageUrl: parseBlogImage(blog.image),
   showOnHomepage: Boolean(blog.showOnHomepage),
   content: blog.introduction || undefined,
+  scheduledAt: blog.scheduledAt || undefined,
 })
 
 export const mapDealer = (dealer: BackendDealerAccountResponse): Dealer => ({
@@ -324,6 +326,7 @@ export const toBlogUpsertRequest = (payload: {
   content?: string
   status?: BlogStatus
   showOnHomepage?: boolean
+  scheduledAt?: string
 }): BackendBlogUpsertRequest => ({
   categoryId: payload.categoryId ? Number(payload.categoryId) : undefined,
   categoryName: payload.category?.trim() || undefined,
@@ -343,6 +346,7 @@ export const toBlogUpsertRequest = (payload: {
         ? JSON.stringify([{ type: 'paragraph', text: payload.excerpt.trim() }])
         : undefined,
   status: payload.status ? toBackendBlogStatus(payload.status) : undefined,
+  scheduledAt: payload.scheduledAt || undefined,
   showOnHomepage:
     payload.showOnHomepage === undefined
       ? payload.status === 'published'

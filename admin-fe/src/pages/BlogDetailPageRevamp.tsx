@@ -149,6 +149,7 @@ function BlogDetailPageRevamp() {
   const [editContent, setEditContent] = useState('')
   const [editImageUrl, setEditImageUrl] = useState('')
   const [editShowOnHomepage, setEditShowOnHomepage] = useState(false)
+  const [editScheduledAt, setEditScheduledAt] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
   if (postsState.status === 'loading' || postsState.status === 'idle') {
@@ -186,6 +187,7 @@ function BlogDetailPageRevamp() {
     setEditContent(contentParagraphs.join('\n\n'))
     setEditImageUrl(post.imageUrl ?? '')
     setEditShowOnHomepage(Boolean(post.showOnHomepage))
+    setEditScheduledAt(post.scheduledAt ? post.scheduledAt.slice(0, 16) : '')
     setIsEditing(true)
   }
 
@@ -200,6 +202,7 @@ function BlogDetailPageRevamp() {
         status: post.status,
         imageUrl: editImageUrl || undefined,
         showOnHomepage: editShowOnHomepage,
+        scheduledAt: editScheduledAt ? new Date(editScheduledAt).toISOString() : undefined,
       })
       setIsEditing(false)
     } catch (error) {
@@ -264,6 +267,17 @@ function BlogDetailPageRevamp() {
                   type="checkbox"
                 />
               </label>
+              {(post.status === 'scheduled' || editScheduledAt) && (
+                <label className="block space-y-1">
+                  <span className={labelClass}>Lên lịch đăng</span>
+                  <input
+                    className={`${inputClass} w-full`}
+                    type="datetime-local"
+                    value={editScheduledAt}
+                    onChange={(event) => setEditScheduledAt(event.target.value)}
+                  />
+                </label>
+              )}
               <div className="flex gap-2">
                 <PrimaryButton disabled={isSaving} icon={<Save className="h-4 w-4" />} onClick={() => void handleSave()} type="button">
                   {isSaving ? `${copy.save}...` : copy.save}
@@ -280,6 +294,11 @@ function BlogDetailPageRevamp() {
               <p className="mt-2 text-xs text-[var(--muted)]">
                 {copy.homepageLabel}: {post.showOnHomepage ? copy.yes : copy.no}
               </p>
+              {post.scheduledAt && (
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  Lên lịch: {formatDateTime(post.scheduledAt)}
+                </p>
+              )}
               {post.imageUrl ? (
                 <div className="mt-5 overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)]">
                   <img src={resolveBackendAssetUrl(post.imageUrl)} alt={post.title} className="aspect-[16/9] w-full object-cover" />

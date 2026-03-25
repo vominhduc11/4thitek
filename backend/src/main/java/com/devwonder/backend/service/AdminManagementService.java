@@ -198,11 +198,16 @@ public class AdminManagementService {
 
     @Transactional(readOnly = true)
     public Page<AdminOrderResponse> getOrders(Pageable pageable) {
+        return getOrders(pageable, null);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AdminOrderResponse> getOrders(Pageable pageable, OrderStatus status) {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         Pageable effectivePageable = pageable == null || pageable.isUnpaged()
                 ? PageRequest.of(0, 100)
                 : pageable;
-        return orderRepository.findVisibleByCreatedAtDesc(effectivePageable)
+        return orderRepository.findVisibleByStatusAndCreatedAtDesc(status, effectivePageable)
                 .map(order -> AdminResponseMapper.toOrderResponse(order, activeDiscountRules));
     }
 
@@ -635,7 +640,8 @@ public class AdminManagementService {
                 topProducts,
                 activeDiscountRules,
                 Math.toIntExact(unmatchedPaymentRepository.countByStatus(UnmatchedPaymentStatus.PENDING)),
-                Math.toIntExact(financialSettlementRepository.countByStatus(FinancialSettlementStatus.PENDING))
+                Math.toIntExact(financialSettlementRepository.countByStatus(FinancialSettlementStatus.PENDING)),
+                Math.toIntExact(orderRepository.countByStaleReviewRequired())
         ));
     }
 

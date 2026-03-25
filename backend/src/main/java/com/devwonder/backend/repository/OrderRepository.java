@@ -50,6 +50,24 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             value = """
                     select o
                     from Order o
+                    where (o.isDeleted = false or o.isDeleted is null)
+                      and (:status is null or o.status = :status)
+                    order by o.createdAt desc
+                    """,
+            countQuery = """
+                    select count(o)
+                    from Order o
+                    where (o.isDeleted = false or o.isDeleted is null)
+                      and (:status is null or o.status = :status)
+                    """
+    )
+    Page<Order> findVisibleByStatusAndCreatedAtDesc(@Param("status") OrderStatus status, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "dealer", "payments"})
+    @Query(
+            value = """
+                    select o
+                    from Order o
                     where o.dealer.id = :dealerId
                       and (o.isDeleted = false or o.isDeleted is null)
                     """,
@@ -160,6 +178,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
               and o.status = :status
             """)
     long countVisibleOrdersByStatus(@Param("status") OrderStatus status);
+
+    @Query("""
+            select count(o)
+            from Order o
+            where (o.isDeleted = false or o.isDeleted is null)
+              and o.staleReviewRequired = true
+            """)
+    long countByStaleReviewRequired();
 
     /**
      * Finds PENDING orders belonging to SUSPENDED dealers whose suspension timestamp

@@ -37,6 +37,7 @@ import com.devwonder.backend.dto.admin.AdminOrderAdjustmentResponse;
 import com.devwonder.backend.dto.admin.AdminRmaRequest;
 import com.devwonder.backend.dto.admin.AdminUnmatchedPaymentResponse;
 import com.devwonder.backend.dto.admin.AdminUpdateFinancialSettlementRequest;
+import com.devwonder.backend.dto.admin.AdminAuditLogResponse;
 import com.devwonder.backend.dto.admin.AdminUpdateUnmatchedPaymentRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminStaffUserStatusRequest;
 import com.devwonder.backend.dto.admin.UpdateAdminWarrantyStatusRequest;
@@ -44,6 +45,7 @@ import com.devwonder.backend.dto.customer.ChangePasswordRequest;
 import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
 import com.devwonder.backend.dto.dealer.DealerProductSerialResponse;
 import com.devwonder.backend.dto.dealer.UpdateDealerOrderStatusRequest;
+import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.dto.pagination.PagedResponse;
 import com.devwonder.backend.dto.serial.SerialImportSummaryResponse;
 import com.devwonder.backend.exception.BadRequestException;
@@ -52,6 +54,7 @@ import com.devwonder.backend.service.AdminManagementService;
 import com.devwonder.backend.service.AdminOperationsService;
 import com.devwonder.backend.service.AdminReportingService;
 import com.devwonder.backend.service.AdminRmaService;
+import com.devwonder.backend.service.AuditLogService;
 import com.devwonder.backend.service.AdminSettingsService;
 import com.devwonder.backend.util.PaginationUtils;
 import jakarta.validation.Valid;
@@ -88,6 +91,7 @@ public class AdminController {
     private final AdminSettingsService adminSettingsService;
     private final AdminFinancialService adminFinancialService;
     private final AdminRmaService adminRmaService;
+    private final AuditLogService auditLogService;
 
     @GetMapping("/products")
     public ResponseEntity<ApiResponse<List<AdminProductResponse>>> products() {
@@ -137,10 +141,11 @@ public class AdminController {
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "sortBy", required = false) String sortBy,
-            @RequestParam(name = "sortDir", required = false) String sortDir
+            @RequestParam(name = "sortDir", required = false) String sortDir,
+            @RequestParam(name = "status", required = false) OrderStatus status
     ) {
         Pageable pageable = PaginationUtils.toPageable(page, size, sortBy, sortDir, "createdAt");
-        Page<AdminOrderResponse> result = adminManagementService.getOrders(pageable);
+        Page<AdminOrderResponse> result = adminManagementService.getOrders(pageable, status);
         return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "createdAt")));
     }
 
@@ -516,6 +521,16 @@ public class AdminController {
     ) {
         return ResponseEntity.ok(ApiResponse.success(
                 adminFinancialService.resolveUnmatchedPayment(id, request, extractUsername(authentication))));
+    }
+
+    @GetMapping("/audit-logs")
+    public ResponseEntity<ApiResponse<PagedResponse<AdminAuditLogResponse>>> auditLogs(
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size
+    ) {
+        Pageable pageable = PaginationUtils.toPageable(page, size, "createdAt", "desc", "createdAt");
+        Page<AdminAuditLogResponse> result = auditLogService.getLogs(pageable);
+        return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "createdAt")));
     }
 
     private String extractUsername(Authentication authentication) {

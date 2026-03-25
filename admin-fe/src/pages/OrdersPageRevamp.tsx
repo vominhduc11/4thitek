@@ -1,4 +1,4 @@
-import { Package, Trash2 } from 'lucide-react'
+import { AlertTriangle, Package, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -260,7 +260,12 @@ function OrdersPageRevamp() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className={tableValueClass}>{order.orderCode}</p>
+                        <p className={tableValueClass}>
+                          {order.orderCode}
+                          {order.staleReviewRequired && (
+                            <AlertTriangle className="ml-1 inline h-3 w-3 text-rose-500" title="Cần xem xét" />
+                          )}
+                        </p>
                         <p className={tableMetaClass}>#{order.id} · {order.dealer}</p>
                       </div>
                       <StatusBadge tone={orderStatusTone[order.status]}>
@@ -328,7 +333,12 @@ function OrdersPageRevamp() {
                       role="row"
                     >
                       <td className="rounded-l-2xl px-3 py-3 font-semibold text-[var(--ink)]">
-                        <div>{order.orderCode}</div>
+                        <div className="flex items-center gap-1">
+                          {order.orderCode}
+                          {order.staleReviewRequired && (
+                            <AlertTriangle className="h-3 w-3 text-rose-500 shrink-0" title="Cần xem xét" />
+                          )}
+                        </div>
                         <div className={tableMetaClass}>#{order.id}</div>
                       </td>
                       <td className="px-3 py-3">{order.dealer}</td>
