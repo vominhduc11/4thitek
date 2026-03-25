@@ -116,7 +116,7 @@ type AdminDataContextValue = {
   ) => Promise<BlogPost>
   updatePost: (
     id: string,
-    payload: Pick<BlogPost, 'title' | 'category' | 'excerpt' | 'status' | 'imageUrl' | 'content' | 'showOnHomepage'>,
+    payload: Pick<BlogPost, 'title' | 'category' | 'excerpt' | 'status' | 'imageUrl' | 'content' | 'showOnHomepage' | 'scheduledAt'>,
   ) => Promise<void>
   updatePostStatus: (id: string, status: BlogStatus) => Promise<void>
   deletePost: (id: string) => Promise<void>

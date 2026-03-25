@@ -263,7 +263,7 @@ function OrdersPageRevamp() {
                         <p className={tableValueClass}>
                           {order.orderCode}
                           {order.staleReviewRequired && (
-                            <AlertTriangle className="ml-1 inline h-3 w-3 text-rose-500" title="Cần xem xét" />
+                            <AlertTriangle className="ml-1 inline h-3 w-3 text-rose-500" aria-label="Cần xem xét" />
                           )}
                         </p>
                         <p className={tableMetaClass}>#{order.id} · {order.dealer}</p>
@@ -336,7 +336,7 @@ function OrdersPageRevamp() {
                         <div className="flex items-center gap-1">
                           {order.orderCode}
                           {order.staleReviewRequired && (
-                            <AlertTriangle className="h-3 w-3 text-rose-500 shrink-0" title="Cần xem xét" />
+                            <AlertTriangle className="h-3 w-3 text-rose-500 shrink-0" aria-label="Cần xem xét" />
                           )}
                         </div>
                         <div className={tableMetaClass}>#{order.id}</div>
