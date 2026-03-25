@@ -406,7 +406,12 @@ class NotificationController extends ChangeNotifier {
     );
 
     _stompClient = nextClient;
-    nextClient.activate();
+    try {
+      nextClient.activate();
+    } catch (e) {
+      debugPrint('NotificationController: STOMP activate error: $e');
+      _handleRealtimeDisconnect(connectionId);
+    }
   }
 
   void _handleRealtimeDisconnect(int connectionId) {
@@ -426,7 +431,9 @@ class NotificationController extends ChangeNotifier {
       if (_disposed || !_maintainRealtimeConnection) {
         return;
       }
-      unawaited(_reloadAndReconnect());
+      _reloadAndReconnect().catchError((Object e) {
+        debugPrint('NotificationController: reconnect error: $e');
+      });
     });
   }
 

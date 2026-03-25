@@ -162,7 +162,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   bool _isValidPhone(String phone) {
-    return RegExp(r'^[0-9+\s-]{8,}$').hasMatch(phone);
+    return RegExp(r'^\+?[0-9\s\-]{7,15}$').hasMatch(phone);
   }
 
   Future<void> _pickAvatar() async {

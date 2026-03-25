@@ -252,6 +252,7 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
       await _orderController.clearSessionData();
       await _notificationController.clearSessionData();
       await _warrantyController.clearSessionData();
+      _productCatalogController.reset();
       if (!mounted) {
         return;
       }

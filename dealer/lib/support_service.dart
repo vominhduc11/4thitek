@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'api_config.dart';
@@ -121,6 +123,10 @@ class SupportService {
       headers: await _authorizedHeaders(),
     );
     final payload = _decodeBody(response.body);
+    if (response.statusCode == HttpStatus.notFound) {
+      debugPrint('SupportService: fetchLatestTicket returned 404 (no tickets found)');
+      return null;
+    }
     if (response.statusCode >= 400) {
       throw SupportException(_extractErrorMessage(payload));
     }

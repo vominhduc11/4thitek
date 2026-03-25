@@ -5,6 +5,9 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import jakarta.persistence.OptimisticLockException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -19,6 +22,8 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class RestExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(RestExceptionHandler.class);
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotFound(ResourceNotFoundException ex) {
@@ -80,6 +85,19 @@ public class RestExceptionHandler {
         return ResponseEntity.badRequest().body(new ApiResponse<>(false, errors, "Validation failed"));
     }
 
+    @ExceptionHandler(OptimisticLockException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOptimisticLock(OptimisticLockException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.failure("The record was modified by another request; please retry"));
+    }
+
+    @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ApiResponse<Void>> handleSpringOptimisticLock(
+            org.springframework.orm.ObjectOptimisticLockingFailureException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.failure("The record was modified by another request; please retry"));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.badRequest().body(ApiResponse.failure(ex.getMessage()));
@@ -99,6 +117,7 @@ public class RestExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception ex) {
+        log.error("Unhandled exception: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.failure("Internal server error"));
     }

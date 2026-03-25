@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Duration;
 import java.util.List;
 import org.springframework.beans.factory.ObjectProvider;
@@ -64,6 +65,7 @@ public class CacheConfig {
 
     private static GenericJackson2JsonRedisSerializer buildRedisSerializer() {
         ObjectMapper om = new ObjectMapper();
+        om.registerModule(new JavaTimeModule());
         om.activateDefaultTyping(
                 LaissezFaireSubTypeValidator.instance,
                 ObjectMapper.DefaultTyping.EVERYTHING,

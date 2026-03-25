@@ -192,7 +192,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 theme: theme,
                 isLoading: _isLoggingIn,
                 onRegister: () {
-                  unawaited(_openDealerRegistrationPage());
+                  _openDealerRegistrationPage().catchError(
+                    (Object e) => debugPrint('Could not launch URL: $e'),
+                  );
                 },
               ),
             ),

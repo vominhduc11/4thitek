@@ -123,6 +123,9 @@ class PushMessagingController extends ChangeNotifier {
       _initialized = true;
       _packageInfo = await PackageInfo.fromPlatform();
       await refreshRegistration();
+    } catch (e) {
+      debugPrint('Push messaging init failed: $e');
+      _available = false;
     } finally {
       _initializing = false;
       notifyListeners();

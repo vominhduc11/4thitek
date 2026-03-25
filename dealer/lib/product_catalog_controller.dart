@@ -105,6 +105,13 @@ class ProductCatalogController extends ChangeNotifier {
 
   Product? findById(String productId) => _productsById[productId];
 
+  void reset() {
+    _hasLoaded = false;
+    _errorMessage = null;
+    _replaceProducts(const <Product>[]);
+    notifyListeners();
+  }
+
   Future<void> load({bool forceRefresh = false}) async {
     if (_isLoading) {
       return;

@@ -102,13 +102,23 @@ class UploadService {
     final request = http.MultipartRequest('POST', uri);
     request.headers[HttpHeaders.authorizationHeader] = 'Bearer $accessToken';
     request.headers[HttpHeaders.acceptHeader] = 'application/json';
-    request.files.add(
-      http.MultipartFile.fromBytes(
-        'file',
-        await file.readAsBytes(),
-        filename: file.name,
-      ),
-    );
+    final List<int> fileBytes;
+    try {
+      fileBytes = await file.readAsBytes();
+    } catch (e) {
+      throw UploadException('Failed to read file: $e');
+    }
+    try {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          fileBytes,
+          filename: file.name,
+        ),
+      );
+    } catch (e) {
+      throw UploadException('Failed to encode file for upload: $e');
+    }
 
     final streamedResponse = await _client.send(request);
     final response = await http.Response.fromStream(streamedResponse);

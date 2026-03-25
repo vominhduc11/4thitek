@@ -17,6 +17,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashSet;
@@ -105,4 +106,8 @@ public class Order {
 
     @Column(name = "idempotency_key", unique = true)
     private String idempotencyKey;
+
+    @Version
+    @Column(name = "version")
+    private Long version;
 }

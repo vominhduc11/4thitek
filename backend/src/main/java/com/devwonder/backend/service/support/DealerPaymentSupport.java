@@ -95,7 +95,7 @@ public class DealerPaymentSupport {
                 }
             }
         }
-        Instant duplicateWindow = Instant.now().minusSeconds(5);
+        Instant duplicateWindow = Instant.now().minusSeconds(30);
         if (paymentRepository.existsByOrderIdAndAmountAndCreatedAtAfter(order.getId(), amount, duplicateWindow)) {
             throw new ConflictException("Duplicate payment detected");
         }

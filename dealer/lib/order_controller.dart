@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -133,6 +134,7 @@ class OrderController extends ChangeNotifier {
   bool _ordersCacheDirty = true;
   bool _debtOrdersCacheDirty = true;
   bool _paymentHistoryCacheDirty = true;
+  bool _isRecordingPayment = false;
   String? _lastActionMessage;
   DateTime? _lastRemoteSyncAt;
 
@@ -379,6 +381,32 @@ class OrderController extends ChangeNotifier {
     String? proofFileName,
     OrderPaymentMethod? method,
   }) async {
+    if (_isRecordingPayment) {
+      return false;
+    }
+    _isRecordingPayment = true;
+    try {
+      return await _recordPaymentInternal(
+        orderId: orderId,
+        amount: amount,
+        channel: channel,
+        note: note,
+        proofFileName: proofFileName,
+        method: method,
+      );
+    } finally {
+      _isRecordingPayment = false;
+    }
+  }
+
+  Future<bool> _recordPaymentInternal({
+    required String orderId,
+    required int amount,
+    required String channel,
+    String? note,
+    String? proofFileName,
+    OrderPaymentMethod? method,
+  }) async {
     _lastActionMessage = null;
     final current = _orderById[orderId];
     if (current == null) {
@@ -526,15 +554,29 @@ class OrderController extends ChangeNotifier {
         'receiverPhone': order.receiverPhone,
         if (order.note != null && order.note!.trim().isNotEmpty)
           'note': order.note!.trim(),
-        'items': order.items
-            .map(
+        'items': () {
+            final mapped = order.items.map(
               (item) => <String, dynamic>{
                 'productId': int.tryParse(item.product.id),
                 'quantity': item.quantity,
+                '_rawId': item.product.id,
               },
-            )
-            .where((item) => item['productId'] != null)
-            .toList(growable: false),
+            ).toList(growable: false);
+            final dropped = mapped.where((item) => item['productId'] == null).toList();
+            if (dropped.isNotEmpty) {
+              debugPrint(
+                'OrderController: dropping ${dropped.length} item(s) with non-numeric product ids: '
+                '${dropped.map((item) => item['_rawId']).join(', ')}',
+              );
+            }
+            return mapped
+                .where((item) => item['productId'] != null)
+                .map((item) => <String, dynamic>{
+                  'productId': item['productId'],
+                  'quantity': item['quantity'],
+                })
+                .toList(growable: false);
+          }(),
       }),
     );
     final payload = _decodeBody(response.body);
@@ -630,6 +672,9 @@ class OrderController extends ChangeNotifier {
   }
 
   Order _mapRemoteOrder(Map<String, dynamic> json) {
+    if (json['id'] == null) {
+      throw const OrderControllerException('order.message.invalidOrderPayload');
+    }
     final remoteId = _parseInt(json['id']);
     final orderCode =
         _normalizeString(json['orderCode']) ?? remoteId.toString();

@@ -44,7 +44,7 @@ public class DealerCartSupport {
         if (request.quantity() > availableStock) {
             throw new BadRequestException("quantity must not exceed available stock");
         }
-        DealerCartItem existing = dealerCartItemRepository.findByDealerIdAndProductOfCartProductId(dealer.getId(), product.getId())
+        DealerCartItem existing = dealerCartItemRepository.findByDealerIdAndProductOfCartProductIdForUpdate(dealer.getId(), product.getId())
                 .orElse(null);
 
         ProductOfCart productOfCart;
@@ -65,9 +65,7 @@ public class DealerCartSupport {
             cartItem = existing;
             productOfCart = existing.getProductOfCart();
             productOfCart.setNote(DealerRequestSupport.normalize(request.note()));
-            if (productOfCart.getPriceSnapshot() == null) {
-                productOfCart.setPriceSnapshot(product.getRetailPrice());
-            }
+            productOfCart.setPriceSnapshot(product.getRetailPrice());
             productOfCartRepository.save(productOfCart);
         }
         cartItem.setQuantity(request.quantity());
@@ -75,7 +73,7 @@ public class DealerCartSupport {
     }
 
     public void removeCartItem(Long dealerId, Long productId) {
-        DealerCartItem existing = dealerCartItemRepository.findByDealerIdAndProductOfCartProductId(dealerId, productId)
+        DealerCartItem existing = dealerCartItemRepository.findByDealerIdAndProductOfCartProductIdForUpdate(dealerId, productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cart item not found"));
         dealerCartItemRepository.delete(existing);
         productOfCartRepository.delete(existing.getProductOfCart());

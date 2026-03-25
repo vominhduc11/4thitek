@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Component
 @RequiredArgsConstructor
@@ -148,7 +150,14 @@ public class DealerOrderWorkflowSupport {
                         saved.getDealer() != null ? saved.getDealer().getUsername() : "dealer"
                 );
                 financialSettlementRepository.save(settlement);
-                dealerOrderNotificationSupport.notifyAdminsFinancialSettlementRequired(saved, paidAmount);
+                BigDecimal finalPaidAmount = paidAmount;
+                Order finalSaved = saved;
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        dealerOrderNotificationSupport.notifyAdminsFinancialSettlementRequired(finalSaved, finalPaidAmount);
+                    }
+                });
             }
         }
         return DealerPortalResponseMapper.toOrderResponse(saved, activeDiscountRules);
@@ -159,18 +168,14 @@ public class DealerOrderWorkflowSupport {
             Order draftOrder,
             List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
     ) {
-        if (draftOrder.getPaymentMethod() != PaymentMethod.DEBT) {
-            return;
-        }
         BigDecimal creditLimit = zeroIfNull(dealer.getCreditLimit());
         if (creditLimit.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BadRequestException("Credit limit is not configured");
+            return;
         }
         BigDecimal currentOutstandingDebt = orderRepository
-                .findVisibleByDealerIdAndStatusNotAndPaymentMethodOrderByCreatedAtDesc(
+                .findVisibleByDealerIdAndStatusNotOrderByCreatedAtDesc(
                         dealer.getId(),
-                        OrderStatus.CANCELLED,
-                        PaymentMethod.DEBT
+                        OrderStatus.CANCELLED
                 )
                 .stream()
                 .map(order -> outstandingAmount(order, activeDiscountRules))

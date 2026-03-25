@@ -48,6 +48,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   bool _isInitialized = false;
   bool _didStartInitialSync = false;
   bool _isInitialSyncing = true;
+  bool _isInitializing = false;
   bool _isSubmitting = false;
   bool _didApplyPrefill = false;
   String? _initialSyncWarning;
@@ -67,6 +68,18 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   }
 
   Future<void> _initializeScreen() async {
+    if (_isInitializing) {
+      return;
+    }
+    _isInitializing = true;
+    try {
+      await _initializeScreenImpl();
+    } finally {
+      _isInitializing = false;
+    }
+  }
+
+  Future<void> _initializeScreenImpl() async {
     final texts = _texts;
     final orderController = OrderScope.of(context);
     final warrantyController = WarrantyScope.of(context);

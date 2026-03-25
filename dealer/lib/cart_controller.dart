@@ -351,7 +351,9 @@ class CartController extends ChangeNotifier {
       notifyListeners();
     }
 
-    _remoteSyncQueue = _remoteSyncQueue.catchError((_) {}).then((_) async {
+    _remoteSyncQueue = _remoteSyncQueue.catchError((Object e) {
+      debugPrint('CartController: sync queue error: $e');
+    }).then((_) async {
       try {
         final remoteItem = await remoteSync();
         final syncedSnapshot = _snapshotWithRemoteItem(

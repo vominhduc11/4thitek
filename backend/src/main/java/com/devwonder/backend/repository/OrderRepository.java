@@ -157,6 +157,20 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("""
             select o
             from Order o
+            where o.dealer.id = :dealerId
+              and (o.isDeleted = false or o.isDeleted is null)
+              and o.status <> :cancelledStatus
+            order by o.createdAt desc
+            """)
+    List<Order> findVisibleByDealerIdAndStatusNotOrderByCreatedAtDesc(
+            @Param("dealerId") Long dealerId,
+            @Param("cancelledStatus") OrderStatus cancelledStatus
+    );
+
+    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "dealer", "payments"})
+    @Query("""
+            select o
+            from Order o
             where (o.isDeleted = false or o.isDeleted is null)
               and o.status = com.devwonder.backend.entity.enums.OrderStatus.COMPLETED
               and coalesce(o.completedAt, o.updatedAt, o.createdAt) >= :startInclusive
@@ -264,7 +278,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                 where o.id_dealer = :dealerId
                   and coalesce(o.is_deleted, false) = false
                   and o.status <> 'CANCELLED'
-                  and o.payment_method = 'DEBT'
                 group by o.id, o.paid_amount
             ),
             matched_rules as (

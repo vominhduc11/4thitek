@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -81,8 +82,14 @@ const String _profilePolicyKey = 'dealer_profile_policy';
 const String _profileAvatarUrlKey = 'dealer_profile_avatar_url';
 const String _profileCreditLimitKey = 'dealer_profile_credit_limit';
 
+const Duration _profileRequestTimeout = Duration(seconds: 30);
+
 final AuthStorage _authStorage = AuthStorage();
 final http.Client _authClient = DealerAuthClient(authStorage: _authStorage);
+
+void closeDealerProfileStorageClient() {
+  _authClient.close();
+}
 
 class DealerProfile {
   const DealerProfile({
@@ -179,10 +186,15 @@ Future<DealerProfile> loadDealerProfile() async {
   }
 
   try {
-    final response = await _authClient.get(
-      DealerApiConfig.resolveApiUri('/dealer/profile'),
-      headers: _authorizedHeaders(token),
-    );
+    final response = await _authClient
+        .get(
+          DealerApiConfig.resolveApiUri('/dealer/profile'),
+          headers: _authorizedHeaders(token),
+        )
+        .timeout(
+          _profileRequestTimeout,
+          onTimeout: () => throw TimeoutException('loadDealerProfile timed out'),
+        );
     final payload = _decodeBody(response.body);
     if (response.statusCode >= 400) {
       throw DealerProfileStorageException(
@@ -257,23 +269,28 @@ Future<void> saveDealerProfile(DealerProfile profile) async {
     );
   }
 
-  final response = await _authClient.put(
-    DealerApiConfig.resolveApiUri('/dealer/profile'),
-    headers: _authorizedJsonHeaders(token),
-    body: jsonEncode(<String, dynamic>{
-      'businessName': normalizedProfile.businessName,
-      'contactName': normalizedProfile.contactName,
-      'email': normalizedProfile.email,
-      'phone': normalizedProfile.phone,
-      'addressLine': normalizedProfile.addressLine,
-      'ward': normalizedProfile.ward,
-      'district': normalizedProfile.district,
-      'city': normalizedProfile.city,
-      'country': normalizedProfile.country,
-      'avatarUrl': normalizedProfile.avatarUrl,
-      'salesPolicy': normalizedProfile.salesPolicy,
-    }),
-  );
+  final response = await _authClient
+      .put(
+        DealerApiConfig.resolveApiUri('/dealer/profile'),
+        headers: _authorizedJsonHeaders(token),
+        body: jsonEncode(<String, dynamic>{
+          'businessName': normalizedProfile.businessName,
+          'contactName': normalizedProfile.contactName,
+          'email': normalizedProfile.email,
+          'phone': normalizedProfile.phone,
+          'addressLine': normalizedProfile.addressLine,
+          'ward': normalizedProfile.ward,
+          'district': normalizedProfile.district,
+          'city': normalizedProfile.city,
+          'country': normalizedProfile.country,
+          'avatarUrl': normalizedProfile.avatarUrl,
+          'salesPolicy': normalizedProfile.salesPolicy,
+        }),
+      )
+      .timeout(
+        _profileRequestTimeout,
+        onTimeout: () => throw TimeoutException('saveDealerProfile timed out'),
+      );
   final payload = _decodeBody(response.body);
   if (response.statusCode >= 400) {
     throw DealerProfileStorageException(
