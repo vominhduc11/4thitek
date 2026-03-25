@@ -302,14 +302,14 @@ class OrderController extends ChangeNotifier {
     }
   }
 
+  // Dealer-side pre-flight guard. Mirrors backend OrderStatusTransitionPolicy.isDealerTransitionAllowed.
+  // Admin-only transitions (pendingApproval→approved, approved→shipping, shipping→completed/cancelled)
+  // are intentionally absent — the dealer app has no UI to trigger them.
   static const Map<OrderStatus, Set<OrderStatus>> _validTransitions =
       <OrderStatus, Set<OrderStatus>>{
-        OrderStatus.pendingApproval: {
-          OrderStatus.approved,
-          OrderStatus.cancelled,
-        },
-        OrderStatus.approved: {OrderStatus.shipping, OrderStatus.cancelled},
-        OrderStatus.shipping: {OrderStatus.completed, OrderStatus.cancelled},
+        OrderStatus.pendingApproval: {OrderStatus.cancelled},
+        OrderStatus.approved: {OrderStatus.cancelled},
+        OrderStatus.shipping: {},
         OrderStatus.completed: {},
         OrderStatus.cancelled: {},
       };

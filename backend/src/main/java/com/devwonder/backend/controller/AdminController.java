@@ -152,9 +152,11 @@ public class AdminController {
     @PatchMapping("/orders/{id}/status")
     public ResponseEntity<ApiResponse<AdminOrderResponse>> updateOrderStatus(
             @PathVariable("id") Long id,
-            @Valid @RequestBody UpdateDealerOrderStatusRequest request
+            @Valid @RequestBody UpdateDealerOrderStatusRequest request,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(ApiResponse.success(adminManagementService.updateOrderStatus(id, request)));
+        return ResponseEntity.ok(ApiResponse.success(
+                adminManagementService.updateOrderStatus(id, request, extractUsername(authentication))));
     }
 
     @PostMapping("/orders/{id}/assign-serials")

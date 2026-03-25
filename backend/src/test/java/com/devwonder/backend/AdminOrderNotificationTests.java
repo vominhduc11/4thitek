@@ -81,7 +81,8 @@ class AdminOrderNotificationTests {
 
         adminManagementService.updateOrderStatus(
                 order.getId(),
-                new UpdateDealerOrderStatusRequest(OrderStatus.CONFIRMED)
+                new UpdateDealerOrderStatusRequest(OrderStatus.CONFIRMED),
+                "test-admin@example.com"
         );
 
         List<Notify> notifications = notifyRepository.findByAccountIdOrderByCreatedAtDesc(dealer.getId());
@@ -105,7 +106,8 @@ class AdminOrderNotificationTests {
 
         adminManagementService.updateOrderStatus(
                 order.getId(),
-                new UpdateDealerOrderStatusRequest(OrderStatus.SHIPPING)
+                new UpdateDealerOrderStatusRequest(OrderStatus.SHIPPING),
+                "test-admin@example.com"
         );
 
         assertThat(notifyRepository.findByAccountIdOrderByCreatedAtDesc(dealer.getId())).isEmpty();

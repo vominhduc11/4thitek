@@ -213,7 +213,7 @@ public class AdminManagementService {
 
     @Transactional
     @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
-    public AdminOrderResponse updateOrderStatus(Long id, UpdateDealerOrderStatusRequest request) {
+    public AdminOrderResponse updateOrderStatus(Long id, UpdateDealerOrderStatusRequest request, String actorUsername) {
         Order order = orderRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         OrderStatus previousStatus = order.getStatus();
@@ -258,7 +258,7 @@ public class AdminManagementService {
             settlement.setType("CANCELLATION_REFUND");
             settlement.setAmount(paidAmount);
             settlement.setStatus(FinancialSettlementStatus.PENDING);
-            settlement.setCreatedBy("admin");
+            settlement.setCreatedBy(actorUsername);
             financialSettlementRepository.save(settlement);
             dealerOrderNotificationSupport.notifyAdminsFinancialSettlementRequired(saved, paidAmount);
         }

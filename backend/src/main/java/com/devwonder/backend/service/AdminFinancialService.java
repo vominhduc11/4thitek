@@ -6,18 +6,28 @@ import com.devwonder.backend.dto.admin.AdminOrderAdjustmentResponse;
 import com.devwonder.backend.dto.admin.AdminUnmatchedPaymentResponse;
 import com.devwonder.backend.dto.admin.AdminUpdateFinancialSettlementRequest;
 import com.devwonder.backend.dto.admin.AdminUpdateUnmatchedPaymentRequest;
+import com.devwonder.backend.entity.BulkDiscount;
 import com.devwonder.backend.entity.FinancialSettlement;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.OrderAdjustment;
+import com.devwonder.backend.entity.Payment;
 import com.devwonder.backend.entity.UnmatchedPayment;
+import com.devwonder.backend.entity.enums.DiscountRuleStatus;
 import com.devwonder.backend.entity.enums.FinancialSettlementStatus;
+import com.devwonder.backend.entity.enums.OrderStatus;
+import com.devwonder.backend.entity.enums.PaymentMethod;
+import com.devwonder.backend.entity.enums.PaymentStatus;
 import com.devwonder.backend.entity.enums.UnmatchedPaymentStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
+import com.devwonder.backend.repository.BulkDiscountRepository;
 import com.devwonder.backend.repository.FinancialSettlementRepository;
 import com.devwonder.backend.repository.OrderAdjustmentRepository;
 import com.devwonder.backend.repository.OrderRepository;
+import com.devwonder.backend.repository.PaymentRepository;
 import com.devwonder.backend.repository.UnmatchedPaymentRepository;
+import com.devwonder.backend.service.support.OrderPricingSupport;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +50,8 @@ public class AdminFinancialService {
     private final OrderAdjustmentRepository orderAdjustmentRepository;
     private final UnmatchedPaymentRepository unmatchedPaymentRepository;
     private final OrderRepository orderRepository;
+    private final PaymentRepository paymentRepository;
+    private final BulkDiscountRepository bulkDiscountRepository;
 
     // ---- FinancialSettlement ----
 
@@ -119,6 +131,12 @@ public class AdminFinancialService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
 
+        // BUSINESS_LOGIC.md §3.25: COMPLETED orders require explicit confirmOverride=true
+        if (order.getStatus() == OrderStatus.COMPLETED && !Boolean.TRUE.equals(request.confirmOverride())) {
+            throw new BadRequestException(
+                    "Order is COMPLETED. Set confirmOverride=true to apply an adjustment.");
+        }
+
         if (request.amount() == null) {
             throw new BadRequestException("amount is required");
         }
@@ -135,8 +153,25 @@ public class AdminFinancialService {
         adjustment.setReferenceCode(request.referenceCode() != null ? request.referenceCode().trim() : null);
         adjustment.setCreatedBy(createdBy);
         adjustment.setCreatedByRole(createdByRole);
+        orderAdjustmentRepository.save(adjustment);
 
-        return toAdjustmentResponse(orderAdjustmentRepository.save(adjustment));
+        // BUSINESS_LOGIC.md §3.25: paidAmount = Σ payments.amount + Σ adjustments.amount
+        // Both sums are computed via DB queries within the same transaction (JPA flushes before query).
+        BigDecimal paidFromPayments = paymentRepository.sumAmountByOrderId(orderId);
+        BigDecimal paidFromAdjustments = orderAdjustmentRepository.sumAmountByOrderId(orderId);
+        BigDecimal newPaidAmount = paidFromPayments.add(paidFromAdjustments);
+
+        if (newPaidAmount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BadRequestException(
+                    "Adjustment would result in a negative paidAmount (" + newPaidAmount + "). Rejected.");
+        }
+
+        List<BulkDiscount> activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
+        order.setPaidAmount(newPaidAmount);
+        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
+        orderRepository.save(order);
+
+        return toAdjustmentResponse(adjustment);
     }
 
     private AdminOrderAdjustmentResponse toAdjustmentResponse(OrderAdjustment a) {
@@ -184,11 +219,11 @@ public class AdminFinancialService {
             AdminUpdateUnmatchedPaymentRequest request,
             String resolvedBy
     ) {
-        UnmatchedPayment payment = unmatchedPaymentRepository.findById(id)
+        UnmatchedPayment unmatchedPayment = unmatchedPaymentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Unmatched payment not found: " + id));
 
-        if (payment.getStatus() != UnmatchedPaymentStatus.PENDING) {
-            throw new BadRequestException("Unmatched payment is already resolved with status: " + payment.getStatus());
+        if (unmatchedPayment.getStatus() != UnmatchedPaymentStatus.PENDING) {
+            throw new BadRequestException("Unmatched payment is already resolved with status: " + unmatchedPayment.getStatus());
         }
 
         UnmatchedPaymentStatus newStatus = request.status();
@@ -205,14 +240,73 @@ public class AdminFinancialService {
             }
         }
 
-        payment.setStatus(newStatus);
-        payment.setResolution(request.resolution() != null ? request.resolution().trim() : null);
-        payment.setResolvedBy(resolvedBy);
-        payment.setResolvedAt(Instant.now());
-        if (request.matchedOrderId() != null) {
-            payment.setMatchedOrderId(request.matchedOrderId());
+        // BUSINESS_LOGIC.md §3 (Unmatched transaction handling):
+        // MATCHED = gán thủ công vào order phù hợp (tạo payment record cho order đó)
+        // Must create a real Payment and recalculate Order financial state — not just update this row.
+        if (newStatus == UnmatchedPaymentStatus.MATCHED) {
+            applyMatchedPaymentToOrder(id, unmatchedPayment, request.matchedOrderId());
         }
-        return toUnmatchedResponse(unmatchedPaymentRepository.save(payment));
+
+        unmatchedPayment.setStatus(newStatus);
+        unmatchedPayment.setResolution(request.resolution() != null ? request.resolution().trim() : null);
+        unmatchedPayment.setResolvedBy(resolvedBy);
+        unmatchedPayment.setResolvedAt(Instant.now());
+        if (request.matchedOrderId() != null) {
+            unmatchedPayment.setMatchedOrderId(request.matchedOrderId());
+        }
+        return toUnmatchedResponse(unmatchedPaymentRepository.save(unmatchedPayment));
+    }
+
+    /**
+     * Creates a Payment record on the target order and recalculates its financial state.
+     * Uses a stable, unique transactionCode derived from the unmatched payment's own ID so that
+     * concurrent duplicate calls are rejected by the DB unique constraint — the same pattern
+     * SepayService uses for webhook deduplication.
+     */
+    private void applyMatchedPaymentToOrder(Long unmatchedPaymentId, UnmatchedPayment unmatchedPayment, Long matchedOrderId) {
+        // Pessimistic lock to prevent concurrent payment races on the same order
+        Order order = orderRepository.findByIdForUpdate(matchedOrderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + matchedOrderId));
+
+        if (Boolean.TRUE.equals(order.getIsDeleted())) {
+            throw new BadRequestException("Cannot match payment to a deleted order");
+        }
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new BadRequestException("Cannot match payment to a cancelled order");
+        }
+
+        // Stable, unique transaction code: idempotency guard at the DB level
+        String derivedTxCode = "UNMATCHED_MATCH:" + unmatchedPaymentId;
+        if (paymentRepository.existsByTransactionCodeIgnoreCase(derivedTxCode)) {
+            // Already applied (shouldn't normally happen — the PENDING check is the primary gate,
+            // but this prevents a duplicate payment if the DB is somehow inconsistent)
+            return;
+        }
+
+        Payment payment = new Payment();
+        payment.setOrder(order);
+        payment.setAmount(unmatchedPayment.getAmount());
+        payment.setMethod(PaymentMethod.BANK_TRANSFER);
+        payment.setStatus(PaymentStatus.PAID);
+        payment.setChannel("admin-manual-match");
+        payment.setTransactionCode(derivedTxCode);
+        payment.setNote("Manually matched from unmatched payment #" + unmatchedPaymentId
+                + (unmatchedPayment.getTransactionCode() != null
+                        ? " | srcTxCode=" + unmatchedPayment.getTransactionCode()
+                        : ""));
+        payment.setPaidAt(unmatchedPayment.getReceivedAt() != null ? unmatchedPayment.getReceivedAt() : Instant.now());
+        paymentRepository.save(payment);
+
+        // Recalculate paidAmount = Σ payments.amount + Σ adjustments.amount
+        // (same aggregate logic introduced in Q1 fix — BUSINESS_LOGIC.md §3.25)
+        BigDecimal paidFromPayments = paymentRepository.sumAmountByOrderId(order.getId());
+        BigDecimal paidFromAdjustments = orderAdjustmentRepository.sumAmountByOrderId(order.getId());
+        BigDecimal newPaidAmount = paidFromPayments.add(paidFromAdjustments);
+
+        List<BulkDiscount> activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
+        order.setPaidAmount(newPaidAmount);
+        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
+        orderRepository.save(order);
     }
 
     private AdminUnmatchedPaymentResponse toUnmatchedResponse(UnmatchedPayment p) {

@@ -17,6 +17,13 @@ public record AdminOrderAdjustmentRequest(
         @Size(min = 10, message = "reason must be at least 10 characters")
         String reason,
 
-        String referenceCode
+        String referenceCode,
+
+        /**
+         * Required when the order is in COMPLETED status.
+         * Must be explicitly set to {@code true} to confirm the override.
+         * See BUSINESS_LOGIC.md §3.25.
+         */
+        Boolean confirmOverride
 ) {
 }

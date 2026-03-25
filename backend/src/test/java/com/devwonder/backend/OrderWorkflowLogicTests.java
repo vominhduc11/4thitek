@@ -27,7 +27,9 @@ import com.devwonder.backend.exception.ConflictException;
 import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.DealerSupportTicketRepository;
 import com.devwonder.backend.repository.NotifyRepository;
+import com.devwonder.backend.repository.OrderAdjustmentRepository;
 import com.devwonder.backend.repository.OrderRepository;
+import com.devwonder.backend.repository.PaymentRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.service.AdminManagementService;
@@ -81,11 +83,19 @@ class OrderWorkflowLogicTests {
     @Autowired
     private DealerSupportTicketRepository dealerSupportTicketRepository;
 
+    @Autowired
+    private OrderAdjustmentRepository orderAdjustmentRepository;
+
+    @Autowired
+    private PaymentRepository paymentRepository;
+
     @BeforeEach
     void setUp() {
         notifyRepository.deleteAll();
         dealerSupportTicketRepository.deleteAll();
         productSerialRepository.deleteAll();
+        orderAdjustmentRepository.deleteAll();
+        paymentRepository.deleteAll();
         orderRepository.deleteAll();
         bulkDiscountRepository.deleteAll();
         productRepository.deleteAll();
@@ -100,7 +110,8 @@ class OrderWorkflowLogicTests {
 
         assertThatThrownBy(() -> adminManagementService.updateOrderStatus(
                 order.getId(),
-                new UpdateDealerOrderStatusRequest(OrderStatus.COMPLETED)
+                new UpdateDealerOrderStatusRequest(OrderStatus.COMPLETED),
+                "test-admin@example.com"
         )).isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("PENDING -> COMPLETED");
     }
@@ -138,7 +149,8 @@ class OrderWorkflowLogicTests {
 
         var response = adminManagementService.updateOrderStatus(
                 order.getId(),
-                new UpdateDealerOrderStatusRequest(OrderStatus.CANCELLED)
+                new UpdateDealerOrderStatusRequest(OrderStatus.CANCELLED),
+                "test-admin@example.com"
         );
 
         assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.CANCELLED);
@@ -161,7 +173,8 @@ class OrderWorkflowLogicTests {
 
         adminManagementService.updateOrderStatus(
                 order.getId(),
-                new UpdateDealerOrderStatusRequest(OrderStatus.CANCELLED)
+                new UpdateDealerOrderStatusRequest(OrderStatus.CANCELLED),
+                "test-admin@example.com"
         );
 
         ProductSerial savedSerial = productSerialRepository.findById(serial.getId()).orElseThrow();
@@ -184,7 +197,8 @@ class OrderWorkflowLogicTests {
 
         adminManagementService.updateOrderStatus(
                 order.getId(),
-                new UpdateDealerOrderStatusRequest(OrderStatus.CONFIRMED)
+                new UpdateDealerOrderStatusRequest(OrderStatus.CONFIRMED),
+                "test-admin@example.com"
         );
 
         ProductSerial savedSerial = productSerialRepository.findById(serial.getId()).orElseThrow();
@@ -207,7 +221,8 @@ class OrderWorkflowLogicTests {
 
         adminManagementService.updateOrderStatus(
                 order.getId(),
-                new UpdateDealerOrderStatusRequest(OrderStatus.COMPLETED)
+                new UpdateDealerOrderStatusRequest(OrderStatus.COMPLETED),
+                "test-admin@example.com"
         );
 
         ProductSerial savedSerial = productSerialRepository.findById(serial.getId()).orElseThrow();

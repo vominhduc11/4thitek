@@ -71,7 +71,8 @@ class OrderStatusSerialContractTests {
 
         adminManagementService.updateOrderStatus(
                 order.getId(),
-                new UpdateDealerOrderStatusRequest(OrderStatus.CONFIRMED)
+                new UpdateDealerOrderStatusRequest(OrderStatus.CONFIRMED),
+                "test-admin@example.com"
         );
 
         ProductSerial savedSerial = productSerialRepository.findById(serial.getId()).orElseThrow();
@@ -88,7 +89,8 @@ class OrderStatusSerialContractTests {
 
         adminManagementService.updateOrderStatus(
                 order.getId(),
-                new UpdateDealerOrderStatusRequest(OrderStatus.COMPLETED)
+                new UpdateDealerOrderStatusRequest(OrderStatus.COMPLETED),
+                "test-admin@example.com"
         );
 
         ProductSerial savedSerial = productSerialRepository.findById(serial.getId()).orElseThrow();
