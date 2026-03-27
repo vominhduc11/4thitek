@@ -19,9 +19,11 @@ import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductSerial;
+import com.devwonder.backend.entity.Role;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
+import com.devwonder.backend.entity.enums.StaffUserStatus;
 import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.repository.AdminRepository;
 import com.devwonder.backend.repository.DealerRepository;
@@ -29,6 +31,7 @@ import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.PaymentRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
+import com.devwonder.backend.repository.RoleRepository;
 import com.devwonder.backend.service.AdminSettingsService;
 import com.devwonder.backend.service.DealerPortalService;
 import com.devwonder.backend.service.MailService;
@@ -40,8 +43,10 @@ import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -97,6 +102,9 @@ class AdminSettingsContractTests {
 
     @Autowired
     private AdminRepository adminRepository;
+
+    @Autowired
+    private RoleRepository roleRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -344,6 +352,26 @@ class AdminSettingsContractTests {
     }
 
     @Test
+    void genericAdminCannotReadOrUpdateSettings() throws Exception {
+        createGenericAdmin("limited.admin@example.com", "LimitedPass#123");
+        String adminToken = login("limited.admin@example.com", "LimitedPass#123");
+
+        mockMvc.perform(get("/api/v1/admin/settings")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(put("/api/v1/admin/settings")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "sessionTimeoutMinutes": 60
+                                }
+                                """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void enablingMailRequiresFromName() throws Exception {
         String adminToken = login("settings.admin@example.com", "ChangedPass#456");
 
@@ -407,5 +435,27 @@ class AdminSettingsContractTests {
         serial.setSerial(serialValue);
         serial.setStatus(ProductSerialStatus.AVAILABLE);
         return serial;
+    }
+
+    private void createGenericAdmin(String username, String password) {
+        Admin admin = new Admin();
+        admin.setUsername(username);
+        admin.setEmail(username);
+        admin.setPassword(passwordEncoder.encode(password));
+        admin.setDisplayName("Limited Admin");
+        admin.setRoleTitle("Admin");
+        admin.setUserStatus(StaffUserStatus.ACTIVE);
+        admin.setRequirePasswordChange(false);
+        admin.setRoles(new HashSet<>(Set.of(resolveRole("ADMIN", "Admin role"))));
+        adminRepository.save(admin);
+    }
+
+    private Role resolveRole(String name, String description) {
+        return roleRepository.findByName(name).orElseGet(() -> {
+            Role role = new Role();
+            role.setName(name);
+            role.setDescription(description);
+            return roleRepository.save(role);
+        });
     }
 }

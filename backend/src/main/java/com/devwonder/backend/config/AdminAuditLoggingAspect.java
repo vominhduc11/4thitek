@@ -19,7 +19,6 @@ import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -39,24 +38,24 @@ public class AdminAuditLoggingAspect {
 
     private final AuditLogService auditLogService;
     private final ObjectMapper objectMapper;
-    private final boolean trustForwardedFor;
+    private final ClientIpResolver clientIpResolver;
 
     @Autowired
     public AdminAuditLoggingAspect(
             AuditLogService auditLogService,
             ObjectMapper objectMapper,
-            @Value("${app.audit.trust-forwarded-for:false}") boolean trustForwardedFor
+            ClientIpResolver clientIpResolver
     ) {
         this.auditLogService = auditLogService;
         this.objectMapper = objectMapper;
-        this.trustForwardedFor = trustForwardedFor;
+        this.clientIpResolver = clientIpResolver;
     }
 
     public AdminAuditLoggingAspect(
             AuditLogService auditLogService,
             ObjectMapper objectMapper
     ) {
-        this(auditLogService, objectMapper, false);
+        this(auditLogService, objectMapper, new ClientIpResolver(false, false));
     }
 
     @AfterReturning("execution(* com.devwonder.backend.controller.AdminController.*(..))")
@@ -242,12 +241,6 @@ public class AdminAuditLoggingAspect {
     }
 
     private String resolveClientIp(HttpServletRequest request) {
-        if (trustForwardedFor) {
-            String forwarded = request.getHeader("X-Forwarded-For");
-            if (forwarded != null && !forwarded.isBlank()) {
-                return forwarded.split(",")[0].trim();
-            }
-        }
-        return request.getRemoteAddr();
+        return clientIpResolver.resolveForAudit(request);
     }
 }

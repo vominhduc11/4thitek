@@ -90,12 +90,24 @@ public class JWTUtils {
         return buildToken(userDetails, claims, TokenType.REFRESH, refreshTokenExpirationMs);
     }
 
+    public String generateRefreshToken(String tokenId, UserDetails userDetails) {
+        HashMap<String, Object> claims = new HashMap<>();
+        if (tokenId != null && !tokenId.isBlank()) {
+            claims.put(Claims.ID, tokenId);
+        }
+        return buildToken(userDetails, claims, TokenType.REFRESH, refreshTokenExpirationMs);
+    }
+
     public String extractUsername(String token) {
         return extractClaims(token, Claims::getSubject);
     }
 
     public String extractTokenType(String token) {
         return extractClaims(token, claims -> claims.get(TOKEN_TYPE_CLAIM, String.class));
+    }
+
+    public String extractTokenId(String token) {
+        return extractClaims(token, Claims::getId);
     }
 
     private <T> T extractClaims(String token, Function<Claims, T> claimsTFunction) {
@@ -145,12 +157,24 @@ public class JWTUtils {
             tokenClaims.putAll(claims);
         }
         tokenClaims.put(TOKEN_TYPE_CLAIM, tokenType.value());
+        String tokenId = null;
+        Object rawTokenId = tokenClaims.remove(Claims.ID);
+        if (rawTokenId != null) {
+            tokenId = String.valueOf(rawTokenId).trim();
+            if (tokenId.isEmpty()) {
+                tokenId = null;
+            }
+        }
         long now = System.currentTimeMillis();
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .setClaims(tokenClaims)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(now))
-                .setExpiration(new Date(now + expirationMs))
+                .setExpiration(new Date(now + expirationMs));
+        if (tokenId != null) {
+            builder.setId(tokenId);
+        }
+        return builder
                 .signWith(key)
                 .compact();
     }

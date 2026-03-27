@@ -89,7 +89,15 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Map<String, String>>> logout() {
+    public ResponseEntity<ApiResponse<Map<String, String>>> logout(
+            @RequestBody(required = false) RefreshTokenRequest request,
+            HttpServletRequest httpServletRequest
+    ) {
+        String refreshToken = request == null ? null : request.refreshToken();
+        if (refreshToken == null || refreshToken.isBlank()) {
+            refreshToken = authRefreshCookieService.extractRefreshToken(httpServletRequest);
+        }
+        authService.logout(refreshToken);
         HttpHeaders headers = new HttpHeaders();
         authRefreshCookieService.clearRefreshToken(headers);
         return ResponseEntity.ok()

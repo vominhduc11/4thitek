@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.devwonder.backend.config.AdminAuditLoggingAspect;
+import com.devwonder.backend.config.ClientIpResolver;
 import com.devwonder.backend.dto.admin.UpdateAdminSettingsRequest;
 import com.devwonder.backend.dto.customer.ChangePasswordRequest;
 import com.devwonder.backend.dto.dealer.RecordPaymentRequest;
@@ -78,10 +79,37 @@ class AdminAuditLoggingAspectTests {
         assertThat(auditLog.getEntityType()).isEqualTo("password");
         assertThat(auditLog.getRequestMethod()).isEqualTo("PATCH");
         assertThat(auditLog.getRequestPath()).isEqualTo("/api/v1/admin/password");
+        assertThat(auditLog.getIpAddress()).isEqualTo("10.0.0.50");
         assertThat(auditLog.getPayload())
                 .contains("[REDACTED]")
                 .doesNotContain("Current#123")
                 .doesNotContain("NewSecret#456");
+    }
+
+    @Test
+    void usesSharedClientIpResolverWhenAuditTrustsForwardedFor() {
+        aspect = new AdminAuditLoggingAspect(
+                auditLogService,
+                JsonMapper.builder().findAndAddModules().build(),
+                new ClientIpResolver(false, true)
+        );
+        setRequest("PUT", "/api/v1/admin/settings");
+        authenticate("settings.admin@example.com", "SUPER_ADMIN");
+        when(joinPoint.getArgs()).thenReturn(new Object[]{
+                new UpdateAdminSettingsRequest(
+                        true,
+                        60,
+                        true,
+                        true,
+                        null,
+                        null,
+                        null
+                )
+        });
+
+        AuditLog auditLog = captureSingleAuditLog();
+
+        assertThat(auditLog.getIpAddress()).isEqualTo("203.0.113.8");
     }
 
     @Test
@@ -150,6 +178,7 @@ class AdminAuditLoggingAspectTests {
 
     private void setRequest(String method, String path) {
         MockHttpServletRequest request = new MockHttpServletRequest(method, path);
+        request.setRemoteAddr("10.0.0.50");
         request.addHeader("X-Forwarded-For", "203.0.113.8, 10.0.0.1");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
     }

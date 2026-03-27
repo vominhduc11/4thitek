@@ -131,6 +131,7 @@ Main Website (Next.js) ──── REST ─────┘         └───
 | Endpoint | Quyền truy cập |
 |---|---|
 | `POST /api/v1/admin/users`, `/api/v1/admin/users/**` | `SUPER_ADMIN` only |
+| `GET /api/v1/admin/settings`, `PUT /api/v1/admin/settings` | `SUPER_ADMIN` only |
 | `/api/v1/admin/**` | `ADMIN`, `SUPER_ADMIN` |
 | `/api/v1/dealer/**` | `DEALER` |
 | `POST /api/v1/warranty-activation` | `DEALER` |
@@ -143,7 +144,7 @@ Main Website (Next.js) ──── REST ─────┘         └───
 | `GET /api/v1/user/dealer`, `GET /api/v1/user/dealer/page` | Public |
 | `/uploads/**`, `/ws/**`, `/api/v1/health`, `/v3/api-docs/**`, `/swagger-ui/**` | Public |
 
-> `ADMIN` và `SUPER_ADMIN` hỗ trợ dealer qua `/api/v1/admin/**`, upload route phù hợp, và các topic admin WebSocket; runtime hiện tại **không** cho admin dùng chung namespace `/api/v1/dealer/**`. `SUPER_ADMIN` có quyền riêng duy nhất là quản lý staff (`/api/v1/admin/users/**`). Toàn bộ phân quyền enforce tại server — Dealer App không thực hiện role-check phía client.
+> `ADMIN` và `SUPER_ADMIN` hỗ trợ dealer qua `/api/v1/admin/**`, upload route phù hợp, và các topic admin WebSocket; runtime hiện tại **không** cho admin dùng chung namespace `/api/v1/dealer/**`. `SUPER_ADMIN` có quyền riêng cho quản lý staff (`/api/v1/admin/users/**`) và system settings (`/api/v1/admin/settings`). Toàn bộ phân quyền enforce tại server — Dealer App không thực hiện role-check phía client.
 
 ---
 
@@ -195,19 +196,19 @@ Nhận `username` (email hoặc username) + `password`. Quy trình:
 1. Normalize input (trim, lowercase)
 2. Xác thực một bước qua `AuthenticationManager` (bcrypt) — không tách riêng email/password để tránh timing attack
 3. Nếu thất bại (sai credentials hoặc tài khoản disabled) → trả `invalidCredentials` (thông báo chung)
-4. Phát hành `accessToken` (JWT, TTL **30 phút**) + `refreshToken` (TTL **7 ngày**, không rotate)
+4. Phát hành `accessToken` (JWT, TTL **30 phút**) + `refreshToken` (TTL **7 ngày**, có session id server-side)
 
 > Chỉ dealer `ACTIVE` mới đăng nhập thành công. Dealer `UNDER_REVIEW` / `SUSPENDED` bị trả `401` ngay tại bước login và không nhận token.
 
 #### Token Refresh — `POST /api/v1/auth/refresh`
 
-Trả `accessToken` mới nếu `refreshToken` còn hợp lệ, tài khoản còn `enabled`, và dealer vẫn có `customerStatus = ACTIVE`. `UNDER_REVIEW` / `SUSPENDED` bị trả `401` tại bước refresh. Hết hạn → `401` → client buộc logout, xóa token.
+Trả cặp token mới nếu `refreshToken` còn hợp lệ, tài khoản còn `enabled`, và dealer vẫn có `customerStatus = ACTIVE`. `UNDER_REVIEW` / `SUSPENDED` bị trả `401` tại bước refresh. Hết hạn → `401` → client buộc logout, xóa token. Refresh thành công sẽ rotate `refreshToken`; token cũ bị revoke ngay.
 
-> **Giới hạn thiết kế:** Không có server-side token blacklist — token vẫn hợp lệ đến khi hết TTL dù đã đăng xuất.
+> Refresh token được validate thêm bằng trạng thái session phía server. Logout sẽ revoke refresh token/session hiện tại.
 
 #### Đăng xuất
 
-Client-side only: xóa token, clear toàn bộ state (cart, orders, warranty, notifications).
+Client xóa token/local state (cart, orders, warranty, notifications); backend đồng thời revoke refresh token/session hiện tại nếu client gửi body token hoặc refresh cookie.
 
 #### Quên mật khẩu
 
@@ -868,7 +869,7 @@ WarrantyLookupResponse {
 
 Tổng hợp số liệu vận hành: số dealer `UNDER_REVIEW`, thống kê đơn hàng, doanh thu. Kết quả cache `ADMIN_DASHBOARD`.
 
-**System Settings:**
+**System Settings (SUPER_ADMIN only):**
 - `GET /api/v1/admin/settings` — đọc cài đặt
 - `PUT /api/v1/admin/settings` — cập nhật (SePay config, `emailConfirmation`, `sessionTimeoutMinutes`, `orderAlerts`, `inventoryAlerts`, email settings, rate limit overrides...)
 
@@ -948,7 +949,8 @@ Cơ chế sliding window in-memory theo client key. Cleanup job chạy mỗi **5
 **Xác định client key:**
 - mặc định dùng `remoteAddr`
 - chỉ trust `X-Forwarded-For` khi `app.rate-limit.trust-forwarded-for=true`
-- audit log admin có cờ riêng `app.audit.trust-forwarded-for`; hiện chưa có proxy trust model hợp nhất toàn app
+- audit log admin có cờ riêng `app.audit.trust-forwarded-for`
+- rate limit và audit log dùng cùng app-side client IP resolver; mỗi feature vẫn giữ cờ trust riêng
 - phù hợp nhất cho single-instance; nếu scale multi-instance cần shared store hoặc gateway rate-limit phía trước
 
 | Endpoint | Giới hạn |

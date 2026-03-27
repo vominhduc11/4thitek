@@ -10,6 +10,7 @@ import com.devwonder.backend.config.CacheNames;
 import com.devwonder.backend.entity.Account;
 import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.Dealer;
+import com.devwonder.backend.entity.RefreshTokenSession;
 import com.devwonder.backend.entity.Role;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.exception.ConflictException;
@@ -17,13 +18,16 @@ import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.exception.UnauthorizedException;
 import com.devwonder.backend.repository.AccountRepository;
 import com.devwonder.backend.repository.DealerRepository;
+import com.devwonder.backend.repository.RefreshTokenSessionRepository;
 import com.devwonder.backend.repository.RoleRepository;
 import com.devwonder.backend.security.JWTUtils;
 import com.devwonder.backend.service.support.AccountValidationSupport;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.time.Instant;
 import java.util.Locale;
 import java.util.Set;
+import java.util.UUID;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -33,6 +37,7 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -41,12 +46,14 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final AccountRepository accountRepository;
     private final DealerRepository dealerRepository;
+    private final RefreshTokenSessionRepository refreshTokenSessionRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JWTUtils jwtUtils;
     private final WebSocketEventPublisher webSocketEventPublisher;
     private final DealerAccountLifecycleService dealerAccountLifecycleService;
 
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         String identity = normalizeLoginIdentity(request.username());
         if (identity == null) {
@@ -66,7 +73,7 @@ public class AuthService {
         assertDealerPortalAccessIfRequired(account);
 
         String accessToken = jwtUtils.generateToken(account);
-        String refreshToken = jwtUtils.generateRefreshToken(new HashMap<>(), account);
+        String refreshToken = issueRefreshToken(account);
         AuthResponse response = buildAuthResponse(account, accessToken, refreshToken);
         webSocketEventPublisher.publishLoginConfirmed(account.getUsername(), response.user());
         return response;
@@ -76,6 +83,7 @@ public class AuthService {
         return refreshToken(request == null ? null : request.refreshToken());
     }
 
+    @Transactional
     public AuthResponse refreshToken(String refreshToken) {
         try {
             if (refreshToken == null || refreshToken.isBlank()) {
@@ -99,10 +107,34 @@ public class AuthService {
                 throw new UnauthorizedException("Refresh token is invalid");
             }
 
+            RefreshTokenSession currentSession = requireActiveRefreshSession(refreshToken, account);
+            String nextRefreshToken = issueRefreshToken(account);
+            String nextTokenId = normalize(jwtUtils.extractTokenId(nextRefreshToken));
+            revokeRefreshSession(currentSession, nextTokenId);
             String accessToken = jwtUtils.generateToken(account);
-            return buildAuthResponse(account, accessToken, refreshToken);
+            return buildAuthResponse(account, accessToken, nextRefreshToken);
         } catch (JwtException | IllegalArgumentException ex) {
             throw new UnauthorizedException("Refresh token is invalid");
+        }
+    }
+
+    @Transactional
+    public void logout(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return;
+        }
+        try {
+            if (!jwtUtils.hasTokenType(refreshToken, JWTUtils.TokenType.REFRESH)) {
+                return;
+            }
+            String tokenId = normalize(jwtUtils.extractTokenId(refreshToken));
+            if (tokenId == null) {
+                return;
+            }
+            refreshTokenSessionRepository.findByTokenIdForUpdate(tokenId)
+                    .ifPresent(session -> revokeRefreshSession(session, null));
+        } catch (JwtException | IllegalArgumentException ignored) {
+            // Logout remains idempotent even if the client presents an invalid token.
         }
     }
 
@@ -188,5 +220,46 @@ public class AuthService {
     private String normalizeLoginIdentity(String value) {
         String normalized = normalize(value);
         return normalized == null ? null : normalized.toLowerCase(Locale.ROOT);
+    }
+
+    private String issueRefreshToken(Account account) {
+        String tokenId = UUID.randomUUID().toString();
+        RefreshTokenSession session = new RefreshTokenSession();
+        session.setAccount(account);
+        session.setTokenId(tokenId);
+        session.setExpiresAt(Instant.now().plusMillis(jwtUtils.getRefreshTokenExpirationMs()));
+        refreshTokenSessionRepository.save(session);
+        return jwtUtils.generateRefreshToken(tokenId, account);
+    }
+
+    private RefreshTokenSession requireActiveRefreshSession(String refreshToken, Account account) {
+        String tokenId = normalize(jwtUtils.extractTokenId(refreshToken));
+        if (tokenId == null) {
+            throw new UnauthorizedException("Refresh token is invalid");
+        }
+        RefreshTokenSession session = refreshTokenSessionRepository.findByTokenIdForUpdate(tokenId)
+                .orElseThrow(() -> new UnauthorizedException("Refresh token is invalid"));
+        if (session.getAccount() == null
+                || session.getAccount().getId() == null
+                || account.getId() == null
+                || !account.getId().equals(session.getAccount().getId())) {
+            throw new UnauthorizedException("Refresh token is invalid");
+        }
+        if (session.getRevokedAt() != null) {
+            throw new UnauthorizedException("Refresh token is invalid");
+        }
+        if (session.getExpiresAt() != null && session.getExpiresAt().isBefore(Instant.now())) {
+            throw new UnauthorizedException("Refresh token expired");
+        }
+        return session;
+    }
+
+    private void revokeRefreshSession(RefreshTokenSession session, String replacementTokenId) {
+        if (session == null || session.getRevokedAt() != null) {
+            return;
+        }
+        session.setRevokedAt(Instant.now());
+        session.setReplacedByTokenId(normalize(replacementTokenId));
+        refreshTokenSessionRepository.save(session);
     }
 }

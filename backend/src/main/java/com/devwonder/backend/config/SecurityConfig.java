@@ -58,6 +58,7 @@ public class SecurityConfig {
                                 "/api/v1/admin/users/**"
                         )
                         .hasAuthority("SUPER_ADMIN")
+                        .requestMatchers("/api/v1/admin/settings").hasAuthority("SUPER_ADMIN")
                         .requestMatchers(
                                 "/api/v1/auth/**",
                                 "/api/auth/**",

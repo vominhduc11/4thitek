@@ -29,20 +29,20 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
     private final Map<String, WindowState> windows = new ConcurrentHashMap<>();
     private final long cleanupGraceSeconds;
-    private final boolean trustForwardedFor;
+    private final ClientIpResolver clientIpResolver;
     private final StringRedisTemplate stringRedisTemplate;
 
     public RateLimitFilter(
             AdminSettingsService adminSettingsService,
             ObjectMapper objectMapper,
+            ClientIpResolver clientIpResolver,
             ObjectProvider<StringRedisTemplate> stringRedisTemplateProvider,
-            @Value("${app.rate-limit.cleanup-grace-seconds:300}") long cleanupGraceSeconds,
-            @Value("${app.rate-limit.trust-forwarded-for:false}") boolean trustForwardedFor
+            @Value("${app.rate-limit.cleanup-grace-seconds:300}") long cleanupGraceSeconds
     ) {
         this.adminSettingsService = adminSettingsService;
         this.objectMapper = objectMapper;
+        this.clientIpResolver = clientIpResolver;
         this.cleanupGraceSeconds = Math.max(60L, cleanupGraceSeconds);
-        this.trustForwardedFor = trustForwardedFor;
         this.stringRedisTemplate = stringRedisTemplateProvider.getIfAvailable();
     }
 
@@ -170,16 +170,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private String clientKey(HttpServletRequest request) {
-        if (trustForwardedFor) {
-            String forwarded = request.getHeader("X-Forwarded-For");
-            if (forwarded != null && !forwarded.isBlank()) {
-                String forwardedClient = forwarded.split(",")[0].trim();
-                if (!forwardedClient.isBlank()) {
-                    return forwardedClient;
-                }
-            }
-        }
-        return request.getRemoteAddr();
+        return clientIpResolver.resolveForRateLimit(request);
     }
 
     @Scheduled(fixedDelayString = "${app.rate-limit.cleanup-interval-ms:300000}")

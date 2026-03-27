@@ -69,6 +69,9 @@ public class Account implements UserDetails {
     @OneToMany(mappedBy = "account", cascade = CascadeType.REMOVE)
     private Set<PasswordResetToken> passwordResetTokens = new HashSet<>();
 
+    @OneToMany(mappedBy = "account", cascade = CascadeType.REMOVE)
+    private Set<RefreshTokenSession> refreshTokenSessions = new HashSet<>();
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return roles.stream()
