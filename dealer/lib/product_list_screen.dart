@@ -1209,10 +1209,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
     if (catalog == null) {
       return baseProduct;
     }
+    // The paginated list endpoint is not cached server-side, so products already
+    // in the catalog have fresh stock data. Prefer them over fetchDetail, which
+    // hits a cached endpoint and can return stale stock values.
+    final fresh = catalog.findById(baseProduct.id);
+    if (fresh != null) {
+      return fresh;
+    }
     try {
       return await catalog.fetchDetail(baseProduct.id);
     } catch (_) {
-      return catalog.findById(baseProduct.id) ?? baseProduct;
+      return baseProduct;
     }
   }
 
@@ -1271,6 +1278,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
         return;
       }
       if (!didAdd) {
+        // Server rejected the add (e.g. serial pool exhausted but product.stock
+        // was stale). Refresh the list so the UI shows the authoritative stock.
+        _refreshProducts();
         _showCartLimitSnackBar();
         return;
       }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -207,15 +208,26 @@ class _BankTransferInfoSheet extends StatefulWidget {
 
 class _BankTransferInfoSheetState extends State<_BankTransferInfoSheet>
     with WidgetsBindingObserver {
+  static const _pollInterval = Duration(seconds: 8);
+  Timer? _pollTimer;
+
   @override
   void initState() {
     super.initState();
     widget.orderController.addListener(_onOrderChanged);
     WidgetsBinding.instance.addObserver(this);
+    // Initial check after sheet animates in, in case payment was already made.
+    Timer(const Duration(seconds: 2), () {
+      if (mounted) widget.orderController.refreshSingleOrder(widget.orderId);
+    });
+    _pollTimer = Timer.periodic(_pollInterval, (_) {
+      widget.orderController.refreshSingleOrder(widget.orderId);
+    });
   }
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     widget.orderController.removeListener(_onOrderChanged);
     super.dispose();
