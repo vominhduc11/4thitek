@@ -61,6 +61,15 @@ Admin dashboard doc `runtime-config.js` luc start container, nen co the doi `API
 
 Chi co mot file: `docker-compose.yaml` — dung cho ca local, staging va production.
 
+Mac dinh stock compose da duoc siet theo huong production-safe hon:
+
+- `.env.example` dung localhost/non-prod URLs, khong tro thang production API.
+- `backend`, `main-fe`, `admin-fe` va MinIO S3 API chi bind `127.0.0.1`.
+- Redis giu internal-only; MinIO console khong publish host port trong stock compose.
+- Stock compose dung `APP_FCM_CREDENTIALS_JSON_BASE64`; path mode chi danh cho standalone backend run.
+
+Neu local dev can MinIO console hoac Redis host access de debug, hay them compose override rieng thay vi mo mac dinh trong stock file.
+
 ### Chay local
 
 ```bash
@@ -93,6 +102,7 @@ Cac secret bat buoc phai co (thieu bat ky bien nao se khien stack tu choi start)
 Xem day du danh sach bien va giai thich trong [.env.production.example](.env.production.example).
 
 Stack khong kem reverse proxy/TLS. Deploy internet-facing phai dat them Nginx, Caddy hoac load balancer ben ngoai.
+Mau Nginx trong `deploy/nginx/` da dung mo hinh cung host, forward vao `127.0.0.1:8080`, `127.0.0.1:3000`, `127.0.0.1:4173`.
 
 ## CI
 

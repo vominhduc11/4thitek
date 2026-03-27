@@ -25,18 +25,22 @@
 ## 3. FCM Push Notifications (Dealer App)
 
 - [ ] Generate Firebase service account key from Firebase Console
-- [ ] Set `FIREBASE_SERVICE_ACCOUNT_KEY` env var (JSON inline or file path)
+- [ ] Set `APP_FCM_ENABLED=true`
+- [ ] Set `APP_FCM_PROJECT_ID`
+- [ ] Set `APP_FCM_CREDENTIALS_JSON_BASE64` in the production `.env`
 - [ ] Verify push reaches at least one test device before go-live
-- [ ] Confirm `FCM_PROJECT_ID` matches the Firebase project
+- [ ] Confirm `APP_FCM_PROJECT_ID` matches the Firebase project
+
+Stock repo-level `docker-compose.yaml` expects base64 credentials. File-path mode is only documented for standalone backend runs with `backend/.env.example`.
 
 ## 4. Reverse Proxy / TLS
 
 - [ ] Nginx or Caddy in front of Docker stack (see `deploy/nginx/`)
 - [ ] TLS certificate obtained and auto-renewal configured (Let's Encrypt / Certbot)
-- [ ] `api.4thitek.vn` → backend:8080
-- [ ] `admin.4thitek.vn` → admin-fe:80
-- [ ] `4thitek.vn` → main-fe:3000
-- [ ] `ws.4thitek.vn` → backend:8080 (WebSocket `/ws` path)
+- [ ] `api.4thitek.vn` → `127.0.0.1:8080`
+- [ ] `admin.4thitek.vn` → `127.0.0.1:4173`
+- [ ] `4thitek.vn` → `127.0.0.1:3000`
+- [ ] `ws.4thitek.vn` → `127.0.0.1:8080` (WebSocket `/ws` path)
 - [ ] HTTP → HTTPS redirect enforced on all vhosts
 - [ ] Verify headers: `X-Forwarded-Proto`, `X-Real-IP` forwarded correctly
 

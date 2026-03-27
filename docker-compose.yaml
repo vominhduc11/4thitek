@@ -38,8 +38,6 @@ services:
       sh -c "redis-server --appendonly yes --requirepass \"$${REDIS_PASSWORD}\""
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env (cp .env.example .env)}
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -60,8 +58,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env (cp .env.example .env)}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env (cp .env.example .env)}
     ports:
-      - "${MINIO_API_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+      # Keep the S3 API on loopback for the documented same-host proxy/deploy model.
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
     volumes:
       - minio-data:/data
     healthcheck:
@@ -97,6 +95,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
     environment:
       SERVER_PORT: 8080
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-app_db}
@@ -124,6 +124,7 @@ services:
       APP_BOOTSTRAP_SUPER_ADMIN_PASSWORD: ${APP_BOOTSTRAP_SUPER_ADMIN_PASSWORD:-}
       APP_BOOTSTRAP_SUPER_ADMIN_NAME: ${APP_BOOTSTRAP_SUPER_ADMIN_NAME:-System Owner}
       APP_CORS_ALLOWED_ORIGIN_PATTERNS: ${APP_CORS_ALLOWED_ORIGIN_PATTERNS:-}
+      APP_CORS_ALLOW_CREDENTIALS: ${APP_CORS_ALLOW_CREDENTIALS:-true}
       UPLOAD_DIR: /app/uploads
       UPLOAD_BASE_URL: ${UPLOAD_BASE_URL:-/uploads}
       APP_STORAGE_PROVIDER: ${APP_STORAGE_PROVIDER:-s3}
@@ -136,6 +137,11 @@ services:
       APP_STORAGE_S3_PUBLIC_BASE_URL: ${APP_STORAGE_S3_PUBLIC_BASE_URL:-http://localhost:${MINIO_API_PORT:-9000}/${MINIO_BUCKET:-4thitek-uploads}}
       APP_SECURITY_REQUIRE_STRONG_JWT_SECRET: ${APP_SECURITY_REQUIRE_STRONG_JWT_SECRET:-true}
       APP_CACHE_PUBLIC_TTL_MINUTES: ${APP_CACHE_PUBLIC_TTL_MINUTES:-30}
+      APP_ORDER_IDEMPOTENCY_TTL_MINUTES: ${APP_ORDER_IDEMPOTENCY_TTL_MINUTES:-10}
+      APP_ORDER_PENDING_TIMEOUT_HOURS: ${APP_ORDER_PENDING_TIMEOUT_HOURS:-48}
+      APP_ORDER_STALE_CHECK_INTERVAL_MS: ${APP_ORDER_STALE_CHECK_INTERVAL_MS:-3600000}
+      APP_ORDER_STALE_WARNING_BEFORE_HOURS: ${APP_ORDER_STALE_WARNING_BEFORE_HOURS:-6}
+      APP_PAYMENT_LARGE_AMOUNT_PROOF_THRESHOLD: ${APP_PAYMENT_LARGE_AMOUNT_PROOF_THRESHOLD:-10000000}
       APP_RATE_LIMIT_ENABLED: ${APP_RATE_LIMIT_ENABLED:-true}
       APP_RATE_LIMIT_AUTH_REQUESTS: ${APP_RATE_LIMIT_AUTH_REQUESTS:-10}
       APP_RATE_LIMIT_AUTH_WINDOW_SECONDS: ${APP_RATE_LIMIT_AUTH_WINDOW_SECONDS:-60}
@@ -158,6 +164,9 @@ services:
       SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:-true}
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:-true}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:-true}
+      SPRING_FLYWAY_BASELINE_VERSION: ${SPRING_FLYWAY_BASELINE_VERSION:-1}
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: ${SPRING_FLYWAY_VALIDATE_ON_MIGRATE:-true}
       SEPAY_ENABLED: ${SEPAY_ENABLED:-false}
       SEPAY_WEBHOOK_TOKEN: ${SEPAY_WEBHOOK_TOKEN:-}
       SEPAY_BANK_NAME: ${SEPAY_BANK_NAME:-}
@@ -174,10 +183,9 @@ services:
       APP_RATE_LIMIT_TRUST_FORWARDED_FOR: ${APP_RATE_LIMIT_TRUST_FORWARDED_FOR:-false}
       APP_FCM_ENABLED: ${APP_FCM_ENABLED:-false}
       APP_FCM_PROJECT_ID: ${APP_FCM_PROJECT_ID:-}
-      APP_FCM_CREDENTIALS_PATH: ${APP_FCM_CREDENTIALS_PATH:-}
       APP_FCM_CREDENTIALS_JSON_BASE64: ${APP_FCM_CREDENTIALS_JSON_BASE64:-}
     ports:
-      - "${BACKEND_PORT:-8080}:8080"
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
     volumes:
       - upload-data:/app/uploads
     healthcheck:
@@ -192,48 +200,48 @@ services:
       context: ./main-fe
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_ORIGIN: ${NEXT_PUBLIC_API_ORIGIN:-https://api.4thitek.vn}
+        NEXT_PUBLIC_API_ORIGIN: ${NEXT_PUBLIC_API_ORIGIN:-http://localhost:${BACKEND_PORT:-8080}}
         NEXT_PUBLIC_API_VERSION: ${NEXT_PUBLIC_API_VERSION:-v1}
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.4thitek.vn/api/v1}
-        INTERNAL_API_ORIGIN: ${INTERNAL_API_ORIGIN:-https://api.4thitek.vn}
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:${BACKEND_PORT:-8080}/api/v1}
+        INTERNAL_API_ORIGIN: ${INTERNAL_API_ORIGIN:-http://backend:8080}
         INTERNAL_API_VERSION: ${INTERNAL_API_VERSION:-v1}
-        INTERNAL_API_BASE_URL: ${INTERNAL_API_BASE_URL:-https://api.4thitek.vn/api/v1}
+        INTERNAL_API_BASE_URL: ${INTERNAL_API_BASE_URL:-http://backend:8080/api/v1}
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
     ports:
-      - "${MAIN_FE_PORT:-3000}:3000"
+      - "127.0.0.1:${MAIN_FE_PORT:-3000}:3000"
 
   admin-fe:
     build:
       context: ./admin-fe
       dockerfile: Dockerfile
       args:
-        VITE_API_ORIGIN: ${VITE_API_ORIGIN:-https://api.4thitek.vn}
+        VITE_API_ORIGIN: ${VITE_API_ORIGIN:-http://localhost:${BACKEND_PORT:-8080}}
         VITE_API_VERSION: ${VITE_API_VERSION:-v1}
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://api.4thitek.vn/api/v1}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:${BACKEND_PORT:-8080}/api/v1}
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
     environment:
-      API_ORIGIN: ${API_ORIGIN:-https://api.4thitek.vn}
+      API_ORIGIN: ${API_ORIGIN:-http://localhost:${BACKEND_PORT:-8080}}
       API_VERSION: ${API_VERSION:-v1}
-      API_BASE_URL: ${API_BASE_URL:-https://api.4thitek.vn/api/v1}
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:${BACKEND_PORT:-8080}/api/v1}
     ports:
-      - "${ADMIN_FE_PORT:-4173}:80"
+      - "127.0.0.1:${ADMIN_FE_PORT:-4173}:80"
 
   # dealer:
   #   build:
   #     context: ./dealer
   #     dockerfile: Dockerfile
   #     args:
-  #       API_ORIGIN: ${DEALER_API_ORIGIN:-https://api.4thitek.vn}
+  #       API_ORIGIN: ${DEALER_API_ORIGIN:-http://localhost:${BACKEND_PORT:-8080}}
   #       API_VERSION: ${DEALER_API_VERSION:-v1}
-  #       API_BASE_URL: ${DEALER_API_BASE_URL:-https://api.4thitek.vn/api/v1}
-  #       WS_BASE_URL: ${DEALER_WS_BASE_URL:-}
-  #       PUBLIC_SITE_BASE_URL: ${PUBLIC_SITE_BASE_URL:-https://4thitek.vn}
+  #       API_BASE_URL: ${DEALER_API_BASE_URL:-http://localhost:${BACKEND_PORT:-8080}/api/v1}
+  #       WS_BASE_URL: ${DEALER_WS_BASE_URL:-ws://localhost:${BACKEND_PORT:-8080}}
+  #       PUBLIC_SITE_BASE_URL: ${PUBLIC_SITE_BASE_URL:-http://localhost:${MAIN_FE_PORT:-3000}}
   #   restart: unless-stopped
   #   depends_on:
   #     backend:

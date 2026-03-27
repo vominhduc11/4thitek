@@ -19,7 +19,7 @@ if [ -z "$API_BASE_URL_VALUE" ]; then
     fi
     API_BASE_URL_VALUE="${API_ORIGIN_VALUE}/api/${API_VERSION_NORMALIZED}"
   else
-    API_BASE_URL_VALUE="https://api.4thitek.vn/api/v1"
+    API_BASE_URL_VALUE="http://localhost:8080/api/v1"
   fi
 fi
 
