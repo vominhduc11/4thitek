@@ -134,6 +134,33 @@ class NotificationApiContractTests {
     }
 
     @Test
+    void dealersAudienceIncludesAllDealerAccountsRegardlessOfStatus() throws Exception {
+        String adminToken = login("notifications.admin@example.com", "ChangedPass#456");
+        Dealer activeDealer = registerDealer("notify-all-active", CustomerStatus.ACTIVE);
+        Dealer reviewDealer = registerDealer("notify-all-review", CustomerStatus.UNDER_REVIEW);
+        Dealer suspendedDealer = registerDealer("notify-all-suspended", CustomerStatus.SUSPENDED);
+
+        mockMvc.perform(post("/api/v1/admin/notifications")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "audience": "DEALERS",
+                                  "title": "Thông báo hệ thống",
+                                  "body": "Audience DEALERS currently targets all dealer accounts.",
+                                  "type": "SYSTEM"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.audience").value("DEALERS"))
+                .andExpect(jsonPath("$.data.recipientCount").value(3));
+
+        assertThat(notifyRepository.findByAccountIdOrderByCreatedAtDesc(activeDealer.getId())).hasSize(1);
+        assertThat(notifyRepository.findByAccountIdOrderByCreatedAtDesc(reviewDealer.getId())).hasSize(1);
+        assertThat(notifyRepository.findByAccountIdOrderByCreatedAtDesc(suspendedDealer.getId())).hasSize(1);
+    }
+
+    @Test
     void notificationReadApisExposeBodyAndDeepLinkContract() throws Exception {
         String adminToken = login("notifications.admin@example.com", "ChangedPass#456");
         Dealer dealer = registerActiveDealer("notify-read");
@@ -176,8 +203,13 @@ class NotificationApiContractTests {
     }
 
     private Dealer registerActiveDealer(String prefix) throws Exception {
+        return registerDealer(prefix, CustomerStatus.ACTIVE);
+    }
+
+    private Dealer registerDealer(String prefix, CustomerStatus status) throws Exception {
         String username = prefix + "@example.com";
         String email = "mail+" + prefix + "@example.com";
+        String phone = "09%08d".formatted(Math.floorMod(prefix.hashCode(), 100_000_000));
 
         mockMvc.perform(post("/api/v1/auth/register-dealer")
                         .contentType(APPLICATION_JSON)
@@ -188,18 +220,18 @@ class NotificationApiContractTests {
                                   "businessName": "Dealer %s",
                                   "contactName": "Dealer %s",
                                   "taxCode": "TAX-%s",
-                                  "phone": "0901234567",
+                                  "phone": "%s",
                                   "email": "%s",
                                   "addressLine": "123 Notification Street",
                                   "district": "District 1",
                                   "city": "Ho Chi Minh City",
                                   "country": "Vietnam"
                                 }
-                                """.formatted(username, prefix, prefix, prefix, email)))
+                                """.formatted(username, prefix, prefix, prefix, phone, email)))
                 .andExpect(status().isOk());
 
         Dealer dealer = dealerRepository.findByUsername(username).orElseThrow();
-        dealer.setCustomerStatus(CustomerStatus.ACTIVE);
+        dealer.setCustomerStatus(status);
         return dealerRepository.save(dealer);
     }
 

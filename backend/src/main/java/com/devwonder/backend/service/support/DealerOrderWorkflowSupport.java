@@ -93,7 +93,9 @@ public class DealerOrderWorkflowSupport {
         }
         order.setOrderItems(items);
         order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
-        assertCreditLimitAvailable(dealer, order, activeDiscountRules);
+        if (DealerOrderSupport.defaultPaymentMethod(order) == PaymentMethod.DEBT) {
+            assertCreditLimitAvailable(dealer, order, activeDiscountRules);
+        }
 
         Order saved = orderRepository.save(order);
         orderInventorySupport.reserveStock(requestedQuantities, lockedProducts, saved);
@@ -168,14 +170,18 @@ public class DealerOrderWorkflowSupport {
             Order draftOrder,
             List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
     ) {
+        if (DealerOrderSupport.defaultPaymentMethod(draftOrder) != PaymentMethod.DEBT) {
+            return;
+        }
         BigDecimal creditLimit = zeroIfNull(dealer.getCreditLimit());
         if (creditLimit.compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }
         BigDecimal currentOutstandingDebt = orderRepository
-                .findVisibleByDealerIdAndStatusNotOrderByCreatedAtDesc(
+                .findVisibleByDealerIdAndStatusNotAndPaymentMethodOrderByCreatedAtDesc(
                         dealer.getId(),
-                        OrderStatus.CANCELLED
+                        OrderStatus.CANCELLED,
+                        PaymentMethod.DEBT
                 )
                 .stream()
                 .map(order -> outstandingAmount(order, activeDiscountRules))

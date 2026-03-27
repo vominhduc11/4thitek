@@ -650,7 +650,7 @@ Dealer chỉ cần serial — hệ thống tự resolve thông tin đơn. Không
 **Kết nối:** WebSocket tại `/ws`. Token xác thực qua STOMP header `Authorization: Bearer ...` hoặc header native `token` khi CONNECT. Dealer App hiện dùng reconnect + refetch sau reconnect; không có polling loop định kỳ.
 
 **Admin gửi thông báo — `POST /api/v1/admin/notifications`:**
-- Targeting: `DEALERS` | `ALL_ACCOUNTS` | `ACCOUNTS` (danh sách ID)
+- Targeting: `DEALERS` (toàn bộ dealer accounts, không filter `customerStatus`) | `ALL_ACCOUNTS` | `ACCOUNTS` (danh sách ID)
 - Payload: `title`, `body`, `type` (SYSTEM | PROMOTION | ORDER | WARRANTY), `link?`, `deepLink?`
 
 **Danh sách WebSocket events:**

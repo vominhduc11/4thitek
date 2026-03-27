@@ -326,6 +326,70 @@ class OrderWorkflowLogicTests {
     }
 
     @Test
+    void dealerCanCreateBankTransferOrderEvenWhenCreditLimitWouldBlockDebt() {
+        Dealer dealer = createDealer("credit-limit-bank-transfer@example.com");
+        dealer.setCreditLimit(BigDecimal.valueOf(100_000));
+        Dealer savedDealer = dealerRepository.save(dealer);
+        Product product = saveProduct("SKU-CREDIT-BANK-1", BigDecimal.valueOf(100_000));
+
+        var response = dealerPortalService.createOrder(
+                savedDealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer receiver",
+                        "123 Credit Street",
+                        "0900000000",
+                        0,
+                        "Bank transfer order should ignore credit limit",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
+                ),
+                UUID.randomUUID().toString()
+        );
+
+        assertThat(response.paymentMethod()).isEqualTo(PaymentMethod.BANK_TRANSFER);
+        assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.PENDING);
+    }
+
+    @Test
+    void dealerDebtCreditCheckIgnoresOutstandingBankTransferOrders() {
+        Dealer dealer = createDealer("credit-limit-debt-only@example.com");
+        dealer.setCreditLimit(BigDecimal.valueOf(150_000));
+        Dealer savedDealer = dealerRepository.save(dealer);
+        Product product = saveProduct("SKU-CREDIT-DEBT-ONLY", BigDecimal.valueOf(100_000), 10);
+
+        dealerPortalService.createOrder(
+                savedDealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.BANK_TRANSFER,
+                        "Dealer receiver",
+                        "123 Credit Street",
+                        "0900000000",
+                        0,
+                        "Outstanding bank transfer should not count toward debt limit",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
+                ),
+                UUID.randomUUID().toString()
+        );
+
+        var debtOrder = dealerPortalService.createOrder(
+                savedDealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.DEBT,
+                        "Dealer receiver",
+                        "123 Credit Street",
+                        "0900000000",
+                        0,
+                        "Debt order should only count debt outstanding",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
+                ),
+                UUID.randomUUID().toString()
+        );
+
+        assertThat(debtOrder.paymentMethod()).isEqualTo(PaymentMethod.DEBT);
+        assertThat(debtOrder.paymentStatus()).isEqualTo(PaymentStatus.DEBT_RECORDED);
+    }
+
+    @Test
     void discountPercentUsesActiveBulkDiscountRuleRange() {
         Dealer dealer = dealerRepository.save(createDealer("discount-rule@example.com"));
         Product product = saveProduct("SKU-DISCOUNT-1", BigDecimal.valueOf(100_000));
