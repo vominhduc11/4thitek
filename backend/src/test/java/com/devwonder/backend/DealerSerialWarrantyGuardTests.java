@@ -518,10 +518,23 @@ class DealerSerialWarrantyGuardTests {
         assertThat(createdViaActivate.status()).isEqualTo(WarrantyStatus.ACTIVE);
         assertThat(createdViaCreate.orderId()).isEqualTo(order.getId());
         assertThat(createdViaActivate.orderId()).isEqualTo(order.getId());
+        assertThat(createdViaCreate.orderCode()).isEqualTo(order.getOrderCode());
+        assertThat(createdViaActivate.orderCode()).isEqualTo(order.getOrderCode());
+        assertThat(createdViaCreate.productId()).isEqualTo(product.getId());
+        assertThat(createdViaActivate.productId()).isEqualTo(product.getId());
+        assertThat(createdViaCreate.productName()).isEqualTo(product.getName());
+        assertThat(createdViaActivate.productName()).isEqualTo(product.getName());
+        assertThat(createdViaCreate.productSku()).isEqualTo(product.getSku());
+        assertThat(createdViaActivate.productSku()).isEqualTo(product.getSku());
         assertThat(productSerialRepository.findById(firstSerial.getId()).orElseThrow().getStatus())
                 .isEqualTo(ProductSerialStatus.WARRANTY);
         assertThat(productSerialRepository.findById(secondSerial.getId()).orElseThrow().getStatus())
                 .isEqualTo(ProductSerialStatus.WARRANTY);
+        var fetchedWarranty = dealerPortalService.getWarranty(dealer.getUsername(), createdViaCreate.id());
+        assertThat(fetchedWarranty.orderCode()).isEqualTo(order.getOrderCode());
+        assertThat(fetchedWarranty.productId()).isEqualTo(product.getId());
+        assertThat(fetchedWarranty.productName()).isEqualTo(product.getName());
+        assertThat(fetchedWarranty.productSku()).isEqualTo(product.getSku());
         assertThat(warrantyRegistrationRepository.findAll()).hasSize(2);
     }
 

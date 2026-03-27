@@ -800,14 +800,21 @@ class WarrantyController extends ChangeNotifier {
     final cached = cachedActivationsBySerial[serial];
     final imported = importedBySerial[serial];
     final remoteOrderId = _parseInt(json['orderId']);
-    final orderCode = remoteOrderId > 0
-        ? (_orderCodeForRemoteId?.call(remoteOrderId) ??
-              imported?.orderId ??
-              cached?.orderId ??
-              remoteOrderId.toString())
-        : (imported?.orderId ?? cached?.orderId ?? '');
+    final directOrderCode = _normalizeString(json['orderCode']);
+    final orderCode =
+        directOrderCode ??
+        (remoteOrderId > 0
+            ? (_orderCodeForRemoteId?.call(remoteOrderId) ??
+                  imported?.orderId ??
+                  cached?.orderId ??
+                  remoteOrderId.toString())
+            : (imported?.orderId ?? cached?.orderId ?? ''));
     final order = orderCode.isEmpty ? null : _orderLookup?.call(orderCode);
-    final productId = imported?.productId ?? cached?.productId ?? '';
+    final productId =
+        _normalizeString(json['productId']) ??
+        imported?.productId ??
+        cached?.productId ??
+        '';
     final product = productId.isEmpty ? null : _productLookup?.call(productId);
     final purchaseDate = _normalizeLocalDate(
       _parseDateTimeValue(json['purchaseDate']) ??
@@ -825,11 +832,13 @@ class WarrantyController extends ChangeNotifier {
       orderId: orderCode,
       productId: productId,
       productName:
+          _normalizeString(json['productName']) ??
           imported?.productName ??
           cached?.productName ??
           product?.name ??
           'Product',
       productSku:
+          _normalizeString(json['productSku']) ??
           imported?.productSku ??
           cached?.productSku ??
           product?.sku ??

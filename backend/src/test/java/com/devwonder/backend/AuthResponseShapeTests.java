@@ -60,8 +60,9 @@ class AuthResponseShapeTests {
      *   <li>{@code data.user.roles} — used by admin-fe for permission checks</li>
      *   <li>{@code data.user.requirePasswordChange} — triggers forced-change flow</li>
      * </ul>
-     * Set-Cookie must include the refresh token cookie used by the cookie-based
-     * refresh flow that dealer app and admin-fe rely on.
+     * Set-Cookie must include the refresh token cookie used by the canonical
+     * cookie/session refresh flow in admin-fe; dealer app still relies on the
+     * body refreshToken contract and backend supports both modes.
      */
     @Test
     void loginResponseContainsAllRequiredAuthFields() throws Exception {

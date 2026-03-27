@@ -2,6 +2,9 @@ package com.devwonder.backend.service.support;
 
 import com.devwonder.backend.dto.warranty.CreateWarrantyRegistrationRequest;
 import com.devwonder.backend.dto.warranty.WarrantyRegistrationResponse;
+import com.devwonder.backend.entity.Order;
+import com.devwonder.backend.entity.Product;
+import com.devwonder.backend.entity.ProductSerial;
 import com.devwonder.backend.entity.WarrantyRegistration;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
@@ -38,12 +41,19 @@ public class DealerWarrantySupport {
     public WarrantyRegistrationResponse getWarranty(Long dealerId, Long id) {
         WarrantyRegistration registration = warrantyRegistrationRepository.findByIdAndDealerId(id, dealerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Warranty registration not found"));
+        ProductSerial productSerial = registration.getProductSerial();
+        Product product = productSerial == null ? null : productSerial.getProduct();
+        Order order = registration.getOrder();
         return new WarrantyRegistrationResponse(
                 registration.getId(),
-                registration.getProductSerial() == null ? null : registration.getProductSerial().getId(),
-                registration.getProductSerial() == null ? null : registration.getProductSerial().getSerial(),
+                productSerial == null ? null : productSerial.getId(),
+                productSerial == null ? null : productSerial.getSerial(),
                 dealerId,
-                registration.getOrder() == null ? null : registration.getOrder().getId(),
+                order == null ? null : order.getId(),
+                order == null ? null : order.getOrderCode(),
+                product == null ? null : product.getId(),
+                product == null ? null : product.getName(),
+                product == null ? null : product.getSku(),
                 registration.getCustomerName(),
                 registration.getCustomerEmail(),
                 registration.getCustomerPhone(),

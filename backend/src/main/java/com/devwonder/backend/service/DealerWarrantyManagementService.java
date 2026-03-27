@@ -304,12 +304,18 @@ public class DealerWarrantyManagementService {
 
     private WarrantyRegistrationResponse toResponse(WarrantyRegistration registration) {
         ProductSerial productSerial = registration.getProductSerial();
+        Product product = productSerial == null ? null : productSerial.getProduct();
+        Order order = registration.getOrder();
         return new WarrantyRegistrationResponse(
                 registration.getId(),
                 productSerial == null ? null : productSerial.getId(),
                 productSerial == null ? null : productSerial.getSerial(),
                 registration.getDealer() == null ? null : registration.getDealer().getId(),
-                registration.getOrder() == null ? null : registration.getOrder().getId(),
+                order == null ? null : order.getId(),
+                order == null ? null : order.getOrderCode(),
+                product == null ? null : product.getId(),
+                product == null ? null : product.getName(),
+                product == null ? null : product.getSku(),
                 registration.getCustomerName(),
                 registration.getCustomerEmail(),
                 registration.getCustomerPhone(),

@@ -22,6 +22,10 @@ import org.springframework.test.web.servlet.MockMvc;
 })
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+/**
+ * /api/v1/auth/* is the canonical auth namespace.
+ * /api/auth/* remains a legacy compatibility alias and should stay wire-compatible.
+ */
 class LegacyAuthRouteCompatibilityTests {
 
     @Autowired
@@ -29,6 +33,7 @@ class LegacyAuthRouteCompatibilityTests {
 
     @Test
     void legacyAuthLoginRouteRemainsAvailable() throws Exception {
+        // Keep the legacy alias working while steering new code toward /api/v1/auth/*.
         mockMvc.perform(post("/api/auth/login")
                         .contentType(APPLICATION_JSON)
                         .content("""
