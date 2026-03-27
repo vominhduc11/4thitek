@@ -275,8 +275,14 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colors = Theme.of(context).colorScheme;
+    final screenWidth = MediaQuery.sizeOf(context).width;
     final isTablet = AppBreakpoints.isTablet(context);
-    final contentMaxWidth = isTablet ? 860.0 : double.infinity;
+    final isDesktopWide = screenWidth >= 1180;
+    final contentMaxWidth = isDesktopWide
+        ? 1180.0
+        : isTablet
+        ? 860.0
+        : double.infinity;
 
     final screenTitle = l10n.accountScreenTitle;
     final loadingLabel = l10n.accountSignOutLoading;
@@ -377,172 +383,206 @@ class _AccountScreenState extends State<AccountScreen> {
         maxLines: 2,
       );
 
-      return ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        children: [
-          FadeSlideIn(
-            child: InkWell(
+      final profileCard = FadeSlideIn(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: _isLoggingOut ? null : _openAccountSettings,
+          child: Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(18),
-              onTap: _isLoggingOut ? null : _openAccountSettings,
-              child: Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  side: BorderSide(
-                    color: colors.outlineVariant.withValues(alpha: 0.6),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildAvatar(profile, colors),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  profile.businessName,
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(fontWeight: FontWeight.w700),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: editProfileLabel,
-                            onPressed: _isLoggingOut
-                                ? null
-                                : _openAccountSettings,
-                            icon: const Icon(Icons.edit_outlined),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Divider(
-                        height: 1,
-                        color: colors.outlineVariant.withValues(alpha: 0.6),
-                      ),
-                      const SizedBox(height: 12),
-                      if (isTablet)
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: profileRows,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(child: policyWidget),
-                          ],
-                        )
-                      else
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ...profileRows,
-                            const SizedBox(height: 10),
-                            policyWidget,
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
+              side: BorderSide(
+                color: colors.outlineVariant.withValues(alpha: 0.6),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          FadeSlideIn(
-            delay: const Duration(milliseconds: 80),
-            child: Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-                side: BorderSide(
-                  color: colors.outlineVariant.withValues(alpha: 0.6),
-                ),
-              ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ListTile(
-                    leading: const Icon(Icons.settings_outlined),
-                    title: Text(menuSettingsTitle),
-                    subtitle: Text(menuSettingsSubtitle),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: _isLoggingOut ? null : _openAccountSettings,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildAvatar(profile, colors),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              profile.businessName,
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: editProfileLabel,
+                        onPressed: _isLoggingOut ? null : _openAccountSettings,
+                        icon: const Icon(Icons.edit_outlined),
+                      ),
+                    ],
                   ),
-                  const Divider(height: 0),
-                  ListTile(
-                    leading: const Icon(Icons.support_agent_outlined),
-                    title: Text(menuSupportTitle),
-                    subtitle: Text(menuSupportSubtitle),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: _isLoggingOut ? null : _openSupport,
+                  const SizedBox(height: 12),
+                  Divider(
+                    height: 1,
+                    color: colors.outlineVariant.withValues(alpha: 0.6),
                   ),
-                  const Divider(height: 0),
-                  ListTile(
-                    leading: const Icon(Icons.verified_user_outlined),
-                    title: Text(menuWarrantyTitle),
-                    subtitle: Text(menuWarrantySubtitle),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: _isLoggingOut ? null : _openWarrantyHub,
-                  ),
-                  const Divider(height: 0),
-                  ListTile(
-                    leading: const Icon(Icons.lock_reset_outlined),
-                    title: Text(menuChangePasswordTitle),
-                    subtitle: Text(menuChangePasswordSubtitle),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: _isLoggingOut ? null : _openChangePassword,
-                  ),
-                  const Divider(height: 0),
-                  ListTile(
-                    leading: const Icon(Icons.palette_outlined),
-                    title: Text(menuPreferencesTitle),
-                    subtitle: Text(menuPreferencesSubtitle),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: _isLoggingOut ? null : _openAppPreferences,
-                  ),
+                  const SizedBox(height: 12),
+                  if (isTablet)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: profileRows,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(child: policyWidget),
+                      ],
+                    )
+                  else
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ...profileRows,
+                        const SizedBox(height: 10),
+                        policyWidget,
+                      ],
+                    ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 20),
-          FadeSlideIn(
-            delay: const Duration(milliseconds: 140),
-            child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: colors.error,
-                side: BorderSide(color: colors.error.withValues(alpha: 0.55)),
-              ),
-              onPressed: _isLoggingOut ? null : () => _handleLogout(l10n),
-              child: _isLoggingOut
-                  ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        valueColor: AlwaysStoppedAnimation<Color>(colors.error),
-                      ),
-                    )
-                  : Text(logoutLabel),
+        ),
+      );
+
+      final actionsCard = FadeSlideIn(
+        delay: const Duration(milliseconds: 80),
+        child: Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(
+              color: colors.outlineVariant.withValues(alpha: 0.6),
             ),
           ),
-          const SizedBox(height: 12),
-          Text(
-            versionLabel,
-            textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.settings_outlined),
+                title: Text(menuSettingsTitle),
+                subtitle: Text(menuSettingsSubtitle),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _isLoggingOut ? null : _openAccountSettings,
+              ),
+              const Divider(height: 0),
+              ListTile(
+                leading: const Icon(Icons.support_agent_outlined),
+                title: Text(menuSupportTitle),
+                subtitle: Text(menuSupportSubtitle),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _isLoggingOut ? null : _openSupport,
+              ),
+              const Divider(height: 0),
+              ListTile(
+                leading: const Icon(Icons.verified_user_outlined),
+                title: Text(menuWarrantyTitle),
+                subtitle: Text(menuWarrantySubtitle),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _isLoggingOut ? null : _openWarrantyHub,
+              ),
+              const Divider(height: 0),
+              ListTile(
+                leading: const Icon(Icons.lock_reset_outlined),
+                title: Text(menuChangePasswordTitle),
+                subtitle: Text(menuChangePasswordSubtitle),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _isLoggingOut ? null : _openChangePassword,
+              ),
+              const Divider(height: 0),
+              ListTile(
+                leading: const Icon(Icons.palette_outlined),
+                title: Text(menuPreferencesTitle),
+                subtitle: Text(menuPreferencesSubtitle),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _isLoggingOut ? null : _openAppPreferences,
+              ),
+            ],
           ),
+        ),
+      );
+
+      final logoutButton = FadeSlideIn(
+        delay: const Duration(milliseconds: 140),
+        child: OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: colors.error,
+            side: BorderSide(color: colors.error.withValues(alpha: 0.55)),
+          ),
+          onPressed: _isLoggingOut ? null : () => _handleLogout(l10n),
+          child: _isLoggingOut
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(colors.error),
+                  ),
+                )
+              : Text(logoutLabel),
+        ),
+      );
+
+      final versionText = Text(
+        versionLabel,
+        textAlign: TextAlign.center,
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+      );
+
+      if (isDesktopWide) {
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 11, child: profileCard),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 9,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      actionsCard,
+                      const SizedBox(height: 20),
+                      logoutButton,
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            versionText,
+          ],
+        );
+      }
+
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        children: [
+          profileCard,
+          const SizedBox(height: 16),
+          actionsCard,
+          const SizedBox(height: 20),
+          logoutButton,
+          const SizedBox(height: 12),
+          versionText,
         ],
       );
     }

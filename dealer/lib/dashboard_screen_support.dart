@@ -356,6 +356,234 @@ DateTime? _orderRevenueTimestamp(Order order) {
   return order.completedAt ?? order.createdAt;
 }
 
+class _MonthRevenue {
+  const _MonthRevenue({required this.month, required this.value});
+
+  final int month;
+  final int value;
+
+  String get label => 'T$month';
+}
+
+List<_MonthRevenue> _buildMonthlyRevenue(
+  List<Order> orders, {
+  required int year,
+}) {
+  final values = List<int>.filled(12, 0);
+  for (final order in orders) {
+    final revenueAt = _orderRevenueTimestamp(order);
+    if (revenueAt == null || revenueAt.year != year) {
+      continue;
+    }
+    values[revenueAt.month - 1] += order.total;
+  }
+
+  return [
+    for (var i = 0; i < 12; i++) _MonthRevenue(month: i + 1, value: values[i]),
+  ];
+}
+
+class _CustomerStat {
+  const _CustomerStat({
+    required this.name,
+    required this.phone,
+    required this.total,
+    required this.orderCount,
+    required this.lastOrder,
+  });
+
+  final String name;
+  final String phone;
+  final int total;
+  final int orderCount;
+  final DateTime lastOrder;
+
+  int get avgOrder => orderCount == 0 ? 0 : (total / orderCount).round();
+
+  String get initials {
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0].isNotEmpty ? parts[0][0] : '') +
+          (parts.last.isNotEmpty ? parts.last[0] : '');
+    }
+    return name.isNotEmpty ? name[0] : '?';
+  }
+}
+
+// ignore: unused_element
+List<_CustomerStat> _buildTopCustomers(List<Order> orders) {
+  final map = <String, _CustomerStat>{};
+
+  for (final order in orders) {
+    final key = '${order.receiverName}-${order.receiverPhone}';
+    final current = map[key];
+    final updated = _CustomerStat(
+      name: order.receiverName,
+      phone: order.receiverPhone,
+      total: (current?.total ?? 0) + order.total,
+      orderCount: (current?.orderCount ?? 0) + 1,
+      lastOrder: [
+        if (current != null) current.lastOrder,
+        order.createdAt,
+      ].reduce((a, b) => a.isAfter(b) ? a : b),
+    );
+    map[key] = updated;
+  }
+
+  final list = map.values.toList()
+    ..sort((a, b) {
+      final totalCompare = b.total.compareTo(a.total);
+      if (totalCompare != 0) {
+        return totalCompare;
+      }
+      return b.lastOrder.compareTo(a.lastOrder);
+    });
+  return list;
+}
+
+class _DebtBucket {
+  const _DebtBucket({
+    required this.label,
+    required this.minDay,
+    required this.maxDay,
+    required this.color,
+    this.amount = 0,
+  });
+
+  final String label;
+  final int minDay;
+  final int maxDay;
+  final Color color;
+  final int amount;
+
+  _DebtBucket copyWith({int? amount}) {
+    return _DebtBucket(
+      label: label,
+      minDay: minDay,
+      maxDay: maxDay,
+      color: color,
+      amount: amount ?? this.amount,
+    );
+  }
+}
+
+List<_DebtBucket> _buildDebtBuckets(
+  List<Order> orders, {
+  required DateTime now,
+  required _DashboardTexts texts,
+}) {
+  final buckets = [
+    _DebtBucket(
+      label: texts.debtBucketRangeLabel(0, 30),
+      minDay: 0,
+      maxDay: 30,
+      color: const Color(0xFF1D4ED8),
+    ),
+    _DebtBucket(
+      label: texts.debtBucketRangeLabel(31, 60),
+      minDay: 31,
+      maxDay: 60,
+      color: const Color(0xFF7C3AED),
+    ),
+    _DebtBucket(
+      label: texts.debtBucketRangeLabel(61, 90),
+      minDay: 61,
+      maxDay: 90,
+      color: const Color(0xFFEA580C),
+    ),
+    _DebtBucket(
+      label: texts.debtBucketRangeLabel(91, 9999),
+      minDay: 91,
+      maxDay: 9999,
+      color: const Color(0xFFD92D20),
+    ),
+  ];
+
+  final today = DateTime(now.year, now.month, now.day);
+  final amounts = List<int>.filled(buckets.length, 0);
+
+  for (final order in orders) {
+    if (order.paymentMethod != OrderPaymentMethod.debt ||
+        order.status == OrderStatus.cancelled ||
+        order.outstandingAmount <= 0) {
+      continue;
+    }
+    final createdAt = DateTime(
+      order.createdAt.year,
+      order.createdAt.month,
+      order.createdAt.day,
+    );
+    final ageInDays = math.max(0, today.difference(createdAt).inDays);
+    final index = buckets.indexWhere(
+      (bucket) => ageInDays >= bucket.minDay && ageInDays <= bucket.maxDay,
+    );
+    if (index >= 0) {
+      amounts[index] += order.outstandingAmount;
+    }
+  }
+
+  return [
+    for (var i = 0; i < buckets.length; i++)
+      buckets[i].copyWith(amount: amounts[i]),
+  ];
+}
+
+class _DailyActivation {
+  const _DailyActivation({required this.date, required this.count});
+
+  final DateTime date;
+  final int count;
+}
+
+List<_DailyActivation> _buildActivationSeries({
+  required int days,
+  required DateTime endDate,
+  required List<WarrantyActivationRecord> activations,
+}) {
+  final end = DateTime(endDate.year, endDate.month, endDate.day);
+  final startDate = end.subtract(Duration(days: days - 1));
+
+  final countByDate = <DateTime, int>{};
+  for (final a in activations) {
+    final d = DateTime(
+      a.activatedAt.year,
+      a.activatedAt.month,
+      a.activatedAt.day,
+    );
+    if (!d.isBefore(startDate) && !d.isAfter(end)) {
+      countByDate[d] = (countByDate[d] ?? 0) + 1;
+    }
+  }
+
+  final list = <_DailyActivation>[];
+  for (var i = days - 1; i >= 0; i--) {
+    final date = end.subtract(Duration(days: i));
+    final normalised = DateTime(date.year, date.month, date.day);
+    list.add(
+      _DailyActivation(date: normalised, count: countByDate[normalised] ?? 0),
+    );
+  }
+  return list;
+}
+
+class _WarrantyStatusStat {
+  const _WarrantyStatusStat({
+    required this.label,
+    required this.count,
+    required this.color,
+  });
+
+  final String label;
+  final int count;
+  final Color color;
+}
+
+List<_WarrantyStatusStat> _buildWarrantyStatuses(List<_DailyActivation> _) {
+  // The dealer app does not currently have a real backend status breakdown
+  // for this dashboard card, so we intentionally do not synthesize one.
+  return const <_WarrantyStatusStat>[];
+}
+
 Future<_DashboardTimeFilterSelection?> _showDashboardTimeFilterSheet({
   required BuildContext context,
   required _DashboardTimeFilter initialFilter,

@@ -11,7 +11,9 @@ import 'models.dart';
 import 'notification_controller.dart';
 import 'order_controller.dart';
 import 'order_detail_screen.dart';
+import 'order_query_service.dart';
 import 'notifications_screen.dart';
+import 'query_page.dart';
 import 'widgets/notification_icon_button.dart';
 import 'product_list_screen.dart';
 import 'utils.dart';
@@ -19,7 +21,7 @@ import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
-enum _OrderSort { newest, highestValue, debtFirst }
+part 'orders_screen_support.dart';
 
 _OrdersTexts _ordersTexts(BuildContext context) => _OrdersTexts(
   isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
@@ -44,12 +46,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
   String _lastOrderSnapshot = '';
   bool _hasInitializedSnapshot = false;
   OrderController? _observedOrderController;
+  OrderQueryRepository? _orderQueryRepository;
+  int _queryRevision = 0;
 
-  String _searchQuery = '';
-  OrderStatus? _selectedStatus; // null = all
-  OrderPaymentStatus? _selectedPaymentStatus; // null = all
-  bool _onlyOutstanding = false;
-  _OrderSort _selectedSort = _OrderSort.newest;
+  OrderListQuery _query = const OrderListQuery();
 
   @override
   void initState() {
@@ -66,17 +66,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
     if (!identical(controller, _observedOrderController)) {
       _observedOrderController?.removeListener(_handleOrderControllerChanged);
       _observedOrderController = controller;
+      _orderQueryRepository = OrderQueryRepository(
+        localDataSource: LocalOrderQueryDataSource(orderController: controller),
+      );
       _observedOrderController?.addListener(_handleOrderControllerChanged);
       _syncOrderSnapshot(controller.orders);
+      _refreshOrders();
     }
-  }
-
-  void _handleOrderControllerChanged() {
-    final controller = _observedOrderController;
-    if (!mounted || controller == null) {
-      return;
-    }
-    _syncOrderSnapshot(controller.orders);
   }
 
   @override
@@ -87,224 +83,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
     _searchController.dispose();
     _pagingController.dispose();
     super.dispose();
-  }
-
-  List<Order> _filterOrders(List<Order> orders) {
-    var result = List<Order>.from(orders);
-    if (_selectedStatus != null) {
-      result = result.where((o) => o.status == _selectedStatus).toList();
-    }
-    if (_selectedPaymentStatus != null) {
-      result = result
-          .where((o) => o.paymentStatus == _selectedPaymentStatus)
-          .toList();
-    }
-    if (_onlyOutstanding) {
-      result = result
-          .where(
-            (o) => o.outstandingAmount > 0 && o.status != OrderStatus.cancelled,
-          )
-          .toList();
-    }
-    if (_searchQuery.isNotEmpty) {
-      final q = _searchQuery.toLowerCase();
-      result = result.where((o) {
-        final matchesOrderId = o.id.toLowerCase().contains(q);
-        final matchesReceiverName = o.receiverName.toLowerCase().contains(q);
-        final matchesReceiverPhone = o.receiverPhone.toLowerCase().contains(q);
-        final matchesProductName = o.items.any(
-          (item) => item.product.name.toLowerCase().contains(q),
-        );
-        return matchesOrderId ||
-            matchesReceiverName ||
-            matchesReceiverPhone ||
-            matchesProductName;
-      }).toList();
-    }
-
-    switch (_selectedSort) {
-      case _OrderSort.newest:
-        result.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      case _OrderSort.highestValue:
-        result.sort((a, b) {
-          final totalCompare = b.total.compareTo(a.total);
-          if (totalCompare != 0) {
-            return totalCompare;
-          }
-          return b.createdAt.compareTo(a.createdAt);
-        });
-      case _OrderSort.debtFirst:
-        result.sort((a, b) {
-          final debtCompare = b.outstandingAmount.compareTo(
-            a.outstandingAmount,
-          );
-          if (debtCompare != 0) {
-            return debtCompare;
-          }
-          return b.createdAt.compareTo(a.createdAt);
-        });
-    }
-
-    return result;
-  }
-
-  Future<void> _fetchPage(int pageKey) async {
-    try {
-      if (!mounted) return;
-
-      final allOrders = OrderScope.of(context).orders;
-      final filteredOrders = _filterOrders(allOrders);
-      final start = pageKey;
-      final end = math.min(start + _pageSize, filteredOrders.length);
-      final newItems = start >= filteredOrders.length
-          ? const <Order>[]
-          : filteredOrders.sublist(start, end);
-      final isLastPage = end >= filteredOrders.length;
-      if (isLastPage) {
-        _pagingController.appendLastPage(newItems);
-      } else {
-        _pagingController.appendPage(newItems, end);
-      }
-    } catch (error) {
-      _pagingController.error = error;
-    }
-  }
-
-  void _refreshOrders() {
-    _pagingController.refresh();
-  }
-
-  void _onSearchChanged(String value) {
-    _searchDebounce?.cancel();
-    final next = value.trim();
-    _searchDebounce = Timer(const Duration(milliseconds: 320), () {
-      if (!mounted || next == _searchQuery) {
-        return;
-      }
-      setState(() => _searchQuery = next);
-      _refreshOrders();
-    });
-  }
-
-  void _clearSearch() {
-    final hasValue =
-        _searchController.text.isNotEmpty || _searchQuery.isNotEmpty;
-    if (!hasValue) {
-      return;
-    }
-    _searchDebounce?.cancel();
-    _searchController.clear();
-    if (_searchQuery.isEmpty) {
-      return;
-    }
-    setState(() => _searchQuery = '');
-    _refreshOrders();
-  }
-
-  void _setStatusFilter(OrderStatus? status) {
-    if (_selectedStatus == status) {
-      return;
-    }
-    setState(() => _selectedStatus = status);
-    _refreshOrders();
-  }
-
-  void _setPaymentStatusFilter(OrderPaymentStatus? paymentStatus) {
-    if (_selectedPaymentStatus == paymentStatus) {
-      return;
-    }
-    setState(() => _selectedPaymentStatus = paymentStatus);
-    _refreshOrders();
-  }
-
-  void _clearActiveFilters() {
-    if (_selectedStatus == null &&
-        _selectedPaymentStatus == null &&
-        !_onlyOutstanding) {
-      return;
-    }
-    setState(() {
-      _selectedStatus = null;
-      _selectedPaymentStatus = null;
-      _onlyOutstanding = false;
-    });
-    _refreshOrders();
-  }
-
-  void _clearAllCriteria() {
-    final hadSearch =
-        _searchController.text.isNotEmpty || _searchQuery.isNotEmpty;
-    final hadFilters =
-        _selectedStatus != null ||
-        _selectedPaymentStatus != null ||
-        _onlyOutstanding;
-    if (!hadSearch && !hadFilters) {
-      return;
-    }
-    _searchDebounce?.cancel();
-    _searchController.clear();
-    setState(() {
-      _searchQuery = '';
-      _selectedStatus = null;
-      _selectedPaymentStatus = null;
-      _onlyOutstanding = false;
-    });
-    _refreshOrders();
-  }
-
-  void _toggleOutstandingQuickFilter() {
-    setState(() {
-      _onlyOutstanding = !_onlyOutstanding;
-    });
-    _refreshOrders();
-  }
-
-  void _setSort(_OrderSort sort) {
-    if (_selectedSort == sort) {
-      return;
-    }
-    setState(() => _selectedSort = sort);
-    _refreshOrders();
-  }
-
-  void _syncOrderSnapshot(List<Order> orders) {
-    final snapshot = Object.hashAll(
-      orders.map(
-        (o) => Object.hash(o.id, o.status, o.paymentStatus, o.paidAmount),
-      ),
-    ).toString();
-    if (!_hasInitializedSnapshot) {
-      _hasInitializedSnapshot = true;
-      _lastOrderSnapshot = snapshot;
-      return;
-    }
-    if (_lastOrderSnapshot == snapshot) {
-      return;
-    }
-    _lastOrderSnapshot = snapshot;
-    _orderRefreshDebounce?.cancel();
-    _orderRefreshDebounce = Timer(const Duration(milliseconds: 400), () {
-      if (!mounted) return;
-      _refreshOrders();
-    });
-  }
-
-  String _activeCriteriaSummary(BuildContext context) {
-    final texts = _ordersTexts(context);
-    final parts = <String>[];
-    if (_onlyOutstanding) {
-      parts.add(texts.outstandingCriteriaLabel);
-    }
-    if (_selectedStatus != null) {
-      parts.add(texts.statusCriteriaLabel(_selectedStatus!));
-    }
-    if (_selectedPaymentStatus != null) {
-      parts.add(texts.paymentCriteriaLabel(_selectedPaymentStatus!));
-    }
-    if (_searchQuery.isNotEmpty) {
-      parts.add(texts.keywordCriteriaLabel(_searchQuery));
-    }
-    return parts.join(' · ');
   }
 
   void _confirmCancel(BuildContext context, Order order) {
@@ -440,33 +218,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
   Widget build(BuildContext context) {
     final texts = _ordersTexts(context);
     final colors = Theme.of(context).colorScheme;
-    final mediaSize = MediaQuery.sizeOf(context);
-    final shortestSide = mediaSize.shortestSide;
-    final isCompact = shortestSide < AppBreakpoints.phone;
-    final contentMaxWidth = isCompact ? double.infinity : 1100.0;
-    final constrainedWidth = isCompact
-        ? mediaSize.width
-        : math.min(mediaSize.width, contentMaxWidth);
-    final useWrapFilters = !isCompact && constrainedWidth >= 900;
-    final useGridLayout = !isCompact;
-    final bottomSafeArea = MediaQuery.of(context).viewPadding.bottom;
-    final listBottomPadding = (isCompact ? 104.0 : 88.0) + bottomSafeArea;
+    final layout = _OrdersLayoutConfig.fromContext(context);
 
     final orderController = OrderScope.of(context);
     final warrantyController = WarrantyScope.of(context);
+    final querySnapshot =
+        _orderQueryRepository?.readSnapshot(_query) ??
+        const OrderQuerySnapshot.empty();
     final allOrders = orderController.orders;
-    final filteredOrders = _filterOrders(allOrders);
-    final pendingApprovalCount = filteredOrders
-        .where((order) => order.status == OrderStatus.pendingApproval)
-        .length;
-    final debtOrderCount = filteredOrders
-        .where(
-          (order) =>
-              order.paymentMethod == OrderPaymentMethod.debt &&
-              order.outstandingAmount > 0 &&
-              order.status != OrderStatus.cancelled,
-        )
-        .length;
+    final pendingApprovalCount = querySnapshot.pendingApprovalCount;
+    final debtOrderCount = querySnapshot.outstandingOrderCount;
 
     final statusFilters = <OrderStatus?>[
       null,
@@ -486,10 +247,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
     ];
     final hasSummaryData = pendingApprovalCount > 0 || debtOrderCount > 0;
     final hasActiveFilters =
-        _selectedStatus != null ||
-        _selectedPaymentStatus != null ||
-        _onlyOutstanding;
-    final hasActiveSearch = _searchQuery.isNotEmpty;
+        _query.status != null ||
+        _query.paymentStatus != null ||
+        _query.onlyOutstanding;
+    final hasActiveSearch = _query.normalizedSearchText.isNotEmpty;
     final activeCriteriaSummary = _activeCriteriaSummary(context);
     final canResetCriteria = hasActiveFilters || hasActiveSearch;
     final hasActiveCriteria = canResetCriteria;
@@ -671,7 +432,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
             ),
           ),
         );
-        if (useGridLayout) {
+        if (layout.useGridLayout) {
           return card;
         }
         return Padding(padding: const EdgeInsets.only(bottom: 12), child: card);
@@ -725,7 +486,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: contentMaxWidth),
+          constraints: BoxConstraints(maxWidth: layout.contentMaxWidth),
           child: Column(
             children: [
               Padding(
@@ -755,24 +516,24 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 context: context,
                 label: texts.statusFilterLabel,
                 options: statusFilters,
-                selected: _selectedStatus,
+                selected: _query.status,
                 onSelected: _setStatusFilter,
                 labelFor: (status) => status == null
                     ? texts.allFilterOption
                     : texts.orderStatusLabel(status),
-                useWrapLayout: useWrapFilters,
+                useWrapLayout: layout.useWrapFilters,
               ),
               const SizedBox(height: 8),
               _buildFilterChips<OrderPaymentStatus>(
                 context: context,
                 label: texts.paymentFilterLabel,
                 options: paymentFilters,
-                selected: _selectedPaymentStatus,
+                selected: _query.paymentStatus,
                 onSelected: _setPaymentStatusFilter,
                 labelFor: (status) => status == null
                     ? texts.allFilterOption
                     : texts.orderPaymentStatusLabel(status),
-                useWrapLayout: useWrapFilters,
+                useWrapLayout: layout.useWrapFilters,
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
@@ -820,7 +581,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                             .textTheme
                                             .bodySmall
                                             ?.copyWith(
-                                              color: _onlyOutstanding
+                                              color: _query.onlyOutstanding
                                                   ? colors.primary
                                                   : colors.onSurfaceVariant,
                                               fontWeight: FontWeight.w700,
@@ -874,18 +635,18 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           size: 20,
                         ),
                       ),
-                    PopupMenuButton<_OrderSort>(
+                    PopupMenuButton<OrderSortOption>(
                       tooltip: texts.sortTooltip,
                       onSelected: _setSort,
-                      itemBuilder: (context) => _OrderSort.values
+                      itemBuilder: (context) => OrderSortOption.values
                           .map(
-                            (sort) => PopupMenuItem<_OrderSort>(
+                            (sort) => PopupMenuItem<OrderSortOption>(
                               value: sort,
                               child: Row(
                                 children: [
                                   SizedBox(
                                     width: 22,
-                                    child: _selectedSort == sort
+                                    child: _query.sort == sort
                                         ? Icon(
                                             Icons.check,
                                             size: 18,
@@ -916,7 +677,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           children: [
                             const Icon(Icons.sort, size: 16),
                             const SizedBox(width: 6),
-                            Text(texts.sortLabel(_selectedSort)),
+                            Text(texts.sortLabel(_query.sort)),
                           ],
                         ),
                       ),
@@ -931,7 +692,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     await orderController.refresh();
                     _refreshOrders();
                   },
-                  child: useGridLayout
+                  child: layout.useGridLayout
                       ? PagedGridView<int, Order>(
                           keyboardDismissBehavior:
                               ScrollViewKeyboardDismissBehavior.onDrag,
@@ -941,14 +702,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             20,
                             8,
                             20,
-                            listBottomPadding,
+                            layout.listBottomPadding,
                           ),
                           gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: layout.gridColumnCount,
                                 mainAxisSpacing: 12,
                                 crossAxisSpacing: 12,
-                                mainAxisExtent: 460,
+                                mainAxisExtent: layout.gridItemExtent,
                               ),
                           builderDelegate: orderBuilderDelegate,
                         )
@@ -961,7 +722,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             20,
                             8,
                             20,
-                            listBottomPadding,
+                            layout.listBottomPadding,
                           ),
                           builderDelegate: orderBuilderDelegate,
                         ),
@@ -971,7 +732,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ),
         ),
       ),
-      floatingActionButton: isCompact
+      floatingActionButton: layout.isCompact
           ? FloatingActionButton.extended(
               onPressed: () => _openCreateOrder(context),
               icon: const Icon(Icons.add_shopping_cart_outlined),
@@ -1240,13 +1001,13 @@ class _OrdersTexts {
   String get paymentStatusLabel =>
       isEnglish ? 'Payment status:' : 'Trạng thái TT:';
 
-  String sortLabel(_OrderSort sort) {
+  String sortLabel(OrderSortOption sort) {
     switch (sort) {
-      case _OrderSort.newest:
+      case OrderSortOption.newest:
         return isEnglish ? 'Newest first' : 'Mới nhất';
-      case _OrderSort.highestValue:
+      case OrderSortOption.highestValue:
         return isEnglish ? 'Highest value' : 'Giá trị cao';
-      case _OrderSort.debtFirst:
+      case OrderSortOption.debtFirst:
         return isEnglish ? 'Outstanding first' : 'Còn nợ trước';
     }
   }

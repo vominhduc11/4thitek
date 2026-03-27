@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -36,55 +35,52 @@ String resolveOrderControllerMessage(
   if (normalized == null || normalized.isEmpty) {
     return isEnglish
         ? 'Unable to sync order data.'
-        : 'Khong the dong bo du lieu don hang.';
+        : 'Không thể đồng bộ dữ liệu đơn hàng.';
   }
 
   switch (normalized) {
     case 'order.message.apiNotConfigured':
       return isEnglish
           ? 'Order API is not configured.'
-          : 'API don hang chua duoc cau hinh.';
+          : 'API đơn hàng chưa được cấu hình.';
     case 'order.message.unauthenticated':
       return isEnglish
           ? 'You need to sign in before managing orders.'
-          : 'Ban can dang nhap truoc khi thao tac don hang.';
+          : 'Bạn cần đăng nhập trước khi thao tác đơn hàng.';
     case 'order.message.invalidOrderPayload':
       return isEnglish
           ? 'Order data is invalid.'
-          : 'Du lieu don hang khong hop le.';
+          : 'Dữ liệu đơn hàng không hợp lệ.';
     case 'order.message.invalidOrdersPayload':
       return isEnglish
           ? 'Orders data is invalid.'
-          : 'Du lieu danh sach don hang khong hop le.';
+          : 'Dữ liệu danh sách đơn hàng không hợp lệ.';
     case 'order.message.invalidCreateOrderPayload':
       return isEnglish
           ? 'Created order data is invalid.'
-          : 'Du lieu don hang vua tao khong hop le.';
+          : 'Dữ liệu đơn hàng vừa tạo không hợp lệ.';
     case 'order.message.createOrderFailed':
       return isEnglish
           ? 'Unable to create the order. Please try again.'
-          : 'Khong the tao don hang. Vui long thu lai.';
+          : 'Không thể tạo đơn hàng. Vui lòng thử lại.';
     case 'order.message.statusUpdateFailed':
       return isEnglish
           ? 'Unable to update the order status. Please try again.'
-          : 'Khong the cap nhat trang thai don hang. Vui long thu lai.';
+          : 'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.';
     case 'order.message.paymentFailed':
       return isEnglish
           ? 'Unable to record the payment. Please check again.'
-          : 'Khong the ghi nhan thanh toan. Vui long kiem tra lai.';
+          : 'Không thể ghi nhận thanh toán. Vui lòng kiểm tra lại.';
     case 'order.message.syncFailed':
       return isEnglish
           ? 'Unable to sync order data.'
-          : 'Khong the dong bo du lieu don hang.';
+          : 'Không thể đồng bộ dữ liệu đơn hàng.';
     default:
       return normalized;
   }
 }
 
-String orderControllerErrorMessage(
-  Object? error, {
-  required bool isEnglish,
-}) {
+String orderControllerErrorMessage(Object? error, {required bool isEnglish}) {
   final message = switch (error) {
     OrderControllerException() => error.message,
     String() => error,
@@ -175,7 +171,6 @@ class OrderController extends ChangeNotifier {
     _lastActionMessage = null;
     final loadedRemote = await _loadRemoteOrdersAndPayments();
     if (!loadedRemote) {
-      await Future<void>.delayed(const Duration(milliseconds: 300));
       notifyListeners();
     }
   }
@@ -343,9 +338,7 @@ class OrderController extends ChangeNotifier {
           throw OrderControllerException(
             _extractErrorMessageWithFallback(
               payload,
-              orderControllerMessageToken(
-                OrderMessageCode.statusUpdateFailed,
-              ),
+              orderControllerMessageToken(OrderMessageCode.statusUpdateFailed),
             ),
           );
         }
@@ -441,7 +434,9 @@ class OrderController extends ChangeNotifier {
     if (remoteOrderId != null && await _canUseRemoteApi()) {
       try {
         final response = await _client.post(
-          DealerApiConfig.resolveApiUri('/dealer/orders/$remoteOrderId/payments'),
+          DealerApiConfig.resolveApiUri(
+            '/dealer/orders/$remoteOrderId/payments',
+          ),
           headers: await _authorizedJsonHeaders(),
           body: jsonEncode(<String, dynamic>{
             'amount': safeAmount,
@@ -457,9 +452,7 @@ class OrderController extends ChangeNotifier {
           throw OrderControllerException(
             _extractErrorMessageWithFallback(
               payload,
-              orderControllerMessageToken(
-                OrderMessageCode.paymentFailed,
-              ),
+              orderControllerMessageToken(OrderMessageCode.paymentFailed),
             ),
           );
         }
@@ -555,28 +548,34 @@ class OrderController extends ChangeNotifier {
         if (order.note != null && order.note!.trim().isNotEmpty)
           'note': order.note!.trim(),
         'items': () {
-            final mapped = order.items.map(
-              (item) => <String, dynamic>{
-                'productId': int.tryParse(item.product.id),
-                'quantity': item.quantity,
-                '_rawId': item.product.id,
-              },
-            ).toList(growable: false);
-            final dropped = mapped.where((item) => item['productId'] == null).toList();
-            if (dropped.isNotEmpty) {
-              debugPrint(
-                'OrderController: dropping ${dropped.length} item(s) with non-numeric product ids: '
-                '${dropped.map((item) => item['_rawId']).join(', ')}',
-              );
-            }
-            return mapped
-                .where((item) => item['productId'] != null)
-                .map((item) => <String, dynamic>{
+          final mapped = order.items
+              .map(
+                (item) => <String, dynamic>{
+                  'productId': int.tryParse(item.product.id),
+                  'quantity': item.quantity,
+                  '_rawId': item.product.id,
+                },
+              )
+              .toList(growable: false);
+          final dropped = mapped
+              .where((item) => item['productId'] == null)
+              .toList();
+          if (dropped.isNotEmpty) {
+            debugPrint(
+              'OrderController: dropping ${dropped.length} item(s) with non-numeric product ids: '
+              '${dropped.map((item) => item['_rawId']).join(', ')}',
+            );
+          }
+          return mapped
+              .where((item) => item['productId'] != null)
+              .map(
+                (item) => <String, dynamic>{
                   'productId': item['productId'],
                   'quantity': item['quantity'],
-                })
-                .toList(growable: false);
-          }(),
+                },
+              )
+              .toList(growable: false);
+        }(),
       }),
     );
     final payload = _decodeBody(response.body);
@@ -612,9 +611,7 @@ class OrderController extends ChangeNotifier {
       throw OrderControllerException(
         _extractErrorMessageWithFallback(
           payload,
-          orderControllerMessageToken(
-            OrderMessageCode.invalidOrderPayload,
-          ),
+          orderControllerMessageToken(OrderMessageCode.invalidOrderPayload),
         ),
       );
     }
@@ -853,9 +850,7 @@ class OrderController extends ChangeNotifier {
     final bytes = List<int>.generate(16, (_) => random.nextInt(256));
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
     bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    final hex = bytes
-        .map((b) => b.toRadixString(16).padLeft(2, '0'))
-        .join();
+    final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
     return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
         '${hex.substring(12, 16)}-${hex.substring(16, 20)}-'
         '${hex.substring(20)}';

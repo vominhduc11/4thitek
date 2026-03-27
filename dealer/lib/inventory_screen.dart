@@ -17,6 +17,8 @@ import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/product_image.dart';
 
+part 'inventory_screen_support.dart';
+
 const int _lowStockThreshold = kLowStockThreshold;
 const double _inventoryFabHeight = 56;
 const double _inventoryFabBottomSpacing = 20;
@@ -342,9 +344,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         kFloatingActionButtonMargin +
         _inventoryFabBottomSpacing +
         MediaQuery.paddingOf(context).bottom;
-    final isTablet =
-        MediaQuery.sizeOf(context).shortestSide >= AppBreakpoints.phone;
-    final maxWidth = isTablet ? 1040.0 : double.infinity;
+    final layout = _InventoryLayoutConfig.fromContext(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -355,7 +355,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxWidth),
+          constraints: BoxConstraints(maxWidth: layout.contentMaxWidth),
           child: switch (_loadState) {
             InventoryLoadState.loading => _InventoryLoadingView(
               bottomPadding: listBottomPadding,
@@ -378,7 +378,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     summary: texts.inventorySourceSummary(
                       warrantyController.lastRemoteSyncAt == null
                           ? null
-                          : formatDateTime(warrantyController.lastRemoteSyncAt!),
+                          : formatDateTime(
+                              warrantyController.lastRemoteSyncAt!,
+                            ),
                     ),
                     warningMessage: _syncWarningMessage,
                   ),
@@ -467,7 +469,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     ],
                   ),
                   const SizedBox(height: _inventorySectionSpacing),
-                  if (isTablet)
+                  if (layout.showSummaryRow)
                     Row(
                       children: [
                         Expanded(child: summaryCards[0]),
@@ -487,33 +489,69 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   else if (filteredItems.isEmpty)
                     _InventoryFilteredEmptyView(onClear: _clearFilters)
                   else ...[
-                    for (var index = 0; index < visibleItemCount; index++)
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          bottom: _inventoryListItemSpacing,
+                    if (layout.showWideGrid)
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: visibleItemCount,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: layout.tileColumnCount,
+                          mainAxisSpacing: _inventoryListItemSpacing,
+                          crossAxisSpacing: 12,
+                          mainAxisExtent: 170,
                         ),
-                        child: _InventoryProductTile(
-                          item: filteredItems[index],
-                          onTap: () {
-                            final item = filteredItems[index];
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => InventoryProductDetailScreen(
-                                  product: item.product,
-                                  readyQuantity: item.readyQuantity,
-                                  importedQuantity: item.importedQuantity,
-                                  warrantyQuantity: item.warrantyQuantity,
-                                  issueQuantity: item.issueQuantity,
-                                  orderIds: item.orderIds.toList(
-                                    growable: false,
+                        itemBuilder: (context, index) {
+                          final item = filteredItems[index];
+                          return _InventoryProductTile(
+                            item: item,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => InventoryProductDetailScreen(
+                                    product: item.product,
+                                    readyQuantity: item.readyQuantity,
+                                    importedQuantity: item.importedQuantity,
+                                    warrantyQuantity: item.warrantyQuantity,
+                                    issueQuantity: item.issueQuantity,
+                                    orderIds: item.orderIds.toList(
+                                      growable: false,
+                                    ),
+                                    latestImportedAt: item.latestImportedAt,
                                   ),
-                                  latestImportedAt: item.latestImportedAt,
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          );
+                        },
+                      )
+                    else
+                      for (var index = 0; index < visibleItemCount; index++)
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            bottom: _inventoryListItemSpacing,
+                          ),
+                          child: _InventoryProductTile(
+                            item: filteredItems[index],
+                            onTap: () {
+                              final item = filteredItems[index];
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => InventoryProductDetailScreen(
+                                    product: item.product,
+                                    readyQuantity: item.readyQuantity,
+                                    importedQuantity: item.importedQuantity,
+                                    warrantyQuantity: item.warrantyQuantity,
+                                    issueQuantity: item.issueQuantity,
+                                    orderIds: item.orderIds.toList(
+                                      growable: false,
+                                    ),
+                                    latestImportedAt: item.latestImportedAt,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ),
-                      ),
                     if (visibleItemCount < filteredItems.length)
                       const Padding(
                         padding: EdgeInsets.only(top: 4, bottom: 4),
@@ -733,216 +771,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
-}
-
-class InventorySummary {
-  const InventorySummary({
-    required this.totalProducts,
-    required this.totalQuantity,
-    required this.lowStockProducts,
-  });
-
-  final int totalProducts;
-  final int totalQuantity;
-  final int lowStockProducts;
-}
-
-enum InventoryStockStatus { inStock, lowStock, outOfStock }
-
-class InventoryProductItem {
-  const InventoryProductItem({
-    required this.product,
-    required this.importedQuantity,
-    required this.readyQuantity,
-    required this.warrantyQuantity,
-    required this.issueQuantity,
-    required this.latestImportedAt,
-    required this.orderIds,
-    required this.serialSearchIndex,
-  });
-
-  final Product product;
-  final int importedQuantity;
-  final int readyQuantity;
-  final int warrantyQuantity;
-  final int issueQuantity;
-  final DateTime latestImportedAt;
-  final Set<String> orderIds;
-  final String serialSearchIndex;
-
-  InventoryStockStatus get stockStatus {
-    if (readyQuantity <= 0) {
-      return InventoryStockStatus.outOfStock;
-    }
-    if (readyQuantity <= _lowStockThreshold) {
-      return InventoryStockStatus.lowStock;
-    }
-    return InventoryStockStatus.inStock;
-  }
-}
-
-List<InventoryProductItem> _buildInventoryItems({
-  required OrderController orderController,
-  required WarrantyController warrantyController,
-}) {
-  final productMap = <String, Product>{};
-  for (final order in orderController.orders) {
-    for (final item in order.items) {
-      productMap[item.product.id] = item.product;
-    }
-  }
-
-  final map = <String, _InventoryAccumulator>{};
-  for (final record in warrantyController.importedSerials) {
-    final product =
-        productMap[record.productId] ??
-        Product(
-          id: record.productId,
-          name: record.productName,
-          sku: record.productSku,
-          shortDescription: '',
-          price: 0,
-          stock: 0,
-          warrantyMonths: 0,
-        );
-
-    final current =
-        map[record.productId] ??
-        _InventoryAccumulator(
-          product: product,
-          importedQuantity: 0,
-          latestImportedAt: record.importedAt,
-          orderIds: <String>{},
-          serials: <String>{},
-        );
-
-    if (record.importedAt.isAfter(current.latestImportedAt)) {
-      current.latestImportedAt = record.importedAt;
-    }
-    current.orderIds.add(record.orderId);
-
-    final normalized = warrantyController.normalizeSerial(record.serial);
-    final isNewSerial = current.serials.add(normalized);
-    if (!isNewSerial) {
-      map[record.productId] = current;
-      continue;
-    }
-
-    current.importedQuantity += 1;
-    switch (record.status) {
-      case ImportedSerialStatus.available:
-      case ImportedSerialStatus.assigned:
-        current.readyQuantity += 1;
-      case ImportedSerialStatus.warranty:
-        current.warrantyQuantity += 1;
-      case ImportedSerialStatus.reserved:
-      case ImportedSerialStatus.defective:
-      case ImportedSerialStatus.returned:
-      case ImportedSerialStatus.unknown:
-        current.issueQuantity += 1;
-    }
-    map[record.productId] = current;
-  }
-
-  return map.values
-      .map(
-        (entry) => InventoryProductItem(
-          product: entry.product,
-          importedQuantity: entry.importedQuantity,
-          readyQuantity: entry.readyQuantity,
-          warrantyQuantity: entry.warrantyQuantity,
-          issueQuantity: entry.issueQuantity,
-          latestImportedAt: entry.latestImportedAt,
-          orderIds: entry.orderIds,
-          serialSearchIndex: entry.serials.join(' '),
-        ),
-      )
-      .toList(growable: false);
-}
-
-List<InventoryProductItem> _filterAndSortItems({
-  required List<InventoryProductItem> items,
-  required String query,
-  required InventoryStockFilter stockFilter,
-  required InventorySortOption sortOption,
-  required bool sortAscending,
-}) {
-  final keyword = query.trim().toLowerCase();
-  final filtered = items
-      .where((item) {
-        if (stockFilter == InventoryStockFilter.inStock &&
-            item.stockStatus != InventoryStockStatus.inStock) {
-          return false;
-        }
-        if (stockFilter == InventoryStockFilter.lowStock &&
-            item.stockStatus != InventoryStockStatus.lowStock) {
-          return false;
-        }
-        if (stockFilter == InventoryStockFilter.outOfStock &&
-            item.stockStatus != InventoryStockStatus.outOfStock) {
-          return false;
-        }
-
-        if (keyword.isEmpty) {
-          return true;
-        }
-        final blob =
-            '${item.product.name} ${item.product.sku} ${item.serialSearchIndex}'
-                .toLowerCase();
-        return blob.contains(keyword);
-      })
-      .toList(growable: false);
-
-  filtered.sort((a, b) {
-    final compare = switch (sortOption) {
-      InventorySortOption.name => a.product.name.toLowerCase().compareTo(
-        b.product.name.toLowerCase(),
-      ),
-      InventorySortOption.quantity => a.readyQuantity.compareTo(
-        b.readyQuantity,
-      ),
-      InventorySortOption.importedDate => a.latestImportedAt.compareTo(
-        b.latestImportedAt,
-      ),
-    };
-    return sortAscending ? compare : -compare;
-  });
-  return filtered;
-}
-
-InventorySummary _buildSummary(List<InventoryProductItem> items) {
-  var totalQuantity = 0;
-  var lowStockProducts = 0;
-  for (final item in items) {
-    totalQuantity += item.readyQuantity;
-    if (item.stockStatus == InventoryStockStatus.lowStock) {
-      lowStockProducts++;
-    }
-  }
-  return InventorySummary(
-    totalProducts: items.length,
-    totalQuantity: totalQuantity,
-    lowStockProducts: lowStockProducts,
-  );
-}
-
-class _InventoryAccumulator {
-  _InventoryAccumulator({
-    required this.product,
-    required this.importedQuantity,
-    required this.latestImportedAt,
-    required this.orderIds,
-    required this.serials,
-  });
-
-  final Product product;
-  int importedQuantity;
-  DateTime latestImportedAt;
-  final Set<String> orderIds;
-  final Set<String> serials;
-  int readyQuantity = 0;
-  int warrantyQuantity = 0;
-  int issueQuantity = 0;
 }
 
 class _SummaryChip extends StatelessWidget {
@@ -1285,9 +1113,6 @@ class _InventoryProductTile extends StatelessWidget {
     final texts = _inventoryTexts(context);
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final isCompact = screenWidth <= 380;
-    final rightColumnWidth = isCompact ? 104.0 : 150.0;
     late final String status;
     late final Color statusColor;
     late final IconData statusIcon;
@@ -1312,181 +1137,190 @@ class _InventoryProductTile extends StatelessWidget {
         statusIcon = Icons.remove_circle_outline;
     }
 
-    return Semantics(
-      button: true,
-      label: texts.productTileSemantic(
-        item.product.name,
-        item.product.sku,
-        item.readyQuantity,
-        status,
-      ),
-      child: Card(
-        elevation: 1,
-        shadowColor: colorScheme.shadow.withValues(alpha: 0.1),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(
-            color: Theme.of(
-              context,
-            ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth <= 380;
+        final rightColumnWidth = isCompact ? 104.0 : 150.0;
+        return Semantics(
+          button: true,
+          label: texts.productTileSemantic(
+            item.product.name,
+            item.product.sku,
+            item.readyQuantity,
+            status,
           ),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Semantics(
-                  image: true,
-                  label: texts.productImageLabel(item.product.name),
-                  child: ExcludeSemantics(
-                    child: ProductImage(
-                      product: item.product,
-                      width: 72,
-                      height: 72,
-                      borderRadius: BorderRadius.circular(10),
-                      fit: BoxFit.cover,
-                      iconSize: 20,
+          child: Card(
+            elevation: 1,
+            shadowColor: colorScheme.shadow.withValues(alpha: 0.1),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: BorderSide(
+                color: Theme.of(
+                  context,
+                ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+              ),
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Semantics(
+                      image: true,
+                      label: texts.productImageLabel(item.product.name),
+                      child: ExcludeSemantics(
+                        child: ProductImage(
+                          product: item.product,
+                          width: 72,
+                          height: 72,
+                          borderRadius: BorderRadius.circular(10),
+                          fit: BoxFit.cover,
+                          iconSize: 20,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.product.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: colorScheme.onSurface,
-                          fontSize: 17,
-                          height: 1.25,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'SKU: ${item.product.sku}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          fontSize: 11.5,
-                          height: 1.3,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      RichText(
-                        text: TextSpan(
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: colorScheme.onSurface,
-                                fontSize: 15,
-                                height: 1.2,
-                              ),
-                          children: [
-                            TextSpan(text: texts.stockLabelPrefix),
-                            TextSpan(
-                              text: '${item.readyQuantity}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (item.warrantyQuantity > 0) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          texts.warrantyCountLabel(item.warrantyQuantity),
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                                fontSize: 12,
-                                height: 1.25,
-                              ),
-                        ),
-                      ],
-                      if (item.issueQuantity > 0) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          texts.issueCountLabel(item.issueQuantity),
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                                fontSize: 12,
-                                height: 1.25,
-                              ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                SizedBox(width: isCompact ? 4 : 8),
-                SizedBox(
-                  width: rightColumnWidth,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.06),
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: statusColor.withValues(alpha: 0.28),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.product.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
+                                  color: colorScheme.onSurface,
+                                  fontSize: 17,
+                                  height: 1.25,
+                                  fontWeight: FontWeight.w800,
+                                ),
                           ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(statusIcon, size: 12, color: statusColor),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                status,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: statusColor,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                              ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'SKU: ${item.product.sku}',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontSize: 11.5,
+                                  height: 1.3,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          RichText(
+                            text: TextSpan(
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: colorScheme.onSurface,
+                                    fontSize: 15,
+                                    height: 1.2,
+                                  ),
+                              children: [
+                                TextSpan(text: texts.stockLabelPrefix),
+                                TextSpan(
+                                  text: '${item.readyQuantity}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (item.warrantyQuantity > 0) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              texts.warrantyCountLabel(item.warrantyQuantity),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontSize: 12,
+                                    height: 1.25,
+                                  ),
                             ),
                           ],
-                        ),
+                          if (item.issueQuantity > 0) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              texts.issueCountLabel(item.issueQuantity),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontSize: 12,
+                                    height: 1.25,
+                                  ),
+                            ),
+                          ],
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        isCompact
-                            ? formatDate(item.latestImportedAt)
-                            : texts.latestImportedLabel(
-                                formatDate(item.latestImportedAt),
+                    ),
+                    SizedBox(width: isCompact ? 4 : 8),
+                    SizedBox(
+                      width: rightColumnWidth,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: statusColor.withValues(alpha: 0.28),
                               ),
-                        maxLines: isCompact ? 1 : 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.right,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          fontSize: 12,
-                          height: 1.25,
-                        ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(statusIcon, size: 12, color: statusColor),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    status,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: statusColor,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            isCompact
+                                ? formatDate(item.latestImportedAt)
+                                : texts.latestImportedLabel(
+                                    formatDate(item.latestImportedAt),
+                                  ),
+                            maxLines: isCompact ? 1 : 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontSize: 12,
+                                  height: 1.25,
+                                ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -1535,10 +1369,7 @@ class _InventoryLoadingView extends StatelessWidget {
 }
 
 class _InventorySyncBanner extends StatelessWidget {
-  const _InventorySyncBanner({
-    required this.summary,
-    this.warningMessage,
-  });
+  const _InventorySyncBanner({required this.summary, this.warningMessage});
 
   final String summary;
   final String? warningMessage;
@@ -1546,7 +1377,8 @@ class _InventorySyncBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final hasWarning = warningMessage != null && warningMessage!.trim().isNotEmpty;
+    final hasWarning =
+        warningMessage != null && warningMessage!.trim().isNotEmpty;
     final backgroundColor = hasWarning
         ? colorScheme.errorContainer.withValues(alpha: 0.55)
         : colorScheme.primaryContainer.withValues(alpha: 0.38);

@@ -15,6 +15,8 @@ import 'models.dart';
 import 'notification_controller.dart';
 import 'product_detail_screen.dart';
 import 'product_catalog_controller.dart';
+import 'product_query_service.dart';
+import 'query_page.dart';
 import 'utils.dart';
 import 'widgets/cart_icon_button.dart';
 import 'widgets/notification_icon_button.dart';
@@ -24,6 +26,8 @@ import 'widgets/fade_slide_in.dart';
 import 'widgets/product_image.dart';
 import 'widgets/skeleton_box.dart';
 import 'widgets/stock_badge.dart';
+
+part 'product_list_screen_support.dart';
 
 _ProductListTexts _productListTexts(BuildContext context) => _ProductListTexts(
   isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
@@ -40,16 +44,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
   static const int _pageSize = 10;
   static const int _lowStockThreshold = kLowStockThreshold;
   static const double _tabletListMaxContentWidth = 1040;
-  static const Duration _apiLatency = Duration(milliseconds: 400);
 
   late final PagingController<int, Product> _pagingController;
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
   Timer? _catalogRefreshDebounce;
-  String _searchText = '';
-  StockFilter _stockFilter = StockFilter.all;
-  SortOption _sortOption = SortOption.none;
+  ProductListQuery _query = const ProductListQuery();
   ProductCatalogController? _productCatalog;
+  ProductQueryRepository? _productQueryRepository;
   final Set<String> _addingProductIds = <String>{};
   String? _catalogSnapshot;
   bool _isManuallyRefreshingCatalog = false;
@@ -74,6 +76,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
     _productCatalog?.removeListener(_handleCatalogChanged);
     _catalogRefreshDebounce?.cancel();
     _productCatalog = nextCatalog;
+    _productQueryRepository = nextCatalog == null
+        ? null
+        : ProductQueryRepository(
+            localDataSource: LocalProductQueryDataSource(catalog: nextCatalog),
+            remoteDataSource: BasicRemoteProductQueryDataSource(
+              catalog: nextCatalog,
+            ),
+          );
     _catalogSnapshot = nextCatalog == null
         ? null
         : _catalogSummarySnapshot(nextCatalog);
@@ -267,57 +277,43 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   Future<void> _fetchPage(int pageKey) async {
     final requestRevision = _queryRevision;
+    var usesLocalCatalogSource = false;
     try {
-      if (!_hasAnyFilters) {
-        // Server-side pagination khi không có filter
-        final pageIndex = pageKey ~/ _pageSize;
-        final result = await _productCatalog?.fetchPage(pageIndex, _pageSize);
-        if (!mounted || requestRevision != _queryRevision) return;
-        if (result == null) {
-          _pagingController.appendLastPage(const []);
-          return;
-        }
-        final nextPageKey = (pageIndex + 1) * _pageSize;
-        if (result.isLast) {
-          _pagingController.appendLastPage(result.items);
-        } else {
-          _pagingController.appendPage(result.items, nextPageKey);
-        }
-      } else {
-        // Client-side filter: load toàn bộ rồi lọc
+      final repository = _productQueryRepository;
+      if (repository == null) {
+        _pagingController.appendLastPage(const <Product>[]);
+        return;
+      }
+      usesLocalCatalogSource =
+          !(repository.remoteDataSource?.supports(_query) ?? false);
+      if (usesLocalCatalogSource) {
         _suppressedCatalogLoadCount++;
-        try {
-          await _productCatalog?.load();
-        } finally {
-          _suppressedCatalogLoadCount = math.max(
-            0,
-            _suppressedCatalogLoadCount - 1,
-          );
-        }
-        await Future.delayed(_apiLatency);
-        if (!mounted || requestRevision != _queryRevision) return;
+      }
 
-        final catalogError = _productCatalog?.errorMessage;
-        if (catalogError != null) {
-          _pagingController.error = catalogError;
-          return;
-        }
-
-        final products = _applyFilters();
-        final start = pageKey;
-        final end = math.min(start + _pageSize, products.length);
-        final newItems = start >= products.length
-            ? const <Product>[]
-            : products.sublist(start, end);
-        final isLastPage = end >= products.length;
-        if (isLastPage) {
-          _pagingController.appendLastPage(newItems);
-        } else {
-          _pagingController.appendPage(newItems, end);
-        }
+      final result = await repository.fetchPage(
+        _query,
+        QueryPageRequest(offset: pageKey, limit: _pageSize),
+      );
+      if (!mounted || requestRevision != _queryRevision) {
+        return;
+      }
+      if (result.isLastPage) {
+        _pagingController.appendLastPage(result.items);
+      } else {
+        _pagingController.appendPage(
+          result.items,
+          result.nextOffset ?? pageKey + result.items.length,
+        );
       }
     } catch (error) {
       _pagingController.error = error;
+    } finally {
+      if (usesLocalCatalogSource) {
+        _suppressedCatalogLoadCount = math.max(
+          0,
+          _suppressedCatalogLoadCount - 1,
+        );
+      }
     }
   }
 
@@ -325,93 +321,47 @@ class _ProductListScreenState extends State<ProductListScreen> {
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 320), () {
       final next = _searchController.text.trim();
-      if (next == _searchText) {
+      if (next == _query.searchText) {
         return;
       }
-      setState(() => _searchText = next);
+      setState(() => _query = _query.copyWith(searchText: next));
       _refreshProducts();
     });
   }
 
   void _setStockFilter(StockFilter filter) {
-    if (filter == _stockFilter) {
+    if (filter == _query.stockFilter) {
       return;
     }
-    setState(() => _stockFilter = filter);
+    setState(() => _query = _query.copyWith(stockFilter: filter));
     _refreshProducts();
   }
 
   void _setSortOption(SortOption option) {
-    if (option == _sortOption) {
+    if (option == _query.sortOption) {
       return;
     }
-    setState(() => _sortOption = option);
+    setState(() => _query = _query.copyWith(sortOption: option));
     _refreshProducts();
   }
 
   void _resetFilters() {
     setState(() {
-      _stockFilter = StockFilter.all;
-      _sortOption = SortOption.none;
-      _searchText = '';
+      _query = const ProductListQuery();
       _searchController.text = '';
     });
     _refreshProducts();
   }
 
   void _clearSearch() {
-    if (_searchController.text.isEmpty && _searchText.isEmpty) {
+    if (_searchController.text.isEmpty && _query.searchText.isEmpty) {
       return;
     }
     setState(() {
-      _searchText = '';
+      _query = _query.copyWith(searchText: '');
       _searchController.clear();
     });
     _refreshProducts();
-  }
-
-  List<Product> _applyFilters() {
-    final catalogProducts = _productCatalog?.products ?? const <Product>[];
-    final query = _searchText.toLowerCase();
-    final filtered = catalogProducts.where((product) {
-      if (query.isNotEmpty) {
-        final name = product.name.toLowerCase();
-        final sku = product.sku.toLowerCase();
-        if (!name.contains(query) && !sku.contains(query)) {
-          return false;
-        }
-      }
-
-      switch (_stockFilter) {
-        case StockFilter.inStock:
-          return product.stock > 0;
-        case StockFilter.lowStock:
-          return product.stock > 0 && product.stock <= _lowStockThreshold;
-        case StockFilter.outOfStock:
-          return product.stock == 0;
-        case StockFilter.all:
-          return true;
-      }
-    }).toList();
-
-    switch (_sortOption) {
-      case SortOption.priceAsc:
-        filtered.sort((a, b) => a.price.compareTo(b.price));
-        break;
-      case SortOption.priceDesc:
-        filtered.sort((a, b) => b.price.compareTo(a.price));
-        break;
-      case SortOption.nameAsc:
-        filtered.sort((a, b) => a.name.compareTo(b.name));
-        break;
-      case SortOption.nameDesc:
-        filtered.sort((a, b) => b.name.compareTo(a.name));
-        break;
-      case SortOption.none:
-        break;
-    }
-
-    return filtered;
   }
 
   Widget _buildDiscountBanner(
@@ -640,7 +590,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     StockFilter filter,
     String label,
   ) {
-    final isSelected = _stockFilter == filter;
+    final isSelected = _query.stockFilter == filter;
     final colors = Theme.of(context).colorScheme;
 
     return Semantics(
@@ -676,7 +626,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final texts = _productListTexts(context);
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final label = switch (_sortOption) {
+    final label = switch (_query.sortOption) {
       SortOption.priceAsc => texts.sortLabel(SortOption.priceAsc),
       SortOption.priceDesc => texts.sortLabel(SortOption.priceDesc),
       SortOption.nameAsc => texts.sortLabel(SortOption.nameAsc),
@@ -1122,272 +1072,13 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   int get _activeFilterCount {
     var count = 0;
-    if (_searchText.isNotEmpty) count++;
-    if (_stockFilter != StockFilter.all) count++;
-    if (_sortOption != SortOption.none) count++;
+    if (_query.normalizedSearchText.isNotEmpty) count++;
+    if (_query.stockFilter != StockFilter.all) count++;
+    if (_query.sortOption != SortOption.none) count++;
     return count;
   }
 
-  bool get _hasAnyFilters =>
-      _searchText.isNotEmpty ||
-      _stockFilter != StockFilter.all ||
-      _sortOption != SortOption.none;
-
-  void _handleCatalogChanged() {
-    final catalog = _productCatalog;
-    if (!mounted ||
-        catalog == null ||
-        catalog.isLoading ||
-        _isManuallyRefreshingCatalog ||
-        _suppressedCatalogLoadCount > 0) {
-      return;
-    }
-    final nextSnapshot = _catalogSummarySnapshot(catalog);
-    if (_catalogSnapshot == nextSnapshot) {
-      return;
-    }
-    _catalogSnapshot = nextSnapshot;
-    _catalogRefreshDebounce?.cancel();
-    _catalogRefreshDebounce = Timer(const Duration(milliseconds: 120), () {
-      if (!mounted) {
-        return;
-      }
-      _refreshProducts();
-    });
-  }
-
-  Future<void> _refreshCatalog() async {
-    _isManuallyRefreshingCatalog = true;
-    try {
-      _catalogRefreshDebounce?.cancel();
-      await _productCatalog?.load(forceRefresh: true);
-      final catalog = _productCatalog;
-      if (catalog != null) {
-        _catalogSnapshot = _catalogSummarySnapshot(catalog);
-      }
-      if (!mounted) {
-        return;
-      }
-      _refreshProducts();
-    } finally {
-      _isManuallyRefreshingCatalog = false;
-    }
-  }
-
-  void _retryLoadProducts() {
-    unawaited(_refreshCatalog());
-  }
-
-  void _refreshProducts() {
-    _queryRevision++;
-    _pagingController.refresh();
-  }
-
-  String _catalogSummarySnapshot(ProductCatalogController catalog) {
-    return Object.hash(
-      catalog.errorMessage,
-      catalog.products.length,
-      Object.hashAll(
-        catalog.products.map(
-          (product) => Object.hash(
-            product.id,
-            product.name,
-            product.sku,
-            product.shortDescription,
-            product.price,
-            product.stock,
-            product.warrantyMonths,
-            product.imageUrl,
-          ),
-        ),
-      ),
-    ).toString();
-  }
-
-  Future<Product> _resolveLatestProductSnapshot(Product baseProduct) async {
-    final catalog = _productCatalog ?? ProductCatalogScope.maybeOf(context);
-    if (catalog == null) {
-      return baseProduct;
-    }
-    // The paginated list endpoint is not cached server-side, so products already
-    // in the catalog have fresh stock data. Prefer them over fetchDetail, which
-    // hits a cached endpoint and can return stale stock values.
-    final fresh = catalog.findById(baseProduct.id);
-    if (fresh != null) {
-      return fresh;
-    }
-    try {
-      return await catalog.fetchDetail(baseProduct.id);
-    } catch (_) {
-      return baseProduct;
-    }
-  }
-
-  Future<void> _handleAddToCart(
-    CartController cart,
-    Product product, {
-    bool openQuantityDialog = false,
-  }) async {
-    if (_addingProductIds.contains(product.id) ||
-        cart.isSyncingProduct(product.id)) {
-      return;
-    }
-    setState(() => _addingProductIds.add(product.id));
-    try {
-      final latestProduct = await _resolveLatestProductSnapshot(product);
-      if (!mounted) {
-        return;
-      }
-
-      final remainingStock = cart.remainingStockFor(latestProduct);
-      if (remainingStock <= 0) {
-        _showCartLimitSnackBar();
-        return;
-      }
-
-      final quickQuantity = cart.suggestedAddQuantity(latestProduct);
-      if (quickQuantity <= 0) {
-        _showCartLimitSnackBar();
-        return;
-      }
-
-      final addQuantity = openQuantityDialog
-          ? await _promptQuantity(
-              latestProduct,
-              remainingStock,
-              initialQuantity: quickQuantity,
-            )
-          : quickQuantity;
-
-      if (!mounted) {
-        return;
-      }
-      if (addQuantity == null) {
-        return;
-      }
-      if (!cart.canAdd(latestProduct, quantity: addQuantity)) {
-        _showCartLimitSnackBar();
-        return;
-      }
-
-      final didAdd = await cart.addWithApiSimulation(
-        latestProduct,
-        quantity: addQuantity,
-      );
-      if (!mounted) {
-        return;
-      }
-      if (!didAdd) {
-        // Server rejected the add (e.g. serial pool exhausted but product.stock
-        // was stale). Refresh the list so the UI shows the authoritative stock.
-        _refreshProducts();
-        _showCartLimitSnackBar();
-        return;
-      }
-      HapticFeedback.lightImpact();
-      _showAddedToCartSnackBar(addQuantity);
-    } finally {
-      if (mounted) {
-        setState(() => _addingProductIds.remove(product.id));
-      }
-    }
-  }
-
-  void _showAddedToCartSnackBar(int quantity) {
-    if (!mounted) {
-      return;
-    }
-    final texts = _productListTexts(context);
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text(texts.addedToCartMessage(quantity)),
-        action: SnackBarAction(
-          label: texts.backToCartAction,
-          onPressed: () {
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const CartScreen()));
-          },
-        ),
-      ),
-    );
-  }
-
-  void _showCartLimitSnackBar() {
-    if (!mounted) {
-      return;
-    }
-    final texts = _productListTexts(context);
-    final message = texts.isEnglish
-        ? 'Product is out of stock or the cart limit has been reached.'
-        : 'San pham da het hang hoac da dat gioi han trong gio.';
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text(message),
-      ),
-    );
-  }
-
-  Future<int?> _promptQuantity(
-    Product product,
-    int maxQuantity, {
-    required int initialQuantity,
-  }) {
-    final texts = _productListTexts(context);
-    final minQty = 1;
-    final safeInitial = initialQuantity.clamp(minQty, maxQuantity);
-    var selected = safeInitial <= maxQuantity ? safeInitial : maxQuantity;
-    return showDialog<int>(
-      context: context,
-      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
-      requestFocus: true,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(texts.chooseQuantityDialogTitle),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(product.name, maxLines: 2, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 12),
-              SpinBox(
-                min: minQty.toDouble(),
-                max: maxQuantity.toDouble(),
-                value: selected.toDouble(),
-                step: 1,
-                decimals: 0,
-                autofocus: true,
-                onChanged: (val) =>
-                    selected = val.round().clamp(minQty, maxQuantity),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                texts.quantityRangeLabel(minQty, maxQuantity),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(texts.cancelAction),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(dialogContext).pop(selected),
-              child: Text(texts.addAction),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  bool get _hasAnyFilters => _query.hasFilters;
 }
 
 class _PinnedHeaderDelegate extends SliverPersistentHeaderDelegate {
@@ -1645,10 +1336,6 @@ class _ProductListTexts {
       ? 'Minimum: $minQty • Maximum: $maxQuantity'
       : 'Tối thiểu: $minQty • Tối đa: $maxQuantity';
 }
-
-enum StockFilter { all, inStock, lowStock, outOfStock }
-
-enum SortOption { none, priceAsc, priceDesc, nameAsc, nameDesc }
 
 String? _productNameForDiscountTarget(
   List<CartItem> items,

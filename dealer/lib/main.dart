@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'app_router.dart';
+import 'app_resume_refresh.dart';
 import 'app_settings_controller.dart';
 import 'auth_storage.dart';
 import 'breakpoints.dart';
@@ -54,6 +55,7 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
   late final NotificationController _notificationController;
   late final PushMessagingController _pushMessagingController;
   late final AuthStorage _authStorage;
+  late final AppResumeRefreshCoordinator _resumeRefreshCoordinator;
   late final Future<bool> _startupFuture;
   late final GoRouter _router;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
@@ -106,11 +108,22 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
       onOrderSignal: _orderController.refresh,
       enabled: widget.enablePushMessaging,
     );
+    _resumeRefreshCoordinator = AppResumeRefreshCoordinator(
+      authStorage: _authStorage,
+      cartController: _cartController,
+      orderController: _orderController,
+      warrantyController: _warrantyController,
+      productCatalogController: _productCatalogController,
+      notificationController: _notificationController,
+      pushMessagingController: _pushMessagingController,
+    );
     _authStorage.sessionEvents.addListener(_handleSessionEvent);
     _notificationController.incomingNoticeEvents.addListener(
       _handleIncomingNoticeEvent,
     );
-    _pushMessagingController.openMessageEvents.addListener(_handlePushOpenEvent);
+    _pushMessagingController.openMessageEvents.addListener(
+      _handlePushOpenEvent,
+    );
     WidgetsBinding.instance.addObserver(this);
     _startupFuture = _bootstrap();
     _router = buildDealerRouter(
@@ -132,7 +145,10 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
     _bootstrapDone = true;
     final shouldAutoLogin = await _authStorage.shouldAutoLogin();
     if (shouldAutoLogin) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _flushPendingPushRoute());
+      _resumeRefreshCoordinator.markFreshNow();
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _flushPendingPushRoute(),
+      );
     }
     return shouldAutoLogin;
   }
@@ -142,12 +158,7 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
     if (state != AppLifecycleState.resumed || !_bootstrapDone) {
       return;
     }
-    unawaited(_productCatalogController.load(forceRefresh: true));
-    unawaited(_cartController.load());
-    unawaited(_notificationController.refresh());
-    unawaited(_orderController.refresh());
-    unawaited(_warrantyController.load(forceRefresh: true));
-    unawaited(_pushMessagingController.refreshRegistration());
+    unawaited(_resumeRefreshCoordinator.refreshIfNeeded());
   }
 
   AppLocalizations? _localizationsOrNull() {
@@ -186,11 +197,19 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
     _handledSessionEventVersion = currentVersion;
 
     if (_authStorage.lastSessionEvent == AuthSessionEventType.expired) {
+      _resumeRefreshCoordinator.reset();
       unawaited(_handleExpiredSession());
       return;
     }
     if (_authStorage.lastSessionEvent == AuthSessionEventType.signedIn) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _flushPendingPushRoute());
+      _resumeRefreshCoordinator.markFreshNow();
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _flushPendingPushRoute(),
+      );
+      return;
+    }
+    if (_authStorage.lastSessionEvent == AuthSessionEventType.loggedOut) {
+      _resumeRefreshCoordinator.reset();
     }
   }
 

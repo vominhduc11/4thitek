@@ -3,24 +3,44 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'app_settings_controller.dart';
-import 'models.dart';
+import 'global_search_service.dart';
 import 'order_controller.dart';
 import 'order_detail_screen.dart';
+import 'order_query_service.dart';
 import 'product_catalog_controller.dart';
 import 'product_detail_screen.dart';
+import 'product_query_service.dart';
 
 Future<void> showGlobalSearch(BuildContext context) async {
   final isEnglish = AppSettingsScope.of(context).locale.languageCode == 'en';
-  final orders = List<Order>.from(OrderScope.of(context).orders);
-  final products =
-      ProductCatalogScope.maybeOf(context)?.products ?? const <Product>[];
+  final orderRepository = OrderQueryRepository(
+    localDataSource: LocalOrderQueryDataSource(
+      orderController: OrderScope.of(context),
+    ),
+  );
+  final sources = <UnifiedSearchSource>[
+    OrderUnifiedSearchSource(repository: orderRepository),
+  ];
+  final productCatalog = ProductCatalogScope.maybeOf(context);
+  if (productCatalog != null) {
+    sources.add(
+      ProductUnifiedSearchSource(
+        repository: ProductQueryRepository(
+          localDataSource: LocalProductQueryDataSource(catalog: productCatalog),
+          remoteDataSource: BasicRemoteProductQueryDataSource(
+            catalog: productCatalog,
+          ),
+        ),
+      ),
+    );
+  }
+
   await showSearch<void>(
     context: context,
     delegate: _GlobalSearchDelegate(
       isEnglish: isEnglish,
       launchContext: context,
-      products: products,
-      orders: orders,
+      searchService: GlobalSearchService(sources: sources),
     ),
   );
 }
@@ -48,47 +68,53 @@ class GlobalSearchIconButton extends StatelessWidget {
   }
 }
 
-enum _SearchItemType { order, product }
-
-class _SearchItem {
-  const _SearchItem.order(this.order)
-    : product = null,
-      type = _SearchItemType.order;
-  const _SearchItem.product(this.product)
-    : order = null,
-      type = _SearchItemType.product;
-
-  final _SearchItemType type;
-  final Order? order;
-  final Product? product;
-}
-
 class _GlobalSearchDelegate extends SearchDelegate<void> {
   _GlobalSearchDelegate({
     required this.isEnglish,
     required this.launchContext,
-    required this.products,
-    required this.orders,
+    required this.searchService,
   });
 
   final bool isEnglish;
   final BuildContext launchContext;
-  final List<Product> products;
-  final List<Order> orders;
+  final GlobalSearchService searchService;
 
   Timer? _debounceTimer;
   String _debouncedQuery = '';
+  String _lastRequestedQuery = '';
+  Future<List<UnifiedSearchResult>>? _searchFuture;
 
   _GlobalSearchTexts get _texts => _GlobalSearchTexts(isEnglish: isEnglish);
 
   void _scheduleSearch() {
     _debounceTimer?.cancel();
+    final nextQuery = query.trim();
     _debounceTimer = Timer(const Duration(milliseconds: 300), () {
-      if (_debouncedQuery != query.trim()) {
-        _debouncedQuery = query.trim();
-        showSuggestions(launchContext);
+      if (_debouncedQuery == nextQuery) {
+        return;
       }
+      _debouncedQuery = nextQuery;
+      _lastRequestedQuery = '';
+      _searchFuture = null;
+      showSuggestions(launchContext);
     });
+  }
+
+  Future<List<UnifiedSearchResult>> _resolveSearch(String rawQuery) {
+    final normalized = rawQuery.trim();
+    if (normalized.isEmpty) {
+      return Future<List<UnifiedSearchResult>>.value(
+        const <UnifiedSearchResult>[],
+      );
+    }
+    if (_searchFuture != null && _lastRequestedQuery == normalized) {
+      return _searchFuture!;
+    }
+    _lastRequestedQuery = normalized;
+    _searchFuture = searchService.search(
+      UnifiedSearchQuery(keyword: normalized),
+    );
+    return _searchFuture!;
   }
 
   @override
@@ -103,7 +129,13 @@ class _GlobalSearchDelegate extends SearchDelegate<void> {
       if (query.isNotEmpty)
         IconButton(
           tooltip: _texts.clearQueryTooltip,
-          onPressed: () => query = '',
+          onPressed: () {
+            query = '';
+            _debouncedQuery = '';
+            _lastRequestedQuery = '';
+            _searchFuture = null;
+            showSuggestions(context);
+          },
           icon: const Icon(Icons.close),
         ),
     ];
@@ -113,7 +145,10 @@ class _GlobalSearchDelegate extends SearchDelegate<void> {
   Widget? buildLeading(BuildContext context) {
     return IconButton(
       tooltip: _texts.closeSearchTooltip,
-      onPressed: () => close(context, null),
+      onPressed: () {
+        _debounceTimer?.cancel();
+        close(context, null);
+      },
       icon: const Icon(Icons.arrow_back),
     );
   }
@@ -121,111 +156,109 @@ class _GlobalSearchDelegate extends SearchDelegate<void> {
   @override
   Widget buildSuggestions(BuildContext context) {
     _scheduleSearch();
-    if (_debouncedQuery.isEmpty) {
+    final normalizedQuery = query.trim();
+    if (normalizedQuery.isEmpty && _debouncedQuery.isEmpty) {
       return const _SearchHintState();
     }
-    return _buildResultList(context);
+    return _buildResultList(
+      context,
+      future: _resolveSearch(
+        _debouncedQuery.isEmpty ? normalizedQuery : _debouncedQuery,
+      ),
+    );
   }
 
   @override
   Widget buildResults(BuildContext context) {
+    _debounceTimer?.cancel();
     _debouncedQuery = query.trim();
-    return _buildResultList(context);
+    return _buildResultList(context, future: _resolveSearch(_debouncedQuery));
   }
 
-  Widget _buildResultList(BuildContext context) {
-    final items = _search(_debouncedQuery);
-    if (items.isEmpty) {
-      return const _SearchEmptyState();
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      itemCount: items.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        final isOrder = item.type == _SearchItemType.order;
-        final title = isOrder ? item.order!.id : item.product!.name;
-        final subtitle = isOrder
-            ? '${item.order!.receiverName} • ${item.order!.receiverPhone}'
-            : item.product!.sku;
-        final trailingLabel = isOrder
-            ? _texts.orderItemLabel
-            : _texts.productItemLabel;
+  Widget _buildResultList(
+    BuildContext context, {
+    required Future<List<UnifiedSearchResult>> future,
+  }) {
+    return FutureBuilder<List<UnifiedSearchResult>>(
+      future: future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _SearchLoadingState(message: _texts.loadingMessage);
+        }
+        if (snapshot.hasError) {
+          return _SearchErrorState(message: _texts.searchFailedMessage);
+        }
 
-        return Card(
-          elevation: 0,
-          child: ListTile(
-            leading: Icon(
-              isOrder
-                  ? Icons.receipt_long_outlined
-                  : Icons.inventory_2_outlined,
-            ),
-            title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-            subtitle: Text(
-              subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            trailing: Text(
-              trailingLabel,
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
-            onTap: () {
-              final selectedItem = item;
-              close(context, null);
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!launchContext.mounted) {
-                  return;
-                }
-                if (selectedItem.type == _SearchItemType.order) {
-                  Navigator.of(launchContext).push(
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          OrderDetailScreen(orderId: selectedItem.order!.id),
-                    ),
-                  );
-                } else {
-                  Navigator.of(launchContext).push(
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          ProductDetailScreen(product: selectedItem.product!),
-                    ),
-                  );
-                }
-              });
-            },
-          ),
+        final items = snapshot.data ?? const <UnifiedSearchResult>[];
+        if (items.isEmpty) {
+          return const _SearchEmptyState();
+        }
+        return ListView.separated(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          itemCount: items.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            final item = items[index];
+            final isOrder = item.type == UnifiedSearchResultType.order;
+            final trailingLabel = isOrder
+                ? _texts.orderItemLabel
+                : _texts.productItemLabel;
+
+            return Card(
+              elevation: 0,
+              child: ListTile(
+                leading: Icon(
+                  isOrder
+                      ? Icons.receipt_long_outlined
+                      : Icons.inventory_2_outlined,
+                ),
+                title: Text(
+                  item.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  item.subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: Text(
+                  trailingLabel,
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+                onTap: () {
+                  final selectedItem = item;
+                  _debounceTimer?.cancel();
+                  close(context, null);
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!launchContext.mounted) {
+                      return;
+                    }
+                    if (selectedItem.type == UnifiedSearchResultType.order) {
+                      Navigator.of(launchContext).push(
+                        MaterialPageRoute(
+                          builder: (_) => OrderDetailScreen(
+                            orderId: selectedItem.order!.id,
+                          ),
+                        ),
+                      );
+                    } else {
+                      Navigator.of(launchContext).push(
+                        MaterialPageRoute(
+                          builder: (_) => ProductDetailScreen(
+                            product: selectedItem.product!,
+                          ),
+                        ),
+                      );
+                    }
+                  });
+                },
+              ),
+            );
+          },
         );
       },
     );
-  }
-
-  List<_SearchItem> _search(String rawQuery) {
-    final normalized = rawQuery.trim().toLowerCase();
-    if (normalized.isEmpty) {
-      return const <_SearchItem>[];
-    }
-
-    final orderHits = orders
-        .where((order) {
-          return order.id.toLowerCase().contains(normalized) ||
-              order.receiverName.toLowerCase().contains(normalized) ||
-              order.receiverPhone.toLowerCase().contains(normalized);
-        })
-        .take(8)
-        .map(_SearchItem.order);
-
-    final productHits = products
-        .where((product) {
-          return product.name.toLowerCase().contains(normalized) ||
-              product.sku.toLowerCase().contains(normalized) ||
-              product.id.toLowerCase().contains(normalized);
-        })
-        .take(8)
-        .map(_SearchItem.product);
-
-    return <_SearchItem>[...orderHits, ...productHits];
   }
 }
 
@@ -289,6 +322,68 @@ class _SearchEmptyState extends StatelessWidget {
   }
 }
 
+class _SearchLoadingState extends StatelessWidget {
+  const _SearchLoadingState({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchErrorState extends StatelessWidget {
+  const _SearchErrorState({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_off_outlined, size: 54, color: colors.error),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _GlobalSearchTexts {
   const _GlobalSearchTexts({required this.isEnglish});
 
@@ -309,4 +404,10 @@ class _GlobalSearchTexts {
   String get emptyMessage => isEnglish
       ? 'No matching results found.'
       : 'Không tìm thấy kết quả phù hợp.';
+  String get loadingMessage => isEnglish
+      ? 'Searching across products and orders...'
+      : 'Đang tìm trên sản phẩm và đơn hàng...';
+  String get searchFailedMessage => isEnglish
+      ? 'Unable to complete the search right now.'
+      : 'Chưa thể hoàn tất tìm kiếm lúc này.';
 }

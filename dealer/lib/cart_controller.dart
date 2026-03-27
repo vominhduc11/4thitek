@@ -22,7 +22,6 @@ class CartController extends ChangeNotifier {
     );
   }
 
-  static const Duration _cartApiLatency = Duration(milliseconds: 700);
   static const Duration _remoteRequestTimeout = Duration(seconds: 12);
   static const int vatPercent = kVatPercent;
 
@@ -142,9 +141,6 @@ class CartController extends ChangeNotifier {
   }
 
   Future<bool> addWithApiSimulation(Product product, {int? quantity}) async {
-    if (!await _canUseRemoteApi()) {
-      await Future.delayed(_cartApiLatency);
-    }
     return add(product, quantity: quantity);
   }
 
@@ -351,34 +347,37 @@ class CartController extends ChangeNotifier {
       notifyListeners();
     }
 
-    _remoteSyncQueue = _remoteSyncQueue.catchError((Object e) {
-      debugPrint('CartController: sync queue error: $e');
-    }).then((_) async {
-      try {
-        final remoteItem = await remoteSync();
-        final syncedSnapshot = _snapshotWithRemoteItem(
-          localSnapshot,
-          remoteItem,
-        );
-        _replaceLastSyncedItemsFromMap(syncedSnapshot);
-        if (remoteItem != null && mutationVersion == _localMutationVersion) {
-          _items[remoteItem.product.id] = remoteItem;
-          _markItemsDirty();
-          notifyListeners();
-        }
-        result.complete(true);
-      } catch (_) {
-        if (rollbackOnFailure && mutationVersion == _localMutationVersion) {
-          _restoreLastSyncedItems();
-        }
-        result.complete(false);
-      } finally {
-        if (pendingProductIds.isNotEmpty) {
-          _updatePendingSyncCounts(pendingProductIds, delta: -1);
-          notifyListeners();
-        }
-      }
-    });
+    _remoteSyncQueue = _remoteSyncQueue
+        .catchError((Object e) {
+          debugPrint('CartController: sync queue error: $e');
+        })
+        .then((_) async {
+          try {
+            final remoteItem = await remoteSync();
+            final syncedSnapshot = _snapshotWithRemoteItem(
+              localSnapshot,
+              remoteItem,
+            );
+            _replaceLastSyncedItemsFromMap(syncedSnapshot);
+            if (remoteItem != null &&
+                mutationVersion == _localMutationVersion) {
+              _items[remoteItem.product.id] = remoteItem;
+              _markItemsDirty();
+              notifyListeners();
+            }
+            result.complete(true);
+          } catch (_) {
+            if (rollbackOnFailure && mutationVersion == _localMutationVersion) {
+              _restoreLastSyncedItems();
+            }
+            result.complete(false);
+          } finally {
+            if (pendingProductIds.isNotEmpty) {
+              _updatePendingSyncCounts(pendingProductIds, delta: -1);
+              notifyListeners();
+            }
+          }
+        });
     return result.future;
   }
 

@@ -56,9 +56,9 @@ class _DashboardTexts {
       return 'Dashboard is summarized from synced orders and warranty activity.';
     }
     if (orderSyncAt != null && warrantySyncAt != null) {
-      return 'Dashboard tong hop tu don hang va hoat dong bao hanh da dong bo. Don hang dong bo luc $orderSyncAt, bao hanh dong bo luc $warrantySyncAt.';
+      return 'Bảng tổng quan được tổng hợp từ đơn hàng và hoạt động bảo hành đã đồng bộ. Đơn hàng đồng bộ lúc $orderSyncAt, bảo hành đồng bộ lúc $warrantySyncAt.';
     }
-    return 'Dashboard tong hop tu don hang va hoat dong bao hanh da dong bo.';
+    return 'Bảng tổng quan được tổng hợp từ đơn hàng và hoạt động bảo hành đã đồng bộ.';
   }
 
   String warrantyRangeLabel(int dayCount) =>
@@ -66,12 +66,12 @@ class _DashboardTexts {
 
   String get loadErrorMessage => isEnglish
       ? 'Unable to load dashboard data. Please try again.'
-      : 'Không thể tải dữ liệu dashboard. Vui lòng thử lại.';
+      : 'Không thể tải dữ liệu bảng tổng quan. Vui lòng thử lại.';
   String get quickActionsTitle =>
       isEnglish ? 'Quick actions' : 'Thao tác nhanh';
   String get quickActionsSubtitle => isEnglish
       ? 'Keep common dealer tasks within one tap instead of switching between tabs.'
-      : 'Ưu tiên các tác vụ dealer dùng thường xuyên để giảm số lần chuyển tab.';
+      : 'Ưu tiên các tác vụ đại lý dùng thường xuyên để giảm số lần chuyển tab.';
   String get createOrderLabel => isEnglish ? 'New order' : 'Tạo đơn';
   String get debtLabel => isEnglish ? 'Debt' : 'Công nợ';
   String get inventoryLabel => isEnglish ? 'Inventory' : 'Kho';
@@ -150,14 +150,14 @@ class _DashboardTexts {
 
   String get dashboardErrorTitle => isEnglish
       ? 'Unable to load dashboard data'
-      : 'Không thể tải dữ liệu dashboard';
+      : 'Không thể tải dữ liệu bảng tổng quan';
   String get dashboardErrorDescription => isEnglish
       ? 'Please try again or check your network connection.'
       : 'Vui lòng thử lại hoặc kiểm tra kết nối mạng.';
   String get retryAction => isEnglish ? 'Retry' : 'Thử lại';
   String get retryDashboardSemantic => isEnglish
       ? 'Retry loading dashboard data'
-      : 'Thử tải lại dữ liệu dashboard';
+      : 'Thử tải lại dữ liệu bảng tổng quan';
 
   String get filterSheetTitle => isEnglish ? 'Time filter' : 'Lọc thời gian';
   String get filterByMonthLabel => isEnglish ? 'By month' : 'Theo tháng';
@@ -203,7 +203,7 @@ class _DashboardTexts {
   }
 
   String recentOrderItemsLabel(int count) =>
-      isEnglish ? '$count items' : '$count SP';
+      isEnglish ? '$count items' : '$count sản phẩm';
 
   String recentOrderMeta(
     DateTime createdAt,
@@ -292,8 +292,8 @@ class _DashboardTexts {
       ? 'Total debt: ${formatVnd(total)}'
       : 'Tổng công nợ: ${formatVnd(total)}';
   String get debtAgingHint => isEnglish
-      ? 'Tap each debt-age group to view more detail.'
-      : 'Chạm vào từng nhóm tuổi nợ để xem chi tiết công nợ.';
+      ? 'Debt aging is grouped by order creation date for orders that still have an outstanding balance.'
+      : 'Tuổi nợ được nhóm theo ngày tạo đơn với các đơn vẫn còn dư nợ.';
   String get debtAgingEmptyMessage => isEnglish
       ? 'No debt has been recorded yet.'
       : 'Hiện chưa có công nợ phát sinh.';
@@ -322,6 +322,25 @@ class _DashboardTexts {
   String get over90DayNote => isEnglish
       ? '>90 days includes all overdue debt from 91 days onward.'
       : '>90 ngày bao gồm toàn bộ công nợ quá hạn từ 91 ngày trở lên.';
+
+  String get warrantyStatusTitle =>
+      isEnglish ? 'Serial status' : 'Trạng thái serial';
+  String get metricUnavailableLabel =>
+      isEnglish ? 'Unavailable' : 'Chưa có dữ liệu thật';
+  String warrantyStatusUnavailableMessage(int activationCount) {
+    if (isEnglish) {
+      return activationCount > 0
+          ? '$activationCount warranty activations were found, but there is no real serial-status breakdown for this dashboard card yet.'
+          : 'There is no real serial-status breakdown for this dashboard card yet.';
+    }
+    return activationCount > 0
+        ? 'Đã có $activationCount lượt kích hoạt bảo hành, nhưng chưa có dữ liệu trạng thái serial thực để tổng hợp cho thẻ này.'
+        : 'Chưa có dữ liệu trạng thái serial thực để tổng hợp cho thẻ này.';
+  }
+
+  String get warrantyStatusUnavailableDescription => isEnglish
+      ? 'The app currently has activation history, but backend data for real serial-status categories is not available here.'
+      : 'Hiện app chỉ có lịch sử kích hoạt; backend chưa cung cấp nhóm trạng thái serial thực cho màn hình này.';
 
   String debtBucketRangeLabel(int minDay, int maxDay) {
     if (maxDay >= 9999) {
@@ -564,7 +583,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       FadeSlideIn(
         delay: const Duration(milliseconds: 120),
         child: _AgingDebtCard(
-          buckets: _buildDebtBuckets(totalOutstandingDebt, texts: texts),
+          buckets: _buildDebtBuckets(snapshotOrders, now: now, texts: texts),
           onViewAll: _openDebtTracking,
         ),
       ),
@@ -3338,10 +3357,7 @@ class _EmptyCard extends StatelessWidget {
 }
 
 class _DashboardSyncBanner extends StatelessWidget {
-  const _DashboardSyncBanner({
-    required this.summary,
-    this.warningMessage,
-  });
+  const _DashboardSyncBanner({required this.summary, this.warningMessage});
 
   final String summary;
   final String? warningMessage;
@@ -3349,7 +3365,8 @@ class _DashboardSyncBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final hasWarning = warningMessage != null && warningMessage!.trim().isNotEmpty;
+    final hasWarning =
+        warningMessage != null && warningMessage!.trim().isNotEmpty;
     final backgroundColor = hasWarning
         ? colorScheme.errorContainer.withValues(alpha: 0.52)
         : colorScheme.primaryContainer.withValues(alpha: 0.34);
@@ -3378,9 +3395,9 @@ class _DashboardSyncBanner extends StatelessWidget {
               children: [
                 Text(
                   summary,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 if (hasWarning) ...[
                   const SizedBox(height: 6),
@@ -3473,217 +3490,6 @@ class _DashboardLoadingView extends StatelessWidget {
       ],
     );
   }
-}
-
-class _MonthRevenue {
-  const _MonthRevenue({required this.month, required this.value});
-
-  final int month;
-  final int value;
-
-  String get label => 'T$month';
-}
-
-List<_MonthRevenue> _buildMonthlyRevenue(
-  List<Order> orders, {
-  required int year,
-}) {
-  final values = List<int>.filled(12, 0);
-  for (final order in orders) {
-    final revenueAt = _orderRevenueTimestamp(order);
-    if (revenueAt == null || revenueAt.year != year) {
-      continue;
-    }
-    values[revenueAt.month - 1] += order.total;
-  }
-
-  return [
-    for (var i = 0; i < 12; i++) _MonthRevenue(month: i + 1, value: values[i]),
-  ];
-}
-
-// ignore: unused_element
-List<_CustomerStat> _buildTopCustomers(List<Order> orders) {
-  final Map<String, _CustomerStat> map = {};
-
-  for (final order in orders) {
-    final key = '${order.receiverName}-${order.receiverPhone}';
-    final current = map[key];
-    final updated = _CustomerStat(
-      name: order.receiverName,
-      phone: order.receiverPhone,
-      total: (current?.total ?? 0) + order.total,
-      orderCount: (current?.orderCount ?? 0) + 1,
-      lastOrder: [
-        if (current != null) current.lastOrder,
-        order.createdAt,
-      ].reduce((a, b) => a.isAfter(b) ? a : b),
-    );
-    map[key] = updated;
-  }
-
-  final list = map.values.toList()
-    ..sort((a, b) {
-      final totalCompare = b.total.compareTo(a.total);
-      if (totalCompare != 0) return totalCompare;
-      return b.lastOrder.compareTo(a.lastOrder);
-    });
-  return list;
-}
-
-List<_DebtBucket> _buildDebtBuckets(
-  int totalOutstandingDebt, {
-  required _DashboardTexts texts,
-}) {
-  final buckets = [
-    _DebtBucket(
-      label: texts.debtBucketRangeLabel(0, 30),
-      minDay: 0,
-      maxDay: 30,
-      color: Color(0xFF1D4ED8),
-    ),
-    _DebtBucket(
-      label: texts.debtBucketRangeLabel(31, 60),
-      minDay: 31,
-      maxDay: 60,
-      color: Color(0xFF7C3AED),
-    ),
-    _DebtBucket(
-      label: texts.debtBucketRangeLabel(61, 90),
-      minDay: 61,
-      maxDay: 90,
-      color: Color(0xFFEA580C),
-    ),
-    _DebtBucket(
-      label: texts.debtBucketRangeLabel(91, 9999),
-      minDay: 91,
-      maxDay: 9999,
-      color: Color(0xFFD92D20),
-    ),
-  ];
-
-  if (totalOutstandingDebt <= 0) {
-    return buckets.map((b) => b.copyWith(amount: 0)).toList();
-  }
-  // Mock distribution: split theo tỷ lệ mẫu.
-  final splits = [0.35, 0.25, 0.20, 0.20];
-  return [
-    for (var i = 0; i < buckets.length; i++)
-      buckets[i].copyWith(amount: (totalOutstandingDebt * splits[i]).round()),
-  ];
-}
-
-List<_DailyActivation> _buildActivationSeries({
-  required int days,
-  required DateTime endDate,
-  required List<WarrantyActivationRecord> activations,
-}) {
-  final end = DateTime(endDate.year, endDate.month, endDate.day);
-  final startDate = end.subtract(Duration(days: days - 1));
-
-  // Group activations by calendar date within the window
-  final Map<DateTime, int> countByDate = {};
-  for (final a in activations) {
-    final d = DateTime(
-      a.activatedAt.year,
-      a.activatedAt.month,
-      a.activatedAt.day,
-    );
-    if (!d.isBefore(startDate) && !d.isAfter(end)) {
-      countByDate[d] = (countByDate[d] ?? 0) + 1;
-    }
-  }
-
-  final List<_DailyActivation> list = [];
-  for (var i = days - 1; i >= 0; i--) {
-    final date = end.subtract(Duration(days: i));
-    final normalised = DateTime(date.year, date.month, date.day);
-    list.add(
-      _DailyActivation(date: normalised, count: countByDate[normalised] ?? 0),
-    );
-  }
-  return list;
-}
-
-List<_WarrantyStatusStat> _buildWarrantyStatuses(
-  List<_DailyActivation> activations, {
-  required bool isEnglish,
-}) {
-  final activationLabel = isEnglish ? 'Activated' : 'Kích hoạt';
-  final pendingLabel = isEnglish ? 'Pending' : 'Chờ xử lý';
-  final processingLabel = isEnglish ? 'Processing' : 'Đang xử lý';
-  final completedLabel = isEnglish ? 'Completed' : 'Hoàn tất';
-  final rejectedLabel = isEnglish ? 'Rejected' : 'Từ chối';
-  final total = activations.fold<int>(0, (s, d) => s + d.count);
-  if (total == 0) {
-    return [
-      _WarrantyStatusStat(
-        label: activationLabel,
-        count: 0,
-        color: Color(0xFF1D4ED8),
-      ),
-      _WarrantyStatusStat(
-        label: pendingLabel,
-        count: 0,
-        color: Color(0xFF6D28D9),
-      ),
-      _WarrantyStatusStat(
-        label: processingLabel,
-        count: 0,
-        color: Color(0xFFC2410C),
-      ),
-      _WarrantyStatusStat(
-        label: completedLabel,
-        count: 0,
-        color: Color(0xFF15803D),
-      ),
-      _WarrantyStatusStat(
-        label: rejectedLabel,
-        count: 0,
-        color: const Color(0xFFB91C1C),
-      ),
-    ];
-  }
-  // mock distribution based on total
-  final dist = {
-    activationLabel: (total * 0.55).round(),
-    pendingLabel: (total * 0.12).round(),
-    processingLabel: (total * 0.18).round(),
-    completedLabel: (total * 0.12).round(),
-    rejectedLabel: total, // will adjust below
-  };
-  dist[rejectedLabel] = math.max(
-    0,
-    total - dist.values.take(4).fold<int>(0, (s, v) => s + v),
-  );
-
-  return [
-    _WarrantyStatusStat(
-      label: activationLabel,
-      count: dist[activationLabel]!,
-      color: const Color(0xFF1D4ED8),
-    ),
-    _WarrantyStatusStat(
-      label: pendingLabel,
-      count: dist[pendingLabel]!,
-      color: const Color(0xFF6D28D9),
-    ),
-    _WarrantyStatusStat(
-      label: processingLabel,
-      count: dist[processingLabel]!,
-      color: const Color(0xFFC2410C),
-    ),
-    _WarrantyStatusStat(
-      label: completedLabel,
-      count: dist[completedLabel]!,
-      color: const Color(0xFF15803D),
-    ),
-    _WarrantyStatusStat(
-      label: rejectedLabel,
-      count: dist[rejectedLabel]!,
-      color: const Color(0xFFB91C1C),
-    ),
-  ];
 }
 
 Color _statusColor(OrderStatus status, ColorScheme colorScheme) {
@@ -4222,12 +4028,13 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
       widget.activations,
       _selectedRange,
     );
-    final stats = _buildWarrantyStatuses(
-      filteredActivations,
-      isEnglish: isEnglish,
+    final trackedActivationCount = widget.activations.fold<int>(
+      0,
+      (sum, item) => sum + item.count,
     );
+    final stats = _buildWarrantyStatuses(filteredActivations);
     final total = stats.fold<int>(0, (sum, e) => sum + e.count);
-    final showEmpty = total == 0;
+    final showUnavailable = total == 0;
 
     final sortedStats = [...stats]
       ..sort((a, b) {
@@ -4268,107 +4075,121 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              isEnglish ? 'Serial status' : 'Trạng thái serial',
+              texts.warrantyStatusTitle,
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              isEnglish
-                  ? 'Total: $total serial-processing orders'
-                  : 'Tổng: $total đơn xử lý serial',
+              showUnavailable
+                  ? texts.metricUnavailableLabel
+                  : (isEnglish
+                        ? 'Total: $total serial-processing orders'
+                        : 'Tổng: $total đơn xử lý serial'),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: _dashboardMutedText(context),
               ),
             ),
             const SizedBox(height: 10),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isCompactSegment = constraints.maxWidth < 360;
-                final segmentButton = SegmentedButton<int>(
-                  showSelectedIcon: false,
-                  multiSelectionEnabled: false,
-                  style: ButtonStyle(
-                    visualDensity: VisualDensity.compact,
-                    padding: WidgetStateProperty.all(
-                      EdgeInsets.symmetric(
-                        horizontal: isCompactSegment ? 8 : 10,
-                        vertical: 8,
+            if (!showUnavailable) ...[
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompactSegment = constraints.maxWidth < 360;
+                  final segmentButton = SegmentedButton<int>(
+                    showSelectedIcon: false,
+                    multiSelectionEnabled: false,
+                    style: ButtonStyle(
+                      visualDensity: VisualDensity.compact,
+                      padding: WidgetStateProperty.all(
+                        EdgeInsets.symmetric(
+                          horizontal: isCompactSegment ? 8 : 10,
+                          vertical: 8,
+                        ),
                       ),
-                    ),
-                    side: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.selected)) {
+                      side: WidgetStateProperty.resolveWith((states) {
+                        if (states.contains(WidgetState.selected)) {
+                          return const BorderSide(
+                            color: Colors.transparent,
+                            width: 0,
+                          );
+                        }
                         return const BorderSide(
-                          color: Colors.transparent,
-                          width: 0,
+                          color: Color(0xFFCBD5E1),
+                          width: 1,
                         );
-                      }
-                      return const BorderSide(
-                        color: Color(0xFFCBD5E1),
-                        width: 1,
-                      );
-                    }),
-                    backgroundColor: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return const Color(0xFF1D4ED8);
-                      }
-                      return theme.colorScheme.surface;
-                    }),
-                    foregroundColor: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return Colors.white;
-                      }
-                      return const Color(0xFF475569);
-                    }),
-                    textStyle: WidgetStateProperty.resolveWith((states) {
-                      return theme.textTheme.labelMedium?.copyWith(
-                        fontWeight: states.contains(WidgetState.selected)
-                            ? FontWeight.w800
-                            : FontWeight.w600,
-                      );
-                    }),
-                  ),
-                  segments: [
-                    for (final range in widget.ranges)
-                      ButtonSegment<int>(
-                        value: range,
-                        label: Text(texts.warrantyRangeLabel(range)),
-                      ),
-                  ],
-                  selected: {_selectedRange},
-                  onSelectionChanged: (selected) {
-                    if (selected.isEmpty) {
-                      return;
-                    }
-                    final value = selected.first;
-                    if (value == _selectedRange) {
-                      return;
-                    }
-                    setState(() {
-                      _selectedRange = value;
-                      _selectedIndex = null;
-                      _tooltipAnchor = null;
-                    });
-                  },
-                );
-
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  clipBehavior: Clip.hardEdge,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: segmentButton,
+                      }),
+                      backgroundColor: WidgetStateProperty.resolveWith((
+                        states,
+                      ) {
+                        if (states.contains(WidgetState.selected)) {
+                          return const Color(0xFF1D4ED8);
+                        }
+                        return theme.colorScheme.surface;
+                      }),
+                      foregroundColor: WidgetStateProperty.resolveWith((
+                        states,
+                      ) {
+                        if (states.contains(WidgetState.selected)) {
+                          return Colors.white;
+                        }
+                        return const Color(0xFF475569);
+                      }),
+                      textStyle: WidgetStateProperty.resolveWith((states) {
+                        return theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: states.contains(WidgetState.selected)
+                              ? FontWeight.w800
+                              : FontWeight.w600,
+                        );
+                      }),
                     ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            if (showEmpty)
-              _buildEmptyDonutState(theme)
+                    segments: [
+                      for (final range in widget.ranges)
+                        ButtonSegment<int>(
+                          value: range,
+                          label: Text(texts.warrantyRangeLabel(range)),
+                        ),
+                    ],
+                    selected: {_selectedRange},
+                    onSelectionChanged: (selected) {
+                      if (selected.isEmpty) {
+                        return;
+                      }
+                      final value = selected.first;
+                      if (value == _selectedRange) {
+                        return;
+                      }
+                      setState(() {
+                        _selectedRange = value;
+                        _selectedIndex = null;
+                        _tooltipAnchor = null;
+                      });
+                    },
+                  );
+
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    clipBehavior: Clip.hardEdge,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: constraints.maxWidth,
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: segmentButton,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (showUnavailable)
+              _buildEmptyDonutState(
+                theme,
+                texts: texts,
+                activationCount: trackedActivationCount,
+              )
             else
               LayoutBuilder(
                 builder: (context, constraints) {
@@ -4730,8 +4551,11 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
     );
   }
 
-  Widget _buildEmptyDonutState(ThemeData theme) {
-    final isEnglish = AppSettingsScope.of(context).locale.languageCode == 'en';
+  Widget _buildEmptyDonutState(
+    ThemeData theme, {
+    required _DashboardTexts texts,
+    required int activationCount,
+  }) {
     return Column(
       children: [
         SizedBox(
@@ -4759,7 +4583,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '0',
+                    'N/A',
                     style: theme.textTheme.headlineMedium?.copyWith(
                       color: const Color(0xFF334155),
                       fontWeight: FontWeight.w900,
@@ -4768,7 +4592,7 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    isEnglish ? 'Total' : 'Tổng',
+                    texts.metricUnavailableLabel,
                     style: theme.textTheme.labelMedium?.copyWith(
                       color: _dashboardMutedText(context),
                       fontWeight: FontWeight.w600,
@@ -4781,12 +4605,19 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
         ),
         const SizedBox(height: 10),
         Text(
-          isEnglish
-              ? 'No data is available in this time range. Choose another range or add new activations.'
-              : 'Chưa có dữ liệu trong khoảng thời gian này. Hãy chọn mốc khác hoặc bổ sung kích hoạt mới.',
+          texts.warrantyStatusUnavailableMessage(activationCount),
           style: theme.textTheme.bodySmall?.copyWith(
             color: _dashboardMutedText(context),
             fontWeight: FontWeight.w600,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          texts.warrantyStatusUnavailableDescription,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: _dashboardMutedText(context),
+            fontWeight: FontWeight.w500,
           ),
           textAlign: TextAlign.center,
         ),
@@ -5110,65 +4941,6 @@ const _statusOrder = <OrderStatus>[
   OrderStatus.approved,
 ];
 
-class _CustomerStat {
-  const _CustomerStat({
-    required this.name,
-    required this.phone,
-    required this.total,
-    required this.orderCount,
-    required this.lastOrder,
-  });
-
-  final String name;
-  final String phone;
-  final int total;
-  final int orderCount;
-  final DateTime lastOrder;
-
-  int get avgOrder => orderCount == 0 ? 0 : (total / orderCount).round();
-  String get initials {
-    final parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return (parts[0].isNotEmpty ? parts[0][0] : '') +
-          (parts.last.isNotEmpty ? parts.last[0] : '');
-    }
-    return name.isNotEmpty ? name[0] : '?';
-  }
-}
-
-class _DebtBucket {
-  const _DebtBucket({
-    required this.label,
-    required this.minDay,
-    required this.maxDay,
-    required this.color,
-    this.amount = 0,
-  });
-
-  final String label;
-  final int minDay;
-  final int maxDay;
-  final Color color;
-  final int amount;
-
-  _DebtBucket copyWith({int? amount}) {
-    return _DebtBucket(
-      label: label,
-      minDay: minDay,
-      maxDay: maxDay,
-      color: color,
-      amount: amount ?? this.amount,
-    );
-  }
-}
-
-class _DailyActivation {
-  const _DailyActivation({required this.date, required this.count});
-
-  final DateTime date;
-  final int count;
-}
-
 class _ActivationChartPoint {
   const _ActivationChartPoint({
     required this.startDate,
@@ -5179,18 +4951,6 @@ class _ActivationChartPoint {
   final DateTime startDate;
   final DateTime endDate;
   final int count;
-}
-
-class _WarrantyStatusStat {
-  const _WarrantyStatusStat({
-    required this.label,
-    required this.count,
-    required this.color,
-  });
-
-  final String label;
-  final int count;
-  final Color color;
 }
 
 class _MiniKpi extends StatelessWidget {

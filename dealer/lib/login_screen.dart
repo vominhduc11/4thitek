@@ -18,16 +18,14 @@ import 'warranty_controller.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
+part 'login_screen_support.dart';
+
 _LoginTexts _loginTexts(BuildContext context) => _LoginTexts(
   isEnglish: Localizations.localeOf(context).languageCode == 'en',
 );
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({
-    super.key,
-    this.initialErrorMessage,
-    this.authService,
-  });
+  const LoginScreen({super.key, this.initialErrorMessage, this.authService});
 
   final String? initialErrorMessage;
   final AuthService? authService;
@@ -99,34 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final mediaSize = MediaQuery.sizeOf(context);
-    final screenWidth = mediaSize.width;
-    final screenHeight = mediaSize.height;
-    final orientation = MediaQuery.orientationOf(context);
-    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-
-    const mobileCardMaxWidth = 420.0;
-    const tabletCardMaxWidth = 560.0;
-    final isTablet = mediaSize.shortestSide >= AppBreakpoints.phone;
-    final isLandscape = orientation == Orientation.landscape;
-    final isSmallMobile = screenWidth < 360;
-    final isCompactVisual =
-        screenWidth <= mobileCardMaxWidth || (isLandscape && !isTablet);
-    final isVerticallyTight = (isLandscape && !isTablet) || screenHeight < 680;
-    final cardMaxWidth = isTablet ? tabletCardMaxWidth : mobileCardMaxWidth;
-    final contentMaxWidth = isTablet ? 1120.0 : cardMaxWidth;
-
-    final topOrbSize = isTablet ? 260.0 : (isCompactVisual ? 170.0 : 220.0);
-    final bottomOrbSize = isTablet ? 230.0 : (isCompactVisual ? 150.0 : 200.0);
-    final scrollHorizontalPadding = isTablet
-        ? 28.0
-        : (isSmallMobile ? 14.0 : 20.0);
-    final scrollVerticalPadding = isVerticallyTight ? 14.0 : 28.0;
-    final brandToCardGap = isVerticallyTight ? 12.0 : 24.0;
-    final cardToPromptGap = isVerticallyTight ? 10.0 : 14.0;
-    final logoHeight = isTablet ? 52.0 : (isVerticallyTight ? 34.0 : 40.0);
-    final showBrandSubtitle = !(isLandscape && !isTablet);
-    final showRegisterPrompt = keyboardInset == 0 || isTablet;
+    final layout = _LoginLayoutSpec.fromContext(context);
 
     Widget buildFormColumn({required bool includeHeader}) {
       return Column(
@@ -136,11 +107,11 @@ class _LoginScreenState extends State<LoginScreen> {
             FadeSlideIn(
               child: _BrandHeader(
                 theme: theme,
-                logoHeight: logoHeight,
-                showSubtitle: showBrandSubtitle,
+                logoHeight: layout.logoHeight,
+                showSubtitle: layout.showBrandSubtitle,
               ),
             ),
-            SizedBox(height: brandToCardGap),
+            SizedBox(height: layout.brandToCardGap),
           ],
           FadeSlideIn(
             delay: const Duration(milliseconds: 80),
@@ -154,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
               emailFieldKey: _emailFieldKey,
               passwordFieldKey: _passwordFieldKey,
               isLoading: _isLoggingIn,
-              isCompactLayout: isVerticallyTight,
+              isCompactLayout: layout.isVerticallyTight,
               isFormValidListenable: _isFormValidNotifier,
               emailFieldErrorListenable: _emailFieldErrorNotifier,
               passwordFieldErrorListenable: _passwordFieldErrorNotifier,
@@ -184,8 +155,8 @@ class _LoginScreenState extends State<LoginScreen> {
               },
             ),
           ),
-          if (showRegisterPrompt) ...[
-            SizedBox(height: cardToPromptGap),
+          if (layout.showRegisterPrompt) ...[
+            SizedBox(height: layout.cardToPromptGap),
             FadeSlideIn(
               delay: const Duration(milliseconds: 140),
               child: _RegisterPrompt(
@@ -227,15 +198,20 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           Positioned(
-            right: isTablet ? -96 : (isCompactVisual ? -56 : -80),
-            top: isTablet ? -60 : (isCompactVisual ? -26 : -40),
-            child: _GlowOrb(size: topOrbSize, color: const Color(0x66FFFFFF)),
+            right: layout.isTablet ? -96 : (layout.isCompactVisual ? -56 : -80),
+            top: layout.isTablet ? -60 : (layout.isCompactVisual ? -26 : -40),
+            child: _GlowOrb(
+              size: layout.topOrbSize,
+              color: const Color(0x66FFFFFF),
+            ),
           ),
           Positioned(
-            left: isTablet ? -90 : (isCompactVisual ? -44 : -60),
-            bottom: isTablet ? -56 : (isCompactVisual ? -18 : -30),
+            left: layout.isTablet ? -90 : (layout.isCompactVisual ? -44 : -60),
+            bottom: layout.isTablet
+                ? -56
+                : (layout.isCompactVisual ? -18 : -30),
             child: _GlowOrb(
-              size: bottomOrbSize,
+              size: layout.bottomOrbSize,
               color: const Color(0x33FFFFFF),
             ),
           ),
@@ -244,15 +220,17 @@ class _LoginScreenState extends State<LoginScreen> {
               controller: _scrollController,
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: EdgeInsets.fromLTRB(
-                scrollHorizontalPadding,
-                scrollVerticalPadding,
-                scrollHorizontalPadding,
-                scrollVerticalPadding,
+                layout.scrollHorizontalPadding,
+                layout.scrollVerticalPadding,
+                layout.scrollHorizontalPadding,
+                layout.scrollVerticalPadding,
               ),
               child: Center(
-                child: isTablet
+                child: layout.isTablet
                     ? ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                        constraints: BoxConstraints(
+                          maxWidth: layout.contentMaxWidth,
+                        ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
@@ -260,14 +238,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: FadeSlideIn(
                                 child: _TabletBrandPanel(
                                   theme: theme,
-                                  logoHeight: logoHeight,
+                                  logoHeight: layout.logoHeight,
                                 ),
                               ),
                             ),
                             const SizedBox(width: 28),
                             ConstrainedBox(
                               constraints: BoxConstraints(
-                                maxWidth: cardMaxWidth,
+                                maxWidth: layout.cardMaxWidth,
                               ),
                               child: buildFormColumn(includeHeader: false),
                             ),
@@ -275,328 +253,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       )
                     : ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: cardMaxWidth),
+                        constraints: BoxConstraints(
+                          maxWidth: layout.cardMaxWidth,
+                        ),
                         child: buildFormColumn(includeHeader: true),
                       ),
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Future<void> _handleLogin() async {
-    final texts = _loginTexts(context);
-    if (_isLoggingIn) {
-      return;
-    }
-
-    FocusScope.of(context).unfocus();
-    if (!_emailFormatValidationEnabled) {
-      setState(() {
-        _emailFormatValidationEnabled = true;
-      });
-    }
-    final isFormValid = _formKey.currentState?.validate() ?? false;
-    if (!isFormValid) {
-      final email = _emailController.text.trim();
-      if (email.isEmpty || !_isValidEmail(email)) {
-        _emailFocusNode.requestFocus();
-      } else {
-        _passwordFocusNode.requestFocus();
-      }
-      return;
-    }
-
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-
-    setState(() {
-      _isLoggingIn = true;
-    });
-    _authErrorNotifier.value = null;
-    _clearCredentialFieldErrors();
-
-    try {
-      final result = await _authService.signIn(
-        email: email,
-        password: password,
-      );
-      if (!mounted) {
-        return;
-      }
-
-      if (!result.isSuccess) {
-        final failureType = result.failure?.type ?? LoginFailureType.unknown;
-        switch (failureType) {
-          case LoginFailureType.invalidCredentials:
-          case LoginFailureType.invalidEmail:
-          case LoginFailureType.invalidPassword:
-          case LoginFailureType.conflict:
-            _handleInvalidCredentialFailure(
-              type: LoginFailureType.invalidCredentials,
-              message: texts.invalidCredentialsMessage,
-            );
-            break;
-          case LoginFailureType.network:
-            _clearCredentialFieldErrors();
-            _authErrorNotifier.value = result.failure?.message == null
-                ? texts.cannotConnectServerMessage
-                : resolveAuthServiceMessage(
-                    result.failure?.message,
-                    isEnglish: texts.isEnglish,
-                  );
-            break;
-          case LoginFailureType.unknown:
-            _clearCredentialFieldErrors();
-            _authErrorNotifier.value = result.failure?.message == null
-                ? texts.loginFailedMessage
-                : resolveAuthServiceMessage(
-                    result.failure?.message,
-                    isEnglish: texts.isEnglish,
-                  );
-            break;
-        }
-        return;
-      }
-
-      final token = result.accessToken;
-      if (token == null || token.isEmpty) {
-        _clearCredentialFieldErrors();
-        _authErrorNotifier.value = texts.cannotCreateSessionMessage;
-        return;
-      }
-
-      await _authStorage.persistLogin(
-        rememberMe: _rememberMe,
-        email: result.email ?? email,
-        accessToken: token,
-        refreshToken: result.refreshToken,
-      );
-      if (!mounted) {
-        return;
-      }
-      await CartScope.of(context).load();
-      if (!mounted) {
-        return;
-      }
-      await OrderScope.of(context).load(forceRefresh: true);
-      if (!mounted) {
-        return;
-      }
-      await WarrantyScope.of(context).load(forceRefresh: true);
-      if (!mounted) {
-        return;
-      }
-      await NotificationScope.of(context).load(forceRefresh: true);
-      _clearCredentialFieldErrors();
-      if (!mounted) {
-        return;
-      }
-
-      context.go('/home');
-    } on TimeoutException {
-      _clearCredentialFieldErrors();
-      _authErrorNotifier.value = texts.loginTimeoutMessage;
-    } on Exception {
-      _clearCredentialFieldErrors();
-      _authErrorNotifier.value = texts.cannotConnectServerMessage;
-    } catch (_) {
-      _clearCredentialFieldErrors();
-      _authErrorNotifier.value = texts.unknownLoginErrorMessage;
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoggingIn = false;
-        });
-        _isFormValidNotifier.value = _isFormInputValid();
-      }
-    }
-  }
-
-  Future<void> _loadRemembered() async {
-    final remembered = await _authStorage.readRememberedLogin();
-    if (remembered.rememberMe && remembered.email.isNotEmpty) {
-      _emailController.text = remembered.email;
-    } else {
-      _emailController.clear();
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _rememberMe = remembered.rememberMe;
-    });
-    _isFormValidNotifier.value = _isFormInputValid();
-  }
-
-  void _onFormInputChanged() {
-    final isValid = _isFormInputValid();
-    final shouldClearAuthError = _authErrorNotifier.value != null;
-    final shouldClearFieldErrors =
-        _emailFieldErrorNotifier.value != null ||
-        _passwordFieldErrorNotifier.value != null;
-    if (_isFormValidNotifier.value == isValid && !shouldClearAuthError) {
-      if (!shouldClearFieldErrors) {
-        return;
-      }
-    }
-
-    _isFormValidNotifier.value = isValid;
-    if (shouldClearFieldErrors) {
-      _clearCredentialFieldErrors();
-    }
-    if (shouldClearAuthError) {
-      _authErrorNotifier.value = null;
-    }
-  }
-
-  bool _isFormInputValid() {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-    return _isValidEmail(email) && _isValidPassword(password);
-  }
-
-  bool _isValidEmail(String email) {
-    return isValidEmailAddress(email);
-  }
-
-  bool _isValidPassword(String password) {
-    return password.length >= 6;
-  }
-
-  void _handleInvalidCredentialFailure({
-    required LoginFailureType type,
-    required String message,
-  }) {
-    _applyCredentialFieldError(type: type, message: message);
-  }
-
-  void _clearCredentialFieldErrors() {
-    _emailFieldErrorNotifier.value = null;
-    _passwordFieldErrorNotifier.value = null;
-  }
-
-  void _applyCredentialFieldError({
-    required LoginFailureType type,
-    required String message,
-  }) {
-    _clearCredentialFieldErrors();
-    switch (type) {
-      case LoginFailureType.invalidEmail:
-        _authErrorNotifier.value = null;
-        _emailFieldErrorNotifier.value = message;
-        _emailFocusNode.requestFocus();
-        break;
-      case LoginFailureType.invalidPassword:
-        _authErrorNotifier.value = null;
-        _passwordFieldErrorNotifier.value = message;
-        _passwordFocusNode.requestFocus();
-        _passwordShakeTickNotifier.value = _passwordShakeTickNotifier.value + 1;
-        break;
-      case LoginFailureType.invalidCredentials:
-      case LoginFailureType.conflict:
-        _authErrorNotifier.value = message;
-        _passwordFocusNode.requestFocus();
-        break;
-      case LoginFailureType.network:
-      case LoginFailureType.unknown:
-        break;
-    }
-  }
-
-  void _onEmailFocusChanged() {
-    if (_emailFocusNode.hasFocus) {
-      _scrollToField(_emailFieldKey);
-      return;
-    }
-
-    if (!_emailFormatValidationEnabled) {
-      setState(() {
-        _emailFormatValidationEnabled = true;
-      });
-      _formKey.currentState?.validate();
-    }
-  }
-
-  void _onPasswordFocusChanged() {
-    if (_passwordFocusNode.hasFocus) {
-      _scrollToField(_passwordFieldKey);
-    }
-  }
-
-  void _onAuthErrorChanged() {
-    if (_authErrorNotifier.value == null) {
-      return;
-    }
-    _scrollToField(_submitButtonKey, alignment: 0.92);
-  }
-
-  void _scrollToField(GlobalKey key, {double alignment = 0.25}) {
-    final fieldContext = key.currentContext;
-    if (fieldContext == null) {
-      return;
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      Scrollable.ensureVisible(
-        fieldContext,
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-        alignment: alignment,
-      );
-    });
-  }
-
-  void _handleTogglePasswordVisibility() {
-    if (_isLoggingIn) {
-      return;
-    }
-
-    final selection = _passwordController.selection;
-    setState(() {
-      _obscurePassword = !_obscurePassword;
-    });
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-
-      final textLength = _passwordController.text.length;
-      final hasSelection = selection.start >= 0 && selection.end >= 0;
-      final safeStart = hasSelection
-          ? math.max(0, math.min(selection.start, textLength))
-          : textLength;
-      final safeEnd = hasSelection
-          ? math.max(0, math.min(selection.end, textLength))
-          : textLength;
-
-      _passwordController.selection = TextSelection(
-        baseOffset: safeStart,
-        extentOffset: safeEnd,
-      );
-    });
-  }
-
-  Future<void> _openDealerRegistrationPage() async {
-    final texts = _loginTexts(context);
-    final launched = await launchUrl(
-      DealerApiConfig.dealerRegistrationPageUri,
-      mode: LaunchMode.externalApplication,
-    );
-    if (!mounted || launched) {
-      return;
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(texts.cannotOpenRegistrationPageMessage),
       ),
     );
   }
@@ -1477,8 +1142,7 @@ class _LoginTexts {
       : 'Dang nhap de quan ly don nhap, cong no va bao hanh cung 4thitek.';
   String get brandPillOrders =>
       isEnglish ? 'Manage orders' : 'Quan ly don nhap';
-  String get brandPillDebt =>
-      isEnglish ? 'Track debt' : 'Theo doi cong no';
+  String get brandPillDebt => isEnglish ? 'Track debt' : 'Theo doi cong no';
   String get brandPillWarranty =>
       isEnglish ? 'Process warranties' : 'Xu ly bao hanh';
   String get loginTitle => isEnglish ? 'Dealer sign in' : 'Dang nhap dai ly';
@@ -1487,41 +1151,33 @@ class _LoginTexts {
       : 'Nhap email va mat khau de tiep tuc';
   String get emailLabel => 'Email';
   String get passwordLabel => isEnglish ? 'Password' : 'Mat khau';
-  String get emailRequiredMessage => isEnglish
-      ? 'Email is required.'
-      : 'Email khong duoc de trong';
+  String get emailRequiredMessage =>
+      isEnglish ? 'Email is required.' : 'Email khong duoc de trong';
   String get invalidEmailMessage =>
       isEnglish ? 'Email is invalid.' : 'Email khong hop le';
-  String get passwordRequiredMessage => isEnglish
-      ? 'Password is required.'
-      : 'Mat khau khong duoc de trong';
+  String get passwordRequiredMessage =>
+      isEnglish ? 'Password is required.' : 'Mat khau khong duoc de trong';
   String get passwordMinLengthMessage => isEnglish
       ? 'Password must be at least 6 characters.'
       : 'Mat khau toi thieu 6 ky tu';
-  String get passwordMinLengthHint => isEnglish
-      ? 'At least 6 characters'
-      : 'Toi thieu 6 ky tu';
+  String get passwordMinLengthHint =>
+      isEnglish ? 'At least 6 characters' : 'Toi thieu 6 ky tu';
   String get showPasswordTooltip =>
       isEnglish ? 'Show password' : 'Hien mat khau';
-  String get hidePasswordTooltip =>
-      isEnglish ? 'Hide password' : 'An mat khau';
-  String authErrorSemanticsLabel(String message) => isEnglish
-      ? 'Login error: $message'
-      : 'Loi dang nhap: $message';
-  String get forgotPasswordAction => isEnglish
-      ? 'Forgot password?'
-      : 'Quen mat khau?';
-  String get rememberEmailLabel => isEnglish
-      ? 'Remember email'
-      : 'Ghi nho email';
+  String get hidePasswordTooltip => isEnglish ? 'Hide password' : 'An mat khau';
+  String authErrorSemanticsLabel(String message) =>
+      isEnglish ? 'Login error: $message' : 'Loi dang nhap: $message';
+  String get forgotPasswordAction =>
+      isEnglish ? 'Forgot password?' : 'Quen mat khau?';
+  String get rememberEmailLabel =>
+      isEnglish ? 'Remember email' : 'Ghi nho email';
   String get loginAction => isEnglish ? 'Sign in' : 'Dang nhap';
   String get loggingInLabel =>
       isEnglish ? 'Signing in...' : 'Dang dang nhap...';
   String get noAccountPrompt =>
       isEnglish ? 'No account yet? ' : 'Chua co tai khoan? ';
-  String get registerOnWebsiteAction => isEnglish
-      ? 'Register on website'
-      : 'Dang ky tren website';
+  String get registerOnWebsiteAction =>
+      isEnglish ? 'Register on website' : 'Dang ky tren website';
   String get invalidCredentialsMessage => isEnglish
       ? 'Email or password is incorrect.'
       : 'Email hoac mat khau khong dung.';

@@ -6,6 +6,7 @@ import 'app_settings_controller.dart';
 import 'bank_transfer_support.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
+import 'checkout_validation_service.dart';
 import 'dealer_profile_storage.dart';
 import 'global_search.dart';
 import 'models.dart';
@@ -464,9 +465,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         : () async {
                             setState(() => _isSubmitting = true);
                             try {
-                              final issues = await _validateCart(cart);
-                              if (issues.isNotEmpty) {
-                                await _showValidationDialog(context, issues);
+                              final validationService =
+                                  _buildCheckoutValidationService();
+                              final validationResult = await validationService
+                                  .validate(
+                                    _buildCheckoutValidationRequest(
+                                      cart: cart,
+                                      orderController: orderController,
+                                    ),
+                                  );
+                              if (!context.mounted) {
+                                return;
+                              }
+                              final canProceed = await _handleValidationResult(
+                                validationResult,
+                              );
+                              if (!context.mounted || !canProceed) {
                                 return;
                               }
 
@@ -475,34 +489,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               if (_method == OrderPaymentMethod.bankTransfer) {
                                 bankTransferInstructions =
                                     await _ensureBankTransferInstructions();
+                                if (!mounted) {
+                                  return;
+                                }
                                 if (bankTransferInstructions == null) {
                                   return;
                                 }
                               } else {
-                                if (!_canUseDebtPayment) {
-                                  _showSnackBar(
-                                    texts.debtPaymentUnavailableMessage,
-                                  );
-                                  return;
-                                }
-                                final projectedOutstandingDebt =
-                                    orderController.totalOutstandingDebt +
-                                    total;
-                                if (projectedOutstandingDebt >
-                                    _profile.creditLimit) {
-                                  _showSnackBar(
-                                    texts.creditLimitExceededMessage(
-                                      formatVnd(projectedOutstandingDebt),
-                                      formatVnd(_profile.creditLimit),
-                                    ),
-                                  );
-                                  return;
-                                }
                                 final confirmed = await _showDebtConfirmDialog(
                                   context,
                                   amount: total,
                                   itemCount: cart.totalItems,
                                 );
+                                if (!context.mounted) {
+                                  return;
+                                }
                                 if (confirmed != true) {
                                   return;
                                 }
@@ -544,39 +545,97 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Future<List<String>> _validateCart(CartController cart) async {
-    final texts = _texts;
-    final List<String> issues = [];
-    if (cart.isSyncing) {
-      issues.add(texts.cartSyncInProgressMessage);
-      return issues;
-    }
-    final catalog = ProductCatalogScope.maybeOf(context);
-    for (final item in cart.items) {
-      final latestProduct = await _resolveLatestProduct(item.product, catalog);
-      final availableStock = latestProduct?.stock ?? item.product.stock;
-      if (availableStock <= 0) {
-        issues.add(texts.outOfStockIssue(item.product.name));
-        continue;
-      }
-      if (item.quantity > availableStock) {
-        issues.add(texts.stockIssue(item.product.name, availableStock));
-      }
-    }
-    return issues;
+  CheckoutValidationService _buildCheckoutValidationService() {
+    return CheckoutValidationService(
+      localDataSource: LocalCheckoutValidationDataSource(
+        productCatalog: ProductCatalogScope.maybeOf(context),
+      ),
+    );
   }
 
-  Future<Product?> _resolveLatestProduct(
-    Product product,
-    ProductCatalogController? catalog,
-  ) async {
-    if (catalog == null) {
-      return null;
+  CheckoutValidationRequest _buildCheckoutValidationRequest({
+    required CartController cart,
+    required OrderController orderController,
+  }) {
+    return CheckoutValidationRequest(
+      items: cart.items
+          .map(
+            (item) => CheckoutValidationItem(
+              productId: item.product.id,
+              productName: item.product.name,
+              quantity: item.quantity,
+              unitPrice: item.product.price,
+            ),
+          )
+          .toList(growable: false),
+      paymentMethod: _method,
+      isCartSyncing: cart.isSyncing,
+      currentOutstandingDebt: orderController.totalOutstandingDebt,
+      creditLimit: _profile.creditLimit,
+    );
+  }
+
+  Future<bool> _handleValidationResult(CheckoutValidationResult result) async {
+    if (!result.hasIssues) {
+      return true;
     }
-    try {
-      return await catalog.fetchDetail(product.id);
-    } catch (_) {
-      return catalog.findById(product.id) ?? product;
+
+    final dialogIssues = result.issues
+        .where(
+          (issue) =>
+              issue.code == CheckoutValidationIssueCode.cartSyncInProgress ||
+              issue.code == CheckoutValidationIssueCode.outOfStock ||
+              issue.code == CheckoutValidationIssueCode.insufficientStock,
+        )
+        .map(_validationMessageForIssue)
+        .toList(growable: false);
+    if (dialogIssues.isNotEmpty) {
+      await _showValidationDialog(context, dialogIssues);
+      return false;
+    }
+
+    for (final issue in result.issues) {
+      switch (issue.code) {
+        case CheckoutValidationIssueCode.debtPaymentUnavailable:
+          _showSnackBar(_texts.debtPaymentUnavailableMessage);
+          return false;
+        case CheckoutValidationIssueCode.debtLimitExceeded:
+          _showSnackBar(
+            _texts.creditLimitExceededMessage(
+              formatVnd(issue.projectedOutstandingDebt ?? 0),
+              formatVnd(issue.creditLimit ?? 0),
+            ),
+          );
+          return false;
+        case CheckoutValidationIssueCode.cartSyncInProgress:
+        case CheckoutValidationIssueCode.outOfStock:
+        case CheckoutValidationIssueCode.insufficientStock:
+          break;
+      }
+    }
+
+    return true;
+  }
+
+  String _validationMessageForIssue(CheckoutValidationIssue issue) {
+    final texts = _texts;
+    switch (issue.code) {
+      case CheckoutValidationIssueCode.cartSyncInProgress:
+        return texts.cartSyncInProgressMessage;
+      case CheckoutValidationIssueCode.outOfStock:
+        return texts.outOfStockIssue(issue.productName ?? '');
+      case CheckoutValidationIssueCode.insufficientStock:
+        return texts.stockIssue(
+          issue.productName ?? '',
+          issue.availableStock ?? 0,
+        );
+      case CheckoutValidationIssueCode.debtPaymentUnavailable:
+        return texts.debtPaymentUnavailableMessage;
+      case CheckoutValidationIssueCode.debtLimitExceeded:
+        return texts.creditLimitExceededMessage(
+          formatVnd(issue.projectedOutstandingDebt ?? 0),
+          formatVnd(issue.creditLimit ?? 0),
+        );
     }
   }
 
@@ -626,7 +685,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }) async {
     final isBankTransfer = _method == OrderPaymentMethod.bankTransfer;
     final order = Order(
-      id: _generateOrderId(orderController),
+      // Let the backend assign the production order code.
+      id: '',
       createdAt: DateTime.now(),
       status: OrderStatus.pendingApproval,
       paymentMethod: _method,
@@ -724,20 +784,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       },
     );
   }
-
-  String _generateOrderId(OrderController orderController) {
-    final now = DateTime.now().millisecondsSinceEpoch.toString();
-    final suffix = now.substring(now.length - 6);
-    var orderId = 'SCS-$suffix';
-    var index = 1;
-
-    while (orderController.containsId(orderId)) {
-      orderId = 'SCS-$suffix-$index';
-      index += 1;
-    }
-
-    return orderId;
-  }
 }
 
 class _CheckoutTexts {
@@ -765,7 +811,8 @@ class _CheckoutTexts {
       isEnglish ? 'Edit shipping information' : 'Sửa thông tin nhận hàng';
   String contactPersonLine(String name) =>
       isEnglish ? 'Contact person: $name' : 'Người liên hệ: $name';
-  String phoneLine(String phone) => isEnglish ? 'Phone: $phone' : 'SDT: $phone';
+  String phoneLine(String phone) =>
+      isEnglish ? 'Phone: $phone' : 'Số điện thoại: $phone';
   String get paymentMethodTitle =>
       isEnglish ? 'Payment method' : 'Phương thức thanh toán';
   String get bankTransferTitle =>
@@ -807,7 +854,7 @@ class _CheckoutTexts {
       isEnglish ? 'Payment status' : 'Trạng thái thanh toán';
   String get bankTransferSummaryHint => isEnglish
       ? 'The order will be created first. Then transfer the exact amount with the exact order ID so the SePay webhook can reconcile it automatically.'
-      : 'Đơn sẽ được tạo trước. Sau đó hãy chuyển khoản đúng số tiền và đúng mã đơn để SePay webhook đối soát tự động.';
+      : 'Đơn sẽ được tạo trước. Sau đó hãy chuyển khoản đúng số tiền và đúng mã đơn do hệ thống cấp để SePay webhook đối soát tự động.';
   String get loadingBankTransferMessage => isEnglish
       ? 'Loading bank transfer information from the system...'
       : 'Đang tải thông tin chuyển khoản từ hệ thống...';
@@ -830,7 +877,7 @@ class _CheckoutTexts {
       : 'Không thể tạo đơn hàng. Vui lòng thử lại.';
   String stockIssue(String productName, int stock) => isEnglish
       ? '$productName only has $stock items left in stock.'
-      : '$productName chỉ còn $stock SP trong kho.';
+      : '$productName chỉ còn $stock sản phẩm trong kho.';
   String get debtConfirmTitle =>
       isEnglish ? 'Confirm debt recording' : 'Xác nhận ghi nhận công nợ';
   String get debtConfirmDescription => isEnglish
@@ -840,7 +887,7 @@ class _CheckoutTexts {
       isEnglish ? 'Item count: $count' : 'Số lượng sản phẩm: $count';
   String totalPaymentSummary(String amount) =>
       isEnglish ? 'Total payment: $amount' : 'Tổng thanh toán: $amount';
-  String get cancelAction => isEnglish ? 'Cancel' : 'Huỷ';
+  String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
   String get validationDialogTitle =>
       isEnglish ? 'Order needs adjustments' : 'Cần điều chỉnh đơn hàng';
   String get validationDialogSubtitle =>
