@@ -24,7 +24,11 @@ class JWTUtilsTests {
 
         assertThat(jwtUtils.extractUsername(accessToken)).isEqualTo("tester");
         assertThat(jwtUtils.extractUsername(refreshToken)).isEqualTo("tester");
+        assertThat(jwtUtils.extractTokenType(accessToken)).isEqualTo("access");
+        assertThat(jwtUtils.extractTokenType(refreshToken)).isEqualTo("refresh");
         assertThat(jwtUtils.isTokenValid(accessToken, user)).isTrue();
+        assertThat(jwtUtils.isTokenValid(refreshToken, user, JWTUtils.TokenType.REFRESH)).isTrue();
+        assertThat(jwtUtils.isTokenValid(refreshToken, user)).isFalse();
     }
 
     @Test

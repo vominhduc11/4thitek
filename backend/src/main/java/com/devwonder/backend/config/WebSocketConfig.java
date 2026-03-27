@@ -1,8 +1,6 @@
 package com.devwonder.backend.config;
 
 import lombok.RequiredArgsConstructor;
-import java.util.Arrays;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -17,9 +15,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final WebSocketAuthenticationInterceptor authenticationInterceptor;
     private final WebSocketAuthorizationInterceptor authorizationInterceptor;
-
-    @Value("${app.cors.allowed-origin-patterns:}")
-    private String allowedOriginPatterns;
+    private final CorsOriginPatternValidator corsOriginPatternValidator;
     
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -37,7 +33,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // Direct connection via reverse proxy (not through API Gateway)
         // Allowed origins configured from env-backed application properties
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns(parseAllowedOrigins())
+                .setAllowedOriginPatterns(corsOriginPatternValidator.allowedOriginPatternArray())
                 .withSockJS();
     }
 
@@ -46,13 +42,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // Add JWT authentication interceptor for STOMP CONNECT frames
         // Enforce destination-level authorization for client subscriptions
         registration.interceptors(authenticationInterceptor, authorizationInterceptor);
-    }
-
-    private String[] parseAllowedOrigins() {
-        return Arrays.stream(allowedOriginPatterns.split(","))
-                .map(String::trim)
-                .filter(value -> !value.isEmpty())
-                .toArray(String[]::new);
     }
 }
 

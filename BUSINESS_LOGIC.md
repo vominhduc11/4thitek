@@ -948,6 +948,7 @@ Cơ chế sliding window in-memory theo client key. Cleanup job chạy mỗi **5
 **Xác định client key:**
 - mặc định dùng `remoteAddr`
 - chỉ trust `X-Forwarded-For` khi `app.rate-limit.trust-forwarded-for=true`
+- audit log admin có cờ riêng `app.audit.trust-forwarded-for`; hiện chưa có proxy trust model hợp nhất toàn app
 - phù hợp nhất cho single-instance; nếu scale multi-instance cần shared store hoặc gateway rate-limit phía trước
 
 | Endpoint | Giới hạn |

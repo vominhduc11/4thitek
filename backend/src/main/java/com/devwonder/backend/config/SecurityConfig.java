@@ -3,7 +3,6 @@ package com.devwonder.backend.config;
 import com.devwonder.backend.security.JWTAuthFilter;
 import com.devwonder.backend.security.AdminPasswordChangeRequiredFilter;
 import com.devwonder.backend.security.OurUserDetailsService;
-import java.util.Arrays;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,8 +37,11 @@ public class SecurityConfig {
     @Autowired
     private AdminPasswordChangeRequiredFilter adminPasswordChangeRequiredFilter;
 
-    @Value("${app.cors.allowed-origin-patterns:}")
-    private String allowedOriginPatterns;
+    @Autowired
+    private CorsOriginPatternValidator corsOriginPatternValidator;
+
+    @Value("${app.cors.allow-credentials:true}")
+    private boolean corsAllowCredentials;
 
     @Value("${app.docs.public-enabled:false}")
     private boolean docsPublicEnabled;
@@ -110,23 +112,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(parseAllowedOriginPatterns());
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.setAllowedOriginPatterns(corsOriginPatternValidator.allowedOriginPatterns());
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
+        configuration.setAllowCredentials(corsAllowCredentials);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
-    private List<String> parseAllowedOriginPatterns() {
-        return Arrays.stream(allowedOriginPatterns.split(","))
-                .map(String::trim)
-                .filter(value -> !value.isEmpty())
-                .toList();
-    }
-
 
     private DaoAuthenticationProvider daoAuthenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();

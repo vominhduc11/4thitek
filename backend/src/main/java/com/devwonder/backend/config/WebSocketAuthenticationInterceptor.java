@@ -44,7 +44,7 @@ public class WebSocketAuthenticationInterceptor implements ChannelInterceptor {
                 }
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                if (!jwtUtils.isTokenValid(token, userDetails)) {
+                if (!jwtUtils.isTokenValid(token, userDetails, JWTUtils.TokenType.ACCESS)) {
                     throw new BadCredentialsException("Invalid or expired token");
                 }
 

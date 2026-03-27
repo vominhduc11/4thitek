@@ -16,12 +16,14 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 @Component
 public class JWTUtils {
     private static final Logger log = LoggerFactory.getLogger(JWTUtils.class);
     private static final int MIN_HMAC_KEY_BYTES = 32;
+    private static final String TOKEN_TYPE_CLAIM = "tokenType";
     private final SecretKey key;
     private final long defaultAccessTokenExpirationMs;
     private final long refreshTokenExpirationMs;
@@ -81,28 +83,19 @@ public class JWTUtils {
     }
 
     public String generateToken(UserDetails userDetails) {
-        long accessTokenExpirationMs = resolveAccessTokenExpirationMs();
-        return Jwts
-                .builder()
-                .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpirationMs))
-                .signWith(key)
-                .compact();
+        return buildToken(userDetails, null, TokenType.ACCESS, resolveAccessTokenExpirationMs());
     }
 
     public String generateRefreshToken(HashMap<String, Object> claims, UserDetails userDetails) {
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpirationMs))
-                .signWith(key)
-                .compact();
+        return buildToken(userDetails, claims, TokenType.REFRESH, refreshTokenExpirationMs);
     }
 
     public String extractUsername(String token) {
         return extractClaims(token, Claims::getSubject);
+    }
+
+    public String extractTokenType(String token) {
+        return extractClaims(token, claims -> claims.get(TOKEN_TYPE_CLAIM, String.class));
     }
 
     private <T> T extractClaims(String token, Function<Claims, T> claimsTFunction) {
@@ -115,8 +108,18 @@ public class JWTUtils {
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
+        return isTokenValid(token, userDetails, TokenType.ACCESS);
+    }
+
+    public boolean isTokenValid(String token, UserDetails userDetails, TokenType expectedTokenType) {
         final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        return username.equals(userDetails.getUsername())
+                && expectedTokenType.matches(extractTokenType(token))
+                && !isTokenExpired(token);
+    }
+
+    public boolean hasTokenType(String token, TokenType expectedTokenType) {
+        return expectedTokenType.matches(extractTokenType(token));
     }
 
     public boolean isTokenExpired(String token) {
@@ -131,6 +134,27 @@ public class JWTUtils {
         return refreshTokenExpirationMs;
     }
 
+    private String buildToken(
+            UserDetails userDetails,
+            Map<String, Object> claims,
+            TokenType tokenType,
+            long expirationMs
+    ) {
+        Map<String, Object> tokenClaims = new HashMap<>();
+        if (claims != null) {
+            tokenClaims.putAll(claims);
+        }
+        tokenClaims.put(TOKEN_TYPE_CLAIM, tokenType.value());
+        long now = System.currentTimeMillis();
+        return Jwts.builder()
+                .setClaims(tokenClaims)
+                .setSubject(userDetails.getUsername())
+                .setIssuedAt(new Date(now))
+                .setExpiration(new Date(now + expirationMs))
+                .signWith(key)
+                .compact();
+    }
+
     private long resolveAccessTokenExpirationMs() {
         AdminSettingsService.EffectiveAdminSettings effectiveSettings = adminSettingsService.getEffectiveSettings();
         int sessionTimeoutMinutes = effectiveSettings.sessionTimeoutMinutes();
@@ -138,5 +162,24 @@ public class JWTUtils {
             return defaultAccessTokenExpirationMs;
         }
         return sessionTimeoutMinutes * 60_000L;
+    }
+
+    public enum TokenType {
+        ACCESS("access"),
+        REFRESH("refresh");
+
+        private final String value;
+
+        TokenType(String value) {
+            this.value = value;
+        }
+
+        public String value() {
+            return value;
+        }
+
+        private boolean matches(String candidate) {
+            return value.equals(candidate);
+        }
     }
 }

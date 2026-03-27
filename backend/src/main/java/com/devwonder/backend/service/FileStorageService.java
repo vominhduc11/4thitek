@@ -110,6 +110,10 @@ public class FileStorageService implements DisposableBean {
     }
 
     public String store(MultipartFile file, String subfolder) {
+        return store(file, subfolder, null);
+    }
+
+    public String store(MultipartFile file, String subfolder, Set<String> categoryAllowedExtensions) {
         if (file == null || file.isEmpty()) {
             throw new BadRequestException("file is required");
         }
@@ -117,7 +121,7 @@ public class FileStorageService implements DisposableBean {
             throw new BadRequestException("Uploaded file exceeds the configured size limit");
         }
 
-        String extension = extractExtension(file.getOriginalFilename());
+        String extension = extractExtension(file.getOriginalFilename(), categoryAllowedExtensions);
         byte[] content = readContent(file);
         String contentType = resolveTrustedContentType(extension, content);
         String generatedName = UUID.randomUUID() + "." + extension;
@@ -265,7 +269,7 @@ public class FileStorageService implements DisposableBean {
         return normalizeRelativePath(normalizedValue);
     }
 
-    private String extractExtension(String originalFilename) {
+    private String extractExtension(String originalFilename, Set<String> categoryAllowedExtensions) {
         String safeFilename = StringUtils.cleanPath(originalFilename == null ? "" : originalFilename);
         String extension = StringUtils.getFilenameExtension(safeFilename);
         if (!StringUtils.hasText(extension)) {
@@ -275,6 +279,10 @@ public class FileStorageService implements DisposableBean {
         String normalizedExtension = extension.toLowerCase(Locale.ROOT);
         if (!allowedExtensions.contains(normalizedExtension)) {
             throw new BadRequestException("Unsupported file extension: " + normalizedExtension);
+        }
+        if (categoryAllowedExtensions != null && !categoryAllowedExtensions.isEmpty()
+                && !categoryAllowedExtensions.contains(normalizedExtension)) {
+            throw new BadRequestException("Unsupported file extension for this upload category: " + normalizedExtension);
         }
         return normalizedExtension;
     }

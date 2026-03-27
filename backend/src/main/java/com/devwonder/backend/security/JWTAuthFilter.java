@@ -46,15 +46,16 @@ public class JWTAuthFilter extends OncePerRequestFilter {
                 if (!userDetails.isEnabled()) {
                     throw new DisabledException("Account is not active");
                 }
-                if (jwtUtils.isTokenValid(jwtToken, userDetails)) {
-                    SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-                    UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
-                            userDetails, null, userDetails.getAuthorities());
-                    token.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    securityContext.setAuthentication(token);
-                    SecurityContextHolder.setContext(securityContext);
-                    MDC.put("actor", userEmail);
+                if (!jwtUtils.isTokenValid(jwtToken, userDetails, JWTUtils.TokenType.ACCESS)) {
+                    throw new JwtException("Invalid or expired token");
                 }
+                SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+                UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.getAuthorities());
+                token.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                securityContext.setAuthentication(token);
+                SecurityContextHolder.setContext(securityContext);
+                MDC.put("actor", userEmail);
             }
         } catch (JwtException | IllegalArgumentException | UsernameNotFoundException | DisabledException ex) {
             SecurityContextHolder.clearContext();

@@ -26,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminSettingsService {
 
     private static final Logger log = LoggerFactory.getLogger(AdminSettingsService.class);
+    private static final String SECRET_MASK_PREFIX = "********";
+    private static final int SECRET_MASK_VISIBLE_SUFFIX = 4;
     private static final int DEFAULT_SESSION_TIMEOUT_MINUTES = 30;
     private static final int MIN_SESSION_TIMEOUT_MINUTES = 5;
     private static final int MAX_SESSION_TIMEOUT_MINUTES = 480;
@@ -194,7 +196,8 @@ public class AdminSettingsService {
         if (request.enabled() != null) {
             settings.setSepayEnabled(request.enabled());
         }
-        if (request.webhookToken() != null) {
+        if (request.webhookToken() != null
+                && !isMaskedWebhookTokenPlaceholder(request.webhookToken(), settings.getSepayWebhookToken())) {
             settings.setSepayWebhookToken(normalize(request.webhookToken()));
         }
         if (request.bankName() != null) {
@@ -397,7 +400,7 @@ public class AdminSettingsService {
                 effectiveSettings.inventoryAlerts(),
                 new AdminSettingsResponse.SepaySettings(
                         effectiveSettings.sepay().enabled(),
-                        effectiveSettings.sepay().webhookToken(),
+                        maskSecret(effectiveSettings.sepay().webhookToken()),
                         effectiveSettings.sepay().bankName(),
                         effectiveSettings.sepay().accountNumber(),
                         effectiveSettings.sepay().accountHolder()
@@ -443,6 +446,29 @@ public class AdminSettingsService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String maskSecret(String value) {
+        String normalized = normalize(value);
+        if (normalized == null) {
+            return null;
+        }
+        if (normalized.length() <= SECRET_MASK_VISIBLE_SUFFIX) {
+            return SECRET_MASK_PREFIX;
+        }
+        return SECRET_MASK_PREFIX + normalized.substring(normalized.length() - SECRET_MASK_VISIBLE_SUFFIX);
+    }
+
+    private boolean isMaskedWebhookTokenPlaceholder(String candidate, String currentSecret) {
+        String normalizedCandidate = normalize(candidate);
+        if (normalizedCandidate == null) {
+            return false;
+        }
+        if (SECRET_MASK_PREFIX.equals(normalizedCandidate)) {
+            return true;
+        }
+        String currentMask = maskSecret(currentSecret);
+        return currentMask != null && currentMask.equals(normalizedCandidate);
     }
 
     private void validatePositive(int value, String fieldName) {

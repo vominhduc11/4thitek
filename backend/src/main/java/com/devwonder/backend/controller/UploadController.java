@@ -32,6 +32,8 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class UploadController {
 
+    private static final Set<String> IMAGE_EXTENSIONS = Set.of("jpg", "jpeg", "png", "gif", "webp");
+
     private final FileStorageService fileStorageService;
     private final DealerAccountLifecycleService dealerAccountLifecycleService;
 
@@ -47,7 +49,8 @@ public class UploadController {
             Authentication authentication,
             @RequestParam("file") MultipartFile file
     ) {
-        String fileName = fileStorageService.store(file, resolveSubfolder(category, authentication));
+        UploadTarget uploadTarget = resolveUploadTarget(category, authentication);
+        String fileName = fileStorageService.store(file, uploadTarget.subfolder(), uploadTarget.allowedExtensions());
         String url = buildPublicUrl(fileName);
         return ResponseEntity.ok(ApiResponse.success(Map.of(
                 "url", url,
@@ -85,35 +88,35 @@ public class UploadController {
         )));
     }
 
-    private String resolveSubfolder(String category, Authentication authentication) {
+    private UploadTarget resolveUploadTarget(String category, Authentication authentication) {
         String normalized = category == null ? "" : category.trim().toLowerCase(Locale.ROOT);
         Account account = requireAccount(authentication);
         return switch (normalized) {
             case "products" -> {
                 requireAnyAuthority(account, "ADMIN", "SUPER_ADMIN");
-                yield "products";
+                yield new UploadTarget("products", IMAGE_EXTENSIONS);
             }
             case "blogs" -> {
                 requireAnyAuthority(account, "ADMIN", "SUPER_ADMIN");
-                yield "blogs";
+                yield new UploadTarget("blogs", IMAGE_EXTENSIONS);
             }
             case "avatars" -> {
                 requireAnyAuthority(account, "ADMIN", "SUPER_ADMIN");
-                yield adminScopedFolder("avatars", account);
+                yield new UploadTarget(adminScopedFolder("avatars", account), null);
             }
             case "dealer-avatars" -> {
                 if (isAdmin(account)) {
-                    yield adminScopedFolder("avatars/dealers", account);
+                    yield new UploadTarget(adminScopedFolder("avatars/dealers", account), null);
                 }
                 requireDealerPortalAccess(account);
-                yield actorScopedFolder("avatars/dealers", account);
+                yield new UploadTarget(actorScopedFolder("avatars/dealers", account), null);
             }
             case "payment-proofs" -> {
                 if (isAdmin(account)) {
-                    yield adminScopedFolder("payments/proofs", account);
+                    yield new UploadTarget(adminScopedFolder("payments/proofs", account), null);
                 }
                 requireDealerPortalAccess(account);
-                yield actorScopedFolder("payments/proofs/dealers", account);
+                yield new UploadTarget(actorScopedFolder("payments/proofs/dealers", account), null);
             }
             default -> throw new BadRequestException("Unsupported upload category: " + category);
         };
@@ -284,5 +287,8 @@ public class UploadController {
             response.contentLength(storedFile.contentLength());
         }
         return response.body(new InputStreamResource(storedFile.inputStream()));
+    }
+
+    private record UploadTarget(String subfolder, Set<String> allowedExtensions) {
     }
 }

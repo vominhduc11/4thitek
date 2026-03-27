@@ -47,6 +47,8 @@ class UploadAuthorizationTests {
     private static final byte[] SAMPLE_PNG_BYTES = Base64.getDecoder().decode(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+lmLsAAAAASUVORK5CYII="
     );
+    private static final byte[] SAMPLE_PDF_BYTES = "%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF"
+            .getBytes(UTF_8);
 
     @Autowired
     private MockMvc mockMvc;
@@ -82,6 +84,28 @@ class UploadAuthorizationTests {
                         .file(sampleImage("product-upload.png"))
                         .header("Authorization", "Bearer " + dealerToken))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminCannotUploadPdfAsProductAsset() throws Exception {
+        String adminToken = login("upload.admin@example.com", "ChangedPass#456");
+
+        mockMvc.perform(multipart("/api/v1/upload/products")
+                        .file(samplePdf("product-spec.pdf"))
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Unsupported file extension for this upload category: pdf"));
+    }
+
+    @Test
+    void adminCannotUploadPdfAsBlogAsset() throws Exception {
+        String adminToken = login("upload.admin@example.com", "ChangedPass#456");
+
+        mockMvc.perform(multipart("/api/v1/upload/blogs")
+                        .file(samplePdf("blog-attachment.pdf"))
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Unsupported file extension for this upload category: pdf"));
     }
 
     @Test
@@ -197,6 +221,18 @@ class UploadAuthorizationTests {
     }
 
     @Test
+    void dealerCanStillUploadPdfPaymentProof() throws Exception {
+        String dealerToken = registerDealerAndExtractAccessToken("dealer-proof-pdf");
+
+        mockMvc.perform(multipart("/api/v1/upload/payment-proofs")
+                        .file(samplePdf("proof.pdf"))
+                        .header("Authorization", "Bearer " + dealerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.url").value(containsString("/api/v1/upload/payments/proofs/dealers/")))
+                .andExpect(jsonPath("$.data.fileName").value(containsString(".pdf")));
+    }
+
+    @Test
     void suspendedDealerCannotReadOrDeleteOwnUploadAfterSuspension() throws Exception {
         Dealer dealer = registerDealer("dealer-suspended-upload", CustomerStatus.ACTIVE);
         String dealerToken = login(dealer.getEmail(), "Dealer#123");
@@ -227,6 +263,10 @@ class UploadAuthorizationTests {
 
     private MockMultipartFile sampleImage(String fileName) {
         return new MockMultipartFile("file", fileName, "image/png", SAMPLE_PNG_BYTES);
+    }
+
+    private MockMultipartFile samplePdf(String fileName) {
+        return new MockMultipartFile("file", fileName, "application/pdf", SAMPLE_PDF_BYTES);
     }
 
     private String registerDealerAndExtractAccessToken(String prefix) throws Exception {

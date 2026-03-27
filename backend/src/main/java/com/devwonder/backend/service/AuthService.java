@@ -84,6 +84,9 @@ public class AuthService {
             if (jwtUtils.isTokenExpired(refreshToken)) {
                 throw new UnauthorizedException("Refresh token expired");
             }
+            if (!jwtUtils.hasTokenType(refreshToken, JWTUtils.TokenType.REFRESH)) {
+                throw new UnauthorizedException("Refresh token is invalid");
+            }
 
             String username = jwtUtils.extractUsername(refreshToken);
             Account account = accountRepository.findByUsernameIgnoreCaseOrEmailIgnoreCase(username, username)
@@ -92,6 +95,9 @@ public class AuthService {
                 throw new UnauthorizedException("Account is not active");
             }
             assertDealerPortalAccessIfRequired(account);
+            if (!jwtUtils.isTokenValid(refreshToken, account, JWTUtils.TokenType.REFRESH)) {
+                throw new UnauthorizedException("Refresh token is invalid");
+            }
 
             String accessToken = jwtUtils.generateToken(account);
             return buildAuthResponse(account, accessToken, refreshToken);

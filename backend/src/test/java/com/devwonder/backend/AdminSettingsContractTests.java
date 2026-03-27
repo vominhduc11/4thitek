@@ -87,6 +87,8 @@ import org.springframework.test.web.servlet.MvcResult;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class AdminSettingsContractTests {
 
+    private static final String MASKED_PROPERTY_TOKEN = "********oken";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -158,7 +160,7 @@ class AdminSettingsContractTests {
                 .andExpect(jsonPath("$.data.orderAlerts").value(true))
                 .andExpect(jsonPath("$.data.inventoryAlerts").value(true))
                 .andExpect(jsonPath("$.data.sepay.enabled").value(false))
-                .andExpect(jsonPath("$.data.sepay.webhookToken").value("property-token"))
+                .andExpect(jsonPath("$.data.sepay.webhookToken").value(MASKED_PROPERTY_TOKEN))
                 .andExpect(jsonPath("$.data.sepay.bankName").value("Property Bank"))
                 .andExpect(jsonPath("$.data.sepay.accountNumber").value("000111222"))
                 .andExpect(jsonPath("$.data.sepay.accountHolder").value("PROPERTY HOLDER"))
@@ -176,6 +178,28 @@ class AdminSettingsContractTests {
                 .andExpect(jsonPath("$.data.rateLimitOverrides.upload.windowSeconds").value(63))
                 .andExpect(jsonPath("$.data.rateLimitOverrides.webhook.requests").value(121))
                 .andExpect(jsonPath("$.data.rateLimitOverrides.webhook.windowSeconds").value(64));
+    }
+
+    @Test
+    void updatingOtherSettingsDoesNotOverwriteStoredWebhookSecretWithMaskedPlaceholder() throws Exception {
+        String adminToken = login("settings.admin@example.com", "ChangedPass#456");
+
+        mockMvc.perform(put("/api/v1/admin/settings")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "sessionTimeoutMinutes": 60,
+                                  "sepay": {
+                                    "webhookToken": "%s"
+                                  }
+                                }
+                                """.formatted(MASKED_PROPERTY_TOKEN)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.sessionTimeoutMinutes").value(60))
+                .andExpect(jsonPath("$.data.sepay.webhookToken").value(MASKED_PROPERTY_TOKEN));
+
+        assertThat(adminSettingsService.getSepaySettings().webhookToken()).isEqualTo("property-token");
     }
 
     @Test
