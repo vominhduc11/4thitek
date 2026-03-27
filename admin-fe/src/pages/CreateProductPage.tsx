@@ -710,7 +710,7 @@ function CreateProductPage() {
     } catch (error) {
       const message = getErrorMessage(error, t('Không thể tải ảnh lên. Vui lòng thử lại.'))
       setDescriptionImageErrors((prev) => ({ ...prev, [index]: message }))
-      notify(message, { title: 'Products', variant: 'error' })
+        notify(message, { title: t('Sản phẩm'), variant: 'error' })
     }
   }
 
@@ -741,7 +741,7 @@ function CreateProductPage() {
     } catch (error) {
       const message = getErrorMessage(error, t('Không thể tải ảnh lên. Vui lòng thử lại.'))
       setDescriptionImageErrors((prev) => ({ ...prev, [index]: message }))
-      notify(message, { title: 'Products', variant: 'error' })
+      notify(message, { title: t('Sản phẩm'), variant: 'error' })
     }
   }
 
@@ -772,7 +772,7 @@ function CreateProductPage() {
     } catch (error) {
       const message = getErrorMessage(error, t('Không thể tải ảnh lên. Vui lòng thử lại.'))
       setDescriptionImageErrors((prev) => ({ ...prev, [index]: message }))
-      notify(message, { title: 'Products', variant: 'error' })
+      notify(message, { title: t('Sản phẩm'), variant: 'error' })
     }
   }
 
@@ -820,7 +820,7 @@ function CreateProductPage() {
       setSelectedImageName('')
       event.target.value = ''
       setImagePreviewUrl('')
-      notify(message, { title: 'Products', variant: 'error' })
+      notify(message, { title: t('Sản phẩm'), variant: 'error' })
     }
   }
 
@@ -942,7 +942,7 @@ function CreateProductPage() {
         focusCreateField(firstErrorField)
       }, 0)
       notify(t('Vui lòng kiểm tra lại các trường bắt buộc'), {
-        title: 'Products',
+        title: t('Sản phẩm'),
         variant: 'error',
       })
       return
@@ -988,11 +988,11 @@ function CreateProductPage() {
           videos: JSON.stringify(sanitizedVideos),
         })
         clearUploadedAssetTracking()
-        notify(t('Sản phẩm đã được tạo thành công'), { title: 'Products', variant: 'success' })
+        notify(t('Sản phẩm đã được tạo thành công'), { title: t('Sản phẩm'), variant: 'success' })
         navigate('/products')
       } catch (error) {
         notify(error instanceof Error ? error.message : t('Không thể tạo sản phẩm'), {
-          title: 'Products',
+          title: t('Sản phẩm'),
           variant: 'error',
         })
       } finally {
@@ -1010,7 +1010,7 @@ function CreateProductPage() {
     <PagePanel>
       <div aria-busy={isCreating}>
         {/* Header */}
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <button
             type="button"
             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
@@ -1020,11 +1020,11 @@ function CreateProductPage() {
             <ArrowLeft className="h-4 w-4" />
             {t('Về sản phẩm')}
           </button>
-          <h3 className="text-lg font-semibold text-slate-900">{t('Tạo sản phẩm')}</h3>
+          <h3 className="text-lg font-semibold text-slate-900 sm:text-right">{t('Tạo sản phẩm')}</h3>
         </div>
 
         {/* Tabs */}
-        <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label={t('Các tab sản phẩm')}>
+        <div className="mt-5 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap" role="tablist" aria-label={t('Các tab sản phẩm')}>
           {[
             { id: 'basic', label: 'Thông tin', errorTitle: 'Thiếu tên, SKU hoặc giá bán' },
             { id: 'description', label: 'Mô tả chi tiết', errorTitle: 'Có lỗi ở ảnh mô tả' },
@@ -1044,8 +1044,8 @@ function CreateProductPage() {
                 id={`product-tab-${tab.id}`}
                 className={
                   isTabActive
-                    ? `inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-3 py-1 text-xs font-semibold text-white shadow ${tabHasError ? 'ring-2 ring-rose-200 ring-offset-2 ring-offset-white' : ''}`
-                    : `inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${tabHasError ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-slate-200 text-slate-700'}`
+                    ? `inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow ${tabHasError ? 'ring-2 ring-rose-200 ring-offset-2 ring-offset-white' : ''}`
+                    : `inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold ${tabHasError ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-slate-200 text-slate-700'}`
                 }
                 role="tab"
                 aria-selected={isTabActive}
@@ -1104,7 +1104,7 @@ function CreateProductPage() {
             id="product-tabpanel-basic"
             role="tabpanel"
             aria-labelledby="product-tab-basic"
-            className="mt-4 grid gap-4 lg:grid-cols-[1.3fr_0.9fr]"
+            className="mt-4 grid gap-4 xl:grid-cols-[1.3fr_0.9fr]"
           >
             <div className="space-y-4">
               <div className="rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
@@ -2074,7 +2074,7 @@ function CreateProductPage() {
         )}
 
         {/* Actions */}
-        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <div className="sticky bottom-0 z-10 mt-6 -mx-6 flex flex-col-reverse gap-3 border-t border-slate-200/70 bg-white/95 px-6 py-4 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur sm:flex-row sm:justify-end">
           <button
             type="button"
             disabled={isCreating}

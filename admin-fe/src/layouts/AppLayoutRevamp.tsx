@@ -889,16 +889,16 @@ function AppLayoutRevamp() {
 
         <div className="flex min-h-screen flex-1 flex-col lg:h-full lg:min-h-0">
           <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface-tint)] backdrop-blur-xl">
-            <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+            <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
                     {copy.workspace}
                   </p>
-                  <h1 className="mt-1 text-xl font-semibold text-[var(--ink)] sm:text-2xl">
+                  <h1 className="mt-1 text-lg font-semibold text-[var(--ink)] sm:text-2xl">
                     {copy.welcome}
                   </h1>
-                  <p className="mt-1 max-w-3xl text-sm text-[var(--muted)]">
+                  <p className="mt-1 hidden max-w-3xl text-sm text-[var(--muted)] md:block">
                     {copy.welcomeText}
                   </p>
                 </div>
@@ -914,10 +914,10 @@ function AppLayoutRevamp() {
                 </button>
               </div>
 
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                 <form
                   ref={searchRef}
-                  className="relative w-full lg:max-w-xl"
+                  className="relative w-full lg:max-w-lg"
                   onSubmit={handleGlobalSearch}
                 >
                   <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
@@ -1015,7 +1015,7 @@ function AppLayoutRevamp() {
                   ) : null}
                 </form>
 
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-end sm:gap-3">
                   <button
                     aria-label={theme === 'dark' ? copy.light : copy.dark}
                     className={ghostButtonClass}

@@ -1,4 +1,4 @@
-import { Search, type LucideIcon } from 'lucide-react'
+import { AlertTriangle, Search, type LucideIcon } from 'lucide-react'
 import ReactPaginate from 'react-paginate'
 import type {
   ButtonHTMLAttributes,
@@ -25,6 +25,7 @@ export const primaryButtonClass =
 
 export const inputClass =
   'h-11 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--ink)] shadow-sm transition placeholder:text-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1'
+export const selectClass = inputClass
 
 export const cardTitleClass = 'text-lg font-semibold text-[var(--ink)]'
 export const bodyTextClass = 'text-sm text-[var(--muted)]'
@@ -152,6 +153,34 @@ export const PagePanel = ({
   </Tag>
 )
 
+type PageHeaderProps = {
+  title: string
+  description?: ReactNode
+  actions?: ReactNode
+  className?: string
+  actionsClassName?: string
+}
+
+export const PageHeader = ({
+  title,
+  description,
+  actions,
+  className,
+  actionsClassName,
+}: PageHeaderProps) => (
+  <div className={cx('flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between', className)}>
+    <div className="min-w-0">
+      <h3 className={cardTitleClass}>{title}</h3>
+      {description ? <p className={bodyTextClass}>{description}</p> : null}
+    </div>
+    {actions ? (
+      <div className={cx('flex w-full flex-col gap-3 sm:flex-row lg:w-auto', actionsClassName)}>
+        {actions}
+      </div>
+    ) : null}
+  </div>
+)
+
 type StatCardProps = {
   label: string
   value: ReactNode
@@ -237,6 +266,8 @@ type ErrorStateProps = {
   message: string
   onRetry?: () => void
   retryLabel?: string
+  icon?: LucideIcon
+  className?: string
 }
 
 export const ErrorState = ({
@@ -244,13 +275,20 @@ export const ErrorState = ({
   message,
   onRetry,
   retryLabel = 'Thử lại',
+  icon: Icon = AlertTriangle,
+  className,
 }: ErrorStateProps) => (
   <div
-    className="rounded-3xl border border-rose-200 bg-rose-50/80 px-6 py-10 text-center"
+    aria-live="assertive"
+    className={cx(
+      'rounded-3xl border border-rose-200 bg-rose-50/80 px-6 py-10 text-center',
+      className,
+    )}
     role="alert"
   >
-      <p className="text-base font-semibold text-rose-700">{title}</p>
-      <p className="mt-2 text-sm text-rose-600">{message}</p>
+    <Icon aria-hidden="true" className="mx-auto h-10 w-10 text-rose-500" />
+    <p className="mt-4 text-base font-semibold text-rose-700">{title}</p>
+    <p className="mt-2 text-sm text-rose-600">{message}</p>
     {onRetry ? (
       <button
         className="mt-4 inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"

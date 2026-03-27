@@ -1,4 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { useLanguage } from '../context/LanguageContext'
+import { ErrorState, PagePanel, tableMetaClass } from './ui-kit'
 
 type Props = {
   children: ReactNode
@@ -7,6 +9,50 @@ type Props = {
 type State = {
   hasError: boolean
   message: string | null
+}
+
+const copyByLanguage = {
+  vi: {
+    title: 'Không thể hiển thị trang này',
+    message: 'Đã xảy ra lỗi khi tải nội dung của trang. Hãy thử lại để tiếp tục.',
+    retry: 'Thử lại',
+    details: 'Chi tiết kỹ thuật',
+  },
+  en: {
+    title: 'This page could not be displayed',
+    message: 'Something went wrong while loading this page. Try again to continue.',
+    retry: 'Try again',
+    details: 'Technical details',
+  },
+} as const
+
+type RouteErrorFallbackProps = {
+  message: string | null
+  onRetry: () => void
+}
+
+const RouteErrorFallback = ({ message, onRetry }: RouteErrorFallbackProps) => {
+  const { language } = useLanguage()
+  const copy = copyByLanguage[language]
+
+  return (
+    <PagePanel>
+      <ErrorState
+        title={copy.title}
+        message={copy.message}
+        onRetry={onRetry}
+        retryLabel={copy.retry}
+      />
+      {message ? (
+        <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
+            {copy.details}
+          </p>
+          <p className={`${tableMetaClass} mt-2 break-words`}>{message}</p>
+        </div>
+      ) : null}
+    </PagePanel>
+  )
 }
 
 class RouteErrorBoundary extends Component<Props, State> {
@@ -32,21 +78,7 @@ class RouteErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      return (
-        <div className="rounded-3xl border border-rose-200 bg-rose-50/80 p-6 text-sm text-rose-800 shadow-sm">
-          <p className="text-base font-semibold text-rose-900">Khong the hien thi trang nay</p>
-          <p className="mt-2">
-            {this.state.message || 'Da xay ra loi khi tai route. Thu lai de tiep tuc.'}
-          </p>
-          <button
-            className="mt-4 inline-flex items-center justify-center rounded-2xl bg-rose-600 px-4 py-2 font-semibold text-white transition hover:bg-rose-700"
-            onClick={this.handleRetry}
-            type="button"
-          >
-            Thu lai
-          </button>
-        </div>
-      )
+      return <RouteErrorFallback message={this.state.message} onRetry={this.handleRetry} />
     }
 
     return this.props.children
