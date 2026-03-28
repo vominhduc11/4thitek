@@ -278,7 +278,7 @@ function OrderDetailPage() {
               ))}
             </select>
             <PrimaryButton
-              disabled={order.status !== 'delivering'}
+              disabled={order.status !== 'shipping'}
               onClick={async () => {
                 const approved = await confirm({
                   title: t('Xác nhận hoàn tất đơn'),

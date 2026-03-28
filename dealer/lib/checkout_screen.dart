@@ -32,9 +32,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final TextEditingController _orderNoteController = TextEditingController();
   late final BankTransferService _bankTransferService;
   BankTransferInstructions? _bankTransferInstructions;
+  bool _isLoadingProfile = true;
   bool _isSubmitting = false;
   bool _isLoadingBankTransferInstructions = false;
   bool _isEnglish = false;
+  String? _profileLoadError;
 
   _CheckoutTexts get _texts => _CheckoutTexts(isEnglish: _isEnglish);
 
@@ -50,27 +52,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void initState() {
     super.initState();
     _bankTransferService = BankTransferService();
-    loadDealerProfile()
-        .then((profile) {
-          if (!mounted) {
-            return;
-          }
-          final canUseDebtPayment = profile.creditLimit > 0;
-          setState(() {
-            _profile = profile;
-            if (_method == OrderPaymentMethod.debt && !canUseDebtPayment) {
-              _method = OrderPaymentMethod.bankTransfer;
-            }
-          });
-        })
-        .catchError((e) {
-          // Keep default profile when remote profile is temporarily unavailable.
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              _showSnackBar(_texts.profileLoadFailedMessage);
-            }
-          });
-        });
+    _loadDealerProfile();
     _loadBankTransferInstructions();
   }
 
@@ -98,21 +80,47 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return texts.primaryActionConfirmOrder;
   }
 
+  Future<void> _loadDealerProfile({bool showFailureSnackBar = false}) async {
+    if (mounted) {
+      setState(() {
+        _isLoadingProfile = true;
+        _profileLoadError = null;
+      });
+    }
+    try {
+      final profile = await loadDealerProfile();
+      if (!mounted) {
+        return;
+      }
+      final canUseDebtPayment = profile.creditLimit > 0;
+      setState(() {
+        _profile = profile;
+        _isLoadingProfile = false;
+        _profileLoadError = null;
+        if (!canUseDebtPayment && _method == OrderPaymentMethod.debt) {
+          _method = OrderPaymentMethod.bankTransfer;
+        }
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      final message = _texts.profileLoadFailedMessage;
+      setState(() {
+        _isLoadingProfile = false;
+        _profileLoadError = message;
+      });
+      if (showFailureSnackBar) {
+        _showSnackBar(message);
+      }
+    }
+  }
+
   Future<void> _openAccountSettings() async {
     await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const AccountSettingsScreen()));
-    final latestProfile = await loadDealerProfile();
-    if (!mounted) {
-      return;
-    }
-    final canUseDebtPayment = latestProfile.creditLimit > 0;
-    setState(() {
-      _profile = latestProfile;
-      if (_method == OrderPaymentMethod.debt && !canUseDebtPayment) {
-        _method = OrderPaymentMethod.bankTransfer;
-      }
-    });
+    await _loadDealerProfile(showFailureSnackBar: true);
   }
 
   Future<void> _loadBankTransferInstructions({bool showError = false}) async {
@@ -245,47 +253,80 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 delay: const Duration(milliseconds: 60),
                 child: SectionCard(
                   title: texts.paymentMethodTitle,
-                  child: RadioGroup<OrderPaymentMethod>(
-                    groupValue: _method,
-                    onChanged: (value) {
-                      if (value == null) {
-                        return;
-                      }
-                      setState(() => _method = value);
-                      if (value == OrderPaymentMethod.bankTransfer &&
-                          _bankTransferInstructions == null &&
-                          !_isLoadingBankTransferInstructions) {
-                        _loadBankTransferInstructions();
-                      }
-                    },
-                    child: Column(
-                      children: [
-                        RadioListTile<OrderPaymentMethod>(
-                          value: OrderPaymentMethod.bankTransfer,
-                          title: Text(texts.bankTransferTitle),
-                          subtitle: Text(texts.bankTransferSubtitle),
-                        ),
-                        RadioListTile<OrderPaymentMethod>(
-                          value: OrderPaymentMethod.debt,
-                          enabled: _canUseDebtPayment,
-                          title: Text(texts.debtPaymentTitle),
-                          subtitle: Text(
-                            _canUseDebtPayment
-                                ? texts.remainingCreditLimitLabel(
-                                    formatVnd(
-                                      (_profile.creditLimit -
-                                              orderController
-                                                  .totalOutstandingDebt)
-                                          .clamp(0, _profile.creditLimit),
+                  child: _isLoadingProfile
+                      ? Row(
+                          children: [
+                            const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(texts.loadingProfileMessage)),
+                          ],
+                        )
+                      : _profileLoadError != null
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _profileLoadError!,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: colors.error),
+                            ),
+                            const SizedBox(height: 12),
+                            TextButton.icon(
+                              onPressed: _isSubmitting
+                                  ? null
+                                  : () => _loadDealerProfile(
+                                      showFailureSnackBar: true,
                                     ),
-                                    formatVnd(_profile.creditLimit),
-                                  )
-                                : texts.debtLimitRequiredMessage,
+                              icon: const Icon(Icons.refresh_outlined),
+                              label: Text(texts.retryAction),
+                            ),
+                          ],
+                        )
+                      : RadioGroup<OrderPaymentMethod>(
+                          groupValue: _method,
+                          onChanged: (value) {
+                            if (value == null) {
+                              return;
+                            }
+                            setState(() => _method = value);
+                            if (value == OrderPaymentMethod.bankTransfer &&
+                                _bankTransferInstructions == null &&
+                                !_isLoadingBankTransferInstructions) {
+                              _loadBankTransferInstructions();
+                            }
+                          },
+                          child: Column(
+                            children: [
+                              RadioListTile<OrderPaymentMethod>(
+                                value: OrderPaymentMethod.bankTransfer,
+                                title: Text(texts.bankTransferTitle),
+                                subtitle: Text(texts.bankTransferSubtitle),
+                              ),
+                              RadioListTile<OrderPaymentMethod>(
+                                value: OrderPaymentMethod.debt,
+                                enabled: _canUseDebtPayment,
+                                title: Text(texts.debtPaymentTitle),
+                                subtitle: Text(
+                                  _canUseDebtPayment
+                                      ? texts.remainingCreditLimitLabel(
+                                          formatVnd(
+                                            (_profile.creditLimit -
+                                                    orderController
+                                                        .totalOutstandingDebt)
+                                                .clamp(0, _profile.creditLimit),
+                                          ),
+                                          formatVnd(_profile.creditLimit),
+                                        )
+                                      : texts.debtLimitRequiredMessage,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
                 ),
               ),
               const SizedBox(height: 14),
@@ -460,7 +501,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: cart.isEmpty || _isSubmitting
+                    onPressed:
+                        cart.isEmpty ||
+                            _isSubmitting ||
+                            _isLoadingProfile ||
+                            _profileLoadError != null
                         ? null
                         : () async {
                             setState(() => _isSubmitting = true);
@@ -688,7 +733,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       // Let the backend assign the production order code.
       id: '',
       createdAt: DateTime.now(),
-      status: OrderStatus.pendingApproval,
+      status: OrderStatus.pending,
       paymentMethod: _method,
       paymentStatus: _previewPaymentStatus,
       receiverName: _profile.businessName,
@@ -792,8 +837,11 @@ class _CheckoutTexts {
   final bool isEnglish;
 
   String get profileLoadFailedMessage => isEnglish
-      ? 'Unable to load account information. Some features may be limited.'
-      : 'Không tải được thông tin tài khoản. Một số tính năng có thể bị hạn chế.';
+      ? 'Unable to load account information. Please retry before placing the order.'
+      : 'Không tải được thông tin tài khoản. Vui lòng tải lại trước khi đặt đơn.';
+  String get loadingProfileMessage => isEnglish
+      ? 'Loading account information...'
+      : 'Đang tải thông tin tài khoản...';
   String get primaryActionBankTransfer => isEnglish
       ? 'Create order and view bank transfer details'
       : 'Tạo đơn và xem thông tin chuyển khoản';

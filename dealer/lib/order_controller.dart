@@ -300,12 +300,12 @@ class OrderController extends ChangeNotifier {
   }
 
   // Dealer-side pre-flight guard. Mirrors backend OrderStatusTransitionPolicy.isDealerTransitionAllowed.
-  // Admin-only transitions (pendingApproval→approved, approved→shipping, shipping→completed/cancelled)
+  // Admin-only transitions (pending -> confirmed, confirmed -> shipping, shipping -> completed/cancelled)
   // are intentionally absent — the dealer app has no UI to trigger them.
   static const Map<OrderStatus, Set<OrderStatus>> _validTransitions =
       <OrderStatus, Set<OrderStatus>>{
-        OrderStatus.pendingApproval: {OrderStatus.cancelled},
-        OrderStatus.approved: {OrderStatus.cancelled},
+        OrderStatus.pending: {OrderStatus.cancelled},
+        OrderStatus.confirmed: {OrderStatus.cancelled},
         OrderStatus.shipping: {},
         OrderStatus.completed: {},
         OrderStatus.cancelled: {},
@@ -749,7 +749,7 @@ class OrderController extends ChangeNotifier {
   OrderStatus _mapRemoteOrderStatus(String? raw) {
     switch ((raw ?? '').trim().toUpperCase()) {
       case 'CONFIRMED':
-        return OrderStatus.approved;
+        return OrderStatus.confirmed;
       case 'SHIPPING':
         return OrderStatus.shipping;
       case 'COMPLETED':
@@ -758,15 +758,15 @@ class OrderController extends ChangeNotifier {
         return OrderStatus.cancelled;
       case 'PENDING':
       default:
-        return OrderStatus.pendingApproval;
+        return OrderStatus.pending;
     }
   }
 
   String _toRemoteOrderStatus(OrderStatus status) {
     switch (status) {
-      case OrderStatus.pendingApproval:
+      case OrderStatus.pending:
         return 'PENDING';
-      case OrderStatus.approved:
+      case OrderStatus.confirmed:
         return 'CONFIRMED';
       case OrderStatus.shipping:
         return 'SHIPPING';

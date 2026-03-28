@@ -286,7 +286,7 @@ function ProductsPage() {
     <PagePanel>
       <PageHeader
         title={pageTitle}
-        description={t('Quản lý sản phẩm và tồn kho.')}
+        subtitle={t('Quản lý sản phẩm và tồn kho.')}
         actions={
           <>
             <GhostButton

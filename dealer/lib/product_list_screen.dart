@@ -55,7 +55,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
   final Set<String> _addingProductIds = <String>{};
   String? _catalogSnapshot;
   bool _isManuallyRefreshingCatalog = false;
+  // Counts how many catalog change notifications should be ignored while a
+  // manual local-catalog page fetch is in flight. Increment before triggering
+  // a fetch that relies on local catalog data, decrement when that fetch
+  // completes, and resume normal notification-driven refreshes once it
+  // returns to 0.
   int _suppressedCatalogLoadCount = 0;
+  // Monotonic revision token for query refreshes. Increment before each manual
+  // refresh, let in-flight page requests capture the current value, and ignore
+  // responses that complete after a newer revision has started.
   int _queryRevision = 0;
 
   @override
@@ -109,7 +117,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final width = size.width;
     final shortestSide = size.shortestSide;
     final isTablet = shortestSide >= AppBreakpoints.phone;
-    final baseHorizontalPadding = isTablet ? 32.0 : 20.0;
+    final baseHorizontalPadding = isTablet ? 32.0 : 16.0;
     final maxContentWidth = isTablet
         ? _tabletListMaxContentWidth
         : double.infinity;
@@ -191,8 +199,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
     required bool isTablet,
   }) {
     final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.8);
-    final baseHeight = isTablet ? 194.0 : 182.0;
-    final additionalHeight = (textScale - 1) * 84;
+    final baseHeight = isTablet ? 194.0 : 248.0;
+    final additionalHeight = (textScale - 1) * (isTablet ? 84 : 104);
     return baseHeight + additionalHeight;
   }
 
@@ -201,7 +209,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
     CartController cart, {
     required bool isTablet,
   }) {
-    final gridItemExtent = _tabletGridItemExtent(context);
+    const useGridLayout = true;
+    final gridItemExtent = isTablet
+        ? _tabletGridItemExtent(context)
+        : _phoneGridItemExtent(context);
     final delegate = PagedChildBuilderDelegate<Product>(
       itemBuilder: (context, product, index) {
         return _buildProductCard(
@@ -210,12 +221,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
           index,
           cart,
           isTablet: isTablet,
-          isGridLayout: isTablet,
+          isGridLayout: useGridLayout,
         );
       },
       firstPageProgressIndicatorBuilder: (context) {
         return _buildFirstPageSkeleton(
-          isGridLayout: isTablet,
+          isGridLayout: useGridLayout,
           gridItemExtent: gridItemExtent,
         );
       },
@@ -251,13 +262,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
       },
     );
 
-    if (!isTablet) {
-      return PagedSliverList<int, Product>(
-        pagingController: _pagingController,
-        builderDelegate: delegate,
-      );
-    }
-
     return PagedSliverGrid<int, Product>(
       pagingController: _pagingController,
       builderDelegate: delegate,
@@ -273,6 +277,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
   double _tabletGridItemExtent(BuildContext context) {
     final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.8);
     return 320 + (textScale - 1) * 100;
+  }
+
+  double _phoneGridItemExtent(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.6);
+    return 344 + (textScale - 1) * 132;
   }
 
   Future<void> _fetchPage(int pageKey) async {
@@ -309,15 +318,23 @@ class _ProductListScreenState extends State<ProductListScreen> {
       _pagingController.error = error;
     } finally {
       if (usesLocalCatalogSource) {
+        final nextSuppressedCatalogLoadCount = _suppressedCatalogLoadCount - 1;
+        assert(
+          nextSuppressedCatalogLoadCount >= 0,
+          '_suppressedCatalogLoadCount went negative — suppression logic is unbalanced',
+        );
         _suppressedCatalogLoadCount = math.max(
           0,
-          _suppressedCatalogLoadCount - 1,
+          nextSuppressedCatalogLoadCount,
         );
       }
     }
   }
 
   void _onSearchChanged() {
+    if (mounted) {
+      setState(() {});
+    }
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 320), () {
       final next = _searchController.text.trim();
@@ -452,6 +469,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
     required bool isTablet,
     required CartController cart,
   }) {
+    if (!isTablet) {
+      return _buildMobileUtilityFilterBar(context, cart: cart);
+    }
+
     final texts = _productListTexts(context);
     final hasActiveFilters = _hasAnyFilters;
     final activeCount = _activeFilterCount;
@@ -585,13 +606,181 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
+  Widget _buildMobileUtilityFilterBar(
+    BuildContext context, {
+    required CartController cart,
+  }) {
+    final texts = _productListTexts(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final loadedCount = _visibleResultCount;
+    final hasActiveFilters = _hasAnyFilters;
+    final surfaceColor = isDark ? colors.surface : const Color(0xFFF8F9FF);
+    final fieldColor = isDark ? colors.surface : Colors.white;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: isDark ? 0.82 : 0.45),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.shadowColor.withValues(alpha: isDark ? 0.06 : 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDiscountBanner(context, cart: cart, isTablet: false),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: texts.searchHint,
+                hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+                prefixIcon: Icon(
+                  Icons.search_rounded,
+                  size: 20,
+                  color: colors.onSurfaceVariant,
+                ),
+                suffixIcon: _searchController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                        tooltip: texts.clearSearchTooltip,
+                        onPressed: _clearSearch,
+                      ),
+                filled: true,
+                fillColor: fieldColor,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: BorderSide(
+                    color: colors.outlineVariant.withValues(
+                      alpha: isDark ? 0.85 : 0.65,
+                    ),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: BorderSide(
+                    color: colors.outlineVariant.withValues(
+                      alpha: isDark ? 0.85 : 0.65,
+                    ),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: BorderSide(color: colors.primary, width: 1.4),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 13,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 44,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  _buildStockChip(
+                    context,
+                    StockFilter.all,
+                    texts.stockFilterLabel(StockFilter.all),
+                    useUtilityStyle: true,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildStockChip(
+                    context,
+                    StockFilter.inStock,
+                    texts.stockFilterLabel(StockFilter.inStock),
+                    useUtilityStyle: true,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildStockChip(
+                    context,
+                    StockFilter.lowStock,
+                    texts.stockFilterLabel(StockFilter.lowStock),
+                    useUtilityStyle: true,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildStockChip(
+                    context,
+                    StockFilter.outOfStock,
+                    texts.stockFilterLabel(StockFilter.outOfStock),
+                    useUtilityStyle: true,
+                  ),
+                  if (hasActiveFilters) ...[
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: _resetFilters,
+                      icon: const Icon(Icons.restart_alt_rounded, size: 16),
+                      label: Text(texts.clearFiltersLabel(_activeFilterCount)),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(44, 40),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        side: BorderSide(
+                          color: colors.outlineVariant.withValues(
+                            alpha: isDark ? 0.85 : 0.8,
+                          ),
+                        ),
+                        foregroundColor: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    loadedCount > 0
+                        ? texts.resultsLabel(loadedCount)
+                        : texts.screenTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                _buildSortMenu(context, useUtilityStyle: true),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildStockChip(
     BuildContext context,
     StockFilter filter,
-    String label,
-  ) {
+    String label, {
+    bool useUtilityStyle = false,
+  }) {
     final isSelected = _query.stockFilter == filter;
-    final colors = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
 
     return Semantics(
       button: true,
@@ -603,18 +792,27 @@ class _ProductListScreenState extends State<ProductListScreen> {
           label: Text(label),
           selected: isSelected,
           onSelected: (_) => _setStockFilter(filter),
-          selectedColor: colors.primary.withValues(alpha: 0.15),
-          labelStyle: TextStyle(
-            color: isSelected ? colors.primary : colors.onSurface,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-          ),
+          selectedColor: useUtilityStyle
+              ? colors.primary.withValues(alpha: 0.14)
+              : colors.primary.withValues(alpha: 0.15),
+          labelStyle:
+              (useUtilityStyle
+                      ? theme.textTheme.labelLarge
+                      : theme.textTheme.bodyMedium)
+                  ?.copyWith(
+                    color: isSelected ? colors.primary : colors.onSurface,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(useUtilityStyle ? 14 : 999),
             side: BorderSide(
               color: isSelected ? colors.primary : colors.outlineVariant,
             ),
           ),
           backgroundColor: colors.surface,
+          labelPadding: EdgeInsets.symmetric(
+            horizontal: useUtilityStyle ? 4 : 0,
+          ),
           visualDensity: VisualDensity.compact,
           materialTapTargetSize: MaterialTapTargetSize.padded,
         ),
@@ -622,7 +820,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
-  Widget _buildSortMenu(BuildContext context) {
+  Widget _buildSortMenu(BuildContext context, {bool useUtilityStyle = false}) {
     final texts = _productListTexts(context);
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
@@ -660,11 +858,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
         ),
       ],
       child: Container(
-        constraints: const BoxConstraints(minHeight: 48),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        constraints: BoxConstraints(minHeight: useUtilityStyle ? 42 : 48),
+        padding: EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: useUtilityStyle ? 9 : 10,
+        ),
         decoration: ShapeDecoration(
           color: colors.surface,
-          shape: StadiumBorder(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(useUtilityStyle ? 14 : 999),
             side: BorderSide(
               color: colors.outlineVariant.withValues(alpha: 0.8),
             ),
@@ -673,7 +875,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.swap_vert, size: 18, color: colors.onSurface),
+            Icon(
+              useUtilityStyle ? Icons.swap_vert_rounded : Icons.swap_vert,
+              size: 18,
+              color: colors.onSurface,
+            ),
             const SizedBox(width: 6),
             Text(
               label,
@@ -736,18 +942,29 @@ class _ProductListScreenState extends State<ProductListScreen> {
     required double gridItemExtent,
   }) {
     if (isGridLayout) {
-      return GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: 4,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          mainAxisExtent: gridItemExtent,
-        ),
-        itemBuilder: (context, index) =>
-            const _ProductCardSkeleton(isGridLayout: true),
+      return Column(
+        children: List.generate(2, (rowIndex) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: rowIndex == 1 ? 0 : 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: gridItemExtent,
+                    child: const _ProductCardSkeleton(isGridLayout: true),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SizedBox(
+                    height: gridItemExtent,
+                    child: const _ProductCardSkeleton(isGridLayout: true),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
       );
     }
 
@@ -781,6 +998,25 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final remainingStock = cart.remainingStockFor(product);
     final suggestedAddQuantity = cart.suggestedAddQuantity(product);
     final canAddToCart = suggestedAddQuantity > 0 && !isBusy;
+    final productSemanticsLabel = texts.productSemanticsLabel(
+      product,
+      remainingStock,
+    );
+
+    if (isGridLayout && !isTablet) {
+      return _buildMobileUtilityProductCard(
+        context,
+        product,
+        cart,
+        delay: delay,
+        isBusy: isBusy,
+        isSyncingProduct: isSyncingProduct,
+        canAddToCart: canAddToCart,
+        remainingStock: remainingStock,
+        productSemanticsLabel: productSemanticsLabel,
+      );
+    }
+
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final imageSize = isTablet ? 80.0 : 64.0;
@@ -789,10 +1025,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final addButtonLabel = texts.quickAddLabel(remainingStock: remainingStock);
 
     final useCompactQuickAdd = isGridLayout && canAddToCart;
-    final productSemanticsLabel = texts.productSemanticsLabel(
-      product,
-      remainingStock,
-    );
 
     return FadeSlideIn(
       key: ValueKey(product.id),
@@ -1070,6 +1302,270 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
+  Widget _buildMobileUtilityProductCard(
+    BuildContext context,
+    Product product,
+    CartController cart, {
+    required Duration delay,
+    required bool isBusy,
+    required bool isSyncingProduct,
+    required bool canAddToCart,
+    required int remainingStock,
+    required String productSemanticsLabel,
+  }) {
+    final texts = _productListTexts(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final skuBackground = isDark ? colors.surface : const Color(0xFFEFF3FB);
+
+    return FadeSlideIn(
+      key: ValueKey(product.id),
+      delay: delay,
+      child: Semantics(
+        container: true,
+        label: productSemanticsLabel,
+        hint: texts.openProductDetailsHint,
+        child: Card(
+          margin: EdgeInsets.zero,
+          elevation: 0,
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+            side: BorderSide(
+              color: colors.outlineVariant.withValues(alpha: 0.55),
+            ),
+          ),
+          child: InkWell(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => ProductDetailScreen(product: product),
+                ),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Hero(
+                    tag: 'product-image-${product.id}',
+                    child: ProductImage(
+                      product: product,
+                      width: double.infinity,
+                      height: 108,
+                      borderRadius: BorderRadius.circular(18),
+                      iconSize: 30,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: skuBackground,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      product.sku,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    product.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildMobileUtilityStockBadge(
+                    context,
+                    remainingStock: remainingStock,
+                  ),
+                  const Spacer(),
+                  Text(
+                    texts.dealerPriceLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    formatVnd(product.price),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: colors.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: canAddToCart
+                              ? () => _handleAddToCart(cart, product)
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(0, 42),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: isDark ? 0 : null,
+                            backgroundColor: isDark
+                                ? colors.secondaryContainer.withValues(
+                                    alpha: 0.82,
+                                  )
+                                : colors.primary,
+                            foregroundColor: isDark
+                                ? colors.onSecondaryContainer
+                                : colors.onPrimary,
+                          ),
+                          child: isBusy
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.4,
+                                  ),
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.add_shopping_cart_outlined,
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        canAddToCart
+                                            ? texts.addAction
+                                            : texts.quickAddLabel(
+                                                remainingStock: remainingStock,
+                                              ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Tooltip(
+                        message: isSyncingProduct
+                            ? texts.syncingCartTooltip
+                            : texts.chooseQuantityTooltip,
+                        child: OutlinedButton(
+                          onPressed: canAddToCart
+                              ? () => _handleAddToCart(
+                                  cart,
+                                  product,
+                                  openQuantityDialog: true,
+                                )
+                              : null,
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(42, 42),
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: isSyncingProduct
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.2,
+                                  ),
+                                )
+                              : const Icon(Icons.tune_rounded, size: 18),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileUtilityStockBadge(
+    BuildContext context, {
+    required int remainingStock,
+  }) {
+    final theme = Theme.of(context);
+    late final String label;
+    late final IconData icon;
+    late final Color textColor;
+    late final Color backgroundColor;
+
+    if (remainingStock <= 0) {
+      label = 'Out';
+      icon = Icons.error_outline;
+      textColor = const Color(0xFFD94939);
+      backgroundColor = const Color(0xFFFFEBE9);
+    } else if (remainingStock <= _lowStockThreshold) {
+      label = 'Low $remainingStock';
+      icon = Icons.schedule;
+      textColor = const Color(0xFFB26A00);
+      backgroundColor = const Color(0xFFFFF4DD);
+    } else {
+      label = '$remainingStock in';
+      icon = Icons.check_circle_outline;
+      textColor = const Color(0xFF127A34);
+      backgroundColor = const Color(0xFFEAF7EE);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: textColor),
+          const SizedBox(width: 3),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: textColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   int get _activeFilterCount {
     var count = 0;
     if (_query.normalizedSearchText.isNotEmpty) count++;
@@ -1079,6 +1575,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   bool get _hasAnyFilters => _query.hasFilters;
+
+  int get _visibleResultCount => _pagingController.itemList?.length ?? 0;
 }
 
 class _PinnedHeaderDelegate extends SliverPersistentHeaderDelegate {
@@ -1162,17 +1660,19 @@ class _ProductCardSkeleton extends StatelessWidget {
                   SizedBox(height: 10),
                   SkeletonBox(width: double.infinity, height: 18),
                   SizedBox(height: 4),
-                  SkeletonBox(width: 130, height: 13),
+                  SkeletonBox(width: 52, height: 13),
                   SizedBox(height: 8),
-                  SkeletonBox(width: 96, height: 22),
+                  SkeletonBox(width: 52, height: 22),
                   SizedBox(height: 10),
                   Divider(height: 1, thickness: 1),
                   SizedBox(height: 10),
                   Row(
                     children: [
-                      SkeletonBox(width: 96, height: 20),
-                      Spacer(),
-                      SkeletonBox(width: 112, height: 40),
+                      Expanded(
+                        child: SkeletonBox(width: double.infinity, height: 20),
+                      ),
+                      SizedBox(width: 8),
+                      SkeletonBox(width: 40, height: 40),
                     ],
                   ),
                 ],
@@ -1262,6 +1762,9 @@ class _ProductListTexts {
       isEnglish ? 'Choose quantity' : 'Chọn số lượng';
   String get cancelAction => isEnglish ? 'Cancel' : 'Hủy';
   String get addAction => isEnglish ? 'Add' : 'Thêm';
+  String get dealerPriceLabel => isEnglish ? 'Dealer price' : 'Gia dai ly';
+  String resultsLabel(int count) =>
+      isEnglish ? '$count results' : '$count ket qua';
 
   String stockFilterLabel(StockFilter filter) {
     switch (filter) {

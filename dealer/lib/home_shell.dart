@@ -18,6 +18,7 @@ class DealerHomeShell extends StatefulWidget {
 }
 
 class _DealerHomeShellState extends State<DealerHomeShell> {
+  // v1: initial 5-tab overview. Bump to v2 if onboarding content changes significantly.
   static const _onboardingSeenKey = 'onboarding_seen_v1';
 
   int _currentIndex = 0;

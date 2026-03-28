@@ -361,7 +361,7 @@ class _DebtOrderCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 _LabelValueRow(
                   label: texts.paymentMethodLabel,
-                  value: texts.paymentMethod(order.paymentMethod),
+                  value: texts.paymentMethod(context, order.paymentMethod),
                 ),
                 const SizedBox(height: 6),
                 _LabelValueRow(
@@ -640,11 +640,11 @@ class _DebtOrderCard extends StatelessWidget {
                                         ..hideCurrentSnackBar()
                                         ..showSnackBar(
                                           SnackBar(
-                                              content: Text(
-                                                texts.proofUploadFailed(error),
-                                              ),
+                                            content: Text(
+                                              texts.proofUploadFailed(error),
                                             ),
-                                          );
+                                          ),
+                                        );
                                     } finally {
                                       if (sheetRootContext.mounted) {
                                         setDialogState(() {
@@ -1342,17 +1342,8 @@ class _DebtTexts {
     return status.label;
   }
 
-  String paymentMethod(OrderPaymentMethod method) {
-    if (isEnglish) {
-      switch (method) {
-        case OrderPaymentMethod.bankTransfer:
-          return 'Bank transfer';
-        case OrderPaymentMethod.debt:
-          return 'Debt recording';
-      }
-    }
-    return method.label;
-  }
+  String paymentMethod(BuildContext context, OrderPaymentMethod method) =>
+      method.localizedLabel(context);
 
   String paymentChannelDisplay(String channel) {
     if (!isEnglish) {

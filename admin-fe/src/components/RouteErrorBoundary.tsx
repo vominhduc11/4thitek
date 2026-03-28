@@ -1,39 +1,32 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react'
-import { useLanguage } from '../context/LanguageContext'
-import { ErrorState, PagePanel, tableMetaClass } from './ui-kit'
+import { Component, type ErrorInfo, type ReactNode } from "react";
+import { useLanguage } from "../context/LanguageContext";
+import { translateCopy } from "../lib/i18n";
+import { ErrorState, PagePanel, tableMetaClass } from "./ui-kit";
 
 type Props = {
-  children: ReactNode
-}
+  children: ReactNode;
+};
 
 type State = {
-  hasError: boolean
-  message: string | null
-}
+  hasError: boolean;
+  message: string | null;
+};
 
-const copyByLanguage = {
-  vi: {
-    title: 'Không thể hiển thị trang này',
-    message: 'Đã xảy ra lỗi khi tải nội dung của trang. Hãy thử lại để tiếp tục.',
-    retry: 'Thử lại',
-    details: 'Chi tiết kỹ thuật',
-  },
-  en: {
-    title: 'This page could not be displayed',
-    message: 'Something went wrong while loading this page. Try again to continue.',
-    retry: 'Try again',
-    details: 'Technical details',
-  },
-} as const
+const copyKeys = {
+  title: "Không thể hiển thị trang này",
+  message: "Đã xảy ra lỗi khi tải nội dung của trang. Hãy thử lại để tiếp tục.",
+  retry: "Thử lại",
+  details: "Chi tiết kỹ thuật",
+} as const;
 
 type RouteErrorFallbackProps = {
-  message: string | null
-  onRetry: () => void
-}
+  message: string | null;
+  onRetry: () => void;
+};
 
 const RouteErrorFallback = ({ message, onRetry }: RouteErrorFallbackProps) => {
-  const { language } = useLanguage()
-  const copy = copyByLanguage[language]
+  const { t } = useLanguage();
+  const copy = translateCopy(copyKeys, t);
 
   return (
     <PagePanel>
@@ -52,37 +45,42 @@ const RouteErrorFallback = ({ message, onRetry }: RouteErrorFallbackProps) => {
         </div>
       ) : null}
     </PagePanel>
-  )
-}
+  );
+};
 
 class RouteErrorBoundary extends Component<Props, State> {
   state: State = {
     hasError: false,
     message: null,
-  }
+  };
 
   static getDerivedStateFromError(error: Error): State {
     return {
       hasError: true,
       message: error.message,
-    }
+    };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Route render failed', error, errorInfo)
+    console.error("Route render failed", error, errorInfo);
   }
 
   private handleRetry = () => {
-    this.setState({ hasError: false, message: null })
-  }
+    this.setState({ hasError: false, message: null });
+  };
 
   render() {
     if (this.state.hasError) {
-      return <RouteErrorFallback message={this.state.message} onRetry={this.handleRetry} />
+      return (
+        <RouteErrorFallback
+          message={this.state.message}
+          onRetry={this.handleRetry}
+        />
+      );
     }
 
-    return this.props.children
+    return this.props.children;
   }
 }
 
-export default RouteErrorBoundary
+export default RouteErrorBoundary;

@@ -226,13 +226,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
         _orderQueryRepository?.readSnapshot(_query) ??
         const OrderQuerySnapshot.empty();
     final allOrders = orderController.orders;
-    final pendingApprovalCount = querySnapshot.pendingApprovalCount;
+    final pendingCount = querySnapshot.pendingCount;
     final debtOrderCount = querySnapshot.outstandingOrderCount;
 
     final statusFilters = <OrderStatus?>[
       null,
-      OrderStatus.pendingApproval,
-      OrderStatus.approved,
+      OrderStatus.pending,
+      OrderStatus.confirmed,
       OrderStatus.shipping,
       OrderStatus.completed,
       OrderStatus.cancelled,
@@ -245,7 +245,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       OrderPaymentStatus.cancelled,
       OrderPaymentStatus.failed,
     ];
-    final hasSummaryData = pendingApprovalCount > 0 || debtOrderCount > 0;
+    final hasSummaryData = pendingCount > 0 || debtOrderCount > 0;
     final hasActiveFilters =
         _query.status != null ||
         _query.paymentStatus != null ||
@@ -257,8 +257,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final orderBuilderDelegate = PagedChildBuilderDelegate<Order>(
       itemBuilder: (context, order, index) {
         final canCancel =
-            order.status == OrderStatus.pendingApproval ||
-            order.status == OrderStatus.approved;
+            order.status == OrderStatus.pending ||
+            order.status == OrderStatus.confirmed;
         final shouldShowSerialProgress =
             order.status == OrderStatus.completed ||
             order.status == OrderStatus.shipping;
@@ -354,7 +354,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        texts.paymentMethodSummary(order.paymentMethod),
+                        texts.paymentMethodSummary(
+                          context,
+                          order.paymentMethod,
+                        ),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),
@@ -544,19 +547,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           ? Wrap(
                               crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
-                                if (pendingApprovalCount > 0)
+                                if (pendingCount > 0)
                                   Text(
-                                    texts.pendingApprovalCountLabel(
-                                      pendingApprovalCount,
-                                    ),
+                                    texts.pendingCountLabel(pendingCount),
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
                                           color: colors.onSurfaceVariant,
                                           fontWeight: FontWeight.w600,
                                         ),
                                   ),
-                                if (pendingApprovalCount > 0 &&
-                                    debtOrderCount > 0)
+                                if (pendingCount > 0 && debtOrderCount > 0)
                                   Text(
                                     ' · ',
                                     style: Theme.of(context).textTheme.bodySmall
@@ -1014,10 +1014,10 @@ class _OrdersTexts {
 
   String orderStatusLabel(OrderStatus status) {
     switch (status) {
-      case OrderStatus.pendingApproval:
-        return isEnglish ? 'Pending approval' : 'Chờ duyệt';
-      case OrderStatus.approved:
-        return isEnglish ? 'Approved' : 'Đã duyệt';
+      case OrderStatus.pending:
+        return isEnglish ? 'Pending' : '\u0043h\u1EDD x\u1EED l\u00FD';
+      case OrderStatus.confirmed:
+        return isEnglish ? 'Confirmed' : '\u0110\u00E3 x\u00E1c nh\u1EADn';
       case OrderStatus.shipping:
         return isEnglish ? 'Shipping' : 'Đang giao';
       case OrderStatus.completed:
@@ -1027,14 +1027,8 @@ class _OrdersTexts {
     }
   }
 
-  String paymentMethodLabel(OrderPaymentMethod method) {
-    switch (method) {
-      case OrderPaymentMethod.bankTransfer:
-        return isEnglish ? 'Bank transfer' : 'Chuyển khoản ngân hàng';
-      case OrderPaymentMethod.debt:
-        return isEnglish ? 'Debt recorded' : 'Ghi nhận công nợ';
-    }
-  }
+  String paymentMethodLabel(BuildContext context, OrderPaymentMethod method) =>
+      method.localizedLabel(context);
 
   String orderPaymentStatusLabel(OrderPaymentStatus status) {
     switch (status) {
@@ -1082,8 +1076,12 @@ class _OrdersTexts {
     return '$count ${count == 1 ? 'item' : 'items'}';
   }
 
-  String paymentMethodSummary(OrderPaymentMethod method) =>
-      '${isEnglish ? 'Payment' : 'Thanh toán'}: ${paymentMethodLabel(method)}';
+  String paymentMethodSummary(
+    BuildContext context,
+    OrderPaymentMethod method,
+  ) =>
+      '${isEnglish ? 'Payment' : 'Thanh toán'}: '
+      '${paymentMethodLabel(context, method)}';
 
   String serialProgressLabel(int processedCount, int totalCount) => isEnglish
       ? 'Serials $processedCount/$totalCount'
@@ -1093,9 +1091,9 @@ class _OrdersTexts {
       ? 'Outstanding: ${formatVnd(amount)}'
       : 'Còn nợ: ${formatVnd(amount)}';
 
-  String pendingApprovalCountLabel(int count) => isEnglish
-      ? '$count ${count == 1 ? 'pending approval order' : 'pending approval orders'}'
-      : '$count đơn chờ duyệt';
+  String pendingCountLabel(int count) => isEnglish
+      ? '$count ${count == 1 ? 'pending order' : 'pending orders'}'
+      : '$count đơn chờ xử lý';
 
   String outstandingOrderCountLabel(int count) => isEnglish
       ? '$count ${count == 1 ? 'order with outstanding debt' : 'orders with outstanding debt'}'
@@ -1210,9 +1208,9 @@ Color _paymentStatusTextColor(
 Color _backgroundForStatus(OrderStatus status, {required bool isDark}) {
   if (isDark) {
     switch (status) {
-      case OrderStatus.pendingApproval:
+      case OrderStatus.pending:
         return const Color(0xFF4C3B16);
-      case OrderStatus.approved:
+      case OrderStatus.confirmed:
         return const Color(0xFF1E3150);
       case OrderStatus.shipping:
         return const Color(0xFF154052);
@@ -1223,9 +1221,9 @@ Color _backgroundForStatus(OrderStatus status, {required bool isDark}) {
     }
   }
   switch (status) {
-    case OrderStatus.pendingApproval:
+    case OrderStatus.pending:
       return const Color(0xFFFFF6DB);
-    case OrderStatus.approved:
+    case OrderStatus.confirmed:
       return const Color(0xFFEAF2FF);
     case OrderStatus.shipping:
       return const Color(0xFFE0F2FE);
@@ -1239,9 +1237,9 @@ Color _backgroundForStatus(OrderStatus status, {required bool isDark}) {
 Color _textForStatus(OrderStatus status, {required bool isDark}) {
   if (isDark) {
     switch (status) {
-      case OrderStatus.pendingApproval:
+      case OrderStatus.pending:
         return const Color(0xFFF4D18A);
-      case OrderStatus.approved:
+      case OrderStatus.confirmed:
         return const Color(0xFF93C5FD);
       case OrderStatus.shipping:
         return const Color(0xFF7DD3FC);
@@ -1252,9 +1250,9 @@ Color _textForStatus(OrderStatus status, {required bool isDark}) {
     }
   }
   switch (status) {
-    case OrderStatus.pendingApproval:
+    case OrderStatus.pending:
       return const Color(0xFF8A5A00);
-    case OrderStatus.approved:
+    case OrderStatus.confirmed:
       return const Color(0xFF1A4FA3);
     case OrderStatus.shipping:
       return const Color(0xFF0C4A6E);

@@ -409,6 +409,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open overview'**
   String get notificationsRelatedOpenOverview;
+
+  /// No description provided for @paymentMethodBankTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank Transfer'**
+  String get paymentMethodBankTransfer;
+
+  /// No description provided for @paymentMethodDebt.
+  ///
+  /// In en, this message translates to:
+  /// **'Debt Payment'**
+  String get paymentMethodDebt;
 }
 
 class _AppLocalizationsDelegate

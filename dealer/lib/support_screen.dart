@@ -52,7 +52,7 @@ class _SupportScreenState extends State<SupportScreen> {
   static const _hotline = '1900 1234';
   static const _supportEmail = 'support@4thitek.vn';
   static const _subjectMax = 80;
-  static const _messageMax = 500;
+  static const _messageMax = 1000;
   static const _subjectMin = 5;
   static const _messageMin = 20;
 
@@ -668,7 +668,7 @@ class _SupportScreenState extends State<SupportScreen> {
         : Theme.of(context).colorScheme.onSurfaceVariant;
     final style = Theme.of(context).textTheme.bodySmall?.copyWith(color: color);
 
-    return Text('$currentLength/$maxLength', style: style);
+    return Text('$currentLength / $maxLength', style: style);
   }
 
   void _showSnackBar(String message) {

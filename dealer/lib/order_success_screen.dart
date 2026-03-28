@@ -145,7 +145,7 @@ class OrderSuccessScreen extends StatelessWidget {
                     itemCount: itemCount,
                     totalPrice: totalPrice,
                     paymentMethod: order != null
-                        ? texts.paymentMethodLabel(order.paymentMethod)
+                        ? texts.paymentMethodLabel(context, order.paymentMethod)
                         : null,
                     paymentStatus: order != null
                         ? texts.paymentStatusLabel(order.paymentStatus)
@@ -193,7 +193,7 @@ class OrderSuccessScreen extends StatelessWidget {
 
   String _buildStatusNote(Order? order, _OrderSuccessTexts texts) {
     if (order == null) {
-      return texts.pendingApprovalMessage;
+      return texts.pendingMessage;
     }
     if (order.paymentMethod == OrderPaymentMethod.debt) {
       return texts.debtRecordedMessage;
@@ -284,15 +284,15 @@ class _OrderSuccessTexts {
   String get paymentConfirmedMessage => isEnglish
       ? 'Payment has been confirmed!'
       : 'Thanh toán đã được xác nhận!';
-  String get pendingApprovalMessage => isEnglish
-      ? 'The order is waiting for distributor approval.'
-      : 'Đơn đang chờ duyệt phía nhà phân phối.';
+  String get pendingMessage => isEnglish
+      ? 'The order is pending confirmation.'
+      : 'Đơn hàng đang chờ xác nhận.';
   String get debtRecordedMessage => isEnglish
-      ? 'The order has been recorded as debt and is waiting for distributor approval.'
-      : 'Đơn đã được ghi nhận công nợ và đang chờ duyệt phía nhà phân phối.';
+      ? 'The order has been recorded as debt and is pending confirmation.'
+      : 'Đơn hàng đã được ghi nhận công nợ và đang chờ xác nhận.';
   String get sepayConfirmedMessage => isEnglish
-      ? 'SePay has confirmed the payment. Your order is waiting for distributor approval.'
-      : 'SePay đã ghi nhận thanh toán. Đơn hàng đang chờ duyệt phía nhà phân phối.';
+      ? 'SePay has confirmed the payment. Your order is pending confirmation.'
+      : 'SePay đã xác nhận thanh toán. Đơn hàng đang chờ xác nhận.';
   String get pendingTransferMessage => isEnglish
       ? 'The order has been created. Please transfer using the correct order ID; the SePay webhook will update payment automatically once the bank confirms the transaction.'
       : 'Đơn đã được tạo. Hãy chuyển khoản đúng mã đơn hàng, SePay webhook sẽ tự động cập nhật thanh toán khi ngân hàng ghi nhận giao dịch.';
@@ -309,14 +309,8 @@ class _OrderSuccessTexts {
   String get totalPaymentLabel =>
       isEnglish ? 'Total payment' : 'Tổng thanh toán';
 
-  String paymentMethodLabel(OrderPaymentMethod method) {
-    switch (method) {
-      case OrderPaymentMethod.bankTransfer:
-        return isEnglish ? 'Bank transfer' : 'Chuyển khoản ngân hàng';
-      case OrderPaymentMethod.debt:
-        return isEnglish ? 'Debt recorded' : 'Ghi nhận công nợ';
-    }
-  }
+  String paymentMethodLabel(BuildContext context, OrderPaymentMethod method) =>
+      method.localizedLabel(context);
 
   String paymentStatusLabel(OrderPaymentStatus status) {
     switch (status) {

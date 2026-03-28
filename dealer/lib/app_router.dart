@@ -31,10 +31,7 @@ GoRouter buildDealerRouter({
     navigatorKey: navigatorKey,
     initialLocation: '/launch',
     routes: [
-      GoRoute(
-        path: '/',
-        redirect: (context, state) => '/launch',
-      ),
+      GoRoute(path: '/', redirect: (context, state) => '/launch'),
       GoRoute(
         path: '/launch',
         builder: (context, state) => _StartupGate(startupFuture: startupFuture),
@@ -59,9 +56,13 @@ GoRouter buildDealerRouter({
       ),
       GoRoute(
         path: '/products/:productId',
-        builder: (context, state) => _ProductDetailRouteScreen(
-          productId: state.pathParameters['productId'] ?? '',
-        ),
+        builder: (context, state) {
+          final productId = state.pathParameters['productId'];
+          if (productId == null || productId.isEmpty) {
+            return const ProductListScreen();
+          }
+          return _ProductDetailRouteScreen(productId: productId);
+        },
       ),
       GoRoute(
         path: '/orders',
@@ -69,9 +70,13 @@ GoRouter buildDealerRouter({
       ),
       GoRoute(
         path: '/orders/:orderId',
-        builder: (context, state) => OrderDetailScreen(
-          orderId: state.pathParameters['orderId'] ?? '',
-        ),
+        builder: (context, state) {
+          final orderId = state.pathParameters['orderId'];
+          if (orderId == null || orderId.isEmpty) {
+            return const OrdersScreen();
+          }
+          return OrderDetailScreen(orderId: orderId);
+        },
       ),
       GoRoute(
         path: '/support',
@@ -80,9 +85,9 @@ GoRouter buildDealerRouter({
       GoRoute(
         path: '/inventory',
         builder: (context, state) => InventoryScreen(
-          initialStockFilter: switch (
-            state.uri.queryParameters['filter']?.trim().toLowerCase()
-          ) {
+          initialStockFilter: switch (state.uri.queryParameters['filter']
+              ?.trim()
+              .toLowerCase()) {
             'instock' || 'in-stock' => InventoryStockFilter.inStock,
             'low' || 'low-stock' => InventoryStockFilter.lowStock,
             'out' || 'out-of-stock' => InventoryStockFilter.outOfStock,
@@ -106,11 +111,17 @@ GoRouter buildDealerRouter({
       ),
       GoRoute(
         path: '/warranty/activation/:orderId',
-        builder: (context, state) => WarrantyActivationScreen(
-          orderId: state.pathParameters['orderId'] ?? '',
-          prefilledSerial: state.uri.queryParameters['serial'],
-          prefilledProductId: state.uri.queryParameters['productId'],
-        ),
+        builder: (context, state) {
+          final orderId = state.pathParameters['orderId'];
+          if (orderId == null || orderId.isEmpty) {
+            return const WarrantyHubScreen();
+          }
+          return WarrantyActivationScreen(
+            orderId: orderId,
+            prefilledSerial: state.uri.queryParameters['serial'],
+            prefilledProductId: state.uri.queryParameters['productId'],
+          );
+        },
       ),
       GoRoute(
         path: '/account/settings',
@@ -124,10 +135,7 @@ GoRouter buildDealerRouter({
         path: '/account/change-password',
         builder: (context, state) => const ChangePasswordScreen(),
       ),
-      GoRoute(
-        path: '/cart',
-        builder: (context, state) => const CartScreen(),
-      ),
+      GoRoute(path: '/cart', builder: (context, state) => const CartScreen()),
       GoRoute(
         path: '/checkout',
         builder: (context, state) => const CheckoutScreen(),

@@ -1,3 +1,7 @@
+import 'package:flutter/widgets.dart';
+
+import 'l10n/app_localizations.dart';
+
 class ProductSpecification {
   const ProductSpecification({required this.label, required this.value});
 
@@ -162,15 +166,15 @@ class BulkDiscountTarget {
   final String? rangeLabel;
 }
 
-enum OrderStatus { pendingApproval, approved, shipping, completed, cancelled }
+enum OrderStatus { pending, confirmed, shipping, completed, cancelled }
 
 extension OrderStatusLabel on OrderStatus {
   String get label {
     switch (this) {
-      case OrderStatus.pendingApproval:
-        return 'Ch\u1EDD duy\u1EC7t';
-      case OrderStatus.approved:
-        return '\u0110\u00E3 duy\u1EC7t';
+      case OrderStatus.pending:
+        return 'Ch\u1EDD x\u1EED l\u00FD';
+      case OrderStatus.confirmed:
+        return '\u0110\u00E3 x\u00E1c nh\u1EADn';
       case OrderStatus.shipping:
         return '\u0110ang giao';
       case OrderStatus.completed:
@@ -184,12 +188,13 @@ extension OrderStatusLabel on OrderStatus {
 enum OrderPaymentMethod { bankTransfer, debt }
 
 extension OrderPaymentMethodLabel on OrderPaymentMethod {
-  String get label {
+  String localizedLabel(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     switch (this) {
       case OrderPaymentMethod.bankTransfer:
-        return 'Chuy\u1EC3n kho\u1EA3n ng\u00E2n h\u00E0ng';
+        return l10n.paymentMethodBankTransfer;
       case OrderPaymentMethod.debt:
-        return 'Ghi nh\u1EADn c\u00F4ng n\u1EE3';
+        return l10n.paymentMethodDebt;
     }
   }
 }

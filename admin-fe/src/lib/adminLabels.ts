@@ -8,17 +8,17 @@ import type {
 import type { BadgeTone } from '../components/ui-kit'
 
 export const orderStatusLabel: Record<OrderStatus, string> = {
-  packing: 'Đóng gói',
   pending: 'Chờ xử lý',
-  delivering: 'Đang giao',
+  confirmed: 'Đã xác nhận',
+  shipping: 'Đang giao',
   completed: 'Hoàn tất',
   cancelled: 'Hủy',
 }
 
 export const orderStatusTone: Record<OrderStatus, BadgeTone> = {
-  packing: 'info',
   pending: 'warning',
-  delivering: 'success',
+  confirmed: 'info',
+  shipping: 'success',
   completed: 'success',
   cancelled: 'danger',
 }
@@ -26,11 +26,11 @@ export const orderStatusTone: Record<OrderStatus, BadgeTone> = {
 export const getAllowedOrderStatuses = (current: OrderStatus): OrderStatus[] => {
   switch (current) {
     case 'pending':
-      return ['pending', 'packing', 'cancelled']
-    case 'packing':
-      return ['packing', 'delivering', 'cancelled']
-    case 'delivering':
-      return ['delivering', 'completed']
+      return ['pending', 'confirmed', 'cancelled']
+    case 'confirmed':
+      return ['confirmed', 'shipping', 'cancelled']
+    case 'shipping':
+      return ['shipping', 'completed']
     case 'completed':
       return ['completed']
     case 'cancelled':

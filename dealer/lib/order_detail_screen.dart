@@ -25,6 +25,34 @@ class OrderDetailScreen extends StatelessWidget {
 
   final String orderId;
 
+  Widget _buildConfirmationSummary(
+    BuildContext context,
+    Order order,
+    _OrderDetailTexts texts, {
+    required String footerMessage,
+    required Color footerColor,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(texts.orderCodeSummary(order.id)),
+        const SizedBox(height: 4),
+        Text(texts.totalAmountSummary(formatVnd(order.total))),
+        const SizedBox(height: 4),
+        Text(texts.itemCountSummary(order.totalItems)),
+        const SizedBox(height: 8),
+        Text(
+          footerMessage,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: footerColor,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
   void _confirmCancel(BuildContext context, Order order) {
     final texts = _orderDetailTexts(context);
     showDialog<void>(
@@ -35,7 +63,13 @@ class OrderDetailScreen extends StatelessWidget {
         final colors = Theme.of(context).colorScheme;
         return AlertDialog(
           title: Text(texts.confirmCancelTitle),
-          content: Text(texts.confirmCancelDescription(order.id)),
+          content: _buildConfirmationSummary(
+            context,
+            order,
+            texts,
+            footerMessage: texts.irreversibleWarning,
+            footerColor: colors.error,
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
@@ -82,9 +116,16 @@ class OrderDetailScreen extends StatelessWidget {
       traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
       requestFocus: true,
       builder: (dialogContext) {
+        final colors = Theme.of(context).colorScheme;
         return AlertDialog(
           title: Text(texts.confirmReceivedTitle),
-          content: Text(texts.confirmReceivedDescription(order.id)),
+          content: _buildConfirmationSummary(
+            context,
+            order,
+            texts,
+            footerMessage: texts.paymentWillBeMarkedCompleteMessage,
+            footerColor: colors.primary,
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
@@ -358,11 +399,11 @@ class OrderDetailScreen extends StatelessWidget {
                           });
                           final orderController = OrderScope.of(context);
                           final success = await orderController.recordPayment(
-                                orderId: order.id,
-                                amount: amount,
-                                channel: selectedChannel,
-                                note: texts.recordPaymentScreenNote,
-                              );
+                            orderId: order.id,
+                            amount: amount,
+                            channel: selectedChannel,
+                            note: texts.recordPaymentScreenNote,
+                          );
                           if (!dialogContext.mounted || !context.mounted) {
                             return;
                           }
@@ -522,8 +563,8 @@ class OrderDetailScreen extends StatelessWidget {
         order.status == OrderStatus.completed ||
         order.status == OrderStatus.shipping;
     final canCancel =
-        order.status == OrderStatus.pendingApproval ||
-        order.status == OrderStatus.approved;
+        order.status == OrderStatus.pending ||
+        order.status == OrderStatus.confirmed;
     final canMarkReceived = false;
     final stickyActionBar = _buildStickyActionBar(
       context: context,
@@ -585,7 +626,10 @@ class OrderDetailScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       _InfoRow(
                         label: texts.paymentMethodRowLabel,
-                        value: texts.paymentMethodLabel(order.paymentMethod),
+                        value: texts.paymentMethodLabel(
+                          context,
+                          order.paymentMethod,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       _InfoPaymentStatusRow(
@@ -823,16 +867,22 @@ class _OrderDetailTexts {
       : 'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.';
   String get confirmCancelTitle =>
       isEnglish ? 'Confirm order cancellation' : 'Xác nhận hủy đơn';
-  String confirmCancelDescription(String orderId) => isEnglish
-      ? 'Are you sure you want to cancel order $orderId?'
-      : 'Bạn có chắc muốn hủy đơn hàng $orderId?';
+  String orderCodeSummary(String orderId) =>
+      isEnglish ? 'Order: #$orderId' : 'Đơn hàng: #$orderId';
+  String totalAmountSummary(String amount) =>
+      isEnglish ? 'Total amount: $amount' : 'Tổng tiền: $amount';
+  String itemCountSummary(int count) =>
+      isEnglish ? '$count items' : '$count sản phẩm';
+  String get irreversibleWarning => isEnglish
+      ? 'This action cannot be undone.'
+      : 'Hành động này không thể hoàn tác.';
   String get noAction => isEnglish ? 'No' : 'Không';
   String get cancelOrderAction => isEnglish ? 'Cancel order' : 'Hủy đơn';
   String get confirmReceivedTitle =>
       isEnglish ? 'Confirm delivery received' : 'Xác nhận đã nhận hàng';
-  String confirmReceivedDescription(String orderId) => isEnglish
-      ? 'Mark order $orderId as completed?'
-      : 'Đánh dấu đơn $orderId là hoàn thành?';
+  String get paymentWillBeMarkedCompleteMessage => isEnglish
+      ? 'Payment will be marked complete for this order.'
+      : 'Thanh toán sẽ được đánh dấu hoàn tất cho đơn hàng này.';
   String get confirmAction => isEnglish ? 'Confirm' : 'Xác nhận';
   String get confirmReceivedAction =>
       isEnglish ? 'Confirm received' : 'Xác nhận đã nhận hàng';
@@ -927,10 +977,10 @@ class _OrderDetailTexts {
 
   String orderStatusLabel(OrderStatus status) {
     switch (status) {
-      case OrderStatus.pendingApproval:
-        return isEnglish ? 'Pending approval' : 'Chờ duyệt';
-      case OrderStatus.approved:
-        return isEnglish ? 'Approved' : 'Đã duyệt';
+      case OrderStatus.pending:
+        return isEnglish ? 'Pending' : '\u0043h\u1EDD x\u1EED l\u00FD';
+      case OrderStatus.confirmed:
+        return isEnglish ? 'Confirmed' : '\u0110\u00E3 x\u00E1c nh\u1EADn';
       case OrderStatus.shipping:
         return isEnglish ? 'Shipping' : 'Đang giao';
       case OrderStatus.completed:
@@ -940,14 +990,8 @@ class _OrderDetailTexts {
     }
   }
 
-  String paymentMethodLabel(OrderPaymentMethod method) {
-    switch (method) {
-      case OrderPaymentMethod.bankTransfer:
-        return isEnglish ? 'Bank transfer' : 'Chuyển khoản ngân hàng';
-      case OrderPaymentMethod.debt:
-        return isEnglish ? 'Debt recorded' : 'Ghi nhận công nợ';
-    }
-  }
+  String paymentMethodLabel(BuildContext context, OrderPaymentMethod method) =>
+      method.localizedLabel(context);
 
   String orderPaymentStatusLabel(OrderPaymentStatus status) {
     switch (status) {
@@ -1296,9 +1340,9 @@ class _PaymentStatusChip extends StatelessWidget {
 Color _backgroundForStatus(OrderStatus status, {required bool isDark}) {
   if (isDark) {
     switch (status) {
-      case OrderStatus.pendingApproval:
+      case OrderStatus.pending:
         return const Color(0xFF4C3B16);
-      case OrderStatus.approved:
+      case OrderStatus.confirmed:
         return const Color(0xFF1E3150);
       case OrderStatus.shipping:
         return const Color(0xFF154052);
@@ -1309,9 +1353,9 @@ Color _backgroundForStatus(OrderStatus status, {required bool isDark}) {
     }
   }
   switch (status) {
-    case OrderStatus.pendingApproval:
+    case OrderStatus.pending:
       return const Color(0xFFFFF6DB);
-    case OrderStatus.approved:
+    case OrderStatus.confirmed:
       return const Color(0xFFEAF2FF);
     case OrderStatus.shipping:
       return const Color(0xFFE0F2FE);
@@ -1325,9 +1369,9 @@ Color _backgroundForStatus(OrderStatus status, {required bool isDark}) {
 Color _textForStatus(OrderStatus status, {required bool isDark}) {
   if (isDark) {
     switch (status) {
-      case OrderStatus.pendingApproval:
+      case OrderStatus.pending:
         return const Color(0xFFF4D18A);
-      case OrderStatus.approved:
+      case OrderStatus.confirmed:
         return const Color(0xFF93C5FD);
       case OrderStatus.shipping:
         return const Color(0xFF7DD3FC);
@@ -1338,9 +1382,9 @@ Color _textForStatus(OrderStatus status, {required bool isDark}) {
     }
   }
   switch (status) {
-    case OrderStatus.pendingApproval:
+    case OrderStatus.pending:
       return const Color(0xFF8A5A00);
-    case OrderStatus.approved:
+    case OrderStatus.confirmed:
       return const Color(0xFF1A4FA3);
     case OrderStatus.shipping:
       return const Color(0xFF0C4A6E);

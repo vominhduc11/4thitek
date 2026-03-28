@@ -34,9 +34,9 @@ import { initialSettings } from '../context/adminDataTypes'
 export const mapBackendOrderStatus = (status?: BackendOrderStatus | null): OrderStatus => {
   switch (status) {
     case 'CONFIRMED':
-      return 'packing'
+      return 'confirmed'
     case 'SHIPPING':
-      return 'delivering'
+      return 'shipping'
     case 'COMPLETED':
       return 'completed'
     case 'CANCELLED':
@@ -48,9 +48,9 @@ export const mapBackendOrderStatus = (status?: BackendOrderStatus | null): Order
 
 export const toBackendOrderStatus = (status: OrderStatus): BackendOrderStatus => {
   switch (status) {
-    case 'packing':
+    case 'confirmed':
       return 'CONFIRMED'
-    case 'delivering':
+    case 'shipping':
       return 'SHIPPING'
     case 'completed':
       return 'COMPLETED'

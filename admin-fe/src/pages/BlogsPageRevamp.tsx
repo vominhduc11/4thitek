@@ -1,6 +1,6 @@
-import { Clock3, FileText, ImagePlus, Plus, Tag, Trash2 } from 'lucide-react'
-import { useCallback, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Clock3, FileText, ImagePlus, Plus, Tag, Trash2 } from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   DestructiveButton,
   EmptyState,
@@ -8,6 +8,7 @@ import {
   FieldErrorMessage,
   GhostButton,
   LoadingRows,
+  PageHeader,
   PagePanel,
   PrimaryButton,
   SearchInput,
@@ -25,277 +26,245 @@ import {
   tableRowClass,
   tableValueClass,
   textareaClass,
-} from '../components/ui-kit'
-import { useAdminData, type BlogStatus } from '../context/AdminDataContext'
-import { useAuth } from '../context/AuthContext'
-import { useLanguage } from '../context/LanguageContext'
-import { useToast } from '../context/ToastContext'
-import { useConfirmDialog } from '../hooks/useConfirmDialog'
-import { blogStatusTone } from '../lib/adminLabels'
-import { resolveBackendAssetUrl } from '../lib/backendApi'
-import { formatDateTime } from '../lib/formatters'
-import { deleteStoredFileReference, storeFileReference } from '../lib/upload'
+} from "../components/ui-kit";
+import { useAdminData, type BlogStatus } from "../context/AdminDataContext";
+import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
+import { translateCopy } from "../lib/i18n";
+import { useToast } from "../context/ToastContext";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { blogStatusTone } from "../lib/adminLabels";
+import { resolveBackendAssetUrl } from "../lib/backendApi";
+import { formatDateTime } from "../lib/formatters";
+import { deleteStoredFileReference, storeFileReference } from "../lib/upload";
 
-const BLOG_STATUS_ORDER: BlogStatus[] = ['published', 'scheduled', 'draft']
+const BLOG_STATUS_ORDER: BlogStatus[] = ["published", "scheduled", "draft"];
 
-const statusLabelsByLanguage = {
-  vi: {
-    published: 'Da dang',
-    scheduled: 'Hen gio',
-    draft: 'Ban nhap',
-  },
-  en: {
-    published: 'Published',
-    scheduled: 'Scheduled',
-    draft: 'Draft',
-  },
-} as const satisfies Record<'vi' | 'en', Record<BlogStatus, string>>
+const statusLabelsKeys = {
+  published: "Da dang",
+  scheduled: "Hen gio",
+  draft: "Ban nhap",
+} as const;
 
-const copyByLanguage = {
-  vi: {
-    title: 'Bai viet',
-    description: 'Quan ly bai viet, noi dung chi tiet, anh dai dien va trang thai hien thi tren trang chu.',
-    searchLabel: 'Tim bai viet',
-    searchPlaceholder: 'Tim theo id, tieu de hoac danh muc...',
-    filterLabel: 'Loc trang thai',
-    allStatuses: 'Tat ca',
-    newPost: 'Tao bai moi',
-    hideComposer: 'An form tao',
-    totalPosts: 'Tong bai viet',
-    publishedPosts: 'Da dang',
-    queuedPosts: 'Hen gio / nhap',
-    emptyTitle: 'Khong co bai viet',
-    emptyMessage: 'Thu thay doi bo loc hoac tu khoa tim kiem.',
-    loadTitle: 'Khong the tai bai viet',
-    loadFallback: 'Khong tai duoc danh sach bai viet',
-    composerTitle: 'Tao bai viet moi',
-    composerDescription: 'Nhap day du metadata va noi dung de bai viet khop voi public site.',
-    titleField: 'Tieu de',
-    titlePlaceholder: 'Nhap tieu de bai viet',
-    categoryField: 'Danh muc',
-    categoryPlaceholder: 'Nhap danh muc',
-    excerptField: 'Tom tat',
-    excerptPlaceholder: 'Nhap tom tat ngan',
-    contentField: 'Noi dung',
-    contentPlaceholder: 'Nhap noi dung chi tiet cho bai viet',
-    statusField: 'Trang thai',
-    coverField: 'Anh dai dien',
-    homepageField: 'Hien tren trang chu',
-    uploadImage: 'Tai anh dai dien',
-    uploadingImage: 'Dang tai anh...',
-    savePost: 'Luu bai viet',
-    cancel: 'Huy',
-    requiredError: 'Vui long nhap day du tieu de va danh muc.',
-    uploadFailed: 'Khong the tai anh bai viet.',
-    createFailed: 'Khong the tao bai viet',
-    createSuccess: 'Da tao bai {id}.',
-    postColumn: 'Bai viet',
-    categoryColumn: 'Danh muc',
-    statusColumn: 'Trang thai',
-    updatedColumn: 'Cap nhat',
-    actionsColumn: 'Thao tac',
-    homepageColumn: 'Trang chu',
-    yes: 'Co',
-    no: 'Khong',
-    noCategory: 'Chua phan loai',
-    noExcerpt: 'Chua co tom tat.',
-    changeStatusTitle: 'Xac nhan doi trang thai',
-    changeStatusMessage: 'Chuyen bai viet nay sang trang thai "{status}"?',
-    updateFailed: 'Khong cap nhat duoc bai viet',
-    deleteTitle: 'Xoa bai viet',
-    deleteMessage: 'Hanh dong nay se xoa bai viet khoi danh sach quan tri.',
-    confirmDelete: 'Xoa bai',
-    deleteLabel: 'Xoa',
-    deleteFailed: 'Khong xoa duoc bai viet',
-    previewAlt: 'Xem truoc bai viet',
-  },
-  en: {
-    title: 'Posts',
-    description: 'Manage post metadata, full content, cover images, and homepage visibility.',
-    searchLabel: 'Search posts',
-    searchPlaceholder: 'Search by id, title, or category...',
-    filterLabel: 'Filter status',
-    allStatuses: 'All',
-    newPost: 'Create post',
-    hideComposer: 'Hide composer',
-    totalPosts: 'Total posts',
-    publishedPosts: 'Published',
-    queuedPosts: 'Scheduled / drafts',
-    emptyTitle: 'No posts found',
-    emptyMessage: 'Try adjusting filters or your search keywords.',
-    loadTitle: 'Unable to load posts',
-    loadFallback: 'Could not load the post list',
-    composerTitle: 'Create a new post',
-    composerDescription: 'Capture the full content so public pages render the intended article.',
-    titleField: 'Title',
-    titlePlaceholder: 'Enter the post title',
-    categoryField: 'Category',
-    categoryPlaceholder: 'Enter a category',
-    excerptField: 'Summary',
-    excerptPlaceholder: 'Write a short summary',
-    contentField: 'Content',
-    contentPlaceholder: 'Enter the full post content',
-    statusField: 'Status',
-    coverField: 'Cover image',
-    homepageField: 'Show on homepage',
-    uploadImage: 'Upload cover image',
-    uploadingImage: 'Uploading image...',
-    savePost: 'Save post',
-    cancel: 'Cancel',
-    requiredError: 'Please provide both a title and category.',
-    uploadFailed: 'Could not upload the post image.',
-    createFailed: 'Could not create the post',
-    createSuccess: 'Created post {id}.',
-    postColumn: 'Post',
-    categoryColumn: 'Category',
-    statusColumn: 'Status',
-    updatedColumn: 'Updated',
-    actionsColumn: 'Actions',
-    homepageColumn: 'Homepage',
-    yes: 'Yes',
-    no: 'No',
-    noCategory: 'Uncategorized',
-    noExcerpt: 'No summary yet.',
-    changeStatusTitle: 'Confirm status change',
-    changeStatusMessage: 'Change this post to "{status}"?',
-    updateFailed: 'Could not update the post',
-    deleteTitle: 'Delete post',
-    deleteMessage: 'This action removes the post from the admin list.',
-    confirmDelete: 'Delete post',
-    deleteLabel: 'Delete',
-    deleteFailed: 'Could not delete the post',
-    previewAlt: 'Post preview',
-  },
-} as const
+const copyKeys = {
+  title: "Bai viet",
+  description:
+    "Quan ly bai viet, noi dung chi tiet, anh dai dien va trang thai hien thi tren trang chu.",
+  searchLabel: "Tim bai viet",
+  searchPlaceholder: "Tim theo id, tieu de hoac danh muc...",
+  filterLabel: "Loc trang thai",
+  allStatuses: "Tat ca",
+  newPost: "Tao bai moi",
+  hideComposer: "An form tao",
+  totalPosts: "Tong bai viet",
+  publishedPosts: "Da dang",
+  queuedPosts: "Hen gio / nhap",
+  emptyTitle: "Khong co bai viet",
+  emptyMessage: "Thu thay doi bo loc hoac tu khoa tim kiem.",
+  loadTitle: "Khong the tai bai viet",
+  loadFallback: "Không tải được danh sách bài viết",
+  composerTitle: "Tao bai viet moi",
+  composerDescription:
+    "Nhap day du metadata va noi dung de bai viet khop voi public site.",
+  titleField: "Tieu de",
+  titlePlaceholder: "Nhap tieu de bai viet",
+  categoryField: "Danh muc",
+  categoryPlaceholder: "Nhap danh muc",
+  excerptField: "Tom tat",
+  excerptPlaceholder: "Nhap tom tat ngan",
+  contentField: "Noi dung",
+  contentPlaceholder: "Nhap noi dung chi tiet cho bai viet",
+  statusField: "Trang thai",
+  coverField: "Anh dai dien",
+  homepageField: "Hien tren trang chu",
+  uploadImage: "Tai anh dai dien",
+  uploadingImage: "Dang tai anh...",
+  savePost: "Luu bai viet",
+  cancel: "Huy",
+  requiredError: "Vui lòng nhập đầy đủ tiêu đề và danh mục.",
+  uploadFailed: "Khong the tai anh bai viet.",
+  createFailed: "Khong the tao bai viet",
+  createSuccess: "Da tao bai {id}.",
+  postColumn: "Bai viet",
+  categoryColumn: "Danh muc",
+  statusColumn: "Trang thai",
+  updatedColumn: "Cap nhat",
+  actionsColumn: "Thao tac",
+  homepageColumn: "Trang chu",
+  yes: "Co",
+  no: "Khong",
+  noCategory: "Chua phan loai",
+  noExcerpt: "Chua co tom tat.",
+  changeStatusTitle: "Xac nhan doi trang thai",
+  changeStatusMessage: 'Chuyen bai viet nay sang trang thai "{status}"?',
+  updateFailed: "Khong cap nhat duoc bai viet",
+  deleteTitle: "Xoa bai viet",
+  deleteMessage: "Hanh dong nay se xoa bai viet khoi danh sach quan tri.",
+  confirmDelete: "Xoa bai",
+  deleteLabel: "Xoa",
+  deleteFailed: "Khong xoa duoc bai viet",
+  previewAlt: "Xem truoc bai viet",
+} as const;
 
 type CreateFormState = {
-  title: string
-  category: string
-  excerpt: string
-  content: string
-  status: BlogStatus
-  showOnHomepage: boolean
-  imageUrl: string
-  imageName: string
-}
+  title: string;
+  category: string;
+  excerpt: string;
+  content: string;
+  status: BlogStatus;
+  showOnHomepage: boolean;
+  imageUrl: string;
+  imageName: string;
+};
 
 const createInitialForm = (): CreateFormState => ({
-  title: '',
-  category: '',
-  excerpt: '',
-  content: '',
-  status: 'draft',
+  title: "",
+  category: "",
+  excerpt: "",
+  content: "",
+  status: "draft",
   showOnHomepage: false,
-  imageUrl: '',
-  imageName: '',
-})
+  imageUrl: "",
+  imageName: "",
+});
 
 function BlogsPageRevamp() {
-  const navigate = useNavigate()
-  const { accessToken } = useAuth()
-  const { language } = useLanguage()
-  const { notify } = useToast()
-  const { confirm, confirmDialog } = useConfirmDialog()
-  const { posts, postsState, addPost, updatePostStatus, deletePost, reloadResource } = useAdminData()
+  const navigate = useNavigate();
+  const { accessToken } = useAuth();
+  const { t } = useLanguage();
+  const { notify } = useToast();
+  const { confirm, confirmDialog } = useConfirmDialog();
+  const {
+    posts,
+    postsState,
+    addPost,
+    updatePostStatus,
+    deletePost,
+    reloadResource,
+  } = useAdminData();
 
-  const copy = copyByLanguage[language]
-  const statusLabels = statusLabelsByLanguage[language]
+  const copy = translateCopy(copyKeys, t);
+  const statusLabels = translateCopy(statusLabelsKeys, t);
 
-  const [query, setQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | BlogStatus>('all')
-  const [showCreate, setShowCreate] = useState(false)
-  const [createError, setCreateError] = useState('')
-  const [isUploadingImage, setIsUploadingImage] = useState(false)
-  const composerUploadedAssetUrlsRef = useRef<Set<string>>(new Set())
-  const [form, setForm] = useState<CreateFormState>(createInitialForm)
-  const toolbarSearchClass = 'w-full sm:max-w-sm lg:w-72 xl:w-80'
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | BlogStatus>("all");
+  const [showCreate, setShowCreate] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const composerUploadedAssetUrlsRef = useRef<Set<string>>(new Set());
+  const [form, setForm] = useState<CreateFormState>(createInitialForm);
+  const toolbarSearchClass = "w-full sm:max-w-sm lg:w-72 xl:w-80";
 
-  const normalizedQuery = query.trim().toLowerCase()
+  const normalizedQuery = query.trim().toLowerCase();
   const filteredPosts = useMemo(
     () =>
       posts.filter((post) => {
-        const matchesStatus = statusFilter === 'all' ? true : post.status === statusFilter
-        const haystack = `${post.id} ${post.title} ${post.category} ${post.excerpt}`.toLowerCase()
-        return matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery))
+        const matchesStatus =
+          statusFilter === "all" ? true : post.status === statusFilter;
+        const haystack =
+          `${post.id} ${post.title} ${post.category} ${post.excerpt}`.toLowerCase();
+        return (
+          matchesStatus &&
+          (!normalizedQuery || haystack.includes(normalizedQuery))
+        );
       }),
     [normalizedQuery, posts, statusFilter],
-  )
+  );
 
   const stats = useMemo(() => {
-    const published = posts.filter((post) => post.status === 'published').length
-    const scheduled = posts.filter((post) => post.status === 'scheduled').length
-    const draft = posts.filter((post) => post.status === 'draft').length
-    return { published, queued: scheduled + draft }
-  }, [posts])
+    const published = posts.filter(
+      (post) => post.status === "published",
+    ).length;
+    const scheduled = posts.filter(
+      (post) => post.status === "scheduled",
+    ).length;
+    const draft = posts.filter((post) => post.status === "draft").length;
+    return { published, queued: scheduled + draft };
+  }, [posts]);
 
   const statusOptions = useMemo(
     () => [
-      { value: 'all' as const, label: copy.allStatuses },
-      ...BLOG_STATUS_ORDER.map((status) => ({ value: status, label: statusLabels[status] })),
+      { value: "all" as const, label: copy.allStatuses },
+      ...BLOG_STATUS_ORDER.map((status) => ({
+        value: status,
+        label: statusLabels[status],
+      })),
     ],
     [copy.allStatuses, statusLabels],
-  )
+  );
 
   const cleanupComposerUploadedAssets = useCallback(
     async (urls: Array<string | null | undefined>) => {
       const trackedUrls = Array.from(
         new Set(
           urls
-            .map((url) => String(url ?? '').trim())
-            .filter((url) => url && composerUploadedAssetUrlsRef.current.has(url)),
+            .map((url) => String(url ?? "").trim())
+            .filter(
+              (url) => url && composerUploadedAssetUrlsRef.current.has(url),
+            ),
         ),
-      )
+      );
 
       if (trackedUrls.length === 0) {
-        return
+        return;
       }
 
       const results = await Promise.allSettled(
         trackedUrls.map(async (url) => {
-          await deleteStoredFileReference({ url, accessToken })
-          return url
+          await deleteStoredFileReference({ url, accessToken });
+          return url;
         }),
-      )
+      );
 
       results.forEach((result, index) => {
-        if (result.status === 'fulfilled') {
-          composerUploadedAssetUrlsRef.current.delete(trackedUrls[index])
+        if (result.status === "fulfilled") {
+          composerUploadedAssetUrlsRef.current.delete(trackedUrls[index]);
         }
-      })
+      });
     },
     [accessToken],
-  )
+  );
 
   const closeComposer = () => {
-    void cleanupComposerUploadedAssets(Array.from(composerUploadedAssetUrlsRef.current))
-    setShowCreate(false)
-    setCreateError('')
-    setForm(createInitialForm())
-  }
+    void cleanupComposerUploadedAssets(
+      Array.from(composerUploadedAssetUrlsRef.current),
+    );
+    setShowCreate(false);
+    setCreateError("");
+    setForm(createInitialForm());
+  };
 
   const handleImageChange = async (file: File | null) => {
-    if (!file) return
+    if (!file) return;
 
-    const previousImageUrl = form.imageUrl.trim()
-    setCreateError('')
-    setIsUploadingImage(true)
+    const previousImageUrl = form.imageUrl.trim();
+    setCreateError("");
+    setIsUploadingImage(true);
     try {
-      const stored = await storeFileReference({ file, category: 'blogs', accessToken })
-      composerUploadedAssetUrlsRef.current.add(stored.url)
-      setForm((previous) => ({ ...previous, imageUrl: stored.url, imageName: file.name }))
-      void cleanupComposerUploadedAssets([previousImageUrl])
+      const stored = await storeFileReference({
+        file,
+        category: "blogs",
+        accessToken,
+      });
+      composerUploadedAssetUrlsRef.current.add(stored.url);
+      setForm((previous) => ({
+        ...previous,
+        imageUrl: stored.url,
+        imageName: file.name,
+      }));
+      void cleanupComposerUploadedAssets([previousImageUrl]);
     } catch {
-      setCreateError(copy.uploadFailed)
+      setCreateError(copy.uploadFailed);
     } finally {
-      setIsUploadingImage(false)
+      setIsUploadingImage(false);
     }
-  }
+  };
 
   const handleCreate = async () => {
-    setCreateError('')
+    setCreateError("");
     if (!form.title.trim() || !form.category.trim()) {
-      setCreateError(copy.requiredError)
-      return
+      setCreateError(t("Vui lòng nhập đầy đủ tiêu đề và danh mục."));
+      return;
     }
 
     try {
@@ -307,79 +276,101 @@ function BlogsPageRevamp() {
         status: form.status,
         showOnHomepage: form.showOnHomepage,
         imageUrl: form.imageUrl || undefined,
-      })
-      notify(copy.createSuccess.replace('{id}', created.id), { title: copy.title, variant: 'success' })
-      composerUploadedAssetUrlsRef.current.clear()
-      closeComposer()
+      });
+      notify(copy.createSuccess.replace("{id}", created.id), {
+        title: copy.title,
+        variant: "success",
+      });
+      composerUploadedAssetUrlsRef.current.clear();
+      closeComposer();
     } catch (error) {
-      setCreateError(error instanceof Error ? error.message : copy.createFailed)
+      setCreateError(
+        error instanceof Error ? error.message : copy.createFailed,
+      );
     }
-  }
+  };
 
-  if (postsState.status === 'loading' || postsState.status === 'idle') {
+  if (postsState.status === "loading" || postsState.status === "idle") {
     return (
       <PagePanel>
         <LoadingRows rows={6} />
       </PagePanel>
-    )
+    );
   }
 
-  if (postsState.status === 'error') {
+  if (postsState.status === "error") {
     return (
       <PagePanel>
         <ErrorState
           title={copy.loadTitle}
-          message={postsState.error || copy.loadFallback}
-          onRetry={() => void reloadResource('posts')}
+          message={postsState.error || t("Không tải được danh sách bài viết")}
+          onRetry={() => void reloadResource("posts")}
         />
       </PagePanel>
-    )
+    );
   }
 
   return (
     <PagePanel>
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h3 className={cardTitleClass}>{copy.title}</h3>
-          <p className={bodyTextClass}>{copy.description}</p>
-        </div>
-        <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
-          <SearchInput
-            id="blogs-search"
-            label={copy.searchLabel}
-            placeholder={copy.searchPlaceholder}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            className={toolbarSearchClass}
-          />
-          <select
-            aria-label={copy.filterLabel}
-            className={`${inputClass} w-full sm:max-w-[14rem] lg:w-56`}
-            onChange={(event) => setStatusFilter(event.target.value as 'all' | BlogStatus)}
-            value={statusFilter}
-          >
-            {statusOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <PrimaryButton
-            aria-label={showCreate ? copy.hideComposer : copy.newPost}
-            className="w-full sm:w-auto"
-            icon={<Plus className="h-4 w-4" />}
-            onClick={() => setShowCreate((value) => !value)}
-            type="button"
-          >
-            {showCreate ? copy.hideComposer : copy.newPost}
-          </PrimaryButton>
-        </div>
-      </div>
+      <PageHeader
+        title={copy.title}
+        subtitle={copy.description}
+        actions={
+          <>
+            <SearchInput
+              id="blogs-search"
+              label={copy.searchLabel}
+              placeholder={copy.searchPlaceholder}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              className={toolbarSearchClass}
+            />
+            <select
+              aria-label={copy.filterLabel}
+              className={`${inputClass} w-full sm:max-w-[14rem] lg:w-56`}
+              onChange={(event) =>
+                setStatusFilter(event.target.value as "all" | BlogStatus)
+              }
+              value={statusFilter}
+            >
+              {statusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <PrimaryButton
+              aria-label={showCreate ? copy.hideComposer : copy.newPost}
+              className="w-full sm:w-auto"
+              icon={<Plus className="h-4 w-4" />}
+              onClick={() => setShowCreate((value) => !value)}
+              type="button"
+            >
+              {showCreate ? copy.hideComposer : copy.newPost}
+            </PrimaryButton>
+          </>
+        }
+      />
 
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <StatCard icon={FileText} label={copy.totalPosts} value={posts.length} tone="neutral" />
-        <StatCard icon={Tag} label={copy.publishedPosts} value={stats.published} tone="success" />
-        <StatCard icon={Clock3} label={copy.queuedPosts} value={stats.queued} tone="warning" />
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard
+          icon={FileText}
+          label={copy.totalPosts}
+          value={posts.length}
+          tone="neutral"
+        />
+        <StatCard
+          icon={Tag}
+          label={copy.publishedPosts}
+          value={stats.published}
+          tone="success"
+        />
+        <StatCard
+          icon={Clock3}
+          label={copy.queuedPosts}
+          value={stats.queued}
+          tone="warning"
+        />
       </div>
 
       {showCreate ? (
@@ -393,7 +384,12 @@ function BlogsPageRevamp() {
               <span className={labelClass}>{copy.titleField}</span>
               <input
                 className={`${inputClass} w-full`}
-                onChange={(event) => setForm((previous) => ({ ...previous, title: event.target.value }))}
+                onChange={(event) =>
+                  setForm((previous) => ({
+                    ...previous,
+                    title: event.target.value,
+                  }))
+                }
                 placeholder={copy.titlePlaceholder}
                 value={form.title}
               />
@@ -402,7 +398,12 @@ function BlogsPageRevamp() {
               <span className={labelClass}>{copy.categoryField}</span>
               <input
                 className={`${inputClass} w-full`}
-                onChange={(event) => setForm((previous) => ({ ...previous, category: event.target.value }))}
+                onChange={(event) =>
+                  setForm((previous) => ({
+                    ...previous,
+                    category: event.target.value,
+                  }))
+                }
                 placeholder={copy.categoryPlaceholder}
                 value={form.category}
               />
@@ -412,7 +413,12 @@ function BlogsPageRevamp() {
               <select
                 aria-label={copy.statusField}
                 className={`${inputClass} w-full`}
-                onChange={(event) => setForm((previous) => ({ ...previous, status: event.target.value as BlogStatus }))}
+                onChange={(event) =>
+                  setForm((previous) => ({
+                    ...previous,
+                    status: event.target.value as BlogStatus,
+                  }))
+                }
                 value={form.status}
               >
                 {BLOG_STATUS_ORDER.map((status) => (
@@ -426,7 +432,12 @@ function BlogsPageRevamp() {
               <span className={labelClass}>{copy.excerptField}</span>
               <textarea
                 className={`${textareaClass} w-full`}
-                onChange={(event) => setForm((previous) => ({ ...previous, excerpt: event.target.value }))}
+                onChange={(event) =>
+                  setForm((previous) => ({
+                    ...previous,
+                    excerpt: event.target.value,
+                  }))
+                }
                 placeholder={copy.excerptPlaceholder}
                 rows={4}
                 value={form.excerpt}
@@ -436,7 +447,12 @@ function BlogsPageRevamp() {
               <span className={labelClass}>{copy.contentField}</span>
               <textarea
                 className={`${textareaClass} w-full`}
-                onChange={(event) => setForm((previous) => ({ ...previous, content: event.target.value }))}
+                onChange={(event) =>
+                  setForm((previous) => ({
+                    ...previous,
+                    content: event.target.value,
+                  }))
+                }
                 placeholder={copy.contentPlaceholder}
                 rows={8}
                 value={form.content}
@@ -457,29 +473,42 @@ function BlogsPageRevamp() {
                 <div className="flex flex-wrap items-center gap-3">
                   <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:border-[var(--accent)]">
                     <ImagePlus className="h-4 w-4" />
-                    <span>{isUploadingImage ? copy.uploadingImage : copy.uploadImage}</span>
+                    <span>
+                      {isUploadingImage
+                        ? copy.uploadingImage
+                        : copy.uploadImage}
+                    </span>
                     <input
                       accept="image/*"
                       className="hidden"
                       disabled={isUploadingImage}
                       onChange={(event) => {
-                        const file = event.target.files?.[0] ?? null
-                        void handleImageChange(file)
-                        event.currentTarget.value = ''
+                        const file = event.target.files?.[0] ?? null;
+                        void handleImageChange(file);
+                        event.currentTarget.value = "";
                       }}
                       type="file"
                     />
                   </label>
-                  {form.imageName ? <span className={tableMetaClass}>{form.imageName}</span> : null}
+                  {form.imageName ? (
+                    <span className={tableMetaClass}>{form.imageName}</span>
+                  ) : null}
                 </div>
               </div>
             </label>
             <label className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 lg:col-span-2">
-              <span className="text-sm font-semibold text-[var(--ink)]">{copy.homepageField}</span>
+              <span className="text-sm font-semibold text-[var(--ink)]">
+                {copy.homepageField}
+              </span>
               <input
                 checked={form.showOnHomepage}
                 className="h-5 w-5 accent-[var(--accent)]"
-                onChange={(event) => setForm((previous) => ({ ...previous, showOnHomepage: event.target.checked }))}
+                onChange={(event) =>
+                  setForm((previous) => ({
+                    ...previous,
+                    showOnHomepage: event.target.checked,
+                  }))
+                }
                 type="checkbox"
               />
             </label>
@@ -500,13 +529,23 @@ function BlogsPageRevamp() {
 
       <div className="mt-6">
         {filteredPosts.length === 0 ? (
-          <EmptyState icon={FileText} title={copy.emptyTitle} message={copy.emptyMessage} />
+          <EmptyState
+            icon={FileText}
+            title={copy.emptyTitle}
+            message={copy.emptyMessage}
+          />
         ) : (
           <>
             <div className="grid gap-3 md:hidden">
               {filteredPosts.map((post) => (
                 <article key={post.id} className={tableCardClass}>
-                  <button className="w-full text-left" onClick={() => navigate(`/blogs/${encodeURIComponent(post.id)}`)} type="button">
+                  <button
+                    className="w-full text-left"
+                    onClick={() =>
+                      navigate(`/blogs/${encodeURIComponent(post.id)}`)
+                    }
+                    type="button"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className={tableValueClass}>{post.title}</p>
@@ -514,11 +553,16 @@ function BlogsPageRevamp() {
                           {post.id} · {post.category || copy.noCategory}
                         </p>
                       </div>
-                      <StatusBadge tone={blogStatusTone[post.status]}>{statusLabels[post.status]}</StatusBadge>
+                      <StatusBadge tone={blogStatusTone[post.status]}>
+                        {statusLabels[post.status]}
+                      </StatusBadge>
                     </div>
-                    <p className="mt-3 text-sm text-[var(--ink)]">{post.excerpt || copy.noExcerpt}</p>
+                    <p className="mt-3 text-sm text-[var(--ink)]">
+                      {post.excerpt || copy.noExcerpt}
+                    </p>
                     <p className={`mt-3 ${tableMetaClass}`}>
-                      {copy.homepageColumn}: {post.showOnHomepage ? copy.yes : copy.no}
+                      {copy.homepageColumn}:{" "}
+                      {post.showOnHomepage ? copy.yes : copy.no}
                     </p>
                   </button>
                   <div className="mt-4 flex flex-wrap gap-2">
@@ -526,25 +570,33 @@ function BlogsPageRevamp() {
                       aria-label={`${copy.statusColumn} ${post.id}`}
                       className={`w-full ${tableActionSelectClass}`}
                       onChange={async (event) => {
-                        const next = event.target.value as BlogStatus
-                        if (next === post.status) return
+                        const next = event.target.value as BlogStatus;
+                        if (next === post.status) return;
                         const approved = await confirm({
                           title: copy.changeStatusTitle,
-                          message: copy.changeStatusMessage.replace('{status}', statusLabels[next]),
-                          tone: next === 'draft' ? 'warning' : 'info',
+                          message: copy.changeStatusMessage.replace(
+                            "{status}",
+                            statusLabels[next],
+                          ),
+                          tone: next === "draft" ? "warning" : "info",
                           confirmLabel: statusLabels[next],
-                        })
+                        });
                         if (!approved) {
-                          event.currentTarget.value = post.status
-                          return
+                          event.currentTarget.value = post.status;
+                          return;
                         }
                         try {
-                          await updatePostStatus(post.id, next)
+                          await updatePostStatus(post.id, next);
                         } catch (error) {
-                          notify(error instanceof Error ? error.message : copy.updateFailed, {
-                            title: copy.title,
-                            variant: 'error',
-                          })
+                          notify(
+                            error instanceof Error
+                              ? error.message
+                              : copy.updateFailed,
+                            {
+                              title: copy.title,
+                              variant: "error",
+                            },
+                          );
                         }
                       }}
                       value={post.status}
@@ -562,17 +614,22 @@ function BlogsPageRevamp() {
                         const approved = await confirm({
                           title: copy.deleteTitle,
                           message: copy.deleteMessage,
-                          tone: 'danger',
+                          tone: "danger",
                           confirmLabel: copy.confirmDelete,
-                        })
-                        if (!approved) return
+                        });
+                        if (!approved) return;
                         try {
-                          await deletePost(post.id)
+                          await deletePost(post.id);
                         } catch (error) {
-                          notify(error instanceof Error ? error.message : copy.deleteFailed, {
-                            title: copy.title,
-                            variant: 'error',
-                          })
+                          notify(
+                            error instanceof Error
+                              ? error.message
+                              : copy.deleteFailed,
+                            {
+                              title: copy.title,
+                              variant: "error",
+                            },
+                          );
                         }
                       }}
                       type="button"
@@ -588,59 +645,103 @@ function BlogsPageRevamp() {
               <table className="min-w-full border-separate border-spacing-y-2">
                 <thead>
                   <tr className={tableHeadClass}>
-                    <th className="px-3 py-2 font-semibold">{copy.postColumn}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.categoryColumn}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.statusColumn}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.homepageColumn}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.updatedColumn}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.actionsColumn}</th>
+                    <th className="px-3 py-2 font-semibold">
+                      {copy.postColumn}
+                    </th>
+                    <th className="px-3 py-2 font-semibold">
+                      {copy.categoryColumn}
+                    </th>
+                    <th className="px-3 py-2 font-semibold">
+                      {copy.statusColumn}
+                    </th>
+                    <th className="px-3 py-2 font-semibold">
+                      {copy.homepageColumn}
+                    </th>
+                    <th className="px-3 py-2 font-semibold">
+                      {copy.updatedColumn}
+                    </th>
+                    <th className="px-3 py-2 font-semibold">
+                      {copy.actionsColumn}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredPosts.map((post) => (
-                    <tr key={post.id} className={tableRowClass} onClick={() => navigate(`/blogs/${encodeURIComponent(post.id)}`)}>
+                    <tr
+                      key={post.id}
+                      className={tableRowClass}
+                      onClick={() =>
+                        navigate(`/blogs/${encodeURIComponent(post.id)}`)
+                      }
+                    >
                       <td className="rounded-l-2xl px-3 py-3">
-                        <p className="font-semibold text-[var(--ink)]">{post.title}</p>
+                        <p className="font-semibold text-[var(--ink)]">
+                          {post.title}
+                        </p>
                         <p className={tableMetaClass}>{post.id}</p>
-                        <p className={tableMetaClass}>{post.excerpt || copy.noExcerpt}</p>
+                        <p className={tableMetaClass}>
+                          {post.excerpt || copy.noExcerpt}
+                        </p>
                       </td>
-                      <td className="px-3 py-3">{post.category || copy.noCategory}</td>
                       <td className="px-3 py-3">
-                        <StatusBadge tone={blogStatusTone[post.status]}>{statusLabels[post.status]}</StatusBadge>
+                        {post.category || copy.noCategory}
                       </td>
-                      <td className="px-3 py-3">{post.showOnHomepage ? copy.yes : copy.no}</td>
-                      <td className="px-3 py-3">{formatDateTime(post.updatedAt)}</td>
-                      <td className="rounded-r-2xl px-3 py-3" onClick={(event) => event.stopPropagation()}>
+                      <td className="px-3 py-3">
+                        <StatusBadge tone={blogStatusTone[post.status]}>
+                          {statusLabels[post.status]}
+                        </StatusBadge>
+                      </td>
+                      <td className="px-3 py-3">
+                        {post.showOnHomepage ? copy.yes : copy.no}
+                      </td>
+                      <td className="px-3 py-3">
+                        {formatDateTime(post.updatedAt)}
+                      </td>
+                      <td
+                        className="rounded-r-2xl px-3 py-3"
+                        onClick={(event) => event.stopPropagation()}
+                      >
                         <div className="flex flex-wrap gap-2">
                           <select
                             aria-label={`${copy.statusColumn} ${post.id}`}
                             className={tableActionSelectClass}
                             onChange={async (event) => {
-                              const next = event.target.value as BlogStatus
-                              if (next === post.status) return
+                              const next = event.target.value as BlogStatus;
+                              if (next === post.status) return;
                               const approved = await confirm({
                                 title: copy.changeStatusTitle,
-                                message: copy.changeStatusMessage.replace('{status}', statusLabels[next]),
-                                tone: next === 'draft' ? 'warning' : 'info',
+                                message: copy.changeStatusMessage.replace(
+                                  "{status}",
+                                  statusLabels[next],
+                                ),
+                                tone: next === "draft" ? "warning" : "info",
                                 confirmLabel: statusLabels[next],
-                              })
+                              });
                               if (!approved) {
-                                event.currentTarget.value = post.status
-                                return
+                                event.currentTarget.value = post.status;
+                                return;
                               }
                               try {
-                                await updatePostStatus(post.id, next)
+                                await updatePostStatus(post.id, next);
                               } catch (error) {
-                                notify(error instanceof Error ? error.message : copy.updateFailed, {
-                                  title: copy.title,
-                                  variant: 'error',
-                                })
+                                notify(
+                                  error instanceof Error
+                                    ? error.message
+                                    : copy.updateFailed,
+                                  {
+                                    title: copy.title,
+                                    variant: "error",
+                                  },
+                                );
                               }
                             }}
                             value={post.status}
                           >
                             {BLOG_STATUS_ORDER.map((status) => (
-                              <option key={`${post.id}-${status}`} value={status}>
+                              <option
+                                key={`${post.id}-${status}`}
+                                value={status}
+                              >
                                 {statusLabels[status]}
                               </option>
                             ))}
@@ -652,17 +753,22 @@ function BlogsPageRevamp() {
                               const approved = await confirm({
                                 title: copy.deleteTitle,
                                 message: copy.deleteMessage,
-                                tone: 'danger',
+                                tone: "danger",
                                 confirmLabel: copy.confirmDelete,
-                              })
-                              if (!approved) return
+                              });
+                              if (!approved) return;
                               try {
-                                await deletePost(post.id)
+                                await deletePost(post.id);
                               } catch (error) {
-                                notify(error instanceof Error ? error.message : copy.deleteFailed, {
-                                  title: copy.title,
-                                  variant: 'error',
-                                })
+                                notify(
+                                  error instanceof Error
+                                    ? error.message
+                                    : copy.deleteFailed,
+                                  {
+                                    title: copy.title,
+                                    variant: "error",
+                                  },
+                                );
                               }
                             }}
                             type="button"
@@ -681,7 +787,7 @@ function BlogsPageRevamp() {
       </div>
       {confirmDialog}
     </PagePanel>
-  )
+  );
 }
 
-export default BlogsPageRevamp
+export default BlogsPageRevamp;

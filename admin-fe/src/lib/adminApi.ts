@@ -513,8 +513,9 @@ export type BackendUnmatchedPaymentResponse = {
   matchedOrderId?: number | null
 }
 
-const defaultErrorMessage = 'Request failed'
-const unauthorizedErrorMessage = 'Your session has expired. Please sign in again.'
+// Neutral fallback codes let calling layers map API failures through their own i18n.
+export const ADMIN_API_REQUEST_FAILED = 'ADMIN_API_REQUEST_FAILED'
+export const ADMIN_API_SESSION_EXPIRED = 'ADMIN_API_SESSION_EXPIRED'
 
 const buildQueryString = (params?: Record<string, string | number | null | undefined>) => {
   if (!params) return ''
@@ -615,7 +616,7 @@ const authorizedJsonRequest = async <T>({
       clearStoredAuthSession()
     }
     throw new Error(
-      payload?.error || (response.status === 401 ? unauthorizedErrorMessage : defaultErrorMessage),
+      payload?.error || (response.status === 401 ? ADMIN_API_SESSION_EXPIRED : ADMIN_API_REQUEST_FAILED),
     )
   }
 
@@ -677,7 +678,7 @@ const authorizedBlobRequest = async ({
       clearStoredAuthSession()
     }
     throw new Error(
-      payload?.error || (response.status === 401 ? unauthorizedErrorMessage : defaultErrorMessage),
+      payload?.error || (response.status === 401 ? ADMIN_API_SESSION_EXPIRED : ADMIN_API_REQUEST_FAILED),
     )
   }
 

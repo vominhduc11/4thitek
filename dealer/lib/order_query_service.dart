@@ -89,17 +89,17 @@ class OrderListQuery {
 class OrderQuerySnapshot {
   const OrderQuerySnapshot({
     required this.items,
-    required this.pendingApprovalCount,
+    required this.pendingCount,
     required this.outstandingOrderCount,
   });
 
   const OrderQuerySnapshot.empty()
     : items = const <Order>[],
-      pendingApprovalCount = 0,
+      pendingCount = 0,
       outstandingOrderCount = 0;
 
   final List<Order> items;
-  final int pendingApprovalCount;
+  final int pendingCount;
   final int outstandingOrderCount;
 }
 
@@ -137,8 +137,8 @@ class LocalOrderQueryDataSource implements OrderQueryDataSource {
       List<Order>.from(orderController.orders),
       query,
     );
-    final pendingApprovalCount = items
-        .where((order) => order.status == OrderStatus.pendingApproval)
+    final pendingCount = items
+        .where((order) => order.status == OrderStatus.pending)
         .length;
     final outstandingOrderCount = items
         .where(
@@ -150,7 +150,7 @@ class LocalOrderQueryDataSource implements OrderQueryDataSource {
         .length;
     return OrderQuerySnapshot(
       items: items,
-      pendingApprovalCount: pendingApprovalCount,
+      pendingCount: pendingCount,
       outstandingOrderCount: outstandingOrderCount,
     );
   }

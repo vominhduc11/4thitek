@@ -65,5 +65,7 @@
   "notificationsRelatedViewSupport": "View support",
   "notificationsRelatedViewNotifications": "View notifications",
   "notificationsRelatedOpenLink": "Open link",
-  "notificationsRelatedOpenOverview": "Open overview"
+  "notificationsRelatedOpenOverview": "Open overview",
+  "paymentMethodBankTransfer": "Bank Transfer",
+  "paymentMethodDebt": "Debt Payment"
 }

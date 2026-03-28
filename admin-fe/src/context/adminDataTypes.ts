@@ -1,4 +1,4 @@
-export type OrderStatus = 'packing' | 'pending' | 'delivering' | 'completed' | 'cancelled'
+export type OrderStatus = 'pending' | 'confirmed' | 'shipping' | 'completed' | 'cancelled'
 export type PaymentMethod = 'bank_transfer' | 'debt' | null
 export type PaymentStatus = 'pending' | 'paid' | 'debt_recorded' | 'cancelled' | 'failed'
 export type BlogStatus = 'published' | 'scheduled' | 'draft'

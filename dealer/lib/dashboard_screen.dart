@@ -174,10 +174,10 @@ class _DashboardTexts {
 
   String orderStatusLabel(OrderStatus status) {
     switch (status) {
-      case OrderStatus.pendingApproval:
-        return isEnglish ? 'Pending approval' : 'Chờ duyệt';
-      case OrderStatus.approved:
-        return isEnglish ? 'Approved' : 'Đã duyệt';
+      case OrderStatus.pending:
+        return isEnglish ? 'Pending' : '\u0043h\u1EDD x\u1EED l\u00FD';
+      case OrderStatus.confirmed:
+        return isEnglish ? 'Confirmed' : '\u0110\u00E3 x\u00E1c nh\u1EADn';
       case OrderStatus.shipping:
         return isEnglish ? 'Shipping' : 'Đang giao';
       case OrderStatus.completed:
@@ -643,6 +643,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       content = RefreshIndicator(
         onRefresh: () => _loadDashboardState(showLoadingState: false),
         child: ListView(
+          key: const PageStorageKey<String>('dashboard-scroll'),
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.fromLTRB(
             horizontalPadding,
@@ -737,23 +738,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 12),
             FadeSlideIn(
               delay: const Duration(milliseconds: 140),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _SectionTitle(title: texts.recentOrdersTitle),
-                  ),
-                  if (periodOrders.isNotEmpty)
-                    TextButton.icon(
-                      onPressed: _openOrdersScreen,
-                      style: TextButton.styleFrom(
-                        minimumSize: const Size(48, 48),
-                        visualDensity: VisualDensity.compact,
-                        foregroundColor: const Color(0xFF1D4ED8),
-                      ),
-                      icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                      label: Text(texts.viewAllAction),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompactHeader = constraints.maxWidth < 360;
+                  final actionButton = TextButton.icon(
+                    onPressed: _openOrdersScreen,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(48, 48),
+                      visualDensity: VisualDensity.compact,
+                      foregroundColor: const Color(0xFF1D4ED8),
                     ),
-                ],
+                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                    label: Text(texts.viewAllAction),
+                  );
+
+                  if (periodOrders.isEmpty) {
+                    return _SectionTitle(title: texts.recentOrdersTitle);
+                  }
+                  if (isCompactHeader) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _SectionTitle(title: texts.recentOrdersTitle),
+                        const SizedBox(height: 4),
+                        actionButton,
+                      ],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: _SectionTitle(title: texts.recentOrdersTitle),
+                      ),
+                      actionButton,
+                    ],
+                  );
+                },
               ),
             ),
             const SizedBox(height: 8),
@@ -836,6 +856,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: SizedBox(
             height: 38,
             child: ListView(
+              key: const PageStorageKey<String>('dashboard-header-summary'),
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               children: [
@@ -1096,6 +1117,7 @@ class _DashboardExpandableInsights extends StatelessWidget {
       child: Theme(
         data: theme.copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
+          key: const PageStorageKey<String>('dashboard-mobile-insights'),
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           title: Text(
@@ -1800,6 +1822,8 @@ class _RevenueChartCardState extends State<_RevenueChartCard> {
                         ),
                     ],
                   ),
+                  swapAnimationDuration: Duration.zero,
+                  swapAnimationCurve: Curves.linear,
                 ),
               ),
           ],
@@ -2750,30 +2774,60 @@ class _AgingDebtCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isCompactHeader = constraints.maxWidth < 360;
+                final actionButton = TextButton.icon(
+                  onPressed: onViewAll,
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    minimumSize: const Size(48, 48),
+                    foregroundColor: const Color(0xFF1D4ED8),
+                  ),
+                  icon: const Icon(Icons.list_alt_outlined, size: 18),
+                  label: Text(texts.viewDebtListAction),
+                );
+
+                if (showEmpty) {
+                  return Text(
                     texts.debtAgingTitle,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                     overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (!showEmpty)
-                  TextButton.icon(
-                    onPressed: onViewAll,
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      minimumSize: const Size(48, 48),
-                      foregroundColor: const Color(0xFF1D4ED8),
+                  );
+                }
+                if (isCompactHeader) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        texts.debtAgingTitle,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      actionButton,
+                    ],
+                  );
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        texts.debtAgingTitle,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    icon: const Icon(Icons.list_alt_outlined, size: 18),
-                    label: Text(texts.viewDebtListAction),
-                  ),
-              ],
+                    actionButton,
+                  ],
+                );
+              },
             ),
             if (!showEmpty) ...[
               const SizedBox(height: 4),
@@ -3494,9 +3548,9 @@ class _DashboardLoadingView extends StatelessWidget {
 
 Color _statusColor(OrderStatus status, ColorScheme colorScheme) {
   switch (status) {
-    case OrderStatus.pendingApproval:
+    case OrderStatus.pending:
       return colorScheme.tertiary;
-    case OrderStatus.approved:
+    case OrderStatus.confirmed:
       return colorScheme.primary;
     case OrderStatus.shipping:
       return colorScheme.secondary;
@@ -3893,6 +3947,8 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
                     ),
                   ],
                 ),
+                duration: Duration.zero,
+                curve: Curves.linear,
               ),
             ),
             const SizedBox(height: 10),
@@ -4382,8 +4438,8 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
                   ),
               ],
             ),
-            swapAnimationDuration: const Duration(milliseconds: 320),
-            swapAnimationCurve: Curves.easeOutCubic,
+            swapAnimationDuration: Duration.zero,
+            swapAnimationCurve: Curves.linear,
           ),
           Column(
             mainAxisSize: MainAxisSize.min,
@@ -4578,6 +4634,8 @@ class _WarrantyStatusDonutCardState extends State<_WarrantyStatusDonutCard> {
                     ),
                   ],
                 ),
+                swapAnimationDuration: Duration.zero,
+                swapAnimationCurve: Curves.linear,
               ),
               Column(
                 mainAxisSize: MainAxisSize.min,
@@ -4935,10 +4993,10 @@ class _TopCustomerCard extends StatelessWidget {
 }
 
 const _statusOrder = <OrderStatus>[
-  OrderStatus.pendingApproval,
+  OrderStatus.pending,
+  OrderStatus.confirmed,
   OrderStatus.shipping,
   OrderStatus.completed,
-  OrderStatus.approved,
 ];
 
 class _ActivationChartPoint {

@@ -1,11 +1,11 @@
-import { Languages } from 'lucide-react'
-import { ghostButtonClass } from './ui-kit'
-import { useLanguage } from '../context/LanguageContext'
+import { Languages } from "lucide-react";
+import { ghostButtonClass } from "./ui-kit";
+import { useLanguage } from "../context/LanguageContext";
 
 const LanguageSwitcher = () => {
-  const { language, setLanguage } = useLanguage()
-  const nextLanguage = language === 'vi' ? 'en' : 'vi'
-  const label = language === 'vi' ? 'Chuyển ngôn ngữ' : 'Switch language'
+  const { language, setLanguage, t } = useLanguage();
+  const nextLanguage = language === "vi" ? "en" : "vi";
+  const label = t("Chuyển ngôn ngữ");
 
   return (
     <button
@@ -15,9 +15,9 @@ const LanguageSwitcher = () => {
       type="button"
     >
       <Languages className="h-4 w-4" />
-      <span>{language === 'vi' ? 'VI' : 'EN'}</span>
+      <span>{language === "vi" ? "VI" : "EN"}</span>
     </button>
-  )
-}
+  );
+};
 
-export default LanguageSwitcher
+export default LanguageSwitcher;

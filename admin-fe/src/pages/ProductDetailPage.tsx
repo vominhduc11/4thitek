@@ -302,7 +302,7 @@ function ProductDetailPage() {
     })
 
     if (failedUrls.length > 0) {
-      currentNotify(translate('Khong the don mot so anh tam tren may chu. Vui long thu lai.'), {
+      currentNotify(translate('Không thể dọn một số ảnh tạm trên máy chủ. Vui lòng thử lại.'), {
         title: 'Products',
         variant: 'error',
       })
@@ -408,7 +408,7 @@ function ProductDetailPage() {
 
           if (failedUrls.length > 0) {
             currentNotify(
-              translate('Khong the don mot so anh tam tren may chu. Vui long thu lai.'),
+              translate('Không thể dọn một số ảnh tạm trên máy chủ. Vui lòng thử lại.'),
               {
                 title: 'Products',
                 variant: 'error',

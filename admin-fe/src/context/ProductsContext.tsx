@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { Product, PublishStatus } from '../types/product'
 import productPlaceholder from '../assets/product-placeholder.svg'
 import { useAuth } from './AuthContext'
+import { useLanguage } from './LanguageContext'
 import { useToast } from './ToastContext'
 import {
   createAdminProduct,
@@ -175,6 +176,7 @@ const replaceProduct = (products: Product[], nextProduct: Product) =>
 
 export function ProductsProvider({ children }: { children: React.ReactNode }) {
   const { accessToken } = useAuth()
+  const { t } = useLanguage()
   const { notify } = useToast()
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -207,7 +209,7 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
       } catch (loadError) {
         if (!cancelled) {
           const message =
-            loadError instanceof Error ? loadError.message : 'Khong tai duoc danh sach san pham'
+            loadError instanceof Error ? loadError.message : t('Không tải được danh sách sản phẩm')
           setError(message)
           notify(message, {
             title: 'Products',

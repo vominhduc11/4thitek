@@ -1,18 +1,20 @@
-import { Landmark, RefreshCw } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Landmark, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   fetchAdminFinancialSettlements,
   resolveAdminFinancialSettlement,
   type BackendFinancialSettlementResponse,
   type BackendFinancialSettlementStatus,
-} from '../lib/adminApi'
-import { useAuth } from '../context/AuthContext'
-import { useLanguage } from '../context/LanguageContext'
-import { useToast } from '../context/ToastContext'
-import { formatCurrency, formatDateTime } from '../lib/formatters'
+} from "../lib/adminApi";
+import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
+import { translateCopy } from "../lib/i18n";
+import { useToast } from "../context/ToastContext";
+import { formatCurrency, formatDateTime } from "../lib/formatters";
 import {
   EmptyState,
   ErrorState,
+  FieldErrorMessage,
   GhostButton,
   LoadingRows,
   PagePanel,
@@ -25,188 +27,187 @@ import {
   softCardClass,
   tableActionSelectClass,
   textareaClass,
-} from '../components/ui-kit'
+} from "../components/ui-kit";
 
-const STATUS_OPTIONS: BackendFinancialSettlementStatus[] = ['PENDING', 'REFUNDED', 'WRITTEN_OFF', 'CREDITED']
+const STATUS_OPTIONS: BackendFinancialSettlementStatus[] = [
+  "PENDING",
+  "REFUNDED",
+  "WRITTEN_OFF",
+  "CREDITED",
+];
 
-const STATUS_RESOLVE_OPTIONS: BackendFinancialSettlementStatus[] = ['REFUNDED', 'WRITTEN_OFF', 'CREDITED']
+const STATUS_RESOLVE_OPTIONS: BackendFinancialSettlementStatus[] = [
+  "REFUNDED",
+  "WRITTEN_OFF",
+  "CREDITED",
+];
 
 const statusTone = {
-  PENDING: 'warning',
-  REFUNDED: 'info',
-  WRITTEN_OFF: 'neutral',
-  CREDITED: 'success',
-} as const
+  PENDING: "warning",
+  REFUNDED: "info",
+  WRITTEN_OFF: "neutral",
+  CREDITED: "success",
+} as const;
 
-const copyByLanguage = {
-  vi: {
-    title: 'Quyết toán tài chính',
-    description: 'Các mục quyết toán tài chính đơn hàng chờ xử lý. Xem xét và giải quyết từng trường hợp.',
-    status: 'Trạng thái',
-    all: 'Tất cả',
-    pending: 'Chờ xử lý',
-    refunded: 'Đã hoàn tiền',
-    writtenOff: 'Đã xóa sổ',
-    credited: 'Đã ghi có',
-    orderId: 'Mã đơn hàng',
-    orderCode: 'Mã đơn',
-    type: 'Loại',
-    amount: 'Số tiền',
-    createdBy: 'Tạo bởi',
-    createdAt: 'Ngày tạo',
-    resolution: 'Ghi chú xử lý',
-    resolvedBy: 'Xử lý bởi',
-    resolvedAt: 'Thời điểm xử lý',
-    newStatus: 'Trạng thái mới',
-    resolutionNote: 'Ghi chú (bắt buộc)',
-    resolutionPlaceholder: 'Mô tả cách xử lý mục quyết toán này...',
-    save: 'Lưu xử lý',
-    reload: 'Tải lại',
-    emptyTitle: 'Không có mục phù hợp',
-    emptyMessage: 'Thử thay đổi bộ lọc hoặc tải lại dữ liệu.',
-    loadTitle: 'Không tải được danh sách',
-    loadFallback: 'Danh sách quyết toán chưa thể tải.',
-    saveError: 'Không lưu được thay đổi.',
-    resolutionRequired: 'Ghi chú xử lý là bắt buộc.',
-    statPending: 'Chờ xử lý',
-  },
-  en: {
-    title: 'Financial settlements',
-    description: 'Order financial settlement items awaiting resolution. Review and resolve each case.',
-    status: 'Status',
-    all: 'All',
-    pending: 'Pending',
-    refunded: 'Refunded',
-    writtenOff: 'Written off',
-    credited: 'Credited',
-    orderId: 'Order ID',
-    orderCode: 'Order code',
-    type: 'Type',
-    amount: 'Amount',
-    createdBy: 'Created by',
-    createdAt: 'Created at',
-    resolution: 'Resolution',
-    resolvedBy: 'Resolved by',
-    resolvedAt: 'Resolved at',
-    newStatus: 'New status',
-    resolutionNote: 'Note (required)',
-    resolutionPlaceholder: 'Describe how this settlement was handled...',
-    save: 'Save resolution',
-    reload: 'Reload',
-    emptyTitle: 'No matching items',
-    emptyMessage: 'Try another filter or reload the data.',
-    loadTitle: 'Unable to load list',
-    loadFallback: 'The settlements list could not be loaded.',
-    saveError: 'Could not save changes.',
-    resolutionRequired: 'Resolution note is required.',
-    statPending: 'Pending',
-  },
-} as const
+const copyKeys = {
+  title: "Quyết toán tài chính",
+  description:
+    "Các mục quyết toán tài chính đơn hàng chờ xử lý. Xem xét và giải quyết từng trường hợp.",
+  status: "Trạng thái",
+  all: "Tất cả",
+  pending: "Chờ xử lý",
+  refunded: "Đã hoàn tiền",
+  writtenOff: "Đã xóa sổ",
+  credited: "Đã ghi có",
+  orderId: "Mã đơn hàng",
+  orderCode: "Mã đơn",
+  type: "Loại",
+  amount: "Số tiền",
+  createdBy: "Tạo bởi",
+  createdAt: "Ngày tạo",
+  resolution: "Ghi chú xử lý",
+  resolvedBy: "Xử lý bởi",
+  resolvedAt: "Thời điểm xử lý",
+  newStatus: "Trạng thái mới",
+  resolutionNote: "Ghi chú (bắt buộc)",
+  resolutionPlaceholder: "Mô tả cách xử lý mục quyết toán này...",
+  save: "Lưu xử lý",
+  reload: "Tải lại",
+  emptyTitle: "Không có mục phù hợp",
+  emptyMessage: "Thử thay đổi bộ lọc hoặc tải lại dữ liệu.",
+  loadTitle: "Không tải được danh sách",
+  loadFallback: "Danh sách quyết toán chưa thể tải.",
+  saveError: "Không lưu được thay đổi.",
+  resolutionRequired: "Ghi chú xử lý là bắt buộc.",
+  statPending: "Chờ xử lý",
+} as const;
 
 function FinancialSettlementsPageRevamp() {
-  const { language } = useLanguage()
-  const copy = copyByLanguage[language]
-  const { accessToken } = useAuth()
-  const { notify } = useToast()
+  const { t } = useLanguage();
+  const copy = translateCopy(copyKeys, t);
+  const { accessToken } = useAuth();
+  const { notify } = useToast();
 
-  const [items, setItems] = useState<BackendFinancialSettlementResponse[]>([])
-  const [statusFilter, setStatusFilter] = useState<'ALL' | BackendFinancialSettlementStatus>('ALL')
+  const [items, setItems] = useState<BackendFinancialSettlementResponse[]>([]);
+  const [statusFilter, setStatusFilter] = useState<
+    "ALL" | BackendFinancialSettlementStatus
+  >("ALL");
 
-  const [selectedId, setSelectedId] = useState<number | null>(null)
-  const [statusDraft, setStatusDraft] = useState<BackendFinancialSettlementStatus>('REFUNDED')
-  const [resolutionDraft, setResolutionDraft] = useState('')
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [statusDraft, setStatusDraft] =
+    useState<BackendFinancialSettlementStatus>("REFUNDED");
+  const [resolutionDraft, setResolutionDraft] = useState("");
 
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const load = useCallback(
-    async (status: 'ALL' | BackendFinancialSettlementStatus) => {
-      if (!accessToken) return
-      setIsLoading(true)
-      setError(null)
+    async (status: "ALL" | BackendFinancialSettlementStatus) => {
+      if (!accessToken) return;
+      setIsLoading(true);
+      setError(null);
+      setSaveError(null);
       try {
         const data = await fetchAdminFinancialSettlements(accessToken, {
-          status: status === 'ALL' ? undefined : status,
-        })
-        setItems(data)
-        setSelectedId((current) => data.find((item) => item.id === current)?.id ?? null)
+          status: status === "ALL" ? undefined : status,
+        });
+        setItems(data);
+        setSelectedId(
+          (current) => data.find((item) => item.id === current)?.id ?? null,
+        );
       } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : copy.loadFallback)
+        setError(
+          loadError instanceof Error ? loadError.message : copy.loadFallback,
+        );
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
     },
     [accessToken, copy.loadFallback],
-  )
+  );
 
   useEffect(() => {
-    void load(statusFilter)
-  }, [load, statusFilter])
+    void load(statusFilter);
+  }, [load, statusFilter]);
 
   const selectedItem = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
     [items, selectedId],
-  )
+  );
 
   const handleSelect = (item: BackendFinancialSettlementResponse) => {
-    setSelectedId(item.id)
+    setSelectedId(item.id);
+    setSaveError(null);
     setStatusDraft(
-      item.status === 'PENDING' ? 'REFUNDED' : (item.status ?? 'REFUNDED'),
-    )
-    setResolutionDraft(item.resolution ?? '')
-  }
+      item.status === "PENDING" ? "REFUNDED" : (item.status ?? "REFUNDED"),
+    );
+    setResolutionDraft(item.resolution ?? "");
+  };
 
   const pendingCount = useMemo(
-    () => items.filter((item) => item.status === 'PENDING').length,
+    () => items.filter((item) => item.status === "PENDING").length,
     [items],
-  )
+  );
+  const statusLabels: Record<BackendFinancialSettlementStatus, string> = {
+    PENDING: copy.pending,
+    REFUNDED: copy.refunded,
+    WRITTEN_OFF: copy.writtenOff,
+    CREDITED: copy.credited,
+  };
 
   const handleSave = async () => {
-    if (!accessToken || !selectedItem) return
-    const trimmedResolution = resolutionDraft.trim()
+    if (!accessToken || !selectedItem) return;
+    const trimmedResolution = resolutionDraft.trim();
     if (!trimmedResolution) {
-      notify(copy.resolutionRequired, { title: copy.title, variant: 'error' })
-      return
+      notify(copy.resolutionRequired, { title: copy.title, variant: "error" });
+      return;
     }
-    setIsSaving(true)
+    setSaveError(null);
+    setIsSaving(true);
     try {
-      const updated = await resolveAdminFinancialSettlement(accessToken, selectedItem.id, {
-        status: statusDraft,
-        resolution: trimmedResolution,
-      })
+      const updated = await resolveAdminFinancialSettlement(
+        accessToken,
+        selectedItem.id,
+        {
+          status: statusDraft,
+          resolution: trimmedResolution,
+        },
+      );
       setItems((current) =>
         current.map((item) => (item.id === updated.id ? updated : item)),
-      )
-      setSelectedId(updated.id)
+      );
+      setSelectedId(updated.id);
     } catch (saveError) {
+      setSaveError(t("Lưu không thành công. Vui lòng thử lại."));
       notify(saveError instanceof Error ? saveError.message : copy.saveError, {
         title: copy.title,
-        variant: 'error',
-      })
+        variant: "error",
+      });
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   if (isLoading) {
     return (
       <PagePanel>
         <LoadingRows rows={6} />
       </PagePanel>
-    )
+    );
   }
 
   if (error) {
     return (
       <PagePanel>
         <ErrorState
-          title={copy.loadTitle}
-          message={error}
+          title={t("Không tải được dữ liệu")}
+          message={t("Vui lòng kiểm tra kết nối và thử lại.")}
           onRetry={() => void load(statusFilter)}
         />
       </PagePanel>
-    )
+    );
   }
 
   return (
@@ -222,13 +223,15 @@ function FinancialSettlementsPageRevamp() {
             className={`${inputClass} w-auto`}
             value={statusFilter}
             onChange={(e) =>
-              setStatusFilter(e.target.value as 'ALL' | BackendFinancialSettlementStatus)
+              setStatusFilter(
+                e.target.value as "ALL" | BackendFinancialSettlementStatus,
+              )
             }
           >
             <option value="ALL">{copy.all}</option>
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>
-                {s === 'PENDING' ? copy.pending : s === 'REFUNDED' ? copy.refunded : s === 'WRITTEN_OFF' ? copy.writtenOff : copy.credited}
+                {statusLabels[s] ?? copy.pending}
               </option>
             ))}
           </select>
@@ -262,17 +265,17 @@ function FinancialSettlementsPageRevamp() {
             <div className={`${softCardClass} overflow-hidden`}>
               <div className="divide-y divide-[var(--border)]">
                 {items.map((item) => {
-                  const isSelected = item.id === selectedId
+                  const isSelected = item.id === selectedId;
                   return (
                     <button
                       key={item.id}
                       type="button"
                       className={[
-                        'w-full px-4 py-3 text-left transition',
+                        "w-full px-4 py-3 text-left transition",
                         isSelected
-                          ? 'bg-[var(--accent-soft)]/40'
-                          : 'hover:bg-[var(--surface)]',
-                      ].join(' ')}
+                          ? "bg-[var(--accent-soft)]/40"
+                          : "hover:bg-[var(--surface)]",
+                      ].join(" ")}
                       onClick={() => handleSelect(item)}
                     >
                       <div className="flex items-center justify-between gap-3">
@@ -281,18 +284,21 @@ function FinancialSettlementsPageRevamp() {
                             {item.orderCode ?? `#${item.id}`}
                           </p>
                           <p className="text-xs text-[var(--muted)]">
-                            {item.type ?? '—'}
-                            {item.createdBy ? ` · ${item.createdBy}` : ''}
+                            {item.type ?? "—"}
+                            {item.createdBy ? ` · ${item.createdBy}` : ""}
                           </p>
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-1">
                           <span className="text-sm font-semibold text-[var(--ink)]">
-                            {item.amount != null ? formatCurrency(Number(item.amount)) : '—'}
+                            {item.amount != null
+                              ? formatCurrency(Number(item.amount))
+                              : "—"}
                           </span>
                           <StatusBadge
-                            tone={statusTone[item.status ?? 'PENDING']}
+                            tone={statusTone[item.status ?? "PENDING"]}
                           >
-                            {item.status ?? 'PENDING'}
+                            {statusLabels[item.status ?? "PENDING"] ??
+                              copy.pending}
                           </StatusBadge>
                         </div>
                       </div>
@@ -302,7 +308,7 @@ function FinancialSettlementsPageRevamp() {
                         </p>
                       )}
                     </button>
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -317,23 +323,63 @@ function FinancialSettlementsPageRevamp() {
 
               <dl className="mt-4 space-y-2 text-sm">
                 {[
-                  { label: copy.type, value: selectedItem.type ?? '—' },
-                  { label: copy.amount, value: selectedItem.amount != null ? formatCurrency(Number(selectedItem.amount)) : '—' },
-                  { label: copy.orderCode, value: selectedItem.orderCode ?? '—' },
-                  { label: copy.createdBy, value: selectedItem.createdBy ?? '—' },
-                  { label: copy.createdAt, value: selectedItem.createdAt ? formatDateTime(selectedItem.createdAt) : '—' },
-                  ...(selectedItem.resolution ? [{ label: copy.resolution, value: selectedItem.resolution }] : []),
-                  ...(selectedItem.resolvedBy ? [{ label: copy.resolvedBy, value: selectedItem.resolvedBy }] : []),
-                  ...(selectedItem.resolvedAt ? [{ label: copy.resolvedAt, value: formatDateTime(selectedItem.resolvedAt) }] : []),
+                  { label: copy.type, value: selectedItem.type ?? "—" },
+                  {
+                    label: copy.amount,
+                    value:
+                      selectedItem.amount != null
+                        ? formatCurrency(Number(selectedItem.amount))
+                        : "—",
+                  },
+                  {
+                    label: copy.orderCode,
+                    value: selectedItem.orderCode ?? "—",
+                  },
+                  {
+                    label: copy.createdBy,
+                    value: selectedItem.createdBy ?? "—",
+                  },
+                  {
+                    label: copy.createdAt,
+                    value: selectedItem.createdAt
+                      ? formatDateTime(selectedItem.createdAt)
+                      : "—",
+                  },
+                  ...(selectedItem.resolution
+                    ? [
+                        {
+                          label: copy.resolution,
+                          value: selectedItem.resolution,
+                        },
+                      ]
+                    : []),
+                  ...(selectedItem.resolvedBy
+                    ? [
+                        {
+                          label: copy.resolvedBy,
+                          value: selectedItem.resolvedBy,
+                        },
+                      ]
+                    : []),
+                  ...(selectedItem.resolvedAt
+                    ? [
+                        {
+                          label: copy.resolvedAt,
+                          value: formatDateTime(selectedItem.resolvedAt),
+                        },
+                      ]
+                    : []),
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between gap-3">
                     <dt className="text-[var(--muted)]">{label}</dt>
-                    <dd className="text-right font-medium text-[var(--ink)]">{value}</dd>
+                    <dd className="text-right font-medium text-[var(--ink)]">
+                      {value}
+                    </dd>
                   </div>
                 ))}
               </dl>
 
-              {selectedItem.status === 'PENDING' && (
+              {selectedItem.status === "PENDING" && (
                 <div className="mt-5 space-y-3 border-t border-[var(--border)] pt-4">
                   <div>
                     <label
@@ -346,13 +392,20 @@ function FinancialSettlementsPageRevamp() {
                       id="settle-status"
                       className={`${tableActionSelectClass} w-full`}
                       value={statusDraft}
-                      onChange={(e) =>
-                        setStatusDraft(e.target.value as BackendFinancialSettlementStatus)
-                      }
+                      onChange={(e) => {
+                        setSaveError(null);
+                        setStatusDraft(
+                          e.target.value as BackendFinancialSettlementStatus,
+                        );
+                      }}
                     >
                       {STATUS_RESOLVE_OPTIONS.map((s) => (
                         <option key={s} value={s}>
-                          {s === 'REFUNDED' ? copy.refunded : s === 'WRITTEN_OFF' ? copy.writtenOff : copy.credited}
+                          {s === "REFUNDED"
+                            ? copy.refunded
+                            : s === "WRITTEN_OFF"
+                              ? copy.writtenOff
+                              : copy.credited}
                         </option>
                       ))}
                     </select>
@@ -369,7 +422,10 @@ function FinancialSettlementsPageRevamp() {
                       className={textareaClass}
                       placeholder={copy.resolutionPlaceholder}
                       value={resolutionDraft}
-                      onChange={(e) => setResolutionDraft(e.target.value)}
+                      onChange={(e) => {
+                        setSaveError(null);
+                        setResolutionDraft(e.target.value);
+                      }}
                       rows={3}
                     />
                   </div>
@@ -380,6 +436,9 @@ function FinancialSettlementsPageRevamp() {
                   >
                     {copy.save}
                   </PrimaryButton>
+                  {saveError ? (
+                    <FieldErrorMessage>{saveError}</FieldErrorMessage>
+                  ) : null}
                 </div>
               )}
             </div>
@@ -387,7 +446,7 @@ function FinancialSettlementsPageRevamp() {
         </div>
       )}
     </PagePanel>
-  )
+  );
 }
 
-export default FinancialSettlementsPageRevamp
+export default FinancialSettlementsPageRevamp;

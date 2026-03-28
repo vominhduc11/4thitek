@@ -12,6 +12,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from './AuthContext'
+import { useLanguage } from './LanguageContext'
 import { useToast } from './ToastContext'
 import {
   createAdminBlog,
@@ -196,6 +197,7 @@ export const getRequiredResources = (
 export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient()
   const { accessToken, hasRole } = useAuth()
+  const { t } = useLanguage()
   const { notify } = useToast()
   const location = useLocation()
   const canManageUsers = hasRole('SUPER_ADMIN')
@@ -371,7 +373,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
           return
         }
 
-        const message = error instanceof Error ? error.message : 'Khong tai duoc du lieu admin'
+        const message = error instanceof Error ? error.message : t('Không tải được dữ liệu admin')
         setResourceState(resource, {
           status: 'error',
           error: message,

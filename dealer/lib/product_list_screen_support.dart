@@ -50,6 +50,10 @@ extension _ProductListScreenSupport on _ProductListScreenState {
 
   void _refreshProducts() {
     _queryRevision++;
+    assert(
+      _queryRevision >= 0,
+      '_queryRevision went negative — refresh revision tracking is unbalanced',
+    );
     _pagingController.refresh();
   }
 

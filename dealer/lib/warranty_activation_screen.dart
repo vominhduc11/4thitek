@@ -20,6 +20,8 @@ const double _serialMinTapTarget = 48;
 
 enum _SerialAssignResult { assigned, duplicate, invalid, full }
 
+enum _ActivationPhase { idle, syncing, prefilling, ready, submitting, error }
+
 class WarrantyActivationScreen extends StatefulWidget {
   const WarrantyActivationScreen({
     super.key,
@@ -45,12 +47,8 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   final ScrollController _scrollController = ScrollController();
   final Map<String, List<TextEditingController>> _serialControllers = {};
   DateTime _purchaseDate = DateTime.now();
-  bool _isInitialized = false;
-  bool _didStartInitialSync = false;
-  bool _isInitialSyncing = true;
-  bool _isInitializing = false;
-  bool _isSubmitting = false;
-  bool _didApplyPrefill = false;
+  _ActivationPhase _phase = _ActivationPhase.idle;
+  String? _phaseError;
   String? _initialSyncWarning;
 
   _WarrantyActivationTexts get _texts => _WarrantyActivationTexts(
@@ -60,22 +58,34 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_didStartInitialSync) {
+    if (_phase != _ActivationPhase.idle) {
       return;
     }
-    _didStartInitialSync = true;
     unawaited(_initializeScreen());
   }
 
   Future<void> _initializeScreen() async {
-    if (_isInitializing) {
+    if (_phase == _ActivationPhase.syncing ||
+        _phase == _ActivationPhase.prefilling ||
+        _phase == _ActivationPhase.submitting) {
       return;
     }
-    _isInitializing = true;
+    if (mounted) {
+      setState(() {
+        _phase = _ActivationPhase.syncing;
+        _phaseError = null;
+      });
+    }
     try {
       await _initializeScreenImpl();
-    } finally {
-      _isInitializing = false;
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _phase = _ActivationPhase.error;
+        _phaseError = error.toString();
+      });
     }
   }
 
@@ -104,18 +114,20 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
         ),
       );
     }
-    _initialSyncWarning = warnings.isEmpty
-        ? null
-        : warnings.join('\n');
+    _initialSyncWarning = warnings.isEmpty ? null : warnings.join('\n');
 
     if (!mounted) {
       return;
     }
+    setState(() {
+      _phase = _ActivationPhase.prefilling;
+      _phaseError = null;
+    });
     final order = orderController.findById(widget.orderId);
     if (order == null) {
       setState(() {
-        _isInitialized = true;
-        _isInitialSyncing = false;
+        _phase = _ActivationPhase.ready;
+        _phaseError = null;
       });
       return;
     }
@@ -125,8 +137,8 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
       _applyPrefilledSerial(order, warrantyController);
       _prefillCustomerFromOrder(order);
       _purchaseDate = DateUtils.dateOnly(order.createdAt.toLocal());
-      _isInitialized = true;
-      _isInitialSyncing = false;
+      _phase = _ActivationPhase.ready;
+      _phaseError = null;
     });
   }
 
@@ -148,10 +160,62 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   @override
   Widget build(BuildContext context) {
     final texts = _texts;
-    if (_isInitialSyncing && !_isInitialized) {
+    if (_phase == _ActivationPhase.syncing ||
+        _phase == _ActivationPhase.prefilling) {
       return Scaffold(
         appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
         body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_phase == _ActivationPhase.error) {
+      return Scaffold(
+        appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.error_outline, size: 40),
+                      const SizedBox(height: 12),
+                      Text(
+                        texts.screenErrorTitle,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _phaseError ?? texts.activationSyncFailedMessage,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton.icon(
+                        onPressed: () => unawaited(_initializeScreen()),
+                        icon: const Icon(Icons.refresh),
+                        label: Text(texts.retryAction),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       );
     }
     final order = OrderScope.of(context).findById(widget.orderId);
@@ -228,6 +292,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     final itemProgressColor = isDark
         ? const Color(0xFF4ADE80)
         : const Color(0xFF16A34A);
+    final isFormReady = _phase == _ActivationPhase.ready;
 
     return Scaffold(
       appBar: AppBar(title: BrandAppBarTitle(texts.screenTitle)),
@@ -318,7 +383,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                       const SizedBox(height: 16),
                       TextField(
                         controller: _customerNameController,
-                        enabled: !lockNameField,
+                        enabled: isFormReady && !lockNameField,
                         decoration: InputDecoration(
                           labelText: texts.customerNameLabel,
                           prefixIcon: const Icon(Icons.person_outline),
@@ -328,7 +393,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                       TextField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        enabled: !isFullyActivated,
+                        enabled: isFormReady && !isFullyActivated,
                         decoration: InputDecoration(
                           labelText: texts.customerEmailLabel,
                           prefixIcon: const Icon(
@@ -341,7 +406,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                       TextField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
-                        enabled: !lockPhoneField,
+                        enabled: isFormReady && !lockPhoneField,
                         decoration: InputDecoration(
                           labelText: texts.customerPhoneLabel,
                           prefixIcon: const Icon(Icons.phone_outlined),
@@ -350,7 +415,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                       const SizedBox(height: 12),
                       TextField(
                         controller: _addressController,
-                        enabled: !lockAddressField,
+                        enabled: isFormReady && !lockAddressField,
                         decoration: InputDecoration(
                           labelText: texts.customerAddressLabel,
                           prefixIcon: const Icon(Icons.location_on_outlined),
@@ -358,7 +423,9 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                       ),
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
-                        onPressed: isFullyActivated ? null : _pickPurchaseDate,
+                        onPressed: !isFormReady || isFullyActivated
+                            ? null
+                            : _pickPurchaseDate,
                         icon: const Icon(Icons.event_outlined),
                         label: Text(
                           texts.purchaseDateLabel(formatDate(_purchaseDate)),
@@ -481,7 +548,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                               runSpacing: 8,
                               children: [
                                 OutlinedButton.icon(
-                                  onPressed: isFullyActivated
+                                  onPressed: !isFormReady || isFullyActivated
                                       ? null
                                       : () => _scanSerialForItem(
                                           order,
@@ -500,7 +567,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                                   ),
                                 ),
                                 TextButton.icon(
-                                  onPressed: isFullyActivated
+                                  onPressed: !isFormReady || isFullyActivated
                                       ? null
                                       : () => _showBulkPasteDialog(
                                           order,
@@ -528,7 +595,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                                   controller: controller,
                                   textCapitalization:
                                       TextCapitalization.characters,
-                                  enabled: !isFullyActivated,
+                                  enabled: isFormReady && !isFullyActivated,
                                   inputFormatters: [
                                     FilteringTextInputFormatter.allow(
                                       RegExp(r'[A-Za-z0-9-]'),
@@ -562,7 +629,8 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                     child: SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: isFullyActivated || _isSubmitting
+                        onPressed:
+                            isFullyActivated || _phase != _ActivationPhase.ready
                             ? null
                             : () => _handleSubmit(order),
                         style: ElevatedButton.styleFrom(
@@ -576,7 +644,7 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
                             fontSize: 15,
                           ),
                         ),
-                        child: _isSubmitting
+                        child: _phase == _ActivationPhase.submitting
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
@@ -661,11 +729,6 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     WarrantyController warrantyController,
   ) {
     final texts = _texts;
-    if (_didApplyPrefill) {
-      return;
-    }
-    _didApplyPrefill = true;
-
     final rawPrefilled = widget.prefilledSerial?.trim();
     if (rawPrefilled == null || rawPrefilled.isEmpty) {
       return;
@@ -980,6 +1043,9 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
   }
 
   Future<void> _handleSubmit(Order order) async {
+    if (_phase != _ActivationPhase.ready) {
+      return;
+    }
     final texts = _texts;
     final warrantyController = WarrantyScope.of(context);
     final customerName = _customerNameController.text.trim();
@@ -1058,32 +1124,45 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
       return;
     }
 
-    setState(() => _isSubmitting = true);
-    final success = await warrantyController.addActivations(newRecords);
-
-    if (!mounted) {
-      return;
-    }
-
-    // Always sync serial inputs so controllers match actual remaining count,
-    // even on partial failure where some activations may have succeeded.
     setState(() {
-      _isSubmitting = false;
-      _syncSerialInputs(order, warrantyController);
+      _phase = _ActivationPhase.submitting;
+      _phaseError = null;
     });
+    try {
+      final success = await warrantyController.addActivations(newRecords);
 
-    if (!success) {
-      _showSnackBar(
-        warrantySyncErrorMessage(
-          warrantyController.lastSyncMessage,
-          isEnglish: texts.isEnglish,
-        ),
-      );
-      return;
+      if (!mounted) {
+        return;
+      }
+
+      // Always sync serial inputs so controllers match actual remaining count,
+      // even on partial failure where some activations may have succeeded.
+      setState(() {
+        _syncSerialInputs(order, warrantyController);
+        _phase = success ? _ActivationPhase.ready : _ActivationPhase.error;
+        _phaseError = success
+            ? null
+            : warrantySyncErrorMessage(
+                warrantyController.lastSyncMessage,
+                isEnglish: texts.isEnglish,
+              );
+      });
+
+      if (!success) {
+        return;
+      }
+
+      _jumpToTop();
+      _showSnackBar(texts.activationSuccessMessage(newRecords.length));
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _phase = _ActivationPhase.error;
+        _phaseError = error.toString();
+      });
     }
-
-    _jumpToTop();
-    _showSnackBar(texts.activationSuccessMessage(newRecords.length));
   }
 
   void _jumpToTop() {
@@ -1256,16 +1335,20 @@ class _WarrantyActivationTexts {
   String get activationSyncFailedMessage => isEnglish
       ? 'Cannot sync warranty activation. Please check again.'
       : 'Khong the dong bo kich hoat bao hanh. Vui long kiem tra lai.';
+  String get screenErrorTitle => isEnglish
+      ? 'Warranty activation is temporarily unavailable'
+      : 'Man hinh kich hoat bao hanh tam thoi khong kha dung';
+  String get retryAction => isEnglish ? 'Retry' : 'Thu lai';
   String activationSuccessMessage(int count) => isEnglish
       ? 'Successfully activated $count serials.'
       : 'Da kich hoat thanh cong $count serial.';
 
   String orderStatusLabel(OrderStatus status) {
     switch (status) {
-      case OrderStatus.pendingApproval:
-        return isEnglish ? 'Pending approval' : 'Cho duyet';
-      case OrderStatus.approved:
-        return isEnglish ? 'Approved' : 'Da duyet';
+      case OrderStatus.pending:
+        return isEnglish ? 'Pending' : '\u0043h\u1EDD x\u1EED l\u00FD';
+      case OrderStatus.confirmed:
+        return isEnglish ? 'Confirmed' : '\u0110\u00E3 x\u00E1c nh\u1EADn';
       case OrderStatus.shipping:
         return isEnglish ? 'Shipping' : 'Dang giao';
       case OrderStatus.completed:

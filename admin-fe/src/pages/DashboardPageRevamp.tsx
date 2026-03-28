@@ -1,5 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, CircleDollarSign, Landmark, Package, ShoppingCart, TrendingUp } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  AlertTriangle,
+  CircleDollarSign,
+  Landmark,
+  Package,
+  ShoppingCart,
+  TrendingUp,
+} from "lucide-react";
 import {
   ArcElement,
   BarElement,
@@ -10,159 +17,160 @@ import {
   Tooltip,
   type ChartData,
   type ChartOptions,
-} from 'chart.js'
-import { Bar, Doughnut } from 'react-chartjs-2'
-import { EmptyState, ErrorState, PagePanel, StatCard, StatusBadge, softCardClass } from '../components/ui-kit'
-import { useAuth } from '../context/AuthContext'
-import { useLanguage } from '../context/LanguageContext'
-import { useToast } from '../context/ToastContext'
-import { fetchAdminDashboard, type BackendDashboardResponse } from '../lib/adminApi'
-import { formatCurrency, formatNumber } from '../lib/formatters'
+} from "chart.js";
+import { Bar, Doughnut } from "react-chartjs-2";
+import {
+  EmptyState,
+  ErrorState,
+  PagePanel,
+  StatCard,
+  StatusBadge,
+  softCardClass,
+} from "../components/ui-kit";
+import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
+import { translateCopy } from "../lib/i18n";
+import { useToast } from "../context/ToastContext";
+import {
+  fetchAdminDashboard,
+  type BackendDashboardResponse,
+} from "../lib/adminApi";
+import { formatCurrency, formatNumber } from "../lib/formatters";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
-const ADMIN_THEME_EVENT = 'admin-theme-change'
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Tooltip,
+  Legend,
+);
+const ADMIN_THEME_EVENT = "admin-theme-change";
 
-const copyByLanguage = {
-  vi: {
-    title: 'Tổng quan hệ thống',
-    description: 'Toàn bộ chỉ số được lấy trực tiếp từ backend quản trị theo theme hiện tại.',
-    loadTitle: 'Không tải được dashboard',
-    emptyTitle: 'Chưa có dữ liệu',
-    emptyMessage: 'Backend chưa trả về dữ liệu dashboard.',
-    totalOrders: 'Tổng đơn hàng',
-    lowStock: 'Tồn kho thấp',
-    bestSeller: 'Sản phẩm bán chạy',
-    orderStatus: 'Phân bổ trạng thái đơn hàng',
-    topProducts: 'Sản phẩm nổi bật',
-    operations: 'Hệ thống và vận hành',
-    revenueProgress: 'Tiến độ',
-    pendingOrders: 'đơn chờ xử lý',
-    restock: 'SKU cần bổ sung',
-    unmatchedPayments: 'Thanh toán không khớp',
-    unmatchedPendingHint: 'giao dịch chờ xử lý',
-    financialSettlements: 'Quyết toán tài chính',
-    settlementPendingHint: 'mục chờ xử lý',
-    staleOrders: 'Đơn hàng cần xem xét',
-    staleOrdersHint: 'đơn có thanh toán không xác nhận được',
-  },
-  en: {
-    title: 'System overview',
-    description: 'Metrics are loaded directly from the admin backend and adapt to the active theme.',
-    loadTitle: 'Unable to load dashboard',
-    emptyTitle: 'No data yet',
-    emptyMessage: 'The backend has not returned dashboard data.',
-    totalOrders: 'Total orders',
-    lowStock: 'Low stock',
-    bestSeller: 'Top product',
-    orderStatus: 'Order status distribution',
-    topProducts: 'Top products',
-    operations: 'System and operations',
-    revenueProgress: 'Progress',
-    pendingOrders: 'pending',
-    restock: 'restock',
-    unmatchedPayments: 'Unmatched payments',
-    unmatchedPendingHint: 'transactions pending',
-    financialSettlements: 'Financial settlements',
-    settlementPendingHint: 'items pending',
-    staleOrders: 'Orders need review',
-    staleOrdersHint: 'with unresolved payments',
-  },
-} as const
+const copyKeys = {
+  title: "Tổng quan hệ thống",
+  description:
+    "Toàn bộ chỉ số được lấy trực tiếp từ backend quản trị theo theme hiện tại.",
+  loadTitle: "Không tải được dashboard",
+  emptyTitle: "Chưa có dữ liệu",
+  emptyMessage: "Backend chưa trả về dữ liệu dashboard.",
+  totalOrders: "Tổng đơn hàng",
+  lowStock: "Tồn kho thấp",
+  bestSeller: "Sản phẩm bán chạy",
+  orderStatus: "Phân bổ trạng thái đơn hàng",
+  topProducts: "Sản phẩm nổi bật",
+  operations: "Hệ thống và vận hành",
+  revenueProgress: "Tiến độ",
+  pendingOrders: "đơn chờ xử lý",
+  restock: "SKU cần bổ sung",
+  unmatchedPayments: "Thanh toán không khớp",
+  unmatchedPendingHint: "giao dịch chờ xử lý",
+  financialSettlements: "Quyết toán tài chính",
+  settlementPendingHint: "mục chờ xử lý",
+  staleOrders: "Đơn hàng cần xem xét",
+  staleOrdersHint: "đơn có thanh toán không xác nhận được",
+} as const;
 
 const getThemeTokens = () => {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return {
-      ink: '#0f172a',
-      muted: '#64748b',
-      border: '#e2e8f0',
-      accent: '#2563eb',
-      accentSoft: '#dbeafe',
-      palette: ['#f59e0b', '#2563eb', '#22c55e', '#14b8a6', '#ef4444'],
-    }
+      ink: "#0f172a",
+      muted: "#64748b",
+      border: "#e2e8f0",
+      accent: "#2563eb",
+      accentSoft: "#dbeafe",
+      palette: ["#f59e0b", "#2563eb", "#22c55e", "#14b8a6", "#ef4444"],
+    };
   }
-  const styles = window.getComputedStyle(document.documentElement)
-  const ink = styles.getPropertyValue('--ink').trim() || '#0f172a'
-  const muted = styles.getPropertyValue('--muted').trim() || '#64748b'
-  const border = styles.getPropertyValue('--border').trim() || '#e2e8f0'
-  const accent = styles.getPropertyValue('--accent').trim() || '#2563eb'
-  const accentSoft = styles.getPropertyValue('--accent-soft').trim() || '#dbeafe'
+  const styles = window.getComputedStyle(document.documentElement);
+  const ink = styles.getPropertyValue("--ink").trim() || "#0f172a";
+  const muted = styles.getPropertyValue("--muted").trim() || "#64748b";
+  const border = styles.getPropertyValue("--border").trim() || "#e2e8f0";
+  const accent = styles.getPropertyValue("--accent").trim() || "#2563eb";
+  const accentSoft =
+    styles.getPropertyValue("--accent-soft").trim() || "#dbeafe";
   return {
     ink,
     muted,
     border,
     accent,
     accentSoft,
-    palette: ['#f59e0b', accent, '#22c55e', '#14b8a6', '#ef4444'],
-  }
-}
+    palette: ["#f59e0b", accent, "#22c55e", "#14b8a6", "#ef4444"],
+  };
+};
 
 function DashboardPageRevamp() {
-  const { language } = useLanguage()
-  const copy = copyByLanguage[language]
-  const { accessToken } = useAuth()
-  const { notify } = useToast()
-  const [dashboard, setDashboard] = useState<BackendDashboardResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [themeTokens, setThemeTokens] = useState(getThemeTokens)
-  const copyRef = useRef(copy)
+  const { t } = useLanguage();
+  const copy = translateCopy(copyKeys, t);
+  const { accessToken } = useAuth();
+  const { notify } = useToast();
+  const [dashboard, setDashboard] = useState<BackendDashboardResponse | null>(
+    null,
+  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [themeTokens, setThemeTokens] = useState(getThemeTokens);
+  const copyRef = useRef(copy);
 
   useEffect(() => {
-    copyRef.current = copy
-  }, [copy])
+    copyRef.current = copy;
+  }, [copy]);
 
   useEffect(() => {
-    const updateThemeTokens = () => setThemeTokens(getThemeTokens())
-    updateThemeTokens()
+    const updateThemeTokens = () => setThemeTokens(getThemeTokens());
+    updateThemeTokens();
 
-    window.addEventListener(ADMIN_THEME_EVENT, updateThemeTokens)
-    window.addEventListener('storage', updateThemeTokens)
+    window.addEventListener(ADMIN_THEME_EVENT, updateThemeTokens);
+    window.addEventListener("storage", updateThemeTokens);
 
     return () => {
-      window.removeEventListener(ADMIN_THEME_EVENT, updateThemeTokens)
-      window.removeEventListener('storage', updateThemeTokens)
-    }
-  }, [])
+      window.removeEventListener(ADMIN_THEME_EVENT, updateThemeTokens);
+      window.removeEventListener("storage", updateThemeTokens);
+    };
+  }, []);
 
   useEffect(() => {
     if (!accessToken) {
-      setDashboard(null)
-      setLoading(false)
-      setError(copyRef.current.loadTitle)
-      return
+      setDashboard(null);
+      setLoading(false);
+      setError(copyRef.current.loadTitle);
+      return;
     }
 
-    let cancelled = false
+    let cancelled = false;
 
     const loadDashboard = async () => {
       try {
-        setLoading(true)
-        setError(null)
-        const payload = await fetchAdminDashboard(accessToken)
+        setLoading(true);
+        setError(null);
+        const payload = await fetchAdminDashboard(accessToken);
         if (!cancelled) {
-          setDashboard(payload)
+          setDashboard(payload);
         }
       } catch (loadError) {
         if (!cancelled) {
-          const message = loadError instanceof Error ? loadError.message : copyRef.current.loadTitle
-          setError(message)
-          notify(message, { title: copyRef.current.title, variant: 'error' })
+          const message =
+            loadError instanceof Error
+              ? loadError.message
+              : copyRef.current.loadTitle;
+          setError(message);
+          notify(message, { title: copyRef.current.title, variant: "error" });
         }
       } finally {
         if (!cancelled) {
-          setLoading(false)
+          setLoading(false);
         }
       }
-    }
+    };
 
-    void loadDashboard()
+    void loadDashboard();
 
     return () => {
-      cancelled = true
-    }
-  }, [accessToken, notify])
+      cancelled = true;
+    };
+  }, [accessToken, notify]);
 
-  const orderStatusChart = useMemo<ChartData<'doughnut'>>(
+  const orderStatusChart = useMemo<ChartData<"doughnut">>(
     () => ({
       labels: dashboard?.orderStatus.map((item) => item.label) ?? [],
       datasets: [
@@ -174,26 +182,26 @@ function DashboardPageRevamp() {
       ],
     }),
     [dashboard, themeTokens.palette],
-  )
+  );
 
-  const orderStatusOptions = useMemo<ChartOptions<'doughnut'>>(
+  const orderStatusOptions = useMemo<ChartOptions<"doughnut">>(
     () => ({
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '68%',
+      cutout: "68%",
       plugins: {
         legend: { display: false },
       },
     }),
     [],
-  )
+  );
 
-  const trendChart = useMemo<ChartData<'bar'>>(
+  const trendChart = useMemo<ChartData<"bar">>(
     () => ({
       labels: dashboard?.trend.points.map((item) => item.label) ?? [],
       datasets: [
         {
-          label: dashboard?.trend.title || 'Revenue',
+          label: dashboard?.trend.title || "Revenue",
           data: dashboard?.trend.points.map((item) => item.value) ?? [],
           backgroundColor: themeTokens.accent,
           borderRadius: 12,
@@ -203,9 +211,9 @@ function DashboardPageRevamp() {
       ],
     }),
     [dashboard, themeTokens.accent],
-  )
+  );
 
-  const trendOptions = useMemo<ChartOptions<'bar'>>(
+  const trendOptions = useMemo<ChartOptions<"bar">>(
     () => ({
       responsive: true,
       maintainAspectRatio: false,
@@ -233,12 +241,17 @@ function DashboardPageRevamp() {
       },
     }),
     [themeTokens.border, themeTokens.ink, themeTokens.muted],
-  )
+  );
 
   if (loading) {
     return (
       <PagePanel>
-        <div aria-busy="true" aria-live="polite" className="space-y-6" role="status">
+        <div
+          aria-busy="true"
+          aria-live="polite"
+          className="space-y-6"
+          role="status"
+        >
           <span className="sr-only">Loading dashboard</span>
           <div className="grid gap-4 md:grid-cols-3">
             {Array.from({ length: 3 }).map((_, index) => (
@@ -249,16 +262,24 @@ function DashboardPageRevamp() {
             ))}
           </div>
           <div className="grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
-            <div className={`${softCardClass} h-80 animate-pulse bg-[var(--surface-muted)]`} />
-            <div className={`${softCardClass} h-80 animate-pulse bg-[var(--surface-muted)]`} />
+            <div
+              className={`${softCardClass} h-80 animate-pulse bg-[var(--surface-muted)]`}
+            />
+            <div
+              className={`${softCardClass} h-80 animate-pulse bg-[var(--surface-muted)]`}
+            />
           </div>
           <div className="grid gap-6 xl:grid-cols-2">
-            <div className={`${softCardClass} h-72 animate-pulse bg-[var(--surface-muted)]`} />
-            <div className={`${softCardClass} h-72 animate-pulse bg-[var(--surface-muted)]`} />
+            <div
+              className={`${softCardClass} h-72 animate-pulse bg-[var(--surface-muted)]`}
+            />
+            <div
+              className={`${softCardClass} h-72 animate-pulse bg-[var(--surface-muted)]`}
+            />
           </div>
         </div>
       </PagePanel>
-    )
+    );
   }
 
   if (error) {
@@ -266,7 +287,7 @@ function DashboardPageRevamp() {
       <PagePanel>
         <ErrorState title={copy.loadTitle} message={error} />
       </PagePanel>
-    )
+    );
   }
 
   if (!dashboard) {
@@ -274,14 +295,16 @@ function DashboardPageRevamp() {
       <PagePanel>
         <EmptyState title={copy.emptyTitle} message={copy.emptyMessage} />
       </PagePanel>
-    )
+    );
   }
 
   return (
     <PagePanel>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-[var(--ink)]">{copy.title}</h3>
+          <h3 className="text-lg font-semibold text-[var(--ink)]">
+            {copy.title}
+          </h3>
           <p className="text-sm text-[var(--muted)]">{copy.description}</p>
         </div>
         <StatusBadge tone="info">{dashboard.revenue.delta}</StatusBadge>
@@ -312,8 +335,8 @@ function DashboardPageRevamp() {
         <StatCard
           icon={Package}
           label={copy.bestSeller}
-          value={dashboard.topProducts[0]?.name || '-'}
-          hint={dashboard.topProducts[0]?.units || '0'}
+          value={dashboard.topProducts[0]?.name || "-"}
+          hint={dashboard.topProducts[0]?.units || "0"}
           tone="neutral"
         />
       </div>
@@ -321,34 +344,60 @@ function DashboardPageRevamp() {
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
         <div className={softCardClass}>
           <div>
-            <p className="text-sm font-semibold text-[var(--ink)]">{dashboard.trend.title}</p>
-            <p className="text-xs text-[var(--muted)]">{dashboard.trend.subtitle}</p>
+            <p className="text-sm font-semibold text-[var(--ink)]">
+              {dashboard.trend.title}
+            </p>
+            <p className="text-xs text-[var(--muted)]">
+              {dashboard.trend.subtitle}
+            </p>
           </div>
-          <div className="mt-4 h-72">
+          <div
+            aria-label={t("Biểu đồ xu hướng doanh số")}
+            className="mt-4 h-72"
+            role="img"
+          >
             <Bar data={trendChart} options={trendOptions} />
           </div>
         </div>
 
         <div className={softCardClass}>
-          <p className="text-sm font-semibold text-[var(--ink)]">{copy.orderStatus}</p>
+          <p className="text-sm font-semibold text-[var(--ink)]">
+            {copy.orderStatus}
+          </p>
           <div className="mt-4 grid gap-4 lg:grid-cols-[180px_1fr] xl:grid-cols-1">
-            <div className="mx-auto h-44 w-44 xl:h-52 xl:w-52">
+            <div
+              aria-label={t("Biểu đồ trạng thái đơn hàng")}
+              className="mx-auto h-44 w-44 xl:h-52 xl:w-52"
+              role="img"
+            >
               <Doughnut data={orderStatusChart} options={orderStatusOptions} />
             </div>
             <div className="space-y-3">
               {dashboard.orderStatus.map((item, index) => (
-                <div key={`${item.label}-${index}`} className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm">
+                <div
+                  key={`${item.label}-${index}`}
+                  className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
+                >
                   <div className="flex items-center gap-2">
                     <span
                       aria-hidden="true"
                       className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold text-white"
-                      style={{ backgroundColor: themeTokens.palette[index % themeTokens.palette.length] }}
+                      style={{
+                        backgroundColor:
+                          themeTokens.palette[
+                            index % themeTokens.palette.length
+                          ],
+                      }}
                     >
                       {item.label.slice(0, 1).toUpperCase()}
                     </span>
-                    <span className="font-medium text-[var(--ink)]">{item.label}</span>
+                    <span className="font-medium text-[var(--ink)]">
+                      {item.label}
+                    </span>
                   </div>
-                  <span className="font-semibold text-[var(--ink)]">{formatNumber(item.value)}</span>
+                  <span className="font-semibold text-[var(--ink)]">
+                    {formatNumber(item.value)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -358,15 +407,24 @@ function DashboardPageRevamp() {
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
         <div className={softCardClass}>
-          <p className="text-sm font-semibold text-[var(--ink)]">{copy.topProducts}</p>
+          <p className="text-sm font-semibold text-[var(--ink)]">
+            {copy.topProducts}
+          </p>
           <div className="mt-4 space-y-3">
             {dashboard.topProducts.length === 0 ? (
               <EmptyState title={copy.emptyTitle} message={copy.emptyMessage} />
             ) : (
               dashboard.topProducts.map((item) => (
-                <div key={`${item.name}-${item.units}`} className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-sm">
-                  <span className="font-medium text-[var(--ink)]">{item.name}</span>
-                  <span className="font-semibold text-[var(--accent)]">{item.units}</span>
+                <div
+                  key={`${item.name}-${item.units}`}
+                  className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-sm"
+                >
+                  <span className="font-medium text-[var(--ink)]">
+                    {item.name}
+                  </span>
+                  <span className="font-semibold text-[var(--accent)]">
+                    {item.units}
+                  </span>
                 </div>
               ))
             )}
@@ -374,16 +432,33 @@ function DashboardPageRevamp() {
         </div>
 
         <div className={softCardClass}>
-          <p className="text-sm font-semibold text-[var(--ink)]">{copy.operations}</p>
+          <p className="text-sm font-semibold text-[var(--ink)]">
+            {copy.operations}
+          </p>
           <div className="mt-4 space-y-3">
             {dashboard.system.map((item) => (
-              <div key={`${item.group}-${item.label}`} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+              <div
+                key={`${item.group}-${item.label}`}
+                className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3"
+              >
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-[var(--ink)]">{item.label}</p>
-                    <p className="text-xs text-[var(--muted)]">{item.hint || '-'}</p>
+                    <p className="text-sm font-semibold text-[var(--ink)]">
+                      {item.label}
+                    </p>
+                    <p className="text-xs text-[var(--muted)]">
+                      {item.hint || "-"}
+                    </p>
                   </div>
-                  <StatusBadge tone={item.tone === 'warn' ? 'warning' : item.tone === 'good' ? 'success' : 'neutral'}>
+                  <StatusBadge
+                    tone={
+                      item.tone === "warn"
+                        ? "warning"
+                        : item.tone === "good"
+                          ? "success"
+                          : "neutral"
+                    }
+                  >
                     {item.value}
                   </StatusBadge>
                 </div>
@@ -399,11 +474,14 @@ function DashboardPageRevamp() {
                         {copy.unmatchedPayments}
                       </p>
                       <p className="text-xs text-amber-700 dark:text-amber-400">
-                        {dashboard.unmatchedPendingCount} {copy.unmatchedPendingHint}
+                        {dashboard.unmatchedPendingCount}{" "}
+                        {copy.unmatchedPendingHint}
                       </p>
                     </div>
                   </div>
-                  <StatusBadge tone="warning">{String(dashboard.unmatchedPendingCount)}</StatusBadge>
+                  <StatusBadge tone="warning">
+                    {String(dashboard.unmatchedPendingCount)}
+                  </StatusBadge>
                 </div>
               </div>
             )}
@@ -417,11 +495,14 @@ function DashboardPageRevamp() {
                         {copy.financialSettlements}
                       </p>
                       <p className="text-xs text-blue-700 dark:text-blue-400">
-                        {dashboard.settlementPendingCount} {copy.settlementPendingHint}
+                        {dashboard.settlementPendingCount}{" "}
+                        {copy.settlementPendingHint}
                       </p>
                     </div>
                   </div>
-                  <StatusBadge tone="info">{String(dashboard.settlementPendingCount)}</StatusBadge>
+                  <StatusBadge tone="info">
+                    {String(dashboard.settlementPendingCount)}
+                  </StatusBadge>
                 </div>
               </div>
             )}
@@ -439,7 +520,9 @@ function DashboardPageRevamp() {
                       </p>
                     </div>
                   </div>
-                  <StatusBadge tone="danger">{String(dashboard.staleOrdersCount)}</StatusBadge>
+                  <StatusBadge tone="danger">
+                    {String(dashboard.staleOrdersCount)}
+                  </StatusBadge>
                 </div>
               </div>
             )}
@@ -447,7 +530,7 @@ function DashboardPageRevamp() {
         </div>
       </div>
     </PagePanel>
-  )
+  );
 }
 
-export default DashboardPageRevamp
+export default DashboardPageRevamp;
