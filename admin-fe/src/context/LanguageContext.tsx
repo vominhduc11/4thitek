@@ -456,7 +456,7 @@ const translations: Record<Language, TranslationMap> = {
       "Applies to image and proof uploads in the admin interface.",
     "Backend chưa trả về dữ liệu dashboard.":
       "The backend has not returned dashboard data.",
-    "Bai {id} khong ton tai hoac da bi xoa.":
+    "Bài {id} không tồn tại hoặc đã bị xóa.":
       "Post {id} does not exist or has been deleted.",
     "Bai viet": "Post",
     "Bai viet nay chua co noi dung.": "This post has no content yet.",
@@ -497,7 +497,7 @@ const translations: Record<Language, TranslationMap> = {
     "Chỉ nhập chữ số. Không dùng khoảng trắng hoặc ký tự đặc biệt.":
       "Digits only. Avoid spaces or special characters.",
     "Chi tiết kỹ thuật": "Technical details",
-    "Chi xoa khi ban chac chan bai viet khong con duoc su dung.":
+    "Chỉ xóa khi bạn chắc chắn bài viết không còn được sử dụng.":
       "Only delete when you are sure the post is no longer needed.",
     "Chinh sua": "Edit",
     "Chọn các tín hiệu vận hành cần gửi cho đội ngũ nội bộ.":
@@ -657,16 +657,19 @@ const translations: Record<Language, TranslationMap> = {
     "Khách hàng": "Customer",
     Kho: "Warehouse",
     Khong: "No",
-    "Khong cap nhat duoc bai viet": "Could not update the post",
-    "Khong co bai viet": "No posts found",
-    "Khong luu duoc bai viet": "Could not save the post",
+    "Không cập nhật được bài viết": "Could not update the post",
+    "Không có bài viết": "No posts found",
+    "Không kết nối được backend": "Could not connect to the server",
+    "Không lưu được bài viết": "Could not save the post",
     "Khong tai duoc chi tiet bai viet": "Could not load the post details",
     "Khong tai duoc danh sach bai viet": "Could not load the post list",
-    "Khong the tai anh bai viet.": "Could not upload the post image.",
-    "Khong the tai bai viet": "Unable to load posts",
-    "Khong the tao bai viet": "Could not create the post",
-    "Khong tim thay bai viet": "Post not found",
-    "Khong xoa duoc bai viet": "Could not delete the post",
+    "Không thể tải ảnh bài viết.": "Could not upload the post image.",
+    "Không thể tải bài viết": "Unable to load posts",
+    "Không thể tạo bài viết": "Could not create the post",
+    "Không tìm thấy bài viết": "Post not found",
+    "Không xóa được bài viết": "Could not delete the post",
+    "Thông tin đăng nhập không hợp lệ": "Invalid login credentials",
+    "Tài khoản không có quyền admin": "Account does not have admin access",
     "Không cập nhật được đơn hàng": "Could not update the order",
     "Không cập nhật được trạng thái đại lý":
       "Could not update the dealer status",
