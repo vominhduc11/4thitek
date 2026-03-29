@@ -153,6 +153,18 @@ void main() {
       final cartResponseGate = Completer<void>();
       client.enqueue(
         'GET',
+        '/api/v1/dealer/profile',
+        (request) => Future<http.StreamedResponse>.value(
+          _jsonResponse(
+            request,
+            body: <String, dynamic>{
+              'data': <String, dynamic>{'vatPercent': 8},
+            },
+          ),
+        ),
+      );
+      client.enqueue(
+        'GET',
         '/api/v1/dealer/discount-rules',
         (request) => Future<http.StreamedResponse>.value(
           _jsonResponse(
@@ -196,8 +208,48 @@ void main() {
       expect(await localUpdate, isTrue);
       await loadFuture;
       expect(controller.quantityFor(product.id), 1);
+      expect(controller.vatPercent, 8);
     },
   );
+
+  test('load syncs VAT percent from dealer profile for cart preview', () async {
+    client.enqueue(
+      'GET',
+      '/api/v1/dealer/profile',
+      (request) => Future<http.StreamedResponse>.value(
+        _jsonResponse(
+          request,
+          body: <String, dynamic>{
+            'data': <String, dynamic>{'vatPercent': 8},
+          },
+        ),
+      ),
+    );
+    client.enqueue(
+      'GET',
+      '/api/v1/dealer/discount-rules',
+      (request) => Future<http.StreamedResponse>.value(
+        _jsonResponse(
+          request,
+          body: <String, dynamic>{'data': const <Object>[]},
+        ),
+      ),
+    );
+    client.enqueue(
+      'GET',
+      '/api/v1/dealer/cart',
+      (request) => Future<http.StreamedResponse>.value(
+        _jsonResponse(
+          request,
+          body: <String, dynamic>{'data': const <Object>[]},
+        ),
+      ),
+    );
+
+    await controller.load();
+
+    expect(controller.vatPercent, 8);
+  });
 }
 
 typedef _RequestHandler =

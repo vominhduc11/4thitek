@@ -8,6 +8,7 @@ public record AdminSettingsResponse(
         int sessionTimeoutMinutes,
         boolean orderAlerts,
         boolean inventoryAlerts,
+        int vatPercent,
         SepaySettings sepay,
         EmailSettings emailSettings,
         RateLimitSettings rateLimitOverrides,

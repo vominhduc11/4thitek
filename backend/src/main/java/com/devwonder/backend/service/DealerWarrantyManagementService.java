@@ -20,6 +20,7 @@ import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.support.AccountValidationSupport;
 import com.devwonder.backend.service.support.ProductStockSyncSupport;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
+import com.devwonder.backend.service.support.WarrantyStatusSupport;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -228,7 +229,7 @@ public class DealerWarrantyManagementService {
 
         WarrantyStatus nextStatus = registration.getStatus() == WarrantyStatus.VOID
                 ? WarrantyStatus.VOID
-                : resolveWarrantyStatus(warrantyEnd);
+                : WarrantyStatusSupport.resolveEffectiveStatus(WarrantyStatus.ACTIVE, warrantyEnd);
         registration.setStatus(nextStatus);
 
         if (previousProductSerial != null
@@ -282,10 +283,6 @@ public class DealerWarrantyManagementService {
         return product.getWarrantyPeriod();
     }
 
-    private WarrantyStatus resolveWarrantyStatus(Instant warrantyEnd) {
-        return WarrantyDateSupport.isExpired(warrantyEnd) ? WarrantyStatus.EXPIRED : WarrantyStatus.ACTIVE;
-    }
-
     private ProductSerialStatus resolveSerialStatus() {
         return ProductSerialStatus.WARRANTY;
     }
@@ -302,7 +299,7 @@ public class DealerWarrantyManagementService {
                 : ProductSerialStatus.AVAILABLE;
     }
 
-    private WarrantyRegistrationResponse toResponse(WarrantyRegistration registration) {
+    public WarrantyRegistrationResponse toResponse(WarrantyRegistration registration) {
         ProductSerial productSerial = registration.getProductSerial();
         Product product = productSerial == null ? null : productSerial.getProduct();
         Order order = registration.getOrder();
@@ -323,7 +320,7 @@ public class DealerWarrantyManagementService {
                 registration.getPurchaseDate(),
                 registration.getWarrantyStart(),
                 registration.getWarrantyEnd(),
-                registration.getStatus(),
+                WarrantyStatusSupport.resolveEffectiveStatus(registration),
                 registration.getCreatedAt()
         );
     }

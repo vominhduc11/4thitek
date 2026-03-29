@@ -747,10 +747,11 @@ class _DebtOrderCard extends StatelessWidget {
                                           setDialogState(
                                             () => isSubmitting = true,
                                           );
-                                          final success =
-                                              await OrderScope.of(
-                                                context,
-                                              ).recordPayment(
+                                          final orderController = OrderScope.of(
+                                            context,
+                                          );
+                                          final success = await orderController
+                                              .recordPayment(
                                                 orderId: order.id,
                                                 amount: parsedAmount,
                                                 channel: channel,
@@ -782,7 +783,11 @@ class _DebtOrderCard extends StatelessWidget {
                                             ).showSnackBar(
                                               SnackBar(
                                                 content: Text(
-                                                  texts.recordPaymentFailed,
+                                                  orderControllerErrorMessage(
+                                                    orderController
+                                                        .lastActionMessage,
+                                                    isEnglish: texts.isEnglish,
+                                                  ),
                                                 ),
                                               ),
                                             );
@@ -1329,9 +1334,7 @@ class _DebtTexts {
       switch (status) {
         case OrderPaymentStatus.cancelled:
           return 'Cancelled';
-        case OrderPaymentStatus.failed:
-          return 'Failed';
-        case OrderPaymentStatus.unpaid:
+        case OrderPaymentStatus.pending:
           return 'Unpaid';
         case OrderPaymentStatus.paid:
           return 'Paid';

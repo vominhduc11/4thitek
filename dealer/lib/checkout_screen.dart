@@ -66,7 +66,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   OrderPaymentStatus get _previewPaymentStatus {
     switch (_method) {
       case OrderPaymentMethod.bankTransfer:
-        return OrderPaymentStatus.unpaid;
+        return OrderPaymentStatus.pending;
       case OrderPaymentMethod.debt:
         return OrderPaymentStatus.debtRecorded;
     }
@@ -286,46 +286,65 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             ),
                           ],
                         )
-                      : RadioGroup<OrderPaymentMethod>(
-                          groupValue: _method,
-                          onChanged: (value) {
-                            if (value == null) {
-                              return;
-                            }
-                            setState(() => _method = value);
-                            if (value == OrderPaymentMethod.bankTransfer &&
-                                _bankTransferInstructions == null &&
-                                !_isLoadingBankTransferInstructions) {
-                              _loadBankTransferInstructions();
-                            }
-                          },
-                          child: Column(
-                            children: [
-                              RadioListTile<OrderPaymentMethod>(
-                                value: OrderPaymentMethod.bankTransfer,
-                                title: Text(texts.bankTransferTitle),
-                                subtitle: Text(texts.bankTransferSubtitle),
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            RadioGroup<OrderPaymentMethod>(
+                              groupValue: _method,
+                              onChanged: (value) {
+                                if (value == null) {
+                                  return;
+                                }
+                                setState(() => _method = value);
+                                if (value == OrderPaymentMethod.bankTransfer &&
+                                    _bankTransferInstructions == null &&
+                                    !_isLoadingBankTransferInstructions) {
+                                  _loadBankTransferInstructions();
+                                }
+                              },
+                              child: Column(
+                                children: [
+                                  RadioListTile<OrderPaymentMethod>(
+                                    value: OrderPaymentMethod.bankTransfer,
+                                    title: Text(texts.bankTransferTitle),
+                                    subtitle: Text(texts.bankTransferSubtitle),
+                                  ),
+                                  RadioListTile<OrderPaymentMethod>(
+                                    value: OrderPaymentMethod.debt,
+                                    enabled: _canUseDebtPayment,
+                                    title: Text(texts.debtPaymentTitle),
+                                    subtitle: Text(
+                                      _canUseDebtPayment
+                                          ? texts.remainingCreditLimitLabel(
+                                              formatVnd(
+                                                (_profile.creditLimit -
+                                                        orderController
+                                                            .totalOutstandingDebt)
+                                                    .clamp(
+                                                      0,
+                                                      _profile.creditLimit,
+                                                    ),
+                                              ),
+                                              formatVnd(_profile.creditLimit),
+                                            )
+                                          : texts.debtLimitRequiredMessage,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              RadioListTile<OrderPaymentMethod>(
-                                value: OrderPaymentMethod.debt,
-                                enabled: _canUseDebtPayment,
-                                title: Text(texts.debtPaymentTitle),
-                                subtitle: Text(
-                                  _canUseDebtPayment
-                                      ? texts.remainingCreditLimitLabel(
-                                          formatVnd(
-                                            (_profile.creditLimit -
-                                                    orderController
-                                                        .totalOutstandingDebt)
-                                                .clamp(0, _profile.creditLimit),
-                                          ),
-                                          formatVnd(_profile.creditLimit),
-                                        )
-                                      : texts.debtLimitRequiredMessage,
-                                ),
+                            ),
+                            if (_method == OrderPaymentMethod.debt) ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                texts.debtPrecheckHint,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: colors.onSurfaceVariant,
+                                      fontStyle: FontStyle.italic,
+                                    ),
                               ),
                             ],
-                          ),
+                          ],
                         ),
                 ),
               ),
@@ -413,7 +432,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ],
                       const SizedBox(height: 8),
                       _SummaryRow(
-                        label: texts.vatLabel(CartController.vatPercent),
+                        label: texts.vatLabel(cart.vatPercent),
                         value: formatVnd(vatAmount),
                       ),
                       const SizedBox(height: 8),
@@ -876,6 +895,9 @@ class _CheckoutTexts {
   String get debtLimitRequiredMessage => isEnglish
       ? 'A credit limit must be granted before using this option.'
       : 'Cần được cấp hạn mức công nợ trước khi dùng tuỳ chọn này.';
+  String get debtPrecheckHint => isEnglish
+      ? 'Shown debt eligibility is based on the latest synced data. The backend revalidates the credit limit when the order is created.'
+      : 'Điều kiện công nợ đang hiển thị chỉ dựa trên dữ liệu đồng bộ gần nhất. Backend sẽ kiểm tra lại hạn mức khi tạo đơn.';
   String productsInOrderTitle(int totalItems) => isEnglish
       ? 'Products in order ($totalItems)'
       : 'Sản phẩm trong đơn ($totalItems)';
@@ -952,9 +974,7 @@ class _CheckoutTexts {
     switch (status) {
       case OrderPaymentStatus.cancelled:
         return isEnglish ? 'Cancelled' : 'Đã hủy';
-      case OrderPaymentStatus.failed:
-        return isEnglish ? 'Failed' : 'Thất bại';
-      case OrderPaymentStatus.unpaid:
+      case OrderPaymentStatus.pending:
         return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
       case OrderPaymentStatus.paid:
         return isEnglish ? 'Paid' : 'Đã thanh toán';

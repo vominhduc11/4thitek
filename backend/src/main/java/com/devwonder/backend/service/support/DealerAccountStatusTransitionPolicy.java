@@ -2,6 +2,8 @@ package com.devwonder.backend.service.support;
 
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.exception.BadRequestException;
+import java.util.Arrays;
+import java.util.List;
 
 public final class DealerAccountStatusTransitionPolicy {
 
@@ -27,5 +29,11 @@ public final class DealerAccountStatusTransitionPolicy {
             case ACTIVE -> next == CustomerStatus.SUSPENDED;
             case SUSPENDED -> next == CustomerStatus.ACTIVE;
         };
+    }
+
+    public static List<CustomerStatus> allowedTransitions(CustomerStatus current) {
+        return Arrays.stream(CustomerStatus.values())
+                .filter(next -> isTransitionAllowed(current, next))
+                .toList();
     }
 }

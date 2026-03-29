@@ -8,6 +8,7 @@ public record AdminStaffUserResponse(
         Long id,
         String name,
         String role,
+        String systemRole,
         StaffUserStatus status,
         String username,
         String email,

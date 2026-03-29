@@ -590,7 +590,7 @@ function SerialsPageRevamp() {
         }
       />
 
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
         <StatCard
           icon={Barcode}
           label={copy.available}
@@ -896,19 +896,19 @@ function SerialsPageRevamp() {
 
             {/* Desktop table */}
             <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-full border-separate border-spacing-y-2">
+              <table className="min-w-[72rem] border-separate border-spacing-y-2">
                 <thead>
                   <tr className={tableHeadClass}>
-                    <th className="px-3 py-2 font-semibold">
+                    <th className="w-52 px-3 py-2 font-semibold">
                       {copy.serialHeader}
                     </th>
-                    <th className="px-3 py-2 font-semibold">{copy.product}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.owner}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.status}</th>
-                    <th className="px-3 py-2 font-semibold">
+                    <th className="min-w-44 px-3 py-2 font-semibold">{copy.product}</th>
+                    <th className="min-w-48 px-3 py-2 font-semibold">{copy.owner}</th>
+                    <th className="w-40 px-3 py-2 font-semibold">{copy.status}</th>
+                    <th className="w-40 px-3 py-2 font-semibold">
                       {copy.importedAt}
                     </th>
-                    <th className="px-3 py-2" />
+                    <th className="w-72 px-3 py-2" />
                   </tr>
                 </thead>
                 <tbody>

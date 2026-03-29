@@ -2,6 +2,8 @@ package com.devwonder.backend.service.support;
 
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.exception.BadRequestException;
+import java.util.Arrays;
+import java.util.List;
 
 public final class OrderStatusTransitionPolicy {
 
@@ -36,6 +38,18 @@ public final class OrderStatusTransitionPolicy {
             case SHIPPING -> false;
             case COMPLETED, CANCELLED -> false;
         };
+    }
+
+    public static List<OrderStatus> adminAllowedTransitions(OrderStatus current) {
+        return Arrays.stream(OrderStatus.values())
+                .filter(next -> isAdminTransitionAllowed(current, next))
+                .toList();
+    }
+
+    public static List<OrderStatus> dealerAllowedTransitions(OrderStatus current) {
+        return Arrays.stream(OrderStatus.values())
+                .filter(next -> isDealerTransitionAllowed(current, next))
+                .toList();
     }
 
     private static boolean isTransitionAllowed(OrderStatus current, OrderStatus next) {

@@ -21,6 +21,7 @@ import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
+import com.devwonder.backend.service.support.WarrantyStatusSupport;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
@@ -132,7 +133,7 @@ public class PublicApiService {
 
         ProductSerial productSerial = registration.getProductSerial();
         Product product = productSerial == null ? null : productSerial.getProduct();
-        WarrantyStatus resolvedStatus = resolveWarrantyStatus(registration);
+        WarrantyStatus resolvedStatus = WarrantyStatusSupport.resolveEffectiveStatus(registration);
         return new WarrantyLookupResponse(
                 resolvedStatus.name(),
                 product == null ? null : product.getName(),
@@ -142,19 +143,6 @@ public class PublicApiService {
                 computeRemainingDays(registration.getWarrantyEnd()),
                 registration.getWarrantyCode()
         );
-    }
-
-    private WarrantyStatus resolveWarrantyStatus(WarrantyRegistration registration) {
-        if (registration.getStatus() == WarrantyStatus.VOID) {
-            return WarrantyStatus.VOID;
-        }
-        if (WarrantyDateSupport.isExpired(registration.getWarrantyEnd())) {
-            return WarrantyStatus.EXPIRED;
-        }
-        if (registration.getStatus() == WarrantyStatus.EXPIRED) {
-            return WarrantyStatus.EXPIRED;
-        }
-        return WarrantyStatus.ACTIVE;
     }
 
     private long computeRemainingDays(Instant warrantyEnd) {

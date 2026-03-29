@@ -18,6 +18,7 @@ import com.devwonder.backend.exception.BadRequestException;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.FinancialSettlementRepository;
 import com.devwonder.backend.repository.OrderRepository;
+import com.devwonder.backend.service.AdminSettingsService;
 import com.devwonder.backend.service.WebSocketEventPublisher;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
@@ -40,6 +41,7 @@ public class DealerOrderWorkflowSupport {
     private final DealerOrderNotificationSupport dealerOrderNotificationSupport;
     private final WebSocketEventPublisher webSocketEventPublisher;
     private final FinancialSettlementRepository financialSettlementRepository;
+    private final AdminSettingsService adminSettingsService;
 
     /**
      * Creates a dealer order and persists the idempotency key on the order record.
@@ -59,6 +61,7 @@ public class DealerOrderWorkflowSupport {
             List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules,
             String idempotencyKey
     ) {
+        int vatPercent = currentVatPercent();
         Order order = new Order();
         order.setDealer(dealer);
         order.setOrderCode(DealerOrderSupport.buildOrderCode(dealer.getId()));
@@ -92,7 +95,7 @@ public class DealerOrderWorkflowSupport {
             items.add(item);
         }
         order.setOrderItems(items);
-        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
+        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules, vatPercent));
         if (DealerOrderSupport.defaultPaymentMethod(order) == PaymentMethod.DEBT) {
             assertCreditLimitAvailable(dealer, order, activeDiscountRules);
         }
@@ -107,7 +110,7 @@ public class DealerOrderWorkflowSupport {
                 saved.getCreatedAt()
         ));
         dealerOrderNotificationSupport.notifyOrderCreated(dealer, saved);
-        return DealerPortalResponseMapper.toOrderResponse(saved, activeDiscountRules);
+        return DealerPortalResponseMapper.toOrderResponse(saved, activeDiscountRules, vatPercent);
     }
 
     public DealerOrderResponse updateOrderStatus(
@@ -115,6 +118,7 @@ public class DealerOrderWorkflowSupport {
             UpdateDealerOrderStatusRequest request,
             List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
     ) {
+        int vatPercent = currentVatPercent();
         OrderStatusTransitionPolicy.assertDealerTransitionAllowed(order.getStatus(), request.status());
         OrderStatus previousStatus = order.getStatus();
         order.setStatus(request.status());
@@ -131,7 +135,7 @@ public class DealerOrderWorkflowSupport {
         if (request.status() == OrderStatus.CANCELLED && paidAmount.compareTo(BigDecimal.ZERO) <= 0) {
             order.setPaymentStatus(PaymentStatus.CANCELLED);
         } else {
-            order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
+            order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules, vatPercent));
         }
         // FinancialSettlement: if cancelling with paidAmount > 0, create a CANCELLATION_REFUND record
         if (previousStatus != OrderStatus.CANCELLED
@@ -145,7 +149,7 @@ public class DealerOrderWorkflowSupport {
             if (paidAmount.compareTo(BigDecimal.ZERO) > 0) {
                 FinancialSettlement settlement = new FinancialSettlement();
                 settlement.setOrder(saved);
-                settlement.setType("CANCELLATION_REFUND");
+                settlement.setType(com.devwonder.backend.entity.enums.FinancialSettlementType.CANCELLATION_REFUND.name());
                 settlement.setAmount(paidAmount);
                 settlement.setStatus(com.devwonder.backend.entity.enums.FinancialSettlementStatus.PENDING);
                 settlement.setCreatedBy(
@@ -162,7 +166,7 @@ public class DealerOrderWorkflowSupport {
                 });
             }
         }
-        return DealerPortalResponseMapper.toOrderResponse(saved, activeDiscountRules);
+        return DealerPortalResponseMapper.toOrderResponse(saved, activeDiscountRules, vatPercent);
     }
 
     private void assertCreditLimitAvailable(
@@ -175,7 +179,7 @@ public class DealerOrderWorkflowSupport {
         }
         BigDecimal creditLimit = zeroIfNull(dealer.getCreditLimit());
         if (creditLimit.compareTo(BigDecimal.ZERO) <= 0) {
-            return;
+            throw new BadRequestException("Debt payment is not available for this dealer");
         }
         BigDecimal currentOutstandingDebt = orderRepository
                 .findVisibleByDealerIdAndStatusNotAndPaymentMethodOrderByCreatedAtDesc(
@@ -196,12 +200,16 @@ public class DealerOrderWorkflowSupport {
             Order order,
             List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
     ) {
-        return OrderPricingSupport.computeTotalAmount(order, activeDiscountRules)
+        return OrderPricingSupport.computeTotalAmount(order, activeDiscountRules, currentVatPercent())
                 .subtract(DealerOrderSupport.zeroIfNull(order.getPaidAmount()))
                 .max(BigDecimal.ZERO);
     }
 
     private BigDecimal zeroIfNull(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private int currentVatPercent() {
+        return adminSettingsService.getEffectiveSettings().vatPercent();
     }
 }

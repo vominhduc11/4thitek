@@ -1,6 +1,6 @@
 export type OrderStatus = 'pending' | 'confirmed' | 'shipping' | 'completed' | 'cancelled'
 export type PaymentMethod = 'bank_transfer' | 'debt' | null
-export type PaymentStatus = 'pending' | 'paid' | 'debt_recorded' | 'cancelled' | 'failed'
+export type PaymentStatus = 'pending' | 'paid' | 'debt_recorded' | 'cancelled'
 export type BlogStatus = 'published' | 'scheduled' | 'draft'
 export type DealerStatus = 'active' | 'under_review' | 'suspended'
 export type UserStatus = 'active' | 'pending'
@@ -30,6 +30,7 @@ export type Order = {
   createdAt: string
   orderItems: OrderItem[]
   staleReviewRequired?: boolean
+  allowedTransitions?: OrderStatus[]
 }
 
 export type BlogPost = {
@@ -58,12 +59,14 @@ export type Dealer = {
   creditLimit: number
   email: string
   phone: string
+  allowedTransitions?: DealerStatus[]
 }
 
 export type StaffUser = {
   id: string
   name: string
   role: string
+  systemRole: 'ADMIN' | 'SUPER_ADMIN'
   email: string
   status: UserStatus
 }
@@ -110,6 +113,7 @@ export type AppSettings = {
   sessionTimeoutMinutes: number
   orderAlerts: boolean
   inventoryAlerts: boolean
+  vatPercent: number
   sepay: SepayAppSettings
   emailSettings: EmailAppSettings
   rateLimitOverrides: RateLimitOverridesSettings
@@ -120,6 +124,7 @@ export const initialSettings: AppSettings = {
   sessionTimeoutMinutes: 30,
   orderAlerts: true,
   inventoryAlerts: true,
+  vatPercent: 10,
   sepay: {
     enabled: false,
     webhookToken: '',

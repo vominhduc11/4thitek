@@ -28,10 +28,6 @@ class WebSocketAuthorizationInterceptorTests {
         )).doesNotThrowAnyException();
 
         assertThatCode(() -> interceptor.preSend(
-                message(StompCommand.SUBSCRIBE, "/queue/notifications-userdealer", user), null
-        )).doesNotThrowAnyException();
-
-        assertThatCode(() -> interceptor.preSend(
                 message(StompCommand.SUBSCRIBE, "/user/queue/order-status", user), null
         )).doesNotThrowAnyException();
 
@@ -47,6 +43,17 @@ class WebSocketAuthorizationInterceptorTests {
         ))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("Authentication required");
+    }
+
+    @Test
+    void deniesLegacyPhysicalQueueSubscriptions() {
+        Authentication user = authenticatedUser("dealer@example.com", "DEALER");
+
+        assertThatThrownBy(() -> interceptor.preSend(
+                message(StompCommand.SUBSCRIBE, "/queue/notifications-userdealer", user), null
+        ))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("unknown subscription destination");
     }
 
     @Test

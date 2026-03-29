@@ -36,23 +36,10 @@ class AppResumeRefreshCoordinator {
       return inFlightRefresh;
     }
 
-    final accessToken = await authStorage.readAccessToken();
-    if (accessToken == null || accessToken.isEmpty) {
-      return;
-    }
-
-    final now = DateTime.now();
-    final lastRefreshAt = _lastRefreshAt;
-    if (lastRefreshAt != null &&
-        now.difference(lastRefreshAt) < minRefreshInterval) {
-      return;
-    }
-
-    final refreshFuture = _performRefresh();
+    final refreshFuture = _refreshIfNeededInternal();
     _inFlightRefresh = refreshFuture;
     try {
       await refreshFuture;
-      _lastRefreshAt = DateTime.now();
     } finally {
       if (identical(_inFlightRefresh, refreshFuture)) {
         _inFlightRefresh = null;
@@ -67,6 +54,42 @@ class AppResumeRefreshCoordinator {
   void reset() {
     _lastRefreshAt = null;
     _inFlightRefresh = null;
+  }
+
+  Future<void> _refreshIfNeededInternal() async {
+    if (!await _hasActiveSession()) {
+      return;
+    }
+    if (_wasRefreshedRecently()) {
+      return;
+    }
+
+    final pendingOrderMutation = orderController.pendingCriticalMutation;
+    if (pendingOrderMutation != null) {
+      await pendingOrderMutation;
+      if (!await _hasActiveSession()) {
+        return;
+      }
+      if (_wasRefreshedRecently()) {
+        return;
+      }
+    }
+
+    await _performRefresh();
+    _lastRefreshAt = DateTime.now();
+  }
+
+  Future<bool> _hasActiveSession() async {
+    final accessToken = await authStorage.readAccessToken();
+    return accessToken != null && accessToken.isNotEmpty;
+  }
+
+  bool _wasRefreshedRecently() {
+    final lastRefreshAt = _lastRefreshAt;
+    if (lastRefreshAt == null) {
+      return false;
+    }
+    return DateTime.now().difference(lastRefreshAt) < minRefreshInterval;
   }
 
   Future<void> _performRefresh() async {

@@ -1,6 +1,7 @@
 package com.devwonder.backend;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -110,6 +111,25 @@ class AdminWriteValidationContractTests {
                         .content("{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.data.creditLimit").value("creditLimit is required"));
+    }
+
+    @Test
+    void suspendingDealerStatusRequiresReasonAtApiBoundary() throws Exception {
+        String adminToken = login("validation.admin@example.com", "ChangedPass#456");
+        Dealer dealer = dealerRepository.save(createDealer("dealer.suspend.validation@example.com"));
+
+        mockMvc.perform(patch("/api/v1/admin/dealers/accounts/{id}/status", dealer.getId())
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "SUSPENDED",
+                                  "reason": "   "
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Validation failed"))
+                .andExpect(jsonPath("$.data.reason").value("reason is required when suspending dealer account"));
     }
 
     private String login(String username, String password) throws Exception {

@@ -39,7 +39,7 @@ export type BackendRmaRequest = {
 }
 export type BackendNotifyType = 'SYSTEM' | 'PROMOTION' | 'ORDER' | 'WARRANTY'
 export type BackendSupportPriority = 'NORMAL' | 'HIGH' | 'URGENT'
-export type BackendSupportCategory = 'ORDER' | 'WARRANTY' | 'PRODUCT' | 'PAYMENT' | 'RETURN' | 'OTHER'
+export type BackendSupportCategory = 'order' | 'warranty' | 'product' | 'payment' | 'returnOrder' | 'other'
 export type BackendSupportTicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'
 export type BackendReportExportType = 'ORDERS' | 'REVENUE' | 'WARRANTIES' | 'SERIALS'
 export type BackendReportFormat = 'XLSX' | 'PDF'
@@ -139,6 +139,7 @@ export type BackendOrderResponse = {
   updatedAt?: string | null
   orderItems?: BackendOrderItemResponse[] | null
   staleReviewRequired?: boolean | null
+  allowedTransitions?: BackendOrderStatus[] | null
 }
 
 export type BackendOrderAdjustmentType = 'CORRECTION' | 'WRITE_OFF' | 'CREDIT_NOTE' | 'REFUND_RECORD'
@@ -187,6 +188,7 @@ export type BackendDealerAccountResponse = {
   creditLimit?: number | string | null
   email?: string | null
   phone?: string | null
+  allowedTransitions?: BackendDealerAccountStatus[] | null
 }
 
 export type BackendDealerAccountUpsertRequest = {
@@ -208,6 +210,7 @@ export type BackendStaffUserResponse = {
   id: number
   name: string
   role: string
+  systemRole?: 'ADMIN' | 'SUPER_ADMIN' | null
   status?: BackendStaffUserStatus | null
   username?: string | null
   email?: string | null
@@ -403,6 +406,7 @@ export type BackendAdminSettingsResponse = {
   sessionTimeoutMinutes: number
   orderAlerts: boolean
   inventoryAlerts: boolean
+  vatPercent?: number | null
   sepay?: {
     enabled?: boolean | null
     webhookToken?: string | null
@@ -447,6 +451,7 @@ export type BackendAdminSettingsUpdateRequest = {
   sessionTimeoutMinutes?: number
   orderAlerts?: boolean
   inventoryAlerts?: boolean
+  vatPercent?: number
   sepay?: {
     enabled?: boolean
     webhookToken?: string
@@ -870,12 +875,13 @@ export const updateAdminDealerAccountStatus = (
   token: string,
   id: number,
   status: BackendDealerAccountStatus,
+  reason?: string,
 ) =>
   authorizedJsonRequest<BackendDealerAccountResponse>({
     path: `/admin/dealers/accounts/${id}/status`,
     token,
     method: 'PATCH',
-    body: { status },
+    body: { status, reason },
   })
 
 export const fetchAdminUsers = (token: string) =>
@@ -1127,12 +1133,13 @@ export const resolveAdminUnmatchedPayment = (
   })
 
 export type BackendFinancialSettlementStatus = 'PENDING' | 'REFUNDED' | 'WRITTEN_OFF' | 'CREDITED'
+export type BackendFinancialSettlementType = 'CANCELLATION_REFUND' | 'STALE_ORDER_REVIEW'
 
 export type BackendFinancialSettlementResponse = {
   id: number
   orderId?: number | null
   orderCode?: string | null
-  type?: string | null
+  type?: BackendFinancialSettlementType | null
   amount?: number | string | null
   status: BackendFinancialSettlementStatus
   createdBy?: string | null

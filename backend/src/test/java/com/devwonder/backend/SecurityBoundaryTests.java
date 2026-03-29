@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
@@ -46,5 +47,40 @@ class SecurityBoundaryTests {
                         || "/api/v1/admin/customers/{id}/status".equals(pattern));
 
         assertThat(exposed).isFalse();
+    }
+
+    @Test
+    void removedDealerSerialImportEndpointIsNotExposed() {
+        boolean exposed = requestMappingHandlerMapping.getHandlerMethods().keySet().stream()
+                .flatMap(info -> info.getPatternValues().stream())
+                .anyMatch(pattern -> "/api/v1/dealer/serials/import".equals(pattern));
+
+        assertThat(exposed).isFalse();
+    }
+
+    @Test
+    @WithMockUser(authorities = "ADMIN")
+    void regularAdminCannotAccessSuperAdminOnlyResources() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/settings"))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/v1/admin/audit-logs"))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/v1/admin/users"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(authorities = "SUPER_ADMIN")
+    void superAdminCanAccessProtectedSettingsAuditLogsAndUsersResources() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/settings"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/admin/audit-logs"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/admin/users"))
+                .andExpect(status().isOk());
     }
 }

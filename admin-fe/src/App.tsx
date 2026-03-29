@@ -102,8 +102,8 @@ function App() {
           <Route element={<SuperAdminRoute />}>
             <Route path="/users" element={renderLazyElement(UsersPage)} />
             <Route path="/audit-logs" element={renderLazyElement(AuditLogsPage)} />
+            <Route path="/settings" element={renderLazyElement(SettingsPage)} />
           </Route>
-          <Route path="/settings" element={renderLazyElement(SettingsPage)} />
         </Route>
       </Route>
 

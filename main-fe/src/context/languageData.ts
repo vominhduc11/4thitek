@@ -698,7 +698,7 @@ export const translations = {
                 emailPlaceholder: 'your@email.com',
                 phone: 'Phone Number',
                 phoneRequired: 'Phone Number *',
-                phonePlaceholder: '+1 (555) 123-4567',
+                phonePlaceholder: '0987654321',
                 // Simplified form fields
                 resellerRegistration: 'Reseller Registration',
                 name: 'Company Name',
@@ -721,7 +721,7 @@ export const translations = {
                 // Validation messages
                 fieldRequired: 'This field is required',
                 invalidEmail: 'Please enter a valid email address',
-                invalidPhone: 'Please enter a valid Vietnamese phone number (e.g., 0987654321, +84987654321)',
+                invalidPhone: 'Please enter a valid 10-digit Vietnamese phone number starting with 0 (e.g., 0987654321).',
                 invalidUsername: 'Username must be 3-20 characters and contain only letters, numbers, underscore, or hyphen',
                 invalidPassword: 'Password must be at least 8 characters and include uppercase, lowercase, and a number',
                 streetAddress: 'Street Address',
@@ -1544,7 +1544,7 @@ export const translations = {
                 emailPlaceholder: 'email@cua-ban.com',
                 phone: 'Số Điện Thoại',
                 phoneRequired: 'Số Điện Thoại *',
-                phonePlaceholder: '+84 (xxx) xxx-xxxx',
+                phonePlaceholder: '0987654321',
                 // Simplified form fields
                 resellerRegistration: 'Đăng Ký Đại Lý',
                 name: 'Tên công ty',
@@ -1567,7 +1567,7 @@ export const translations = {
                 // Validation messages
                 fieldRequired: 'Trường này là bắt buộc',
                 invalidEmail: 'Vui lòng nhập địa chỉ email hợp lệ',
-                invalidPhone: 'Vui lòng nhập số điện thoại Việt Nam hợp lệ (ví dụ: 0987654321, +84987654321)',
+                invalidPhone: 'Vui lòng nhập số điện thoại Việt Nam 10 chữ số bắt đầu bằng 0 (ví dụ: 0987654321).',
                 invalidUsername: 'Tên đăng nhập phải có 3-20 ký tự và chỉ chứa chữ cái, số, dấu gạch dưới hoặc gạch ngang',
                 invalidPassword: 'Mật khẩu phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số',
                 streetAddress: 'Địa Chỉ',
@@ -1831,7 +1831,7 @@ export const extraTranslations = {
                     cityRequired: 'City is required.',
                     invalidEmail: 'Please enter a valid email address.',
                     emailMax: 'Email must be 100 characters or less.',
-                    invalidPhone: 'Please enter a valid phone number.',
+                    invalidPhone: 'Please enter a valid 10-digit Vietnamese phone number starting with 0.',
                     companyNameLength: 'Company name must be between 2 and 150 characters.',
                     fullNameMax: 'Full name must be 150 characters or less.',
                     taxCodeMax: 'Tax code must be 50 characters or less.',
@@ -2470,7 +2470,7 @@ export const extraTranslations = {
                     cityRequired: 'Vui lòng nhập thành phố.',
                     invalidEmail: 'Email không hợp lệ.',
                     emailMax: 'Email tối đa 100 ký tự.',
-                    invalidPhone: 'Số điện thoại không hợp lệ.',
+                    invalidPhone: 'Vui lòng nhập số điện thoại Việt Nam 10 chữ số bắt đầu bằng 0.',
                     companyNameLength: 'Tên công ty phải từ 2 đến 150 ký tự.',
                     fullNameMax: 'Họ và tên tối đa 150 ký tự.',
                     taxCodeMax: 'Mã số thuế tối đa 50 ký tự.',

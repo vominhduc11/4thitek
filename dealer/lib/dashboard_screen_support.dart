@@ -42,6 +42,31 @@ class _DashboardTimeFilterSelection {
   final DateTime period;
 }
 
+enum DashboardTimeFilterDebug { month, quarter }
+
+@visibleForTesting
+({int activationWindowDays, List<int> warrantyRanges})
+debugDashboardWarrantyWindowFor({
+  required DashboardTimeFilterDebug filter,
+  required DateTime selectedPeriod,
+  DateTime? now,
+}) {
+  final snapshot = _buildDashboardSnapshot(
+    orders: const <Order>[],
+    activations: const <WarrantyActivationRecord>[],
+    timeFilter: filter == DashboardTimeFilterDebug.month
+        ? _DashboardTimeFilter.month
+        : _DashboardTimeFilter.quarter,
+    selectedPeriod: selectedPeriod,
+    now: now ?? DateTime.now(),
+    isEnglish: true,
+  );
+  return (
+    activationWindowDays: snapshot.activationWindowDays,
+    warrantyRanges: snapshot.warrantyRanges,
+  );
+}
+
 _DashboardSnapshot _buildDashboardSnapshot({
   required List<Order> orders,
   required List<WarrantyActivationRecord> activations,

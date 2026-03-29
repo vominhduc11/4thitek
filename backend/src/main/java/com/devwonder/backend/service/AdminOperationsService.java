@@ -43,6 +43,7 @@ import com.devwonder.backend.service.support.AccountValidationSupport;
 import com.devwonder.backend.service.support.AppMessageSupport;
 import com.devwonder.backend.service.support.ProductStockSyncSupport;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
+import com.devwonder.backend.service.support.WarrantyStatusSupport;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -398,7 +399,7 @@ public class AdminOperationsService {
                 registration.getCustomerName(),
                 registration.getCustomerEmail(),
                 registration.getCustomerPhone(),
-                resolveWarrantyStatus(registration),
+                WarrantyStatusSupport.resolveEffectiveStatus(registration),
                 registration.getWarrantyStart(),
                 warrantyEnd,
                 computeRemainingDays(warrantyEnd),
@@ -486,16 +487,6 @@ public class AdminOperationsService {
                 .sum();
     }
 
-    private WarrantyStatus resolveWarrantyStatus(WarrantyRegistration registration) {
-        if (registration.getStatus() == WarrantyStatus.VOID) {
-            return WarrantyStatus.VOID;
-        }
-        if (WarrantyDateSupport.isExpired(registration.getWarrantyEnd())) {
-            return WarrantyStatus.EXPIRED;
-        }
-        return registration.getStatus() == null ? WarrantyStatus.ACTIVE : registration.getStatus();
-    }
-
     private ProductSerialStatus resolveSerialStatusForWarranty(
             WarrantyRegistration registration,
             ProductSerial productSerial
@@ -504,7 +495,7 @@ public class AdminOperationsService {
         if (currentStatus == ProductSerialStatus.DEFECTIVE || currentStatus == ProductSerialStatus.RETURNED) {
             return currentStatus;
         }
-        WarrantyStatus resolvedWarrantyStatus = resolveWarrantyStatus(registration);
+        WarrantyStatus resolvedWarrantyStatus = WarrantyStatusSupport.resolveEffectiveStatus(registration);
         if (resolvedWarrantyStatus == WarrantyStatus.ACTIVE) {
             return ProductSerialStatus.WARRANTY;
         }
@@ -535,7 +526,7 @@ public class AdminOperationsService {
 
     private void assertManualSerialStatusAllowed(ProductSerial productSerial, ProductSerialStatus nextStatus) {
         WarrantyRegistration warranty = productSerial.getWarranty();
-        WarrantyStatus warrantyStatus = warranty == null ? null : resolveWarrantyStatus(warranty);
+        WarrantyStatus warrantyStatus = warranty == null ? null : WarrantyStatusSupport.resolveEffectiveStatus(warranty);
         if (productSerial.getStatus() == ProductSerialStatus.RETURNED) {
             throw new BadRequestException("RETURNED serial must be managed via a dedicated return workflow");
         }

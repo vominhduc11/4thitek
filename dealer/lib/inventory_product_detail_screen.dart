@@ -684,10 +684,16 @@ class _SerialTile extends StatelessWidget {
       ImportedSerialStatus.warranty => isDark
           ? const Color(0xFFFBBF24)
           : const Color(0xFFB45309),
+      ImportedSerialStatus.inspecting => isDark
+          ? const Color(0xFFFDE68A)
+          : const Color(0xFFC2410C),
       ImportedSerialStatus.defective ||
       ImportedSerialStatus.returned => isDark
           ? const Color(0xFFFCA5A5)
           : const Color(0xFFB91C1C),
+      ImportedSerialStatus.scrapped => isDark
+          ? const Color(0xFFCBD5E1)
+          : const Color(0xFF475569),
       ImportedSerialStatus.reserved ||
       ImportedSerialStatus.unknown => isDark
           ? const Color(0xFF93C5FD)
@@ -697,8 +703,10 @@ class _SerialTile extends StatelessWidget {
       ImportedSerialStatus.available || ImportedSerialStatus.assigned =>
         texts.readyStatusLabel,
       ImportedSerialStatus.warranty => texts.warrantyStatusLabel,
+      ImportedSerialStatus.inspecting => texts.inspectingStatusLabel,
       ImportedSerialStatus.defective => texts.defectiveStatusLabel,
       ImportedSerialStatus.returned => texts.returnedStatusLabel,
+      ImportedSerialStatus.scrapped => texts.scrappedStatusLabel,
       ImportedSerialStatus.reserved => texts.reservedStatusLabel,
       ImportedSerialStatus.unknown => texts.unknownStatusLabel,
     };
@@ -823,7 +831,7 @@ class _InventoryProductDetailTexts {
   String filterWarrantyLabel(int count) =>
       isEnglish ? 'Warranty ($count)' : 'Bao hanh ($count)';
   String filterIssueLabel(int count) =>
-      isEnglish ? 'Issue ($count)' : 'Loi / tra ve ($count)';
+      isEnglish ? 'Needs attention ($count)' : 'Can xu ly ($count)';
   String productImageLabel(String productName) => isEnglish
       ? 'Product image for $productName'
       : 'Anh san pham $productName';
@@ -833,7 +841,7 @@ class _InventoryProductDetailTexts {
   String get readyMetricLabel => isEnglish ? 'Ready' : 'San sang';
   String get importedMetricLabel => isEnglish ? 'Imported' : 'Da nhap';
   String get warrantyMetricLabel => isEnglish ? 'Warranty' : 'Bao hanh';
-  String get issueMetricLabel => isEnglish ? 'Issue' : 'Loi / tra ve';
+  String get issueMetricLabel => isEnglish ? 'Needs attention' : 'Can xu ly';
   String get exportAction => isEnglish ? 'Export stock' : 'Xuat hang';
   String get scanQrAction => isEnglish ? 'Scan QR' : 'Quet QR';
   String get noSerialsMessage => isEnglish
@@ -849,8 +857,12 @@ class _InventoryProductDetailTexts {
   String get readyStatusLabel => isEnglish ? 'Ready' : 'San sang';
   String get warrantyStatusLabel =>
       isEnglish ? 'Under warranty' : 'Dang bao hanh';
+  String get inspectingStatusLabel =>
+      isEnglish ? 'Inspecting' : 'Dang kiem dinh';
   String get defectiveStatusLabel => isEnglish ? 'Defective' : 'Loi';
   String get returnedStatusLabel => isEnglish ? 'Returned' : 'Tra ve';
+  String get scrappedStatusLabel =>
+      isEnglish ? 'Scrapped' : 'Da loai bo';
   String get reservedStatusLabel => isEnglish ? 'Reserved' : 'Da giu cho';
   String get unknownStatusLabel =>
       isEnglish ? 'Unknown status' : 'Trang thai khong xac dinh';

@@ -127,7 +127,7 @@ type AdminDataContextValue = {
     id: string,
     payload: Pick<Dealer, 'creditLimit'>,
   ) => Promise<void>
-  updateDealerStatus: (id: string, status: DealerStatus) => Promise<void>
+  updateDealerStatus: (id: string, status: DealerStatus, reason?: string) => Promise<void>
   users: StaffUser[]
   usersState: AdminResourceState
   addUser: (payload: Pick<StaffUser, 'email' | 'name' | 'role'>) => Promise<StaffUser>
@@ -189,7 +189,7 @@ export const getRequiredResources = (
     return ['discountRules']
   }
   if (pathname.startsWith('/settings')) {
-    return ['settings']
+    return canManageUsers ? ['settings'] : []
   }
   return []
 }
@@ -527,12 +527,13 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.posts })
   }
 
-  const updateDealerStatus: AdminDataContextValue['updateDealerStatus'] = async (id, status) => {
+  const updateDealerStatus: AdminDataContextValue['updateDealerStatus'] = async (id, status, reason) => {
     const token = requireToken()
     const updated = await updateAdminDealerAccountStatus(
       token,
       Number(id),
       toBackendDealerAccountStatus(status),
+      reason?.trim() || undefined,
     )
     setDealers((previous) => previous.map((item) => (item.id === id ? mapDealer(updated) : item)))
     await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.dealers })

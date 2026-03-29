@@ -167,6 +167,7 @@ class AdminSettingsContractTests {
                 .andExpect(jsonPath("$.data.sessionTimeoutMinutes").value(30))
                 .andExpect(jsonPath("$.data.orderAlerts").value(true))
                 .andExpect(jsonPath("$.data.inventoryAlerts").value(true))
+                .andExpect(jsonPath("$.data.vatPercent").value(10))
                 .andExpect(jsonPath("$.data.sepay.enabled").value(false))
                 .andExpect(jsonPath("$.data.sepay.webhookToken").value(MASKED_PROPERTY_TOKEN))
                 .andExpect(jsonPath("$.data.sepay.bankName").value("Property Bank"))
@@ -217,6 +218,7 @@ class AdminSettingsContractTests {
                 45,
                 false,
                 false,
+                8,
                 new UpdateAdminSettingsRequest.SepaySettings(
                         true,
                         "override-token",
@@ -236,6 +238,7 @@ class AdminSettingsContractTests {
         assertThat(instructions.bankName()).isEqualTo("Override Bank");
         assertThat(instructions.accountNumber()).isEqualTo("999888777");
         assertThat(instructions.accountHolder()).isEqualTo("OVERRIDE HOLDER");
+        assertThat(adminSettingsService.getEffectiveSettings().vatPercent()).isEqualTo(8);
 
         Dealer dealer = dealerRepository.save(createDealer("settings-dealer@example.com"));
         Product product = productRepository.save(createProduct("SKU-SETTINGS-001"));
@@ -368,6 +371,10 @@ class AdminSettingsContractTests {
                                   "sessionTimeoutMinutes": 60
                                 }
                                 """))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/v1/admin/audit-logs")
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isForbidden());
     }
 

@@ -3,6 +3,7 @@ package com.devwonder.backend.dto.admin;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 public record AdminDealerAccountResponse(
         Long id,
@@ -15,6 +16,7 @@ public record AdminDealerAccountResponse(
         BigDecimal revenue,
         BigDecimal creditLimit,
         String email,
-        String phone
+        String phone,
+        List<CustomerStatus> allowedTransitions
 ) {
 }

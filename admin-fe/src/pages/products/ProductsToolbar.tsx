@@ -106,8 +106,35 @@ function ProductsToolbar({
         </div>
       </div>
 
+      <label className="space-y-2 lg:hidden">
+        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
+          {t('Sáº¯p xáº¿p')}
+        </span>
+        <select
+          className={`${inputClass} w-full`}
+          onChange={(event) => {
+            const [nextField, nextDir] = event.target.value.split('|') as [
+              ProductsSortField,
+              ProductsSortDir,
+            ]
+            onSortFieldChange(nextField)
+            onSortDirChange(nextDir)
+          }}
+          value={`${sortField}|${sortDir}`}
+        >
+          <option value="updatedAt|desc">{t('Má»›i nháº¥t')}</option>
+          <option value="updatedAt|asc">{`${t('Má»›i nháº¥t')} â†‘`}</option>
+          <option value="name|asc">{`${t('TĂªn')} A-Z`}</option>
+          <option value="name|desc">{`${t('TĂªn')} Z-A`}</option>
+          <option value="retailPrice|desc">{`${t('GiĂ¡')} â†“`}</option>
+          <option value="retailPrice|asc">{`${t('GiĂ¡')} â†‘`}</option>
+          <option value="availableStock|desc">{`${t('Tá»“n kho')} â†“`}</option>
+          <option value="availableStock|asc">{`${t('Tá»“n kho')} â†‘`}</option>
+        </select>
+      </label>
+
       {showAdvancedFilters ? (
-        <div className="grid gap-3 rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)] p-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)] p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <label className="space-y-2">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
               {t('Nổi bật')}
@@ -138,12 +165,12 @@ function ProductsToolbar({
             </select>
           </label>
 
-          <label className="space-y-2 md:col-span-2 xl:col-span-1">
+          <label className="hidden">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
               {t('Sắp xếp')}
             </span>
             <select
-              className={`${inputClass} w-full md:hidden`}
+              className={`${inputClass} w-full`}
               onChange={(event) => {
                 const [nextField, nextDir] = event.target.value.split('|') as [
                   ProductsSortField,
@@ -163,7 +190,7 @@ function ProductsToolbar({
               <option value="availableStock|desc">{`${t('Tồn kho')} ↓`}</option>
               <option value="availableStock|asc">{`${t('Tồn kho')} ↑`}</option>
             </select>
-            <p className="hidden text-sm text-[var(--muted)] md:block">
+            <p className="mt-2 text-sm text-[var(--muted)]">
               {t('Chế độ sắp xếp hiện tại')}: {t(sortOptions.find((option) => option.field === sortField)?.label ?? 'Mới nhất')} {sortDir === 'asc' ? '↑' : '↓'}
             </p>
           </label>
@@ -202,7 +229,7 @@ function ProductsToolbar({
         </div>
       </div>
 
-      <div className="hidden flex-wrap items-center gap-2 md:flex">
+      <div className="hidden flex-wrap items-center gap-2 lg:flex">
         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
           {t('Sắp xếp')}
         </span>

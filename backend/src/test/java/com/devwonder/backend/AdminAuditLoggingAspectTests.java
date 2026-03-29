@@ -101,6 +101,7 @@ class AdminAuditLoggingAspectTests {
                         60,
                         true,
                         true,
+                        10,
                         null,
                         null,
                         null
@@ -122,6 +123,7 @@ class AdminAuditLoggingAspectTests {
                         120,
                         true,
                         false,
+                        8,
                         new UpdateAdminSettingsRequest.SepaySettings(
                                 true,
                                 "whsec_live_123",

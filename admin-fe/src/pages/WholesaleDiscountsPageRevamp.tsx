@@ -426,15 +426,15 @@ function WholesaleDiscountsPageRevamp() {
             </div>
 
             <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-full border-separate border-spacing-y-2">
+              <table className="min-w-[56rem] border-separate border-spacing-y-2">
                 <thead>
                   <tr className={tableHeadClass}>
-                    <th className="px-3 py-2 font-semibold">{copy.label}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.range}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.percent}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.status}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.updated}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.actions}</th>
+                    <th className="min-w-44 px-3 py-2 font-semibold">{copy.label}</th>
+                    <th className="min-w-40 px-3 py-2 font-semibold">{copy.range}</th>
+                    <th className="w-28 px-3 py-2 font-semibold">{copy.percent}</th>
+                    <th className="w-32 px-3 py-2 font-semibold">{copy.status}</th>
+                    <th className="w-40 px-3 py-2 font-semibold">{copy.updated}</th>
+                    <th className="w-48 px-3 py-2 font-semibold">{copy.actions}</th>
                   </tr>
                 </thead>
                 <tbody>

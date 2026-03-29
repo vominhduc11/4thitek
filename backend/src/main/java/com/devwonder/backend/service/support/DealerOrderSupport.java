@@ -47,7 +47,10 @@ public final class DealerOrderSupport {
     }
 
     public static String buildOrderCode(Long dealerId) {
-        return "SCS-" + dealerId + "-" + Instant.now().toEpochMilli()
-                + "-" + ThreadLocalRandom.current().nextInt(100000, 1_000_000);
+        return OrderCodeSupport.build(
+                dealerId,
+                Instant.now(),
+                ThreadLocalRandom.current().nextInt(100000, 1_000_000)
+        );
     }
 }

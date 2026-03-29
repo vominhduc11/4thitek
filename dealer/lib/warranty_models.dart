@@ -5,6 +5,8 @@ enum ImportedSerialStatus {
   warranty,
   defective,
   returned,
+  inspecting,
+  scrapped,
   unknown,
 }
 
@@ -22,6 +24,10 @@ ImportedSerialStatus parseImportedSerialStatus(String? raw) {
       return ImportedSerialStatus.defective;
     case 'RETURNED':
       return ImportedSerialStatus.returned;
+    case 'INSPECTING':
+      return ImportedSerialStatus.inspecting;
+    case 'SCRAPPED':
+      return ImportedSerialStatus.scrapped;
     default:
       return ImportedSerialStatus.unknown;
   }
@@ -41,6 +47,7 @@ class WarrantyActivationRecord {
     required this.warrantyMonths,
     required this.activatedAt,
     required this.purchaseDate,
+    this.warrantyEndDate,
   });
 
   final String orderId;
@@ -55,12 +62,17 @@ class WarrantyActivationRecord {
   final int warrantyMonths;
   final DateTime activatedAt;
   final DateTime purchaseDate;
+  final DateTime? warrantyEndDate;
 
   DateTime get startsAt => purchaseDate;
 
   // Mirrors Java LocalDate.plusMonths(): clamps day to last day of target month
   // instead of overflowing into the next month (e.g. Jan 31 + 1 = Feb 28, not Mar 3).
   DateTime get expiresAt {
+    final persistedEnd = warrantyEndDate;
+    if (persistedEnd != null) {
+      return DateTime(persistedEnd.year, persistedEnd.month, persistedEnd.day);
+    }
     final target = DateTime(
       purchaseDate.year,
       purchaseDate.month + warrantyMonths,

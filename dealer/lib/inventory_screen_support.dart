@@ -132,6 +132,8 @@ List<InventoryProductItem> _buildInventoryItems({
       case ImportedSerialStatus.reserved:
       case ImportedSerialStatus.defective:
       case ImportedSerialStatus.returned:
+      case ImportedSerialStatus.inspecting:
+      case ImportedSerialStatus.scrapped:
       case ImportedSerialStatus.unknown:
         current.issueQuantity += 1;
     }

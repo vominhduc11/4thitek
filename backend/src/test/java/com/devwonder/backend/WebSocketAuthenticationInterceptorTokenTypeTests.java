@@ -77,6 +77,7 @@ class WebSocketAuthenticationInterceptorTokenTypeTests {
                 30,
                 true,
                 true,
+                10,
                 new AdminSettingsService.SepayRuntimeSettings(false, null, null, null, null),
                 new AdminSettingsService.EmailRuntimeSettings(false, null, null),
                 new AdminSettingsService.RateLimitRuntimeSettings(

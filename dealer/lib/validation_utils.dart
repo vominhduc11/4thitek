@@ -1,7 +1,12 @@
 final RegExp _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+final RegExp _vietnamPhonePattern = RegExp(r'^0\d{9}$');
 
 bool isValidEmailAddress(String email) {
   return _emailPattern.hasMatch(email.trim());
+}
+
+bool isValidVietnamPhoneNumber(String phone) {
+  return _vietnamPhonePattern.hasMatch(phone.trim());
 }
 
 String? validateRequiredText(String? value, {required String message}) {
@@ -26,4 +31,17 @@ String? validateEmailAddress(
     return null;
   }
   return isValidEmailAddress(email) ? null : invalidMessage;
+}
+
+String? validateVietnamPhoneNumber(
+  String? value, {
+  required String emptyMessage,
+  required String invalidMessage,
+  bool allowEmpty = false,
+}) {
+  final phone = (value ?? '').trim();
+  if (phone.isEmpty) {
+    return allowEmpty ? null : emptyMessage;
+  }
+  return isValidVietnamPhoneNumber(phone) ? null : invalidMessage;
 }

@@ -25,9 +25,15 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class DealerPaymentSupport {
 
+    private static final BigDecimal ONE_VND = BigDecimal.ONE;
+
     /** Dealer payments on orders with outstandingAmount >= this threshold MUST include proofFileName. */
     @Value("${app.payment.large-amount-proof-threshold:10000000}")
     private long largeAmountProofThreshold;
+
+    /** Dealer debt payments below this amount are rejected unless they fully settle the order. */
+    @Value("${app.payment.minimum-debt-payment-amount:100000}")
+    private long minimumDebtPaymentAmount;
 
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
@@ -74,6 +80,9 @@ public class DealerPaymentSupport {
         }
 
         BigDecimal amount = request.amount().setScale(0, RoundingMode.HALF_UP);
+        if (amount.compareTo(ONE_VND) < 0) {
+            throw new BadRequestException("Payment amount must round to at least 1 VND");
+        }
         BigDecimal outstandingAmount = computeOutstandingAmount(order, activeDiscountRules);
         if (outstandingAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BadRequestException("Order is already fully paid");
@@ -81,6 +90,12 @@ public class DealerPaymentSupport {
         if (amount.compareTo(outstandingAmount) > 0) {
             throw new BadRequestException("Payment amount exceeds outstanding balance");
         }
+        if (!allowManualBankTransfer && order.getPaymentMethod() == PaymentMethod.DEBT) {
+            assertMinimumDebtPayment(amount, outstandingAmount);
+        }
+        // TODO(backlog/F20): automated daily debt reconciliation and anomaly scoring are
+        // not implemented yet; current release controls are proof threshold, duplicate
+        // detection, transaction-code uniqueness, and manual settlement review.
         // BUSINESS_LOGIC.md Section 3.13 [Policy]: dealer payments on large-outstanding orders
         // (outstandingAmount >= 10,000,000 VNĐ) MUST include proofFileName.
         if (!allowManualBankTransfer) {
@@ -117,7 +132,11 @@ public class DealerPaymentSupport {
 
         Payment savedPayment = paymentRepository.save(payment);
         order.setPaidAmount(DealerOrderSupport.zeroIfNull(order.getPaidAmount()).add(amount));
-        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
+        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(
+                order,
+                activeDiscountRules,
+                adminSettingsService.getEffectiveSettings().vatPercent()
+        ));
         orderRepository.save(order);
         if (dealer != null) {
             dealerOrderNotificationSupport.notifyPaymentRecorded(dealer, order, amount);
@@ -125,11 +144,32 @@ public class DealerPaymentSupport {
         return DealerPortalResponseMapper.toPaymentResponse(savedPayment);
     }
 
+    private void assertMinimumDebtPayment(BigDecimal amount, BigDecimal outstandingAmount) {
+        BigDecimal minimumAmount = BigDecimal.valueOf(minimumDebtPaymentAmount);
+        if (minimumAmount.compareTo(ONE_VND) <= 0) {
+            return;
+        }
+        if (amount.compareTo(outstandingAmount) == 0) {
+            return;
+        }
+        if (amount.compareTo(minimumAmount) < 0) {
+            throw new BadRequestException(
+                    "Payment amount must be at least "
+                            + minimumAmount.toPlainString()
+                            + " VND unless it fully settles the outstanding balance"
+            );
+        }
+    }
+
     private BigDecimal computeOutstandingAmount(
             Order order,
             List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
     ) {
-        BigDecimal totalAmount = OrderPricingSupport.computeTotalAmount(order, activeDiscountRules);
+        BigDecimal totalAmount = OrderPricingSupport.computeTotalAmount(
+                order,
+                activeDiscountRules,
+                adminSettingsService.getEffectiveSettings().vatPercent()
+        );
         BigDecimal paidAmount = DealerOrderSupport.zeroIfNull(order.getPaidAmount());
         BigDecimal outstandingAmount = totalAmount.subtract(paidAmount);
         return outstandingAmount.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : outstandingAmount;

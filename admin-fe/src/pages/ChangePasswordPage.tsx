@@ -66,13 +66,13 @@ function ChangePasswordPage() {
         <div className="absolute inset-0 opacity-20 [background-size:120px_120px] [background-image:linear-gradient(to_right,rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.12)_1px,transparent_1px)]" />
       </div>
 
-      <main className="relative w-full max-w-md rounded-3xl border border-white/10 bg-slate-950/75 p-8 text-slate-100 shadow-[0_32px_80px_rgba(15,23,42,0.45)] backdrop-blur">
+      <main className="relative w-full max-w-md rounded-3xl border border-white/10 bg-slate-950/75 p-6 text-slate-100 shadow-[0_32px_80px_rgba(15,23,42,0.45)] backdrop-blur sm:p-8">
         <header className="text-center">
           <div className="mx-auto mb-4 flex justify-center">
             <img
               src={logoCard}
               alt="4ThiTek"
-              className="h-auto w-52 max-w-full object-contain drop-shadow-[0_14px_28px_rgba(14,165,233,0.22)]"
+                className="h-auto w-[min(11rem,60vw)] max-w-full object-contain drop-shadow-[0_14px_28px_rgba(14,165,233,0.22)] sm:w-48 md:w-52"
             />
           </div>
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-sky-400/30 bg-sky-500/10 text-sky-300">

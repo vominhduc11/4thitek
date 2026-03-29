@@ -55,6 +55,29 @@ class DealerProfileAvatarUrlContractTests {
                 .andExpect(jsonPath("$.data.avatarUrl").value(avatarUrl));
     }
 
+    @Test
+    void registerDealerRejectsNonVietnamPhoneAtControllerBoundary() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/register-dealer")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "invalid.phone@example.com",
+                                  "password": "DealerPass#123",
+                                  "contactName": "Profile Dealer",
+                                  "taxCode": "TAX-INVALIDPHONE",
+                                  "phone": "+84912345678",
+                                  "email": "invalid.phone@example.com",
+                                  "addressLine": "123 Profile Street",
+                                  "district": "District 1",
+                                  "city": "Ho Chi Minh City",
+                                  "country": "Vietnam"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Validation failed"))
+                .andExpect(jsonPath("$.data.phone").value("phone must be a valid 10-digit Vietnam number"));
+    }
+
     private Dealer registerActiveDealer(String username) throws Exception {
         mockMvc.perform(post("/api/v1/auth/register-dealer")
                         .contentType(APPLICATION_JSON)

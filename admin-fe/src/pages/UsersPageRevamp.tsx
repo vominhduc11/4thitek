@@ -23,19 +23,12 @@ import {
   formCardClass,
   inputClass,
   labelClass,
-  selectClass,
   tableActionSelectClass,
   tableCardClass,
   tableMetaClass,
 } from "../components/ui-kit";
 
 const USER_STATUS_OPTIONS: UserStatus[] = ["active", "pending"];
-const DEFAULT_ROLE_OPTIONS = [
-  "Admin hệ thống",
-  "Quản lý sản phẩm",
-  "Marketing & Nội dung",
-  "CSKH & Bảo hành",
-] as const;
 
 type InviteForm = {
   email: string;
@@ -54,23 +47,12 @@ const initialForm: InviteForm = {
 const isValidEmail = (value: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
-const roleDescriptionKeys = {
-  "Admin hệ thống":
-    "Quyền quản trị toàn diện, bao gồm tài khoản nội bộ và cài đặt nhạy cảm.",
-  "Quản lý sản phẩm":
-    "Phù hợp cho đội phụ trách danh mục, nội dung sản phẩm và trạng thái xuất bản.",
-  "Marketing & Nội dung":
-    "Dành cho quản lý bài viết, truyền thông và nội dung hiển thị.",
-  "CSKH & Bảo hành":
-    "Phục vụ theo dõi hỗ trợ, bảo hành và các đầu việc sau bán hàng.",
-} as const;
-
 const copyKeys = {
   title: "Người dùng nội bộ",
   description:
-    "Quản lý tài khoản admin, vai trò phụ trách và trạng thái kích hoạt một cách nhất quán.",
+    "Quản lý tài khoản admin, chức danh hiển thị nội bộ và trạng thái kích hoạt. Quyền truy cập thật chỉ dựa trên vai trò hệ thống ở backend.",
   searchLabel: "Tìm người dùng",
-  searchPlaceholder: "Tìm theo tên, vai trò, email hoặc mã...",
+  searchPlaceholder: "Tìm theo tên, chức danh, vai trò hệ thống, email hoặc mã...",
   addUser: "Mời người dùng",
   total: "Tổng tài khoản",
   active: "Đang hoạt động",
@@ -80,15 +62,21 @@ const copyKeys = {
     "Tài khoản mới sẽ bắt đầu ở trạng thái chờ duyệt cho đến khi được kích hoạt.",
   email: "Email",
   name: "Họ và tên",
-  role: "Vai trò",
-  rolePlaceholder: "Chọn vai trò",
+  role: "Chức danh hiển thị",
+  systemRole: "Vai trò hệ thống",
+  systemRoleDescription:
+    "Quyền backend thật. Tài khoản mới tạo từ màn này luôn mang ADMIN; SUPER_ADMIN không được gán tại đây.",
+  rolePlaceholder: "Ví dụ: Hỗ trợ đại lý",
+  roleHint:
+    "Chỉ dùng để hiển thị nội bộ; quyền thật vẫn do role hệ thống ADMIN hoặc SUPER_ADMIN quyết định.",
+  displayTitleLabel: "Chức danh",
   save: "Gửi lời mời",
   cancel: "Hủy",
   emailRequired: "Vui lòng nhập email.",
   emailInvalid: "Email không đúng định dạng.",
   nameRequired: "Vui lòng nhập họ và tên.",
   nameShort: "Họ và tên cần có ít nhất 2 ký tự.",
-  roleRequired: "Vui lòng chọn vai trò.",
+  roleRequired: "Vui lòng nhập chức danh hiển thị.",
   emptyTitle: "Không có người dùng phù hợp",
   emptyMessage: "Thử đổi từ khóa tìm kiếm hoặc mời thêm người dùng.",
   loadTitle: "Không tải được người dùng",
@@ -124,7 +112,6 @@ const getInviteFormErrors = (copy: typeof copyKeys, form: InviteForm) => {
 function UsersPageRevamp() {
   const { t } = useLanguage();
   const copy = translateCopy(copyKeys, t);
-  const roleDescriptions = translateCopy(roleDescriptionKeys, t);
   const { notify } = useToast();
   const { confirm, confirmDialog } = useConfirmDialog();
   const { users, usersState, addUser, updateUserStatus, reloadResource } =
@@ -137,19 +124,12 @@ function UsersPageRevamp() {
 
   const normalizedQuery = query.trim().toLowerCase();
 
-  const roleOptions = useMemo(() => {
-    const existingRoles = users.map((user) => user.role.trim()).filter(Boolean);
-
-    const merged = [...DEFAULT_ROLE_OPTIONS, ...existingRoles];
-    return Array.from(new Set(merged));
-  }, [users]);
-
   const searchableUsers = useMemo(
     () =>
       users.map((user) => ({
         user,
         searchText:
-          `${user.name} ${user.email} ${user.role} ${user.id}`.toLowerCase(),
+          `${user.name} ${user.email} ${user.role} ${user.systemRole} ${user.id}`.toLowerCase(),
       })),
     [users],
   );
@@ -171,9 +151,6 @@ function UsersPageRevamp() {
     }),
     [users],
   );
-
-  const selectedRoleDescription =
-    roleDescriptions[form.role as keyof typeof roleDescriptions];
 
   const clearFieldError = (field: keyof InviteForm) => {
     setFormErrors((previous) => {
@@ -298,6 +275,14 @@ function UsersPageRevamp() {
           </div>
 
           <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 md:col-span-2">
+              <p className={labelClass}>{copy.systemRole}</p>
+              <p className="mt-1 font-semibold text-[var(--ink)]">ADMIN</p>
+              <p className={`${tableMetaClass} mt-1`}>
+                {copy.systemRoleDescription}
+              </p>
+            </div>
+
             <label className="space-y-2 md:col-span-2">
               <span className={labelClass}>{copy.email}</span>
               <input
@@ -340,8 +325,8 @@ function UsersPageRevamp() {
 
             <label className="space-y-2">
               <span className={labelClass}>{copy.role}</span>
-              <select
-                className={`${selectClass} w-full`}
+              <input
+                className={inputClass}
                 onChange={(event) => {
                   clearFieldError("role");
                   setForm((current) => ({
@@ -349,20 +334,11 @@ function UsersPageRevamp() {
                     role: event.target.value,
                   }));
                 }}
+                placeholder={copy.rolePlaceholder}
+                type="text"
                 value={form.role}
-              >
-                <option value="">{copy.rolePlaceholder}</option>
-                {roleOptions.map((role) => (
-                  <option key={role} value={role}>
-                    {t(role)}
-                  </option>
-                ))}
-              </select>
-              {selectedRoleDescription ? (
-                <p className="text-sm text-[var(--muted)]">
-                  {selectedRoleDescription}
-                </p>
-              ) : null}
+              />
+              <p className="text-sm text-[var(--muted)]">{copy.roleHint}</p>
               {formErrors.role ? (
                 <FieldErrorMessage>{formErrors.role}</FieldErrorMessage>
               ) : null}
@@ -415,10 +391,14 @@ function UsersPageRevamp() {
                       {user.name}
                     </p>
                     <p className={tableMetaClass}>{user.email}</p>
-                    <p className={`${tableMetaClass} mt-1`}>
-                      {user.id} · {t(user.role)}
-                    </p>
+                    <p className={`${tableMetaClass} mt-1`}>{user.id}</p>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <StatusBadge tone="info">
+                        {copy.systemRole}: {user.systemRole}
+                      </StatusBadge>
+                      <StatusBadge tone="neutral">
+                        {copy.displayTitleLabel}: {user.role}
+                      </StatusBadge>
                       <StatusBadge tone={userStatusTone[user.status]}>
                         {t(userStatusLabel[user.status])}
                       </StatusBadge>

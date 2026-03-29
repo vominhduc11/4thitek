@@ -36,6 +36,9 @@ public class AdminSettings {
     @Column(name = "inventory_alerts", nullable = false)
     private Boolean inventoryAlerts;
 
+    @Column(name = "vat_percent", nullable = false)
+    private Integer vatPercent;
+
     @Column(name = "sepay_enabled")
     private Boolean sepayEnabled;
 

@@ -17,7 +17,11 @@ import {
   tableMetaClass,
   tableRowClass,
 } from "../components/ui-kit";
-import { useAdminData, type DealerStatus } from "../context/AdminDataContext";
+import {
+  useAdminData,
+  type Dealer,
+  type DealerStatus,
+} from "../context/AdminDataContext";
 import { useLanguage } from "../context/LanguageContext";
 import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
@@ -95,6 +99,59 @@ function DealersPageRevamp() {
       }),
     [dealers, normalizedQuery, statusFilter],
   );
+
+  const handleStatusChange = async (
+    dealer: Dealer,
+    next: DealerStatus,
+    select: HTMLSelectElement,
+  ) => {
+    if (next === dealer.status) {
+      return;
+    }
+
+    let suspensionReason: string | undefined;
+    if (next === "suspended") {
+      const rawReason = window.prompt(t("Mô tả lý do..."), "");
+      if (rawReason == null) {
+        select.value = dealer.status;
+        return;
+      }
+      suspensionReason = rawReason.trim();
+      if (!suspensionReason) {
+        notify(t("Vui lòng nhập lý do."), {
+          title: copy.title,
+          variant: "error",
+        });
+        select.value = dealer.status;
+        return;
+      }
+    }
+
+    const approved = await confirm({
+      title: copy.confirmStatusTitle,
+      message: copy.confirmStatusMessage.replace(
+        "{status}",
+        t(dealerStatusLabel[next]),
+      ),
+      tone: "warning",
+      confirmLabel: t(dealerStatusLabel[next]),
+    });
+
+    if (!approved) {
+      select.value = dealer.status;
+      return;
+    }
+
+    try {
+      await updateDealerStatus(dealer.id, next, suspensionReason);
+    } catch (error) {
+      notify(error instanceof Error ? error.message : copy.updateFailed, {
+        title: copy.title,
+        variant: "error",
+      });
+      select.value = dealer.status;
+    }
+  };
 
   const stats = useMemo(() => {
     const active = dealers.filter((item) => item.status === "active").length;
@@ -203,219 +260,181 @@ function DealersPageRevamp() {
         ) : (
           <>
             <div className="grid gap-3 md:hidden">
-              {filteredDealers.map((dealer) => (
-                <article key={dealer.id} className={tableCardClass}>
-                  <button
-                    className="w-full text-left"
-                    onClick={() =>
-                      navigate(`/dealers/${encodeURIComponent(dealer.id)}`)
-                    }
-                    type="button"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-[var(--ink)]">
-                          {dealer.name}
-                        </p>
-                        <p className={tableMetaClass}>
-                          {dealer.id} · {dealer.email}
-                        </p>
-                        <p className={tableMetaClass}>{dealer.contactName}</p>
-                      </div>
-                      <StatusBadge tone={dealerStatusTone[dealer.status]}>
-                        {t(dealerStatusLabel[dealer.status])}
-                      </StatusBadge>
-                    </div>
-                    <div className="mt-4 grid gap-2 text-sm text-[var(--ink)]">
-                      <div className="flex items-center justify-between">
-                        <span className={tableMetaClass}>{copy.orders}</span>
-                        <span>{dealer.orders}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className={tableMetaClass}>
-                          {copy.revenueShort}
-                        </span>
-                        <span className="font-semibold text-[var(--accent)]">
-                          {formatCurrency(dealer.revenue)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className={tableMetaClass}>{copy.credit}</span>
-                        <span>
-                          {dealer.creditLimit > 0
-                            ? formatCurrency(dealer.creditLimit)
-                            : copy.notSet}
-                        </span>
-                      </div>
-                    </div>
-                  </button>
-                  <p className={`${tableMetaClass} mt-3`}>
-                    {t(dealerStatusDescription[dealer.status])}
-                  </p>
-                  <select
-                    aria-label={`${copy.status} ${dealer.id}`}
-                    className={`mt-4 w-full ${tableActionSelectClass}`}
-                    onChange={async (event) => {
-                      const next = event.target.value as DealerStatus;
-                      if (next === dealer.status) {
-                        return;
-                      }
-
-                      const approved = await confirm({
-                        title: copy.confirmStatusTitle,
-                        message: copy.confirmStatusMessage.replace(
-                          "{status}",
-                          t(dealerStatusLabel[next]),
-                        ),
-                        tone: "warning",
-                        confirmLabel: t(dealerStatusLabel[next]),
-                      });
-
-                      if (!approved) {
-                        event.currentTarget.value = dealer.status;
-                        return;
-                      }
-
-                      try {
-                        await updateDealerStatus(dealer.id, next);
-                      } catch (error) {
-                        notify(
-                          error instanceof Error
-                            ? error.message
-                            : copy.updateFailed,
-                          {
-                            title: copy.title,
-                            variant: "error",
-                          },
-                        );
-                      }
-                    }}
-                    value={dealer.status}
-                  >
-                    {getAllowedDealerStatuses(dealer.status).map((status) => (
-                      <option key={`${dealer.id}-${status}`} value={status}>
-                        {t(dealerStatusLabel[status])}
-                      </option>
-                    ))}
-                  </select>
-                </article>
-              ))}
-            </div>
-
-            <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-full border-separate border-spacing-y-2">
-                <thead>
-                  <tr className={tableHeadClass}>
-                    <th className="px-3 py-2 font-semibold">{copy.title}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.status}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.orders}</th>
-                    <th className="px-3 py-2 font-semibold">
-                      {copy.revenueShort}
-                    </th>
-                    <th className="px-3 py-2 font-semibold">{copy.credit}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.actions}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredDealers.map((dealer) => (
-                    <tr
-                      className={tableRowClass}
-                      key={dealer.id}
+              {filteredDealers.map((dealer) => {
+                const availableTransitions =
+                  dealer.allowedTransitions ??
+                  getAllowedDealerStatuses(dealer.status);
+                return (
+                  <article key={dealer.id} className={tableCardClass}>
+                    <button
+                      className="w-full text-left"
                       onClick={() =>
                         navigate(`/dealers/${encodeURIComponent(dealer.id)}`)
                       }
+                      type="button"
                     >
-                      <td className="rounded-l-2xl px-3 py-3">
-                        <p className="font-semibold text-[var(--ink)]">
-                          {dealer.name}
-                        </p>
-                        <p className={tableMetaClass}>
-                          {dealer.id} · {dealer.email}
-                        </p>
-                        <p className={tableMetaClass}>{dealer.contactName}</p>
-                      </td>
-                      <td className="px-3 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-[var(--ink)]">
+                            {dealer.name}
+                          </p>
+                          <p className={tableMetaClass}>
+                            {dealer.id} · {dealer.email}
+                          </p>
+                          <p className={tableMetaClass}>{dealer.contactName}</p>
+                        </div>
                         <StatusBadge tone={dealerStatusTone[dealer.status]}>
                           {t(dealerStatusLabel[dealer.status])}
                         </StatusBadge>
-                        <p className={`mt-1 ${tableMetaClass}`}>
-                          {t(dealerStatusDescription[dealer.status])}
-                        </p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="text-sm text-[var(--ink)]">
-                          {dealer.orders}
+                      </div>
+                      <div className="mt-4 grid gap-2 text-sm text-[var(--ink)]">
+                        <div className="flex items-center justify-between">
+                          <span className={tableMetaClass}>{copy.orders}</span>
+                          <span>{dealer.orders}</span>
                         </div>
-                        <div className={tableMetaClass}>
-                          {formatDateTime(dealer.lastOrderAt)}
+                        <div className="flex items-center justify-between">
+                          <span className={tableMetaClass}>
+                            {copy.revenueShort}
+                          </span>
+                          <span className="font-semibold text-[var(--accent)]">
+                            {formatCurrency(dealer.revenue)}
+                          </span>
                         </div>
-                      </td>
-                      <td className="px-3 py-3 font-semibold text-[var(--accent)]">
-                        {formatCurrency(dealer.revenue)}
-                      </td>
-                      <td className="px-3 py-3 font-semibold text-[var(--ink)]">
-                        {dealer.creditLimit > 0
-                          ? formatCurrency(dealer.creditLimit)
-                          : copy.notSet}
-                      </td>
-                      <td
-                        className="rounded-r-2xl px-3 py-3"
-                        onClick={(event) => event.stopPropagation()}
+                        <div className="flex items-center justify-between">
+                          <span className={tableMetaClass}>{copy.credit}</span>
+                          <span>
+                            {dealer.creditLimit > 0
+                              ? formatCurrency(dealer.creditLimit)
+                              : copy.notSet}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                    <p className={`${tableMetaClass} mt-3`}>
+                      {t(dealerStatusDescription[dealer.status])}
+                    </p>
+                    <select
+                      aria-label={`${copy.status} ${dealer.id}`}
+                      className={`mt-4 w-full ${tableActionSelectClass}`}
+                      onChange={(event) =>
+                        void handleStatusChange(
+                          dealer,
+                          event.target.value as DealerStatus,
+                          event.currentTarget,
+                        )
+                      }
+                      value={dealer.status}
+                    >
+                      {availableTransitions.map((status) => (
+                        <option key={`${dealer.id}-${status}`} value={status}>
+                          {t(dealerStatusLabel[status])}
+                        </option>
+                      ))}
+                    </select>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
+              <table className="min-w-[64rem] border-separate border-spacing-y-2">
+                <thead>
+                  <tr className={tableHeadClass}>
+                    <th className="min-w-64 px-3 py-2 font-semibold">
+                      {copy.title}
+                    </th>
+                    <th className="w-48 px-3 py-2 font-semibold">
+                      {copy.status}
+                    </th>
+                    <th className="w-36 px-3 py-2 font-semibold">
+                      {copy.orders}
+                    </th>
+                    <th className="px-3 py-2 font-semibold">
+                      {copy.revenueShort}
+                    </th>
+                    <th className="w-40 px-3 py-2 font-semibold">
+                      {copy.credit}
+                    </th>
+                    <th className="w-48 px-3 py-2 font-semibold">
+                      {copy.actions}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDealers.map((dealer) => {
+                    const availableTransitions =
+                      dealer.allowedTransitions ??
+                      getAllowedDealerStatuses(dealer.status);
+                    return (
+                      <tr
+                        className={tableRowClass}
+                        key={dealer.id}
+                        onClick={() =>
+                          navigate(`/dealers/${encodeURIComponent(dealer.id)}`)
+                        }
                       >
-                        <select
-                          aria-label={`${copy.status} ${dealer.id}`}
-                          className={`w-full ${tableActionSelectClass}`}
-                          onChange={async (event) => {
-                            const next = event.target.value as DealerStatus;
-                            if (next === dealer.status) {
-                              return;
-                            }
-
-                            const approved = await confirm({
-                              title: copy.confirmStatusTitle,
-                              message: copy.confirmStatusMessage.replace(
-                                "{status}",
-                                t(dealerStatusLabel[next]),
-                              ),
-                              tone: "warning",
-                              confirmLabel: t(dealerStatusLabel[next]),
-                            });
-
-                            if (!approved) {
-                              event.currentTarget.value = dealer.status;
-                              return;
-                            }
-
-                            try {
-                              await updateDealerStatus(dealer.id, next);
-                            } catch (error) {
-                              notify(
-                                error instanceof Error
-                                  ? error.message
-                                  : copy.updateFailed,
-                                {
-                                  title: copy.title,
-                                  variant: "error",
-                                },
-                              );
-                            }
-                          }}
-                          value={dealer.status}
+                        <td className="rounded-l-2xl px-3 py-3">
+                          <p className="font-semibold text-[var(--ink)]">
+                            {dealer.name}
+                          </p>
+                          <p className={tableMetaClass}>
+                            {dealer.id} · {dealer.email}
+                          </p>
+                          <p className={tableMetaClass}>{dealer.contactName}</p>
+                        </td>
+                        <td className="px-3 py-3">
+                          <StatusBadge tone={dealerStatusTone[dealer.status]}>
+                            {t(dealerStatusLabel[dealer.status])}
+                          </StatusBadge>
+                          <p className={`mt-1 ${tableMetaClass}`}>
+                            {t(dealerStatusDescription[dealer.status])}
+                          </p>
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="text-sm text-[var(--ink)]">
+                            {dealer.orders}
+                          </div>
+                          <div className={tableMetaClass}>
+                            {formatDateTime(dealer.lastOrderAt)}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 font-semibold text-[var(--accent)]">
+                          {formatCurrency(dealer.revenue)}
+                        </td>
+                        <td className="px-3 py-3 font-semibold text-[var(--ink)]">
+                          {dealer.creditLimit > 0
+                            ? formatCurrency(dealer.creditLimit)
+                            : copy.notSet}
+                        </td>
+                        <td
+                          className="rounded-r-2xl px-3 py-3"
+                          onClick={(event) => event.stopPropagation()}
                         >
-                          {getAllowedDealerStatuses(dealer.status).map(
-                            (status) => (
+                          <select
+                            aria-label={`${copy.status} ${dealer.id}`}
+                            className={`w-full ${tableActionSelectClass}`}
+                            onChange={(event) =>
+                              void handleStatusChange(
+                                dealer,
+                                event.target.value as DealerStatus,
+                                event.currentTarget,
+                              )
+                            }
+                            value={dealer.status}
+                          >
+                            {availableTransitions.map((status) => (
                               <option
                                 key={`${dealer.id}-${status}`}
                                 value={status}
                               >
                                 {t(dealerStatusLabel[status])}
                               </option>
-                            ),
-                          )}
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
+                            ))}
+                          </select>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

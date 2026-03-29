@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.devwonder.backend.dto.admin.AdminReportExportResponse;
 import com.devwonder.backend.dto.admin.AdminReportExportType;
 import com.devwonder.backend.dto.admin.AdminReportFormat;
+import com.devwonder.backend.dto.admin.UpdateAdminSettingsRequest;
 import com.devwonder.backend.entity.BulkDiscount;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Order;
@@ -20,6 +21,7 @@ import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.service.AdminReportingService;
+import com.devwonder.backend.service.AdminSettingsService;
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.util.LinkedHashSet;
@@ -40,6 +42,9 @@ class AdminReportingServiceContractTests {
 
     @Autowired
     private AdminReportingService adminReportingService;
+
+    @Autowired
+    private AdminSettingsService adminSettingsService;
 
     @Autowired
     private ProductRepository productRepository;
@@ -96,23 +101,69 @@ class AdminReportingServiceContractTests {
         }
     }
 
+    @Test
+    void ordersReportUsesConfiguredVatPercentFromAdminSettings() throws Exception {
+        adminSettingsService.updateSettings(new UpdateAdminSettingsRequest(
+                null,
+                null,
+                null,
+                null,
+                8,
+                null,
+                null,
+                null
+        ));
+        createDiscountedOrder();
+
+        AdminReportExportResponse report = adminReportingService.export(
+                AdminReportExportType.ORDERS,
+                AdminReportFormat.XLSX
+        );
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(report.content()))) {
+            var row = workbook.getSheetAt(0).getRow(4);
+            assertThat(row.getCell(4).getStringCellValue()).isEqualTo("107200.00");
+        }
+    }
+
+    @Test
+    void ordersReportExcludesSoftDeletedOrders() throws Exception {
+        createDiscountedOrder();
+        createDiscountedOrder("RPT-DELETED", true);
+
+        AdminReportExportResponse report = adminReportingService.export(
+                AdminReportExportType.ORDERS,
+                AdminReportFormat.XLSX
+        );
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(report.content()))) {
+            var sheet = workbook.getSheetAt(0);
+            assertThat(sheet.getLastRowNum()).isEqualTo(4);
+            assertThat(sheet.getRow(4).getCell(0).getStringCellValue()).isEqualTo("RPT-001");
+        }
+    }
+
     private void createDiscountedOrder() {
+        createDiscountedOrder("RPT-001", false);
+    }
+
+    private void createDiscountedOrder(String orderCode, boolean deleted) {
         Product product = new Product();
-        product.setSku("RPT-SKU-001");
-        product.setName("Report Product");
+        product.setSku(orderCode + "-SKU");
+        product.setName("Report Product " + orderCode);
         product.setIsDeleted(false);
         product.setRetailPrice(new BigDecimal("100000"));
         product.setStock(10);
         product = productRepository.save(product);
 
         Dealer dealer = new Dealer();
-        dealer.setUsername("report.dealer@example.com");
+        dealer.setUsername(orderCode.toLowerCase() + "@example.com");
         dealer.setPassword("hashed-password");
-        dealer.setEmail("report.dealer@example.com");
+        dealer.setEmail(orderCode.toLowerCase() + "@example.com");
         dealer.setBusinessName("VAT Dealer");
         dealer.setContactName("VAT Dealer");
-        dealer.setTaxCode("RPT-TAX-001");
-        dealer.setPhone("0900000001");
+        dealer.setTaxCode(orderCode + "-TAX");
+        dealer.setPhone("09" + String.format("%08d", Math.abs(orderCode.hashCode()) % 100_000_000));
         dealer.setCustomerStatus(CustomerStatus.ACTIVE);
         dealer = dealerRepository.save(dealer);
 
@@ -125,12 +176,12 @@ class AdminReportingServiceContractTests {
         bulkDiscountRepository.save(discount);
 
         Order order = new Order();
-        order.setOrderCode("RPT-001");
+        order.setOrderCode(orderCode);
         order.setDealer(dealer);
         order.setStatus(OrderStatus.PENDING);
         order.setPaymentStatus(PaymentStatus.PENDING);
         order.setPaymentMethod(PaymentMethod.BANK_TRANSFER);
-        order.setIsDeleted(false);
+        order.setIsDeleted(deleted);
         order.setShippingFee(10000);
         order.setPaidAmount(BigDecimal.ZERO);
 

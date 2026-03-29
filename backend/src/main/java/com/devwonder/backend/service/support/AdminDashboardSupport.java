@@ -42,6 +42,26 @@ public final class AdminDashboardSupport {
             List<Blog> blogs,
             List<BulkDiscount> rules
     ) {
+        return buildDashboard(
+                orders,
+                products,
+                dealers,
+                admins,
+                blogs,
+                rules,
+                OrderPricingSupport.DEFAULT_VAT_PERCENT_FALLBACK
+        );
+    }
+
+    public static AdminDashboardResponse buildDashboard(
+            List<Order> orders,
+            List<Product> products,
+            List<Dealer> dealers,
+            List<Admin> admins,
+            List<Blog> blogs,
+            List<BulkDiscount> rules,
+            int vatPercent
+    ) {
         List<Order> activeOrders = safeList(orders).stream()
                 .filter(AdminDashboardSupport::isVisibleOrder)
                 .toList();
@@ -95,7 +115,8 @@ public final class AdminDashboardSupport {
                 activeRules,
                 0,
                 0,
-                0
+                0,
+                vatPercent
         ));
     }
 
@@ -103,14 +124,22 @@ public final class AdminDashboardSupport {
         DashboardSnapshot safeSnapshot = snapshot == null ? DashboardSnapshot.empty() : snapshot;
         List<Order> revenueOrders = safeList(safeSnapshot.revenueOrders());
         List<BulkDiscount> activeRules = safeList(safeSnapshot.activeRules());
+        int vatPercent = safeSnapshot.vatPercent();
 
         Instant now = Instant.now();
-        BigDecimal current30 = revenueBetween(revenueOrders, now.minusSeconds(60L * 60 * 24 * 30), now, activeRules);
+        BigDecimal current30 = revenueBetween(
+                revenueOrders,
+                now.minusSeconds(60L * 60 * 24 * 30),
+                now,
+                activeRules,
+                vatPercent
+        );
         BigDecimal previous30 = revenueBetween(
                 revenueOrders,
                 now.minusSeconds(60L * 60 * 24 * 60),
                 now.minusSeconds(60L * 60 * 24 * 30),
-                activeRules
+                activeRules,
+                vatPercent
         );
         BigDecimal progressTarget = previous30.compareTo(BigDecimal.ZERO) > 0
                 ? previous30
@@ -148,7 +177,7 @@ public final class AdminDashboardSupport {
                 ),
                 buildTopProducts(safeSnapshot.topProducts()),
                 buildSystemItems(safeSnapshot),
-                buildTrend(revenueOrders, activeRules),
+                buildTrend(revenueOrders, activeRules, vatPercent),
                 safeSnapshot.unmatchedPendingCount(),
                 safeSnapshot.settlementPendingCount(),
                 safeSnapshot.staleOrdersCount()
@@ -244,7 +273,7 @@ public final class AdminDashboardSupport {
         );
     }
 
-    private static AdminDashboardResponse.Trend buildTrend(List<Order> orders, List<BulkDiscount> rules) {
+    private static AdminDashboardResponse.Trend buildTrend(List<Order> orders, List<BulkDiscount> rules, int vatPercent) {
         LinkedHashMap<YearMonth, BigDecimal> buckets = new LinkedHashMap<>();
         YearMonth currentMonth = YearMonth.now(APP_ZONE);
         for (int i = 5; i >= 0; i--) {
@@ -257,7 +286,7 @@ public final class AdminDashboardSupport {
             }
             YearMonth bucket = YearMonth.from(revenueTimestamp.atZone(APP_ZONE));
             if (buckets.containsKey(bucket)) {
-                buckets.put(bucket, buckets.get(bucket).add(OrderPricingSupport.computeTotalAmount(order, rules)));
+                buckets.put(bucket, buckets.get(bucket).add(OrderPricingSupport.computeTotalAmount(order, rules, vatPercent)));
             }
         }
         List<AdminDashboardResponse.TrendPoint> points = buckets.entrySet().stream()
@@ -277,7 +306,8 @@ public final class AdminDashboardSupport {
             List<Order> orders,
             Instant startInclusive,
             Instant endExclusive,
-            List<BulkDiscount> rules
+            List<BulkDiscount> rules,
+            int vatPercent
     ) {
         return safeList(orders).stream()
                 .filter(order -> {
@@ -286,7 +316,7 @@ public final class AdminDashboardSupport {
                             && !revenueTimestamp.isBefore(startInclusive)
                             && revenueTimestamp.isBefore(endExclusive);
                 })
-                .map(order -> OrderPricingSupport.computeTotalAmount(order, rules))
+                .map(order -> OrderPricingSupport.computeTotalAmount(order, rules, vatPercent))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
@@ -378,7 +408,8 @@ public final class AdminDashboardSupport {
             List<BulkDiscount> activeRules,
             int unmatchedPendingCount,
             int settlementPendingCount,
-            int staleOrdersCount
+            int staleOrdersCount,
+            int vatPercent
     ) {
         public static DashboardSnapshot empty() {
             return new DashboardSnapshot(
@@ -406,7 +437,8 @@ public final class AdminDashboardSupport {
                     List.of(),
                     0,
                     0,
-                    0
+                    0,
+                    OrderPricingSupport.DEFAULT_VAT_PERCENT_FALLBACK
             );
         }
     }

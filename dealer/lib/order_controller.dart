@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -23,15 +24,115 @@ enum OrderMessageCode {
 }
 
 const String _orderMessageTokenPrefix = 'order.message.';
+const String _stockConflictMessage =
+    'Stock is being updated by another request; please retry';
+const String _optimisticConflictMessage =
+    'The record was modified by another request; please retry';
+const String _roundedPaymentAmountMessage =
+    'Payment amount must round to at least 1 VND';
+final RegExp _minimumPartialPaymentPattern = RegExp(
+  r'^Payment amount must be at least (\d+) VND unless it fully settles the outstanding balance$',
+);
+final RegExp _insufficientStockPattern = RegExp(
+  r'^Insufficient stock for product (.+)$',
+);
 
 String orderControllerMessageToken(OrderMessageCode code) =>
     '$_orderMessageTokenPrefix${code.name}';
+
+String? _resolveDynamicOrderMessage(
+  String normalized, {
+  required bool isEnglish,
+}) {
+  final minimumPartialMatch = _minimumPartialPaymentPattern.firstMatch(
+    normalized,
+  );
+  if (minimumPartialMatch != null) {
+    final minimumAmount = int.tryParse(minimumPartialMatch.group(1) ?? '');
+    final minimumLabel = minimumAmount == null
+        ? '${minimumPartialMatch.group(1)} VND'
+        : formatVnd(minimumAmount);
+    return isEnglish
+        ? 'Each partial debt payment must be at least $minimumLabel unless it clears the remaining outstanding balance.'
+        : 'Moi lan thanh toan cong no tung phan phai tu $minimumLabel tro len, tru khi thanh toan het cong no con lai.';
+  }
+
+  final insufficientStockMatch = _insufficientStockPattern.firstMatch(
+    normalized,
+  );
+  if (insufficientStockMatch != null) {
+    final productName = insufficientStockMatch.group(1)?.trim();
+    if (productName == null || productName.isEmpty) {
+      return isEnglish
+          ? 'Insufficient stock. Please refresh and try again.'
+          : 'Ton kho khong con du. Vui long lam moi va thu lai.';
+    }
+    return isEnglish
+        ? 'Insufficient stock for $productName. Please refresh and try again.'
+        : 'Ton kho cua $productName khong con du. Vui long lam moi va thu lai.';
+  }
+
+  switch (normalized) {
+    case _stockConflictMessage:
+    case _optimisticConflictMessage:
+      return isEnglish
+          ? 'Stock changed while your request was being processed. Please refresh and try again.'
+          : 'Ton kho vua thay doi trong luc xu ly. Vui long lam moi va thu lai.';
+    case _roundedPaymentAmountMessage:
+      return isEnglish
+          ? 'The rounded payment amount must be at least 1 VND.'
+          : 'So tien sau khi lam tron phai tu 1 VND tro len.';
+    default:
+      return null;
+  }
+}
 
 String resolveOrderControllerMessage(
   String? message, {
   required bool isEnglish,
 }) {
   final normalized = message?.trim();
+  final dynamicMessage = normalized == null
+      ? null
+      : _resolveDynamicOrderMessage(normalized, isEnglish: isEnglish);
+  if (!isEnglish) {
+    if (normalized == null || normalized.isEmpty) {
+      return 'Khong the dong bo du lieu don hang.';
+    }
+    final dynamicMessage = _resolveDynamicOrderMessage(
+      normalized,
+      isEnglish: false,
+    );
+    switch (normalized) {
+      case 'order.message.apiNotConfigured':
+        return 'API don hang chua duoc cau hinh.';
+      case 'order.message.unauthenticated':
+        return 'Ban can dang nhap truoc khi thao tac don hang.';
+      case 'order.message.invalidOrderPayload':
+        return 'Du lieu don hang khong hop le.';
+      case 'order.message.invalidOrdersPayload':
+        return 'Du lieu danh sach don hang khong hop le.';
+      case 'order.message.invalidCreateOrderPayload':
+        return 'Du lieu don hang vua tao khong hop le.';
+      case 'order.message.createOrderFailed':
+        return 'Khong the tao don hang. Vui long thu lai.';
+      case 'order.message.statusUpdateFailed':
+        return 'Khong the cap nhat trang thai don hang. Vui long thu lai.';
+      case 'order.message.paymentFailed':
+        return 'Khong the ghi nhan thanh toan. Vui long kiem tra lai.';
+      case 'order.message.syncFailed':
+        return 'Khong the dong bo du lieu don hang.';
+      case 'Debt payment is not available for this dealer':
+        return 'Tai khoan chua duoc cap han muc cong no.';
+      case 'Credit limit exceeded':
+        return 'Vuot han muc cong no. Vui long kiem tra lai tong cong no hien tai truoc khi dat don.';
+      default:
+        if (dynamicMessage != null) {
+          return dynamicMessage;
+        }
+        break;
+    }
+  }
   if (normalized == null || normalized.isEmpty) {
     return isEnglish
         ? 'Unable to sync order data.'
@@ -75,7 +176,18 @@ String resolveOrderControllerMessage(
       return isEnglish
           ? 'Unable to sync order data.'
           : 'Không thể đồng bộ dữ liệu đơn hàng.';
+    case 'Debt payment is not available for this dealer':
+      return isEnglish
+          ? 'This account has not been granted a credit limit yet.'
+          : 'TĂ i khoáº£n chÆ°a Ä‘Æ°á»£c cáº¥p háº¡n má»©c cĂ´ng ná»£.';
+    case 'Credit limit exceeded':
+      return isEnglish
+          ? 'Credit limit exceeded. Please review the current outstanding debt before placing the order.'
+          : 'VÆ°á»£t háº¡n má»©c cĂ´ng ná»£. Vui lĂ²ng kiá»ƒm tra láº¡i tá»•ng cĂ´ng ná»£ hiá»‡n táº¡i trÆ°á»›c khi Ä‘áº·t Ä‘Æ¡n.';
     default:
+      if (dynamicMessage != null) {
+        return dynamicMessage;
+      }
       return normalized;
   }
 }
@@ -133,9 +245,15 @@ class OrderController extends ChangeNotifier {
   bool _isRecordingPayment = false;
   String? _lastActionMessage;
   DateTime? _lastRemoteSyncAt;
+  Future<bool>? _remoteOrdersRefreshInFlight;
+  int _criticalMutationDepth = 0;
+  Completer<void>? _criticalMutationCompleter;
 
   String? get lastActionMessage => _lastActionMessage;
   DateTime? get lastRemoteSyncAt => _lastRemoteSyncAt;
+  Future<void>? get pendingCriticalMutation =>
+      _criticalMutationCompleter?.future;
+  bool get hasPendingCriticalMutation => _criticalMutationDepth > 0;
 
   Future<void> load({bool forceRefresh = false}) async {
     _lastActionMessage = null;
@@ -213,6 +331,24 @@ class OrderController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<T> _trackCriticalMutation<T>(Future<T> Function() action) async {
+    _criticalMutationDepth += 1;
+    _criticalMutationCompleter ??= Completer<void>();
+    try {
+      return await action();
+    } finally {
+      _criticalMutationDepth -= 1;
+      if (_criticalMutationDepth <= 0) {
+        _criticalMutationDepth = 0;
+        final completer = _criticalMutationCompleter;
+        _criticalMutationCompleter = null;
+        if (completer != null && !completer.isCompleted) {
+          completer.complete();
+        }
+      }
+    }
+  }
+
   List<Order> get orders {
     if (_ordersCacheDirty) {
       final list = List<Order>.from(_orders)
@@ -284,19 +420,21 @@ class OrderController extends ChangeNotifier {
   }
 
   Future<Order> addOrder(Order order) async {
-    _lastActionMessage = null;
-    if (!await _canUseRemoteApi()) {
-      throw OrderControllerException(_unavailableActionMessage());
-    }
-    try {
-      return await _createRemoteOrder(order);
-    } catch (error) {
-      _lastActionMessage = _normalizeOrderControllerFailure(
-        error,
-        fallbackCode: OrderMessageCode.invalidCreateOrderPayload,
-      );
-      rethrow;
-    }
+    return _trackCriticalMutation(() async {
+      _lastActionMessage = null;
+      if (!await _canUseRemoteApi()) {
+        throw OrderControllerException(_unavailableActionMessage());
+      }
+      try {
+        return await _createRemoteOrder(order);
+      } catch (error) {
+        _lastActionMessage = _normalizeOrderControllerFailure(
+          error,
+          fallbackCode: OrderMessageCode.invalidCreateOrderPayload,
+        );
+        rethrow;
+      }
+    });
   }
 
   // Dealer-side pre-flight guard. Mirrors backend OrderStatusTransitionPolicy.isDealerTransitionAllowed.
@@ -325,41 +463,47 @@ class OrderController extends ChangeNotifier {
 
     final remoteOrderId = _remoteOrderIds[orderId];
     if (remoteOrderId != null && await _canUseRemoteApi()) {
-      try {
-        final response = await _client.patch(
-          DealerApiConfig.resolveApiUri('/dealer/orders/$remoteOrderId/status'),
-          headers: await _authorizedJsonHeaders(),
-          body: jsonEncode(<String, dynamic>{
-            'status': _toRemoteOrderStatus(status),
-          }),
-        );
-        final payload = _decodeBody(response.body);
-        if (response.statusCode >= 400) {
-          throw OrderControllerException(
-            _extractErrorMessageWithFallback(
-              payload,
-              orderControllerMessageToken(OrderMessageCode.statusUpdateFailed),
+      return _trackCriticalMutation(() async {
+        try {
+          final response = await _client.patch(
+            DealerApiConfig.resolveApiUri(
+              '/dealer/orders/$remoteOrderId/status',
             ),
+            headers: await _authorizedJsonHeaders(),
+            body: jsonEncode(<String, dynamic>{
+              'status': _toRemoteOrderStatus(status),
+            }),
           );
-        }
-        final data = payload['data'];
-        if (data is! Map<String, dynamic>) {
-          throw const OrderControllerException(
-            'order.message.invalidOrderPayload',
+          final payload = _decodeBody(response.body);
+          if (response.statusCode >= 400) {
+            throw OrderControllerException(
+              _extractErrorMessageWithFallback(
+                payload,
+                orderControllerMessageToken(
+                  OrderMessageCode.statusUpdateFailed,
+                ),
+              ),
+            );
+          }
+          final data = payload['data'];
+          if (data is! Map<String, dynamic>) {
+            throw const OrderControllerException(
+              'order.message.invalidOrderPayload',
+            );
+          }
+          final nextOrder = _mapRemoteOrder(data);
+          _replaceOrder(nextOrder);
+          _lastRemoteSyncAt = DateTime.now();
+          notifyListeners();
+          return true;
+        } catch (error) {
+          _lastActionMessage = _normalizeOrderControllerFailure(
+            error,
+            fallbackCode: OrderMessageCode.statusUpdateFailed,
           );
+          return false;
         }
-        final nextOrder = _mapRemoteOrder(data);
-        _replaceOrder(nextOrder);
-        _lastRemoteSyncAt = DateTime.now();
-        notifyListeners();
-        return true;
-      } catch (error) {
-        _lastActionMessage = _normalizeOrderControllerFailure(
-          error,
-          fallbackCode: OrderMessageCode.statusUpdateFailed,
-        );
-        return false;
-      }
+      });
     }
 
     _lastActionMessage = _unavailableActionMessage();
@@ -379,13 +523,15 @@ class OrderController extends ChangeNotifier {
     }
     _isRecordingPayment = true;
     try {
-      return await _recordPaymentInternal(
-        orderId: orderId,
-        amount: amount,
-        channel: channel,
-        note: note,
-        proofFileName: proofFileName,
-        method: method,
+      return await _trackCriticalMutation(
+        () => _recordPaymentInternal(
+          orderId: orderId,
+          amount: amount,
+          channel: channel,
+          note: note,
+          proofFileName: proofFileName,
+          method: method,
+        ),
       );
     } finally {
       _isRecordingPayment = false;
@@ -484,6 +630,22 @@ class OrderController extends ChangeNotifier {
   }
 
   Future<bool> _loadRemoteOrdersAndPayments() async {
+    final inFlight = _remoteOrdersRefreshInFlight;
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final refreshFuture = _loadRemoteOrdersAndPaymentsInternal();
+    _remoteOrdersRefreshInFlight = refreshFuture;
+    refreshFuture.whenComplete(() {
+      if (identical(_remoteOrdersRefreshInFlight, refreshFuture)) {
+        _remoteOrdersRefreshInFlight = null;
+      }
+    });
+    return refreshFuture;
+  }
+
+  Future<bool> _loadRemoteOrdersAndPaymentsInternal() async {
     if (!await _canUseRemoteApi()) {
       return false;
     }
@@ -697,12 +859,12 @@ class OrderController extends ChangeNotifier {
       items: items,
       paidAmount: _parsePrice(json['paidAmount']),
       note: _normalizeString(json['note']),
-      subtotalOverride: _parsePrice(json['subtotal']),
-      discountPercentOverride: _parseInt(json['discountPercent']),
-      discountAmountOverride: _parsePrice(json['discountAmount']),
-      vatPercentOverride: _parseInt(json['vatPercent'], fallback: kVatPercent),
-      vatAmountOverride: _parsePrice(json['vatAmount']),
-      totalAmountOverride: _parsePrice(json['totalAmount']),
+      subtotalSnapshot: _parsePrice(json['subtotal']),
+      discountPercentSnapshot: _parseInt(json['discountPercent']),
+      discountAmountSnapshot: _parsePrice(json['discountAmount']),
+      vatPercentSnapshot: _parseInt(json['vatPercent'], fallback: kVatPercent),
+      vatAmountSnapshot: _parsePrice(json['vatAmount']),
+      totalAmountSnapshot: _parsePrice(json['totalAmount']),
     );
   }
 
@@ -804,11 +966,9 @@ class OrderController extends ChangeNotifier {
         return OrderPaymentStatus.debtRecorded;
       case 'CANCELLED':
         return OrderPaymentStatus.cancelled;
-      case 'FAILED':
-        return OrderPaymentStatus.failed;
       case 'PENDING':
       default:
-        return OrderPaymentStatus.unpaid;
+        return OrderPaymentStatus.pending;
     }
   }
 

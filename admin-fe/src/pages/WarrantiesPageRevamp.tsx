@@ -419,15 +419,15 @@ function WarrantiesPageRevamp() {
 
             {/* Desktop table */}
             <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-full border-separate border-spacing-y-2">
+              <table className="min-w-[68rem] border-separate border-spacing-y-2">
                 <thead>
                   <tr className={tableHeadClass}>
-                    <th className="px-3 py-2 font-semibold">{copy.code}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.product}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.customer}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.dealer}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.status}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.endDate}</th>
+                    <th className="w-44 px-3 py-2 font-semibold">{copy.code}</th>
+                    <th className="min-w-44 px-3 py-2 font-semibold">{copy.product}</th>
+                    <th className="min-w-44 px-3 py-2 font-semibold">{copy.customer}</th>
+                    <th className="min-w-36 px-3 py-2 font-semibold">{copy.dealer}</th>
+                    <th className="w-44 px-3 py-2 font-semibold">{copy.status}</th>
+                    <th className="w-44 px-3 py-2 font-semibold">{copy.endDate}</th>
                     <th className="px-3 py-2" />
                   </tr>
                 </thead>

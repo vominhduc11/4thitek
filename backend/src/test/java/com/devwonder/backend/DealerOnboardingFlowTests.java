@@ -146,7 +146,7 @@ class DealerOnboardingFlowTests {
 
         adminManagementService.updateDealerAccountStatus(
                 dealer.getId(),
-                new UpdateAdminDealerAccountStatusRequest(CustomerStatus.ACTIVE)
+                new UpdateAdminDealerAccountStatusRequest(CustomerStatus.ACTIVE, null)
         );
 
         List<Notify> notices = notifyRepository.findByAccountIdOrderByCreatedAtDesc(dealer.getId());

@@ -16,6 +16,7 @@ import com.devwonder.backend.repository.ProductSerialRepository;
 import com.devwonder.backend.repository.WarrantyRegistrationRepository;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import com.devwonder.backend.service.support.WarrantyDateSupport;
+import com.devwonder.backend.service.support.WarrantyStatusSupport;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -60,6 +61,7 @@ public class AdminReportingService {
     private final BulkDiscountRepository bulkDiscountRepository;
     private final WarrantyRegistrationRepository warrantyRegistrationRepository;
     private final ProductSerialRepository productSerialRepository;
+    private final AdminSettingsService adminSettingsService;
 
     @Transactional(readOnly = true)
     public AdminReportExportResponse export(AdminReportExportType type, AdminReportFormat format) {
@@ -87,8 +89,8 @@ public class AdminReportingService {
     }
 
     private TableReport buildOrdersReport(List<BulkDiscount> activeDiscountRules) {
-        List<Order> orders = orderRepository.findAll().stream()
-                .sorted(Comparator.comparing(Order::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+        List<Order> orders = orderRepository.findVisibleByCreatedAtDesc(org.springframework.data.domain.Pageable.unpaged())
+                .stream()
                 .toList();
 
         List<List<String>> rows = orders.stream()
@@ -113,7 +115,7 @@ public class AdminReportingService {
 
     private TableReport buildRevenueReport(List<BulkDiscount> activeDiscountRules) {
         Map<String, DealerRevenueRow> summary = new LinkedHashMap<>();
-        for (Order order : orderRepository.findAll()) {
+        for (Order order : orderRepository.findVisibleByCreatedAtDesc(org.springframework.data.domain.Pageable.unpaged())) {
             Dealer dealer = order.getDealer();
             String key = dealer == null ? "unassigned" : String.valueOf(dealer.getId());
             DealerRevenueRow row = summary.computeIfAbsent(key, ignored ->
@@ -294,7 +296,11 @@ public class AdminReportingService {
     }
 
     private BigDecimal calculateTotalAmount(Order order, List<BulkDiscount> activeDiscountRules) {
-        return OrderPricingSupport.computeTotalAmount(order, activeDiscountRules)
+        return OrderPricingSupport.computeTotalAmount(
+                        order,
+                        activeDiscountRules,
+                        adminSettingsService.getEffectiveSettings().vatPercent()
+                )
                 .setScale(2, RoundingMode.HALF_UP);
     }
 
@@ -338,14 +344,7 @@ public class AdminReportingService {
     }
 
     private Enum<?> resolveWarrantyStatus(WarrantyRegistration registration) {
-        if (registration.getStatus() == null) {
-            return null;
-        }
-        if (registration.getStatus().name().equals("ACTIVE")
-                && WarrantyDateSupport.isExpired(registration.getWarrantyEnd())) {
-            return Enum.valueOf(registration.getStatus().getDeclaringClass(), "EXPIRED");
-        }
-        return registration.getStatus();
+        return WarrantyStatusSupport.resolveEffectiveStatus(registration);
     }
 
     private String repeat(String value, int count) {

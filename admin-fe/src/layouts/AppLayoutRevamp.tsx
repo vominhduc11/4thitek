@@ -402,12 +402,6 @@ function AppLayoutRevamp() {
         icon: Landmark,
         group: "service",
       },
-      {
-        to: "/settings",
-        label: copy.nav.settings,
-        icon: Settings,
-        group: "system",
-      },
     ];
 
     if (hasRole("SUPER_ADMIN")) {
@@ -421,6 +415,12 @@ function AppLayoutRevamp() {
         to: "/audit-logs",
         label: copy.nav.auditLogs,
         icon: ClipboardList,
+        group: "system",
+      });
+      items.push({
+        to: "/settings",
+        label: copy.nav.settings,
+        icon: Settings,
         group: "system",
       });
     }
@@ -1240,7 +1240,7 @@ function AppLayoutRevamp() {
 
                     {isAccountOpen ? (
                       <div
-                        className="absolute right-0 z-30 mt-2 w-64 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_18px_40px_rgba(15,23,42,0.12)]"
+                        className="absolute right-0 z-30 mt-2 w-[min(92vw,16rem)] rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_18px_40px_rgba(15,23,42,0.12)] sm:w-64"
                         role="menu"
                       >
                         <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">

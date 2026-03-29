@@ -52,6 +52,7 @@ public class AdminFinancialService {
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final BulkDiscountRepository bulkDiscountRepository;
+    private final AdminSettingsService adminSettingsService;
 
     // ---- FinancialSettlement ----
 
@@ -99,7 +100,7 @@ public class AdminFinancialService {
                 s.getId(),
                 order != null ? order.getId() : null,
                 order != null ? order.getOrderCode() : null,
-                s.getType(),
+                s.getTypeEnum(),
                 s.getAmount(),
                 s.getStatus(),
                 s.getCreatedBy(),
@@ -167,8 +168,9 @@ public class AdminFinancialService {
         }
 
         List<BulkDiscount> activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
+        int vatPercent = adminSettingsService.getEffectiveSettings().vatPercent();
         order.setPaidAmount(newPaidAmount);
-        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
+        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules, vatPercent));
         orderRepository.save(order);
 
         return toAdjustmentResponse(adjustment);
@@ -304,8 +306,9 @@ public class AdminFinancialService {
         BigDecimal newPaidAmount = paidFromPayments.add(paidFromAdjustments);
 
         List<BulkDiscount> activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
+        int vatPercent = adminSettingsService.getEffectiveSettings().vatPercent();
         order.setPaidAmount(newPaidAmount);
-        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
+        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules, vatPercent));
         orderRepository.save(order);
     }
 

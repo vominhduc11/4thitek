@@ -127,6 +127,8 @@ class LocalCheckoutValidationDataSource
   Future<CheckoutValidationResult> validate(
     CheckoutValidationRequest request,
   ) async {
+    // Dealer-side checkout validation is a pre-flight UX guard only.
+    // Backend remains authoritative for stock, pricing, and debt eligibility.
     final issues = <CheckoutValidationIssue>[];
     if (request.isCartSyncing) {
       issues.add(

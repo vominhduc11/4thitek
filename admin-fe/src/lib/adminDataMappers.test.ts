@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mapBackendSettings, mapOrder, toBlogUpsertRequest } from './adminDataMappers'
+import { mapBackendPaymentStatus, mapBackendSettings, mapOrder, mapUser, toBlogUpsertRequest } from './adminDataMappers'
 
 describe('adminDataMappers', () => {
   it('falls back to zero when numeric order fields are malformed', () => {
@@ -22,6 +22,7 @@ describe('adminDataMappers', () => {
     expect(mapped.paidAmount).toBe(0)
     expect(mapped.outstandingAmount).toBe(0)
     expect(mapped.orderCode).toBe('SCS-42')
+    expect(mapped.allowedTransitions).toBeUndefined()
   })
 
   it('maps nested admin settings payloads', () => {
@@ -31,6 +32,7 @@ describe('adminDataMappers', () => {
       sessionTimeoutMinutes: 45,
       orderAlerts: true,
       inventoryAlerts: false,
+      vatPercent: 8,
       sepay: {
         enabled: true,
         webhookToken: 'token-123',
@@ -54,6 +56,7 @@ describe('adminDataMappers', () => {
     })
 
     expect(mapped.sepay.enabled).toBe(true)
+    expect(mapped.vatPercent).toBe(8)
     expect(mapped.sepay.webhookToken).toBe('token-123')
     expect(mapped.emailSettings.from).toBe('noreply@example.com')
     expect(mapped.rateLimitOverrides.auth.requests).toBe(12)
@@ -73,5 +76,46 @@ describe('adminDataMappers', () => {
     expect(request.showOnHomepage).toBe(false)
     expect(request.introduction).toContain('Paragraph one.')
     expect(request.introduction).toContain('Paragraph two.')
+  })
+
+  it('treats unknown payment status values as pending', () => {
+    expect(mapBackendPaymentStatus('FAILED')).toBe('pending')
+  })
+
+  it('keeps system role separate from the displayed title', () => {
+    expect(
+      mapUser({
+        id: 9,
+        name: 'System Owner',
+        role: 'Operations lead',
+        systemRole: 'SUPER_ADMIN',
+        status: 'ACTIVE',
+        username: 'owner',
+        email: 'owner@example.com',
+      }),
+    ).toMatchObject({
+      role: 'Operations lead',
+      systemRole: 'SUPER_ADMIN',
+    })
+  })
+
+  it('maps backend transition hints when provided', () => {
+    expect(
+      mapOrder({
+        id: 7,
+        orderCode: 'ORD-7',
+        dealerName: 'Dealer B',
+        totalAmount: 100000,
+        status: 'CONFIRMED',
+        paymentMethod: 'BANK_TRANSFER',
+        paymentStatus: 'PENDING',
+        paidAmount: 0,
+        itemCount: 1,
+        allowedTransitions: ['CONFIRMED', 'SHIPPING', 'CANCELLED'],
+      }),
+    ).toMatchObject({
+      status: 'confirmed',
+      allowedTransitions: ['confirmed', 'shipping', 'cancelled'],
+    })
   })
 })

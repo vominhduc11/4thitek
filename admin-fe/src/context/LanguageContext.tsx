@@ -783,8 +783,8 @@ const translations: Record<Language, TranslationMap> = {
       "Manage dealer profiles, credit limits, and account activation status.",
     "Quản lý ngưỡng doanh số, phần trăm ưu đãi và trạng thái kích hoạt của từng quy tắc.":
       "Manage revenue thresholds, discount percentages, and activation status for each rule.",
-    "Quản lý tài khoản admin, vai trò phụ trách và trạng thái kích hoạt một cách nhất quán.":
-      "Manage admin accounts, responsibility roles, and activation status with clearer guardrails.",
+    "Quản lý tài khoản admin, chức danh hiển thị nội bộ và trạng thái kích hoạt. Quyền truy cập thật chỉ dựa trên vai trò hệ thống ở backend.":
+      "Manage admin accounts, internal display titles, and activation status. Real access is enforced only by backend system roles.",
     "Quản lý thông tin nhận thanh toán và webhook dùng cho đối soát giao dịch.":
       "Manage receiving-account details and webhook configuration for payment reconciliation.",
     "Quản trị viên": "Administrator",
@@ -911,6 +911,8 @@ const translations: Record<Language, TranslationMap> = {
     "Tìm theo tên, mã hoặc email...": "Search by name, code, or email...",
     "Tìm theo tên, vai trò, email hoặc mã...":
       "Search by name, role, email, or id...",
+    "Tìm theo tên, chức danh, vai trò hệ thống, email hoặc mã...":
+      "Search by name, displayed title, system role, email, or id...",
     "Tìm thông báo": "Search notifications",
     "Tìm ticket": "Search tickets",
     "Tìm tiêu đề, tài khoản, nội dung...":
@@ -938,10 +940,18 @@ const translations: Record<Language, TranslationMap> = {
     "Ưu tiên kiểm tra SKU tồn dưới hoặc bằng 10 để tránh gián đoạn đơn hàng.":
       "Check SKUs at or below 10 units before they block order fulfillment.",
     "Vai trò": "Role",
+    "Chức danh hiển thị": "Displayed title",
+    "Vai trò hệ thống": "System role",
+    "Ví dụ: Hỗ trợ đại lý": "Example: Dealer support",
+    "Chỉ dùng để hiển thị nội bộ; quyền thật vẫn do role hệ thống ADMIN hoặc SUPER_ADMIN quyết định.":
+      "For internal display only; real access is still controlled by the ADMIN or SUPER_ADMIN system role.",
+    "Quyền backend thật. Tài khoản mới tạo từ màn này luôn mang ADMIN; SUPER_ADMIN không được gán tại đây.":
+      "This is the real backend permission. Accounts invited from this page always get ADMIN; SUPER_ADMIN cannot be assigned here.",
     "Ve danh sach bai viet": "Back to posts",
     "Vui lòng chọn sản phẩm và nhập ít nhất một serial hợp lệ.":
       "Select a product and enter at least one valid serial.",
     "Vui lòng chọn vai trò.": "Please select a role.",
+    "Vui lòng nhập chức danh hiển thị.": "Please enter a displayed title.",
     "Vui long nhap day du tieu de va danh muc.":
       "Please provide both a title and category.",
     "Vui lòng nhập đủ tên, ngưỡng và phần trăm hợp lệ.":

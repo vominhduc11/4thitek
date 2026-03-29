@@ -253,7 +253,7 @@ function DashboardPageRevamp() {
           role="status"
         >
           <span className="sr-only">Loading dashboard</span>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: 3 }).map((_, index) => (
               <div
                 key={`dashboard-stat-skeleton-${index}`}
@@ -310,7 +310,7 @@ function DashboardPageRevamp() {
         <StatusBadge tone="info">{dashboard.revenue.delta}</StatusBadge>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-4">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={TrendingUp}
           label={dashboard.revenue.label}
@@ -353,7 +353,7 @@ function DashboardPageRevamp() {
           </div>
           <div
             aria-label={t("Biểu đồ xu hướng doanh số")}
-            className="mt-4 h-72"
+            className="mt-4 h-56 sm:h-64 lg:h-72"
             role="img"
           >
             <Bar data={trendChart} options={trendOptions} />
@@ -364,10 +364,10 @@ function DashboardPageRevamp() {
           <p className="text-sm font-semibold text-[var(--ink)]">
             {copy.orderStatus}
           </p>
-          <div className="mt-4 grid gap-4 lg:grid-cols-[180px_1fr] xl:grid-cols-1">
+          <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,10.5rem)_minmax(0,1fr)] xl:grid-cols-1">
             <div
               aria-label={t("Biểu đồ trạng thái đơn hàng")}
-              className="mx-auto h-44 w-44 xl:h-52 xl:w-52"
+              className="mx-auto aspect-square w-full max-w-[10.5rem] sm:max-w-[11.5rem] xl:max-w-[13rem]"
               role="img"
             >
               <Doughnut data={orderStatusChart} options={orderStatusOptions} />

@@ -109,58 +109,6 @@ class OrderDetailScreen extends StatelessWidget {
     );
   }
 
-  void _confirmReceived(BuildContext context, Order order) {
-    final texts = _orderDetailTexts(context);
-    showDialog<void>(
-      context: context,
-      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
-      requestFocus: true,
-      builder: (dialogContext) {
-        final colors = Theme.of(context).colorScheme;
-        return AlertDialog(
-          title: Text(texts.confirmReceivedTitle),
-          content: _buildConfirmationSummary(
-            context,
-            order,
-            texts,
-            footerMessage: texts.paymentWillBeMarkedCompleteMessage,
-            footerColor: colors.primary,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(texts.noAction),
-            ),
-            FilledButton(
-              onPressed: () async {
-                Navigator.of(dialogContext).pop();
-                final orderController = OrderScope.of(context);
-                final success = await orderController.updateOrderStatus(
-                  order.id,
-                  OrderStatus.completed,
-                );
-                if (!context.mounted || success) {
-                  return;
-                }
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      orderControllerErrorMessage(
-                        orderController.lastActionMessage,
-                        isEnglish: texts.isEnglish,
-                      ),
-                    ),
-                  ),
-                );
-              },
-              child: Text(texts.confirmAction),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<void> _callReceiver(BuildContext context, String rawPhone) async {
     final texts = _orderDetailTexts(context);
     final normalized = rawPhone.replaceAll(RegExp(r'[^0-9+]'), '');
@@ -451,23 +399,19 @@ class OrderDetailScreen extends StatelessWidget {
     required Order order,
     required CartController cart,
     required bool canProcessSerial,
-    required bool canMarkReceived,
     required bool canCancel,
   }) {
     final texts = _orderDetailTexts(context);
     final colors = Theme.of(context).colorScheme;
     final canReorder = order.status != OrderStatus.cancelled;
-    final markReceivedIsPrimary = canMarkReceived;
     final canShowBankTransferInfo =
         order.paymentMethod == OrderPaymentMethod.bankTransfer &&
         order.outstandingAmount > 0;
     final canRecordPayment =
         order.paymentMethod != OrderPaymentMethod.bankTransfer &&
         order.outstandingAmount > 0;
-    final paymentActionIsPrimary =
-        !markReceivedIsPrimary && (canShowBankTransferInfo || canRecordPayment);
-    final processSerialIsPrimary =
-        !markReceivedIsPrimary && !paymentActionIsPrimary && canProcessSerial;
+    final paymentActionIsPrimary = canShowBankTransferInfo || canRecordPayment;
+    final processSerialIsPrimary = !paymentActionIsPrimary && canProcessSerial;
 
     final actions = <Widget>[
       if (canReorder)
@@ -523,11 +467,6 @@ class OrderDetailScreen extends StatelessWidget {
                 },
                 child: Text(texts.processSerialAction),
               ),
-      if (canMarkReceived)
-        ElevatedButton(
-          onPressed: () => _confirmReceived(context, order),
-          child: Text(texts.confirmReceivedAction),
-        ),
       if (canCancel)
         TextButton(
           style: TextButton.styleFrom(
@@ -565,13 +504,11 @@ class OrderDetailScreen extends StatelessWidget {
     final canCancel =
         order.status == OrderStatus.pending ||
         order.status == OrderStatus.confirmed;
-    final canMarkReceived = false;
     final stickyActionBar = _buildStickyActionBar(
       context: context,
       order: order,
       cart: cart,
       canProcessSerial: canProcessSerial,
-      canMarkReceived: canMarkReceived,
       canCancel: canCancel,
     );
     final payments = OrderScope.of(
@@ -997,9 +934,7 @@ class _OrderDetailTexts {
     switch (status) {
       case OrderPaymentStatus.cancelled:
         return isEnglish ? 'Cancelled' : 'Đã hủy';
-      case OrderPaymentStatus.failed:
-        return isEnglish ? 'Failed' : 'Thất bại';
-      case OrderPaymentStatus.unpaid:
+      case OrderPaymentStatus.pending:
         return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
       case OrderPaymentStatus.paid:
         return isEnglish ? 'Paid' : 'Đã thanh toán';
@@ -1403,9 +1338,7 @@ Color _paymentStatusBackground(
     switch (status) {
       case OrderPaymentStatus.cancelled:
         return const Color(0xFF3B1F26);
-      case OrderPaymentStatus.failed:
-        return const Color(0xFF4C2A15);
-      case OrderPaymentStatus.unpaid:
+      case OrderPaymentStatus.pending:
         return const Color(0xFF4A1E24);
       case OrderPaymentStatus.paid:
         return const Color(0xFF1A3F2D);
@@ -1416,9 +1349,7 @@ Color _paymentStatusBackground(
   switch (status) {
     case OrderPaymentStatus.cancelled:
       return const Color(0xFFFDE7EC);
-    case OrderPaymentStatus.failed:
-      return const Color(0xFFFFEDD5);
-    case OrderPaymentStatus.unpaid:
+    case OrderPaymentStatus.pending:
       return const Color(0xFFFEECEE);
     case OrderPaymentStatus.paid:
       return const Color(0xFFE8F8EF);
@@ -1435,9 +1366,7 @@ Color _paymentStatusTextColor(
     switch (status) {
       case OrderPaymentStatus.cancelled:
         return const Color(0xFFFDA4AF);
-      case OrderPaymentStatus.failed:
-        return const Color(0xFFF6AD55);
-      case OrderPaymentStatus.unpaid:
+      case OrderPaymentStatus.pending:
         return const Color(0xFFFDA4AF);
       case OrderPaymentStatus.paid:
         return const Color(0xFF86EFAC);
@@ -1448,9 +1377,7 @@ Color _paymentStatusTextColor(
   switch (status) {
     case OrderPaymentStatus.cancelled:
       return const Color(0xFFB42318);
-    case OrderPaymentStatus.failed:
-      return const Color(0xFFB54708);
-    case OrderPaymentStatus.unpaid:
+    case OrderPaymentStatus.pending:
       return const Color(0xFFB42318);
     case OrderPaymentStatus.paid:
       return const Color(0xFF1D7A3A);

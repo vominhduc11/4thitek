@@ -75,6 +75,7 @@ const DealerProfile _sampleProfile = DealerProfile(
   city: 'TP HCM',
   country: 'Viet Nam',
   salesPolicy: 'Chinh sach A',
+  vatPercent: 8,
 );
 
 Future<Widget> _buildApp(Locale locale, {required Widget child}) async {

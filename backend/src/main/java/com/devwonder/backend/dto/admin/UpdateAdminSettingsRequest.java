@@ -13,6 +13,9 @@ public record UpdateAdminSettingsRequest(
         Integer sessionTimeoutMinutes,
         Boolean orderAlerts,
         Boolean inventoryAlerts,
+        @Min(value = 0, message = "vatPercent must be between 0 and 100")
+        @Max(value = 100, message = "vatPercent must be between 0 and 100")
+        Integer vatPercent,
         @Valid
         SepaySettings sepay,
         @Valid

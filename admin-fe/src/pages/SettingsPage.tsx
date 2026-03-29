@@ -37,6 +37,7 @@ type RateLimitBucketKey =
 
 type ValidationKey =
   | "sessionTimeoutMinutes"
+  | "vatPercent"
   | "emailFrom"
   | "emailFromName"
   | "sepayAccountNumber"
@@ -46,6 +47,7 @@ type ValidationKey =
 type ValidationMap = Partial<Record<ValidationKey, string>>;
 
 const SESSION_TIMEOUT_RANGE = { min: 5, max: 480 };
+const VAT_PERCENT_RANGE = { min: 0, max: 100 };
 const RATE_LIMIT_REQUEST_RANGE = { min: 1, max: 10_000 };
 const RATE_LIMIT_WINDOW_RANGE = { min: 1, max: 86_400 };
 
@@ -77,6 +79,14 @@ const copyKeys = {
   notifications: "Thông báo",
   notificationsDescription:
     "Chọn các tín hiệu vận hành cần gửi cho đội ngũ nội bộ.",
+  finance: "VAT & pricing",
+  financeDescription:
+    "Backend is the source of truth for order pricing. This VAT setting drives API responses and dealer-side previews.",
+  vatPercent: "Default VAT",
+  vatPercentHelp:
+    "Valid range is 0 to 100. Dealer FE only uses this for previews; backend recalculates final order totals.",
+  vatPercentPlaceholder: "Enter VAT %",
+  vatPercentError: "VAT must be an integer between 0 and 100.",
   sepay: "SePay",
   sepayDescription:
     "Quản lý thông tin nhận thanh toán và webhook dùng cho đối soát giao dịch.",
@@ -159,6 +169,14 @@ const getValidationErrors = (
     draft.sessionTimeoutMinutes > SESSION_TIMEOUT_RANGE.max
   ) {
     nextErrors.sessionTimeoutMinutes = copy.sessionTimeoutError;
+  }
+
+  if (
+    !Number.isInteger(draft.vatPercent) ||
+    draft.vatPercent < VAT_PERCENT_RANGE.min ||
+    draft.vatPercent > VAT_PERCENT_RANGE.max
+  ) {
+    nextErrors.vatPercent = copy.vatPercentError;
   }
 
   if (draft.emailSettings.enabled || draft.emailSettings.from.trim()) {
@@ -369,6 +387,11 @@ function SettingsPage() {
         SESSION_TIMEOUT_RANGE.min,
         SESSION_TIMEOUT_RANGE.max,
       ),
+      vatPercent: clampInteger(
+        draft.vatPercent,
+        VAT_PERCENT_RANGE.min,
+        VAT_PERCENT_RANGE.max,
+      ),
       sepay: {
         ...draft.sepay,
         webhookToken: draft.sepay.webhookToken.trim(),
@@ -549,6 +572,52 @@ function SettingsPage() {
               }))
             }
           />
+        </SettingsSection>
+
+        <SettingsSection
+          icon={Wallet}
+          title={copy.finance}
+          description={copy.financeDescription}
+        >
+          <SettingField
+            label={copy.vatPercent}
+            hint={copy.vatPercentHelp}
+            error={validationErrors.vatPercent}
+            inputId="settings-vat-percent"
+          >
+            <input
+              id="settings-vat-percent"
+              aria-invalid={Boolean(validationErrors.vatPercent)}
+              aria-describedby={
+                validationErrors.vatPercent
+                  ? "settings-vat-percent-error"
+                  : undefined
+              }
+              className={inputClass}
+              inputMode="numeric"
+              max={VAT_PERCENT_RANGE.max}
+              min={VAT_PERCENT_RANGE.min}
+              onBlur={(event) =>
+                setDraft((previous) => ({
+                  ...previous,
+                  vatPercent: clampInteger(
+                    Number(event.target.value || previous.vatPercent),
+                    VAT_PERCENT_RANGE.min,
+                    VAT_PERCENT_RANGE.max,
+                  ),
+                }))
+              }
+              onChange={(event) =>
+                setDraft((previous) => ({
+                  ...previous,
+                  vatPercent: Number(event.target.value || 0),
+                }))
+              }
+              placeholder={copy.vatPercentPlaceholder}
+              type="number"
+              value={draft.vatPercent}
+            />
+          </SettingField>
         </SettingsSection>
 
         <SettingsSection
@@ -761,7 +830,7 @@ function SettingsPage() {
           }
         />
 
-        <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {rateLimitBuckets.map((bucket) => (
             <div key={bucket} className={softCardClass}>
               <p className="text-sm font-semibold text-[var(--ink)]">

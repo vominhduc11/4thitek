@@ -46,6 +46,15 @@ export const mapBackendOrderStatus = (status?: BackendOrderStatus | null): Order
   }
 }
 
+const mapAllowedOrderTransitions = (
+  statuses?: BackendOrderStatus[] | null,
+): OrderStatus[] | undefined => {
+  if (!statuses?.length) {
+    return undefined
+  }
+  return statuses.map((status) => mapBackendOrderStatus(status))
+}
+
 export const toBackendOrderStatus = (status: OrderStatus): BackendOrderStatus => {
   switch (status) {
     case 'confirmed':
@@ -83,8 +92,6 @@ export const mapBackendPaymentStatus = (status?: BackendPaymentStatus | null): P
       return 'debt_recorded'
     case 'CANCELLED':
       return 'cancelled'
-    case 'FAILED':
-      return 'failed'
     default:
       return 'pending'
   }
@@ -123,6 +130,15 @@ export const mapBackendDealerAccountStatus = (
     default:
       return 'active'
   }
+}
+
+const mapAllowedDealerTransitions = (
+  statuses?: BackendDealerAccountStatus[] | null,
+): DealerStatus[] | undefined => {
+  if (!statuses?.length) {
+    return undefined
+  }
+  return statuses.map((status) => mapBackendDealerAccountStatus(status))
 }
 
 export const toBackendDealerAccountStatus = (status: DealerStatus): BackendDealerAccountStatus => {
@@ -208,6 +224,7 @@ export const mapOrder = (order: BackendOrderResponse): Order => {
       unitPrice: parseFiniteNumber(item.unitPrice),
     })),
     staleReviewRequired: Boolean(order.staleReviewRequired) || false,
+    allowedTransitions: mapAllowedOrderTransitions(order.allowedTransitions),
   }
 }
 
@@ -237,12 +254,14 @@ export const mapDealer = (dealer: BackendDealerAccountResponse): Dealer => ({
   creditLimit: Number(dealer.creditLimit ?? 0),
   email: dealer.email || '',
   phone: dealer.phone || '',
+  allowedTransitions: mapAllowedDealerTransitions(dealer.allowedTransitions),
 })
 
 export const mapUser = (user: BackendStaffUserResponse): StaffUser => ({
   id: String(user.id),
   name: user.name || user.username || '',
   role: user.role || '',
+  systemRole: user.systemRole === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'ADMIN',
   email: user.email || '',
   status: mapBackendUserStatus(user.status),
 })
@@ -261,6 +280,7 @@ export const mapBackendSettings = (settings: BackendAdminSettingsResponse): AppS
   sessionTimeoutMinutes: Number(settings.sessionTimeoutMinutes ?? initialSettings.sessionTimeoutMinutes),
   orderAlerts: Boolean(settings.orderAlerts),
   inventoryAlerts: Boolean(settings.inventoryAlerts),
+  vatPercent: Number(settings.vatPercent ?? initialSettings.vatPercent),
   sepay: {
     enabled: Boolean(settings.sepay?.enabled),
     webhookToken: settings.sepay?.webhookToken?.trim() || '',

@@ -124,6 +124,7 @@ class AdminStaffUserContractTests {
                 .andExpect(jsonPath("$.data.email").value("staff.ops@example.com"))
                 .andExpect(jsonPath("$.data.name").value("Support Agent"))
                 .andExpect(jsonPath("$.data.role").value("Support"))
+                .andExpect(jsonPath("$.data.systemRole").value("ADMIN"))
                 .andExpect(jsonPath("$.data.status").value("PENDING"))
                 .andExpect(jsonPath("$.data.temporaryPassword").doesNotExist())
                 .andReturn();

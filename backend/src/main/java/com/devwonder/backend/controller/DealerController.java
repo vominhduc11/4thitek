@@ -2,7 +2,6 @@ package com.devwonder.backend.controller;
 
 import com.devwonder.backend.dto.ApiResponse;
 import com.devwonder.backend.dto.dealer.CreateDealerOrderRequest;
-import com.devwonder.backend.dto.dealer.CreateDealerSerialBatchRequest;
 import com.devwonder.backend.dto.dealer.CreateDealerSupportTicketRequest;
 import com.devwonder.backend.dto.dealer.DealerBankTransferInstructionResponse;
 import com.devwonder.backend.dto.dealer.DealerCartItemResponse;
@@ -21,7 +20,6 @@ import com.devwonder.backend.dto.dealer.UpsertDealerCartItemRequest;
 import com.devwonder.backend.dto.customer.ChangePasswordRequest;
 import com.devwonder.backend.dto.notify.NotifyResponse;
 import com.devwonder.backend.dto.pagination.PagedResponse;
-import com.devwonder.backend.dto.serial.SerialImportSummaryResponse;
 import com.devwonder.backend.dto.warranty.CreateWarrantyRegistrationRequest;
 import com.devwonder.backend.dto.warranty.WarrantyRegistrationResponse;
 import com.devwonder.backend.entity.Account;
@@ -290,14 +288,6 @@ public class DealerController {
     @GetMapping("/serials")
     public ResponseEntity<ApiResponse<List<DealerProductSerialResponse>>> serials(Authentication authentication) {
         return ResponseEntity.ok(ApiResponse.success(dealerPortalService.getSerials(extractUsername(authentication))));
-    }
-
-    @PostMapping("/serials/import")
-    public ResponseEntity<ApiResponse<SerialImportSummaryResponse<DealerProductSerialResponse>>> importSerials(
-            Authentication authentication,
-            @Valid @RequestBody CreateDealerSerialBatchRequest request
-    ) {
-        return ResponseEntity.ok(ApiResponse.success(dealerPortalService.importSerials(extractUsername(authentication), request)));
     }
 
     @PatchMapping("/serials/{id}/status")

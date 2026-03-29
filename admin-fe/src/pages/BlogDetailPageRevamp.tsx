@@ -201,8 +201,8 @@ function BlogDetailPageRevamp() {
         </StatusBadge>
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.9fr)] xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,360px)]">
-        <article className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
+      <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.95fr)] xl:grid-cols-[minmax(0,1.45fr)_minmax(18rem,0.9fr)]">
+        <article className="min-w-0 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
           <div className="flex items-start justify-between gap-3">
             <p className={labelClass}>{post.id}</p>
             {!isEditing ? (
@@ -363,7 +363,7 @@ function BlogDetailPageRevamp() {
           </div>
         </article>
 
-        <aside className={`${formCardClass} space-y-6`}>
+        <aside className={`${formCardClass} min-w-0 space-y-6`}>
           <div className="space-y-2">
             <p className={cardTitleClass}>{copy.statusTitle}</p>
             <p className={bodyTextClass}>{copy.statusHelp}</p>

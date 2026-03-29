@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:meta/meta.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 
 import 'api_config.dart';
@@ -15,6 +14,15 @@ import 'utils.dart';
 
 const String _notificationSyncUnavailableMarker =
     'notification.sync.unavailable';
+@visibleForTesting
+const String dealerNotificationsRealtimeDestination =
+    '/user/queue/notifications';
+@visibleForTesting
+const String dealerOrderStatusRealtimeDestination = '/user/queue/order-status';
+@visibleForTesting
+const Duration dealerNotificationFallbackRefreshInterval = Duration(
+  seconds: 45,
+);
 
 String notificationSyncErrorMessage(String error, {required bool isEnglish}) {
   if (error == _notificationSyncUnavailableMarker) {
@@ -44,7 +52,6 @@ class NotificationController extends ChangeNotifier {
   }
 
   static const Duration _reconnectDelay = Duration(seconds: 5);
-  static const Duration _fallbackRefreshInterval = Duration(seconds: 45);
 
   late final AuthStorage _authStorage;
   late final http.Client _client;
@@ -390,11 +397,11 @@ class NotificationController extends ChangeNotifier {
           _realtimeConnecting = false;
           _stompClient = nextClient;
           nextClient.subscribe(
-            destination: '/user/queue/notifications',
+            destination: dealerNotificationsRealtimeDestination,
             callback: (frame) => _handleRealtimeFrame(connectionId, frame),
           );
           nextClient.subscribe(
-            destination: '/user/queue/order-status',
+            destination: dealerOrderStatusRealtimeDestination,
             callback: (frame) => _handleOrderStatusFrame(connectionId, frame),
           );
         },
@@ -441,9 +448,21 @@ class NotificationController extends ChangeNotifier {
     if (_fallbackRefreshTimer != null) {
       return;
     }
-    _fallbackRefreshTimer = Timer.periodic(_fallbackRefreshInterval, (_) {
-      unawaited(_runFallbackRefresh());
-    });
+    _fallbackRefreshTimer = Timer.periodic(
+      dealerNotificationFallbackRefreshInterval,
+      (_) {
+        unawaited(_runFallbackRefresh());
+      },
+    );
+  }
+
+  @visibleForTesting
+  bool get hasFallbackRefreshTimer => _fallbackRefreshTimer != null;
+
+  @visibleForTesting
+  void enableFallbackRefreshForTesting() {
+    _maintainRealtimeConnection = true;
+    _ensureFallbackRefresh();
   }
 
   Future<void> _runFallbackRefresh() async {

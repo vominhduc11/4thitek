@@ -1063,6 +1063,9 @@ class _WarrantyActivationScreenState extends State<WarrantyActivationScreen> {
     if (customerEmail.isNotEmpty && !isValidEmailAddress(customerEmail)) {
       preErrors.add(texts.invalidEmailMessage);
     }
+    if (customerPhone.isNotEmpty && !isValidVietnamPhoneNumber(customerPhone)) {
+      preErrors.add(texts.invalidPhoneMessage);
+    }
     final purchaseDateError = _validatePurchaseDateForOrder(order);
     if (purchaseDateError != null) preErrors.add(purchaseDateError);
     if (preErrors.isNotEmpty) {
@@ -1323,6 +1326,9 @@ class _WarrantyActivationTexts {
   String get invalidEmailMessage => isEnglish
       ? 'Please enter a valid email address.'
       : 'Vui long nhap email hop le.';
+  String get invalidPhoneMessage => isEnglish
+      ? 'Phone number must be 10 digits and start with 0.'
+      : 'So dien thoai phai gom 10 chu so va bat dau bang 0.';
   String serialRequiredForProduct(String productName) => isEnglish
       ? 'Please enter all serials for $productName.'
       : 'Vui long nhap day du serial cho $productName.';

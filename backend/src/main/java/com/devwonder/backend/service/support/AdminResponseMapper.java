@@ -53,10 +53,14 @@ public final class AdminResponseMapper {
     }
 
     public static AdminOrderResponse toOrderResponse(Order order) {
-        return toOrderResponse(order, List.of());
+        return toOrderResponse(order, List.of(), OrderPricingSupport.DEFAULT_VAT_PERCENT_FALLBACK);
     }
 
     public static AdminOrderResponse toOrderResponse(Order order, List<BulkDiscount> rules) {
+        return toOrderResponse(order, rules, OrderPricingSupport.DEFAULT_VAT_PERCENT_FALLBACK);
+    }
+
+    public static AdminOrderResponse toOrderResponse(Order order, List<BulkDiscount> rules, int vatPercent) {
         Dealer dealer = order.getDealer();
         List<AdminOrderItemResponse> orderItems = order.getOrderItems() == null
                 ? List.of()
@@ -75,12 +79,13 @@ public final class AdminResponseMapper {
                 order.getPaidAmount(),
                 order.getCreatedAt(),
                 order.getUpdatedAt(),
-                OrderPricingSupport.computeTotalAmount(order, rules),
+                OrderPricingSupport.computeTotalAmount(order, rules, vatPercent),
                 countOrderItems(order),
                 order.getReceiverAddress(),
                 order.getNote(),
                 orderItems,
-                order.getStaleReviewRequired()
+                order.getStaleReviewRequired(),
+                OrderStatusTransitionPolicy.adminAllowedTransitions(order.getStatus())
         );
     }
 
@@ -128,10 +133,14 @@ public final class AdminResponseMapper {
     }
 
     public static AdminDealerAccountResponse toDealerAccountResponse(Dealer dealer) {
-        return toDealerAccountResponse(dealer, List.of());
+        return toDealerAccountResponse(dealer, List.of(), OrderPricingSupport.DEFAULT_VAT_PERCENT_FALLBACK);
     }
 
     public static AdminDealerAccountResponse toDealerAccountResponse(Dealer dealer, List<BulkDiscount> rules) {
+        return toDealerAccountResponse(dealer, rules, OrderPricingSupport.DEFAULT_VAT_PERCENT_FALLBACK);
+    }
+
+    public static AdminDealerAccountResponse toDealerAccountResponse(Dealer dealer, List<BulkDiscount> rules, int vatPercent) {
         List<Order> visibleOrders = dealer.getOrders() == null
                 ? List.of()
                 : dealer.getOrders().stream().filter(AdminDashboardSupport::isVisibleOrder).toList();
@@ -144,7 +153,7 @@ public final class AdminResponseMapper {
                 .max(Comparator.naturalOrder())
                 .orElse(dealer.getCreatedAt());
         BigDecimal revenue = revenueOrders.stream()
-                .map(order -> OrderPricingSupport.computeTotalAmount(order, rules))
+                .map(order -> OrderPricingSupport.computeTotalAmount(order, rules, vatPercent))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         return new AdminDealerAccountResponse(
                 dealer.getId(),
@@ -157,7 +166,8 @@ public final class AdminResponseMapper {
                 revenue,
                 dealer.getCreditLimit(),
                 dealer.getEmail(),
-                dealer.getPhone()
+                dealer.getPhone(),
+                DealerAccountStatusTransitionPolicy.allowedTransitions(dealer.getCustomerStatus())
         );
     }
 
@@ -170,6 +180,7 @@ public final class AdminResponseMapper {
                 admin.getId(),
                 firstNonBlank(admin.getDisplayName(), admin.getUsername()),
                 firstNonBlank(admin.getRoleTitle(), "Admin"),
+                resolvePrimarySystemRole(admin),
                 admin.getUserStatus() == null ? StaffUserStatus.ACTIVE : admin.getUserStatus(),
                 admin.getUsername(),
                 admin.getEmail(),
@@ -197,6 +208,18 @@ public final class AdminResponseMapper {
 
     private static int safeInt(Integer value) {
         return value == null ? 0 : Math.max(value, 0);
+    }
+
+    private static String resolvePrimarySystemRole(Admin admin) {
+        if (admin == null || admin.getRoles() == null || admin.getRoles().isEmpty()) {
+            return "ADMIN";
+        }
+        return admin.getRoles().stream()
+                .map(role -> role == null ? null : normalize(role.getName()))
+                .filter(Objects::nonNull)
+                .sorted((left, right) -> Boolean.compare("SUPER_ADMIN".equals(right), "SUPER_ADMIN".equals(left)))
+                .findFirst()
+                .orElse("ADMIN");
     }
 
     private static String buildRangeLabel(BulkDiscount rule) {

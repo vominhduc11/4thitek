@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 
 public final class OrderPricingSupport {
 
-    private static final int VAT_PERCENT = 10;
+    public static final int DEFAULT_VAT_PERCENT_FALLBACK = 10;
     private static final Pattern RANGE_NUMBER_PATTERN = Pattern.compile("(\\d+)");
 
     private OrderPricingSupport() {
@@ -51,23 +51,38 @@ public final class OrderPricingSupport {
     }
 
     public static BigDecimal computeVatAmount(BigDecimal totalAfterDiscount) {
+        return computeVatAmount(totalAfterDiscount, DEFAULT_VAT_PERCENT_FALLBACK);
+    }
+
+    public static BigDecimal computeVatAmount(BigDecimal totalAfterDiscount, int vatPercent) {
         if (totalAfterDiscount.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO;
         }
-        return totalAfterDiscount.multiply(BigDecimal.valueOf(VAT_PERCENT))
+        return totalAfterDiscount.multiply(BigDecimal.valueOf(normalizeVatPercent(vatPercent)))
                 .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
     }
 
     public static BigDecimal computeTotalAmount(Order order, List<BulkDiscount> rules) {
-        return computePricing(order, rules).totalAmount();
+        return computeTotalAmount(order, rules, DEFAULT_VAT_PERCENT_FALLBACK);
+    }
+
+    public static BigDecimal computeTotalAmount(Order order, List<BulkDiscount> rules, int vatPercent) {
+        return computePricing(order, rules, vatPercent).totalAmount();
     }
 
     public static PaymentStatus resolvePaymentStatus(Order order, List<BulkDiscount> rules) {
+        return resolvePaymentStatus(order, rules, DEFAULT_VAT_PERCENT_FALLBACK);
+    }
+
+    public static PaymentStatus resolvePaymentStatus(Order order, List<BulkDiscount> rules, int vatPercent) {
+        // Aggregate order.paymentStatus is derived from order state + paidAmount.
+        // FAILED is kept only for legacy compatibility and is intentionally not
+        // emitted from this aggregate resolver.
         BigDecimal paidAmount = zeroIfNull(order == null ? null : order.getPaidAmount());
         if (order != null && order.getStatus() == OrderStatus.CANCELLED && paidAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return PaymentStatus.CANCELLED;
         }
-        BigDecimal totalAmount = computePricing(order, rules).totalAmount();
+        BigDecimal totalAmount = computePricing(order, rules, vatPercent).totalAmount();
         if (paidAmount.compareTo(totalAmount) >= 0 && totalAmount.compareTo(BigDecimal.ZERO) > 0) {
             return PaymentStatus.PAID;
         }
@@ -78,6 +93,10 @@ public final class OrderPricingSupport {
     }
 
     public static PricingBreakdown computePricing(Order order, List<BulkDiscount> rules) {
+        return computePricing(order, rules, DEFAULT_VAT_PERCENT_FALLBACK);
+    }
+
+    public static PricingBreakdown computePricing(Order order, List<BulkDiscount> rules, int vatPercent) {
         BigDecimal subtotal = computeSubtotal(order);
         if (subtotal.compareTo(BigDecimal.ZERO) <= 0) {
             BigDecimal totalAmount = BigDecimal.valueOf(safeShippingFee(order == null ? null : order.getShippingFee()));
@@ -115,7 +134,7 @@ public final class OrderPricingSupport {
                 .divide(subtotal, 0, RoundingMode.HALF_UP)
                 .intValue();
         BigDecimal totalAfterDiscount = subtotal.subtract(discountAmount);
-        BigDecimal vatAmount = computeVatAmount(totalAfterDiscount);
+        BigDecimal vatAmount = computeVatAmount(totalAfterDiscount, vatPercent);
         BigDecimal totalAmount = totalAfterDiscount
                 .add(vatAmount)
                 .add(BigDecimal.valueOf(safeShippingFee(order == null ? null : order.getShippingFee())));
@@ -311,6 +330,10 @@ public final class OrderPricingSupport {
     private static int normalizePercent(BigDecimal percent) {
         int value = percent.setScale(0, RoundingMode.HALF_UP).intValue();
         return Math.max(0, Math.min(100, value));
+    }
+
+    private static int normalizeVatPercent(int vatPercent) {
+        return Math.max(0, Math.min(100, vatPercent));
     }
 
     private static Integer sanitizeQuantity(Integer value) {

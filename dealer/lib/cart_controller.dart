@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'api_config.dart';
 import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
+import 'dealer_profile_storage.dart';
 import 'models.dart';
 
 class CartController extends ChangeNotifier {
@@ -23,7 +24,6 @@ class CartController extends ChangeNotifier {
   }
 
   static const Duration _remoteRequestTimeout = Duration(seconds: 12);
-  static const int vatPercent = kVatPercent;
 
   final Product? Function(String productId)? _productLookup;
   late final AuthStorage _authStorage;
@@ -34,11 +34,13 @@ class CartController extends ChangeNotifier {
   List<BulkDiscountRule> _discountRules = const <BulkDiscountRule>[];
   List<CartItem> _sortedItemsCache = const <CartItem>[];
   bool _itemsCacheDirty = true;
+  int _vatPercent = kVatPercent;
   Future<void> _remoteSyncQueue = Future<void>.value();
   int _localMutationVersion = 0;
 
   Future<void> load() async {
     final loadMutationVersion = _localMutationVersion;
+    await _loadVatPercent(notify: false);
     await _loadRemoteDiscountRules(notify: false);
     final loadedRemote = await _loadRemoteCart(
       notify: false,
@@ -78,6 +80,8 @@ class CartController extends ChangeNotifier {
 
   List<BulkDiscountRule> get discountRules =>
       List<BulkDiscountRule>.unmodifiable(_discountRules);
+
+  int get vatPercent => _vatPercent;
 
   BulkDiscountTarget? get nextDiscountTarget => nextBulkDiscountTargetForCart(
     items: _items.values,
@@ -315,6 +319,48 @@ class CartController extends ChangeNotifier {
         notifyListeners();
       }
       return false;
+    }
+  }
+
+  Future<void> _loadVatPercent({bool notify = true}) async {
+    final token = await _readAccessToken();
+    if (token == null) {
+      final cachedProfile = await loadCachedDealerProfile();
+      _setVatPercent(
+        _normalizeVatPercent(cachedProfile?.vatPercent),
+        notify: notify,
+      );
+      return;
+    }
+
+    try {
+      final response = await _client
+          .get(
+            DealerApiConfig.resolveApiUri('/dealer/profile'),
+            headers: _authorizedHeaders(token),
+          )
+          .timeout(_remoteRequestTimeout);
+      final payload = _decodeBody(response.body);
+      if (response.statusCode >= 400) {
+        throw Exception(_extractErrorMessage(payload));
+      }
+      final data = payload['data'];
+      if (data is Map<String, dynamic>) {
+        _setVatPercent(
+          _normalizeVatPercent(
+            _parseInt(data['vatPercent'], fallback: kVatPercent),
+          ),
+          notify: notify,
+        );
+      }
+    } catch (_) {
+      final cachedProfile = await loadCachedDealerProfile();
+      if (cachedProfile != null) {
+        _setVatPercent(
+          _normalizeVatPercent(cachedProfile.vatPercent),
+          notify: notify,
+        );
+      }
     }
   }
 
@@ -581,6 +627,29 @@ class CartController extends ChangeNotifier {
   String? _normalizeString(Object? value) {
     final normalized = value?.toString().trim() ?? '';
     return normalized.isEmpty ? null : normalized;
+  }
+
+  int _normalizeVatPercent(int? value) {
+    if (value == null) {
+      return kVatPercent;
+    }
+    if (value < 0) {
+      return 0;
+    }
+    if (value > 100) {
+      return 100;
+    }
+    return value;
+  }
+
+  void _setVatPercent(int nextVatPercent, {required bool notify}) {
+    if (nextVatPercent == _vatPercent) {
+      return;
+    }
+    _vatPercent = nextVatPercent;
+    if (notify) {
+      notifyListeners();
+    }
   }
 
   void _replaceItems(Iterable<CartItem> items) {

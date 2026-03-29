@@ -378,8 +378,8 @@ function SupportTicketsPageRevamp() {
         />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.95fr)] xl:grid-cols-[1.2fr_0.95fr]">
-        <div className="space-y-3">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.9fr)] xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.95fr)]">
+        <div className="min-w-0 space-y-3">
           {filteredTickets.length === 0 ? (
             <EmptyState
               icon={LifeBuoy}
@@ -448,7 +448,7 @@ function SupportTicketsPageRevamp() {
           ) : null}
         </div>
 
-        <div className={softCardClass}>
+        <div className={`${softCardClass} min-w-0`}>
           {selectedTicket ? (
             <div className="space-y-4">
               <div>

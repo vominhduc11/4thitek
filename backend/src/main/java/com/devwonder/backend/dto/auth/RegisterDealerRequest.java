@@ -2,6 +2,7 @@ package com.devwonder.backend.dto.auth;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record RegisterDealerRequest(
@@ -17,6 +18,7 @@ public record RegisterDealerRequest(
         String contactName,
         @Size(max = 50, message = "taxCode must be <= 50 characters")
         String taxCode,
+        @Pattern(regexp = "^0\\d{9}$", message = "phone must be a valid 10-digit Vietnam number")
         @Size(max = 30, message = "phone must be <= 30 characters")
         String phone,
         @Email(message = "email is invalid")

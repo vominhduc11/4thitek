@@ -1,6 +1,7 @@
 package com.devwonder.backend.entity;
 
 import com.devwonder.backend.entity.enums.FinancialSettlementStatus;
+import com.devwonder.backend.entity.enums.FinancialSettlementType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -35,7 +36,7 @@ public class FinancialSettlement {
     private Order order;
 
     @Column(name = "type", nullable = false)
-    private String type; // CANCELLATION_REFUND
+    private String type;
 
     @Column(name = "amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
@@ -59,4 +60,12 @@ public class FinancialSettlement {
 
     @Column(name = "resolved_at")
     private Instant resolvedAt;
+
+    public void setType(String type) {
+        this.type = FinancialSettlementType.requireValidDatabaseValue(type);
+    }
+
+    public FinancialSettlementType getTypeEnum() {
+        return FinancialSettlementType.fromDatabaseValue(type);
+    }
 }

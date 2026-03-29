@@ -23,6 +23,7 @@ public record AdminOrderResponse(
         String address,
         String note,
         List<AdminOrderItemResponse> orderItems,
-        Boolean staleReviewRequired
+        Boolean staleReviewRequired,
+        List<OrderStatus> allowedTransitions
 ) {
 }

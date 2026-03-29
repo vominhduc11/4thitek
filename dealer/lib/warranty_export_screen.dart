@@ -85,9 +85,7 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
         ),
       );
     }
-    _initialSyncWarning = warnings.isEmpty
-        ? null
-        : warnings.join('\n');
+    _initialSyncWarning = warnings.isEmpty ? null : warnings.join('\n');
 
     if (!mounted) {
       return;
@@ -229,6 +227,9 @@ class _WarrantyExportScreenState extends State<WarrantyExportScreen> {
     }
     if (customerEmail.isNotEmpty && !isValidEmailAddress(customerEmail)) {
       errors.add(texts.invalidEmailMessage);
+    }
+    if (customerPhone.isNotEmpty && !isValidVietnamPhoneNumber(customerPhone)) {
+      errors.add(texts.invalidPhoneMessage);
     }
     if (errors.isNotEmpty) {
       _showSnackBar(errors.join('\n'));
@@ -729,6 +730,9 @@ class _WarrantyExportTexts {
       : 'Vui lòng nhập đầy đủ thông tin khách hàng.';
   String get invalidEmailMessage =>
       isEnglish ? 'Please enter a valid email.' : 'Vui lòng nhập email hợp lệ.';
+  String get invalidPhoneMessage => isEnglish
+      ? 'Phone number must be 10 digits and start with 0.'
+      : 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0.';
   String get activationSyncFailedMessage => isEnglish
       ? 'Unable to sync warranty activation. Please check again.'
       : 'Không thể đồng bộ kích hoạt bảo hành. Vui lòng kiểm tra lại.';

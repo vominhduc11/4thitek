@@ -10,7 +10,35 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('Dashboard renders English warranty range labels', (
+  test(
+    'Dashboard month snapshot uses 30-day activation window and 7/30 warranty ranges',
+    () {
+      final snapshot = debugDashboardWarrantyWindowFor(
+        filter: DashboardTimeFilterDebug.month,
+        selectedPeriod: DateTime(2026, 3, 15),
+        now: DateTime(2026, 3, 29),
+      );
+
+      expect(snapshot.activationWindowDays, 30);
+      expect(snapshot.warrantyRanges, <int>[7, 30]);
+    },
+  );
+
+  test(
+    'Dashboard quarter snapshot uses 90-day activation window and 7/30/90 warranty ranges',
+    () {
+      final snapshot = debugDashboardWarrantyWindowFor(
+        filter: DashboardTimeFilterDebug.quarter,
+        selectedPeriod: DateTime(2026, 3, 15),
+        now: DateTime(2026, 3, 29),
+      );
+
+      expect(snapshot.activationWindowDays, 90);
+      expect(snapshot.warrantyRanges, <int>[7, 30, 90]);
+    },
+  );
+
+  testWidgets('Dashboard renders English warranty unavailable state', (
     WidgetTester tester,
   ) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -21,10 +49,11 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
 
-    expect(_warrantyRangeLabels(tester), <String>['7 days', '30 days']);
+    expect(find.text('Serial status'), findsOneWidget);
+    expect(find.text('Unavailable'), findsWidgets);
   });
 
-  testWidgets('Dashboard renders Vietnamese warranty range labels', (
+  testWidgets('Dashboard renders Vietnamese warranty unavailable state', (
     WidgetTester tester,
   ) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -35,9 +64,10 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
 
+    expect(find.text('Tr\u1ea1ng th\u00e1i serial'), findsOneWidget);
     expect(
-      _warrantyRangeLabels(tester),
-      <String>['7 ng\u00E0y', '30 ng\u00E0y'],
+      find.text('Ch\u01b0a c\u00f3 d\u1eef li\u1ec7u th\u1eadt'),
+      findsWidgets,
     );
   });
 }
@@ -85,22 +115,4 @@ void _configureView(WidgetTester tester) {
     view.resetPhysicalSize();
     view.resetDevicePixelRatio();
   });
-}
-
-List<String> _warrantyRangeLabels(WidgetTester tester) {
-  final selector = tester
-      .widgetList<SegmentedButton<int>>(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is SegmentedButton<int> &&
-              widget.segments.length == 2 &&
-              widget.segments.any((segment) => segment.value == 7) &&
-              widget.segments.any((segment) => segment.value == 30),
-        ),
-      )
-      .single;
-
-  return selector.segments
-      .map((segment) => (segment.label as Text).data ?? '')
-      .toList(growable: false);
 }

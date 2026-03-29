@@ -2,6 +2,17 @@ import 'package:dealer_hub/warranty_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('parseImportedSerialStatus maps INSPECTING and SCRAPPED from backend', () {
+    expect(
+      parseImportedSerialStatus('INSPECTING'),
+      ImportedSerialStatus.inspecting,
+    );
+    expect(
+      parseImportedSerialStatus('SCRAPPED'),
+      ImportedSerialStatus.scrapped,
+    );
+  });
+
   test(
     'WarrantyActivationRecord keeps activation time separate from purchase date',
     () {
@@ -44,6 +55,26 @@ void main() {
       expect(laterActivation.expiresAt, DateTime(2027, 3, 1));
     },
   );
+
+  test('WarrantyActivationRecord prefers persisted warranty end date when present', () {
+    final record = WarrantyActivationRecord(
+      orderId: 'ORDER-3',
+      productId: 'PRODUCT-3',
+      productName: 'Amplifier',
+      productSku: 'AMP-1',
+      serial: 'SERIAL-3',
+      customerName: 'Customer C',
+      customerEmail: 'c@example.com',
+      customerPhone: '0900000000',
+      customerAddress: '789 Test Street',
+      warrantyMonths: 24,
+      activatedAt: DateTime(2026, 3, 13, 15, 30),
+      purchaseDate: DateTime(2026, 3, 1),
+      warrantyEndDate: DateTime(2027, 3, 1),
+    );
+
+    expect(record.expiresAt, DateTime(2027, 3, 1));
+  });
 
   group(
     'expiresAt clamps day to end of month (mirrors Java LocalDate.plusMonths)',

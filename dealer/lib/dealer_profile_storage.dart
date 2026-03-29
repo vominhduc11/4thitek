@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'api_config.dart';
 import 'auth_storage.dart';
 import 'dealer_auth_client.dart';
+import 'models.dart' show kVatPercent;
 
 enum DealerProfileStorageMessageCode {
   loadFailed,
@@ -18,9 +19,8 @@ enum DealerProfileStorageMessageCode {
 
 const String _dealerProfileMessageTokenPrefix = 'dealer.profile.message.';
 
-String dealerProfileStorageMessageToken(
-  DealerProfileStorageMessageCode code,
-) => '$_dealerProfileMessageTokenPrefix${code.name}';
+String dealerProfileStorageMessageToken(DealerProfileStorageMessageCode code) =>
+    '$_dealerProfileMessageTokenPrefix${code.name}';
 
 String resolveDealerProfileStorageMessage(
   String? message, {
@@ -81,6 +81,7 @@ const String _profileCountryKey = 'dealer_profile_country';
 const String _profilePolicyKey = 'dealer_profile_policy';
 const String _profileAvatarUrlKey = 'dealer_profile_avatar_url';
 const String _profileCreditLimitKey = 'dealer_profile_credit_limit';
+const String _profileVatPercentKey = 'dealer_profile_vat_percent';
 
 const Duration _profileRequestTimeout = Duration(seconds: 30);
 
@@ -103,6 +104,7 @@ class DealerProfile {
     required this.city,
     required this.country,
     required this.salesPolicy,
+    this.vatPercent = kVatPercent,
     this.creditLimit = 0,
     this.avatarUrl,
   });
@@ -117,6 +119,7 @@ class DealerProfile {
   final String city;
   final String country;
   final String salesPolicy;
+  final int vatPercent;
   final int creditLimit;
   final String? avatarUrl;
 
@@ -135,6 +138,7 @@ class DealerProfile {
     String? city,
     String? country,
     String? salesPolicy,
+    int? vatPercent,
     int? creditLimit,
     String? avatarUrl,
   }) {
@@ -149,6 +153,7 @@ class DealerProfile {
       city: city ?? this.city,
       country: country ?? this.country,
       salesPolicy: salesPolicy ?? this.salesPolicy,
+      vatPercent: vatPercent ?? this.vatPercent,
       creditLimit: creditLimit ?? this.creditLimit,
       avatarUrl: avatarUrl ?? this.avatarUrl,
     );
@@ -165,6 +170,7 @@ class DealerProfile {
     city: '',
     country: 'Việt Nam',
     salesPolicy: '',
+    vatPercent: kVatPercent,
     creditLimit: 0,
     avatarUrl: null,
   );
@@ -193,7 +199,8 @@ Future<DealerProfile> loadDealerProfile() async {
         )
         .timeout(
           _profileRequestTimeout,
-          onTimeout: () => throw TimeoutException('loadDealerProfile timed out'),
+          onTimeout: () =>
+              throw TimeoutException('loadDealerProfile timed out'),
         );
     final payload = _decodeBody(response.body);
     if (response.statusCode >= 400) {
@@ -245,6 +252,7 @@ Future<void> saveDealerProfile(DealerProfile profile) async {
     city: profile.city.trim(),
     country: profile.country.trim(),
     salesPolicy: profile.salesPolicy.trim(),
+    vatPercent: profile.vatPercent,
     creditLimit: profile.creditLimit,
     avatarUrl: profile.avatarUrl?.trim().isEmpty ?? true
         ? null
@@ -331,8 +339,11 @@ Future<void> clearDealerProfileCache() async {
     prefs.remove(_profilePolicyKey),
     prefs.remove(_profileAvatarUrlKey),
     prefs.remove(_profileCreditLimitKey),
+    prefs.remove(_profileVatPercentKey),
   ]);
 }
+
+Future<DealerProfile?> loadCachedDealerProfile() => _loadLocalDealerProfile();
 
 Future<DealerProfile?> _loadLocalDealerProfile() async {
   final prefs = await SharedPreferences.getInstance();
@@ -349,6 +360,7 @@ Future<DealerProfile?> _loadLocalDealerProfile() async {
     city: prefs.getString(_profileCityKey) ?? '',
     country: prefs.getString(_profileCountryKey) ?? 'Việt Nam',
     salesPolicy: prefs.getString(_profilePolicyKey) ?? '',
+    vatPercent: prefs.getInt(_profileVatPercentKey) ?? kVatPercent,
     creditLimit: prefs.getInt(_profileCreditLimitKey) ?? 0,
     avatarUrl: prefs.getString(_profileAvatarUrlKey),
   );
@@ -367,6 +379,7 @@ Future<void> _saveLocalDealerProfile(DealerProfile profile) async {
     prefs.setString(_profileCityKey, profile.city),
     prefs.setString(_profileCountryKey, profile.country),
     prefs.setString(_profilePolicyKey, profile.salesPolicy),
+    prefs.setInt(_profileVatPercentKey, profile.vatPercent),
     prefs.setInt(_profileCreditLimitKey, profile.creditLimit),
     if ((profile.avatarUrl ?? '').trim().isNotEmpty)
       prefs.setString(_profileAvatarUrlKey, profile.avatarUrl!.trim())
@@ -394,6 +407,7 @@ DealerProfile _mapRemoteProfile(
     city: _normalizeString(json['city']) ?? fallback.city,
     country: _normalizeString(json['country']) ?? fallback.country,
     salesPolicy: _normalizeString(json['salesPolicy']) ?? fallback.salesPolicy,
+    vatPercent: _normalizeVatPercent(json['vatPercent'], fallback.vatPercent),
     creditLimit: _normalizeInt(json['creditLimit']) ?? fallback.creditLimit,
     avatarUrl: hasAvatarField ? avatarUrl : fallback.avatarUrl,
   );
@@ -410,6 +424,20 @@ String? _resolveAvatarUrl(String? value) {
     return normalized;
   }
   return DealerApiConfig.resolveUrl(normalized);
+}
+
+int _normalizeVatPercent(Object? value, int fallback) {
+  final parsed = _normalizeInt(value);
+  if (parsed == null) {
+    return fallback;
+  }
+  if (parsed < 0) {
+    return 0;
+  }
+  if (parsed > 100) {
+    return 100;
+  }
+  return parsed;
 }
 
 String _joinNonEmpty(List<String> parts) {

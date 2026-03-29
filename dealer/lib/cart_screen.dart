@@ -159,7 +159,7 @@ class CartScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              texts.vatLabel(CartController.vatPercent),
+              texts.vatLabel(cart.vatPercent),
               style: theme.textTheme.bodyMedium,
             ),
             Text(formatVnd(vatAmount), style: theme.textTheme.bodyMedium),

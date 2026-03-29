@@ -12,11 +12,7 @@ import 'widgets/fade_slide_in.dart';
 import 'widgets/section_card.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
-  const AccountSettingsScreen({
-    super.key,
-    this.loadProfile,
-    this.saveProfile,
-  });
+  const AccountSettingsScreen({super.key, this.loadProfile, this.saveProfile});
 
   final Future<DealerProfile> Function()? loadProfile;
   final Future<void> Function(DealerProfile profile)? saveProfile;
@@ -48,6 +44,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   bool _isEnglish = false;
   String _initialSnapshot = '';
   String? _avatarUrl;
+  int _profileVatPercent = DealerProfile.defaults.vatPercent;
 
   _AccountSettingsTexts get _texts =>
       _AccountSettingsTexts(isEnglish: _isEnglish);
@@ -108,6 +105,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     _countryController.text = profile.country;
     _policyController.text = profile.salesPolicy;
     _avatarUrl = profile.avatarUrl;
+    _profileVatPercent = profile.vatPercent;
     _initialSnapshot = _formSnapshot();
     _didLoadInitialData = true;
     setState(() {
@@ -159,10 +157,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       _policyController.text.trim(),
       _avatarUrl?.trim() ?? '',
     ].join('||');
-  }
-
-  bool _isValidPhone(String phone) {
-    return RegExp(r'^\+?[0-9\s\-]{7,15}$').hasMatch(phone);
   }
 
   Future<void> _pickAvatar() async {
@@ -319,17 +313,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   String? _phoneValidator(String? value) {
     final texts = _texts;
-    final requiredResult = _requiredValidator(
+    return validateVietnamPhoneNumber(
       value,
-      texts.phoneRequiredMessage,
+      emptyMessage: texts.phoneRequiredMessage,
+      invalidMessage: texts.invalidPhoneMessage,
     );
-    if (requiredResult != null) {
-      return requiredResult;
-    }
-    if (!_isValidPhone(value!.trim())) {
-      return texts.invalidPhoneMessage;
-    }
-    return null;
   }
 
   Future<void> _handleSave() async {
@@ -354,6 +342,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           city: _cityController.text.trim(),
           country: _countryController.text.trim(),
           salesPolicy: _policyController.text.trim(),
+          vatPercent: _profileVatPercent,
           avatarUrl: _avatarUrl?.trim().isEmpty ?? true
               ? null
               : _avatarUrl!.trim(),
@@ -752,8 +741,8 @@ class _AccountSettingsTexts {
       ? 'Please enter your phone number.'
       : 'Vui lòng nhập số điện thoại.';
   String get invalidPhoneMessage => isEnglish
-      ? 'Invalid phone number format.'
-      : 'Số điện thoại không hợp lệ.';
+      ? 'Phone number must be 10 digits and start with 0.'
+      : 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0.';
   String get reviewHighlightedFieldsMessage => isEnglish
       ? 'Please review the highlighted fields.'
       : 'Vui lòng kiểm tra các trường đang báo lỗi.';

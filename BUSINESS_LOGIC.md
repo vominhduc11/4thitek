@@ -1,1332 +1,810 @@
-# Tài liệu Logic Nghiệp Vụ — Hệ thống 4thitek
-
-> Phiên bản: 2026-03-23
-> Phạm vi: Backend (Spring Boot) · Dealer App (Flutter) · Admin Dashboard (React) · Main Website (Next.js)
-
----
-
-## Mục lục
-
-0. [Quy ước Nguồn Sự Thật](#0-quy-ước-nguồn-sự-thật)
-1. [Tổng quan hệ thống](#1-tổng-quan-hệ-thống)
-2. [Danh sách chức năng](#2-danh-sách-chức-năng)
-3. [Logic nghiệp vụ chi tiết](#3-logic-nghiệp-vụ-chi-tiết)
-   - [3.1 Xác thực & phân quyền](#31-xác-thực--phân-quyền)
-   - [3.2 Sản phẩm & danh mục](#32-sản-phẩm--danh-mục)
-   - [3.3 Giỏ hàng & Chiết khấu](#33-giỏ-hàng--chiết-khấu)
-   - [3.4 Đặt hàng & Thanh toán](#34-đặt-hàng--thanh-toán)
-   - [3.5 Theo dõi công nợ](#35-theo-dõi-công-nợ)
-   - [3.6 Kho hàng & Serial](#36-kho-hàng--serial)
-   - [3.7 Bảo hành](#37-bảo-hành)
-   - [3.8 Xuất hàng theo serial](#38-xuất-hàng-theo-serial)
-   - [3.9 Dashboard báo cáo](#39-dashboard-báo-cáo)
-   - [3.10 Thông báo](#310-thông-báo)
-   - [3.11 Hỗ trợ (Support Ticket)](#311-hỗ-trợ-support-ticket)
-   - [3.12 Cài đặt ứng dụng](#312-cài-đặt-ứng-dụng)
-   - [3.13 Dealer Profile & Tài khoản](#313-dealer-profile--tài-khoản)
-   - [3.14 Quản lý Admin & Staff](#314-quản-lý-admin--staff)
-   - [3.15 Quản lý Đại lý (Admin)](#315-quản-lý-đại-lý-admin)
-   - [3.16 Blog & Nội dung tĩnh](#316-blog--nội-dung-tĩnh)
-   - [3.17 Public Website API](#317-public-website-api)
-   - [3.18 Dashboard & Cài đặt hệ thống (Admin)](#318-dashboard--cài-đặt-hệ-thống-admin)
-   - [3.19 Xuất báo cáo (Admin)](#319-xuất-báo-cáo-admin)
-   - [3.20 Upload & Lưu trữ File](#320-upload--lưu-trữ-file)
-   - [3.21 Rate Limiting](#321-rate-limiting)
-   - [3.22 Data Contract Consistency](#322-data-contract-consistency)
-   - [3.23 Error Contract](#323-error-contract)
-   - [3.24 Audit & Traceability](#324-audit--traceability)
-   - [3.25 Refund & Reversal](#325-refund--reversal)
-4. [User Flow](#4-user-flow)
-5. [Edge Cases](#5-edge-cases)
-6. [So sánh nền tảng](#6-so-sánh-nền-tảng)
-7. [Giả định Chuẩn & Pending Decisions](#7-giả-định-chuẩn--pending-decisions)
-
----
-
-## 0. Quy ước Nguồn Sự Thật
-
-Tài liệu này là **canonical business contract** cho hệ thống 4thitek kể từ phiên bản `2026-03-22`.
-Mọi mục **không** gắn `[Pending Decision]` phải được xem là rule production. Nếu code, QA, hoặc frontend lệch với các rule này thì phải coi đây là defect hoặc có quyết định thay đổi contract.
-
-### 0.1 Nhãn trạng thái
-
-| Nhãn | Ý nghĩa | Cách sử dụng |
-|---|---|---|
-| `[Implemented]` | Đã phản ánh đúng behavior hiện đang chạy trong code | Backend, frontend, QA và tài liệu phụ phải bám theo |
-| `[Policy]` | Quy định nghiệp vụ/công ty bắt buộc áp dụng trên toàn hệ thống | Nếu code lệch policy, phải sửa code hoặc có quyết định thay đổi policy |
-| `[Pending Decision]` | Vấn đề chưa chốt hoặc target state chưa implement | Không được xem là contract production hiện hành |
-
-### 0.2 Thứ tự ưu tiên khi đọc tài liệu
-
-1. Rule có nhãn `[Implemented]` là contract runtime hiện hành.
-2. Rule có nhãn `[Policy]` là ràng buộc bắt buộc cho toàn hệ thống.
-3. Rule có nhãn `[Pending Decision]` chỉ là backlog/định hướng, **chưa** phải logic production.
-
-### 0.3 Phạm vi hiện đã đủ chặt để làm source of truth
-
-- Auth, phân quyền, dealer lifecycle (bao gồm ACTIVE ↔ SUSPENDED)
-- Order lifecycle, serial lifecycle, warranty lifecycle
-- Order creation idempotency (`X-Idempotency-Key`)
-- Reserved timeout auto-cancel (48h) cho đơn PENDING
-- Guard condition hủy đơn có nghĩa vụ tài chính (`FinancialSettlement`)
-- RMA / serial reset qua bước trung gian `INSPECTING`
-- Admin financial adjustment (correction, write-off, credit note, refund record)
-- Unmatched SePay transaction handling
-- SePay exact-match policy + unmatched payment queue
-- Debt payment accepted risk + compensating controls
-- Support ticket workflow
-- Upload private/public access
-- Report export contract
-- Rate limiting hiện tại
-- VAT 10% và `shippingFee = 0` theo policy công ty
-
-### 0.4 Phạm vi còn mở / chưa chốt production contract
-
-- Support SLA và support thread nhiều lượt
-- Admin override giá (`subtotalOverride`, `vatOverride`, `totalOverride`) — chưa có rule
-- Warranty transfer (chuyển bảo hành sang chủ mới)
-- Full refund gateway integration (auto-refund ra tài khoản ngoài hệ thống)
-- Audit log retention policy + read API / UI cho admin
-
-> Nguyên tắc thay đổi: mọi thay đổi behavior ở các vùng `[Implemented]` hoặc `[Policy]` phải cập nhật file này cùng lúc với code trong cùng một batch thay đổi.
-
-### 0.5 Nguyên tắc bổ sung
-
-> Các chi tiết thuần implementation như local persistence, optimistic update, widget lifecycle, hay tên màn hình legacy không nên được dùng để thay đổi business contract. File này là nguồn duy nhất cho contract nghiệp vụ.
-
----
-
-## 1. Tổng quan hệ thống
-
-Hệ thống quản lý phân phối sản phẩm B2B: đại lý đặt hàng, theo dõi công nợ, quản lý kho serial, kích hoạt bảo hành.
-
-### Kiến trúc
-
-| Thành phần | Công nghệ | Vai trò |
-|---|---|---|
-| **Backend** | Spring Boot 3.4.3, Java 17, PostgreSQL, Redis-ready config (optional), AWS S3 | REST API + WebSocket |
-| **Dealer App** | Flutter (Material 3), Dart, ChangeNotifier | Ứng dụng mobile cho đại lý |
-| **Admin Dashboard** | React 18, TypeScript, Vite | Giao diện quản trị nội bộ |
-| **Main Website** | Next.js (App Router) | Trang web public (ISR, SEO) |
-
-```
-Dealer App (Flutter) ──── REST + WebSocket ────┐
-                                                ▼
-Admin Dashboard (React) ──── REST ────â–º Backend API ──── PostgreSQL
-                                                │    ──── Redis (optional / theo môi trường)
-Main Website (Next.js) ──── REST ─────┘         └──── AWS S3 / MinIO (file)
-```
-
-### Phân quyền
-
-| Role | Mô tả | JWT Authority |
-|---|---|---|
-| `DEALER` | Đại lý bán hàng | `"DEALER"` |
-| `ADMIN` | Quản trị viên | `"ADMIN"` |
-| `SUPER_ADMIN` | Quản trị viên cao cấp | `"SUPER_ADMIN"` |
-| `public` | Không cần đăng nhập | — |
+# BUSINESS_LOGIC
 
-**Quy tắc truy cập:**
+Last aligned with codebase: `2026-03-29`
 
-| Endpoint | Quyền truy cập |
-|---|---|
-| `POST /api/v1/admin/users`, `/api/v1/admin/users/**` | `SUPER_ADMIN` only |
-| `GET /api/v1/admin/settings`, `PUT /api/v1/admin/settings` | `SUPER_ADMIN` only |
-| `/api/v1/admin/**` | `ADMIN`, `SUPER_ADMIN` |
-| `/api/v1/dealer/**` | `DEALER` |
-| `POST /api/v1/warranty-activation` | `DEALER` |
-| `POST /api/v1/upload/products`, `/upload/blogs`, `/upload/avatars` | `ADMIN`, `SUPER_ADMIN` |
-| `POST /api/v1/upload/dealer-avatars`, `/upload/payment-proofs` | `DEALER`, `ADMIN`, `SUPER_ADMIN` |
-| `DELETE /api/v1/upload` | `DEALER`, `ADMIN`, `SUPER_ADMIN` |
-| `GET /api/v1/upload/**` | Public ở tầng security; path public (`products/`, `blogs/`) mở công khai, path private bị `UploadController` chặn theo auth/ownership |
-| `/api/v1/auth/**`, `/api/v1/content/**`, `/api/v1/blog/**`, `/api/v1/product/**` | Public |
-| `/api/v1/warranty/check/**`, `/api/v1/webhooks/sepay` | Public |
-| `GET /api/v1/user/dealer`, `GET /api/v1/user/dealer/page` | Public |
-| `/uploads/**`, `/ws/**`, `/api/v1/health`, `/v3/api-docs/**`, `/swagger-ui/**` | Public |
+## 1. Scope
 
-> `ADMIN` và `SUPER_ADMIN` hỗ trợ dealer qua `/api/v1/admin/**`, upload route phù hợp, và các topic admin WebSocket; runtime hiện tại **không** cho admin dùng chung namespace `/api/v1/dealer/**`. `SUPER_ADMIN` có quyền riêng cho quản lý staff (`/api/v1/admin/users/**`) và system settings (`/api/v1/admin/settings`). Toàn bộ phân quyền enforce tại server — Dealer App không thực hiện role-check phía client.
+Tài liệu này mô tả hành vi runtime hiện tại của repo `4thitek`.
 
----
+- Dùng cho `backend`, `admin-fe`, `dealer`, `main-fe`, QA.
+- Ưu tiên mô tả behavior đang chạy trong code, không mô tả intent cũ chưa ship.
+- Nếu PR thay đổi business rule hoặc API contract, phải update file này trong cùng PR.
 
-## 2. Danh sách chức năng
+## 2. Conventions
 
-### Dealer App
+- Timezone nghiệp vụ: `Asia/Ho_Chi_Minh`.
+- Hầu hết phép tính tiền được xử lý theo VND nguyên; các chỗ nhận input payment sẽ `HALF_UP` về số nguyên VND trước khi validate.
+- `soft delete` hiện dùng cho `products`, `blogs`, `orders`.
+- Các admin mutation qua `AdminController` được audit tự động; payload có redact các field nhạy cảm như password/token/secret.
 
-| # | Chức năng | Mô tả |
-|---|---|---|
-| F01 | Đăng nhập / Đăng xuất | JWT auth, token refresh tự động |
-| F02 | Danh mục sản phẩm | Lọc, phân trang, tìm kiếm client-side |
-| F03 | Giỏ hàng | Thêm, sửa số lượng, xóa, xem chiết khấu |
-| F04 | Đặt hàng | Chuyển khoản hoặc ghi nợ |
-| F05 | Theo dõi đơn hàng | Lịch sử, trạng thái, chi tiết, reorder |
-| F06 | Ghi nhận thanh toán | Ghi theo đơn từ màn OrderDetail hoặc DebtTracking |
-| F07 | Theo dõi công nợ | Danh sách đơn còn nợ, tổng nợ, ghi thanh toán |
-| F08 | Kho serial | Xem serial, trạng thái kích hoạt |
-| F09 | Kích hoạt bảo hành | Serial-first — không cần chọn đơn trước |
-| F10 | Xuất hàng theo serial | Gom serial đủ điều kiện, nhập thông tin khách, kích hoạt nhiều serial trong một lượt |
-| F11 | Thông báo real-time | WebSocket, reconnect + refetch khi kết nối lại |
-| F12 | Hỗ trợ | Tạo ticket, xem phản hồi, lịch sử |
-| F13 | Dashboard | Tổng quan theo kỳ tháng/quý |
-| F14 | Cài đặt | Ngôn ngữ (VI/EN), giao diện (dark/light/system) |
+## 3. Roles And Permissions
 
-### Admin Dashboard
+### 3.1 Runtime RBAC
 
-| # | Chức năng |
-|---|---|
-| A01 | Quản lý đại lý (danh sách, duyệt tài khoản, cập nhật hồ sơ, credit limit) |
-| A02 | Quản lý sản phẩm & SKU |
-| A03 | Quản lý đơn hàng, duyệt & chuyển trạng thái |
-| A04 | Quản lý bảo hành |
-| A05 | Quản lý kho serial (import, cập nhật, xóa) |
-| A06 | Gửi thông báo cho đại lý |
-| A07 | Báo cáo & xuất dữ liệu |
-| A08 | Audit log backend cho mutation admin |
+Runtime RBAC thực tế chỉ có các authority sau:
 
----
+- `DEALER`
+- `ADMIN`
+- `SUPER_ADMIN`
 
-## 3. Logic nghiệp vụ chi tiết
+`Admin.roleTitle` chỉ là chức danh hiển thị. Nó không tạo thêm permission mới.
 
----
+- Admin staff API trả:
+  - `role`: display title / chức danh nội bộ
+  - `systemRole`: authority thật của backend (`ADMIN` hoặc `SUPER_ADMIN`)
+- Admin user invite UI chỉ cho nhập `role` display; không có path UI để gán granular RBAC hoặc tự gán `SUPER_ADMIN`.
 
-### 3.1 Xác thực & phân quyền
+### 3.2 Route-level permission summary
 
-#### Đăng nhập — `POST /api/v1/auth/login`
+| Actor | Quyền chính |
+| --- | --- |
+| Anonymous | `auth`, public content/blog/product, public warranty lookup, public dealer listing, `GET /api/v1/upload/**`, `POST /api/v1/webhooks/sepay`, websocket handshake `/ws/**` |
+| DEALER | Toàn bộ `/api/v1/dealer/**`, `POST /api/v1/warranty-activation`, upload avatar/payment proof của dealer |
+| ADMIN | Toàn bộ `/api/v1/admin/**` trừ các route bị chặn riêng cho `SUPER_ADMIN` |
+| SUPER_ADMIN | Toàn bộ quyền `ADMIN` + `GET /api/v1/admin/audit-logs` + `/api/v1/admin/settings` + `/api/v1/admin/users/**` |
 
-Nhận `username` (email hoặc username) + `password`. Quy trình:
-1. Normalize input (trim, lowercase)
-2. Xác thực một bước qua `AuthenticationManager` (bcrypt) — không tách riêng email/password để tránh timing attack
-3. Nếu thất bại (sai credentials hoặc tài khoản disabled) → trả `invalidCredentials` (thông báo chung)
-4. Phát hành `accessToken` (JWT, TTL **30 phút**) + `refreshToken` (TTL **7 ngày**, có session id server-side)
+### 3.3 Dealer account access policy
 
-> Chỉ dealer `ACTIVE` mới đăng nhập thành công. Dealer `UNDER_REVIEW` / `SUSPENDED` bị trả `401` ngay tại bước login và không nhận token.
+`Dealer.customerStatus` là gate cho dealer portal.
 
-#### Token Refresh — `POST /api/v1/auth/refresh`
+| Status | Dealer login/refresh | Public dealer listing | Notes |
+| --- | --- | --- | --- |
+| `UNDER_REVIEW` | Bị chặn | Không | Self-registration mặc định vào trạng thái này |
+| `ACTIVE` | Cho phép | Có | Đây là trạng thái vận hành bình thường |
+| `SUSPENDED` | Bị chặn | Không | `suspendedAt` được set để áp dụng grace period 24h cho PENDING orders |
 
-Trả cặp token mới nếu `refreshToken` còn hợp lệ, tài khoản còn `enabled`, và dealer vẫn có `customerStatus = ACTIVE`. `UNDER_REVIEW` / `SUSPENDED` bị trả `401` tại bước refresh. Hết hạn → `401` → client buộc logout, xóa token. Refresh thành công sẽ rotate `refreshToken`; token cũ bị revoke ngay.
+Transition hiện tại:
 
-> Refresh token được validate thêm bằng trạng thái session phía server. Logout sẽ revoke refresh token/session hiện tại.
+- `UNDER_REVIEW -> ACTIVE`
+- `UNDER_REVIEW -> SUSPENDED`
+- `ACTIVE -> SUSPENDED`
+- `SUSPENDED -> ACTIVE`
 
-#### Đăng xuất
+Rule bổ sung:
 
-Client xóa token/local state (cart, orders, warranty, notifications); backend đồng thời revoke refresh token/session hiện tại nếu client gửi body token hoặc refresh cookie.
+- Endpoint đổi trạng thái: `PATCH /api/v1/admin/dealers/accounts/{id}/status`
+- `status=SUSPENDED` bắt buộc có `reason`
+- Request contract hiện tại:
+  - `reason` tối đa `500` ký tự
+  - `reason` chỉ-whitespace hoặc bỏ trống sẽ bị reject khi `status=SUSPENDED`
+  - validation bị chặn ngay ở request DTO và vẫn được guard lại ở service layer
+- Khi dealer bị chuyển sang `SUSPENDED`, hệ thống ghi `suspendedAt`.
+- `PendingOrderTimeoutJob` auto-cancel các `PENDING` order của dealer đã bị suspend quá `24h`.
 
-#### Quên mật khẩu
+### 3.4 Staff user policy
 
-| Bước | Endpoint | Mô tả |
-|---|---|---|
-| 1 | `POST /api/v1/auth/forgot-password` | Gửi link reset nếu email tồn tại (luôn trả thành công) |
-| 2 | `GET /api/v1/auth/reset-password/validate?token=...` | Kiểm tra token còn hợp lệ |
-| 3 | `POST /api/v1/auth/reset-password` | Đặt mật khẩu mới bằng token |
+- Staff user status hiện có: `PENDING`, `ACTIVE`.
+- Chỉ `SUPER_ADMIN` được quản lý `/api/v1/admin/users/**`.
+- Staff được tạo với authority runtime là `ADMIN`.
+- `requirePasswordChange=true` khi tạo staff mới.
 
-Token reset có hiệu lực **30 phút** (cấu hình qua `app.password-reset.expiration-minutes`). Yêu cầu reset mới → token cũ bị xóa ngay.
+## 4. Product Lifecycle
 
-#### Đăng ký dealer — `POST /api/v1/auth/register-dealer` (public)
+### 4.1 Product visibility
 
-Tài khoản tạo với `customerStatus = UNDER_REVIEW`. Hệ thống gửi email xác nhận và publish WebSocket event cho admin.
+`Product.publishStatus`:
 
-**Payload:** `username`* · `password`* · `email` · `businessName` · `contactName` · `taxCode` · `phone` · `addressLine` · `ward` · `district` · `city` · `country` · `avatarUrl`
+- `DRAFT`
+- `PUBLISHED`
+- `ARCHIVED`
 
-**Validation:**
-- `username`: bắt buộc, unique
-- `email`: unique, đúng format (nếu có)
-- `taxCode`: unique (nếu có)
-- `phone`: unique, định dạng Vietnam `0[0-9]{9}` (nếu có)
-- `password`: tối thiểu 8 ký tự, có chữ hoa + chữ thường + chữ số
-- Trùng → `409 Conflict` với field cụ thể
+`Product.isDeleted=true` luôn thắng mọi publish state.
 
-#### Quy tắc mật khẩu (`assertStrongPassword`)
+Public surface chỉ đọc product thỏa đồng thời:
 
-Áp dụng tại đăng ký dealer, tạo admin staff, đặt lại mật khẩu: **tối thiểu 8 ký tự**, bắt buộc có chữ hoa, chữ thường, chữ số.
+- `isDeleted = false`
+- `publishStatus = PUBLISHED`
 
----
+Admin page đọc product chưa delete, không lọc theo publish status.
 
-### 3.2 Sản phẩm & danh mục
+### 4.2 Product stock source of truth
 
-**Endpoints (public):**
-- `GET /api/v1/product/products` — danh sách
-- `GET /api/v1/product/products/page` — phân trang (`totalPages`, `totalElements`, `items[]`)
-- `GET /api/v1/product/{productId}` — chi tiết
-- `GET /api/v1/product/products/search?query&minPrice&maxPrice` — tìm kiếm theo từ khóa và/hoặc khoảng giá
-- `GET /api/v1/product/products/featured` — sản phẩm nổi bật (`featured = true`)
-- `GET /api/v1/product/products/new` — sản phẩm mới nhất
+`Product.stock` không phải input tay. Đây là field sync.
 
-> Dealer App luôn gọi kèm token dù endpoint là public. Filter và sort được thực hiện **client-side**.
+Available stock được tính từ `product_serials` thỏa:
 
-**Quy tắc hiển thị:**
-- `stock â‰¤ 10` (`kLowStockThreshold`) → cảnh báo "sắp hết hàng"
-- `stock = 0` → không cho thêm vào giỏ
+- `product_id = X`
+- `dealer IS NULL`
+- `order IS NULL`
+- `status = AVAILABLE`
 
-**Lọc client-side:** stock (`all` | `inStock` | `lowStock` | `outOfStock`), text (so sánh `name`, `sku`, `shortDescription`)
+`ProductStockSyncSupport` cập nhật lại `Product.stock` sau các thao tác import/reserve/release/warranty/delete serial.
 
-**Sắp xếp client-side:** `none` | `priceAsc` | `priceDesc` | `nameAsc` | `nameDesc`
+## 5. Inventory And Serial Lifecycle
 
-**Cấu trúc dữ liệu:**
-```
-Product { id, sku, name, shortDescription, price (VNĐ, integer),
-          stock, warrantyMonths, imageUrl?, descriptions[], videos[], specifications[] }
+### 5.1 Serial statuses
 
-ProductDescriptionItem { type: title|description|image|gallery|video,
-                         text?, url?, caption?, gallery[] }
+Runtime enum:
 
-ProductVideoItem { title, url, description?, type (default: 'tutorial') }
-```
+- `AVAILABLE`
+- `RESERVED`
+- `ASSIGNED`
+- `WARRANTY`
+- `DEFECTIVE`
+- `RETURNED`
+- `INSPECTING`
+- `SCRAPPED`
 
----
+### 5.2 Serial ownership model
 
-### 3.3 Giỏ hàng & Chiết khấu
+- Serial ở kho trung tâm: `dealer=null`, `order=null`, `status=AVAILABLE`.
+- Serial đã reserve cho order: `order!=null`, `status=RESERVED`.
+- Serial đã bàn giao cho dealer: `dealer!=null`, `status=ASSIGNED` hoặc `WARRANTY`.
+- Dealer inventory screen chỉ lấy serial của dealer mà `order` null hoặc `order.status=COMPLETED`.
 
-**Endpoints:**
-- `GET /api/v1/dealer/cart` — lấy giỏ
-- `PUT /api/v1/dealer/cart/items` — thêm/cập nhật item
-- `DELETE /api/v1/dealer/cart/items/{productId}` — xóa item
-- `DELETE /api/v1/dealer/cart` — xóa toàn bộ
-- `GET /api/v1/dealer/discount-rules` — lấy quy tắc chiết khấu
+### 5.3 Serial creation/import rules
 
-**Kiến trúc:** Local-first, optimistic update + rollback khi lỗi mạng.
+Admin import (`POST /api/v1/admin/serials/import`):
 
-**Công thức tính giá:**
-```
-subtotal           = Σ (price × quantity)
-discountAmount     = bulkDiscountAmount(cartItems, activeRules)
-totalAfterDiscount = subtotal - discountAmount
-vatAmount          = totalAfterDiscount × 10%      // VAT cố định 10% theo policy công ty
-total              = totalAfterDiscount + vatAmount // Không có phí giao hàng theo policy công ty
-```
+- Có thể import `AVAILABLE` hoặc `DEFECTIVE` nếu không link order.
+- Nếu link order:
+  - order `COMPLETED` => status thực tế phải là `ASSIGNED`
+  - order chưa completed nhưng không cancelled => status thực tế phải là `RESERVED`
+- Không cho import vào order `CANCELLED`.
+- Nếu `dealerId` và `orderId` cùng có mặt thì dealer phải khớp owner của order.
+- Không cho vượt ordered quantity của product trong order.
 
-> `shippingFee` luôn = 0 theo policy công ty — server từ chối bất kỳ giá trị nào khác 0.
+Dealer serial import:
 
-**Chiết khấu theo số lượng (Bulk Discount):**
+- Không có public route dealer serial import trong `DealerController`.
+- `DealerPortalService.importSerials(...)` còn tồn tại ở service layer nhưng hiện không exposed ra API; không dùng làm business contract chính thức.
 
-Quy tắc ưu tiên khi chọn rule áp dụng:
-1. Rule product-specific ưu tiên hơn rule global
-2. Trong cùng loại: chọn `minQty` cao nhất phù hợp
-3. Cùng `minQty`: chọn `discountPercent` cao nhất
+### 5.4 Serial status mutation rules
 
-```
-BulkDiscountRule { productId? (null = global), minQty, maxQty?, discountPercent }
-```
+Admin manual status update (`PATCH /api/v1/admin/serials/{id}/status`):
 
-Chỉ rule có `status = ACTIVE` được áp dụng. `BulkDiscountTarget` hiển thị tiến trình đến tier tiếp theo.
+- Không cho set `RETURNED` hoặc `RESERVED` bằng manual admin route.
+- `WARRANTY` yêu cầu warranty active.
+- `ASSIGNED` yêu cầu có linked order và không có active warranty.
+- `AVAILABLE` hoặc `DEFECTIVE` bị chặn nếu serial vẫn link warranty.
+- `DEFECTIVE` bị chặn nếu serial đã thuộc dealer.
+- `INSPECTING` và `SCRAPPED` hiện được phép qua manual admin route nếu không vướng các guard ở trên.
 
-**Validation:** số lượng â‰¥ 1, â‰¤ stock, không cho phép thêm sản phẩm hết hàng.
+Dealer manual status update (`PATCH /api/v1/dealer/serials/{id}/status`):
 
----
+- Chỉ cho `ASSIGNED` hoặc `WARRANTY` -> `DEFECTIVE` hoặc `RETURNED`.
+- Không có dealer path để set `INSPECTING` hoặc `SCRAPPED`.
 
-### 3.4 Đặt hàng & Thanh toán
+### 5.5 RMA flow
 
-**Trạng thái section:** `[Implemented]` cho tạo đơn, order status, SePay webhook, dealer/admin payment hiện tại. `[Policy]` cho VAT 10% và `shippingFee = 0`. `[Pending Decision]` cho debt payment verification nhiều bước trong tương lai.
+Dedicated RMA endpoint:
 
-#### Tạo đơn — `POST /api/v1/dealer/orders`
+- `PATCH /api/v1/admin/serials/{id}/rma`
 
-**Payload:**
-```json
-{
-  "paymentMethod": "BANK_TRANSFER | DEBT",
-  "receiverName": "...", "receiverPhone": "...", "receiverAddress": "...",
-  "note": "...",
-  "items": [{ "productId": "...", "quantity": 3 }]
-}
-```
+Allowed actions:
 
-**Quy trình:**
-1. Validate sản phẩm tồn tại; backend khóa inventory liên quan và pick đủ serial `AVAILABLE` thực tế cho từng SKU trước khi tạo đơn
-2. Snapshot giá → lưu `unitPrice` vào `DealerOrderItem` (giá thay đổi sau không ảnh hưởng)
-3. Tính subtotal, discount, VAT, total; enforce `shippingFee = 0` theo policy công ty
-4. Nếu `DEBT`: kiểm tra `currentOutstandingDebt + total â‰¤ creditLimit` — dùng `SELECT FOR UPDATE` trên row Dealer
-5. Reserve serial: khóa row `Product` và serial liên quan, pick đúng số serial từ pool khả dụng `dealer IS NULL AND order IS NULL AND status = AVAILABLE`, chuyển `AVAILABLE → RESERVED` trong cùng transaction; sau đó đồng bộ `product.stock` như giá trị phái sinh
-6. Lưu đơn `status = PENDING`; gửi email xác nhận cho dealer (async); publish `adminNewOrder` WebSocket
+- `START_INSPECTION`: `DEFECTIVE | RETURNED -> INSPECTING`
+- `PASS_QC`: `INSPECTING -> AVAILABLE`
+- `SCRAP`: `INSPECTING -> SCRAPPED`
 
-**Idempotency `[Policy]`:**
-- Client **phải** gửi header `X-Idempotency-Key` (UUID v4) với mỗi request tạo đơn
-- Backend lưu mapping `idempotencyKey → orderId + response` trong **10 phút** (configurable via `app.order.idempotency-ttl-minutes`)
-- Request trùng `idempotencyKey` trong TTL → trả response cũ, **không** tạo đơn mới, không reserve serial lần nữa
-- Request không có `X-Idempotency-Key` → `400 Bad Request`
-- Ngăn double-order do network retry, double-click, hoặc client retry sau timeout
+Validation:
 
-Client tự gọi `DELETE /api/v1/dealer/cart` sau khi nhận phản hồi thành công.
+- Mọi action đều bắt buộc `reason`
+- `PASS_QC` bắt buộc `proofUrls` có ít nhất 1 phần tử
+- Mỗi action tạo audit log riêng
 
-> Runtime hiện tại dùng pool serial khả dụng `dealer IS NULL AND order IS NULL AND status = AVAILABLE` làm nguồn sự thật để chặn oversell giữa các dealer. `Product.stock` chỉ còn là số liệu đồng bộ/phái sinh từ pool serial khả dụng của SKU. Serial còn `dealer IS NULL` nhưng đã gắn `order` không còn được tính là tồn kho bán được.
+## 6. Cart, Order, Payment, Shipping, Warranty
 
-**Mã đơn:** `SCS-{dealerId}-{timestamp}-{random6}` — dùng để khớp nội dung chuyển khoản SePay.
+### 6.1 Cart
 
-#### Trạng thái đơn hàng
+Cart là convenience layer, không giữ stock.
 
-```
-PENDING ──â–º CONFIRMED ──â–º SHIPPING ──â–º COMPLETED
-   │              │
-   └──────────────â”´──────────────────â–º CANCELLED
-```
+Rules:
 
-| Transition | Ai thực hiện | Hệ quả |
-|---|---|---|
-| `PENDING → CONFIRMED` | Admin | — |
-| `CONFIRMED → SHIPPING` | Admin | WebSocket `/user/queue/order-status` → dealer |
-| `SHIPPING → COMPLETED` | Admin | Serial `RESERVED → ASSIGNED`; vào kho dealer |
-| `PENDING/CONFIRMED → CANCELLED` | Admin hoặc Dealer | Serial `RESERVED → AVAILABLE`; thông báo đến tất cả admin `ACTIVE` |
+- `quantity > 0`; muốn bỏ item phải dùng `DELETE`
+- FE/pre-check cart quantity chỉ là UX
+- `DealerCartSupport` check available stock tại thời điểm upsert cart
+- Cart lưu `priceSnapshot` cho display, nhưng order pricing thật được tính lại khi tạo order
 
-> Đơn đang `SHIPPING` không thể hủy. `COMPLETED` và `CANCELLED` là trạng thái cuối. Admin dùng `SELECT FOR UPDATE` trên row Order khi cập nhật trạng thái.
+### 6.2 Order creation
 
-#### Thanh toán — Bank Transfer
+Dealer tạo order qua `POST /api/v1/dealer/orders`.
 
-1. Dealer xem thông tin tài khoản ngân hàng (`GET /api/v1/dealer/payment-instructions`), sao chép và chuyển tiền
-2. SePay webhook tự động xác nhận khi nhận giao dịch khớp → `paymentStatus = PAID`
+Rules:
 
-**Quy tắc SePay webhook (`POST /api/v1/webhooks/sepay`):**
-- Token qua query param `?token=...` hoặc header `X-Webhook-Token` (query param ưu tiên)
-- Chỉ chấp nhận số tiền **đúng bằng** `outstandingAmount` — không chấp nhận thanh toán một phần
-- Idempotent: trùng `transactionCode` bị bỏ qua
-- Đơn đã hủy hoặc đã thanh toán đủ → bỏ qua
-- Dùng `SELECT FOR UPDATE` trên row Order (theo `orderCode`) khi xử lý
+- Bắt buộc header `X-Idempotency-Key`
+- Idempotency TTL mặc định `10 phút`
+- Duplicate key trong TTL trả cached order, không tạo order mới
+- `shippingFee` do server kiểm soát; client gửi non-zero sẽ bị reject
+- `receiverName`, `receiverAddress`, `receiverPhone` fallback từ profile dealer nếu request để trống
+- `orderCode` canonical format:
+  - `SCS-{dealerId}-{epochMillis}-{random6}`
+- Parser SePay vẫn accept legacy format `SCS-{dealerId}-{number}` để backward compatibility
 
-**Unmatched transaction handling `[Policy]`:**
+Stock reservation:
 
-Khi webhook nhận giao dịch nhưng không thể khớp tự động (orderCode không tồn tại, amount không bằng `outstandingAmount`, hoặc đơn đã CANCELLED/PAID):
+- Product rows được lock bằng `PESSIMISTIC_WRITE`
+- Serial available được pick bằng `PESSIMISTIC_WRITE`
+- Nếu race làm hết stock:
+  - thiếu stock thực tế => `400 Insufficient stock for product ...`
+  - lock conflict/timeout => `409 Stock is being updated by another request; please retry`
 
-1. **Không im lặng bỏ qua** — ghi vào bảng `UnmatchedPayment`:
-   - `transactionCode`, `amount`, `senderInfo`, `content` (nội dung chuyển khoản), `receivedAt`
-   - `reason`: `ORDER_NOT_FOUND` | `AMOUNT_MISMATCH` | `ORDER_ALREADY_SETTLED` | `ORDER_CANCELLED`
-   - `status`: `PENDING`
-2. Backend gửi notification cho admin: *"Giao dịch SePay không khớp đơn hàng — cần xử lý thủ công"*
-3. Admin review qua `GET /api/v1/admin/unmatched-payments` (có phân trang, filter theo status/reason)
-4. Admin xử lý qua `PATCH /api/v1/admin/unmatched-payments/{id}`:
-   - `MATCHED` — gán thủ công vào order phù hợp (tạo payment record cho order đó)
-   - `REFUNDED` — đã hoàn tiền ngoài hệ thống
-   - `WRITTEN_OFF` — xử lý ngoại lệ, ghi chú lý do
-5. Unmatched payment `status = PENDING` phải hiển thị trong admin dashboard widget **"Giao dịch chờ đối soát"**
+### 6.3 Order status semantics
 
-> Mục tiêu: không bao giờ để tiền vào tài khoản NPP mà hệ thống không có record theo dõi.
+`OrderStatus` runtime:
 
-Nếu `sepay.enabled=true`, dealer **không thể** tự ghi payment cho đơn bank transfer. Admin có thể override qua `POST /api/v1/admin/orders/{id}/payments`.
+- `PENDING`
+- `CONFIRMED`
+- `SHIPPING`
+- `COMPLETED`
+- `CANCELLED`
 
-**Đồng bộ FE sau SePay thành công** `[Implemented]`
-- Khi webhook SePay xác nhận thanh toán thành công, backend cập nhật trạng thái payment/order và publish event `/user/queue/order-status`.
-- Dealer App đồng bộ lại trạng thái thanh toán qua WebSocket; khi reconnect sẽ refetch lại dữ liệu liên quan.
-- Nếu người dùng đang mở bank-transfer sheet, sheet tự đóng khi thấy `paymentStatus = PAID`.
-- Nếu người dùng đang ở `OrderSuccessScreen` hoặc màn đang đọc cùng order state, UI đổi sang trạng thái đã thanh toán sau khi sync.
-- Hiện chưa có cơ chế redirect toàn cục từ mọi context bất kỳ sang một màn success riêng.
+Dealer transitions:
 
-#### Thanh toán — Ghi nợ (Debt) `[Implemented]`
+- `PENDING -> CANCELLED`
+- `CONFIRMED -> CANCELLED`
+- dealer không được `SHIPPING -> COMPLETED`
 
-`paymentStatus = DEBT_RECORDED` ngay khi tạo đơn. `outstandingAmount = total âˆ’ paidAmount` (tính động, không lưu field riêng).
+Admin transitions:
 
-#### Ghi nhận thanh toán công nợ — `POST /api/v1/dealer/orders/{id}/payments` `[Implemented]`
+- `PENDING -> CONFIRMED | CANCELLED`
+- `CONFIRMED -> SHIPPING | CANCELLED`
+- `SHIPPING -> COMPLETED`
 
-```json
-{ "amount": 1000000, "method": "BANK_TRANSFER|DEBT|...", "channel": "cash|bankTransfer|...",
-  "note": "...", "proofFileName": "...", "paidAt": "2026-03-21T10:00:00Z" }
-```
+Side effects:
 
-**Behavior hiện hành:**
-- Dealer tự tạo payment record cho đơn còn nợ của mình
-- Payment có hiệu lực ngay khi request hợp lệ và transaction commit thành công
-- `outstandingAmount` giảm ngay sau khi payment được ghi nhận
+- Cancel order:
+  - release non-warranty serials
+  - restore stock
+  - nếu `paidAmount > 0` thì set `financialSettlementRequired=true` và tạo `FinancialSettlement(PENDING)`
+- Complete order:
+  - serial `RESERVED`/`AVAILABLE` trong order sẽ được gán dealer và chuyển `ASSIGNED`
+- `completedAt` được set/clear theo status
 
-**Validation hiện hành:**
-- `amount > 0` (`@DecimalMin(0.01)`)
-- `amount â‰¤ outstandingAmount`
-- `outstandingAmount > 0` — đơn đã đủ → từ chối
-- Trùng lặp: cùng `orderId` + `amount` trong **5 giây** → từ chối (check DB trực tiếp)
-- `transactionCode` unique toàn hệ thống (nếu có)
-- Dùng `SELECT FOR UPDATE` trên row Order
+### 6.4 Order soft delete
 
-**Quy tắc hạch toán hiện hành:**
-- `paidAmount`: tổng payment đã được ghi nhận
-- `outstandingAmount = max(0, total âˆ’ paidAmount)`
+Current rule:
 
-> Đây là contract runtime hiện tại. Chưa có bước `PENDING_VERIFICATION / CONFIRMED / REJECTED` ở production flow.
+- Chỉ order `CANCELLED` mới được soft-delete
+- Soft-delete set `isDeleted=true`
+- Dealer queries và admin default queries chỉ đọc visible orders (`isDeleted=false` hoặc `null`)
+- Hiện chưa có API `restore` và chưa có `includeDeleted`
 
-#### Admin ghi payment — `POST /api/v1/admin/orders/{id}/payments` `[Implemented]`
+### 6.4.1 Concurrency and locking
 
-Payload như dealer + không bị chặn bởi SePay restriction. Admin có thể ghi payment trực tiếp trong các trường hợp hỗ trợ/override.
+Current implementation dùng kết hợp optimistic lock và pessimistic lock:
 
-> Về quản trị dữ liệu, vẫn ưu tiên soft-delete hoặc archive thay vì xóa cứng đơn `CANCELLED`, nhưng đây hiện là định hướng quản trị hơn là contract API bắt buộc.
+- `Order.version` dùng `@Version` để chặn lost update trên order aggregate.
+- Pessimistic write lock được dùng khi mutate stock/order critical path:
+  - order fetch-for-update trong update status / cancel / payment / timeout job
+  - product fetch-for-update khi reserve/release stock
+  - serial query lock khi assign serial khả dụng
+  - một số flow transactional khác cũng dùng pessimistic lock ở repo layer, nhưng release-critical path hiện tại là order/product/serial
 
-#### Ma trận `order.status` và `paymentStatus` `[Implemented]`
+Conflict behavior:
 
-`paymentStatus` hiện tại là aggregate field ở level Order, được suy ra từ `paymentMethod`, `paidAmount`, `totalAmount`, và `order.status`.
+- optimistic lock conflict -> HTTP `409` với message: `The record was modified by another request; please retry`
+- pessimistic lock / lock-timeout conflict -> HTTP `409` với message: `Stock is being updated by another request; please retry`
+- UI phải treat `409` là retryable concurrency error, không phải validation error.
 
-| `order.status` | `paymentStatus` hợp lệ trong runtime hiện tại | Diễn giải |
-|---|---|---|
-| `PENDING` | `PENDING`, `DEBT_RECORDED`, `PAID` | Chưa duyệt đơn; có thể chưa thanh toán, ghi nợ, hoặc đã thanh toán |
-| `CONFIRMED` | `PENDING`, `DEBT_RECORDED`, `PAID` | Đơn đã duyệt nhưng chưa giao xong |
-| `SHIPPING` | `PENDING`, `DEBT_RECORDED`, `PAID` | Đang giao hàng; không có partial-payment status riêng trong runtime hiện tại |
-| `COMPLETED` | `PENDING`, `DEBT_RECORDED`, `PAID` | Hoàn tất giao hàng; serial vào kho dealer |
-| `CANCELLED` | `CANCELLED`, `PENDING`, `DEBT_RECORDED`, `PAID` | `CANCELLED` chỉ xảy ra khi hủy đơn và `paidAmount = 0`; các combo còn lại có nghĩa là đã/đang có nghĩa vụ tài chính cần xử lý manual |
+### 6.5 Pending order timeout
 
-**Quy tắc khống chế:**
-- `FAILED` không phải aggregate `order.paymentStatus` trong runtime hiện tại; đây là thất bại của giao dịch/attempt riêng, không phải trạng thái chuẩn của Order
-- `CANCELLED` không hợp lệ cho order chưa `CANCELLED`
-- Các tổ hợp `CANCELLED + (PENDING|DEBT_RECORDED|PAID)` không bị runtime chặn, nhưng phải được xem là **manual finance follow-up required**
+Scheduled job:
 
-#### Dealer hủy đơn `[Implemented]`
+- check mỗi `1h` mặc định
+- `PENDING` quá `48h`:
+  - `paidAmount = 0` => auto-cancel, restore stock, `paymentStatus=CANCELLED`
+  - `paidAmount > 0` => `staleReviewRequired=true`, tạo `FinancialSettlement(type=STALE_ORDER_REVIEW, status=PENDING)`, không auto-cancel
+- warning notification gửi trước timeout `6h`
 
-- Dealer chỉ được hủy `PENDING` hoặc `CONFIRMED`
-- Dealer **không** được hủy `SHIPPING`, `COMPLETED`, `CANCELLED`
-- Khi hủy: serial `RESERVED → AVAILABLE`, đơn chuyển `CANCELLED`, và backend gửi notification cho admin
-- Nếu hủy khi `paidAmount = 0` → `paymentStatus = CANCELLED`
-- Nếu hủy khi đơn đã có `paidAmount > 0` → runtime **không** tự refund, không tự reverse debt, không tự sinh compensating transaction; `paymentStatus` sẽ được giữ theo aggregate hiện hành và cần xử lý manual
+### 6.6 Discount and pricing
 
-> Nghĩa là dealer có thể hủy `CONFIRMED` kể cả khi đơn đã có thanh toán hợp lệ. Việc hoàn tiền / xóa công nợ / bút toán đối ứng **chưa** được tự động hóa trong runtime hiện tại.
+Pricing runtime:
 
-#### Guard condition hủy đơn có nghĩa vụ tài chính `[Policy]`
+- `subtotal = sum(orderItems.quantity * unitPrice)`
+- discount tính trước VAT
+- VAT cố định `10%`
+- total = `subtotal - discount + VAT + shippingFee`
 
-Khi dealer hoặc admin hủy đơn mà `paidAmount > 0` tại thời điểm hủy:
+Discount precedence:
 
-1. Hệ thống **phải** tạo record `FinancialSettlement`:
-   - `type`: `CANCELLATION_REFUND`
-   - `orderId`: ID đơn bị hủy
-   - `amount`: `paidAmount` tại thời điểm hủy
-   - `status`: `PENDING`
-   - `createdBy`: actor thực hiện hủy
-   - `createdAt`: timestamp
-2. Order chuyển `CANCELLED` nhưng gắn flag `financialSettlementRequired = true`
-3. Backend gửi notification cho **tất cả admin ACTIVE** yêu cầu xử lý settlement
-4. Settlement record phải được xử lý (→ `REFUNDED` | `WRITTEN_OFF` | `CREDITED`) trước khi đơn được coi là fully settled
-5. Admin xử lý settlement qua `PATCH /api/v1/admin/financial-settlements/{id}`:
-   - `status`: `REFUNDED` | `WRITTEN_OFF` | `CREDITED`
-   - `resolution`: mô tả cách xử lý
-   - `resolvedBy`: actor ID
-   - `resolvedAt`: timestamp
+- Nếu có product-specific rule match cho line item thì ưu tiên rule đó
+- Nếu không có, dùng global rule match theo total quantity
+- Khi nhiều rule cùng match, sort ưu tiên:
+  - product-specific trước
+  - `minQuantity` lớn hơn
+  - `discountPercent` lớn hơn
+  - `updatedAt` mới hơn
 
-**Dashboard visibility:** Đơn có `financialSettlementRequired = true` AND settlement `status = PENDING` phải hiển thị trong admin dashboard widget **"Chờ xử lý tài chính"**.
+### 6.6.1 Discount rule admin CRUD
 
-> Nếu `paidAmount = 0`: hủy bình thường, không tạo settlement record.
+Current admin contract:
 
----
+- `GET /api/v1/admin/discount-rules`
+- `POST /api/v1/admin/discount-rules`
+- `PATCH /api/v1/admin/discount-rules/{id}/status`
+- `GET /api/v1/dealer/discount-rules`
 
-### 3.5 Theo dõi công nợ
+Actor:
 
-**Trạng thái section:** `[Implemented]`
+- `ADMIN` hoặc `SUPER_ADMIN`
+- dealer chỉ có read path `GET /api/v1/dealer/discount-rules`
 
-**Màn hình:** `DebtTrackingScreen` — mở từ shortcut Dashboard (không phải tab độc lập).
+Create validation:
 
-Hiển thị các đơn thỏa: `paymentMethod = DEBT AND outstandingAmount > 0 AND status â‰  CANCELLED`.
+- `label` bắt buộc, không được blank
+- `range` bắt buộc, không được blank, phải parse được thành khoảng quantity hợp lệ
+- `percent` bắt buộc, `> 0`, `<= 100`, tối đa `2` chữ số thập phân
+- nếu request không truyền `status` thì backend default `DRAFT`
 
-Tổng hợp: tổng nợ tồn (`Σ outstandingAmount`), số đơn còn nợ, danh sách có thể bấm để ghi nhận thanh toán.
+Status semantics:
 
-> Dealer có thể ghi nhận thanh toán cho đơn còn nợ của mình; khi request thành công thì payment có hiệu lực ngay, `paidAmount` và `outstandingAmount` được cập nhật ngay theo payment đã ghi. Không có bước kiểm duyệt trung gian trong runtime hiện tại.
+- `DRAFT`: rule mới tạo mặc định, chưa có hiệu lực dealer-facing
+- `PENDING`: trạng thái chờ rà soát nội bộ
+- `ACTIVE`: dealer-facing pricing chỉ dùng các rule đang `ACTIVE`
 
----
+Notes:
 
-### 3.6 Kho hàng & Serial
+- API hiện chưa có edit/delete body đầy đủ cho discount rule; runtime admin mutation hiện có là create + đổi status.
+- `range` response là label canonical backend đang dùng để match pricing.
+- Dealer read path chỉ trả các rule `ACTIVE`, đã sort theo đúng precedence pricing runtime.
 
-**Trạng thái section:** `[Implemented]` cho lifecycle hiện tại. `[Pending Decision]` cho RMA/reset serial từ `DEFECTIVE` hoặc `RETURNED`.
+### 6.7 Payment methods
 
-**Mô hình:**
-```
-ProductSerial { serial (unique toàn hệ thống), product, warehouse,
-                status: AVAILABLE|RESERVED|ASSIGNED|WARRANTY|DEFECTIVE|RETURNED|INSPECTING|SCRAPPED, importedAt }
-```
+Runtime enum:
 
-**Vòng đời trạng thái:**
-```
-AVAILABLE ──► RESERVED ──► ASSIGNED ──► WARRANTY
-(admin import)  (đặt đơn)   (COMPLETED)  (kích hoạt)
-     ▲               │            │
-     └───────────────┘            ├──► DEFECTIVE ──► INSPECTING ──► AVAILABLE (qua QC)
-  (đơn hủy)                      │                             └──► SCRAPPED (loại bỏ)
-                                  └──► RETURNED  ──► INSPECTING ──► AVAILABLE (qua QC)
-                                                                └──► SCRAPPED (loại bỏ)
-```
+- `BANK_TRANSFER`
+- `DEBT`
 
-> `SCRAPPED` là trạng thái cuối — serial ra khỏi inventory vĩnh viễn. Xem [RMA / serial reset](#rma--serial-reset-cho-defective-và-returned-policy) trong Section 7.3 cho quy trình chi tiết.
+### 6.8 Payment status semantics
 
-> `WARRANTY` hiển thị là `activated` trong Dealer App.
+`PaymentStatus` được dùng cho cả order aggregate và payment attempt, nhưng không cùng ý nghĩa ở mọi state.
 
-**Ownership semantics (canonical):**
-- `AVAILABLE`: tài sản của NPP, chưa giữ cho đơn nào
-- `RESERVED`: tài sản của NPP, đã giữ cho một order, chưa thuộc dealer
-- `ASSIGNED`: đã vào kho dealer, thuộc dealer
-- `WARRANTY`: đã bán ra và kích hoạt cho khách cuối
+- `PENDING`: order aggregate còn outstanding hoặc payment chưa confirm
+- `PAID`: aggregate đã đủ tiền
+- `DEBT_RECORDED`: order dùng `PaymentMethod=DEBT`
+- `FAILED`: legacy compatibility value cho historical payment-attempt rows; current runtime không tạo mới và aggregate `order.paymentStatus` không emit state này
+- `CANCELLED`: chỉ dùng khi order đã cancel và chưa có confirmed payment
 
-**Import serial (Admin) — `POST /api/v1/admin/serials/import`:**
-- Bulk import; normalize: trim + uppercase
-- Serial đã tồn tại trong DB không làm fail cả batch; item đó bị skip với reason rõ ràng trong response summary
-- Duplicate lặp lại trong cùng request được dedupe một lần; các serial hợp lệ còn lại vẫn tiếp tục import
-- Response trả partial-success summary gồm `importedItems`, `skippedItems`, `importedCount`, `skippedCount`
-- Nếu import và đồng thời link serial vào một order:
-  - order `COMPLETED` → serial buộc về `ASSIGNED`
-  - order chưa `COMPLETED` → serial buộc về `RESERVED`
-  - không được dùng `AVAILABLE` cho serial đã gắn order
-  - nếu client gửi `RESERVED` hoặc `ASSIGNED`, backend vẫn chuẩn hóa về trạng thái bắt buộc theo order; các status khác bị từ chối
+Important:
 
-**Auto-reserve khi tạo đơn:** Hệ thống tự pick serial `AVAILABLE` đúng số lượng từ pool serial thực tế. Không đủ → từ chối đơn.
+- Nếu order bị cancel sau khi đã có `paidAmount > 0`, aggregate payment status không ép về `CANCELLED`; refund/settlement được track qua `FinancialSettlement`
+- Admin FE dùng naming `pending`; dealer app cũng dùng internal enum `pending` cho order-level unpaid state. Không còn alias runtime `unpaid` trong code.
 
-**Serial vào kho dealer:** Khi đơn chuyển `COMPLETED` → backend gán serial cho dealer (`serial.dealer = order.dealer`), chuyển `RESERVED → ASSIGNED`, đồng thời đồng bộ lại `product.stock` từ pool serial còn `AVAILABLE` của NPP.
+### 6.9 Manual payment rules
 
-> Serial chỉ **chính thức thuộc dealer** kể từ thời điểm đơn chứa serial đó chuyển `COMPLETED`. Ở trạng thái `RESERVED`, serial mới chỉ được giữ cho đơn, chưa được coi là tài sản/kho chính thức của dealer.
+Dealer record payment (`POST /api/v1/dealer/orders/{id}/payments`):
 
-> Dealer inventory runtime chỉ hiển thị serial đã thuộc dealer và hoặc không gắn order, hoặc gắn order đã `COMPLETED`. Serial gắn order chưa hoàn tất chưa được coi là tồn kho khả dụng của dealer.
+- Không cho payment trên order `CANCELLED`
+- amount được `HALF_UP` về số nguyên VND
+- amount sau round phải `>= 1`
+- Không cho vượt outstanding
+- Không cho trả tiền nếu order đã fully paid
+- Nếu `PaymentMethod=BANK_TRANSFER` và SePay đang enabled => dealer manual payment bị chặn
+- Nếu `PaymentMethod=DEBT`:
+  - partial payment tối thiểu mặc định `100000 VND`
+  - ngoại lệ: khoản tất toán cuối cùng được nhỏ hơn ngưỡng nếu `amount == outstanding`
+- Nếu `outstanding >= 10,000,000 VND` thì dealer phải gửi `proofFileName`
+- duplicate payment cùng order + cùng amount trong `30 giây` bị reject
+- `transactionCode` nếu có phải unique toàn hệ thống
 
-**Dealer cập nhật trạng thái:** `PATCH /api/v1/dealer/serials/{id}/status` — đánh dấu `DEFECTIVE` hoặc `RETURNED` (chỉ áp dụng cho serial `ASSIGNED` hoặc `WARRANTY`).
+Admin record payment (`POST /api/v1/admin/orders/{id}/payments`):
 
----
+- Bypass restriction manual bank-transfer của dealer
+- Không áp ngưỡng partial DEBT tối thiểu của dealer
+- Vẫn phải tôn trọng outstanding balance
 
-### 3.7 Bảo hành
+Current compensating controls for debt payment:
 
-**Trạng thái section:** `[Implemented]`
+- dealer payment trên order có `outstanding >= 10,000,000 VND` bắt buộc có `proofFileName`
+- duplicate payment cùng order + cùng amount trong `30 giây` bị reject
+- `transactionCode` nếu có phải unique toàn hệ thống
+- stale paid pending orders được đẩy vào manual review qua `FinancialSettlement(type=STALE_ORDER_REVIEW, status=PENDING)` và `staleReviewRequired=true`
+- admin review surfaces hiện có:
+  - Financial settlements page
+  - Unmatched payments page
+  - order list/detail stale-review indicator
 
-#### Triết lý: Serial-First
+Not implemented today:
 
-Dealer chỉ cần serial — hệ thống tự resolve thông tin đơn. Không cần chọn đơn trước. `orderId` vẫn được lưu trong bản ghi để phục vụ traceability và báo cáo.
+- chưa có automated daily reconciliation job riêng cho debt payment
+- chưa có anomaly scoring/flag model riêng cho debt payment
+- chưa có dedicated admin dashboard chỉ cho debt-payment review
+- current risk: ops vẫn phải dựa vào manual review surfaces, nên anomaly nhỏ hoặc lệch đối soát trong ngày có thể chỉ được phát hiện thủ công
 
-#### Kích hoạt bảo hành — `POST /api/v1/warranty-activation`
+### 6.10 Credit limit and DEBT order policy
 
-```json
-{ "productSerialId": 42, "customerName": "...", "customerEmail": "...",
-  "customerPhone": "...", "customerAddress": "...", "purchaseDate": "2026-03-19" }
-```
+Dealer chỉ được tạo order `DEBT` nếu:
 
-**Quy trình:**
-1. Normalize serial (trim + uppercase), resolve `productSerialId` qua `GET /api/v1/dealer/serials`
-2. Validate: serial thuộc kho dealer, chưa kích hoạt, đơn liên kết `status = COMPLETED`
-3. Dealer App hiện yêu cầu dealer nhập thủ công cả `name/email/phone/address`; ở backend, nếu request để trống `name/phone/address` thì server mới fallback từ receiver info của đơn. `email` luôn phải dealer nhập thủ công
-4. Dealer chọn `purchaseDate` (mặc định = ngày tạo đơn, có thể chỉnh)
-5. Gọi API → tạo `WarrantyRegistration`, cập nhật serial `→ WARRANTY`
-6. Ngày hết bảo hành = `purchaseDate + warrantyMonths`
+- `dealer.creditLimit > 0`
+- projected outstanding debt sau order mới không vượt credit limit
 
-**Validation:** một serial chỉ kích hoạt một lần; chỉ serial đã **chính thức thuộc dealer** (tức đã vào kho dealer qua đơn `COMPLETED`) mới được kích hoạt; `purchaseDate` không trước ngày tạo đơn, không sau hôm nay; tất cả thông tin khách hàng bắt buộc.
+FE có thể pre-check để báo UX, nhưng backend là source of truth.
 
-> Runtime hiện tại coi `POST /api/v1/warranty-activation` là endpoint kích hoạt bảo hành chuẩn. `POST /api/v1/dealer/warranties` hiện là alias cùng semantics cho hành vi activate/create warranty đầu tiên, không phải một business action khác.
+### 6.11 SePay webhook
 
-**Trạng thái bảo hành:**
+SePay chỉ áp dụng cho `BANK_TRANSFER`.
 
-| Status | Mô tả |
-|---|---|
-| `ACTIVE` | Còn hiệu lực |
-| `EXPIRED` | Hết hạn theo `purchaseDate + warrantyMonths` |
-| `VOID` | Bị vô hiệu hoá bởi admin (ví dụ: vi phạm điều khoản) |
+Rules:
 
-**Admin quản lý — `PATCH /api/v1/admin/warranties/{id}/status`:**
-- Không thể set `ACTIVE` nếu warranty đã expired
-- Đồng bộ serial theo trạng thái warranty:
-  - `ACTIVE` → serial `WARRANTY`
-  - `EXPIRED` hoặc `VOID` → serial về `ASSIGNED` nếu gắn với đơn `COMPLETED`, ngược lại về `AVAILABLE`
-  - nếu serial đang `DEFECTIVE` hoặc `RETURNED` thì giữ nguyên, không bị warranty update ghi đè
-- Mọi thay đổi clear cache `PUBLIC_WARRANTY_LOOKUP`
+- Chỉ nhận incoming transfer
+- Bắt buộc webhook token hợp lệ
+- Chỉ match order `BANK_TRANSFER`, chưa deleted, chưa cancelled
+- Chỉ accept exact outstanding amount, không accept partial webhook payment
+- Duplicate transaction được dedupe bằng `transactionCode`
+- Nếu không match được hoặc sai amount:
+  - tạo `UnmatchedPayment`
+  - notify admin sau commit
 
-**Dealer Warranty CRUD (`/api/v1/dealer/warranties`):** `POST /api/v1/dealer/warranties` hiện dùng cùng logic activate với `POST /api/v1/warranty-activation`; `PUT` và `DELETE` dùng để sửa/xóa bản ghi warranty đã tồn tại. Khi xóa:
-- Đơn `COMPLETED` hoặc serial đang `WARRANTY` → serial về `ASSIGNED`
-- Đơn chưa hoàn thành → serial về `AVAILABLE`
+Unmatched payment reasons hiện có:
 
-**Local sync (Dealer App):** Cache bảo hành trong `SharedPreferences`. Khi boot: tải từ `/api/v1/dealer/serials` và `/api/v1/dealer/warranties`. `_ensureImportedSerialsForActivations()` tạo dummy record nếu thiếu, bảo toàn `warehouseId` gốc khi đã có.
+- `ORDER_NOT_FOUND`
+- `AMOUNT_MISMATCH`
+- `ORDER_ALREADY_SETTLED`
+- `ORDER_CANCELLED`
 
----
+### 6.12 Financial settlement and order adjustment
 
-### 3.8 Xuất hàng theo serial
+Financial settlement:
 
-**Màn hình:** `WarrantyExportScreen` — tên UI hiện tại là "Xuất hàng".
+- Tracked riêng qua `FinancialSettlement`
+- Status:
+  - `PENDING`
+  - `REFUNDED`
+  - `WRITTEN_OFF`
+  - `CREDITED`
 
-1. Scan QR hoặc nhập serial; app validate serial đủ điều kiện kích hoạt
-2. Thêm serial vào "giỏ xuất hàng"
-3. Dealer nhập thông tin khách hàng + ngày mua
-4. App gọi luồng kích hoạt bảo hành serial-first cho từng serial trong giỏ
+Order adjustment là path override tài chính hiện có trong production:
 
-> Màn hình này hiện **không** tạo file PDF/Excel. Tên `WarrantyExportScreen` là tên màn hình legacy trong code, nhưng behavior thực tế là gom serial để kích hoạt bảo hành theo lô.
+- `GET /api/v1/admin/orders/{id}/adjustments`
+- `POST /api/v1/admin/orders/{id}/adjustments`
 
----
+Rules:
 
-### 3.9 Dashboard báo cáo
+- actor: `ADMIN` hoặc `SUPER_ADMIN`
+- Không có persisted fields `subtotalOverride`, `vatOverride`, `totalOverride`
+- Override tài chính hiện tại là append-only adjustment
+- `reason` tối thiểu 10 ký tự
+- `COMPLETED` order bắt buộc `confirmOverride=true`
+- Sau adjustment, `paidAmount = sum(payments) + sum(adjustments)`
+- Các field pricing trả về cho admin/dealer response (`subtotal`, `discountPercent`, `discountAmount`, `vatPercent`, `vatAmount`, `totalAmount`) là computed snapshot của backend tại thời điểm response, không phải explicit manual override fields.
 
-**Màn hình:** Tab "Tổng quan" (`DashboardScreen`). Bộ lọc: `tháng` hoặc `quý`, điều hướng kỳ trước/sau.
+### 6.13 Warranty lifecycle
 
-| Card | Mô tả |
-|---|---|
-| Quick Actions | Shortcut: Tạo đơn, Công nợ, Kho hàng, Bảo hành |
-| Overview | Doanh thu, công nợ tồn, số đơn, tỷ lệ hoàn thành — theo kỳ |
-| Low Stock Alert | Sản phẩm `stock â‰¤ 10` |
-| Order Status Distribution | Phân bổ trạng thái đơn trong kỳ |
-| Revenue Chart | Doanh thu theo tháng trong kỳ |
-| Aging Debt | Công nợ phân theo tuổi nợ |
-| Activation Trend | Xu hướng kích hoạt bảo hành — theo **kỳ được chọn** |
-| Warranty Status Donut | Tỷ lệ serial đã/chưa kích hoạt — cửa sổ cố định **90 ngày** |
-| Recent Orders | Đơn hàng gần đây trong kỳ |
+Warranty activation/update của dealer:
 
-> Trên mobile: Activation Trend và Warranty Donut thu gọn mặc định.
+- Chỉ áp dụng cho serial thuộc dealer
+- Yêu cầu serial thuộc order `COMPLETED`
+- Không cho activate nếu serial đang `DEFECTIVE` hoặc `RETURNED`
+- `purchaseDate` bắt buộc:
+  - không được ở tương lai
+  - không được sớm hơn ngày tạo order
+- `customerName`, `customerEmail`, `customerPhone`, `customerAddress` bắt buộc
+- `customerPhone` phải hợp lệ theo phone validator backend
+- Dealer app hiện pre-validate cùng regex `^0\d{9}$` trong shared validation utils cho account settings, warranty activation, warranty export.
 
----
+Warranty period:
 
-### 3.10 Thông báo
+- source of truth là `purchaseDate + product.warrantyPeriod months`
+- nếu product không có `warrantyPeriod` hợp lệ => default `12 tháng`
+- `warrantyEnd` được persist
 
-**Kết nối:** WebSocket tại `/ws`. Token xác thực qua STOMP header `Authorization: Bearer ...` hoặc header native `token` khi CONNECT. Dealer App hiện dùng reconnect + refetch sau reconnect; không có polling loop định kỳ.
+Warranty status semantics:
 
-**Admin gửi thông báo — `POST /api/v1/admin/notifications`:**
-- Targeting: `DEALERS` (toàn bộ dealer accounts, không filter `customerStatus`) | `ALL_ACCOUNTS` | `ACCOUNTS` (danh sách ID)
-- Payload: `title`, `body`, `type` (SYSTEM | PROMOTION | ORDER | WARRANTY), `link?`, `deepLink?`
+- Persisted field: `warrantyEnd`, `status`
+- Runtime effective status:
+  - `VOID` nếu persisted status = `VOID`
+  - `EXPIRED` nếu `warrantyEnd` đã qua
+  - `EXPIRED` nếu persisted status = `EXPIRED`
+  - còn lại là `ACTIVE`
 
-**Danh sách WebSocket events:**
+Serial side effect:
 
-| Event | Destination | Trigger | Nhận bởi |
-|---|---|---|---|
-| `orderStatusChanged` | `/user/queue/order-status` | Backend cập nhật trạng thái đơn hoặc payment status liên quan order | Dealer |
-| `notificationCreated` | `/user/queue/notifications` | Backend tạo notification cho user cụ thể | User được chỉ định |
-| `loginConfirmed` | `/user/queue/login-confirmed` | Đăng nhập thành công | User |
-| `dealerRegistrationFromAuth` | `/topic/dealer-registrations` | Dealer đăng ký mới | Admin (broadcast) |
-| `adminNewOrder` | `/topic/admin/new-orders` | Dealer tạo đơn | Admin (broadcast) |
-| `adminNewSupportTicket` | `/topic/admin/support-tickets` | Dealer mở ticket | Admin (broadcast) |
+- Warranty active => serial `WARRANTY`
+- Warranty delete => serial về:
+  - `ASSIGNED` nếu order completed hoặc serial đang ở `WARRANTY`
+  - `AVAILABLE` nếu chưa hoàn tất giao
+  - giữ nguyên `DEFECTIVE` hoặc `RETURNED`
 
-> Event user-specific dùng `convertAndSendToUser(username, ...)`. Broadcast dùng `/topic/...`.
+### 6.14 Support tickets
 
-**API đọc/quản lý thông báo:**
-- `GET /api/v1/dealer/notifications` — danh sách
-- `PATCH /api/v1/dealer/notifications/{id}/read` — đánh dấu đã đọc
-- `PATCH /api/v1/dealer/notifications/{id}/unread` — đánh dấu chưa đọc
-- `PATCH /api/v1/dealer/notifications/read-all` — đọc tất cả (trả về `{ "status": "updated", "updatedCount": N }`)
+Support ticket categories runtime:
 
-**Loại thông báo:**
-- Backend `NotifyType`: `SYSTEM` | `PROMOTION` | `ORDER` | `WARRANTY`
-- Dealer App `DistributorNotice`: `order` | `system` | `promotion` | `warranty`
-- Mapping hiện tại: `WARRANTY` được render như `warranty` trong Dealer App
+- `order`
+- `warranty`
+- `product`
+- `payment`
+- `returnOrder`
+- `other`
 
-**Push notification (FCM):**
-- Khi app ở background hoặc terminated, WebSocket không hoạt động; backend gửi FCM push notification để đánh thức app.
-- FCM chỉ kích hoạt khi `APP_FCM_ENABLED=true` và credentials được cấu hình (`APP_FCM_PROJECT_ID`, `APP_FCM_CREDENTIALS_JSON_BASE64`).
-- Payload FCM chứa `notificationId` để Dealer App fetch chi tiết qua REST sau khi nhận push.
+Enum `DealerSupportCategory.RETURN` serialize ra wire value `"returnOrder"`.
 
----
+Support ticket statuses:
 
-### 3.11 Hỗ trợ (Support Ticket)
+- `open`
+- `in_progress`
+- `resolved`
+- `closed`
 
-**Trạng thái section:** `[Implemented]`
+Current model là single-thread:
 
-**Màn hình:** `SupportScreen` — truy cập từ tab Account.
+- dealer tạo ticket với message gốc
+- admin cập nhật `status`
+- admin có tối đa một field `adminReply`
+- chưa có conversation thread nhiều lượt
 
-**Tạo ticket:** category (`order|warranty|product|payment|returnOrder|other`), priority (`normal|high|urgent`), subject (â‰¤ 80 ký tự), message (â‰¤ 500 ký tự).
+### 6.15 Dealer dashboard snapshot behavior
 
-**Mô hình:** Một chiều — dealer gửi 1 message, admin trả lời qua `adminReply`. Không có chat thread.
+Dealer dashboard hiện chỉ hỗ trợ `month` hoặc `quarter`, chưa có custom date range.
 
-**Trạng thái & transition hợp lệ:**
-- `OPEN → IN_PROGRESS | CLOSED`
-- `IN_PROGRESS → OPEN | RESOLVED | CLOSED`
-- `RESOLVED → IN_PROGRESS | CLOSED`
-- `CLOSED` là trạng thái cuối
+Snapshot rules hiện tại:
 
-**Mã ticket:** `SPT-{8 ký tự cuối epoch ms}` — tự động, unique.
+- Order KPI (`periodRevenue`, `periodOrderCount`, `periodCompletedOrderCount`) bám đúng kỳ đang chọn.
+- Activation trend line dùng cửa sổ `30 ngày` khi filter là `month`, và `90 ngày` khi filter là `quarter`.
+- Warranty donut không bám trực tiếp theo full order period; nó luôn build từ activation series tối đa `90 ngày`, với điểm cuối neo theo cuối kỳ đang xem.
+- Warranty donut range selector hiện dùng:
+  - month view: `7`, `30`
+  - quarter view: `7`, `30`, `90`
+- Card warranty donut hiện chưa có backend status breakdown thực để phân loại serial theo status; app chủ động render trạng thái `N/A` thay vì tự suy diễn các status giả.
+- current risk: QA không được kỳ vọng donut thể hiện breakdown status warranty thật; đây hiện chỉ là card snapshot với range selector và unavailable state có chủ đích.
 
-**Thông báo khi admin cập nhật:** Dealer nhận in-app notification + email khi admin thay đổi status hoặc thêm/xóa reply.
+## 7. Notification
 
-**Quy tắc timestamp:**
-- chuyển về `OPEN` hoặc `IN_PROGRESS` → clear `resolvedAt`, `closedAt`
-- chuyển sang `RESOLVED` → set `resolvedAt` nếu chưa có, clear `closedAt`
-- chuyển sang `CLOSED` → set `closedAt`; nếu chưa có `resolvedAt` thì set luôn
+### 7.1 REST notification APIs
 
-**Quy tắc `adminReply`:**
-- `null` → giữ nguyên reply hiện tại
-- chuỗi rỗng / chỉ có khoảng trắng → xóa reply hiện tại
-- chuỗi có nội dung → thay thế reply hiện tại
+Dealer:
 
-**Liên hệ trực tiếp:** Hotline `1900 1234` · Email `support@4thitek.vn`
+- list notifications
+- paged notifications
+- mark read
+- mark unread
+- mark all read
 
-**Endpoints:**
-- `POST /api/v1/dealer/support-tickets` — tạo ticket
-- `GET /api/v1/dealer/support-tickets/latest` — ticket mới nhất
-- `GET /api/v1/dealer/support-tickets/page` — lịch sử phân trang
-- `PATCH /api/v1/admin/support-tickets/{id}` — admin cập nhật status / reply theo transition matrix ở trên
+Admin:
 
----
+- paged notifications
+- create outbound notifications theo audience
 
-### 3.12 Cài đặt ứng dụng
+### 7.2 WebSocket contract
 
-- **Theme:** `light` | `dark` | `system` — `system` theo setting thiết bị.
-- **Ngôn ngữ:** `vi` | `en` — toàn bộ UI, validation message, snackbar đều được dịch.
+Canonical client subscription contract:
 
----
+- dealer:
+  - `/user/queue/notifications`
+  - `/user/queue/order-status`
+  - `/user/queue/login-confirmed`
+- admin:
+  - `/topic/dealer-registrations`
+  - `/topic/admin/new-orders`
+  - `/topic/admin/support-tickets`
 
-### 3.13 Dealer Profile & Tài khoản
+Rules:
 
-**Cập nhật profile — `PUT /api/v1/dealer/profile`:** tên doanh nghiệp, liên hệ, địa chỉ, avatar URL. Credit limit là readonly — chỉ admin thay đổi.
+- Client `SEND` destinations bị disable
+- Unknown subscription destination bị reject
+- `/user/queue/*` là contract public chuẩn; không dùng physical queue cũ
 
----
+### 7.3 Dealer polling fallback
 
-### 3.14 Quản lý Admin & Staff
+Dealer app có polling fallback khi realtime không ổn định:
 
-#### Bắt buộc đổi password lần đầu
+- interval: `45 giây`
+- refresh notifications + order signal
+- timer được cleanup khi logout/session expired/dispose
 
-`AdminPasswordChangeRequiredFilter` chạy trên mọi request tới `/api/v1/admin/**`. Nếu `requirePasswordChange = true` → `403 Forbidden` mọi endpoint trừ `/api/v1/auth/**` và `PATCH /api/v1/admin/password`. Admin mới luôn được tạo với flag này bật. Sau khi đổi thành công → flag reset.
+## 8. Reporting And Audit
 
-#### Quản lý Staff Users (SUPER_ADMIN only)
+### 8.1 Report export
 
-| Endpoint | Mô tả |
-|---|---|
-| `GET /api/v1/admin/users` | Liệt kê staff users |
-| `POST /api/v1/admin/users` | Tạo admin staff mới |
-| `PATCH /api/v1/admin/users/{id}/status` | Bật / tắt tài khoản |
+Export route:
 
-Khi tạo staff: sinh password tạm thời **12 ký tự** (chữ hoa, chữ thường, số, `@#$%`; loại bỏ ký tự dễ nhầm `I O 1 0`), set `requirePasswordChange = true`, gửi credentials qua email.
+- `GET /api/v1/admin/reports/export?type={type}&format={format}`
 
-#### Bootstrap SUPER_ADMIN
+Types:
 
-Chạy một lần lúc startup khi `app.bootstrap-super-admin.enabled=true` và chưa có SUPER_ADMIN trong DB. Tạo tài khoản từ env vars (`email`, `password`, `name`; default name: *"System Owner"*) với cả hai role `ADMIN` + `SUPER_ADMIN`, `requirePasswordChange = true`. Idempotent.
+- `ORDERS`
+- `REVENUE`
+- `WARRANTIES`
+- `SERIALS`
 
-#### Audit Logging
+Formats:
 
-`AdminAuditLoggingAspect` tự động ghi log mọi mutation (`POST/PUT/PATCH/DELETE`) trong `/api/v1/admin/**`.
+- `XLSX`
+- `PDF`
 
-Thông tin ghi: `actor`, `actorRole`, `action` (create|update|delete|changePassword|import|createNotification), `method`, `path`, `ip`, `payload` (sanitized), `entityType`.
+Current spec:
 
-> Audit log hiện là behavior ở backend; chưa có màn hình riêng hoặc read API riêng trong `admin-fe` để xem danh sách audit log.
+| Type | Sort mặc định | Columns |
+| --- | --- | --- |
+| ORDERS | `createdAt desc` | `Order Code`, `Dealer`, `Status`, `Payment`, `Total`, `Paid`, `Items`, `Created At` |
+| REVENUE | `gross revenue desc` | `Dealer`, `Orders`, `Gross Revenue`, `Paid Revenue`, `Outstanding`, `Last Order` |
+| WARRANTIES | `createdAt desc` | `Warranty Code`, `Product`, `Serial`, `Dealer`, `Customer`, `Status`, `Start`, `End` |
+| SERIALS | `importedAt desc` | `Serial`, `Product`, `SKU`, `Status`, `Warehouse`, `Dealer`, `Customer`, `Imported At` |
 
----
+Current limitations:
 
-### 3.15 Quản lý Đại lý (Admin)
+- chưa có custom filters
+- chưa có custom date range
+- chưa có custom sort
+- export luôn lấy full dataset của report type tương ứng
+- orders/revenue export hiện build từ toàn bộ `orders` table, không áp visible-order filter
 
-**Trạng thái section:** `[Implemented]` cho lifecycle account hiện tại. `[Policy]` cho việc chỉ dealer `ACTIVE` mới dùng được portal và asset private.
+### 8.2 Audit log
 
-| Endpoint | Mô tả |
-|---|---|
-| `GET /api/v1/admin/dealers/accounts` | Danh sách dealer |
-| `GET /api/v1/admin/dealers/accounts/page` | Phân trang |
-| `PUT /api/v1/admin/dealers/accounts/{id}` | Cập nhật profile dealer |
-| `PATCH /api/v1/admin/dealers/accounts/{id}/status` | Bật/tắt account, cập nhật credit limit |
+Audit read API:
 
-**Vòng đời tài khoản dealer:**
-```
-UNDER_REVIEW ──► ACTIVE ◄──► SUSPENDED
-             └──► SUSPENDED
-```
+- `GET /api/v1/admin/audit-logs`
+- chỉ `SUPER_ADMIN`
 
-| Transition | Actor | Side effect |
-|---|---|---|
-| `UNDER_REVIEW → ACTIVE` | Admin | Email + in-app notification |
-| `UNDER_REVIEW → SUSPENDED` | Admin | Email + in-app notification |
-| `ACTIVE → SUSPENDED` | Admin | Email + notification; token hết hạn không refresh được; đơn PENDING của dealer auto-cancel sau grace period 24h (serial `RESERVED → AVAILABLE`); đơn CONFIRMED/SHIPPING giữ nguyên để admin xử lý |
-| `SUSPENDED → ACTIVE` | Admin | Email + notification; dealer có thể login lại; đơn CONFIRMED/SHIPPING tiếp tục flow bình thường |
+Write path:
 
-Admin cập nhật `creditLimit` độc lập hoặc cùng lúc đổi status.
+- admin mutation qua `AdminController` với method `POST|PUT|PATCH|DELETE` sẽ tạo `AuditLog`
+- payload có redact field nhạy cảm
+- RMA flow cũng tự ghi audit thủ công bổ sung
 
-**Email lifecycle:** Đăng ký mới → gửi email nhận hồ sơ. Thay đổi status → gửi email + in-app notification. Tất cả email gửi async (`@Async("mailTaskExecutor")`) — lỗi email không block transaction.
+Current audit response fields:
 
-**Quy tắc truy cập portal (`assertDealerPortalAccess`):**
-- Chỉ `status = ACTIVE` được đăng nhập, refresh token, gọi dealer API, kích hoạt bảo hành, và thao tác asset riêng của dealer (`dealer-avatars`, `payment-proofs`)
-- `UNDER_REVIEW` → `401` với message *"Tài khoản đang chờ duyệt..."* ở login, refresh, và dealer API
-- `SUSPENDED` → `401` với message tương ứng ở login, refresh, và dealer API
-- Sau migration dữ liệu, mọi dealer phải có `customerStatus` rõ ràng; `null` là dữ liệu invalid, không còn được normalize thành `ACTIVE`
-- Kiểm tra tại: `DealerController`, `WarrantyActivationController`, `UploadController` (đối với asset private của dealer)
+- `id`
+- `createdAt`
+- `actor`
+- `actorRole`
+- `action`
+- `requestMethod`
+- `requestPath`
+- `entityType`
+- `entityId`
+- `ipAddress`
 
----
+## 9. Rate Limiting
 
-### 3.16 Blog & Nội dung tĩnh
+### 9.1 Effective source of truth
 
-#### Admin — Quản lý Blog
+Rate limit runtime được resolve theo thứ tự:
 
-| Endpoint | Mô tả |
-|---|---|
-| `GET/POST /api/v1/admin/blogs` | Danh sách / Tạo bài viết |
-| `PUT /api/v1/admin/blogs/{id}` | Cập nhật |
-| `DELETE /api/v1/admin/blogs/{id}` | Xóa |
-| `GET /api/v1/admin/categories` | Danh mục |
+1. DB `admin_settings` override nếu đã set
+2. env/application defaults trong `application.properties`
 
-**Trạng thái bài viết:** `DRAFT` (bản nháp) → `SCHEDULED` (lên lịch) → `PUBLISHED` (public)
+Admin settings hiện có thể override các bucket sau:
 
-#### Public Blog API (không cần auth)
+- `auth`
+- `passwordReset`
+- `warrantyLookup`
+- `upload`
+- `webhook`
 
-| Endpoint | Mô tả |
-|---|---|
-| `GET /api/v1/blog/blogs/latest` | Bài viết mới nhất (homepage) |
-| `GET /api/v1/blog/blogs` | Tất cả bài viết |
-| `GET /api/v1/blog/blogs/search` | Tìm kiếm |
-| `GET /api/v1/blog/blogs/related/{id}` | Bài viết liên quan |
-| `GET /api/v1/blog/categories` | Danh mục |
-| `GET /api/v1/blog/categories/{id}/blogs` | Bài viết theo danh mục |
-| `GET /api/v1/blog/{id}` | Chi tiết |
+### 9.2 Default buckets
 
-#### Public Content API (Nội dung tĩnh)
+| Bucket | Default |
+| --- | --- |
+| Auth login | `10 req / 60s` |
+| Password reset | `5 req / 300s` |
+| Warranty lookup | `30 req / 60s` |
+| Upload | `20 req / 60s` |
+| SePay webhook | `120 req / 60s` |
 
-`GET /api/v1/content/{section}?lang=vi|en` — trả về nội dung tĩnh (FAQ, Về chúng tôi, Chính sách...). Mặc định `lang=vi`. Không cần auth.
+Runtime behavior:
 
----
+- trả `429 Too many requests`
+- key theo client IP
+- ưu tiên Redis nếu có `StringRedisTemplate`; fallback in-memory nếu không có
+- `app.rate-limit.trust-forwarded-for=false` mặc định
 
-### 3.17 Public Website API
+## 10. State Machines
 
-**Public Warranty Check — `GET /api/v1/warranty/check/{serial}`**
+### 10.1 OrderStatus
 
-Public, rate limit 30 req/60s. Serial normalize (trim + uppercase) trước khi lookup. Kết quả cache `PUBLIC_WARRANTY_LOOKUP`.
+| Current | Allowed next | Actor | Side effects |
+| --- | --- | --- | --- |
+| `PENDING` | `CONFIRMED`, `CANCELLED` | Admin; Dealer chỉ được `CANCELLED` | Cancel release stock/serial |
+| `CONFIRMED` | `SHIPPING`, `CANCELLED` | Admin; Dealer chỉ được `CANCELLED` | Cancel release stock/serial |
+| `SHIPPING` | `COMPLETED` | Admin only | Complete assigns reserved serials to dealer |
+| `COMPLETED` | none | none | terminal |
+| `CANCELLED` | none | none | terminal, soft-delete eligible |
 
-```
-WarrantyLookupResponse {
-  status: ACTIVE | EXPIRED | VOID | invalid  // invalid = chưa kích hoạt hoặc không tồn tại
-  productName, serialNumber, purchaseDate, warrantyEndDate,
-  remainingDays,   // 0 nếu hết hạn
-  warrantyCode
-}
-```
+### 10.2 PaymentStatus
 
-**Dealer listing (public):**
-- `GET /api/v1/user/dealer` — danh sách dealer
-- `GET /api/v1/user/dealer/page` — phân trang
+| Status | Scope | Meaning | Notes |
+| --- | --- | --- | --- |
+| `PENDING` | Order aggregate / payment attempt | chưa settle đủ | aggregate default cho BANK_TRANSFER còn outstanding |
+| `PAID` | Order aggregate / payment attempt | đã settle đủ | aggregate khi `paidAmount >= totalAmount` |
+| `DEBT_RECORDED` | Order aggregate | order dùng debt | aggregate cho `PaymentMethod=DEBT` khi chưa fully settled |
+| `FAILED` | Legacy payment attempt compatibility | historical failed attempt | runtime hiện tại không emit state này cho aggregate hoặc new writes |
+| `CANCELLED` | Order aggregate | order cancel và chưa có confirmed payment | không dùng cho cancelled order đã có tiền |
 
-**Visibility rule `[Implemented]`:**
-- Public dealer listing chỉ trả dealer `ACTIVE`
-- Cả endpoint paged và non-paged đều dùng cùng một rule filter `customerStatus = ACTIVE`
-- Field public hiện tại gồm: `id`, `businessName`, `contactName`, `address`, `city`, `district`, `phone`, `email`
-- Không public các field nhạy cảm hoặc nội bộ như `creditLimit`, công nợ, tax info, status history, auth/role, payment data
+### 10.3 ApprovalStatus
 
----
+Không có standalone enum `ApprovalStatus`.
 
-### 3.18 Dashboard & Cài đặt hệ thống (Admin)
+Approval semantics hiện được encode trong các field khác:
 
-**Admin Dashboard — `GET /api/v1/admin/dashboard`**
+| Workflow | Pending | Approved | Rejected/Blocked | Stored field |
+| --- | --- | --- | --- | --- |
+| Dealer onboarding | `UNDER_REVIEW` | `ACTIVE` | `SUSPENDED` | `Dealer.customerStatus` |
+| Order approval | `PENDING` | `CONFIRMED` | `CANCELLED` | `Order.status` |
 
-Tổng hợp số liệu vận hành: số dealer `UNDER_REVIEW`, thống kê đơn hàng, doanh thu. Kết quả cache `ADMIN_DASHBOARD`.
+### 10.4 ShippingStatus
 
-**System Settings (SUPER_ADMIN only):**
-- `GET /api/v1/admin/settings` — đọc cài đặt
-- `PUT /api/v1/admin/settings` — cập nhật (SePay config, `emailConfirmation`, `sessionTimeoutMinutes`, `orderAlerts`, `inventoryAlerts`, email settings, rate limit overrides...)
+Không có standalone enum `ShippingStatus`.
 
-**Cache invalidation:**
+Shipping semantics hiện chỉ là milestone coarse trong `Order.status`:
 
-| Cache | Bị clear khi |
-|---|---|
-| `ADMIN_DASHBOARD` | Dealer đăng ký mới, admin cập nhật dealer status, dealer tạo đơn, discount rule tạo mới |
-| `PUBLIC_PRODUCTS`, `PUBLIC_PRODUCT_BY_ID`, `PUBLIC_FEATURED_PRODUCTS`, `PUBLIC_HOMEPAGE_PRODUCTS` | Admin tạo/cập nhật sản phẩm |
-| `PUBLIC_WARRANTY_LOOKUP` | Warranty tạo/cập nhật/xóa (activation, CRUD, admin status change) |
+| Logical shipping state | Stored as | Actor | Notes |
+| --- | --- | --- | --- |
+| Chưa xuất kho | `PENDING` / `CONFIRMED` | Admin | chưa có tracking model |
+| Đang giao | `SHIPPING` | Admin | không có `carrier`, `trackingNumber`, `ETA`, `proofOfDelivery` |
+| Đã giao | `COMPLETED` | Admin | dealer không có confirm-received path |
 
----
+### 10.5 WarrantyStatus
 
-### 3.19 Xuất báo cáo (Admin)
+| Status | Effective rule | Actor |
+| --- | --- | --- |
+| `ACTIVE` | `warrantyEnd` chưa hết hạn và không bị `VOID` | Dealer/Admin/runtime compute |
+| `EXPIRED` | `warrantyEnd` đã qua hoặc persisted status là `EXPIRED` | Runtime compute/Admin |
+| `VOID` | manual override | Admin |
 
-**Trạng thái section:** `[Implemented]`
+### 10.6 SerialStatus
 
-**`GET /api/v1/admin/reports/export`**
+| Status | Entered by | Main exits | Notes |
+| --- | --- | --- | --- |
+| `AVAILABLE` | Admin import, RMA PASS_QC | `RESERVED`, `DEFECTIVE`, `INSPECTING`, delete | counted vào stock available |
+| `RESERVED` | Order workflow, admin/dealer import linked to non-completed order | `ASSIGNED`, release về `AVAILABLE` | không set bằng manual admin status route |
+| `ASSIGNED` | Order complete, linked import | `WARRANTY`, `DEFECTIVE`, `RETURNED`, `INSPECTING`, `SCRAPPED` | dealer-owned inventory |
+| `WARRANTY` | Warranty active | `DEFECTIVE`, `RETURNED`, back to `ASSIGNED` khi warranty inactive/delete | dealer-owned inventory |
+| `DEFECTIVE` | Dealer/admin | `INSPECTING` qua RMA hoặc manual admin status | admin không được mark defective nếu serial đã thuộc dealer |
+| `RETURNED` | Dealer | `INSPECTING` qua RMA | admin manual route không được set `RETURNED` |
+| `INSPECTING` | Admin RMA / admin manual status | `AVAILABLE`, `SCRAPPED` | trạng thái quarantine coarse |
+| `SCRAPPED` | Admin RMA / admin manual status | none defined | terminal trong runtime hiện tại |
 
-| Param | Giá trị |
-|---|---|
-| `type` | `ORDERS` \| `REVENUE` \| `WARRANTIES` \| `SERIALS` |
-| `format` | `XLSX` \| `PDF` |
+## 11. Edge Cases
 
-**Response:** stream file binary trực tiếp (`Content-Disposition: attachment`) với `Content-Type` phù hợp định dạng; frontend tải bằng blob, không bọc `ApiResponse`.
+- Dealer self-registration phone phải match `^0\\d{9}$`; FE phải pre-validate, backend vẫn validate lại.
+- Dealer account settings / warranty activation / warranty export dùng cùng FE phone validator `^0\\d{9}$`.
+- Order create là source-of-truth cho stock. Cart stock check chỉ là UX.
+- Lock conflict trong stock/order update map về `409` với message retry rõ ràng.
+- Order code parser SePay accept cả canonical và legacy regex để tránh miss webhook cũ.
+- Warranty filter/reporting phải dùng effective status compute-on-read, không dùng raw persisted status nếu muốn biết còn hạn thực tế.
+- `FAILED` payment status không được dùng làm alias order-level cho UI; nếu gặp legacy value từ dữ liệu cũ thì UI fallback về `pending`.
+- Support category wire value cho `RETURN` là `"returnOrder"`.
 
----
+## 12. Pending Decision
 
-### 3.20 Upload & Lưu trữ File
+### 12.1 Shipping metadata
 
-**Trạng thái section:** `[Implemented]`
+- Status: `Pending Decision`
+- Decision owners: Product, Ops, Backend
+- Current default behavior:
+  - chỉ có `OrderStatus.SHIPPING`
+  - chưa có `carrier`, `trackingNumber`, `ETA`, `proofOfDelivery`
+  - admin là actor duy nhất đẩy order sang `SHIPPING` và `COMPLETED`
+- Risk:
+  - không có tracking/POD chi tiết để điều tra dispute giao hàng
+  - QA không có metadata-level assertions ngoài coarse `OrderStatus`
 
-**Upload endpoints:**
+### 12.2 Order/record restore for soft delete
 
-| Endpoint | Role | Mục đích |
-|---|---|---|
-| `POST /api/v1/upload/products` | ADMIN, SUPER_ADMIN | Ảnh sản phẩm |
-| `POST /api/v1/upload/blogs` | ADMIN, SUPER_ADMIN | Ảnh bài viết |
-| `POST /api/v1/upload/avatars` | ADMIN, SUPER_ADMIN | Avatar admin |
-| `POST /api/v1/upload/dealer-avatars` | DEALER, ADMIN, SUPER_ADMIN | Avatar dealer |
-| `POST /api/v1/upload/payment-proofs` | DEALER, ADMIN, SUPER_ADMIN | Chứng từ thanh toán |
-| `DELETE /api/v1/upload?url=...` | DEALER, ADMIN, SUPER_ADMIN | Xóa file |
-| `GET /api/v1/upload/**` | Public ở tầng security; controller sẽ chỉ cho đọc công khai với `products/`, `blogs/`, còn path private bị chặn theo auth/ownership | Đọc asset |
+- Status: `Pending Decision`
+- Decision owners: Product, Ops, Backend
+- Current default behavior:
+  - deleted orders bị ẩn khỏi query mặc định
+  - chưa có restore, chưa có includeDeleted
+- Risk:
+  - thao tác delete nhầm không có self-service restore path
+  - QA và ops phải truy vết bằng DB/log thay vì API chính thức
 
-**Path scoping theo actor:**
+## 13. Doc vs Code Alignment Notes
 
-| Category | Admin | Dealer |
-|---|---|---|
-| `avatars` | `avatars/{adminId}/` | — |
-| `dealer-avatars` | `avatars/dealers/{adminId}/` | `avatars/dealers/{dealerId}/` |
-| `payment-proofs` | `payments/proofs/{adminId}/` | `payments/proofs/dealers/{dealerId}/` |
-| `products`, `blogs` | `products/`, `blogs/` | — |
+- `ADMIN` và `SUPER_ADMIN` là RBAC thật; `roleTitle` chỉ là display, còn `systemRole` mới là authority trả về cho admin user UI.
+- `/user/queue/*` là websocket client contract chuẩn.
+- Dealer không được mark order received; `SHIPPING -> COMPLETED` là admin-only.
+- `PaymentStatus.FAILED` chỉ còn là legacy compatibility value cho dữ liệu cũ; current runtime không emit cho aggregate/new writes.
+- `WarrantyStatus` là effective status compute-on-read dựa trên `warrantyEnd`, không cần scheduled expiry job.
+- Public dealer serial import endpoint không tồn tại; internal service method còn lại không phải contract chính thức.
 
-**Quyền xóa:**
-- `products/`, `blogs/` → chỉ ADMIN/SUPER_ADMIN
-- `avatars/dealers/`, `payments/proofs/` → admin xóa mọi file; dealer chỉ xóa file trong folder của mình
-- Response: `{ "status": "deleted", "path": "..." }`
+## 14. Known Limitations
 
-**Ràng buộc lifecycle dealer:**
-- Dealer chỉ upload / đọc / xóa asset riêng của mình khi `status = ACTIVE`
-- `UNDER_REVIEW` / `SUSPENDED` bị chặn giống dealer portal
-- Admin/SUPER_ADMIN không bị ràng buộc bởi lifecycle dealer khi hỗ trợ xử lý hồ sơ / chứng từ
+- Chưa có granular RBAC thật ngoài `ADMIN` / `SUPER_ADMIN`.
+- Chưa có shipping subsystem chi tiết.
+- Chưa có support ticket threading nhiều lượt; model hiện chỉ có `adminReply` đơn.
+- Chưa có SLA model cho support ticket.
+- Chưa có report export filter/date-range/sort tùy biến.
+- Chưa có audit log retention/export/access policy ngoài page đọc hiện tại.
+- Chưa có order restore hoặc includeDeleted query mode.
+- Chưa có automated daily debt-payment reconciliation hoặc dedicated anomaly dashboard.
 
-**Serve file tĩnh — `GET /uploads/{*path}`:**
-- Public, Cache-Control `max-age=31536000` (365 ngày)
-- Chỉ serve được asset public `products/` và `blogs/`
-- Chỉ active khi `app.storage.provider=s3`
+## 15. Future Backlog
 
----
-
-### 3.21 Rate Limiting
-
-**Trạng thái section:** `[Implemented]`
-
-Cơ chế sliding window in-memory theo client key. Cleanup job chạy mỗi **5 phút** (cấu hình qua `app.rate-limit.cleanup-interval-ms`), grace period **300 giây**.
-
-**Xác định client key:**
-- mặc định dùng `remoteAddr`
-- chỉ trust `X-Forwarded-For` khi `app.rate-limit.trust-forwarded-for=true`
-- audit log admin có cờ riêng `app.audit.trust-forwarded-for`
-- rate limit và audit log dùng cùng app-side client IP resolver; mỗi feature vẫn giữ cờ trust riêng
-- phù hợp nhất cho single-instance; nếu scale multi-instance cần shared store hoặc gateway rate-limit phía trước
-
-| Endpoint | Giới hạn |
-|---|---|
-| `POST /api/v1/auth/login` | 10 req / 60s |
-| `POST /api/v1/auth/forgot-password` | 5 req / 300s |
-| `GET /api/v1/warranty/check/{serial}` | 30 req / 60s |
-| `POST /api/v1/upload/**` | 20 req / 60s |
-| `POST /api/v1/webhooks/sepay` | 120 req / 60s |
-
-Vượt ngưỡng → `429 Too Many Requests`.
-
----
-
-### 3.22 Data Contract Consistency
-
-**Trạng thái section:** `[Implemented]` cho các field runtime hiện hành; `[Pending Decision]` cho migration legacy chưa xóa hết.
-
-**Canonical fields:**
-- `orderCode` là business identifier chuẩn cho đơn hàng; `id` DB không được dùng thay cho `orderCode` ở search/display flow user-facing
-- `product.stock` là field **derived/read model**, không phải inventory input canonical
-- Pool serial khả dụng `dealer IS NULL AND order IS NULL AND status = AVAILABLE` là source of truth để chặn oversell
-- Response import serial summary `importedItems`, `skippedItems`, `importedCount`, `skippedCount` là contract chuẩn cho các FE
-- `paymentStatus` là aggregate field ở level Order; `Payment` record là source-of-truth cho từng lần ghi nhận/giao dịch
-
-**Legacy / compatibility rules:**
-- `id` vẫn có thể xuất hiện trong API để nôi liên nội bộ, nhưng không được xem là business code thay cho `orderCode`
-- Các field legacy/chuyển tiếp chỉ được dùng cho read compatibility; mọi write flow mới phải bám canonical schema hiện hành
-
----
-
-### 3.23 Error Contract
-
-**Trạng thái section:** `[Implemented]`
-
-**Envelope chuẩn:**
-
-```json
-{
-  "success": false,
-  "data": null,
-  "error": "..."
-}
-```
-
-**Validation-level error:**
-
-```json
-{
-  "success": false,
-  "data": {
-    "fieldName": "message"
-  },
-  "error": "Validation failed"
-}
-```
-
-**Status code contract:**
-- `400`: request sai, validation fail, business rule fail, payload không hợp lệ
-- `401`: chưa xác thực, token hết hạn, refresh fail, dealer không `ACTIVE`
-- `403`: đã xác thực nhưng không đủ quyền
-- `404`: resource không tồn tại
-- `409`: conflict như duplicate payment, transactionCode đã tồn tại, duplicate mutation window
-- `413`: file quá dung lượng
-- `429`: vượt rate limit
-- `500`: lỗi hệ thống không lường trước
-
-**Current conventions:**
-- Không dùng `422` trong runtime hiện tại
-- FE phải bám `status code + envelope` thay vì suy luận từ raw text
-
----
-
-### 3.24 Audit & Traceability
-
-**Trạng thái section:** `[Implemented]` cho admin mutation audit. `[Pending Decision]` cho retention/access policy đầy đủ.
-
-**Admin mutation audit `[Implemented]`:**
-- Mọi `POST`, `PUT`, `PATCH`, `DELETE` đi qua `AdminController` được ghi audit log backend
-- Audit payload hiện tại gồm: actor, actorRole, action, requestMethod, requestPath, entityType, entityId, ipAddress, payload
-- Các field nhạy cảm chứa `password`, `token`, `secret`, `apiKey`, `accessKey`, `checksum` phải bị redact trước khi lưu
-
-**Pending decisions:**
-- ai được xem audit log
-- retention bao lâu
-- có cần export/search UI riêng hay không
-
----
-
-### 3.25 Refund & Reversal
-
-**Trạng thái section:** `[Implemented]` cho current limitation. `[Pending Decision]` cho refund/reversal workflow đầy đủ.
-
-**Current runtime `[Implemented]`:**
-- Không có endpoint refund/payment reversal chuẩn trong hệ thống
-- Không có negative payment / compensating transaction flow production
-- Hủy order không tự refund, không tự reverse debt, không xóa payment đã ghi
-- Payment record không nên bị xóa cứng để biểu diễn hoàn tiền; đây chưa phải workflow hỗ trợ trong runtime
-
-#### Admin Financial Adjustment `[Policy]`
-
-Để xử lý lỗi tài chính, overpayment, hoặc settlement cho đơn hủy mà không cần truy cập DB trực tiếp:
-
-**`POST /api/v1/admin/orders/{id}/adjustments`:**
-
-```json
-{
-  "type": "CORRECTION | WRITE_OFF | CREDIT_NOTE | REFUND_RECORD",
-  "amount": -500000,
-  "reason": "Hoàn tiền đơn SCS-42-... đã hủy — đã chuyển khoản hoàn ngày 2026-03-23",
-  "referenceCode": "REF-..."
-}
-```
-
-**Quy tắc:**
-1. Adjustment entry là **append-only** — không xóa, không sửa sau khi tạo
-2. `amount` có thể **âm** (giảm paidAmount — dùng cho refund/correction) hoặc **dương** (bổ sung ghi nhận — dùng cho late payment match)
-3. `paidAmount` và `outstandingAmount` được **tính lại** từ: `Σ payments.amount + Σ adjustments.amount`
-4. `reason` **bắt buộc**, tối thiểu 10 ký tự
-5. `referenceCode` tùy chọn — dùng cho cross-reference với giao dịch ngân hàng ngoài hệ thống
-6. Chỉ `ADMIN` / `SUPER_ADMIN` được tạo adjustment
-7. Audit log tự động ghi: actor, actorRole, orderId, type, amount, reason, timestamp
-8. Adjustment **không** tự thực hiện chuyển tiền ra ngoài hệ thống — refund thực tế qua bank transfer manual, nhưng hệ thống **phải** ghi nhận
-
-**`GET /api/v1/admin/orders/{id}/adjustments`:** — lịch sử adjustment của đơn, sắp xếp theo thời gian
-
-**Constraint tài chính:**
-- `paidAmount` (tính lại) không được âm → adjustment bị reject nếu tổng kết quả < 0
-- Adjustment trên đơn `COMPLETED` cần xác nhận lại (`confirmOverride = true` trong payload) vì ảnh hưởng accounting đã chốt
-
-> Đây là minimum viable correction flow. Không thay thế full refund gateway integration nhưng đảm bảo mọi biến động tài chính đều có record trong hệ thống.
-
----
-
-## 4. User Flow
-
-### 4.1 Đặt hàng
-
-```
-Đăng nhập → Duyệt sản phẩm → Thêm vào giỏ → Kiểm tra giỏ & chiết khấu → Nhập thông tin người nhận
-→ Chọn thanh toán:
-    [Chuyển khoản] Sao chép thông tin NH → Chuyển tiền → SePay tự xác nhận → Dealer App cập nhật order state; nếu đang mở bank-transfer sheet thì sheet tự đóng, nếu đang ở màn thành công thì trạng thái hiển thị đổi sang đã thanh toán
-    [Ghi nợ] Xác nhận → Đơn ghi nợ ngay
-→ Đơn tạo thành công (PENDING)
-```
-
-### 4.2 Thanh toán công nợ
-
-```
-Dashboard → Shortcut "Công nợ" → Chọn đơn còn nợ → Ghi nhận thanh toán (số tiền, kênh, chứng từ)
-→ Backend validate request
-→ Payment được ghi nhận thành công
-→ paidAmount tăng
-→ outstandingAmount giảm ngay
-→ outstandingAmount = 0 → đơn biến mất khỏi danh sách nợ
-```
-
-### 4.3 Kích hoạt bảo hành
-
-```
-[Admin] Đơn → COMPLETED → Serial vào kho dealer
-[Dealer] Scan/nhập serial → Hệ thống validate serial đủ điều kiện
-→ Dealer nhập thông tin khách + chọn ngày mua → Xác nhận → Bảo hành kích hoạt
-→ Không có bước xuất PDF/Excel trong Dealer App hiện tại
-```
-
-### 4.4 Admin duyệt đơn
-
-```
-Xem đơn PENDING → Duyệt (CONFIRMED) → Chuẩn bị hàng (SHIPPING) → Giao xong (COMPLETED)
-→ Hệ thống push WebSocket về Dealer App
-```
-
----
-
-## 5. Edge Cases
-
-### 5.1 Thanh toán
-
-| Trường hợp | Xử lý |
-|---|---|
-| `amount = 0` | `@DecimalMin(0.01)` từ chối tại request level |
-| `amount > outstandingAmount` | Hard block — `BadRequestException` |
-| `outstandingAmount = 0` | Client ẩn nút; server chặn cứng `BadRequestException` |
-| Trùng lặp (cùng orderId + amount trong 5s) | Từ chối — `ConflictException` |
-| Dealer ghi payment thành công | Có hiệu lực ngay, `outstandingAmount` giảm tức thì |
-| Đơn `BANK_TRANSFER` khi `sepay.enabled = true` | Dealer không tự ghi payment; chờ SePay hoặc admin override |
-
-### 5.2 Serial & Bảo hành
-
-| Trường hợp | Xử lý |
-|---|---|
-| Serial đã kích hoạt | Từ chối, lỗi "serial đã kích hoạt" |
-| Serial không thuộc kho dealer | Từ chối — validation error |
-| Serial đã tồn tại khi admin import | Không fail cả request; item đó bị skip và trả reason trong summary response |
-| Đơn liên kết chưa `COMPLETED` | Từ chối (`PENDING`, `CONFIRMED`, `SHIPPING` đều bị từ chối) |
-| Thông tin khách hàng trống | Backend chỉ fallback `name/phone/address` từ receiver info nếu request thiếu; Dealer App hiện vẫn yêu cầu dealer nhập đủ 4 trường trên form |
-| `ImportedSerialRecord` đã tồn tại | Bỏ qua, giữ nguyên `warehouseId` gốc |
-
-### 5.3 Đơn hàng
-
-| Trường hợp | Xử lý |
-|---|---|
-| Pool serial `AVAILABLE` không đủ | Từ chối tạo đơn, kể cả khi `Product.stock` cũ đang lệch lớn hơn thực tế |
-| Sản phẩm bị xóa sau khi vào giỏ | Lỗi khi checkout, yêu cầu xóa item |
-| Hủy đơn | Serial `RESERVED → AVAILABLE` (xem quy tắc tại [3.4](#34-đặt-hàng--thanh-toán)) |
-| Reorder đơn cũ | Thêm vào giỏ, snackbar "Đã thêm X sản phẩm, bỏ qua Y (hết hàng)" |
-
-### 5.4 Giỏ hàng
-
-- **Optimistic update:** UI cập nhật ngay (add/remove/qty), rollback nếu backend trả error.
-- **Mutation conflict:** khi response về sau khi local state đã thay đổi (ví dụ: user thêm item khác trong lúc request đang pending), local state thắng — response cũ không ghi đè state hiện tại.
-- **Sync retry:** Dealer App dùng reconnect + refetch sau khi WebSocket reconnect; không có polling loop định kỳ.
-- Business contract cốt lõi vẫn là: cart mutation không được phá vỡ inventory rule và auth rule của backend.
-
-### 5.5 Giao diện & Cài đặt
-
-- **Widget lifecycle:** `_showSnackBar` luôn kiểm tra `!mounted` trước khi gọi `ScaffoldMessenger`. Khi gọi từ `didChangeDependencies`, dùng `addPostFrameCallback` để tránh gọi trong build phase.
-- **Local preference persistence:** ThemeMode persist dưới dạng string `'system'`/`'light'`/`'dark'`. Tên màn hình `WarrantyExportScreen` là legacy name — chức năng là import serial từ file (không phải export).
-- **ApiResponse envelope:** Client chỉ render `message` từ error response khi `status != "success"`; không đọc `data` khi có lỗi.
-- Business contract cốt lõi ở section này chỉ gồm: user có thể chọn theme `light|dark|system` và ngôn ngữ `vi|en`.
-
-### 5.6 Tình huống tài chính và inventory nâng cao
-
-| Trường hợp | Xử lý |
-|---|---|
-| Tạo đơn với `X-Idempotency-Key` trùng (retry trong 10 phút) | Trả response cũ, không tạo đơn mới, không reserve serial lần nữa |
-| SePay webhook đến khi dealer đang hủy đơn đồng thời | `SELECT FOR UPDATE` trên row Order — một trong hai thắng; nếu order đã CANCELLED khi webhook xử lý → ghi `UnmatchedPayment` reason `ORDER_CANCELLED` |
-| Dealer bị SUSPENDED khi có đơn PENDING | Đơn PENDING auto-cancel sau grace period 24h (serial giải phóng); đơn CONFIRMED/SHIPPING giữ nguyên để admin xử lý |
-| Dealer bị SUSPENDED khi có đơn CONFIRMED/SHIPPING | Đơn giữ nguyên trạng thái; admin tiếp tục xử lý; dealer không thể thao tác thêm |
-| Admin hạ `creditLimit` xuống thấp hơn `currentOutstandingDebt` hiện tại | Không block — chỉ block đơn mới; đơn cũ và debt hiện tại giữ nguyên; admin nhận notification về credit limit violation |
-| Batch warranty activation partial failure (Section 3.8) | Mỗi serial được kích hoạt độc lập; serial thành công không rollback khi serial khác fail; response trả partial-success summary với list success/fail per serial |
-| Dealer xóa payment-proof file sau khi payment đã ghi nhận | File có thể bị xóa (hành động trên storage), nhưng payment record giữ nguyên `proofFileName` làm reference; file đã xóa không thể phục hồi từ hệ thống — đây là rủi ro vận hành; admin nên download proof ngay khi nhận payment |
-| Admin chuyển SHIPPING → COMPLETED khi serial không còn RESERVED | `RESERVED → ASSIGNED` sẽ fail nếu serial đã bị đổi status (ví dụ: dealer đánh DEFECTIVE cho serial RESERVED — không hợp lệ vì DEFECTIVE chỉ áp dụng cho ASSIGNED/WARRANTY); backend kiểm tra và reject transition với message rõ ràng |
-| 2 admin cùng approve/cancel đơn đồng thời | `SELECT FOR UPDATE` trên row Order — một trong hai thắng; bên thua nhận `409 Conflict` với message "Order đã được xử lý bởi tác nhân khác" |
-| SePay webhook nhận `transactionCode` đã tồn tại (retry từ SePay) | Idempotent — bỏ qua, không xử lý lại, trả `200 OK` (tránh SePay retry loop) |
-
----
-
-## 6. So sánh nền tảng
-
-### Dealer App vs Admin Dashboard
-
-| Tính năng | Dealer App | Admin Dashboard |
-|---|---|---|
-| Xem đơn hàng | Chỉ đơn của mình | Toàn bộ |
-| Thay đổi trạng thái đơn | Hủy (`PENDING`/`CONFIRMED` only) | PENDING→CONFIRMED→SHIPPING→COMPLETED, hoặc hủy |
-| Ghi nhận thanh toán | Dealer tự ghi payment cho đơn còn nợ; bank transfer tự động qua SePay | Admin ghi trực tiếp/override; bank transfer tự động qua SePay |
-| Quản lý sản phẩm | Chỉ đọc | CRUD đầy đủ |
-| Quản lý serial | Xem kho + kích hoạt bảo hành + cập nhật status | Import, xem tất cả, cập nhật status, xóa |
-| Thông báo | WebSocket + in-app sync | Topic admin WebSocket + dashboard |
-| Ngôn ngữ | VI / EN (user chọn) | VI / EN (`LanguageSwitcher`) |
-| Audit log | Không | Có ở backend cho mọi mutation admin; chưa có màn hình riêng |
-
-### Main Website vs Dealer App
-
-| Tính năng | Main Website (Next.js) | Dealer App (Flutter) |
-|---|---|---|
-| Đối tượng | Khách hàng public, SEO | Đại lý đã xác thực |
-| Xem sản phẩm | Có (ISR, cached) | Có (live API) |
-| Đặt hàng | Không | Có |
-| Auth | Không bắt buộc | Bắt buộc (JWT) |
-
----
-
-## 7. Giả định Chuẩn & Pending Decisions
-
-### 7.1 Giả định chuẩn hiện tại
-
-1. **Một đơn = một warehouse** — không hỗ trợ lấy hàng từ nhiều kho.
-2. **Giá snapshot tại thời điểm đặt** — không có cơ chế cập nhật giá đơn cũ.
-3. **VAT = 10% cố định** — policy công ty, áp dụng đồng nhất mọi sản phẩm.
-4. **`shippingFee = 0` cố định** — policy công ty, không thu phí giao hàng qua hệ thống.
-5. **Một serial = một lần kích hoạt** — không hỗ trợ chuyển bảo hành.
-6. **Thanh toán tự động qua SePay** — bank transfer tự xác nhận khi webhook khớp; dealer payment cho đơn còn nợ có hiệu lực ngay khi ghi nhận thành công; admin có thể ghi override.
-7. **Công nợ không tính lãi** — `outstandingAmount` không thay đổi theo thời gian.
-
-### 7.2 Pending Decisions / Chưa là source of truth
-
-> Các mục dưới đây **không phải contract production hiện hành**. Đây là backlog nghiệp vụ hoặc câu hỏi mở cần chốt riêng trước khi triển khai.
-
-| Điểm | Hiện trạng | Cần làm rõ |
-|---|---|---|
-| Admin override giá | Order có `subtotalOverride`, `vatOverride`, `totalOverride` | Ai được override, khi nào, flow ra sao? |
-| Warranty transfer | Không có tính năng | Có cần hỗ trợ chuyển bảo hành sang chủ mới không? |
-| Support ticket SLA | Không có timeout/SLA | Cần bổ sung nếu cam kết thời gian phản hồi |
-| Support thread nhiều lượt | Runtime hiện tại là mô hình một chiều + `adminReply` đơn | Cần chốt có nâng cấp sang thread/attachment hay không |
-| Bulk discount + product-specific rule cùng match | Code ưu tiên product-specific | Cần confirm đây là business decision hay chỉ là implementation default |
-| Audit log retention + read API | Audit log ghi backend nhưng chưa có UI/API đọc | Cần chốt retention policy, ai được xem, có cần export không |
-
-> Các mục đã được chốt thành `[Policy]` và di chuyển vào section tương ứng: Reserved timeout → 7.3, RMA/serial reset → 7.3, Debt payment verification → 7.3, SePay partial/over payment → 7.3, Finance rule cho order CANCELLED → 3.4 (Guard condition), Refund/reversal → 3.25 (Admin Financial Adjustment).
-
-### 7.3 Closed Decisions — Production Policies
-
-#### Reserved timeout `[Policy]`
-
-Đơn `PENDING` quá thời hạn sẽ được hệ thống tự động xử lý:
-
-**Quy tắc:**
-1. **Timeout**: đơn `PENDING` quá **48 giờ** kể từ `createdAt` (configurable via `app.order.pending-timeout-hours`, default `48`)
-2. **System job** chạy mỗi **1 giờ** (configurable via `app.order.stale-check-interval-ms`)
-3. **Xử lý khi hết timeout:**
-   - Nếu `paidAmount = 0` → auto-cancel: serial `RESERVED → AVAILABLE`, order → `CANCELLED`, `paymentStatus = CANCELLED`, đồng bộ `product.stock`
-   - Nếu `paidAmount > 0` → **không auto-cancel**; chuyển vào queue `STALE_ORDER_REVIEW` với flag `staleReviewRequired = true`
-4. **Notification:**
-   - Dealer nhận cảnh báo **6 giờ trước** khi hết timeout: *"Đơn hàng {orderCode} sẽ tự động hủy sau 6 giờ nếu không được xử lý"*
-   - Admin nhận notification khi đơn bị auto-cancel
-   - Admin nhận notification khi đơn vào stale review queue
-5. **Admin dashboard** hiển thị widget **"Đơn treo chờ xử lý"** cho các đơn có `staleReviewRequired = true`
-6. Đơn `CONFIRMED` hoặc `SHIPPING` **không** bị timeout — chỉ áp dụng cho `PENDING`
-
-#### RMA / serial reset cho `DEFECTIVE` và `RETURNED` `[Policy]`
-
-Serial ở trạng thái `DEFECTIVE` hoặc `RETURNED` phải đi qua bước trung gian trước khi quay lại inventory.
-
-**State machine mở rộng:**
-```
-DEFECTIVE ──► INSPECTING ──► AVAILABLE   (qua QC, đạt yêu cầu)
-                          └──► SCRAPPED   (không thể sửa, loại bỏ vĩnh viễn)
-RETURNED  ──► INSPECTING ──► AVAILABLE
-                          └──► SCRAPPED
-```
-
-**Endpoint: `PATCH /api/v1/admin/serials/{id}/rma`**
-
-```json
-{
-  "action": "START_INSPECTION | PASS_QC | SCRAP",
-  "reason": "Đã kiểm tra, sản phẩm hoạt động bình thường",
-  "proofUrls": ["..."]
-}
-```
-
-**Quy tắc:**
-1. Chỉ `ADMIN` / `SUPER_ADMIN` thực hiện — dealer **không** được reset serial
-2. `DEFECTIVE/RETURNED → INSPECTING`: yêu cầu `reason` bắt buộc
-3. `INSPECTING → AVAILABLE`: yêu cầu `reason` + ít nhất 1 `proofUrl` (ảnh/tài liệu QC)
-   - Serial về `AVAILABLE`, clear `dealer` và `order` reference
-   - Warranty liên quan (nếu có) chuyển `VOID` với reason *"Serial đã qua RMA, bảo hành cũ vô hiệu"*
-   - `product.stock` đồng bộ lại
-4. `INSPECTING → SCRAPPED`: yêu cầu `reason`
-   - Serial ra khỏi inventory vĩnh viễn, không đếm vào stock
-   - `SCRAPPED` là trạng thái cuối
-5. Không cho reset thẳng `DEFECTIVE/RETURNED → AVAILABLE` — **bắt buộc** qua `INSPECTING`
-6. Audit log ghi đầy đủ: actor, serial, action, reason, proofUrls, timestamp
-
-#### Debt payment verification `[Policy]`
-
-**Quyết định:** Dealer ghi payment cho đơn còn nợ và payment có hiệu lực ngay. Đây là **accepted business risk** — ưu tiên tốc độ vận hành trên xác minh trước.
-
-**Compensating controls bắt buộc:**
-1. **Daily reconciliation report:** System job tạo báo cáo hàng ngày lúc 00:00 liệt kê tất cả dealer payments ghi nhận trong 24h qua, gửi email cho admin/finance
-2. **Proof requirement:** Dealer payment cho đơn có `outstandingAmount ≥ 10,000,000 VNĐ` **bắt buộc** upload `proofFileName`; payment không có proof bị reject
-3. **Admin review dashboard:** `GET /api/v1/admin/payments/recent` — danh sách payment gần đây (filter theo dealer, date range, amount range, có/không có proof)
-4. **Anomaly flag:** Payment ghi nhận bất thường (ví dụ: nhiều payment cùng dealer trong 1 giờ, hoặc payment = exact outstandingAmount cho nhiều đơn liên tiếp) được gắn flag `reviewSuggested = true`
-5. **Nếu phát hiện gian lận:** Admin dùng [Admin Financial Adjustment](#325-refund--reversal) để tạo correction entry, và có thể suspend dealer
-
-> Nếu tương lai cần chuyển sang `PENDING_VERIFICATION → CONFIRMED/REJECTED`, phải thiết kế lại API/DB/UI và cập nhật toàn bộ flow. Hiện tại chưa cần.
-
-#### SePay partial / over payment `[Policy]`
-
-**Quyết định:** Hệ thống chỉ auto-match giao dịch SePay khi amount **đúng bằng** `outstandingAmount`. Các trường hợp khác **không** được tự động xử lý.
-
-| Tình huống | Xử lý |
-|---|---|
-| Amount < outstandingAmount (thiếu tiền) | Ghi vào `UnmatchedPayment` với reason `AMOUNT_MISMATCH`; admin xử lý thủ công |
-| Amount > outstandingAmount (dư tiền) | Ghi vào `UnmatchedPayment` với reason `AMOUNT_MISMATCH`; admin xử lý thủ công |
-| Nhiều lần chuyển khoản cho cùng đơn | Lần đầu khớp → auto-match; các lần sau đơn đã PAID → ghi `UnmatchedPayment` với reason `ORDER_ALREADY_SETTLED` |
-| Nội dung chuyển khoản sai orderCode | Ghi vào `UnmatchedPayment` với reason `ORDER_NOT_FOUND` |
-
-> Tất cả unmatched transactions đều đi qua [Unmatched transaction handling](#thanh-toán--bank-transfer) — admin được notify và phải xử lý. Không có giao dịch nào bị im lặng bỏ qua.
-
----
-
-*Cập nhật: 2026-03-23 — Siết lại `BUSINESS_LOGIC.md` thành canonical contract, bổ sung matrix order/payment, error contract, audit/traceability, refund/reversal notes, public dealer visibility.*
-
-*Cập nhật: 2026-03-24 — Hợp nhất nội dung từ `RUNTIME_BEHAVIOR.md` và `CLIENT_NOTES.md` vào file này; xóa 2 file companion. `BUSINESS_LOGIC.md` là nguồn duy nhất cho contract và implementation notes.*
-
-*Cập nhật: 2026-03-23 (audit pass) — Chốt 6 pending decisions thành `[Policy]`: reserved timeout (48h auto-cancel), RMA/serial reset qua INSPECTING→AVAILABLE/SCRAPPED, dealer lifecycle ACTIVE↔SUSPENDED, debt payment accepted risk + compensating controls, SePay exact-match + unmatched payment queue, guard condition hủy đơn có paidAmount>0 (FinancialSettlement). Thêm: idempotency tạo đơn (X-Idempotency-Key), admin financial adjustment endpoint (Section 3.25), edge cases Section 5.6. Cập nhật serial status model (+INSPECTING, +SCRAPPED). Cập nhật Section 0.3/0.4 phản ánh phạm vi đã chặt mới.*
+- Nếu business cần granular admin permissions, phải làm backend authorization thật trước khi mở UI role matrix.
+- Nếu business cần shipping tracking/POD, nên tạo aggregate riêng thay vì nhồi thêm logic vào `OrderStatus`.
+- Nếu business cần explicit finance override fields, phải design DB/API/UI/audit riêng; không mở bằng patch nhỏ.
+- Nếu business cần automated debt-payment reconciliation hoặc anomaly scoring, phải thiết kế job + signal model + admin queue riêng; không suy diễn từ proof threshold hiện tại.
+- Nếu business cần return workflow hoàn chỉnh, phải tách khỏi manual serial status và khỏi RMA coarse flow hiện tại.

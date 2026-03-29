@@ -29,6 +29,7 @@ public class AdminSettingsService {
     private static final String SECRET_MASK_PREFIX = "********";
     private static final int SECRET_MASK_VISIBLE_SUFFIX = 4;
     private static final int DEFAULT_SESSION_TIMEOUT_MINUTES = 30;
+    private static final int DEFAULT_VAT_PERCENT = 10;
     private static final int MIN_SESSION_TIMEOUT_MINUTES = 5;
     private static final int MAX_SESSION_TIMEOUT_MINUTES = 480;
     private static final int DEFAULT_AUTH_REQUESTS = 10;
@@ -75,6 +76,13 @@ public class AdminSettingsService {
         }
         if (request.inventoryAlerts() != null) {
             settings.setInventoryAlerts(request.inventoryAlerts());
+        }
+        if (request.vatPercent() != null) {
+            int vatPercent = request.vatPercent();
+            if (vatPercent < 0 || vatPercent > 100) {
+                throw new BadRequestException("vatPercent must be between 0 and 100");
+            }
+            settings.setVatPercent(request.vatPercent());
         }
         applySepaySettings(settings, request.sepay());
         applyEmailSettings(settings, request.emailSettings());
@@ -149,6 +157,7 @@ public class AdminSettingsService {
         settings.setSessionTimeoutMinutes(DEFAULT_SESSION_TIMEOUT_MINUTES);
         settings.setOrderAlerts(true);
         settings.setInventoryAlerts(true);
+        settings.setVatPercent(DEFAULT_VAT_PERCENT);
         settings.setSepayEnabled(sepayProperties.enabled());
         settings.setSepayWebhookToken(normalize(sepayProperties.webhookToken()));
         settings.setSepayBankName(normalize(sepayProperties.bankName()));
@@ -319,6 +328,7 @@ public class AdminSettingsService {
                 intOrDefault(settings == null ? null : settings.getSessionTimeoutMinutes(), DEFAULT_SESSION_TIMEOUT_MINUTES),
                 booleanOrDefault(settings == null ? null : settings.getOrderAlerts(), true),
                 booleanOrDefault(settings == null ? null : settings.getInventoryAlerts(), true),
+                intOrDefault(settings == null ? null : settings.getVatPercent(), DEFAULT_VAT_PERCENT),
                 new SepayRuntimeSettings(
                         booleanOrDefault(settings == null ? null : settings.getSepayEnabled(), sepayProperties.enabled()),
                         stringOrDefault(settings == null ? null : settings.getSepayWebhookToken(), normalize(sepayProperties.webhookToken())),
@@ -398,6 +408,7 @@ public class AdminSettingsService {
                 effectiveSettings.sessionTimeoutMinutes(),
                 effectiveSettings.orderAlerts(),
                 effectiveSettings.inventoryAlerts(),
+                effectiveSettings.vatPercent(),
                 new AdminSettingsResponse.SepaySettings(
                         effectiveSettings.sepay().enabled(),
                         maskSecret(effectiveSettings.sepay().webhookToken()),
@@ -496,6 +507,7 @@ public class AdminSettingsService {
             int sessionTimeoutMinutes,
             boolean orderAlerts,
             boolean inventoryAlerts,
+            int vatPercent,
             SepayRuntimeSettings sepay,
             EmailRuntimeSettings emailSettings,
             RateLimitRuntimeSettings rateLimitOverrides

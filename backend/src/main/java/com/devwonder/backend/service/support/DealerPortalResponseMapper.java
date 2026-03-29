@@ -18,12 +18,10 @@ import java.util.List;
 
 public final class DealerPortalResponseMapper {
 
-    private static final int VAT_PERCENT = 10;
-
     private DealerPortalResponseMapper() {
     }
 
-    public static DealerProfileResponse toProfile(Dealer dealer) {
+    public static DealerProfileResponse toProfile(Dealer dealer, int vatPercent) {
         return new DealerProfileResponse(
                 dealer.getId(),
                 dealer.getBusinessName(),
@@ -39,20 +37,25 @@ public final class DealerPortalResponseMapper {
                 dealer.getAvatarUrl(),
                 dealer.getSalesPolicy(),
                 dealer.getCreditLimit(),
+                vatPercent,
                 dealer.getCreatedAt(),
                 dealer.getUpdatedAt()
         );
     }
 
     public static DealerOrderResponse toOrderResponse(Order order) {
-        return toOrderResponse(order, List.of());
+        return toOrderResponse(order, List.of(), OrderPricingSupport.DEFAULT_VAT_PERCENT_FALLBACK);
     }
 
     public static DealerOrderResponse toOrderResponse(Order order, List<BulkDiscount> rules) {
+        return toOrderResponse(order, rules, OrderPricingSupport.DEFAULT_VAT_PERCENT_FALLBACK);
+    }
+
+    public static DealerOrderResponse toOrderResponse(Order order, List<BulkDiscount> rules, int vatPercent) {
         List<DealerOrderItemResponse> items = order.getOrderItems() == null
                 ? List.of()
                 : order.getOrderItems().stream().map(DealerPortalResponseMapper::toOrderItemResponse).toList();
-        OrderPricingSupport.PricingBreakdown pricing = OrderPricingSupport.computePricing(order, rules);
+        OrderPricingSupport.PricingBreakdown pricing = OrderPricingSupport.computePricing(order, rules, vatPercent);
         int shippingFee = DealerOrderSupport.safeShippingFee(order.getShippingFee());
         BigDecimal paidAmount = DealerOrderSupport.zeroIfNull(order.getPaidAmount());
         return new DealerOrderResponse(
@@ -65,7 +68,7 @@ public final class DealerPortalResponseMapper {
                 pricing.subtotal(),
                 pricing.discountPercent(),
                 pricing.discountAmount(),
-                VAT_PERCENT,
+                vatPercent,
                 pricing.vatAmount(),
                 shippingFee,
                 pricing.totalAmount(),

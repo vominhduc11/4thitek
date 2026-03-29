@@ -13,5 +13,6 @@ describe('getRequiredResources', () => {
 
   it('maps settings pages to the settings resource', () => {
     expect(getRequiredResources('/settings/company', true)).toEqual(['settings'])
+    expect(getRequiredResources('/settings/company', false)).toEqual([])
   })
 })

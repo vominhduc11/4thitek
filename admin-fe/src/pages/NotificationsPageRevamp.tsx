@@ -613,18 +613,18 @@ function NotificationsPageRevamp() {
             </div>
 
             <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-full border-separate border-spacing-y-2">
+              <table className="min-w-[58rem] border-separate border-spacing-y-2">
                 <thead>
                   <tr className={tableHeadClass}>
-                    <th className="px-3 py-2 font-semibold">
+                    <th className="min-w-64 px-3 py-2 font-semibold">
                       {copy.titleLabel}
                     </th>
-                    <th className="px-3 py-2 font-semibold">{copy.account}</th>
-                    <th className="px-3 py-2 font-semibold">{copy.type}</th>
-                    <th className="px-3 py-2 font-semibold">
+                    <th className="min-w-40 px-3 py-2 font-semibold">{copy.account}</th>
+                    <th className="w-36 px-3 py-2 font-semibold">{copy.type}</th>
+                    <th className="w-36 px-3 py-2 font-semibold">
                       {copy.statusRead}
                     </th>
-                    <th className="px-3 py-2 font-semibold">{copy.created}</th>
+                    <th className="w-40 px-3 py-2 font-semibold">{copy.created}</th>
                   </tr>
                 </thead>
                 <tbody>

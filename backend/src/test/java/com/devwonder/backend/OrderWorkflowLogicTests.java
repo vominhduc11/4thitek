@@ -270,7 +270,7 @@ class OrderWorkflowLogicTests {
 
         assertThatThrownBy(() -> dealerPortalService.createOrder(dealer.getUsername(), request, UUID.randomUUID().toString()))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("Credit limit is not configured");
+                .hasMessageContaining("Debt payment is not available");
     }
 
     @Test
@@ -691,6 +691,134 @@ class OrderWorkflowLogicTests {
     }
 
     @Test
+    void dealerDebtPaymentRejectsPartialAmountsBelowConfiguredMinimum() {
+        Dealer dealer = createDealer("partial-payment-floor@example.com");
+        dealer.setCreditLimit(BigDecimal.valueOf(500_000));
+        Dealer savedDealer = dealerRepository.save(dealer);
+        Product product = saveProduct("SKU-DEBT-MIN-1", BigDecimal.valueOf(150_000));
+        var createdOrder = dealerPortalService.createOrder(
+                savedDealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.DEBT,
+                        "Dealer receiver",
+                        "123 Minimum Payment Street",
+                        "0900000000",
+                        0,
+                        "Minimum partial payment validation",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
+                ),
+                UUID.randomUUID().toString()
+        );
+
+        assertThatThrownBy(() -> dealerPortalService.recordPayment(
+                savedDealer.getUsername(),
+                createdOrder.id(),
+                new RecordPaymentRequest(
+                        BigDecimal.valueOf(50_000),
+                        PaymentMethod.DEBT,
+                        "Cash",
+                        null,
+                        "Partial payment below threshold",
+                        null,
+                        Instant.parse("2026-03-10T02:00:00Z")
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("at least 100000 VND");
+    }
+
+    @Test
+    void dealerDebtPaymentAllowsSmallFinalSettlementBelowConfiguredMinimum() {
+        Dealer dealer = createDealer("partial-payment-final@example.com");
+        dealer.setCreditLimit(BigDecimal.valueOf(500_000));
+        Dealer savedDealer = dealerRepository.save(dealer);
+        Product product = saveProduct("SKU-DEBT-MIN-2", BigDecimal.valueOf(150_000));
+        var createdOrder = dealerPortalService.createOrder(
+                savedDealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.DEBT,
+                        "Dealer receiver",
+                        "123 Final Settlement Street",
+                        "0900000000",
+                        0,
+                        "Final settlement below threshold should be allowed",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
+                ),
+                UUID.randomUUID().toString()
+        );
+
+        dealerPortalService.recordPayment(
+                savedDealer.getUsername(),
+                createdOrder.id(),
+                new RecordPaymentRequest(
+                        BigDecimal.valueOf(100_000),
+                        PaymentMethod.DEBT,
+                        "Cash",
+                        null,
+                        "First debt payment",
+                        null,
+                        Instant.parse("2026-03-10T02:00:00Z")
+                )
+        );
+
+        var finalPayment = dealerPortalService.recordPayment(
+                savedDealer.getUsername(),
+                createdOrder.id(),
+                new RecordPaymentRequest(
+                        BigDecimal.valueOf(65_000),
+                        PaymentMethod.DEBT,
+                        "Cash",
+                        null,
+                        "Final debt settlement",
+                        null,
+                        Instant.parse("2026-03-10T03:00:00Z")
+                )
+        );
+
+        Order updatedOrder = orderRepository.findById(createdOrder.id()).orElseThrow();
+        assertThat(finalPayment.amount()).isEqualByComparingTo("65000");
+        assertThat(updatedOrder.getPaidAmount()).isEqualByComparingTo("165000");
+        assertThat(updatedOrder.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+    }
+
+    @Test
+    void recordPaymentRejectsAmountsThatRoundBelowOneDong() {
+        Dealer dealer = createDealer("rounded-payment-floor@example.com");
+        dealer.setCreditLimit(BigDecimal.valueOf(500_000));
+        Dealer savedDealer = dealerRepository.save(dealer);
+        Product product = saveProduct("SKU-DEBT-MIN-3", BigDecimal.valueOf(100_000));
+        var createdOrder = dealerPortalService.createOrder(
+                savedDealer.getUsername(),
+                new CreateDealerOrderRequest(
+                        PaymentMethod.DEBT,
+                        "Dealer receiver",
+                        "123 Rounded Amount Street",
+                        "0900000000",
+                        0,
+                        "Rounded amount guard",
+                        List.of(new CreateDealerOrderItemRequest(product.getId(), 1, product.getRetailPrice()))
+                ),
+                UUID.randomUUID().toString()
+        );
+
+        assertThatThrownBy(() -> dealerPortalService.recordPayment(
+                savedDealer.getUsername(),
+                createdOrder.id(),
+                new RecordPaymentRequest(
+                        new BigDecimal("0.49"),
+                        PaymentMethod.DEBT,
+                        "Cash",
+                        null,
+                        "Rounded below one dong",
+                        null,
+                        Instant.parse("2026-03-10T02:00:00Z")
+                )
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("round to at least 1 VND");
+    }
+
+    @Test
     void concurrentManualDuplicatePaymentsOnlyRecordOnce() throws Exception {
         Dealer dealer = createDealer("manual-duplicate@example.com");
         dealer.setCreditLimit(BigDecimal.valueOf(500_000));
@@ -922,6 +1050,17 @@ class OrderWorkflowLogicTests {
         adminManagementService.deleteOrder(pendingOrder.getId());
 
         assertThat(orderRepository.findById(pendingOrder.getId()).orElseThrow().getIsDeleted()).isTrue();
+    }
+
+    @Test
+    void deletedOrdersAreHiddenFromVisibleAdminAndDealerQueries() {
+        Dealer dealer = dealerRepository.save(createDealer("delete-visibility@example.com"));
+        Order cancelledOrder = orderRepository.save(createOrder(dealer, OrderStatus.CANCELLED, "WF-DELETE-2"));
+
+        adminManagementService.deleteOrder(cancelledOrder.getId());
+
+        assertThat(dealerPortalService.getOrders(dealer.getUsername())).isEmpty();
+        assertThat(adminManagementService.getOrders()).isEmpty();
     }
 
     private Dealer createDealer(String username) {

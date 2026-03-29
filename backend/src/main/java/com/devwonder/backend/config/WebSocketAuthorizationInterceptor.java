@@ -93,7 +93,7 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
         if (destination == null) {
             return false;
         }
-        return destination.equals("/user" + queuePath)
-                || destination.startsWith(queuePath + "-user");
+        // Public client contract uses "/user/queue/*" subscriptions only.
+        return destination.equals("/user" + queuePath);
     }
 }

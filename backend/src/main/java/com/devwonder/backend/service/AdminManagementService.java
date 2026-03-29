@@ -36,6 +36,7 @@ import com.devwonder.backend.entity.Role;
 import com.devwonder.backend.entity.enums.CustomerStatus;
 import com.devwonder.backend.entity.enums.DiscountRuleStatus;
 import com.devwonder.backend.entity.enums.FinancialSettlementStatus;
+import com.devwonder.backend.entity.enums.FinancialSettlementType;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.ProductSerialStatus;
 import com.devwonder.backend.entity.enums.StaffUserStatus;
@@ -64,6 +65,7 @@ import com.devwonder.backend.service.support.AdminWriteSupport;
 import com.devwonder.backend.service.support.DealerOrderNotificationSupport;
 import com.devwonder.backend.service.support.DealerPaymentSupport;
 import com.devwonder.backend.service.support.DealerAccountStatusTransitionPolicy;
+import com.devwonder.backend.service.support.DealerRequestSupport;
 import com.devwonder.backend.service.support.OrderInventorySupport;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import com.devwonder.backend.service.support.OrderStatusTransitionPolicy;
@@ -191,8 +193,9 @@ public class AdminManagementService {
     @Transactional(readOnly = true)
     public List<AdminOrderResponse> getOrders() {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
+        int vatPercent = currentVatPercent();
         return orderRepository.findVisibleByCreatedAtDesc(Pageable.unpaged()).stream()
-                .map(order -> AdminResponseMapper.toOrderResponse(order, activeDiscountRules))
+                .map(order -> AdminResponseMapper.toOrderResponse(order, activeDiscountRules, vatPercent))
                 .toList();
     }
 
@@ -204,11 +207,12 @@ public class AdminManagementService {
     @Transactional(readOnly = true)
     public Page<AdminOrderResponse> getOrders(Pageable pageable, OrderStatus status) {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
+        int vatPercent = currentVatPercent();
         Pageable effectivePageable = pageable == null || pageable.isUnpaged()
                 ? PageRequest.of(0, 100)
                 : pageable;
         return orderRepository.findVisibleByStatusAndCreatedAtDesc(status, effectivePageable)
-                .map(order -> AdminResponseMapper.toOrderResponse(order, activeDiscountRules));
+                .map(order -> AdminResponseMapper.toOrderResponse(order, activeDiscountRules, vatPercent));
     }
 
     @Transactional
@@ -243,19 +247,20 @@ public class AdminManagementService {
             }
         }
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
+        int vatPercent = currentVatPercent();
         BigDecimal paidAmount = order.getPaidAmount() == null ? BigDecimal.ZERO : order.getPaidAmount();
         if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED
                 && paidAmount.compareTo(BigDecimal.ZERO) > 0) {
             order.setFinancialSettlementRequired(Boolean.TRUE);
         }
-        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
+        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules, vatPercent));
         Order saved = orderRepository.save(order);
         // Create FinancialSettlement when admin cancels an order with paidAmount > 0
         if (previousStatus != OrderStatus.CANCELLED && request.status() == OrderStatus.CANCELLED
                 && paidAmount.compareTo(BigDecimal.ZERO) > 0) {
             FinancialSettlement settlement = new FinancialSettlement();
             settlement.setOrder(saved);
-            settlement.setType("CANCELLATION_REFUND");
+            settlement.setType(FinancialSettlementType.CANCELLATION_REFUND.name());
             settlement.setAmount(paidAmount);
             settlement.setStatus(FinancialSettlementStatus.PENDING);
             settlement.setCreatedBy(actorUsername);
@@ -264,7 +269,7 @@ public class AdminManagementService {
         }
         adminOrderNotificationSupport.notifyStatusChange(saved, previousStatus);
         publishOrderStatusRealtime(saved, previousStatus);
-        return AdminResponseMapper.toOrderResponse(saved, activeDiscountRules);
+        return AdminResponseMapper.toOrderResponse(saved, activeDiscountRules, vatPercent);
     }
 
     @Transactional
@@ -378,7 +383,7 @@ public class AdminManagementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
         dealerPaymentSupport.recordAdminPayment(order, request, activeDiscountRules);
-        return AdminResponseMapper.toOrderResponse(order, activeDiscountRules);
+        return AdminResponseMapper.toOrderResponse(order, activeDiscountRules, currentVatPercent());
     }
 
     @Transactional(readOnly = true)
@@ -463,19 +468,21 @@ public class AdminManagementService {
     @Transactional(readOnly = true)
     public List<AdminDealerAccountResponse> getDealerAccounts() {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
+        int vatPercent = currentVatPercent();
         return dealerRepository.findAllByOrderByCreatedAtDesc().stream()
-                .map(dealer -> AdminResponseMapper.toDealerAccountResponse(dealer, activeDiscountRules))
+                .map(dealer -> AdminResponseMapper.toDealerAccountResponse(dealer, activeDiscountRules, vatPercent))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public Page<AdminDealerAccountResponse> getDealerAccounts(Pageable pageable) {
         List<BulkDiscount> activeDiscountRules = activeDiscountRules();
+        int vatPercent = currentVatPercent();
         Pageable effectivePageable = pageable == null || pageable.isUnpaged()
                 ? PageRequest.of(0, 100)
                 : pageable;
         return dealerRepository.findAllByOrderByCreatedAtDesc(effectivePageable)
-                .map(dealer -> AdminResponseMapper.toDealerAccountResponse(dealer, activeDiscountRules));
+                .map(dealer -> AdminResponseMapper.toDealerAccountResponse(dealer, activeDiscountRules, vatPercent));
     }
 
     @Transactional
@@ -485,7 +492,7 @@ public class AdminManagementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Dealer account not found"));
         dealer.setCreditLimit(requireNonNegativeAmount(request.creditLimit(), "creditLimit"));
         Dealer saved = dealerRepository.save(dealer);
-        return AdminResponseMapper.toDealerAccountResponse(saved, activeDiscountRules());
+        return AdminResponseMapper.toDealerAccountResponse(saved, activeDiscountRules(), currentVatPercent());
     }
 
     @Transactional
@@ -498,6 +505,10 @@ public class AdminManagementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Dealer account not found"));
         CustomerStatus previousStatus = dealer.getCustomerStatus();
         DealerAccountStatusTransitionPolicy.assertTransitionAllowed(previousStatus, request.status());
+        if (request.status() == CustomerStatus.SUSPENDED
+                && DealerRequestSupport.normalize(request.reason()) == null) {
+            throw new BadRequestException("reason is required when suspending dealer account");
+        }
         dealer.setCustomerStatus(request.status());
         // Record suspension timestamp for 24h grace period (BUSINESS_LOGIC.md Section 8.2)
         if (request.status() == CustomerStatus.SUSPENDED
@@ -508,7 +519,7 @@ public class AdminManagementService {
         }
         Dealer saved = dealerRepository.save(dealer);
         dealerAccountLifecycleService.notifyDealerStatusChanged(saved, previousStatus);
-        return AdminResponseMapper.toDealerAccountResponse(saved, activeDiscountRules());
+        return AdminResponseMapper.toDealerAccountResponse(saved, activeDiscountRules(), currentVatPercent());
     }
 
     @Transactional(readOnly = true)
@@ -641,7 +652,8 @@ public class AdminManagementService {
                 activeDiscountRules,
                 Math.toIntExact(unmatchedPaymentRepository.countByStatus(UnmatchedPaymentStatus.PENDING)),
                 Math.toIntExact(financialSettlementRepository.countByStatus(FinancialSettlementStatus.PENDING)),
-                Math.toIntExact(orderRepository.countByStaleReviewRequired())
+                Math.toIntExact(orderRepository.countByStaleReviewRequired()),
+                currentVatPercent()
         ));
     }
 
@@ -678,6 +690,10 @@ public class AdminManagementService {
 
     private List<BulkDiscount> activeDiscountRules() {
         return bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
+    }
+
+    private int currentVatPercent() {
+        return adminSettingsService.getEffectiveSettings().vatPercent();
     }
 
     private void applyDiscountRuleRange(BulkDiscount rule, String rangeLabel) {

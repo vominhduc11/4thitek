@@ -60,10 +60,14 @@ public class DealerPortalService {
     private final DealerOrderWorkflowSupport dealerOrderWorkflowSupport;
     private final PushTokenRegistrationService pushTokenRegistrationService;
     private final IdempotencyStore idempotencyStore;
+    private final AdminSettingsService adminSettingsService;
 
     @Transactional(readOnly = true)
     public DealerProfileResponse getProfile(String username) {
-        return DealerPortalResponseMapper.toProfile(dealerPortalLookupSupport.requireDealerByUsername(username));
+        return DealerPortalResponseMapper.toProfile(
+                dealerPortalLookupSupport.requireDealerByUsername(username),
+                adminSettingsService.getEffectiveSettings().vatPercent()
+        );
     }
 
     @Transactional(readOnly = true)
@@ -104,7 +108,10 @@ public class DealerPortalService {
     public DealerProfileResponse updateProfile(String username, UpdateDealerProfileRequest request) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         dealerProfileWriteSupport.applyProfileUpdate(dealer, request);
-        return DealerPortalResponseMapper.toProfile(dealerProfileWriteSupport.saveProfile(dealer));
+        return DealerPortalResponseMapper.toProfile(
+                dealerProfileWriteSupport.saveProfile(dealer),
+                currentVatPercent()
+        );
     }
 
     @Transactional(readOnly = true)
@@ -112,7 +119,7 @@ public class DealerPortalService {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         var activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
         return orderRepository.findVisibleByDealerIdOrderByCreatedAtDesc(dealer.getId()).stream()
-                .map(order -> DealerPortalResponseMapper.toOrderResponse(order, activeDiscountRules))
+                .map(order -> DealerPortalResponseMapper.toOrderResponse(order, activeDiscountRules, currentVatPercent()))
                 .toList();
     }
 
@@ -121,7 +128,7 @@ public class DealerPortalService {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         var activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
         return orderRepository.findVisibleByDealerId(dealer.getId(), pageable)
-                .map(order -> DealerPortalResponseMapper.toOrderResponse(order, activeDiscountRules));
+                .map(order -> DealerPortalResponseMapper.toOrderResponse(order, activeDiscountRules, currentVatPercent()));
     }
 
     @Transactional(readOnly = true)
@@ -130,7 +137,8 @@ public class DealerPortalService {
         Order order = dealerPortalLookupSupport.requireDealerOrder(dealer.getId(), orderId);
         return DealerPortalResponseMapper.toOrderResponse(
                 order,
-                bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE)
+                bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE),
+                currentVatPercent()
         );
     }
 
@@ -142,7 +150,7 @@ public class DealerPortalService {
         if (cachedOrderId.isPresent()) {
             Order cachedOrder = orderRepository.findById(cachedOrderId.get()).orElse(null);
             if (cachedOrder != null) {
-                return DealerPortalResponseMapper.toOrderResponse(cachedOrder, activeDiscountRules());
+                return DealerPortalResponseMapper.toOrderResponse(cachedOrder, activeDiscountRules(), currentVatPercent());
             }
             // If order was somehow deleted, fall through to create a new one
         }
@@ -315,6 +323,10 @@ public class DealerPortalService {
 
     private List<BulkDiscount> activeDiscountRules() {
         return bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
+    }
+
+    private int currentVatPercent() {
+        return adminSettingsService.getEffectiveSettings().vatPercent();
     }
 
 }

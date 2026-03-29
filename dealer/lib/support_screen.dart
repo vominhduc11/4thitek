@@ -607,7 +607,7 @@ class _SupportScreenState extends State<SupportScreen> {
       case SupportCategory.payment:
         return 'PAYMENT';
       case SupportCategory.returnOrder:
-        return 'RETURN';
+        return 'returnOrder';
       case SupportCategory.other:
         return 'OTHER';
     }
@@ -625,18 +625,21 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   SupportCategory _parseCategory(String? raw) {
-    switch ((raw ?? '').trim().toUpperCase()) {
-      case 'ORDER':
+    switch ((raw ?? '').trim().toLowerCase()) {
+      case 'order':
         return SupportCategory.order;
-      case 'WARRANTY':
+      case 'warranty':
         return SupportCategory.warranty;
-      case 'PRODUCT':
+      case 'product':
         return SupportCategory.product;
-      case 'PAYMENT':
+      case 'payment':
         return SupportCategory.payment;
-      case 'RETURN':
+      case 'return':
+      case 'returnorder':
+      case 'return_order':
+      case 'return-order':
         return SupportCategory.returnOrder;
-      case 'OTHER':
+      case 'other':
       default:
         return SupportCategory.other;
     }

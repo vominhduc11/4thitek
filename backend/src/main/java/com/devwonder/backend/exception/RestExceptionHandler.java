@@ -1,6 +1,7 @@
 package com.devwonder.backend.exception;
 
 import com.devwonder.backend.dto.ApiResponse;
+import jakarta.persistence.LockTimeoutException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import java.util.LinkedHashMap;
@@ -8,6 +9,9 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import jakarta.persistence.OptimisticLockException;
+import jakarta.persistence.PessimisticLockException;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -96,6 +100,17 @@ public class RestExceptionHandler {
             org.springframework.orm.ObjectOptimisticLockingFailureException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ApiResponse.failure("The record was modified by another request; please retry"));
+    }
+
+    @ExceptionHandler({
+            PessimisticLockException.class,
+            LockTimeoutException.class,
+            PessimisticLockingFailureException.class,
+            CannotAcquireLockException.class
+    })
+    public ResponseEntity<ApiResponse<Void>> handlePessimisticLock(Exception ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.failure("Stock is being updated by another request; please retry"));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

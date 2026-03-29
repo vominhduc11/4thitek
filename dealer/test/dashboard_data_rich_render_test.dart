@@ -134,9 +134,9 @@ class _DataRichOrderController extends OrderController {
     _order(
       id: 'DZ-1004',
       createdAt: _now.subtract(const Duration(days: 36)),
-      status: OrderStatus.approved,
+      status: OrderStatus.confirmed,
       paymentMethod: OrderPaymentMethod.bankTransfer,
-      paymentStatus: OrderPaymentStatus.unpaid,
+      paymentStatus: OrderPaymentStatus.pending,
       items: <OrderLineItem>[OrderLineItem(product: _speaker, quantity: 2)],
     ),
   ];

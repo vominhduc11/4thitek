@@ -25,6 +25,7 @@ import com.devwonder.backend.repository.OrderRepository;
 import com.devwonder.backend.repository.PaymentRepository;
 import com.devwonder.backend.repository.UnmatchedPaymentRepository;
 import com.devwonder.backend.service.support.AppMessageSupport;
+import com.devwonder.backend.service.support.OrderCodeSupport;
 import com.devwonder.backend.service.support.OrderPricingSupport;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -38,8 +39,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.HexFormat;
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +54,6 @@ public class SepayService {
 
     private static final Logger log = LoggerFactory.getLogger(SepayService.class);
     private static final ZoneId APP_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
-    private static final Pattern ORDER_CODE_PATTERN = Pattern.compile("\\bSCS-\\d+-\\d+(?:-\\d+)?\\b", Pattern.CASE_INSENSITIVE);
     private static final DateTimeFormatter SEPAY_DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final OrderRepository orderRepository;
@@ -133,7 +131,8 @@ public class SepayService {
             return WebhookResult.ignored("order_cancelled", orderCode, null, "Cancelled order cannot receive payment");
         }
         var activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
-        BigDecimal totalAmount = OrderPricingSupport.computeTotalAmount(order, activeDiscountRules);
+        int vatPercent = adminSettingsService.getEffectiveSettings().vatPercent();
+        BigDecimal totalAmount = OrderPricingSupport.computeTotalAmount(order, activeDiscountRules, vatPercent);
         BigDecimal outstandingAmount = remainingOutstandingAmount(order, totalAmount);
         if (outstandingAmount.compareTo(BigDecimal.ZERO) <= 0) {
             log.info("SePay webhook ignored: already_paid, orderCode={}", orderCode);
@@ -177,7 +176,7 @@ public class SepayService {
         }
 
         order.setPaidAmount(zeroIfNull(order.getPaidAmount()).add(payment.getAmount()));
-        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules));
+        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules, vatPercent));
         orderRepository.save(order);
 
         log.info("SePay webhook processed: orderCode={}, transactionCode={}, amount={}, paymentStatus={}",
@@ -292,17 +291,7 @@ public class SepayService {
     }
 
     private String firstOrderCode(String... candidates) {
-        for (String candidate : candidates) {
-            String normalized = normalize(candidate);
-            if (normalized == null) {
-                continue;
-            }
-            Matcher matcher = ORDER_CODE_PATTERN.matcher(normalized);
-            if (matcher.find()) {
-                return matcher.group().toUpperCase(Locale.ROOT);
-            }
-        }
-        return null;
+        return OrderCodeSupport.extractFirst(candidates);
     }
 
     private String buildTransactionCode(SepayWebhookRequest request, String orderCode, BigDecimal amount) {

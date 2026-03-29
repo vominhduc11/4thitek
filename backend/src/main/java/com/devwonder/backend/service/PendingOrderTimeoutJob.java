@@ -6,6 +6,7 @@ import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.FinancialSettlement;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.enums.FinancialSettlementStatus;
+import com.devwonder.backend.entity.enums.FinancialSettlementType;
 import com.devwonder.backend.entity.enums.NotifyType;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentStatus;
@@ -120,7 +121,7 @@ public class PendingOrderTimeoutJob {
         if (!financialSettlementRepository.existsByOrderIdAndStatus(order.getId(), FinancialSettlementStatus.PENDING)) {
             FinancialSettlement settlement = new FinancialSettlement();
             settlement.setOrder(order);
-            settlement.setType("STALE_ORDER_REVIEW");
+            settlement.setType(FinancialSettlementType.STALE_ORDER_REVIEW.name());
             settlement.setAmount(paidAmount);
             settlement.setStatus(FinancialSettlementStatus.PENDING);
             settlement.setCreatedBy("system");

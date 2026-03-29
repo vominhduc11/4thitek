@@ -642,25 +642,25 @@ function BlogsPageRevamp() {
             </div>
 
             <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-full border-separate border-spacing-y-2">
+              <table className="min-w-[62rem] border-separate border-spacing-y-2">
                 <thead>
                   <tr className={tableHeadClass}>
-                    <th className="px-3 py-2 font-semibold">
+                    <th className="min-w-64 px-3 py-2 font-semibold">
                       {copy.postColumn}
                     </th>
-                    <th className="px-3 py-2 font-semibold">
+                    <th className="w-40 px-3 py-2 font-semibold">
                       {copy.categoryColumn}
                     </th>
-                    <th className="px-3 py-2 font-semibold">
+                    <th className="w-32 px-3 py-2 font-semibold">
                       {copy.statusColumn}
                     </th>
-                    <th className="px-3 py-2 font-semibold">
+                    <th className="w-28 px-3 py-2 font-semibold">
                       {copy.homepageColumn}
                     </th>
-                    <th className="px-3 py-2 font-semibold">
+                    <th className="w-40 px-3 py-2 font-semibold">
                       {copy.updatedColumn}
                     </th>
-                    <th className="px-3 py-2 font-semibold">
+                    <th className="w-52 px-3 py-2 font-semibold">
                       {copy.actionsColumn}
                     </th>
                   </tr>

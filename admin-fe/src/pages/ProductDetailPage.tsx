@@ -1693,7 +1693,7 @@ function ProductDetailPage() {
                             />
                             <button
                               type="button"
-                              className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                              className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100"
                               onClick={() => {
                                 const nextDescriptions = [...draft.descriptions]
                                 nextDescriptions[index] = { ...nextDescriptions[index], url: '' }
@@ -1779,7 +1779,7 @@ function ProductDetailPage() {
                       ) : (
                         (item.gallery ?? []).map((entry, entryIndex) => (
                           <div key={entryIndex} className="rounded-lg border border-slate-200 bg-white p-3">
-                            <div className="grid gap-3 lg:grid-cols-[180px_1fr] lg:items-start">
+                            <div className="grid gap-3 xl:grid-cols-[minmax(0,11rem)_minmax(0,1fr)] xl:items-start">
                               <div className="space-y-2">
                                 <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
                                   <input
@@ -1825,7 +1825,7 @@ function ProductDetailPage() {
                                       />
                                       <button
                                         type="button"
-                                        className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                                        className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100"
                                         onClick={() => {
                                           const nextDescriptions = [...draft.descriptions]
                                           const current = { ...nextDescriptions[index] }
@@ -1901,7 +1901,7 @@ function ProductDetailPage() {
                           <ProductVideoPreview url={item.url} title={item.caption ?? item.text} />
                           <button
                             type="button"
-                            className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                            className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100"
                             onClick={() => {
                               const nextDescriptions = [...draft.descriptions]
                               nextDescriptions[index] = { ...nextDescriptions[index], url: '' }
@@ -2021,7 +2021,7 @@ function ProductDetailPage() {
                       <ProductVideoPreview url={video.url} title={video.title} />
                       <button
                         type="button"
-                        className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                        className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100"
                         onClick={() => {
                           const nextVideos = [...draft.videos]
                           nextVideos[index] = { ...nextVideos[index], url: '' }

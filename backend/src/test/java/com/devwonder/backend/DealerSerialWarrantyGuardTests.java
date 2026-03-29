@@ -351,6 +351,46 @@ class DealerSerialWarrantyGuardTests {
     }
 
     @Test
+    void dealerWarrantyReadResolvesExpiredStatusFromPersistedWarrantyEnd() {
+        Dealer dealer = dealerRepository.save(createDealer("warranty-read-expired@example.com"));
+        Product product = productRepository.save(createProduct("SKU-WARRANTY-READ", BigDecimal.valueOf(100_000)));
+        Order order = orderRepository.save(createOrder(dealer, product, 1, "SERIAL-ORDER-READ"));
+        ProductSerial serial = productSerialRepository.save(createDealerOwnedSerial(
+                dealer,
+                order,
+                product,
+                "SERIAL-WARRANTY-READ",
+                ProductSerialStatus.WARRANTY
+        ));
+
+        var registration = new com.devwonder.backend.entity.WarrantyRegistration();
+        registration.setDealer(dealer);
+        registration.setOrder(order);
+        registration.setProductSerial(serial);
+        registration.setWarrantyCode("WAR-READ-1");
+        registration.setCustomerName("Customer Read");
+        registration.setCustomerEmail("read@example.com");
+        registration.setCustomerPhone("0912345678");
+        registration.setCustomerAddress("Read Street");
+        registration.setPurchaseDate(LocalDate.now(WarrantyDateSupport.APP_ZONE).minusMonths(13));
+        registration.setWarrantyStart(LocalDate.now(WarrantyDateSupport.APP_ZONE)
+                .minusMonths(13)
+                .atStartOfDay(WarrantyDateSupport.APP_ZONE)
+                .toInstant());
+        registration.setWarrantyEnd(LocalDate.now(WarrantyDateSupport.APP_ZONE)
+                .minusMonths(1)
+                .atStartOfDay(WarrantyDateSupport.APP_ZONE)
+                .toInstant());
+        registration.setStatus(WarrantyStatus.ACTIVE);
+        warrantyRegistrationRepository.save(registration);
+
+        var warranties = dealerPortalService.getWarranties(dealer.getUsername());
+
+        assertThat(warranties).hasSize(1);
+        assertThat(warranties.get(0).status()).isEqualTo(WarrantyStatus.EXPIRED);
+    }
+
+    @Test
     void warrantyActivationUsesAppTimezoneForStartDate() {
         Dealer dealer = dealerRepository.save(createDealer("warranty-timezone@example.com"));
         Product product = productRepository.save(createProduct("SKU-WARRANTY-5", BigDecimal.valueOf(100_000)));

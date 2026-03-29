@@ -43,7 +43,7 @@ class DealerAccountLifecycleContractTests {
 
         var response = adminManagementService.updateDealerAccountStatus(
                 dealer.getId(),
-                new UpdateAdminDealerAccountStatusRequest(CustomerStatus.ACTIVE)
+                new UpdateAdminDealerAccountStatusRequest(CustomerStatus.ACTIVE, null)
         );
 
         assertThat(response.status()).isEqualTo(CustomerStatus.ACTIVE);
@@ -57,7 +57,7 @@ class DealerAccountLifecycleContractTests {
 
         assertThatThrownBy(() -> adminManagementService.updateDealerAccountStatus(
                 dealer.getId(),
-                new UpdateAdminDealerAccountStatusRequest(CustomerStatus.UNDER_REVIEW)
+                new UpdateAdminDealerAccountStatusRequest(CustomerStatus.UNDER_REVIEW, null)
         ))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Unsupported dealer account status transition");
@@ -69,17 +69,44 @@ class DealerAccountLifecycleContractTests {
 
         assertThatThrownBy(() -> adminManagementService.updateDealerAccountStatus(
                 dealer.getId(),
-                new UpdateAdminDealerAccountStatusRequest(CustomerStatus.UNDER_REVIEW)
+                new UpdateAdminDealerAccountStatusRequest(CustomerStatus.UNDER_REVIEW, null)
         ))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Unsupported dealer account status transition");
 
         var response = adminManagementService.updateDealerAccountStatus(
                 dealer.getId(),
-                new UpdateAdminDealerAccountStatusRequest(CustomerStatus.ACTIVE)
+                new UpdateAdminDealerAccountStatusRequest(CustomerStatus.ACTIVE, null)
         );
 
         assertThat(response.status()).isEqualTo(CustomerStatus.ACTIVE);
+    }
+
+    @Test
+    void suspendingDealerRequiresReason() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-suspend-reason@example.com", CustomerStatus.ACTIVE));
+
+        assertThatThrownBy(() -> adminManagementService.updateDealerAccountStatus(
+                dealer.getId(),
+                new UpdateAdminDealerAccountStatusRequest(CustomerStatus.SUSPENDED, "   ")
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("reason is required when suspending dealer account");
+    }
+
+    @Test
+    void suspendingDealerWithReasonRecordsTimestamp() {
+        Dealer dealer = dealerRepository.save(createDealer("dealer-suspend-success@example.com", CustomerStatus.ACTIVE));
+
+        var response = adminManagementService.updateDealerAccountStatus(
+                dealer.getId(),
+                new UpdateAdminDealerAccountStatusRequest(CustomerStatus.SUSPENDED, "Fraud review")
+        );
+
+        Dealer saved = dealerRepository.findById(dealer.getId()).orElseThrow();
+        assertThat(response.status()).isEqualTo(CustomerStatus.SUSPENDED);
+        assertThat(saved.getCustomerStatus()).isEqualTo(CustomerStatus.SUSPENDED);
+        assertThat(saved.getSuspendedAt()).isNotNull();
     }
 
     private Dealer createDealer(String username, CustomerStatus status) {

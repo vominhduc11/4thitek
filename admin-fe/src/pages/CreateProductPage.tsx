@@ -1175,6 +1175,30 @@ function CreateProductPage() {
     "inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]";
   const secondaryButtonClass =
     "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60";
+  const productTabs = [
+    {
+      id: "basic",
+      label: "ThĂ´ng tin",
+      errorTitle: "Thiáº¿u tĂªn, SKU hoáº·c giĂ¡ bĂ¡n",
+    },
+    {
+      id: "description",
+      label: "MĂ´ táº£ chi tiáº¿t",
+      errorTitle: "CĂ³ lá»—i á»Ÿ áº£nh mĂ´ táº£",
+    },
+    {
+      id: "specs",
+      label: "ThĂ´ng sá»‘",
+      errorTitle: "CĂ³ lá»—i á»Ÿ thĂ´ng sá»‘",
+    },
+    {
+      id: "videos",
+      label: "Video",
+      errorTitle: "URL video khĂ´ng há»£p lá»‡",
+    },
+  ] as const;
+  const mediaOverlayActionClass =
+    "absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100";
 
   return (
     <PagePanel>
@@ -1201,8 +1225,27 @@ function CreateProductPage() {
           </div>
 
           {/* Tabs */}
+          <div className="mt-5 sm:hidden">
+            <label className="block text-sm text-slate-700" htmlFor="create-product-tab-select">
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                {t("CĂ¡c tab sáº£n pháº©m")}
+              </span>
+              <select
+                id="create-product-tab-select"
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-900"
+                onChange={(event) => setActiveTab(event.target.value as typeof activeTab)}
+                value={activeTab}
+              >
+                {productTabs.map((tab) => (
+                  <option key={tab.id} value={tab.id}>
+                    {t(tab.label)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           <div
-            className="mt-5 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap"
+            className="mt-4 hidden gap-2 overflow-x-auto px-1 pb-1 sm:flex sm:flex-wrap"
             role="tablist"
             aria-label={t("Các tab sản phẩm")}
           >
@@ -1308,7 +1351,7 @@ function CreateProductPage() {
               id="product-tabpanel-basic"
               role="tabpanel"
               aria-labelledby="product-tab-basic"
-              className="mt-4 grid gap-4 xl:grid-cols-[1.3fr_0.9fr]"
+              className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]"
             >
               <div className="space-y-4">
                 <div className="rounded-2xl border border-slate-200 bg-[var(--surface-muted)] p-4">
@@ -1691,7 +1734,7 @@ function CreateProductPage() {
                       <button
                         type="button"
                         onClick={handleClearImage}
-                        className="absolute right-2 top-2 inline-flex min-h-11 items-center gap-1 rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 shadow-sm opacity-100 transition hover:border-rose-300 hover:text-rose-700 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                        className={`${mediaOverlayActionClass} gap-1 shadow-sm hover:border-rose-300 hover:text-rose-700`}
                       >
                         <X className="h-3 w-3" />
                         {t("Xóa ảnh")}
@@ -1863,7 +1906,7 @@ function CreateProductPage() {
                       </div>
                     )}
                     {d.type === "image" && (
-                      <div className="grid gap-2 md:grid-cols-[1.4fr_1fr]">
+                      <div className="grid gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
                         <label
                           className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
                           htmlFor={`create-product-description-image-${idx}`}
@@ -1918,7 +1961,7 @@ function CreateProductPage() {
                           </FieldErrorMessage>
                         ) : null}
                         {d.url && (
-                          <div className="group relative overflow-hidden rounded-lg border border-slate-200 md:col-span-2">
+                          <div className="group relative overflow-hidden rounded-lg border border-slate-200 sm:col-span-2">
                             <img
                               src={resolveBackendAssetUrl(d.url)}
                               alt={t("Xem trước")}
@@ -1926,7 +1969,7 @@ function CreateProductPage() {
                             />
                             <button
                               type="button"
-                              className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                              className={mediaOverlayActionClass}
                               onClick={() => clearDescriptionImage(idx)}
                             >
                               {t("Xóa ảnh")}
@@ -2045,7 +2088,7 @@ function CreateProductPage() {
                             key={itemIdx}
                             className="rounded-lg border border-slate-200 bg-white p-3"
                           >
-                            <div className="grid gap-3 lg:grid-cols-[180px_1fr] lg:items-start">
+                            <div className="grid gap-3 xl:grid-cols-[minmax(0,11rem)_minmax(0,1fr)] xl:items-start">
                               <div className="space-y-2">
                                 <label
                                   className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
@@ -2083,7 +2126,7 @@ function CreateProductPage() {
                                     />
                                     <button
                                       type="button"
-                                      className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                                      className={mediaOverlayActionClass}
                                       onClick={() =>
                                         clearGalleryItemImage(idx, itemIdx)
                                       }
@@ -2110,7 +2153,7 @@ function CreateProductPage() {
                       </div>
                     )}
                     {d.type === "video" && (
-                      <div className="grid gap-2 md:grid-cols-[1.4fr_1fr]">
+                      <div className="grid gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
                         <input
                           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                           placeholder={t(
@@ -2149,14 +2192,14 @@ function CreateProductPage() {
                         </p>
                         {debouncedDescriptionVideoUrls[idx] &&
                         isValidRemoteUrl(debouncedDescriptionVideoUrls[idx]) ? (
-                          <div className="group relative overflow-hidden rounded-lg border border-slate-200 md:col-span-2">
+                          <div className="group relative overflow-hidden rounded-lg border border-slate-200 sm:col-span-2">
                             <ProductVideoPreview
                               url={debouncedDescriptionVideoUrls[idx]}
                               title={d.caption}
                             />
                             <button
                               type="button"
-                              className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                              className={mediaOverlayActionClass}
                               onClick={() => {
                                 const copy = [...newProduct.descriptions];
                                 copy[idx] = { ...copy[idx], url: "" };
@@ -2265,7 +2308,7 @@ function CreateProductPage() {
                 newProduct.specifications.map((s, idx) => (
                   <div
                     key={idx}
-                    className="grid gap-2 md:grid-cols-[auto_1fr_1fr_auto] md:items-center"
+                    className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-center"
                     draggable
                     onDragStart={() => {
                       specDragIndexRef.current = idx;
@@ -2287,7 +2330,7 @@ function CreateProductPage() {
                     }}
                   >
                     <span
-                      className="hidden cursor-grab self-center text-slate-300 active:cursor-grabbing md:flex"
+                      className="hidden cursor-grab self-center text-slate-300 active:cursor-grabbing lg:flex"
                       aria-hidden="true"
                       title={t("Kéo để sắp xếp")}
                     >
@@ -2325,11 +2368,11 @@ function CreateProductPage() {
                         }}
                       />
                     </label>
-                    <div className="flex items-center justify-end gap-2 md:justify-self-auto">
+                    <div className="grid grid-cols-3 gap-2 sm:col-span-2 lg:col-span-1 lg:flex lg:items-center lg:justify-end lg:justify-self-end">
                       <button
                         type="button"
                         disabled={idx === 0}
-                        className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="min-h-11 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 lg:w-auto"
                         onClick={() => moveSpecificationItem(idx, -1)}
                       >
                         {t("Lên")}
@@ -2337,14 +2380,14 @@ function CreateProductPage() {
                       <button
                         type="button"
                         disabled={idx === newProduct.specifications.length - 1}
-                        className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="min-h-11 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 lg:w-auto"
                         onClick={() => moveSpecificationItem(idx, 1)}
                       >
                         {t("Xuống")}
                       </button>
                       <button
                         type="button"
-                        className="min-h-11 px-3 py-2 text-xs font-semibold text-red-500"
+                        className="min-h-11 w-full px-3 py-2 text-xs font-semibold text-red-500 lg:w-auto"
                         onClick={() => {
                           const copy = newProduct.specifications.filter(
                             (_, i) => i !== idx,
@@ -2514,7 +2557,7 @@ function CreateProductPage() {
                         />
                         <button
                           type="button"
-                          className="absolute right-2 top-2 inline-flex min-h-11 items-center rounded-full border border-rose-200 bg-[var(--surface-glass)] px-3 py-1.5 text-xs font-semibold text-rose-600 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                          className={mediaOverlayActionClass}
                           onClick={() => {
                             const copy = [...newProduct.videos];
                             copy[idx] = { ...copy[idx], url: "" };
@@ -2605,7 +2648,7 @@ function CreateProductPage() {
           )}
 
           {/* Actions */}
-          <div className="sticky bottom-0 z-10 mt-6 -mx-6 flex flex-col-reverse gap-3 border-t border-slate-200/70 bg-white/95 px-6 py-4 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur sm:flex-row sm:justify-end">
+          <div className="sticky bottom-4 z-10 mt-6 flex flex-col-reverse gap-3 rounded-2xl border border-slate-200/70 bg-white/95 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.12)] backdrop-blur sm:flex-row sm:justify-end">
             <button
               type="button"
               disabled={isFormLocked}
