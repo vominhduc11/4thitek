@@ -41,12 +41,12 @@ public class RestExceptionHandler {
 
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ApiResponse<Void>> handleBadRequest(BadRequestException ex) {
-        return ResponseEntity.badRequest().body(ApiResponse.failure(ex.getMessage()));
+        return ResponseEntity.badRequest().body(ApiResponse.failure(ex.getMessage(), ex.getErrorCode()));
     }
 
     @ExceptionHandler(FieldValidationException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleFieldValidation(FieldValidationException ex) {
-        return ResponseEntity.badRequest().body(new ApiResponse<>(false, ex.getErrors(), ex.getMessage()));
+        return ResponseEntity.badRequest().body(new ApiResponse<>(false, ex.getErrors(), ex.getMessage(), null));
     }
 
     @ExceptionHandler(BadCredentialsException.class)
@@ -63,7 +63,7 @@ public class RestExceptionHandler {
 
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ApiResponse<Void>> handleUnauthorized(UnauthorizedException ex) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.failure(ex.getMessage()));
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.failure(ex.getMessage(), ex.getErrorCode()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -77,7 +77,7 @@ public class RestExceptionHandler {
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
             errors.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
-        return ResponseEntity.badRequest().body(new ApiResponse<>(false, errors, "Validation failed"));
+        return ResponseEntity.badRequest().body(new ApiResponse<>(false, errors, "Validation failed", null));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -86,7 +86,7 @@ public class RestExceptionHandler {
         for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
             errors.put(violation.getPropertyPath().toString(), violation.getMessage());
         }
-        return ResponseEntity.badRequest().body(new ApiResponse<>(false, errors, "Validation failed"));
+        return ResponseEntity.badRequest().body(new ApiResponse<>(false, errors, "Validation failed", null));
     }
 
     @ExceptionHandler(OptimisticLockException.class)

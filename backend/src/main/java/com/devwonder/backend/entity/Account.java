@@ -50,6 +50,12 @@ public class Account implements UserDetails {
     @Column(name = "email", unique = true)
     private String email;
 
+    @Column(name = "email_verified", nullable = false)
+    private Boolean emailVerified = Boolean.FALSE;
+
+    @Column(name = "email_verified_at")
+    private Instant emailVerifiedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;

@@ -455,6 +455,8 @@ class AdminSettingsContractTests {
         admin.setRoleTitle("Admin");
         admin.setUserStatus(StaffUserStatus.ACTIVE);
         admin.setRequirePasswordChange(false);
+        admin.setEmailVerified(true);
+        admin.setEmailVerifiedAt(java.time.Instant.now());
         admin.setRoles(new HashSet<>(Set.of(resolveRole("ADMIN", "Admin role"))));
         adminRepository.save(admin);
     }

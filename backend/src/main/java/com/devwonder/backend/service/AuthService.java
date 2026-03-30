@@ -52,6 +52,7 @@ public class AuthService {
     private final JWTUtils jwtUtils;
     private final WebSocketEventPublisher webSocketEventPublisher;
     private final DealerAccountLifecycleService dealerAccountLifecycleService;
+    private final AdminSettingsService adminSettingsService;
 
     @Transactional
     public AuthResponse login(LoginRequest request) {
@@ -70,6 +71,7 @@ public class AuthService {
 
         Account account = accountRepository.findByUsernameIgnoreCaseOrEmailIgnoreCase(identity, identity)
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
+        assertAdminEmailVerificationIfRequired(account);
         assertDealerPortalAccessIfRequired(account);
 
         String accessToken = jwtUtils.generateToken(account);
@@ -102,6 +104,7 @@ public class AuthService {
             if (!account.isEnabled()) {
                 throw new UnauthorizedException("Account is not active");
             }
+            assertAdminEmailVerificationIfRequired(account);
             assertDealerPortalAccessIfRequired(account);
             if (!jwtUtils.isTokenValid(refreshToken, account, JWTUtils.TokenType.REFRESH)) {
                 throw new UnauthorizedException("Refresh token is invalid");
@@ -200,6 +203,28 @@ public class AuthService {
     private void assertDealerPortalAccessIfRequired(Account account) {
         if (account instanceof Dealer) {
             dealerAccountLifecycleService.assertDealerPortalAccess(account);
+        }
+    }
+
+    private void assertAdminEmailVerificationIfRequired(Account account) {
+        if (!(account instanceof Admin)) {
+            return;
+        }
+        if (!adminSettingsService.getEffectiveSettings().emailConfirmation()) {
+            return;
+        }
+        String normalizedEmail = AccountValidationSupport.normalizeEmail(account.getEmail());
+        if (normalizedEmail == null) {
+            throw new UnauthorizedException(
+                    "Admin email is required before sign in. Please contact your system owner.",
+                    EmailVerificationService.ADMIN_EMAIL_REQUIRED_CODE
+            );
+        }
+        if (!Boolean.TRUE.equals(account.getEmailVerified())) {
+            throw new UnauthorizedException(
+                    "Admin email verification is required before sign in. Please check your inbox or request a new verification email.",
+                    EmailVerificationService.ADMIN_EMAIL_UNVERIFIED_CODE
+            );
         }
     }
 

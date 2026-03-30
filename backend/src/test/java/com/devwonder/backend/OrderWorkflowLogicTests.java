@@ -1159,6 +1159,8 @@ class OrderWorkflowLogicTests {
         admin.setDisplayName("Admin " + username);
         admin.setRoleTitle("Ops");
         admin.setUserStatus(StaffUserStatus.ACTIVE);
+        admin.setEmailVerified(true);
+        admin.setEmailVerifiedAt(Instant.now());
         return admin;
     }
 

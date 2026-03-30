@@ -149,9 +149,7 @@ public class DealerAccountLifecycleService {
     }
 
     private void sendEmailIfPossible(String recipient, String subject, String body) {
-        if (!StringUtils.hasText(recipient)
-                || !mailService.isEnabled()
-                || !adminSettingsService.getEffectiveSettings().emailConfirmation()) {
+        if (!StringUtils.hasText(recipient) || !mailService.isEnabled()) {
             return;
         }
         try {

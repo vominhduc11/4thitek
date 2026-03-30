@@ -4,15 +4,20 @@ import com.devwonder.backend.dto.ApiResponse;
 import com.devwonder.backend.dto.auth.AuthResponse;
 import com.devwonder.backend.dto.auth.ForgotPasswordRequest;
 import com.devwonder.backend.dto.auth.LoginRequest;
+import com.devwonder.backend.dto.auth.EmailVerificationResponse;
 import com.devwonder.backend.dto.auth.PasswordResetTokenValidationResponse;
 import com.devwonder.backend.dto.auth.RefreshTokenRequest;
 import com.devwonder.backend.dto.auth.RegisterDealerRequest;
 import com.devwonder.backend.dto.auth.RegisterDealerResponse;
+import com.devwonder.backend.dto.auth.ResendEmailVerificationRequest;
+import com.devwonder.backend.dto.auth.ResendEmailVerificationResponse;
 import com.devwonder.backend.dto.auth.ResetPasswordRequest;
+import com.devwonder.backend.dto.auth.VerifyEmailRequest;
 import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.exception.UnauthorizedException;
 import com.devwonder.backend.service.AuthRefreshCookieService;
 import com.devwonder.backend.service.AuthService;
+import com.devwonder.backend.service.EmailVerificationService;
 import com.devwonder.backend.service.PasswordResetService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -38,6 +43,7 @@ public class AuthController {
     private final AuthService authService;
     private final AuthRefreshCookieService authRefreshCookieService;
     private final PasswordResetService passwordResetService;
+    private final EmailVerificationService emailVerificationService;
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(
@@ -108,6 +114,20 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         return ResponseEntity.ok(ApiResponse.success(passwordResetService.requestReset(request.email())));
+    }
+
+    @PostMapping("/resend-email-verification")
+    public ResponseEntity<ApiResponse<ResendEmailVerificationResponse>> resendEmailVerification(
+            @Valid @RequestBody ResendEmailVerificationRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(emailVerificationService.resendVerification(request.identity())));
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<ApiResponse<EmailVerificationResponse>> verifyEmail(
+            @Valid @RequestBody VerifyEmailRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(emailVerificationService.verifyEmail(request.token())));
     }
 
     @GetMapping("/reset-password/validate")

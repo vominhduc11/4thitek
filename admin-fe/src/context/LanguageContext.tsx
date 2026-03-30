@@ -19,6 +19,52 @@ type LanguageContextValue = {
 
 const translations: Record<Language, TranslationMap> = {
   vi: {
+    "Please contact your system owner to add an email address to your admin account.":
+      "Vui lĂ²ng liĂªn há»‡ chá»§ há»‡ thá»‘ng Ä‘á»ƒ bá»• sung email cho tĂ i khoáº£n admin.",
+    "Your admin email address must be verified before you can sign in.":
+      "Email admin cáº§n Ä‘Æ°á»£c xĂ¡c thá»±c trÆ°á»›c khi báº¡n cĂ³ thá»ƒ Ä‘Äƒng nháº­p.",
+    "Enter your username or email to resend the verification email.":
+      "Nháº­p tĂªn Ä‘Äƒng nháº­p hoáº·c email Ä‘á»ƒ gá»­i láº¡i thÆ° xĂ¡c thá»±c.",
+    "If an unverified admin account exists for this identity, a verification email has been sent.":
+      "Náº¿u Ä‘á»‹nh danh nĂ y tÆ°Æ¡ng á»©ng vá»›i má»™t tĂ i khoáº£n admin chÆ°a xĂ¡c thá»±c, thÆ° xĂ¡c thá»±c Ä‘Ă£ Ä‘Æ°á»£c gá»­i.",
+    "Could not resend the verification email. Please try again.":
+      "KhĂ´ng thá»ƒ gá»­i láº¡i thÆ° xĂ¡c thá»±c. Vui lĂ²ng thá»­ láº¡i.",
+    "Your admin account needs an email address before sign-in can continue. Please contact your system owner.":
+      "TĂ i khoáº£n admin cáº§n cĂ³ email trÆ°á»›c khi cĂ³ thá»ƒ tiáº¿p tá»¥c Ä‘Äƒng nháº­p. Vui lĂ²ng liĂªn há»‡ chá»§ há»‡ thá»‘ng.",
+    "Check your inbox and spam folder for the verification email, then try signing in again.":
+      "HÃ£y kiá»ƒm tra há»™p thÆ° Ä‘áº¿n vĂ  thÆ° rĂ¡c Ä‘á»ƒ tĂ¬m email xĂ¡c thá»±c, sau Ä‘Ă³ thá»­ Ä‘Äƒng nháº­p láº¡i.",
+    "Sending verification email...":
+      "Äang gá»­i email xĂ¡c thá»±c...",
+    "Resend verification email":
+      "Gá»­i láº¡i email xĂ¡c thá»±c",
+    "If your system owner requires email verification, you must verify your admin email before sign-in succeeds.":
+      "Náº¿u chá»§ há»‡ thá»‘ng yĂªu cáº§u xĂ¡c thá»±c email, báº¡n pháº£i xĂ¡c thá»±c email admin trÆ°á»›c khi Ä‘Äƒng nháº­p thĂ nh cĂ´ng.",
+    "This verification link has expired. Request a new verification email from the sign-in page.":
+      "LiĂªn káº¿t xĂ¡c thá»±c nĂ y Ä‘Ă£ háº¿t háº¡n. HÃ£y yĂªu cáº§u email xĂ¡c thá»±c má»›i tá»« trang Ä‘Äƒng nháº­p.",
+    "This verification link has already been used. You can sign in if your email is already verified.":
+      "LiĂªn káº¿t xĂ¡c thá»±c nĂ y Ä‘Ă£ Ä‘Æ°á»£c dĂ¹ng. Báº¡n cĂ³ thá»ƒ Ä‘Äƒng nháº­p náº¿u email Ä‘Ă£ Ä‘Æ°á»£c xĂ¡c thá»±c.",
+    "This verification link is invalid. Request a new verification email from the sign-in page.":
+      "LiĂªn káº¿t xĂ¡c thá»±c khĂ´ng há»£p lá»‡. HÃ£y yĂªu cáº§u email xĂ¡c thá»±c má»›i tá»« trang Ä‘Äƒng nháº­p.",
+    "We could not verify your email right now. Please try again later.":
+      "KhĂ´ng thá»ƒ xĂ¡c thá»±c email lĂºc nĂ y. Vui lĂ²ng thá»­ láº¡i sau.",
+    "Admin Email Verification":
+      "XĂ¡c thá»±c email admin",
+    "Email verified":
+      "Email Ä‘Ă£ Ä‘Æ°á»£c xĂ¡c thá»±c",
+    "Verifying your email":
+      "Äang xĂ¡c thá»±c email",
+    "Verification failed":
+      "XĂ¡c thá»±c tháº¥t báº¡i",
+    "Continue to sign in":
+      "Tiáº¿p tá»¥c Ä‘Äƒng nháº­p",
+    "Back to sign in":
+      "Quay láº¡i Ä‘Äƒng nháº­p",
+    "Request another verification email":
+      "YĂªu cáº§u email xĂ¡c thá»±c khĂ¡c",
+    "Email verification successful. You can now sign in.":
+      "XĂ¡c thá»±c email thĂ nh cĂ´ng. Báº¡n cĂ³ thá»ƒ Ä‘Äƒng nháº­p ngay bĂ¢y giá».",
+    "Block admin sign-in until the account has an email address and that email has been verified.":
+      "Cháº·n Ä‘Äƒng nháº­p admin cho Ä‘áº¿n khi tĂ i khoáº£n cĂ³ email vĂ  email Ä‘Ă³ Ä‘Ă£ Ä‘Æ°á»£c xĂ¡c thá»±c.",
     "Không tải được dữ liệu": "Không tải được dữ liệu",
     "Vui lòng kiểm tra kết nối và thử lại.":
       "Vui lòng kiểm tra kết nối và thử lại.",
@@ -37,6 +83,8 @@ const translations: Record<Language, TranslationMap> = {
     "Biểu đồ trạng thái đơn hàng": "Biểu đồ trạng thái đơn hàng",
   },
   en: {
+    "Block admin sign-in until the account has an email address and that email has been verified.":
+      "Block admin sign-in until the account has an email address and that email has been verified.",
     "Chuyển ngôn ngữ": "Switch language",
     "Tổng quan": "Overview",
     "Sản phẩm": "Products",

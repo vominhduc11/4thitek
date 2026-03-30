@@ -1,6 +1,7 @@
 package com.devwonder.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -15,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.mail.Message;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
+import java.util.List;
 import java.util.Properties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +40,8 @@ import org.springframework.test.web.servlet.MvcResult;
         "app.mail.enabled=true",
         "app.mail.from=ops@4thitek.local",
         "app.mail.from-name=4ThiTek Ops",
-        "app.password-reset.base-url=https://admin.4thitek.local/reset"
+        "app.password-reset.base-url=https://admin.4thitek.local/reset",
+        "app.email-verification.base-url=https://admin.4thitek.local/verify-email"
 })
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -137,19 +140,43 @@ class AdminStaffUserContractTests {
         assertThat(created.getEmail()).doesNotEndWith("@internal.4thitek.local");
         assertThat(created.getUsername()).isEqualTo(username);
         assertThat(created.getRequirePasswordChange()).isTrue();
+        assertThat(created.getEmailVerified()).isFalse();
 
         ArgumentCaptor<MimeMessage> messageCaptor = ArgumentCaptor.forClass(MimeMessage.class);
-        verify(javaMailSender).send(messageCaptor.capture());
+        verify(javaMailSender, timeout(1_000).times(2)).send(messageCaptor.capture());
 
-        MimeMessage message = messageCaptor.getValue();
-        String body = message.getContent().toString();
-        assertThat(message.getRecipients(Message.RecipientType.TO)[0].toString()).isEqualTo("staff.ops@example.com");
-        assertThat(message.getSubject()).contains("4ThiTek").contains("Kích hoạt");
-        assertThat(body)
+        List<MimeMessage> messages = messageCaptor.getAllValues();
+        assertThat(messages).hasSize(2);
+        MimeMessage onboardingMessage = messages.stream()
+                .filter(message -> {
+                    try {
+                        return message.getSubject().contains("K\u00edch ho\u1ea1t");
+                    } catch (Exception ex) {
+                        return false;
+                    }
+                })
+                .findFirst()
+                .orElseThrow();
+        MimeMessage verificationMessage = messages.stream()
+                .filter(message -> {
+                    try {
+                        return message.getSubject().contains("Verify");
+                    } catch (Exception ex) {
+                        return false;
+                    }
+                })
+                .findFirst()
+                .orElseThrow();
+
+        String onboardingBody = onboardingMessage.getContent().toString();
+        assertThat(onboardingMessage.getRecipients(Message.RecipientType.TO)[0].toString()).isEqualTo("staff.ops@example.com");
+        assertThat(onboardingBody)
                 .contains("Support Agent")
                 .contains("https://admin.4thitek.local/reset")
-                .doesNotContain("Mật khẩu tạm thời:")
+                .doesNotContain("M\u1eadt kh\u1ea9u t\u1ea1m th\u1eddi:")
                 .doesNotContain("temporaryPassword");
+        assertThat(verificationMessage.getRecipients(Message.RecipientType.TO)[0].toString()).isEqualTo("staff.ops@example.com");
+        assertThat(verificationMessage.getContent().toString()).contains("https://admin.4thitek.local/verify-email");
     }
 
     private String login(String username, String password) throws Exception {

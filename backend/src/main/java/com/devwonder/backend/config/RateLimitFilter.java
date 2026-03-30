@@ -149,6 +149,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 && (path.startsWith("/api/v1/auth/forgot-password") || path.startsWith("/api/auth/forgot-password"))) {
             return rule("password-reset", settings.passwordReset());
         }
+        if ("POST".equalsIgnoreCase(method)
+                && (path.startsWith("/api/v1/auth/resend-email-verification")
+                || path.startsWith("/api/auth/resend-email-verification"))) {
+            return rule("password-reset", settings.passwordReset());
+        }
         if ("GET".equalsIgnoreCase(method) && path.startsWith("/api/v1/warranty/check/")) {
             return rule("warranty", settings.warrantyLookup());
         }

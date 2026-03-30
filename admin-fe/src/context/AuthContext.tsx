@@ -42,7 +42,7 @@ type AuthContextValue = {
   isLoggingIn: boolean;
   isInitializing: boolean;
   requiresPasswordChange: boolean;
-  login: (payload: LoginPayload) => Promise<{ ok: boolean; message?: string }>;
+  login: (payload: LoginPayload) => Promise<{ ok: boolean; message?: string; code?: string }>;
   logout: () => void;
   hasRole: (role: string) => boolean;
   completePasswordChange: () => void;
@@ -52,6 +52,7 @@ type ApiResponse<T> = {
   success: boolean;
   data: T;
   error?: string | null;
+  errorCode?: string | null;
 };
 
 type AuthApiResponse = {
@@ -186,6 +187,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return {
           ok: false,
           message: payloadData?.error || "Dang nhap that bai",
+          code: payloadData?.errorCode || undefined,
         };
       }
 

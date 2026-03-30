@@ -128,6 +128,7 @@ public class AdminManagementService {
     private final UnmatchedPaymentRepository unmatchedPaymentRepository;
     private final DealerOrderNotificationSupport dealerOrderNotificationSupport;
     private final PasswordResetService passwordResetService;
+    private final EmailVerificationService emailVerificationService;
 
     @Transactional(readOnly = true)
     public List<AdminProductResponse> getProducts() {
@@ -533,6 +534,10 @@ public class AdminManagementService {
     @Transactional
     @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
     public AdminStaffUserResponse createUser(AdminStaffUserUpsertRequest request) {
+        if (adminSettingsService.getEffectiveSettings().emailConfirmation()
+                && !emailVerificationService.isVerificationDeliveryAvailable()) {
+            throw new BadRequestException("Admin email verification delivery is not configured");
+        }
         String email = AccountValidationSupport.normalizeEmail(request.email());
         if (email == null) {
             throw new BadRequestException("email is required");
@@ -548,6 +553,7 @@ public class AdminManagementService {
         Admin admin = new Admin();
         admin.setUsername(username);
         admin.setEmail(email);
+        emailVerificationService.markAdminEmailUnverified(admin);
         admin.setPassword(passwordEncoder.encode(temporaryPassword));
         admin.setDisplayName(name);
         admin.setRoleTitle(roleTitle);
@@ -556,6 +562,7 @@ public class AdminManagementService {
         admin.setRoles(new HashSet<>(List.of(resolveRole("ADMIN", "Admin role"))));
         Admin saved = adminRepository.save(admin);
         passwordResetService.sendStaffOnboardingLink(saved);
+        emailVerificationService.sendVerificationEmail(saved);
         return AdminResponseMapper.toStaffUserResponse(saved);
     }
 

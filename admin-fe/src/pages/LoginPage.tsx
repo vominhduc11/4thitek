@@ -7,9 +7,25 @@ import { FieldErrorMessage } from "../components/ui-kit";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useToast } from "../context/ToastContext";
+import { AuthApiError, resendAdminEmailVerification } from "../lib/authApi";
 
 type LocationState = {
   from?: string;
+};
+
+const resolveLoginErrorMessage = (
+  t: (key: string) => string,
+  code: string | undefined,
+  fallbackMessage: string | undefined,
+) => {
+  switch (code) {
+    case "ADMIN_EMAIL_REQUIRED":
+      return t("Please contact your system owner to add an email address to your admin account.");
+    case "ADMIN_EMAIL_UNVERIFIED":
+      return t("Your admin email address must be verified before you can sign in.");
+    default:
+      return t(fallbackMessage ?? "Đăng nhập thất bại");
+  }
 };
 
 function LoginPage() {
@@ -23,6 +39,9 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
+  const [authErrorCode, setAuthErrorCode] = useState<string | undefined>();
+  const [resendNotice, setResendNotice] = useState("");
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     username?: string;
     password?: string;
@@ -43,9 +62,15 @@ function LoginPage() {
     return nextErrors;
   };
 
+  const clearAuthFeedback = () => {
+    setError("");
+    setAuthErrorCode(undefined);
+    setResendNotice("");
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError("");
+    clearAuthFeedback();
 
     const nextErrors = validateFields(username, password);
     setFieldErrors(nextErrors);
@@ -55,12 +80,42 @@ function LoginPage() {
 
     const result = await login({ username, password, remember });
     if (!result.ok) {
-      setError(t(result.message ?? "Đăng nhập thất bại"));
+      setAuthErrorCode(result.code);
+      setError(resolveLoginErrorMessage(t, result.code, result.message));
       return;
     }
 
     notify(t("Đăng nhập thành công"), { title: "Auth", variant: "success" });
     navigate(target, { replace: true });
+  };
+
+  const handleResendVerification = async () => {
+    const identity = username.trim();
+    if (!identity) {
+      setError(t("Enter your username or email to resend the verification email."));
+      return;
+    }
+
+    setIsResendingVerification(true);
+    setResendNotice("");
+
+    try {
+      const response = await resendAdminEmailVerification(identity);
+      setResendNotice(
+        t(
+          response.message ||
+            "If an unverified admin account exists for this identity, a verification email has been sent.",
+        ),
+      );
+    } catch (nextError) {
+      if (nextError instanceof AuthApiError) {
+        setError(t(nextError.message));
+      } else {
+        setError(t("Could not resend the verification email. Please try again."));
+      }
+    } finally {
+      setIsResendingVerification(false);
+    }
   };
 
   return (
@@ -117,12 +172,13 @@ function LoginPage() {
                 type="text"
                 placeholder={t("Nhập tên đăng nhập")}
                 autoComplete="username"
-                disabled={isLoggingIn}
+                disabled={isLoggingIn || isResendingVerification}
                 value={username}
                 onChange={(event) => {
                   const nextValue = event.target.value;
                   setUsername(nextValue);
                   setFieldErrors(validateFields(nextValue, password));
+                  clearAuthFeedback();
                 }}
               />
             </div>
@@ -154,12 +210,13 @@ function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 placeholder={t("Nhập mật khẩu")}
                 autoComplete="current-password"
-                disabled={isLoggingIn}
+                disabled={isLoggingIn || isResendingVerification}
                 value={password}
                 onChange={(event) => {
                   const nextValue = event.target.value;
                   setPassword(nextValue);
                   setFieldErrors(validateFields(username, nextValue));
+                  clearAuthFeedback();
                 }}
               />
               <button
@@ -167,7 +224,7 @@ function LoginPage() {
                   showPassword ? t("Ẩn mật khẩu") : t("Hiển thị mật khẩu")
                 }
                 className="absolute right-3 top-1/2 inline-flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
-                disabled={isLoggingIn}
+                disabled={isLoggingIn || isResendingVerification}
                 onClick={() => setShowPassword((current) => !current)}
                 type="button"
               >
@@ -190,7 +247,7 @@ function LoginPage() {
               className="h-4 w-4 accent-[var(--accent)]"
               type="checkbox"
               checked={remember}
-              disabled={isLoggingIn}
+              disabled={isLoggingIn || isResendingVerification}
               onChange={(event) => setRemember(event.target.checked)}
             />
             <span>{t("Ghi nhớ đăng nhập")}</span>
@@ -198,16 +255,43 @@ function LoginPage() {
 
           {error ? <FieldErrorMessage>{error}</FieldErrorMessage> : null}
 
+          {authErrorCode === "ADMIN_EMAIL_REQUIRED" ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              {t("Your admin account needs an email address before sign-in can continue. Please contact your system owner.")}
+            </div>
+          ) : null}
+
+          {authErrorCode === "ADMIN_EMAIL_UNVERIFIED" ? (
+            <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+              <p>{t("Check your inbox and spam folder for the verification email, then try signing in again.")}</p>
+              <button
+                className="mt-3 inline-flex min-h-11 items-center justify-center rounded-full border border-sky-300 px-4 py-2 text-sm font-semibold text-sky-900 transition hover:border-sky-400 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                disabled={isResendingVerification || isLoggingIn}
+                onClick={() => void handleResendVerification()}
+              >
+                {isResendingVerification
+                  ? t("Sending verification email...")
+                  : t("Resend verification email")}
+              </button>
+              {resendNotice ? (
+                <p className="mt-3 text-sm text-sky-800" role="status">
+                  {resendNotice}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           <button
             className="w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70"
             type="submit"
-            disabled={isLoggingIn}
+            disabled={isLoggingIn || isResendingVerification}
           >
             {isLoggingIn ? t("Đang đăng nhập...") : t("Đăng nhập")}
           </button>
 
           <p className="text-center text-xs text-slate-500">
-            {t("Hệ thống có thể yêu cầu xác thực email sau khi đăng nhập.")}
+            {t("If your system owner requires email verification, you must verify your admin email before sign-in succeeds.")}
           </p>
         </form>
 

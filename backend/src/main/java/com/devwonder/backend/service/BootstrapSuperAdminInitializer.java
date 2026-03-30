@@ -27,6 +27,7 @@ public class BootstrapSuperAdminInitializer implements ApplicationRunner {
     private final AccountRepository accountRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailVerificationService emailVerificationService;
 
     @Value("${app.bootstrap-super-admin.enabled:true}")
     private boolean bootstrapEnabled;
@@ -65,6 +66,7 @@ public class BootstrapSuperAdminInitializer implements ApplicationRunner {
         Admin admin = new Admin();
         admin.setUsername(email);
         admin.setEmail(email);
+        emailVerificationService.markAdminEmailVerified(admin, java.time.Instant.now());
         admin.setPassword(passwordEncoder.encode(password));
         admin.setDisplayName(displayName == null ? "System Owner" : displayName);
         admin.setRoleTitle("Super Admin");
