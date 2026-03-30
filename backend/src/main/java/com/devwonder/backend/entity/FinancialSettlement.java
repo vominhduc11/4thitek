@@ -36,7 +36,7 @@ public class FinancialSettlement {
     private Order order;
 
     @Column(name = "type", nullable = false)
-    private String type;
+    private String typeValue;
 
     @Column(name = "amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
@@ -61,11 +61,19 @@ public class FinancialSettlement {
     @Column(name = "resolved_at")
     private Instant resolvedAt;
 
+    public FinancialSettlementType getType() {
+        return FinancialSettlementType.fromDatabaseValue(typeValue);
+    }
+
     public void setType(String type) {
-        this.type = FinancialSettlementType.requireValidDatabaseValue(type);
+        this.typeValue = FinancialSettlementType.requireValidDatabaseValue(type);
+    }
+
+    public void setType(FinancialSettlementType type) {
+        this.typeValue = type == null ? null : type.name();
     }
 
     public FinancialSettlementType getTypeEnum() {
-        return FinancialSettlementType.fromDatabaseValue(type);
+        return getType();
     }
 }

@@ -3,6 +3,7 @@ package com.devwonder.backend;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -190,7 +191,39 @@ class OrderPaymentResponseShapeTests {
                 .andExpect(jsonPath("$.data[0].orderItems[0].productName").value(product.getName()))
                 .andExpect(jsonPath("$.data[0].orderItems[0].quantity").value(1))
                 .andExpect(jsonPath("$.data[0].orderItems[0].unitPrice").isNumber())
-                .andExpect(jsonPath("$.data[0].staleReviewRequired").value(false));
+                .andExpect(jsonPath("$.data[0].staleReviewRequired").value(false))
+                .andExpect(jsonPath("$.data[0].allowedTransitions").isArray())
+                .andExpect(jsonPath("$.data[0].allowedTransitions[0]").value("COMPLETED"));
+    }
+
+    @Test
+    void adminOrderAndDealerAccountEndpointsExposeBackendTransitionHints() throws Exception {
+        String adminToken = login("orders.shape.admin@example.com", "ChangedPass#456");
+        Order confirmedOrder = saveOrderWithStatus(
+                dealer,
+                product,
+                "ORD-SHAPE-CONFIRMED",
+                OrderStatus.CONFIRMED,
+                PaymentStatus.PENDING,
+                BigDecimal.ZERO
+        );
+
+        mockMvc.perform(get("/api/v1/admin/orders")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].orderCode").value(confirmedOrder.getOrderCode()))
+                .andExpect(jsonPath("$.data[0].allowedTransitions[0]").value("CONFIRMED"))
+                .andExpect(jsonPath("$.data[0].allowedTransitions[1]").value("SHIPPING"))
+                .andExpect(jsonPath("$.data[0].allowedTransitions[2]").value("CANCELLED"));
+
+        mockMvc.perform(get("/api/v1/admin/dealers/accounts")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
+                .andExpect(jsonPath("$.data[0].id").value(dealer.getId()))
+                .andExpect(jsonPath("$.data[0].allowedTransitions").isArray())
+                .andExpect(jsonPath("$.data[0].allowedTransitions[0]").value("ACTIVE"))
+                .andExpect(jsonPath("$.data[0].allowedTransitions[1]").value("SUSPENDED"));
     }
 
     private Dealer registerActiveDealer(String prefix) throws Exception {
@@ -250,20 +283,40 @@ class OrderPaymentResponseShapeTests {
     }
 
     private Order saveOrderWithPayment(Dealer seededDealer, Product seededProduct) {
+        return saveOrderWithStatus(
+                seededDealer,
+                seededProduct,
+                "ORD-SHAPE-001",
+                OrderStatus.COMPLETED,
+                PaymentStatus.PAID,
+                BigDecimal.valueOf(110_000)
+        );
+    }
+
+    private Order saveOrderWithStatus(
+            Dealer seededDealer,
+            Product seededProduct,
+            String orderCode,
+            OrderStatus orderStatus,
+            PaymentStatus paymentStatus,
+            BigDecimal paidAmount
+    ) {
         Order seededOrder = new Order();
         seededOrder.setDealer(seededDealer);
-        seededOrder.setOrderCode("ORD-SHAPE-001");
-        seededOrder.setStatus(OrderStatus.COMPLETED);
+        seededOrder.setOrderCode(orderCode);
+        seededOrder.setStatus(orderStatus);
         seededOrder.setPaymentMethod(PaymentMethod.BANK_TRANSFER);
-        seededOrder.setPaymentStatus(PaymentStatus.PAID);
-        seededOrder.setPaidAmount(BigDecimal.valueOf(110_000));
+        seededOrder.setPaymentStatus(paymentStatus);
+        seededOrder.setPaidAmount(paidAmount);
         seededOrder.setIsDeleted(false);
         seededOrder.setReceiverName("Dealer Receiver");
         seededOrder.setReceiverAddress("123 Contract Street");
         seededOrder.setReceiverPhone("0900000000");
         seededOrder.setShippingFee(0);
         seededOrder.setNote("Shape test order note");
-        seededOrder.setCompletedAt(Instant.parse("2026-03-11T05:00:00Z"));
+        if (orderStatus == OrderStatus.COMPLETED) {
+            seededOrder.setCompletedAt(Instant.parse("2026-03-11T05:00:00Z"));
+        }
         seededOrder.setStaleReviewRequired(Boolean.FALSE);
 
         OrderItem item = new OrderItem();
@@ -277,17 +330,19 @@ class OrderPaymentResponseShapeTests {
 
         Order savedOrder = orderRepository.saveAndFlush(seededOrder);
 
-        Payment payment = new Payment();
-        payment.setOrder(savedOrder);
-        payment.setAmount(BigDecimal.valueOf(110_000));
-        payment.setMethod(PaymentMethod.BANK_TRANSFER);
-        payment.setStatus(PaymentStatus.PAID);
-        payment.setChannel("MANUAL_UPLOAD");
-        payment.setTransactionCode("TX-SHAPE-001");
-        payment.setNote("Shape test payment note");
-        payment.setProofFileName("proof-shape.png");
-        payment.setPaidAt(Instant.parse("2026-03-10T02:00:00Z"));
-        paymentRepository.saveAndFlush(payment);
+        if (paymentStatus == PaymentStatus.PAID && paidAmount.compareTo(BigDecimal.ZERO) > 0) {
+            Payment payment = new Payment();
+            payment.setOrder(savedOrder);
+            payment.setAmount(paidAmount);
+            payment.setMethod(PaymentMethod.BANK_TRANSFER);
+            payment.setStatus(PaymentStatus.PAID);
+            payment.setChannel("MANUAL_UPLOAD");
+            payment.setTransactionCode("TX-SHAPE-001");
+            payment.setNote("Shape test payment note");
+            payment.setProofFileName("proof-shape.png");
+            payment.setPaidAt(Instant.parse("2026-03-10T02:00:00Z"));
+            paymentRepository.saveAndFlush(payment);
+        }
 
         return orderRepository.findById(savedOrder.getId()).orElseThrow();
     }

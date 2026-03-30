@@ -32,6 +32,8 @@ class CartController extends ChangeNotifier {
   final Map<String, CartItem> _lastSyncedItems = <String, CartItem>{};
   final Map<String, int> _pendingSyncCounts = <String, int>{};
   List<BulkDiscountRule> _discountRules = const <BulkDiscountRule>[];
+  _CartPricingSummary? _pricingSummary;
+  _CartPricingSummary? _lastSyncedPricingSummary;
   List<CartItem> _sortedItemsCache = const <CartItem>[];
   bool _itemsCacheDirty = true;
   int _vatPercent = kVatPercent;
@@ -46,9 +48,16 @@ class CartController extends ChangeNotifier {
       notify: false,
       expectedMutationVersion: loadMutationVersion,
     );
+    if (loadedRemote && loadMutationVersion == _localMutationVersion) {
+      await _loadRemotePricingSummary(
+        notify: false,
+        expectedMutationVersion: loadMutationVersion,
+      );
+    }
     if (!loadedRemote && loadMutationVersion == _localMutationVersion) {
       _replaceItems(const <CartItem>[]);
       _replaceLastSyncedItems(const <CartItem>[]);
+      _clearPricingSummary(clearLastSynced: true);
     }
     notifyListeners();
   }
@@ -72,6 +81,10 @@ class CartController extends ChangeNotifier {
   }
 
   int get subtotal {
+    final pricingSummary = _pricingSummary;
+    if (pricingSummary != null) {
+      return pricingSummary.subtotal;
+    }
     return _items.values.fold<int>(
       0,
       (total, item) => total + item.quantity * item.product.price,
@@ -81,24 +94,29 @@ class CartController extends ChangeNotifier {
   List<BulkDiscountRule> get discountRules =>
       List<BulkDiscountRule>.unmodifiable(_discountRules);
 
-  int get vatPercent => _vatPercent;
-
   BulkDiscountTarget? get nextDiscountTarget => nextBulkDiscountTargetForCart(
     items: _items.values,
     rules: _discountRules,
   );
 
   int get discountPercent =>
+      _pricingSummary?.discountPercent ??
       bulkDiscountPercentForCart(items: _items.values, rules: _discountRules);
 
   int get discountAmount =>
+      _pricingSummary?.discountAmount ??
       bulkDiscountAmountForCart(items: _items.values, rules: _discountRules);
 
-  int get totalAfterDiscount => subtotal - discountAmount;
+  int get totalAfterDiscount =>
+      _pricingSummary?.totalAfterDiscount ?? subtotal - discountAmount;
 
-  int get vatAmount => (totalAfterDiscount * vatPercent / 100).round();
+  int get vatPercent => _pricingSummary?.vatPercent ?? _vatPercent;
 
-  int get total => totalAfterDiscount + vatAmount;
+  int get vatAmount =>
+      _pricingSummary?.vatAmount ??
+      (totalAfterDiscount * vatPercent / 100).round();
+
+  int get total => _pricingSummary?.totalAmount ?? totalAfterDiscount + vatAmount;
 
   int quantityFor(String productId) {
     return _items[productId]?.quantity ?? 0;
@@ -274,11 +292,59 @@ class CartController extends ChangeNotifier {
       }
       _replaceItems(nextItems);
       _replaceLastSyncedItems(nextItems);
+      _clearPricingSummary(clearLastSynced: true);
       if (notify) {
         notifyListeners();
       }
       return true;
     } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> _loadRemotePricingSummary({
+    bool notify = true,
+    int? expectedMutationVersion,
+  }) async {
+    final token = await _readAccessToken();
+    if (token == null) {
+      _clearPricingSummary(clearLastSynced: true);
+      return false;
+    }
+
+    try {
+      final response = await _client
+          .get(
+            DealerApiConfig.resolveApiUri('/dealer/cart/summary'),
+            headers: _authorizedHeaders(token),
+          )
+          .timeout(_remoteRequestTimeout);
+      final payload = _decodeBody(response.body);
+      if (response.statusCode >= 400) {
+        throw Exception(_extractErrorMessage(payload));
+      }
+      final data = payload['data'];
+      if (data is! Map<String, dynamic>) {
+        throw Exception('Invalid cart pricing summary payload');
+      }
+      final nextSummary = _mapPricingSummary(data);
+      if (expectedMutationVersion != null &&
+          expectedMutationVersion != _localMutationVersion) {
+        return true;
+      }
+      _setPricingSummary(nextSummary, alsoSetLastSynced: true);
+      if (notify) {
+        notifyListeners();
+      }
+      return true;
+    } catch (_) {
+      if (expectedMutationVersion == null ||
+          expectedMutationVersion == _localMutationVersion) {
+        _clearPricingSummary(clearLastSynced: true);
+        if (notify) {
+          notifyListeners();
+        }
+      }
       return false;
     }
   }
@@ -371,6 +437,7 @@ class CartController extends ChangeNotifier {
     bool rollbackOnFailure = true,
   }) async {
     applyLocal();
+    _clearActivePricingSummary();
     final localSnapshot = _copyItems(_items);
     final mutationVersion = ++_localMutationVersion;
     _markItemsDirty();
@@ -405,12 +472,16 @@ class CartController extends ChangeNotifier {
               remoteItem,
             );
             _replaceLastSyncedItemsFromMap(syncedSnapshot);
+            _lastSyncedPricingSummary = null;
             if (remoteItem != null &&
                 mutationVersion == _localMutationVersion) {
               _items[remoteItem.product.id] = remoteItem;
               _markItemsDirty();
-              notifyListeners();
             }
+            await _loadRemotePricingSummary(
+              notify: mutationVersion == _localMutationVersion,
+              expectedMutationVersion: mutationVersion,
+            );
             result.complete(true);
           } catch (_) {
             if (rollbackOnFailure && mutationVersion == _localMutationVersion) {
@@ -587,6 +658,18 @@ class CartController extends ChangeNotifier {
     );
   }
 
+  _CartPricingSummary _mapPricingSummary(Map<String, dynamic> json) {
+    return _CartPricingSummary(
+      subtotal: _parsePrice(json['subtotal']),
+      discountPercent: _parseInt(json['discountPercent']),
+      discountAmount: _parsePrice(json['discountAmount']),
+      totalAfterDiscount: _parsePrice(json['totalAfterDiscount']),
+      vatPercent: _parseInt(json['vatPercent'], fallback: kVatPercent),
+      vatAmount: _parsePrice(json['vatAmount']),
+      totalAmount: _parsePrice(json['totalAmount']),
+    );
+  }
+
   Product? _findProductById(String productId) {
     return _productLookup?.call(productId);
   }
@@ -693,8 +776,30 @@ class CartController extends ChangeNotifier {
     _items
       ..clear()
       ..addAll(_lastSyncedItems);
+    _pricingSummary = _lastSyncedPricingSummary;
     _markItemsDirty();
     notifyListeners();
+  }
+
+  void _setPricingSummary(
+    _CartPricingSummary? summary, {
+    bool alsoSetLastSynced = false,
+  }) {
+    _pricingSummary = summary;
+    if (alsoSetLastSynced) {
+      _lastSyncedPricingSummary = summary;
+    }
+  }
+
+  void _clearActivePricingSummary() {
+    _pricingSummary = null;
+  }
+
+  void _clearPricingSummary({bool clearLastSynced = false}) {
+    _pricingSummary = null;
+    if (clearLastSynced) {
+      _lastSyncedPricingSummary = null;
+    }
   }
 
   void _updatePendingSyncCounts(Set<String> productIds, {required int delta}) {
@@ -717,6 +822,26 @@ class CartController extends ChangeNotifier {
     _client.close();
     super.dispose();
   }
+}
+
+class _CartPricingSummary {
+  const _CartPricingSummary({
+    required this.subtotal,
+    required this.discountPercent,
+    required this.discountAmount,
+    required this.totalAfterDiscount,
+    required this.vatPercent,
+    required this.vatAmount,
+    required this.totalAmount,
+  });
+
+  final int subtotal;
+  final int discountPercent;
+  final int discountAmount;
+  final int totalAfterDiscount;
+  final int vatPercent;
+  final int vatAmount;
+  final int totalAmount;
 }
 
 class CartScope extends InheritedNotifier<CartController> {

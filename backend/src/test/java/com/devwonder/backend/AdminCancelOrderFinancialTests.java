@@ -10,6 +10,7 @@ import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.Payment;
 import com.devwonder.backend.entity.ProductSerial;
 import com.devwonder.backend.entity.enums.FinancialSettlementStatus;
+import com.devwonder.backend.entity.enums.FinancialSettlementType;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
@@ -121,7 +122,7 @@ class AdminCancelOrderFinancialTests {
 
         FinancialSettlement settlement = settlements.get(0);
         assertThat(settlement.getCreatedBy()).isEqualTo("ops.manager@4thitek.vn");
-        assertThat(settlement.getType()).isEqualTo("CANCELLATION_REFUND");
+        assertThat(settlement.getType()).isEqualTo(FinancialSettlementType.CANCELLATION_REFUND);
         assertThat(settlement.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(50_000));
         assertThat(settlement.getStatus()).isEqualTo(FinancialSettlementStatus.PENDING);
     }

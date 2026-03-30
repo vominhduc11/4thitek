@@ -41,12 +41,32 @@ public final class OrderStatusTransitionPolicy {
     }
 
     public static List<OrderStatus> adminAllowedTransitions(OrderStatus current) {
+        if (current == null) {
+            return List.of();
+        }
+        return allowedAdminTransitions(current);
+    }
+
+    public static List<OrderStatus> allowedAdminTransitions(OrderStatus current) {
+        if (current == null) {
+            return List.of();
+        }
         return Arrays.stream(OrderStatus.values())
                 .filter(next -> isAdminTransitionAllowed(current, next))
                 .toList();
     }
 
     public static List<OrderStatus> dealerAllowedTransitions(OrderStatus current) {
+        if (current == null) {
+            return List.of();
+        }
+        return allowedDealerTransitions(current);
+    }
+
+    public static List<OrderStatus> allowedDealerTransitions(OrderStatus current) {
+        if (current == null) {
+            return List.of();
+        }
         return Arrays.stream(OrderStatus.values())
                 .filter(next -> isDealerTransitionAllowed(current, next))
                 .toList();

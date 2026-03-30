@@ -132,11 +132,7 @@ public class DealerPaymentSupport {
 
         Payment savedPayment = paymentRepository.save(payment);
         order.setPaidAmount(DealerOrderSupport.zeroIfNull(order.getPaidAmount()).add(amount));
-        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(
-                order,
-                activeDiscountRules,
-                adminSettingsService.getEffectiveSettings().vatPercent()
-        ));
+        order.setPaymentStatus(OrderPricingSupport.resolvePaymentStatus(order, activeDiscountRules, adminSettingsService.getVatPercent()));
         orderRepository.save(order);
         if (dealer != null) {
             dealerOrderNotificationSupport.notifyPaymentRecorded(dealer, order, amount);
@@ -165,11 +161,7 @@ public class DealerPaymentSupport {
             Order order,
             List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
     ) {
-        BigDecimal totalAmount = OrderPricingSupport.computeTotalAmount(
-                order,
-                activeDiscountRules,
-                adminSettingsService.getEffectiveSettings().vatPercent()
-        );
+        BigDecimal totalAmount = OrderPricingSupport.computeTotalAmount(order, activeDiscountRules, adminSettingsService.getVatPercent());
         BigDecimal paidAmount = DealerOrderSupport.zeroIfNull(order.getPaidAmount());
         BigDecimal outstandingAmount = totalAmount.subtract(paidAmount);
         return outstandingAmount.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : outstandingAmount;

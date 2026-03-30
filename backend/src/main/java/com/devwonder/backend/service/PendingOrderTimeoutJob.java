@@ -121,7 +121,7 @@ public class PendingOrderTimeoutJob {
         if (!financialSettlementRepository.existsByOrderIdAndStatus(order.getId(), FinancialSettlementStatus.PENDING)) {
             FinancialSettlement settlement = new FinancialSettlement();
             settlement.setOrder(order);
-            settlement.setType(FinancialSettlementType.STALE_ORDER_REVIEW.name());
+            settlement.setType(FinancialSettlementType.STALE_ORDER_REVIEW);
             settlement.setAmount(paidAmount);
             settlement.setStatus(FinancialSettlementStatus.PENDING);
             settlement.setCreatedBy("system");

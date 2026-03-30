@@ -32,6 +32,8 @@ public class AdminSettingsService {
     private static final int DEFAULT_VAT_PERCENT = 10;
     private static final int MIN_SESSION_TIMEOUT_MINUTES = 5;
     private static final int MAX_SESSION_TIMEOUT_MINUTES = 480;
+    private static final int MIN_VAT_PERCENT = 0;
+    private static final int MAX_VAT_PERCENT = 100;
     private static final int DEFAULT_AUTH_REQUESTS = 10;
     private static final long DEFAULT_AUTH_WINDOW_SECONDS = 60L;
     private static final int DEFAULT_PASSWORD_RESET_REQUESTS = 5;
@@ -79,10 +81,10 @@ public class AdminSettingsService {
         }
         if (request.vatPercent() != null) {
             int vatPercent = request.vatPercent();
-            if (vatPercent < 0 || vatPercent > 100) {
+            if (vatPercent < MIN_VAT_PERCENT || vatPercent > MAX_VAT_PERCENT) {
                 throw new BadRequestException("vatPercent must be between 0 and 100");
             }
-            settings.setVatPercent(request.vatPercent());
+            settings.setVatPercent(vatPercent);
         }
         applySepaySettings(settings, request.sepay());
         applyEmailSettings(settings, request.emailSettings());
@@ -145,6 +147,10 @@ public class AdminSettingsService {
 
     public RateLimitRuntimeSettings getRateLimitSettings() {
         return getEffectiveSettings().rateLimitOverrides();
+    }
+
+    public int getVatPercent() {
+        return getEffectiveSettings().vatPercent();
     }
 
     private AdminSettings getOrCreateSettings() {

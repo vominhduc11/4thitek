@@ -234,6 +234,8 @@ class AdminSettingsContractTests {
                 null
         ));
 
+        assertThat(adminSettingsService.getVatPercent()).isEqualTo(8);
+
         var instructions = sepayService.getBankTransferInstructions();
         assertThat(instructions.bankName()).isEqualTo("Override Bank");
         assertThat(instructions.accountNumber()).isEqualTo("999888777");

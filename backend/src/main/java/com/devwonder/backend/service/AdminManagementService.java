@@ -260,7 +260,7 @@ public class AdminManagementService {
                 && paidAmount.compareTo(BigDecimal.ZERO) > 0) {
             FinancialSettlement settlement = new FinancialSettlement();
             settlement.setOrder(saved);
-            settlement.setType(FinancialSettlementType.CANCELLATION_REFUND.name());
+            settlement.setType(FinancialSettlementType.CANCELLATION_REFUND);
             settlement.setAmount(paidAmount);
             settlement.setStatus(FinancialSettlementStatus.PENDING);
             settlement.setCreatedBy(actorUsername);
@@ -694,6 +694,10 @@ public class AdminManagementService {
 
     private int currentVatPercent() {
         return adminSettingsService.getEffectiveSettings().vatPercent();
+    }
+
+    private int activeVatPercent() {
+        return adminSettingsService.getVatPercent();
     }
 
     private void applyDiscountRuleRange(BulkDiscount rule, String rangeLabel) {

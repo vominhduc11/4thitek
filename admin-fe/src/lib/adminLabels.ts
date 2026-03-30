@@ -40,6 +40,16 @@ export const getAllowedOrderStatuses = (current: OrderStatus): OrderStatus[] => 
   }
 }
 
+export const resolveAllowedOrderStatuses = (
+  current: OrderStatus,
+  allowedTransitions?: OrderStatus[],
+): OrderStatus[] => {
+  if (allowedTransitions && allowedTransitions.length > 0) {
+    return allowedTransitions
+  }
+  return getAllowedOrderStatuses(current)
+}
+
 export const blogStatusLabel: Record<BlogStatus, string> = {
   published: 'Đã đăng',
   scheduled: 'Hẹn giờ',
@@ -75,6 +85,16 @@ export const getAllowedDealerStatuses = (current: DealerStatus): DealerStatus[] 
     default:
       return [current]
   }
+}
+
+export const resolveAllowedDealerStatuses = (
+  current: DealerStatus,
+  allowedTransitions?: DealerStatus[],
+): DealerStatus[] => {
+  if (allowedTransitions && allowedTransitions.length > 0) {
+    return allowedTransitions
+  }
+  return getAllowedDealerStatuses(current)
 }
 
 export const dealerStatusDescription: Record<DealerStatus, string> = {

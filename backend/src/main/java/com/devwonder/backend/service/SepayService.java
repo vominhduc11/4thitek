@@ -131,7 +131,7 @@ public class SepayService {
             return WebhookResult.ignored("order_cancelled", orderCode, null, "Cancelled order cannot receive payment");
         }
         var activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
-        int vatPercent = adminSettingsService.getEffectiveSettings().vatPercent();
+        int vatPercent = adminSettingsService.getVatPercent();
         BigDecimal totalAmount = OrderPricingSupport.computeTotalAmount(order, activeDiscountRules, vatPercent);
         BigDecimal outstandingAmount = remainingOutstandingAmount(order, totalAmount);
         if (outstandingAmount.compareTo(BigDecimal.ZERO) <= 0) {

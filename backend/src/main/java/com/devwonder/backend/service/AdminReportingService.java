@@ -91,6 +91,7 @@ public class AdminReportingService {
     private TableReport buildOrdersReport(List<BulkDiscount> activeDiscountRules) {
         List<Order> orders = orderRepository.findVisibleByCreatedAtDesc(org.springframework.data.domain.Pageable.unpaged())
                 .stream()
+                .sorted(Comparator.comparing(Order::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
 
         List<List<String>> rows = orders.stream()
@@ -296,11 +297,7 @@ public class AdminReportingService {
     }
 
     private BigDecimal calculateTotalAmount(Order order, List<BulkDiscount> activeDiscountRules) {
-        return OrderPricingSupport.computeTotalAmount(
-                        order,
-                        activeDiscountRules,
-                        adminSettingsService.getEffectiveSettings().vatPercent()
-                )
+        return OrderPricingSupport.computeTotalAmount(order, activeDiscountRules, adminSettingsService.getVatPercent())
                 .setScale(2, RoundingMode.HALF_UP);
     }
 

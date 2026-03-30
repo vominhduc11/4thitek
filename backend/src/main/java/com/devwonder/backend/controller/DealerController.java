@@ -5,6 +5,7 @@ import com.devwonder.backend.dto.dealer.CreateDealerOrderRequest;
 import com.devwonder.backend.dto.dealer.CreateDealerSupportTicketRequest;
 import com.devwonder.backend.dto.dealer.DealerBankTransferInstructionResponse;
 import com.devwonder.backend.dto.dealer.DealerCartItemResponse;
+import com.devwonder.backend.dto.dealer.DealerCartPricingSummaryResponse;
 import com.devwonder.backend.dto.dealer.DealerDiscountRuleResponse;
 import com.devwonder.backend.dto.dealer.DealerOrderResponse;
 import com.devwonder.backend.dto.dealer.DealerPaymentResponse;
@@ -150,6 +151,12 @@ public class DealerController {
     @GetMapping("/cart")
     public ResponseEntity<ApiResponse<List<DealerCartItemResponse>>> cart(Authentication authentication) {
         return ResponseEntity.ok(ApiResponse.success(dealerPortalService.getCart(extractUsername(authentication))));
+    }
+
+    @GetMapping("/cart/summary")
+    public ResponseEntity<ApiResponse<DealerCartPricingSummaryResponse>> cartSummary(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success(
+                dealerPortalService.getCartPricingSummary(extractUsername(authentication))));
     }
 
     @PutMapping("/cart/items")

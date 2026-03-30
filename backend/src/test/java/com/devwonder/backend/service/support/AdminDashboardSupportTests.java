@@ -62,7 +62,8 @@ class AdminDashboardSupportTests {
                 List.of(),
                 List.of(),
                 List.of(),
-                List.of()
+                List.of(),
+                10
         );
 
         assertThat(dashboard.revenue().label()).isEqualTo("Doanh thu 30 ngay");
@@ -100,7 +101,7 @@ class AdminDashboardSupportTests {
         pendingOrder.setDealer(dealer);
         dealer.setOrders(new LinkedHashSet<>(List.of(completedOrder, pendingOrder)));
 
-        var response = AdminResponseMapper.toDealerAccountResponse(dealer, List.of());
+        var response = AdminResponseMapper.toDealerAccountResponse(dealer, List.of(), 10);
 
         assertThat(response.orders()).isEqualTo(2);
         assertThat(response.revenue()).isEqualByComparingTo("110");
@@ -135,7 +136,8 @@ class AdminDashboardSupportTests {
                 List.of(),
                 List.of(),
                 List.of(),
-                List.of()
+                List.of(),
+                10
         );
 
         String currentMonthLabel = currentMonth.format(java.time.format.DateTimeFormatter.ofPattern("MM/yyyy"));
@@ -164,7 +166,8 @@ class AdminDashboardSupportTests {
                 List.of(),
                 List.of(),
                 List.of(),
-                List.of()
+                List.of(),
+                10
         );
 
         assertThat(dashboard.system())

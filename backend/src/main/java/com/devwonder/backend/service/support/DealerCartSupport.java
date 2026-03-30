@@ -1,9 +1,13 @@
 package com.devwonder.backend.service.support;
 
 import com.devwonder.backend.dto.dealer.DealerCartItemResponse;
+import com.devwonder.backend.dto.dealer.DealerCartPricingSummaryResponse;
 import com.devwonder.backend.dto.dealer.UpsertDealerCartItemRequest;
+import com.devwonder.backend.entity.BulkDiscount;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.DealerCartItem;
+import com.devwonder.backend.entity.Order;
+import com.devwonder.backend.entity.OrderItem;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.ProductOfCart;
 import com.devwonder.backend.exception.BadRequestException;
@@ -11,6 +15,8 @@ import com.devwonder.backend.exception.ResourceNotFoundException;
 import com.devwonder.backend.repository.DealerCartItemRepository;
 import com.devwonder.backend.repository.ProductOfCartRepository;
 import com.devwonder.backend.repository.ProductRepository;
+import java.math.BigDecimal;
+import java.util.LinkedHashSet;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -28,6 +34,50 @@ public class DealerCartSupport {
         return dealerCartItemRepository.findByDealerIdOrderByUpdatedAtDesc(dealerId).stream()
                 .map(DealerPortalResponseMapper::toCartResponse)
                 .toList();
+    }
+
+    public DealerCartPricingSummaryResponse getCartPricingSummary(
+            Long dealerId,
+            List<BulkDiscount> activeDiscountRules,
+            int vatPercent
+    ) {
+        List<DealerCartItem> cartItems = dealerCartItemRepository.findByDealerIdOrderByUpdatedAtDesc(dealerId);
+        Order syntheticOrder = new Order();
+        syntheticOrder.setShippingFee(0);
+        LinkedHashSet<OrderItem> orderItems = new LinkedHashSet<>();
+        int itemCount = 0;
+        for (DealerCartItem cartItem : cartItems) {
+            ProductOfCart productOfCart = cartItem == null ? null : cartItem.getProductOfCart();
+            Product product = productOfCart == null ? null : productOfCart.getProduct();
+            if (product == null) {
+                continue;
+            }
+            int quantity = cartItem.getQuantity() == null ? 0 : Math.max(cartItem.getQuantity(), 0);
+            if (quantity <= 0) {
+                continue;
+            }
+            OrderItem orderItem = new OrderItem();
+            orderItem.setOrder(syntheticOrder);
+            orderItem.setProduct(product);
+            orderItem.setQuantity(quantity);
+            orderItem.setUnitPrice(DealerOrderSupport.resolveUnitPrice(product));
+            orderItems.add(orderItem);
+            itemCount += quantity;
+        }
+        syntheticOrder.setOrderItems(orderItems);
+        OrderPricingSupport.PricingBreakdown pricing =
+                OrderPricingSupport.computePricing(syntheticOrder, activeDiscountRules, vatPercent);
+        BigDecimal totalAfterDiscount = pricing.subtotal().subtract(pricing.discountAmount());
+        return new DealerCartPricingSummaryResponse(
+                itemCount,
+                pricing.subtotal(),
+                pricing.discountPercent(),
+                pricing.discountAmount(),
+                totalAfterDiscount.max(BigDecimal.ZERO),
+                pricing.vatPercent(),
+                pricing.vatAmount(),
+                pricing.totalAmount()
+        );
     }
 
     public DealerCartItemResponse upsertCartItem(Dealer dealer, UpsertDealerCartItemRequest request) {

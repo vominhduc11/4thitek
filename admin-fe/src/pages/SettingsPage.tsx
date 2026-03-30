@@ -2,6 +2,7 @@ import {
   Bell,
   Gauge,
   Mail,
+  Receipt,
   Save,
   Shield,
   Wallet,
@@ -147,6 +148,14 @@ const copyKeys = {
   windowSecondsHint: "Đơn vị giây.",
   windowSecondsError:
     "Cửa sổ thời gian phải là số nguyên trong khoảng từ 1 đến 86.400 giây.",
+  pricing: "Giá & thuế",
+  pricingDescription:
+    "Cấu hình VAT mặc định cho pricing backend. Backend vẫn là nguồn dữ liệu quyết định cho tổng tiền cuối cùng.",
+  vatPercent: "VAT mặc định",
+  vatPercentHelp:
+    "Áp dụng cho pricing backend, dealer cart summary và các phép tính doanh thu mới. Giá trị hợp lệ từ 0 đến 100.",
+  vatPercentPlaceholder: "Nhập phần trăm VAT",
+  vatPercentError: "VAT phải là số nguyên trong khoảng từ 0 đến 100.",
 } as const;
 
 const clampInteger = (value: number, min: number, max: number) => {
@@ -542,6 +551,52 @@ function SettingsPage() {
               placeholder={copy.sessionTimeoutPlaceholder}
               type="number"
               value={draft.sessionTimeoutMinutes}
+            />
+          </SettingField>
+        </SettingsSection>
+
+        <SettingsSection
+          icon={Receipt}
+          title={copy.pricing}
+          description={copy.pricingDescription}
+        >
+          <SettingField
+            label={copy.vatPercent}
+            hint={copy.vatPercentHelp}
+            error={validationErrors.vatPercent}
+            inputId="settings-vat-percent"
+          >
+            <input
+              id="settings-vat-percent"
+              aria-invalid={Boolean(validationErrors.vatPercent)}
+              aria-describedby={
+                validationErrors.vatPercent
+                  ? "settings-vat-percent-error"
+                  : undefined
+              }
+              className={inputClass}
+              inputMode="numeric"
+              max={VAT_PERCENT_RANGE.max}
+              min={VAT_PERCENT_RANGE.min}
+              onBlur={(event) =>
+                setDraft((previous) => ({
+                  ...previous,
+                  vatPercent: clampInteger(
+                    Number(event.target.value || previous.vatPercent),
+                    VAT_PERCENT_RANGE.min,
+                    VAT_PERCENT_RANGE.max,
+                  ),
+                }))
+              }
+              onChange={(event) =>
+                setDraft((previous) => ({
+                  ...previous,
+                  vatPercent: Number(event.target.value || 0),
+                }))
+              }
+              placeholder={copy.vatPercentPlaceholder}
+              type="number"
+              value={draft.vatPercent}
             />
           </SettingField>
         </SettingsSection>

@@ -50,7 +50,9 @@ public final class DealerPortalResponseMapper {
     public static DealerOrderResponse toOrderResponse(Order order, List<BulkDiscount> rules) {
         return toOrderResponse(order, rules, OrderPricingSupport.DEFAULT_VAT_PERCENT_FALLBACK);
     }
-
+    public static DealerOrderResponse toOrderResponse(Order order, int vatPercent) {
+        return toOrderResponse(order, List.of(), vatPercent);
+    }
     public static DealerOrderResponse toOrderResponse(Order order, List<BulkDiscount> rules, int vatPercent) {
         List<DealerOrderItemResponse> items = order.getOrderItems() == null
                 ? List.of()
@@ -68,7 +70,7 @@ public final class DealerPortalResponseMapper {
                 pricing.subtotal(),
                 pricing.discountPercent(),
                 pricing.discountAmount(),
-                vatPercent,
+                pricing.vatPercent(),
                 pricing.vatAmount(),
                 shippingFee,
                 pricing.totalAmount(),

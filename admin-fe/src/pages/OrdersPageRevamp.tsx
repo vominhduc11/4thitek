@@ -25,9 +25,9 @@ import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import {
-  getAllowedOrderStatuses,
   orderStatusLabel,
   orderStatusTone,
+  resolveAllowedOrderStatuses,
 } from "../lib/adminLabels";
 import { formatCurrency } from "../lib/formatters";
 
@@ -268,9 +268,6 @@ function OrdersPageRevamp() {
             <div className="grid gap-3 md:hidden">
               {filteredOrders.map((order) => {
                 const isUpdating = updatingOrderId === order.id;
-                const availableTransitions =
-                  order.allowedTransitions ??
-                  getAllowedOrderStatuses(order.status);
                 return (
                   <article key={order.id} className={tableCardClass}>
                     <button
@@ -321,14 +318,19 @@ function OrdersPageRevamp() {
                           }
                           value={order.status}
                         >
-                          {availableTransitions.map((option) => (
-                            <option
-                              key={`${order.id}-${option}`}
-                              value={option}
-                            >
-                              {t(orderStatusLabel[option])}
-                            </option>
-                          ))}
+                          {resolveAllowedOrderStatuses(
+                            order.status,
+                            order.allowedTransitions,
+                          ).map(
+                            (option) => (
+                              <option
+                                key={`${order.id}-${option}`}
+                                value={option}
+                              >
+                                {t(orderStatusLabel[option])}
+                              </option>
+                            ),
+                          )}
                         </select>
                         {isUpdating ? (
                           <LoaderCircle
@@ -359,34 +361,23 @@ function OrdersPageRevamp() {
 
             <div className="hidden overflow-x-auto md:block">
               <table
-                className="min-w-[56rem] border-separate border-spacing-y-2"
+                className="min-w-full border-separate border-spacing-y-2"
                 role="table"
               >
                 <thead>
                   <tr className={tableHeadClass}>
-                    <th className="w-56 px-3 py-2 font-semibold">
+                    <th className="px-3 py-2 font-semibold">
                       {copy.orderCode}
                     </th>
-                    <th className="min-w-44 px-3 py-2 font-semibold">
-                      {copy.dealer}
-                    </th>
-                    <th className="w-32 px-3 py-2 font-semibold">
-                      {copy.total}
-                    </th>
-                    <th className="w-32 px-3 py-2 font-semibold">
-                      {copy.status}
-                    </th>
-                    <th className="w-64 px-3 py-2 font-semibold">
-                      {copy.actions}
-                    </th>
+                    <th className="px-3 py-2 font-semibold">{copy.dealer}</th>
+                    <th className="px-3 py-2 font-semibold">{copy.total}</th>
+                    <th className="px-3 py-2 font-semibold">{copy.status}</th>
+                    <th className="px-3 py-2 font-semibold">{copy.actions}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredOrders.map((order) => {
                     const isUpdating = updatingOrderId === order.id;
-                    const availableTransitions =
-                      order.allowedTransitions ??
-                      getAllowedOrderStatuses(order.status);
                     return (
                       <tr
                         key={order.id}
@@ -409,10 +400,10 @@ function OrdersPageRevamp() {
                           <div className={tableMetaClass}>#{order.id}</div>
                         </td>
                         <td className="px-3 py-3">{order.dealer}</td>
-                        <td className="px-3 py-3 whitespace-nowrap font-semibold text-[var(--accent)]">
+                        <td className="px-3 py-3 font-semibold text-[var(--accent)]">
                           {formatCurrency(order.total)}
                         </td>
-                        <td className="px-3 py-3 whitespace-nowrap">
+                        <td className="px-3 py-3">
                           <StatusBadge tone={orderStatusTone[order.status]}>
                             {t(orderStatusLabel[order.status])}
                           </StatusBadge>
@@ -421,11 +412,11 @@ function OrdersPageRevamp() {
                           className="rounded-r-2xl px-3 py-3"
                           onClick={(event) => event.stopPropagation()}
                         >
-                          <div className="flex flex-col gap-2 xl:flex-row xl:items-center">
-                            <div className="flex min-w-0 items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex items-center gap-2">
                               <select
                                 aria-label={`${copy.status} ${order.id}`}
-                                className={`${tableActionSelectClass} min-w-0 flex-1 whitespace-nowrap xl:min-w-[11rem] xl:flex-none`}
+                                className={tableActionSelectClass}
                                 disabled={isUpdating}
                                 onChange={(event) =>
                                   void handleStatusChange(
@@ -439,14 +430,19 @@ function OrdersPageRevamp() {
                                 }
                                 value={order.status}
                               >
-                                {availableTransitions.map((option) => (
-                                  <option
-                                    key={`${order.id}-${option}`}
-                                    value={option}
-                                  >
-                                    {t(orderStatusLabel[option])}
-                                  </option>
-                                ))}
+                                {resolveAllowedOrderStatuses(
+                                  order.status,
+                                  order.allowedTransitions,
+                                ).map(
+                                  (option) => (
+                                    <option
+                                      key={`${order.id}-${option}`}
+                                      value={option}
+                                    >
+                                      {t(orderStatusLabel[option])}
+                                    </option>
+                                  ),
+                                )}
                               </select>
                               {isUpdating ? (
                                 <LoaderCircle
@@ -456,7 +452,7 @@ function OrdersPageRevamp() {
                               ) : null}
                             </div>
                             <GhostButton
-                              className="min-h-11 min-w-0 whitespace-nowrap px-3 xl:w-auto"
+                              className="min-h-11 min-w-0 px-3"
                               disabled={!canDeleteOrder(order.status)}
                               icon={<Trash2 className="h-4 w-4" />}
                               onClick={() => void handleDeleteOrder(order.id)}

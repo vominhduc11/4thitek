@@ -10,6 +10,7 @@ import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.OrderItem;
 import com.devwonder.backend.entity.Product;
 import com.devwonder.backend.entity.enums.FinancialSettlementStatus;
+import com.devwonder.backend.entity.enums.FinancialSettlementType;
 import com.devwonder.backend.entity.enums.OrderStatus;
 import com.devwonder.backend.entity.enums.PaymentMethod;
 import com.devwonder.backend.entity.enums.PaymentStatus;
@@ -59,9 +60,9 @@ public class DealerOrderWorkflowSupport {
             Dealer dealer,
             CreateDealerOrderRequest request,
             List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules,
+            int vatPercent,
             String idempotencyKey
     ) {
-        int vatPercent = currentVatPercent();
         Order order = new Order();
         order.setDealer(dealer);
         order.setOrderCode(DealerOrderSupport.buildOrderCode(dealer.getId()));
@@ -116,9 +117,9 @@ public class DealerOrderWorkflowSupport {
     public DealerOrderResponse updateOrderStatus(
             Order order,
             UpdateDealerOrderStatusRequest request,
-            List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules
+            List<com.devwonder.backend.entity.BulkDiscount> activeDiscountRules,
+            int vatPercent
     ) {
-        int vatPercent = currentVatPercent();
         OrderStatusTransitionPolicy.assertDealerTransitionAllowed(order.getStatus(), request.status());
         OrderStatus previousStatus = order.getStatus();
         order.setStatus(request.status());
@@ -149,7 +150,7 @@ public class DealerOrderWorkflowSupport {
             if (paidAmount.compareTo(BigDecimal.ZERO) > 0) {
                 FinancialSettlement settlement = new FinancialSettlement();
                 settlement.setOrder(saved);
-                settlement.setType(com.devwonder.backend.entity.enums.FinancialSettlementType.CANCELLATION_REFUND.name());
+                settlement.setType(FinancialSettlementType.CANCELLATION_REFUND);
                 settlement.setAmount(paidAmount);
                 settlement.setStatus(com.devwonder.backend.entity.enums.FinancialSettlementStatus.PENDING);
                 settlement.setCreatedBy(

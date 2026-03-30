@@ -199,14 +199,16 @@ extension OrderPaymentMethodLabel on OrderPaymentMethod {
   }
 }
 
-enum OrderPaymentStatus { pending, paid, debtRecorded, cancelled }
+enum OrderPaymentStatus { unpaid, paid, debtRecorded, cancelled, failed }
 
 extension OrderPaymentStatusLabel on OrderPaymentStatus {
   String get label {
     switch (this) {
       case OrderPaymentStatus.cancelled:
         return '\u0110\u00E3 h\u1EE7y';
-      case OrderPaymentStatus.pending:
+      case OrderPaymentStatus.failed:
+        return 'Th\u1EA5t b\u1EA1i';
+      case OrderPaymentStatus.unpaid:
         return 'Ch\u01B0a thanh to\u00E1n';
       case OrderPaymentStatus.paid:
         return '\u0110\u00E3 thanh to\u00E1n';
@@ -319,8 +321,8 @@ int bulkDiscountAmountForCart({
   return _resolveBulkDiscountPricing(items: items, rules: rules).discountAmount;
 }
 
-/// Fallback VAT used only when the backend-configured profile/order snapshot
-/// has not been synced yet. Backend responses remain authoritative.
+// Backend cart/order responses are authoritative. This value is only used when
+// the dealer app cannot fetch a pricing summary yet and needs a local estimate.
 const int kVatPercent = 10;
 
 /// Shared low-stock threshold for product list filters and dashboard panels.
@@ -349,12 +351,12 @@ class Order {
     this.paidAmount = 0,
     this.completedAt,
     this.note,
-    this.subtotalSnapshot,
-    this.discountPercentSnapshot,
-    this.discountAmountSnapshot,
-    this.vatPercentSnapshot,
-    this.vatAmountSnapshot,
-    this.totalAmountSnapshot,
+    this.subtotalOverride,
+    this.discountPercentOverride,
+    this.discountAmountOverride,
+    this.vatPercentOverride,
+    this.vatAmountOverride,
+    this.totalAmountOverride,
   });
 
   final String id;
@@ -369,38 +371,38 @@ class Order {
   final int paidAmount;
   final DateTime? completedAt;
   final String? note;
-  final int? subtotalSnapshot;
-  final int? discountPercentSnapshot;
-  final int? discountAmountSnapshot;
-  final int? vatPercentSnapshot;
-  final int? vatAmountSnapshot;
-  final int? totalAmountSnapshot;
+  final int? subtotalOverride;
+  final int? discountPercentOverride;
+  final int? discountAmountOverride;
+  final int? vatPercentOverride;
+  final int? vatAmountOverride;
+  final int? totalAmountOverride;
 
   int get totalItems {
     return items.fold<int>(0, (sum, item) => sum + item.quantity);
   }
 
   int get subtotal {
-    if (subtotalSnapshot != null) {
-      return subtotalSnapshot!;
+    if (subtotalOverride != null) {
+      return subtotalOverride!;
     }
     return items.fold<int>(0, (sum, item) => sum + item.total);
   }
 
-  int get discountPercent => discountPercentSnapshot ?? 0;
+  int get discountPercent => discountPercentOverride ?? 0;
 
   int get discountAmount =>
-      discountAmountSnapshot ??
+      discountAmountOverride ??
       bulkDiscountAmount(subtotal: subtotal, discountPercent: discountPercent);
 
   int get totalAfterDiscount => subtotal - discountAmount;
 
-  int get vatPercent => vatPercentSnapshot ?? kVatPercent;
+  int get vatPercent => vatPercentOverride ?? kVatPercent;
 
   int get vatAmount =>
-      vatAmountSnapshot ?? (totalAfterDiscount * vatPercent / 100).round();
+      vatAmountOverride ?? (totalAfterDiscount * vatPercent / 100).round();
 
-  int get total => totalAmountSnapshot ?? (totalAfterDiscount + vatAmount);
+  int get total => totalAmountOverride ?? (totalAfterDiscount + vatAmount);
 
   int get outstandingAmount {
     final outstanding = total - paidAmount;
@@ -421,12 +423,12 @@ class Order {
     int? paidAmount,
     DateTime? completedAt,
     String? note,
-    int? subtotalSnapshot,
-    int? discountPercentSnapshot,
-    int? discountAmountSnapshot,
-    int? vatPercentSnapshot,
-    int? vatAmountSnapshot,
-    int? totalAmountSnapshot,
+    int? subtotalOverride,
+    int? discountPercentOverride,
+    int? discountAmountOverride,
+    int? vatPercentOverride,
+    int? vatAmountOverride,
+    int? totalAmountOverride,
   }) {
     return Order(
       id: id,
@@ -441,14 +443,14 @@ class Order {
       paidAmount: paidAmount ?? this.paidAmount,
       completedAt: completedAt ?? this.completedAt,
       note: note ?? this.note,
-      subtotalSnapshot: subtotalSnapshot ?? this.subtotalSnapshot,
-      discountPercentSnapshot:
-          discountPercentSnapshot ?? this.discountPercentSnapshot,
-      discountAmountSnapshot:
-          discountAmountSnapshot ?? this.discountAmountSnapshot,
-      vatPercentSnapshot: vatPercentSnapshot ?? this.vatPercentSnapshot,
-      vatAmountSnapshot: vatAmountSnapshot ?? this.vatAmountSnapshot,
-      totalAmountSnapshot: totalAmountSnapshot ?? this.totalAmountSnapshot,
+      subtotalOverride: subtotalOverride ?? this.subtotalOverride,
+      discountPercentOverride:
+          discountPercentOverride ?? this.discountPercentOverride,
+      discountAmountOverride:
+          discountAmountOverride ?? this.discountAmountOverride,
+      vatPercentOverride: vatPercentOverride ?? this.vatPercentOverride,
+      vatAmountOverride: vatAmountOverride ?? this.vatAmountOverride,
+      totalAmountOverride: totalAmountOverride ?? this.totalAmountOverride,
     );
   }
 }

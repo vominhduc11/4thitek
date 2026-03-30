@@ -68,6 +68,19 @@ void main() {
           },
         );
       });
+      client.enqueue(
+        'GET',
+        '/api/v1/dealer/cart/summary',
+        (request) => Future<http.StreamedResponse>.value(
+          _cartSummaryResponse(
+            request,
+            subtotal: 300000,
+            vatPercent: 8,
+            vatAmount: 24000,
+            totalAmount: 324000,
+          ),
+        ),
+      );
 
       final firstUpdate = controller.setQuantity(product, 2);
       final secondUpdate = controller.setQuantity(product, 3);
@@ -94,6 +107,19 @@ void main() {
           body: <String, dynamic>{
             'data': <String, dynamic>{'productId': 1, 'quantity': 2},
           },
+        ),
+      ),
+    );
+    client.enqueue(
+      'GET',
+      '/api/v1/dealer/cart/summary',
+      (request) => Future<http.StreamedResponse>.value(
+        _cartSummaryResponse(
+          request,
+          subtotal: 200000,
+          vatPercent: 8,
+          vatAmount: 16000,
+          totalAmount: 216000,
         ),
       ),
     );
@@ -132,6 +158,19 @@ void main() {
           },
         );
       });
+      client.enqueue(
+        'GET',
+        '/api/v1/dealer/cart/summary',
+        (request) => Future<http.StreamedResponse>.value(
+          _cartSummaryResponse(
+            request,
+            subtotal: 200000,
+            vatPercent: 8,
+            vatAmount: 16000,
+            totalAmount: 216000,
+          ),
+        ),
+      );
 
       final updateFuture = controller.setQuantity(product, 2);
       await Future<void>.delayed(Duration.zero);
@@ -153,18 +192,6 @@ void main() {
       final cartResponseGate = Completer<void>();
       client.enqueue(
         'GET',
-        '/api/v1/dealer/profile',
-        (request) => Future<http.StreamedResponse>.value(
-          _jsonResponse(
-            request,
-            body: <String, dynamic>{
-              'data': <String, dynamic>{'vatPercent': 8},
-            },
-          ),
-        ),
-      );
-      client.enqueue(
-        'GET',
         '/api/v1/dealer/discount-rules',
         (request) => Future<http.StreamedResponse>.value(
           _jsonResponse(
@@ -184,6 +211,19 @@ void main() {
           },
         );
       });
+      client.enqueue(
+        'GET',
+        '/api/v1/dealer/cart/summary',
+        (request) => Future<http.StreamedResponse>.value(
+          _cartSummaryResponse(
+            request,
+            subtotal: 500000,
+            vatPercent: 7,
+            vatAmount: 35000,
+            totalAmount: 535000,
+          ),
+        ),
+      );
       client.enqueue(
         'PUT',
         '/api/v1/dealer/cart/items',
@@ -208,47 +248,47 @@ void main() {
       expect(await localUpdate, isTrue);
       await loadFuture;
       expect(controller.quantityFor(product.id), 1);
-      expect(controller.vatPercent, 8);
     },
   );
 
-  test('load syncs VAT percent from dealer profile for cart preview', () async {
+  test('uses backend cart summary as the primary VAT and pricing source', () async {
     client.enqueue(
-      'GET',
-      '/api/v1/dealer/profile',
+      'PUT',
+      '/api/v1/dealer/cart/items',
       (request) => Future<http.StreamedResponse>.value(
         _jsonResponse(
           request,
           body: <String, dynamic>{
-            'data': <String, dynamic>{'vatPercent': 8},
+            'data': <String, dynamic>{'productId': 1, 'quantity': 2},
           },
         ),
       ),
     );
     client.enqueue(
       'GET',
-      '/api/v1/dealer/discount-rules',
+      '/api/v1/dealer/cart/summary',
       (request) => Future<http.StreamedResponse>.value(
-        _jsonResponse(
+        _cartSummaryResponse(
           request,
-          body: <String, dynamic>{'data': const <Object>[]},
-        ),
-      ),
-    );
-    client.enqueue(
-      'GET',
-      '/api/v1/dealer/cart',
-      (request) => Future<http.StreamedResponse>.value(
-        _jsonResponse(
-          request,
-          body: <String, dynamic>{'data': const <Object>[]},
+          subtotal: 200000,
+          discountPercent: 5,
+          discountAmount: 10000,
+          totalAfterDiscount: 190000,
+          vatPercent: 8,
+          vatAmount: 15200,
+          totalAmount: 205200,
         ),
       ),
     );
 
-    await controller.load();
-
+    expect(await controller.setQuantity(product, 2), isTrue);
+    expect(controller.subtotal, 200000);
+    expect(controller.discountPercent, 5);
+    expect(controller.discountAmount, 10000);
+    expect(controller.totalAfterDiscount, 190000);
     expect(controller.vatPercent, 8);
+    expect(controller.vatAmount, 15200);
+    expect(controller.total, 205200);
   });
 }
 
@@ -293,5 +333,37 @@ http.StreamedResponse _jsonResponse(
     statusCode,
     request: request,
     headers: const <String, String>{'content-type': 'application/json'},
+  );
+}
+
+http.StreamedResponse _cartSummaryResponse(
+  http.BaseRequest request, {
+  int subtotal = 0,
+  int discountPercent = 0,
+  int discountAmount = 0,
+  int? totalAfterDiscount,
+  int vatPercent = 10,
+  int? vatAmount,
+  int? totalAmount,
+}) {
+  final normalizedTotalAfterDiscount = totalAfterDiscount ?? subtotal - discountAmount;
+  final normalizedVatAmount =
+      vatAmount ?? (normalizedTotalAfterDiscount * vatPercent / 100).round();
+  final normalizedTotalAmount =
+      totalAmount ?? normalizedTotalAfterDiscount + normalizedVatAmount;
+  return _jsonResponse(
+    request,
+    body: <String, dynamic>{
+      'data': <String, dynamic>{
+        'itemCount': 0,
+        'subtotal': subtotal,
+        'discountPercent': discountPercent,
+        'discountAmount': discountAmount,
+        'totalAfterDiscount': normalizedTotalAfterDiscount,
+        'vatPercent': vatPercent,
+        'vatAmount': normalizedVatAmount,
+        'totalAmount': normalizedTotalAmount,
+      },
+    },
   );
 }

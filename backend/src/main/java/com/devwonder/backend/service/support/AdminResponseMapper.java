@@ -59,7 +59,6 @@ public final class AdminResponseMapper {
     public static AdminOrderResponse toOrderResponse(Order order, List<BulkDiscount> rules) {
         return toOrderResponse(order, rules, OrderPricingSupport.DEFAULT_VAT_PERCENT_FALLBACK);
     }
-
     public static AdminOrderResponse toOrderResponse(Order order, List<BulkDiscount> rules, int vatPercent) {
         Dealer dealer = order.getDealer();
         List<AdminOrderItemResponse> orderItems = order.getOrderItems() == null
@@ -85,7 +84,7 @@ public final class AdminResponseMapper {
                 order.getNote(),
                 orderItems,
                 order.getStaleReviewRequired(),
-                OrderStatusTransitionPolicy.adminAllowedTransitions(order.getStatus())
+                OrderStatusTransitionPolicy.allowedAdminTransitions(order.getStatus())
         );
     }
 
@@ -139,7 +138,6 @@ public final class AdminResponseMapper {
     public static AdminDealerAccountResponse toDealerAccountResponse(Dealer dealer, List<BulkDiscount> rules) {
         return toDealerAccountResponse(dealer, rules, OrderPricingSupport.DEFAULT_VAT_PERCENT_FALLBACK);
     }
-
     public static AdminDealerAccountResponse toDealerAccountResponse(Dealer dealer, List<BulkDiscount> rules, int vatPercent) {
         List<Order> visibleOrders = dealer.getOrders() == null
                 ? List.of()

@@ -5,6 +5,7 @@ import {
   resolveAdminFinancialSettlement,
   type BackendFinancialSettlementResponse,
   type BackendFinancialSettlementStatus,
+  type BackendFinancialSettlementType,
 } from "../lib/adminApi";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -156,6 +157,12 @@ function FinancialSettlementsPageRevamp() {
     WRITTEN_OFF: copy.writtenOff,
     CREDITED: copy.credited,
   };
+  const typeLabels: Record<BackendFinancialSettlementType, string> = {
+    CANCELLATION_REFUND: "Hoàn/điều chỉnh khi hủy đơn",
+    STALE_ORDER_REVIEW: "Rà soát đơn quá hạn",
+  };
+  const settlementTypeLabel = (type?: BackendFinancialSettlementType | null) =>
+    type ? typeLabels[type] ?? type : "—";
 
   const handleSave = async () => {
     if (!accessToken || !selectedItem) return;
@@ -284,7 +291,7 @@ function FinancialSettlementsPageRevamp() {
                             {item.orderCode ?? `#${item.id}`}
                           </p>
                           <p className="text-xs text-[var(--muted)]">
-                            {item.type ?? "—"}
+                            {settlementTypeLabel(item.type)}
                             {item.createdBy ? ` · ${item.createdBy}` : ""}
                           </p>
                         </div>
@@ -323,7 +330,10 @@ function FinancialSettlementsPageRevamp() {
 
               <dl className="mt-4 space-y-2 text-sm">
                 {[
-                  { label: copy.type, value: selectedItem.type ?? "—" },
+                  {
+                    label: copy.type,
+                    value: settlementTypeLabel(selectedItem.type),
+                  },
                   {
                     label: copy.amount,
                     value:

@@ -294,6 +294,6 @@ class SepayServiceTests {
     }
 
     private BigDecimal outstandingAmount(Order order) {
-        return OrderPricingSupport.computeTotalAmount(order, List.of());
+        return OrderPricingSupport.computeTotalAmount(order, List.of(), 10);
     }
 }

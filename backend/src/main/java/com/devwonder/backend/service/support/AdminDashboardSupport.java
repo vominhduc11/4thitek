@@ -122,9 +122,14 @@ public final class AdminDashboardSupport {
 
     public static AdminDashboardResponse buildDashboard(DashboardSnapshot snapshot) {
         DashboardSnapshot safeSnapshot = snapshot == null ? DashboardSnapshot.empty() : snapshot;
+        return buildDashboard(safeSnapshot, safeSnapshot.vatPercent());
+    }
+
+    public static AdminDashboardResponse buildDashboard(DashboardSnapshot snapshot, int vatPercent) {
+        DashboardSnapshot safeSnapshot = snapshot == null ? DashboardSnapshot.empty() : snapshot;
         List<Order> revenueOrders = safeList(safeSnapshot.revenueOrders());
         List<BulkDiscount> activeRules = safeList(safeSnapshot.activeRules());
-        int vatPercent = safeSnapshot.vatPercent();
+        int effectiveVatPercent = OrderPricingSupport.normalizeVatPercent(vatPercent);
 
         Instant now = Instant.now();
         BigDecimal current30 = revenueBetween(
@@ -132,14 +137,14 @@ public final class AdminDashboardSupport {
                 now.minusSeconds(60L * 60 * 24 * 30),
                 now,
                 activeRules,
-                vatPercent
+                effectiveVatPercent
         );
         BigDecimal previous30 = revenueBetween(
                 revenueOrders,
                 now.minusSeconds(60L * 60 * 24 * 60),
                 now.minusSeconds(60L * 60 * 24 * 30),
                 activeRules,
-                vatPercent
+                effectiveVatPercent
         );
         BigDecimal progressTarget = previous30.compareTo(BigDecimal.ZERO) > 0
                 ? previous30
@@ -177,7 +182,7 @@ public final class AdminDashboardSupport {
                 ),
                 buildTopProducts(safeSnapshot.topProducts()),
                 buildSystemItems(safeSnapshot),
-                buildTrend(revenueOrders, activeRules, vatPercent),
+                buildTrend(revenueOrders, activeRules, effectiveVatPercent),
                 safeSnapshot.unmatchedPendingCount(),
                 safeSnapshot.settlementPendingCount(),
                 safeSnapshot.staleOrdersCount()

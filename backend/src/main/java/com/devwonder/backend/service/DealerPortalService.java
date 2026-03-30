@@ -3,6 +3,7 @@ package com.devwonder.backend.service;
 import com.devwonder.backend.dto.dealer.CreateDealerOrderRequest;
 import com.devwonder.backend.dto.dealer.CreateDealerSerialBatchRequest;
 import com.devwonder.backend.dto.dealer.DealerCartItemResponse;
+import com.devwonder.backend.dto.dealer.DealerCartPricingSummaryResponse;
 import com.devwonder.backend.dto.dealer.DealerDiscountRuleResponse;
 import com.devwonder.backend.dto.dealer.DealerOrderResponse;
 import com.devwonder.backend.dto.dealer.DealerPaymentResponse;
@@ -119,7 +120,7 @@ public class DealerPortalService {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         var activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
         return orderRepository.findVisibleByDealerIdOrderByCreatedAtDesc(dealer.getId()).stream()
-                .map(order -> DealerPortalResponseMapper.toOrderResponse(order, activeDiscountRules, currentVatPercent()))
+                .map(order -> DealerPortalResponseMapper.toOrderResponse(order, activeDiscountRules, activeVatPercent()))
                 .toList();
     }
 
@@ -128,7 +129,7 @@ public class DealerPortalService {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         var activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
         return orderRepository.findVisibleByDealerId(dealer.getId(), pageable)
-                .map(order -> DealerPortalResponseMapper.toOrderResponse(order, activeDiscountRules, currentVatPercent()));
+                .map(order -> DealerPortalResponseMapper.toOrderResponse(order, activeDiscountRules, activeVatPercent()));
     }
 
     @Transactional(readOnly = true)
@@ -138,7 +139,7 @@ public class DealerPortalService {
         return DealerPortalResponseMapper.toOrderResponse(
                 order,
                 bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE),
-                currentVatPercent()
+                activeVatPercent()
         );
     }
 
@@ -150,12 +151,13 @@ public class DealerPortalService {
         if (cachedOrderId.isPresent()) {
             Order cachedOrder = orderRepository.findById(cachedOrderId.get()).orElse(null);
             if (cachedOrder != null) {
-                return DealerPortalResponseMapper.toOrderResponse(cachedOrder, activeDiscountRules(), currentVatPercent());
+                return DealerPortalResponseMapper.toOrderResponse(cachedOrder, activeDiscountRules(), activeVatPercent());
             }
             // If order was somehow deleted, fall through to create a new one
         }
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsernameForUpdate(username);
-        DealerOrderResponse response = dealerOrderWorkflowSupport.createOrder(dealer, request, activeDiscountRules(), idempotencyKey);
+        DealerOrderResponse response =
+                dealerOrderWorkflowSupport.createOrder(dealer, request, activeDiscountRules(), activeVatPercent(), idempotencyKey);
         idempotencyStore.put(idempotencyKey, response.id());
         return response;
     }
@@ -165,7 +167,7 @@ public class DealerPortalService {
     public DealerOrderResponse updateOrderStatus(String username, Long orderId, UpdateDealerOrderStatusRequest request) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         Order order = dealerPortalLookupSupport.requireDealerOrder(dealer.getId(), orderId);
-        return dealerOrderWorkflowSupport.updateOrderStatus(order, request, activeDiscountRules());
+        return dealerOrderWorkflowSupport.updateOrderStatus(order, request, activeDiscountRules(), activeVatPercent());
     }
 
     @Transactional(readOnly = true)
@@ -187,6 +189,12 @@ public class DealerPortalService {
     public List<DealerCartItemResponse> getCart(String username) {
         Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
         return dealerCartSupport.getCart(dealer.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public DealerCartPricingSummaryResponse getCartPricingSummary(String username) {
+        Dealer dealer = dealerPortalLookupSupport.requireDealerByUsername(username);
+        return dealerCartSupport.getCartPricingSummary(dealer.getId(), activeDiscountRules(), activeVatPercent());
     }
 
     @Transactional
@@ -327,6 +335,10 @@ public class DealerPortalService {
 
     private int currentVatPercent() {
         return adminSettingsService.getEffectiveSettings().vatPercent();
+    }
+
+    private int activeVatPercent() {
+        return adminSettingsService.getVatPercent();
     }
 
 }

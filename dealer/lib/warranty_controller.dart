@@ -826,14 +826,7 @@ class WarrantyController extends ChangeNotifier {
         _parseDateTimeValue(json['createdAt']) ??
         cached?.activatedAt ??
         purchaseDate;
-    final warrantyEnd = _parseDateTimeValue(json['warrantyEnd']);
-    final effectiveWarrantyEnd =
-        warrantyEnd ?? cached?.warrantyEndDate;
-    final effectiveWarrantyMonths =
-        effectiveWarrantyEnd != null &&
-            effectiveWarrantyEnd.isAfter(purchaseDate)
-        ? _resolveWarrantyMonths(purchaseDate, effectiveWarrantyEnd)
-        : (cached?.warrantyMonths ?? product?.warrantyMonths ?? 12);
+    final warrantyEnd = _normalizeLocalDate(_parseDateTimeValue(json['warrantyEnd']));
 
     return WarrantyActivationRecord(
       orderId: orderCode,
@@ -867,10 +860,15 @@ class WarrantyController extends ChangeNotifier {
         _normalizeString(json['customerAddress']) ?? cached?.customerAddress,
         order?.receiverAddress,
       ),
-      warrantyMonths: effectiveWarrantyMonths,
+      warrantyMonths:
+          warrantyEnd != null
+              ? _resolveWarrantyMonths(purchaseDate, warrantyEnd)
+              : (cached?.warrantyMonths ??
+                    product?.warrantyMonths ??
+                    _resolveWarrantyMonths(purchaseDate, warrantyEnd)),
       activatedAt: activatedAt,
       purchaseDate: purchaseDate,
-      warrantyEndDate: effectiveWarrantyEnd,
+      warrantyEnd: warrantyEnd,
     );
   }
 
@@ -1084,7 +1082,7 @@ class WarrantyController extends ChangeNotifier {
     );
     final activatedAt =
         _parseDateTimeValue(json['activatedAt']) ?? purchaseDate;
-    final warrantyEndDate = _parseDateTimeValue(json['warrantyEnd']);
+    final warrantyEnd = _normalizeLocalDate(_parseDateTimeValue(json['warrantyEnd']));
     return WarrantyActivationRecord(
       orderId: _normalizeString(json['orderId']) ?? '',
       productId: _normalizeString(json['productId']) ?? '',
@@ -1098,7 +1096,7 @@ class WarrantyController extends ChangeNotifier {
       warrantyMonths: _parseInt(json['warrantyMonths'], fallback: 12),
       activatedAt: activatedAt,
       purchaseDate: purchaseDate,
-      warrantyEndDate: warrantyEndDate,
+      warrantyEnd: warrantyEnd,
     );
   }
 
@@ -1295,10 +1293,9 @@ Map<String, dynamic> _activationToJson(WarrantyActivationRecord record) {
     'customerAddress': record.customerAddress,
     'warrantyMonths': record.warrantyMonths,
     'activatedAt': record.activatedAt.toIso8601String(),
-    'warrantyEnd':
-        record.warrantyEndDate?.toIso8601String(),
     'purchaseDate':
         '${purchaseDate.year}-${purchaseDate.month.toString().padLeft(2, '0')}-${purchaseDate.day.toString().padLeft(2, '0')}',
+    'warrantyEnd': record.warrantyEnd?.toIso8601String(),
   };
 }
 

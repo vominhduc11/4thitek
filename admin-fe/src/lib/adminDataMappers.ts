@@ -46,15 +46,6 @@ export const mapBackendOrderStatus = (status?: BackendOrderStatus | null): Order
   }
 }
 
-const mapAllowedOrderTransitions = (
-  statuses?: BackendOrderStatus[] | null,
-): OrderStatus[] | undefined => {
-  if (!statuses?.length) {
-    return undefined
-  }
-  return statuses.map((status) => mapBackendOrderStatus(status))
-}
-
 export const toBackendOrderStatus = (status: OrderStatus): BackendOrderStatus => {
   switch (status) {
     case 'confirmed':
@@ -92,6 +83,8 @@ export const mapBackendPaymentStatus = (status?: BackendPaymentStatus | null): P
       return 'debt_recorded'
     case 'CANCELLED':
       return 'cancelled'
+    case 'FAILED':
+      return 'failed'
     default:
       return 'pending'
   }
@@ -132,15 +125,6 @@ export const mapBackendDealerAccountStatus = (
   }
 }
 
-const mapAllowedDealerTransitions = (
-  statuses?: BackendDealerAccountStatus[] | null,
-): DealerStatus[] | undefined => {
-  if (!statuses?.length) {
-    return undefined
-  }
-  return statuses.map((status) => mapBackendDealerAccountStatus(status))
-}
-
 export const toBackendDealerAccountStatus = (status: DealerStatus): BackendDealerAccountStatus => {
   switch (status) {
     case 'under_review':
@@ -150,6 +134,30 @@ export const toBackendDealerAccountStatus = (status: DealerStatus): BackendDeale
     default:
       return 'ACTIVE'
   }
+}
+
+const uniq = <T>(values: T[]) => Array.from(new Set(values))
+
+const mapAllowedOrderTransitions = (
+  current: OrderStatus,
+  transitions?: BackendOrderStatus[] | null,
+): OrderStatus[] => {
+  const mapped = uniq((transitions ?? []).map((status) => mapBackendOrderStatus(status)))
+  if (mapped.length === 0) {
+    return [current]
+  }
+  return mapped.includes(current) ? mapped : [current, ...mapped]
+}
+
+const mapAllowedDealerTransitions = (
+  current: DealerStatus,
+  transitions?: BackendDealerAccountStatus[] | null,
+): DealerStatus[] => {
+  const mapped = uniq((transitions ?? []).map((status) => mapBackendDealerAccountStatus(status)))
+  if (mapped.length === 0) {
+    return [current]
+  }
+  return mapped.includes(current) ? mapped : [current, ...mapped]
 }
 
 export const mapBackendUserStatus = (status?: BackendStaffUserStatus | null): UserStatus =>
@@ -224,7 +232,10 @@ export const mapOrder = (order: BackendOrderResponse): Order => {
       unitPrice: parseFiniteNumber(item.unitPrice),
     })),
     staleReviewRequired: Boolean(order.staleReviewRequired) || false,
-    allowedTransitions: mapAllowedOrderTransitions(order.allowedTransitions),
+    allowedTransitions: mapAllowedOrderTransitions(
+      mapBackendOrderStatus(order.status),
+      order.allowedTransitions,
+    ),
   }
 }
 
@@ -254,14 +265,16 @@ export const mapDealer = (dealer: BackendDealerAccountResponse): Dealer => ({
   creditLimit: Number(dealer.creditLimit ?? 0),
   email: dealer.email || '',
   phone: dealer.phone || '',
-  allowedTransitions: mapAllowedDealerTransitions(dealer.allowedTransitions),
+  allowedTransitions: mapAllowedDealerTransitions(
+    mapBackendDealerAccountStatus(dealer.status),
+    dealer.allowedTransitions,
+  ),
 })
 
 export const mapUser = (user: BackendStaffUserResponse): StaffUser => ({
   id: String(user.id),
   name: user.name || user.username || '',
   role: user.role || '',
-  systemRole: user.systemRole === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'ADMIN',
   email: user.email || '',
   status: mapBackendUserStatus(user.status),
 })

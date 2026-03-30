@@ -157,11 +157,11 @@ class CartScreen extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              texts.vatLabel(cart.vatPercent),
-              style: theme.textTheme.bodyMedium,
-            ),
+            children: [
+              Text(
+                texts.vatLabel(cart.vatPercent),
+                style: theme.textTheme.bodyMedium,
+              ),
             Text(formatVnd(vatAmount), style: theme.textTheme.bodyMedium),
           ],
         ),

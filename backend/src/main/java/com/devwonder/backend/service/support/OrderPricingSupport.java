@@ -38,8 +38,8 @@ public final class OrderPricingSupport {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    public static int computeDiscountPercent(Order order, List<BulkDiscount> rules) {
-        return computePricing(order, rules).discountPercent();
+    public static int computeDiscountPercent(Order order, List<BulkDiscount> rules, int vatPercent) {
+        return computePricing(order, rules, vatPercent).discountPercent();
     }
 
     public static BigDecimal computeDiscountAmount(BigDecimal subtotal, int discountPercent) {
@@ -53,12 +53,12 @@ public final class OrderPricingSupport {
     public static BigDecimal computeVatAmount(BigDecimal totalAfterDiscount) {
         return computeVatAmount(totalAfterDiscount, DEFAULT_VAT_PERCENT_FALLBACK);
     }
-
     public static BigDecimal computeVatAmount(BigDecimal totalAfterDiscount, int vatPercent) {
         if (totalAfterDiscount.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO;
         }
-        return totalAfterDiscount.multiply(BigDecimal.valueOf(normalizeVatPercent(vatPercent)))
+        int normalizedVatPercent = normalizeVatPercent(vatPercent);
+        return totalAfterDiscount.multiply(BigDecimal.valueOf(normalizedVatPercent))
                 .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
     }
 
@@ -97,10 +97,11 @@ public final class OrderPricingSupport {
     }
 
     public static PricingBreakdown computePricing(Order order, List<BulkDiscount> rules, int vatPercent) {
+        int normalizedVatPercent = normalizeVatPercent(vatPercent);
         BigDecimal subtotal = computeSubtotal(order);
         if (subtotal.compareTo(BigDecimal.ZERO) <= 0) {
             BigDecimal totalAmount = BigDecimal.valueOf(safeShippingFee(order == null ? null : order.getShippingFee()));
-            return new PricingBreakdown(BigDecimal.ZERO, 0, BigDecimal.ZERO, BigDecimal.ZERO, totalAmount);
+            return new PricingBreakdown(BigDecimal.ZERO, 0, BigDecimal.ZERO, normalizedVatPercent, BigDecimal.ZERO, totalAmount);
         }
 
         OrderMetrics metrics = collectMetrics(order);
@@ -134,11 +135,18 @@ public final class OrderPricingSupport {
                 .divide(subtotal, 0, RoundingMode.HALF_UP)
                 .intValue();
         BigDecimal totalAfterDiscount = subtotal.subtract(discountAmount);
-        BigDecimal vatAmount = computeVatAmount(totalAfterDiscount, vatPercent);
+        BigDecimal vatAmount = computeVatAmount(totalAfterDiscount, normalizedVatPercent);
         BigDecimal totalAmount = totalAfterDiscount
                 .add(vatAmount)
                 .add(BigDecimal.valueOf(safeShippingFee(order == null ? null : order.getShippingFee())));
-        return new PricingBreakdown(subtotal, effectiveDiscountPercent, discountAmount, vatAmount, totalAmount);
+        return new PricingBreakdown(subtotal, effectiveDiscountPercent, discountAmount, normalizedVatPercent, vatAmount, totalAmount);
+    }
+
+    public static int normalizeVatPercent(Integer vatPercent) {
+        if (vatPercent == null) {
+            return DEFAULT_VAT_PERCENT_FALLBACK;
+        }
+        return Math.max(0, Math.min(100, vatPercent));
     }
 
     private static PaymentMethod defaultPaymentMethod(Order order) {
@@ -379,6 +387,7 @@ public final class OrderPricingSupport {
             BigDecimal subtotal,
             int discountPercent,
             BigDecimal discountAmount,
+            int vatPercent,
             BigDecimal vatAmount,
             BigDecimal totalAmount
     ) {

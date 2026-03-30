@@ -2,6 +2,7 @@ package com.devwonder.backend;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.devwonder.backend.dto.admin.UpdateAdminSettingsRequest;
 import com.devwonder.backend.dto.dealer.UpsertDealerCartItemRequest;
 import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.Product;
@@ -13,6 +14,7 @@ import com.devwonder.backend.repository.DealerRepository;
 import com.devwonder.backend.repository.ProductOfCartRepository;
 import com.devwonder.backend.repository.ProductRepository;
 import com.devwonder.backend.repository.ProductSerialRepository;
+import com.devwonder.backend.service.AdminSettingsService;
 import com.devwonder.backend.service.DealerPortalService;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -31,6 +33,9 @@ class DealerCartValidationContractTests {
 
     @Autowired
     private DealerPortalService dealerPortalService;
+
+    @Autowired
+    private AdminSettingsService adminSettingsService;
 
     @Autowired
     private DealerRepository dealerRepository;
@@ -93,6 +98,36 @@ class DealerCartValidationContractTests {
         ))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage("quantity must not exceed available stock");
+    }
+
+    @Test
+    void cartPricingSummaryUsesBackendVatSettingAsAuthoritativeSource() {
+        adminSettingsService.updateSettings(new UpdateAdminSettingsRequest(
+                null,
+                null,
+                null,
+                null,
+                8,
+                null,
+                null,
+                null
+        ));
+
+        Dealer dealer = dealerRepository.save(createDealer("dealer-cart-vat@example.com"));
+        Product product = saveProductWithSerials("SKU-CART-VAT", 2, 2);
+
+        dealerPortalService.upsertCartItem(
+                dealer.getUsername(),
+                new UpsertDealerCartItemRequest(product.getId(), 1, null)
+        );
+
+        var summary = dealerPortalService.getCartPricingSummary(dealer.getUsername());
+
+        org.assertj.core.api.Assertions.assertThat(summary.vatPercent()).isEqualTo(8);
+        org.assertj.core.api.Assertions.assertThat(summary.subtotal()).isEqualByComparingTo("150000.00");
+        org.assertj.core.api.Assertions.assertThat(summary.discountAmount()).isEqualByComparingTo("0.00");
+        org.assertj.core.api.Assertions.assertThat(summary.vatAmount()).isEqualByComparingTo("12000.00");
+        org.assertj.core.api.Assertions.assertThat(summary.totalAmount()).isEqualByComparingTo("162000.00");
     }
 
     private Dealer createDealer(String username) {

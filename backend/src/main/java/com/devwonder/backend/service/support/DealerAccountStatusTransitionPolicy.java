@@ -32,8 +32,9 @@ public final class DealerAccountStatusTransitionPolicy {
     }
 
     public static List<CustomerStatus> allowedTransitions(CustomerStatus current) {
+        CustomerStatus normalizedCurrent = current == null ? CustomerStatus.ACTIVE : current;
         return Arrays.stream(CustomerStatus.values())
-                .filter(next -> isTransitionAllowed(current, next))
+                .filter(next -> isTransitionAllowed(normalizedCurrent, next))
                 .toList();
     }
 }

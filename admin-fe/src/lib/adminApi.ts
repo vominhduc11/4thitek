@@ -27,6 +27,7 @@ export type BackendOrderStatus = 'PENDING' | 'CONFIRMED' | 'SHIPPING' | 'COMPLET
 export type BackendPaymentMethod = 'BANK_TRANSFER' | 'DEBT'
 export type BackendPaymentStatus = 'PENDING' | 'PAID' | 'DEBT_RECORDED' | 'CANCELLED' | 'FAILED'
 export type BackendDealerAccountStatus = 'ACTIVE' | 'UNDER_REVIEW' | 'SUSPENDED'
+export type BackendFinancialSettlementType = 'CANCELLATION_REFUND' | 'STALE_ORDER_REVIEW'
 export type BackendStaffUserStatus = 'ACTIVE' | 'PENDING'
 export type BackendDiscountRuleStatus = 'ACTIVE' | 'PENDING' | 'DRAFT'
 export type BackendWarrantyStatus = 'ACTIVE' | 'EXPIRED' | 'VOID'
@@ -39,7 +40,7 @@ export type BackendRmaRequest = {
 }
 export type BackendNotifyType = 'SYSTEM' | 'PROMOTION' | 'ORDER' | 'WARRANTY'
 export type BackendSupportPriority = 'NORMAL' | 'HIGH' | 'URGENT'
-export type BackendSupportCategory = 'order' | 'warranty' | 'product' | 'payment' | 'returnOrder' | 'other'
+export type BackendSupportCategory = 'ORDER' | 'WARRANTY' | 'PRODUCT' | 'PAYMENT' | 'RETURN' | 'OTHER'
 export type BackendSupportTicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'
 export type BackendReportExportType = 'ORDERS' | 'REVENUE' | 'WARRANTIES' | 'SERIALS'
 export type BackendReportFormat = 'XLSX' | 'PDF'
@@ -210,7 +211,6 @@ export type BackendStaffUserResponse = {
   id: number
   name: string
   role: string
-  systemRole?: 'ADMIN' | 'SUPER_ADMIN' | null
   status?: BackendStaffUserStatus | null
   username?: string | null
   email?: string | null
@@ -406,7 +406,7 @@ export type BackendAdminSettingsResponse = {
   sessionTimeoutMinutes: number
   orderAlerts: boolean
   inventoryAlerts: boolean
-  vatPercent?: number | null
+  vatPercent: number
   sepay?: {
     enabled?: boolean | null
     webhookToken?: string | null
@@ -875,13 +875,12 @@ export const updateAdminDealerAccountStatus = (
   token: string,
   id: number,
   status: BackendDealerAccountStatus,
-  reason?: string,
 ) =>
   authorizedJsonRequest<BackendDealerAccountResponse>({
     path: `/admin/dealers/accounts/${id}/status`,
     token,
     method: 'PATCH',
-    body: { status, reason },
+    body: { status },
   })
 
 export const fetchAdminUsers = (token: string) =>
@@ -1133,7 +1132,6 @@ export const resolveAdminUnmatchedPayment = (
   })
 
 export type BackendFinancialSettlementStatus = 'PENDING' | 'REFUNDED' | 'WRITTEN_OFF' | 'CREDITED'
-export type BackendFinancialSettlementType = 'CANCELLATION_REFUND' | 'STALE_ORDER_REVIEW'
 
 export type BackendFinancialSettlementResponse = {
   id: number
