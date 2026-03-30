@@ -1334,6 +1334,8 @@ class _DebtTexts {
       switch (status) {
         case OrderPaymentStatus.cancelled:
           return 'Cancelled';
+        case OrderPaymentStatus.failed:
+          return 'Failed';
         case OrderPaymentStatus.pending:
           return 'Unpaid';
         case OrderPaymentStatus.paid:

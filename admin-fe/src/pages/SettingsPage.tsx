@@ -80,14 +80,6 @@ const copyKeys = {
   notifications: "Thông báo",
   notificationsDescription:
     "Chọn các tín hiệu vận hành cần gửi cho đội ngũ nội bộ.",
-  finance: "VAT & pricing",
-  financeDescription:
-    "Backend is the source of truth for order pricing. This VAT setting drives API responses and dealer-side previews.",
-  vatPercent: "Default VAT",
-  vatPercentHelp:
-    "Valid range is 0 to 100. Dealer FE only uses this for previews; backend recalculates final order totals.",
-  vatPercentPlaceholder: "Enter VAT %",
-  vatPercentError: "VAT must be an integer between 0 and 100.",
   sepay: "SePay",
   sepayDescription:
     "Quản lý thông tin nhận thanh toán và webhook dùng cho đối soát giao dịch.",
@@ -627,52 +619,6 @@ function SettingsPage() {
               }))
             }
           />
-        </SettingsSection>
-
-        <SettingsSection
-          icon={Wallet}
-          title={copy.finance}
-          description={copy.financeDescription}
-        >
-          <SettingField
-            label={copy.vatPercent}
-            hint={copy.vatPercentHelp}
-            error={validationErrors.vatPercent}
-            inputId="settings-vat-percent"
-          >
-            <input
-              id="settings-vat-percent"
-              aria-invalid={Boolean(validationErrors.vatPercent)}
-              aria-describedby={
-                validationErrors.vatPercent
-                  ? "settings-vat-percent-error"
-                  : undefined
-              }
-              className={inputClass}
-              inputMode="numeric"
-              max={VAT_PERCENT_RANGE.max}
-              min={VAT_PERCENT_RANGE.min}
-              onBlur={(event) =>
-                setDraft((previous) => ({
-                  ...previous,
-                  vatPercent: clampInteger(
-                    Number(event.target.value || previous.vatPercent),
-                    VAT_PERCENT_RANGE.min,
-                    VAT_PERCENT_RANGE.max,
-                  ),
-                }))
-              }
-              onChange={(event) =>
-                setDraft((previous) => ({
-                  ...previous,
-                  vatPercent: Number(event.target.value || 0),
-                }))
-              }
-              placeholder={copy.vatPercentPlaceholder}
-              type="number"
-              value={draft.vatPercent}
-            />
-          </SettingField>
         </SettingsSection>
 
         <SettingsSection

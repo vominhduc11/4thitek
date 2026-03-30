@@ -242,6 +242,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       OrderPaymentStatus.pending,
       OrderPaymentStatus.paid,
       OrderPaymentStatus.debtRecorded,
+      OrderPaymentStatus.failed,
       OrderPaymentStatus.cancelled,
     ];
     final hasSummaryData = pendingCount > 0 || debtOrderCount > 0;
@@ -1033,6 +1034,8 @@ class _OrdersTexts {
     switch (status) {
       case OrderPaymentStatus.cancelled:
         return isEnglish ? 'Cancelled' : 'Đã hủy';
+      case OrderPaymentStatus.failed:
+        return isEnglish ? 'Failed' : 'Thất bại';
       case OrderPaymentStatus.pending:
         return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
       case OrderPaymentStatus.paid:
@@ -1146,6 +1149,8 @@ Color _paymentStatusBackground(
     switch (status) {
       case OrderPaymentStatus.cancelled:
         return const Color(0xFF3B1F26);
+      case OrderPaymentStatus.failed:
+        return const Color(0xFF3B1F26);
       case OrderPaymentStatus.pending:
         return const Color(0xFF4A1E24);
       case OrderPaymentStatus.paid:
@@ -1156,6 +1161,8 @@ Color _paymentStatusBackground(
   }
   switch (status) {
     case OrderPaymentStatus.cancelled:
+      return const Color(0xFFFDE7EC);
+    case OrderPaymentStatus.failed:
       return const Color(0xFFFDE7EC);
     case OrderPaymentStatus.pending:
       return const Color(0xFFFEECEE);
@@ -1174,6 +1181,8 @@ Color _paymentStatusTextColor(
     switch (status) {
       case OrderPaymentStatus.cancelled:
         return const Color(0xFFFDA4AF);
+      case OrderPaymentStatus.failed:
+        return const Color(0xFFFDA4AF);
       case OrderPaymentStatus.pending:
         return const Color(0xFFFDA4AF);
       case OrderPaymentStatus.paid:
@@ -1184,6 +1193,8 @@ Color _paymentStatusTextColor(
   }
   switch (status) {
     case OrderPaymentStatus.cancelled:
+      return const Color(0xFFB42318);
+    case OrderPaymentStatus.failed:
       return const Color(0xFFB42318);
     case OrderPaymentStatus.pending:
       return const Color(0xFFB42318);

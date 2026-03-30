@@ -211,9 +211,11 @@ export type BackendStaffUserResponse = {
   id: number
   name: string
   role: string
+  systemRole?: 'ADMIN' | 'SUPER_ADMIN' | null
   status?: BackendStaffUserStatus | null
   username?: string | null
   email?: string | null
+  temporaryPassword?: string | null
 }
 
 export type BackendStaffUserUpsertRequest = {
@@ -875,12 +877,13 @@ export const updateAdminDealerAccountStatus = (
   token: string,
   id: number,
   status: BackendDealerAccountStatus,
+  reason?: string,
 ) =>
   authorizedJsonRequest<BackendDealerAccountResponse>({
     path: `/admin/dealers/accounts/${id}/status`,
     token,
     method: 'PATCH',
-    body: { status },
+    body: { status, reason },
   })
 
 export const fetchAdminUsers = (token: string) =>

@@ -826,7 +826,9 @@ class WarrantyController extends ChangeNotifier {
         _parseDateTimeValue(json['createdAt']) ??
         cached?.activatedAt ??
         purchaseDate;
-    final warrantyEnd = _normalizeLocalDate(_parseDateTimeValue(json['warrantyEnd']));
+    final rawWarrantyEnd = _parseDateTimeValue(json['warrantyEnd']);
+    final warrantyEnd =
+        rawWarrantyEnd == null ? null : _normalizeLocalDate(rawWarrantyEnd);
 
     return WarrantyActivationRecord(
       orderId: orderCode,
@@ -1082,7 +1084,9 @@ class WarrantyController extends ChangeNotifier {
     );
     final activatedAt =
         _parseDateTimeValue(json['activatedAt']) ?? purchaseDate;
-    final warrantyEnd = _normalizeLocalDate(_parseDateTimeValue(json['warrantyEnd']));
+    final rawWarrantyEnd = _parseDateTimeValue(json['warrantyEnd']);
+    final warrantyEnd =
+        rawWarrantyEnd == null ? null : _normalizeLocalDate(rawWarrantyEnd);
     return WarrantyActivationRecord(
       orderId: _normalizeString(json['orderId']) ?? '',
       productId: _normalizeString(json['productId']) ?? '',

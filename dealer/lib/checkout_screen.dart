@@ -974,6 +974,8 @@ class _CheckoutTexts {
     switch (status) {
       case OrderPaymentStatus.cancelled:
         return isEnglish ? 'Cancelled' : 'Đã hủy';
+      case OrderPaymentStatus.failed:
+        return isEnglish ? 'Failed' : 'Thất bại';
       case OrderPaymentStatus.pending:
         return isEnglish ? 'Unpaid' : 'Chưa thanh toán';
       case OrderPaymentStatus.paid:

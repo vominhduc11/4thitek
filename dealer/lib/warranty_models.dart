@@ -3,8 +3,10 @@ enum ImportedSerialStatus {
   reserved,
   assigned,
   warranty,
+  inspecting,
   defective,
   returned,
+  scrapped,
   unknown,
 }
 
@@ -18,10 +20,14 @@ ImportedSerialStatus parseImportedSerialStatus(String? raw) {
       return ImportedSerialStatus.assigned;
     case 'WARRANTY':
       return ImportedSerialStatus.warranty;
+    case 'INSPECTING':
+      return ImportedSerialStatus.inspecting;
     case 'DEFECTIVE':
       return ImportedSerialStatus.defective;
     case 'RETURNED':
       return ImportedSerialStatus.returned;
+    case 'SCRAPPED':
+      return ImportedSerialStatus.scrapped;
     default:
       return ImportedSerialStatus.unknown;
   }

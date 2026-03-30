@@ -199,7 +199,7 @@ extension OrderPaymentMethodLabel on OrderPaymentMethod {
   }
 }
 
-enum OrderPaymentStatus { unpaid, paid, debtRecorded, cancelled, failed }
+enum OrderPaymentStatus { pending, paid, debtRecorded, cancelled, failed }
 
 extension OrderPaymentStatusLabel on OrderPaymentStatus {
   String get label {
@@ -208,7 +208,7 @@ extension OrderPaymentStatusLabel on OrderPaymentStatus {
         return '\u0110\u00E3 h\u1EE7y';
       case OrderPaymentStatus.failed:
         return 'Th\u1EA5t b\u1EA1i';
-      case OrderPaymentStatus.unpaid:
+      case OrderPaymentStatus.pending:
         return 'Ch\u01B0a thanh to\u00E1n';
       case OrderPaymentStatus.paid:
         return '\u0110\u00E3 thanh to\u00E1n';
