@@ -584,6 +584,14 @@ public class AdminManagementService {
     public AdminStaffUserResponse updateUserStatus(Long id, UpdateAdminStaffUserStatusRequest request) {
         Admin admin = adminRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Staff user not found"));
+        boolean isSuperAdmin = admin.getRoles().stream()
+                .anyMatch(role -> "SUPER_ADMIN".equals(role.getName()));
+        if (isSuperAdmin) {
+            throw new BadRequestException("Cannot change status of a super admin account");
+        }
+        if (admin.getUserStatus() == StaffUserStatus.ACTIVE && request.status() == StaffUserStatus.PENDING) {
+            throw new BadRequestException("Cannot revert an active account back to pending");
+        }
         admin.setUserStatus(request.status());
         return AdminResponseMapper.toStaffUserResponse(adminRepository.save(admin));
     }

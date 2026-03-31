@@ -402,7 +402,7 @@ function UsersPageRevamp() {
                       <StatusBadge tone={userStatusTone[user.status]}>
                         {t(userStatusLabel[user.status])}
                       </StatusBadge>
-                      <select
+                      {user.systemRole !== "SUPER_ADMIN" && <select
                         aria-label={`${copy.title} ${user.id}`}
                         className={tableActionSelectClass}
                         onChange={async (event) => {
@@ -440,12 +440,14 @@ function UsersPageRevamp() {
                         }}
                         value={user.status}
                       >
-                        {USER_STATUS_OPTIONS.map((option) => (
+                        {USER_STATUS_OPTIONS.filter(
+                          (option) => !(user.status === "active" && option === "pending"),
+                        ).map((option) => (
                           <option key={`${user.id}-${option}`} value={option}>
                             {t(userStatusLabel[option])}
                           </option>
                         ))}
-                      </select>
+                      </select>}
                     </div>
                   </div>
                 </div>

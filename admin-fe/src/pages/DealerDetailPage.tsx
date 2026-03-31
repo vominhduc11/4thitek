@@ -32,7 +32,7 @@ function DealerDetailPage() {
   const { t } = useLanguage()
   const { notify } = useToast()
   const { dealers, dealersState, updateDealer, updateDealerStatus, reloadResource } = useAdminData()
-  const { confirm, confirmDialog } = useConfirmDialog()
+  const { confirm, prompt, confirmDialog, promptDialog } = useConfirmDialog()
   const dealer = dealers.find((item) => item.id === dealerId)
   const [form, setForm] = useState({
     creditLimit: '',
@@ -211,22 +211,40 @@ function DealerDetailPage() {
                 return
               }
 
-              const approved = await confirm({
-                title: t('Xác nhận đổi trạng thái'),
-                message: t('Chuyển đại lý này sang trạng thái "{status}"?', {
-                  status: t(dealerStatusLabel[next]),
-                }),
-                tone: next === 'suspended' ? 'danger' : 'info',
-                confirmLabel: t(dealerStatusLabel[next]),
-              })
-
-              if (!approved) {
-                event.currentTarget.value = dealer.status
-                return
+              let reason: string | undefined;
+              if (next === 'suspended') {
+                const input = await prompt({
+                  title: t('Xác nhận đổi trạng thái'),
+                  message: t('Chuyển đại lý này sang trạng thái "{status}"?', {
+                    status: t(dealerStatusLabel[next]),
+                  }),
+                  tone: 'danger',
+                  confirmLabel: t(dealerStatusLabel[next]),
+                  inputLabel: t('Lý do tạm khóa'),
+                  inputPlaceholder: t('Nhập lý do tạm khóa đại lý...'),
+                })
+                if (input === null) {
+                  event.currentTarget.value = dealer.status
+                  return
+                }
+                reason = input
+              } else {
+                const approved = await confirm({
+                  title: t('Xác nhận đổi trạng thái'),
+                  message: t('Chuyển đại lý này sang trạng thái "{status}"?', {
+                    status: t(dealerStatusLabel[next]),
+                  }),
+                  tone: 'info',
+                  confirmLabel: t(dealerStatusLabel[next]),
+                })
+                if (!approved) {
+                  event.currentTarget.value = dealer.status
+                  return
+                }
               }
 
               try {
-                await updateDealerStatus(dealer.id, next)
+                await updateDealerStatus(dealer.id, next, reason)
                 notify(t('Cập nhật {id} -> {status}', { id: dealer.id, status: t(dealerStatusLabel[next]) }), {
                   title: t('Đại lý'),
                   variant: 'info',
@@ -309,6 +327,7 @@ function DealerDetailPage() {
         </div>
       </div>
       {confirmDialog}
+      {promptDialog}
     </PagePanel>
   )
 }

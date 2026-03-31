@@ -73,7 +73,7 @@ function DealersPageRevamp() {
   const { notify } = useToast();
   const { dealers, dealersState, updateDealerStatus, reloadResource } =
     useAdminData();
-  const { confirm, confirmDialog } = useConfirmDialog();
+  const { confirm, prompt, confirmDialog, promptDialog } = useConfirmDialog();
 
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | DealerStatus>("all");
@@ -261,23 +261,42 @@ function DealersPageRevamp() {
                         return;
                       }
 
-                      const approved = await confirm({
-                        title: copy.confirmStatusTitle,
-                        message: copy.confirmStatusMessage.replace(
-                          "{status}",
-                          t(dealerStatusLabel[next]),
-                        ),
-                        tone: "warning",
-                        confirmLabel: t(dealerStatusLabel[next]),
-                      });
-
-                      if (!approved) {
-                        event.currentTarget.value = dealer.status;
-                        return;
+                      let reason: string | undefined;
+                      if (next === "suspended") {
+                        const input = await prompt({
+                          title: copy.confirmStatusTitle,
+                          message: copy.confirmStatusMessage.replace(
+                            "{status}",
+                            t(dealerStatusLabel[next]),
+                          ),
+                          tone: "danger",
+                          confirmLabel: t(dealerStatusLabel[next]),
+                          inputLabel: t("Lý do tạm khóa"),
+                          inputPlaceholder: t("Nhập lý do tạm khóa đại lý..."),
+                        });
+                        if (input === null) {
+                          event.currentTarget.value = dealer.status;
+                          return;
+                        }
+                        reason = input;
+                      } else {
+                        const approved = await confirm({
+                          title: copy.confirmStatusTitle,
+                          message: copy.confirmStatusMessage.replace(
+                            "{status}",
+                            t(dealerStatusLabel[next]),
+                          ),
+                          tone: "warning",
+                          confirmLabel: t(dealerStatusLabel[next]),
+                        });
+                        if (!approved) {
+                          event.currentTarget.value = dealer.status;
+                          return;
+                        }
                       }
 
                       try {
-                        await updateDealerStatus(dealer.id, next);
+                        await updateDealerStatus(dealer.id, next, reason);
                       } catch (error) {
                         notify(
                           error instanceof Error
@@ -374,23 +393,42 @@ function DealersPageRevamp() {
                               return;
                             }
 
-                            const approved = await confirm({
-                              title: copy.confirmStatusTitle,
-                              message: copy.confirmStatusMessage.replace(
-                                "{status}",
-                                t(dealerStatusLabel[next]),
-                              ),
-                              tone: "warning",
-                              confirmLabel: t(dealerStatusLabel[next]),
-                            });
-
-                            if (!approved) {
-                              event.currentTarget.value = dealer.status;
-                              return;
+                            let reason: string | undefined;
+                            if (next === "suspended") {
+                              const input = await prompt({
+                                title: copy.confirmStatusTitle,
+                                message: copy.confirmStatusMessage.replace(
+                                  "{status}",
+                                  t(dealerStatusLabel[next]),
+                                ),
+                                tone: "danger",
+                                confirmLabel: t(dealerStatusLabel[next]),
+                                inputLabel: t("Lý do tạm khóa"),
+                                inputPlaceholder: t("Nhập lý do tạm khóa đại lý..."),
+                              });
+                              if (input === null) {
+                                event.currentTarget.value = dealer.status;
+                                return;
+                              }
+                              reason = input;
+                            } else {
+                              const approved = await confirm({
+                                title: copy.confirmStatusTitle,
+                                message: copy.confirmStatusMessage.replace(
+                                  "{status}",
+                                  t(dealerStatusLabel[next]),
+                                ),
+                                tone: "warning",
+                                confirmLabel: t(dealerStatusLabel[next]),
+                              });
+                              if (!approved) {
+                                event.currentTarget.value = dealer.status;
+                                return;
+                              }
                             }
 
                             try {
-                              await updateDealerStatus(dealer.id, next);
+                              await updateDealerStatus(dealer.id, next, reason);
                             } catch (error) {
                               notify(
                                 error instanceof Error
@@ -429,6 +467,7 @@ function DealersPageRevamp() {
         )}
       </div>
       {confirmDialog}
+      {promptDialog}
     </PagePanel>
   );
 }

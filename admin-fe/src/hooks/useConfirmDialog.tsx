@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Modal from 'react-modal'
 import { GhostButton, PrimaryButton, panelClass, type BadgeTone } from '../components/ui-kit'
 
@@ -12,8 +12,18 @@ type ConfirmOptions = {
   tone?: ConfirmTone
 }
 
+type PromptOptions = ConfirmOptions & {
+  inputLabel: string
+  inputPlaceholder?: string
+  required?: boolean
+}
+
 type PendingConfirm = ConfirmOptions & {
   resolve: (value: boolean) => void
+}
+
+type PendingPrompt = PromptOptions & {
+  resolve: (value: string | null) => void
 }
 
 const toneClasses: Record<ConfirmTone, string> = {
@@ -45,12 +55,16 @@ const modalStyles = {
 
 export const useConfirmDialog = () => {
   const [pending, setPending] = useState<PendingConfirm | null>(null)
+  const [pendingPrompt, setPendingPrompt] = useState<PendingPrompt | null>(null)
+  const [promptValue, setPromptValue] = useState('')
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     return () => {
       pending?.resolve(false)
+      pendingPrompt?.resolve(null)
     }
-  }, [pending])
+  }, [pending, pendingPrompt])
 
   const close = useCallback((value: boolean) => {
     setPending((current) => {
@@ -59,9 +73,35 @@ export const useConfirmDialog = () => {
     })
   }, [])
 
+  const closePrompt = useCallback((confirmed: boolean) => {
+    setPendingPrompt((current) => {
+      if (!current) return null
+      if (!confirmed) {
+        current.resolve(null)
+      } else {
+        current.resolve(promptValue)
+      }
+      return null
+    })
+    setPromptValue('')
+  }, [promptValue])
+
   const confirm = useCallback((options: ConfirmOptions) => {
     return new Promise<boolean>((resolve) => {
       setPending({
+        confirmLabel: 'Xác nhận',
+        cancelLabel: 'Hủy',
+        tone: 'info',
+        ...options,
+        resolve,
+      })
+    })
+  }, [])
+
+  const prompt = useCallback((options: PromptOptions) => {
+    setPromptValue('')
+    return new Promise<string | null>((resolve) => {
+      setPendingPrompt({
         confirmLabel: 'Xác nhận',
         cancelLabel: 'Hủy',
         tone: 'info',
@@ -119,5 +159,68 @@ export const useConfirmDialog = () => {
     [close, pending],
   )
 
-  return { confirm, confirmDialog: dialog }
+  const promptDialog = useMemo(
+    () => (
+      <Modal
+        isOpen={Boolean(pendingPrompt)}
+        onRequestClose={() => closePrompt(false)}
+        style={modalStyles}
+        contentLabel={pendingPrompt?.title ?? 'Input required'}
+        onAfterOpen={() => inputRef.current?.focus()}
+      >
+        {pendingPrompt ? (
+          <div className={`${panelClass} w-full space-y-5 p-5 sm:p-6`}>
+            <div className="space-y-3">
+              <span
+                className={[
+                  'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]',
+                  toneClasses[pendingPrompt.tone ?? 'info'],
+                ].join(' ')}
+              >
+                {pendingPrompt.confirmLabel}
+              </span>
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--ink)]">{pendingPrompt.title}</h3>
+                <p className="mt-2 text-sm text-[var(--muted)]">{pendingPrompt.message}</p>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-[var(--muted)]">
+                {pendingPrompt.inputLabel}
+              </label>
+              <textarea
+                ref={inputRef}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-cool)]"
+                placeholder={pendingPrompt.inputPlaceholder ?? ''}
+                rows={3}
+                value={promptValue}
+                onChange={(e) => setPromptValue(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <GhostButton className="w-full sm:w-auto" onClick={() => closePrompt(false)} type="button">
+                {pendingPrompt.cancelLabel}
+              </GhostButton>
+              <PrimaryButton
+                className={[
+                  'w-full sm:w-auto',
+                  pendingPrompt.tone === 'danger'
+                    ? 'bg-rose-600 shadow-[0_16px_30px_rgba(225,29,72,0.28)] hover:bg-rose-700'
+                    : '',
+                ].join(' ')}
+                disabled={pendingPrompt.required !== false && !promptValue.trim()}
+                onClick={() => closePrompt(true)}
+                type="button"
+              >
+                {pendingPrompt.confirmLabel}
+              </PrimaryButton>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+    ),
+    [closePrompt, pendingPrompt, promptValue],
+  )
+
+  return { confirm, prompt, confirmDialog: dialog, promptDialog }
 }
