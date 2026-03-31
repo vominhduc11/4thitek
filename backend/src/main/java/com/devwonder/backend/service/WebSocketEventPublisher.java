@@ -7,6 +7,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 @Component
 public class WebSocketEventPublisher {
+    private static final ThreadLocal<Boolean> IN_AFTER_COMMIT = ThreadLocal.withInitial(() -> false);
+
     private final SimpMessagingTemplate messagingTemplate;
 
     public WebSocketEventPublisher(SimpMessagingTemplate messagingTemplate) {
@@ -38,14 +40,19 @@ public class WebSocketEventPublisher {
     }
 
     private void afterCommitOrNow(Runnable task) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive() || IN_AFTER_COMMIT.get()) {
             task.run();
             return;
         }
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                task.run();
+                IN_AFTER_COMMIT.set(true);
+                try {
+                    task.run();
+                } finally {
+                    IN_AFTER_COMMIT.set(false);
+                }
             }
         });
     }

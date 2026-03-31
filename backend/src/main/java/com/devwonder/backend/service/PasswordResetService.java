@@ -100,13 +100,15 @@ public class PasswordResetService {
         String newPassword = normalizePassword(rawNewPassword);
         AccountValidationSupport.assertStrongPassword(newPassword, "newPassword");
 
-        Account account = storedToken.getAccount();
+        Long accountId = storedToken.getAccount().getId();
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new BadRequestException("Reset token is invalid or expired"));
         account.setPassword(passwordEncoder.encode(newPassword));
         if (account instanceof Admin adminAccount) {
             adminAccount.setRequirePasswordChange(false);
         }
         accountRepository.save(account);
-        passwordResetTokenRepository.deleteByAccountId(account.getId());
+        passwordResetTokenRepository.deleteByAccountId(accountId);
 
         return "Password reset successful";
     }
