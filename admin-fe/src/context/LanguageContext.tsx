@@ -17,6 +17,153 @@ type LanguageContextValue = {
   t: (key: string, vars?: Record<string, string | number>) => string;
 };
 
+const viAdminEmailVerificationOverrides: TranslationMap = {
+  "Please contact your system owner to add an email address to your admin account.":
+    "Vui lòng liên hệ chủ hệ thống để bổ sung email cho tài khoản admin.",
+  "Your admin email address must be verified before you can sign in.":
+    "Email admin cần được xác thực trước khi bạn có thể đăng nhập.",
+  "Enter your username or email to resend the verification email.":
+    "Nhập tên đăng nhập hoặc email để gửi lại email xác thực.",
+  "If an unverified admin account exists for this identity, a verification email has been sent.":
+    "Nếu định danh này tương ứng với một tài khoản admin chưa xác thực, email xác thực đã được gửi.",
+  "Could not resend the verification email. Please try again.":
+    "Không thể gửi lại email xác thực. Vui lòng thử lại.",
+  "Your admin account needs an email address before sign-in can continue. Please contact your system owner.":
+    "Tài khoản admin cần có email trước khi có thể tiếp tục đăng nhập. Vui lòng liên hệ chủ hệ thống.",
+  "Check your inbox and spam folder for the verification email, then try signing in again.":
+    "Hãy kiểm tra hộp thư đến và thư rác để tìm email xác thực, sau đó thử đăng nhập lại.",
+  "Sending verification email...": "Đang gửi email xác thực...",
+  "Resend verification email": "Gửi lại email xác thực",
+  "If your system owner requires email verification, you must verify your admin email before sign-in succeeds.":
+    "Nếu chủ hệ thống yêu cầu xác thực email, bạn phải xác thực email admin trước khi đăng nhập thành công.",
+  "This verification link has expired. Request a new verification email from the sign-in page.":
+    "Liên kết xác thực này đã hết hạn. Hãy yêu cầu email xác thực mới từ trang đăng nhập.",
+  "This verification link has already been used. You can sign in if your email is already verified.":
+    "Liên kết xác thực này đã được sử dụng. Bạn có thể đăng nhập nếu email đã được xác thực.",
+  "This verification link is invalid. Request a new verification email from the sign-in page.":
+    "Liên kết xác thực không hợp lệ. Hãy yêu cầu email xác thực mới từ trang đăng nhập.",
+  "We could not verify your email right now. Please try again later.":
+    "Không thể xác thực email lúc này. Vui lòng thử lại sau.",
+  "Admin Email Verification": "Xác thực email admin",
+  "Email verified": "Email đã được xác thực",
+  "Verifying your email": "Đang xác thực email",
+  "Verification failed": "Xác thực thất bại",
+  "Continue to sign in": "Tiếp tục đăng nhập",
+  "Back to sign in": "Quay lại đăng nhập",
+  "Request another verification email": "Yêu cầu email xác thực khác",
+  "Email verification successful. You can now sign in.":
+    "Xác thực email thành công. Bạn có thể đăng nhập ngay bây giờ.",
+  "Block admin sign-in until the account has an email address and that email has been verified.":
+    "Chặn đăng nhập admin cho đến khi tài khoản có email và email đó đã được xác thực.",
+};
+
+const settingsPageEnTranslations: TranslationMap = {
+  "Cài đặt hệ thống": "System settings",
+  "Quản lý bảo mật đăng nhập, thông báo vận hành, cấu hình SePay, email gửi đi và giới hạn tốc độ theo tác vụ.":
+    "Manage sign-in security, operational notifications, SePay configuration, outbound email, and task-level rate limits.",
+  "Lưu thay đổi": "Save changes",
+  "Đang lưu...": "Saving...",
+  "Hoàn tác thay đổi": "Discard changes",
+  "Bạn có thay đổi chưa lưu trong cài đặt hệ thống.":
+    "You have unsaved changes in system settings.",
+  "Một số giá trị chưa hợp lệ. Hãy kiểm tra lại các trường được đánh dấu trước khi lưu.":
+    "Some values are invalid. Review the highlighted fields before saving.",
+  "Không thể tải cài đặt": "Unable to load settings",
+  "Không tải được cài đặt hệ thống.": "Could not load system settings.",
+  "Đã lưu cài đặt hệ thống.": "System settings saved.",
+  "Không lưu được cài đặt hệ thống.": "Could not save system settings.",
+  "Bảo mật": "Security",
+  "Thiết lập xác thực và thời lượng phiên đăng nhập cho tài khoản quản trị.":
+    "Set sign-in verification and session duration for admin accounts.",
+  "Thông báo": "Notifications",
+  "Chọn các tín hiệu vận hành cần gửi cho đội ngũ nội bộ.":
+    "Choose which operational signals should notify the internal team.",
+  SePay: "SePay",
+  "Quản lý thông tin nhận thanh toán và webhook dùng cho đối soát giao dịch.":
+    "Manage receiving-account details and webhook configuration for payment reconciliation.",
+  Email: "Email",
+  "Thiết lập địa chỉ người gửi dùng cho email hệ thống.":
+    "Configure the sender identity used by system emails.",
+  "Rate limit": "Rate limits",
+  "Các giới hạn này áp dụng ngay sau khi lưu. Chỉ điều chỉnh khi bạn đã có nhu cầu vận hành rõ ràng.":
+    "These limits take effect immediately after saving. Change them only when there is a clear operational need.",
+  "Xác nhận email": "Email confirmation",
+  "Yêu cầu quản trị viên xác nhận email trước khi hoàn tất đăng nhập.":
+    "Require admins to confirm email before sign-in completes.",
+  "Hết phiên đăng nhập": "Session timeout",
+  "Tự động đăng xuất sau {n} phút không hoạt động. Khuyến nghị từ 15 đến 120 phút.":
+    "Automatically sign out after {n} minutes of inactivity. Recommended range: 15 to 120 minutes.",
+  "Nhập số phút": "Enter minutes",
+  "Thời lượng phiên phải là số nguyên trong khoảng từ 5 đến 480 phút.":
+    "Session timeout must be an integer between 5 and 480 minutes.",
+  "Cảnh báo đơn hàng": "Order alerts",
+  "Thông báo khi có đơn mới hoặc đơn cần xử lý thêm.":
+    "Notify the team about new orders or orders that need attention.",
+  "Cảnh báo tồn kho": "Inventory alerts",
+  "Thông báo khi SKU giảm xuống ngưỡng tồn kho thấp.":
+    "Notify when a SKU drops into the low-stock threshold.",
+  Bật: "Enabled",
+  "Webhook token": "Webhook token",
+  "Chỉ lưu token webhook đang được SePay cấp cho môi trường vận hành hiện tại.":
+    "Store only the webhook token currently issued by SePay for this environment.",
+  "Tên ngân hàng": "Bank name",
+  "Hiển thị cho thao tác đối soát và kiểm tra thông tin nhận tiền.":
+    "Used for reconciliation and payment destination checks.",
+  "Số tài khoản": "Account number",
+  "Chỉ nhập chữ số. Không dùng khoảng trắng hoặc ký tự đặc biệt.":
+    "Digits only. Avoid spaces or special characters.",
+  "Số tài khoản chỉ được chứa chữ số.":
+    "Account number can contain digits only.",
+  "Chủ tài khoản": "Account holder",
+  "Nên khớp với tên pháp lý dùng cho nhận chuyển khoản.":
+    "This should match the legal receiving-account name.",
+  "Email gửi đi": "From email",
+  "Địa chỉ này sẽ xuất hiện ở trường người gửi. Dùng email đã được hạ tầng mail xác thực.":
+    "This address appears as the sender. Use an email that has been verified by your mail infrastructure.",
+  "Cần nhập email gửi đi khi bật email hệ thống.":
+    "A sender email is required when system email is enabled.",
+  "Email gửi đi không đúng định dạng.":
+    "Sender email is not in a valid format.",
+  "Tên người gửi": "From name",
+  "Tên hiển thị trong hộp thư người nhận.":
+    "This name is shown in the recipient inbox.",
+  "Cần nhập tên người gửi khi bật email hệ thống.":
+    "A sender name is required when system email is enabled.",
+  "Đăng nhập": "Sign in",
+  "Giới hạn số lần thử đăng nhập để giảm rủi ro dò mật khẩu.":
+    "Limit sign-in attempts to reduce password guessing risk.",
+  "Quên mật khẩu": "Password reset",
+  "Ngăn việc yêu cầu đặt lại mật khẩu quá dày trong thời gian ngắn.":
+    "Prevent too many reset requests in a short period.",
+  "Tra cứu bảo hành": "Warranty lookup",
+  "Giữ ổn định cho điểm tra cứu công khai và nội bộ.":
+    "Keep the lookup surface stable for public and internal use.",
+  "Tải tệp": "Uploads",
+  "Áp dụng cho upload ảnh hoặc chứng từ qua giao diện quản trị.":
+    "Applies to image and proof uploads in the admin interface.",
+  Webhook: "Webhook",
+  "Bảo vệ đầu vào webhook trước lưu lượng đột biến.":
+    "Protect webhook entry points from burst traffic.",
+  "Số yêu cầu": "Requests",
+  "Tổng số yêu cầu được phép trong một cửa sổ thời gian.":
+    "Total allowed requests inside one time window.",
+  "Số yêu cầu phải là số nguyên trong khoảng từ 1 đến 10.000.":
+    "Requests must be an integer between 1 and 10,000.",
+  "Cửa sổ thời gian": "Time window",
+  "Đơn vị giây.": "Measured in seconds.",
+  "Cửa sổ thời gian phải là số nguyên trong khoảng từ 1 đến 86.400 giây.":
+    "Time window must be an integer between 1 and 86,400 seconds.",
+  "Giá & thuế": "Pricing & tax",
+  "Cấu hình VAT mặc định cho pricing backend. Backend vẫn là nguồn dữ liệu quyết định cho tổng tiền cuối cùng.":
+    "Configure the default VAT used by the pricing backend. The backend still remains the source of truth for final totals.",
+  "VAT mặc định": "Default VAT",
+  "Áp dụng cho pricing backend, dealer cart summary và các phép tính doanh thu mới. Giá trị hợp lệ từ 0 đến 100.":
+    "Applies to the pricing backend, dealer cart summary, and newer revenue calculations. Valid values range from 0 to 100.",
+  "Nhập phần trăm VAT": "Enter VAT percentage",
+  "VAT phải là số nguyên trong khoảng từ 0 đến 100.":
+    "VAT must be an integer between 0 and 100.",
+};
+
 const translations: Record<Language, TranslationMap> = {
   vi: {
     "Please contact your system owner to add an email address to your admin account.":
@@ -81,6 +228,7 @@ const translations: Record<Language, TranslationMap> = {
     "Không có dữ liệu trong kỳ này": "Không có dữ liệu trong kỳ này",
     "Biểu đồ xu hướng doanh số": "Biểu đồ xu hướng doanh số",
     "Biểu đồ trạng thái đơn hàng": "Biểu đồ trạng thái đơn hàng",
+    ...viAdminEmailVerificationOverrides,
   },
   en: {
     "Block admin sign-in until the account has an email address and that email has been verified.":
@@ -1036,6 +1184,7 @@ const translations: Record<Language, TranslationMap> = {
     "Xử lý bởi": "Resolved by",
     "Yêu cầu quản trị viên xác nhận email trước khi hoàn tất đăng nhập.":
       "Require admins to confirm email before sign-in completes.",
+    ...settingsPageEnTranslations,
   },
 };
 

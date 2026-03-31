@@ -343,9 +343,6 @@ function SettingsPage() {
   const { t } = useLanguage();
   const { notify } = useToast();
   const copy = translateCopy(copyKeys, t);
-  const emailConfirmationHelp = t(
-    "Block admin sign-in until the account has an email address and that email has been verified.",
-  );
   const [draft, setDraft] = useState(settings);
 
   useEffect(() => {
@@ -438,6 +435,7 @@ function SettingsPage() {
           title={copy.loadTitle}
           message={settingsState.error || copy.loadFallback}
           onRetry={() => void reloadResource("settings")}
+          retryLabel={t("Thử lại")}
         />
       </PagePanel>
     );
@@ -494,7 +492,7 @@ function SettingsPage() {
           <ToggleField
             inputId="settings-email-confirmation"
             title={copy.emailConfirmation}
-            description={emailConfirmationHelp}
+            description={copy.emailConfirmationHelp}
             checked={draft.emailConfirmation}
             onChange={(checked) =>
               setDraft((previous) => ({
