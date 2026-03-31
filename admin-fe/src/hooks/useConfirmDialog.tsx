@@ -27,8 +27,8 @@ type PendingPrompt = PromptOptions & {
 }
 
 const toneClasses: Record<ConfirmTone, string> = {
-  warning: 'bg-amber-500/15 text-amber-700',
-  danger: 'bg-rose-500/15 text-rose-700',
+  warning: 'bg-[var(--tone-warning-bg)] text-[var(--tone-warning-text)]',
+  danger: 'bg-[var(--tone-danger-bg)] text-[var(--tone-danger-text)]',
   info: 'bg-[var(--accent-cool-soft)] text-[var(--accent-cool)]',
 }
 
@@ -143,7 +143,7 @@ export const useConfirmDialog = () => {
                 className={[
                   'w-full sm:w-auto',
                   pending.tone === 'danger'
-                    ? 'bg-rose-600 shadow-[0_16px_30px_rgba(225,29,72,0.28)] hover:bg-rose-700'
+                    ? 'bg-[var(--destructive)] shadow-[0_16px_30px_rgba(225,29,72,0.28)] hover:opacity-90'
                     : '',
                 ].join(' ')}
                 onClick={() => close(true)}
@@ -190,7 +190,7 @@ export const useConfirmDialog = () => {
               </label>
               <textarea
                 ref={inputRef}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-cool)]"
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-cool)]"
                 placeholder={pendingPrompt.inputPlaceholder ?? ''}
                 rows={3}
                 value={promptValue}

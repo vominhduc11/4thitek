@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'app_settings_controller.dart';
@@ -10,6 +11,7 @@ import 'cart_screen.dart';
 import 'global_search.dart';
 import 'models.dart';
 import 'order_controller.dart';
+import 'upload_service.dart';
 import 'utils.dart';
 import 'warranty_activation_screen.dart';
 import 'widgets/brand_identity.dart';
@@ -245,7 +247,9 @@ class OrderDetailScreen extends StatelessWidget {
 
   void _showRecordPaymentDialog(BuildContext context, Order order) {
     final texts = _orderDetailTexts(context);
+    final uploadService = UploadService();
     final amountController = TextEditingController();
+    final proofController = TextEditingController();
     final channels = <String>[
       texts.bankTransferChannelValue,
       texts.cashChannelValue,
@@ -255,7 +259,11 @@ class OrderDetailScreen extends StatelessWidget {
         ? channels.first
         : channels.last;
     String? errorText;
+    String? pickedFileName;
     var isSubmitting = false;
+    var isUploadingProof = false;
+    final proofRequired =
+        order.outstandingAmount >= _OrderDetailTexts.proofRequiredThreshold;
 
     showDialog<void>(
       context: context,
@@ -310,17 +318,100 @@ class OrderDetailScreen extends StatelessWidget {
                       setDialogState(() => selectedChannel = value);
                     },
                   ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: isSubmitting || isUploadingProof
+                        ? null
+                        : () async {
+                            final picked = await ImagePicker().pickImage(
+                              source: ImageSource.gallery,
+                            );
+                            if (picked == null) {
+                              return;
+                            }
+                            setDialogState(() {
+                              errorText = null;
+                              isUploadingProof = true;
+                              pickedFileName = picked.name;
+                            });
+                            try {
+                              final storedFileName = await uploadService
+                                  .uploadXFile(
+                                    file: picked,
+                                    category: 'payment-proofs',
+                                  )
+                                  .then((value) => value.fileName);
+                              if (!context.mounted) {
+                                return;
+                              }
+                              setDialogState(() {
+                                proofController.text = storedFileName;
+                              });
+                              ScaffoldMessenger.of(context)
+                                ..hideCurrentSnackBar()
+                                ..showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      texts.proofAttachedSuccess(picked.name),
+                                    ),
+                                  ),
+                                );
+                            } catch (error) {
+                              if (!context.mounted) {
+                                return;
+                              }
+                              ScaffoldMessenger.of(context)
+                                ..hideCurrentSnackBar()
+                                ..showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      texts.proofUploadFailed(error),
+                                    ),
+                                  ),
+                                );
+                            } finally {
+                              if (dialogContext.mounted) {
+                                setDialogState(() => isUploadingProof = false);
+                              }
+                            }
+                          },
+                    icon: isUploadingProof
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2.2),
+                          )
+                        : const Icon(Icons.attach_file_outlined, size: 18),
+                    label: Text(
+                      isUploadingProof
+                          ? texts.attachingProofLabel
+                          : (pickedFileName ?? texts.attachProofButton),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (proofRequired) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      texts.proofRequiredHint(
+                        formatVnd(_OrderDetailTexts.proofRequiredThreshold),
+                      ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ],
               ),
               actions: [
                 TextButton(
-                  onPressed: isSubmitting
+                  onPressed: isSubmitting || isUploadingProof
                       ? null
                       : () => Navigator.of(dialogContext).pop(),
                   child: Text(texts.closeAction),
                 ),
                 FilledButton(
-                  onPressed: isSubmitting
+                  onPressed: isSubmitting || isUploadingProof
                       ? null
                       : () async {
                           final digitsOnly = amountController.text.replaceAll(
@@ -340,6 +431,18 @@ class OrderDetailScreen extends StatelessWidget {
                             });
                             return;
                           }
+                          if (proofRequired &&
+                              proofController.text.trim().isEmpty) {
+                            setDialogState(() {
+                              errorText =
+                                  texts.proofRequiredForLargeOutstandingMessage(
+                                    formatVnd(
+                                      _OrderDetailTexts.proofRequiredThreshold,
+                                    ),
+                                  );
+                            });
+                            return;
+                          }
 
                           setDialogState(() {
                             errorText = null;
@@ -351,6 +454,9 @@ class OrderDetailScreen extends StatelessWidget {
                             amount: amount,
                             channel: selectedChannel,
                             note: texts.recordPaymentScreenNote,
+                            proofFileName: proofController.text.trim().isEmpty
+                                ? null
+                                : proofController.text.trim(),
                           );
                           if (!dialogContext.mounted || !context.mounted) {
                             return;
@@ -796,6 +902,8 @@ class _OrderDetailTexts {
 
   final bool isEnglish;
 
+  static const int proofRequiredThreshold = 10000000;
+
   String get screenTitle => isEnglish ? 'Order details' : 'Chi tiết đơn hàng';
   String get orderNotFoundMessage =>
       isEnglish ? 'Order not found.' : 'Không tìm thấy đơn hàng.';
@@ -855,6 +963,10 @@ class _OrderDetailTexts {
       isEnglish ? 'Maximum $maxAmount' : 'Tối đa $maxAmount';
   String get paymentChannelLabel =>
       isEnglish ? 'Payment channel' : 'Kênh thanh toán';
+  String get attachProofButton =>
+      isEnglish ? 'Attach payment proof' : 'Đính kèm chứng từ';
+  String get attachingProofLabel =>
+      isEnglish ? 'Uploading proof...' : 'Đang tải chứng từ...';
   String get closeAction => isEnglish ? 'Close' : 'Đóng';
   String get invalidAmountMessage =>
       isEnglish ? 'Invalid amount.' : 'Số tiền không hợp lệ.';
@@ -864,6 +976,18 @@ class _OrderDetailTexts {
   String get recordPaymentScreenNote => isEnglish
       ? 'Recorded from the order detail screen.'
       : 'Ghi nhận từ màn hình chi tiết đơn hàng.';
+  String proofRequiredHint(String threshold) => isEnglish
+      ? 'Proof is required for orders with outstanding amount from $threshold.'
+      : 'Bắt buộc đính kèm chứng từ khi đơn còn nợ từ $threshold.';
+  String proofRequiredForLargeOutstandingMessage(String threshold) =>
+      isEnglish
+      ? 'Attach payment proof before recording this payment. Required from $threshold outstanding.'
+      : 'Vui lòng đính kèm chứng từ trước khi ghi nhận thanh toán. Áp dụng khi còn nợ từ $threshold.';
+  String proofAttachedSuccess(String fileName) => isEnglish
+      ? 'Attached proof $fileName.'
+      : 'Đã đính kèm chứng từ $fileName.';
+  String proofUploadFailed(Object error) =>
+      uploadServiceErrorMessage(error, isEnglish: isEnglish);
   String get cannotRecordPaymentMessage => isEnglish
       ? 'Unable to record the payment. Please check again.'
       : 'Không thể ghi nhận thanh toán. Vui lòng kiểm tra lại.';

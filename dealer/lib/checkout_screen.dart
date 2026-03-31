@@ -11,6 +11,7 @@ import 'dealer_profile_storage.dart';
 import 'global_search.dart';
 import 'models.dart';
 import 'order_controller.dart';
+import 'order_detail_screen.dart';
 import 'order_success_screen.dart';
 import 'product_catalog_controller.dart';
 import 'utils.dart';
@@ -789,6 +790,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
     }
 
+    final shouldOpenOrderDetail =
+        orderController.findById(createdOrder.id)?.paymentStatus ==
+        OrderPaymentStatus.paid;
+
     await cart.clear(rollbackOnFailure: false);
     if (!mounted) {
       return;
@@ -797,11 +802,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     HapticFeedback.mediumImpact();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (context) => OrderSuccessScreen(
-          orderId: createdOrder.id,
-          itemCount: createdOrder.totalItems,
-          totalPrice: createdOrder.total,
-        ),
+        builder: (context) => shouldOpenOrderDetail
+            ? OrderDetailScreen(orderId: createdOrder.id)
+            : OrderSuccessScreen(
+                orderId: createdOrder.id,
+                itemCount: createdOrder.totalItems,
+                totalPrice: createdOrder.total,
+              ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ADMIN_THEME_EVENT } from "../hooks/useTheme";
 import {
   AlertTriangle,
   CircleDollarSign,
@@ -45,7 +46,6 @@ ChartJS.register(
   Tooltip,
   Legend,
 );
-const ADMIN_THEME_EVENT = "admin-theme-change";
 
 const copyKeys = {
   title: "Tổng quan hệ thống",

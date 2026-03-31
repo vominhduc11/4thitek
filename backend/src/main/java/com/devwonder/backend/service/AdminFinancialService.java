@@ -3,10 +3,12 @@ package com.devwonder.backend.service;
 import com.devwonder.backend.dto.admin.AdminFinancialSettlementResponse;
 import com.devwonder.backend.dto.admin.AdminOrderAdjustmentRequest;
 import com.devwonder.backend.dto.admin.AdminOrderAdjustmentResponse;
+import com.devwonder.backend.dto.admin.AdminRecentPaymentResponse;
 import com.devwonder.backend.dto.admin.AdminUnmatchedPaymentResponse;
 import com.devwonder.backend.dto.admin.AdminUpdateFinancialSettlementRequest;
 import com.devwonder.backend.dto.admin.AdminUpdateUnmatchedPaymentRequest;
 import com.devwonder.backend.entity.BulkDiscount;
+import com.devwonder.backend.entity.Dealer;
 import com.devwonder.backend.entity.FinancialSettlement;
 import com.devwonder.backend.entity.Order;
 import com.devwonder.backend.entity.OrderAdjustment;
@@ -53,6 +55,39 @@ public class AdminFinancialService {
     private final PaymentRepository paymentRepository;
     private final BulkDiscountRepository bulkDiscountRepository;
     private final AdminSettingsService adminSettingsService;
+
+    // ---- Recent debt payments ----
+
+    @Transactional(readOnly = true)
+    public Page<AdminRecentPaymentResponse> getRecentDebtPayments(
+            Long dealerId,
+            Instant fromInclusive,
+            Instant toInclusive,
+            BigDecimal minAmount,
+            BigDecimal maxAmount,
+            Boolean hasProof,
+            Pageable pageable
+    ) {
+        return paymentRepository.findDebtPaymentsForReview(
+                dealerId,
+                fromInclusive,
+                toInclusive,
+                minAmount,
+                maxAmount,
+                hasProof,
+                pageable
+        ).map(this::toRecentPaymentResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminRecentPaymentResponse> getDebtPaymentsRecordedBetween(
+            Instant fromInclusive,
+            Instant toExclusive
+    ) {
+        return paymentRepository.findDebtPaymentsRecordedBetween(fromInclusive, toExclusive).stream()
+                .map(this::toRecentPaymentResponse)
+                .toList();
+    }
 
     // ---- FinancialSettlement ----
 
@@ -188,6 +223,64 @@ public class AdminFinancialService {
                 a.getCreatedByRole(),
                 a.getCreatedAt()
         );
+    }
+
+    private AdminRecentPaymentResponse toRecentPaymentResponse(Payment payment) {
+        Order order = payment.getOrder();
+        Dealer dealer = order == null ? null : order.getDealer();
+        return new AdminRecentPaymentResponse(
+                payment.getId(),
+                order != null ? order.getId() : null,
+                order != null ? order.getOrderCode() : null,
+                dealer != null ? dealer.getId() : null,
+                dealer == null ? null : firstNonBlank(
+                        dealer.getBusinessName(),
+                        dealer.getContactName(),
+                        dealer.getUsername()
+                ),
+                payment.getAmount(),
+                payment.getMethod(),
+                payment.getStatus(),
+                payment.getChannel(),
+                payment.getTransactionCode(),
+                payment.getNote(),
+                payment.getProofFileName(),
+                payment.getPaidAt(),
+                payment.getCreatedAt(),
+                isReviewSuggested(payment)
+        );
+    }
+
+    private boolean isReviewSuggested(Payment payment) {
+        Order order = payment.getOrder();
+        Dealer dealer = order == null ? null : order.getDealer();
+        if (dealer == null || dealer.getId() == null) {
+            return false;
+        }
+        Instant eventAt = resolvePaymentInstant(payment);
+        Instant oneHourEarlier = eventAt.minusSeconds(3600);
+        long dealerPaymentsLastHour = paymentRepository.countDebtPaymentsForDealerWithinWindow(
+                dealer.getId(),
+                oneHourEarlier,
+                eventAt
+        );
+        return dealerPaymentsLastHour >= 3;
+    }
+
+    private Instant resolvePaymentInstant(Payment payment) {
+        if (payment.getPaidAt() != null) {
+            return payment.getPaidAt();
+        }
+        return payment.getCreatedAt() != null ? payment.getCreatedAt() : Instant.now();
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        }
+        return null;
     }
 
     // ---- UnmatchedPayment ----

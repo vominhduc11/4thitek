@@ -26,6 +26,22 @@
     --scroll-track: rgba(15, 23, 42, 0.08);
     --scroll-thumb: rgba(37, 99, 235, 0.45);
     --scroll-thumb-hover: rgba(37, 99, 235, 0.7);
+    /* Destructive / error states */
+    --destructive: #e11d48;
+    --destructive-soft: #fff1f2;
+    --destructive-border: rgba(251, 113, 133, 0.7);
+    --destructive-text: #be123c;
+    --destructive-hover: #fecdd3;
+    --error-bg: rgba(255, 241, 242, 0.8);
+    --error-border: #fecdd3;
+    --error-text: #be123c;
+    /* Status tone colors */
+    --tone-success-bg: rgba(16, 185, 129, 0.15);
+    --tone-success-text: #047857;
+    --tone-warning-bg: rgba(245, 158, 11, 0.15);
+    --tone-warning-text: #b45309;
+    --tone-danger-bg: rgba(244, 63, 94, 0.15);
+    --tone-danger-text: #be123c;
   }
 
   .dark {
@@ -43,6 +59,22 @@
     --scroll-track: rgba(15, 23, 42, 0.6);
     --scroll-thumb: rgba(59, 130, 246, 0.5);
     --scroll-thumb-hover: rgba(59, 130, 246, 0.85);
+    /* Destructive / error states */
+    --destructive: #fb7185;
+    --destructive-soft: rgba(251, 113, 133, 0.12);
+    --destructive-border: rgba(251, 113, 133, 0.3);
+    --destructive-text: #fda4af;
+    --destructive-hover: rgba(251, 113, 133, 0.2);
+    --error-bg: rgba(251, 113, 133, 0.08);
+    --error-border: rgba(251, 113, 133, 0.2);
+    --error-text: #fda4af;
+    /* Status tone colors */
+    --tone-success-bg: rgba(16, 185, 129, 0.18);
+    --tone-success-text: #6ee7b7;
+    --tone-warning-bg: rgba(245, 158, 11, 0.18);
+    --tone-warning-text: #fcd34d;
+    --tone-danger-bg: rgba(244, 63, 94, 0.18);
+    --tone-danger-text: #fda4af;
   }
 
   *,

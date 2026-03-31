@@ -52,7 +52,10 @@ import { useLanguage } from "../context/LanguageContext";
 import { translateCopy } from "../lib/i18n";
 import { useProducts } from "../context/ProductsContext";
 import { useToast } from "../context/ToastContext";
+import { useClickOutside } from "../hooks/useClickOutside";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
+import { useLocalStorageSet } from "../hooks/useLocalStorageSet";
+import { useTheme } from "../hooks/useTheme";
 import { useAdminWebSocket } from "../hooks/useAdminWebSocket";
 
 type NavGroupId = "overview" | "commerce" | "service" | "system";
@@ -86,7 +89,6 @@ type AlertItem = {
 
 const ALERT_READ_STORAGE_KEY = "admin_alert_read_ids";
 const SEARCH_RESULT_LIMIT = 8;
-const ADMIN_THEME_EVENT = "admin-theme-change";
 
 const copyKeys = {
   product: "Sản phẩm",
@@ -135,6 +137,7 @@ const copyKeys = {
     serials: "Serial",
     notifications: "Thông báo",
     support: "Hỗ trợ",
+    recentPayments: "Review công nợ",
     unmatchedPayments: "Thanh toán không khớp",
     financialSettlements: "Quyết toán tài chính",
     reports: "Báo cáo",
@@ -171,60 +174,6 @@ const interpolate = (template: string, vars: Record<string, string | number>) =>
     template,
   );
 
-const getStoredTheme = (): "dark" | "light" | null => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  try {
-    const stored = window.localStorage.getItem("theme");
-    return stored === "dark" || stored === "light" ? stored : null;
-  } catch {
-    return null;
-  }
-};
-
-const getPreferredTheme = (): "dark" | "light" => {
-  if (typeof window === "undefined" || !window.matchMedia) {
-    return "light";
-  }
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
-};
-
-const loadReadAlertIds = () => {
-  if (typeof window === "undefined") {
-    return new Set<string>();
-  }
-  try {
-    const raw = window.localStorage.getItem(ALERT_READ_STORAGE_KEY);
-    if (!raw) {
-      return new Set<string>();
-    }
-    const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed)
-      ? new Set(
-          parsed.filter((item): item is string => typeof item === "string"),
-        )
-      : new Set<string>();
-  } catch {
-    return new Set<string>();
-  }
-};
-
-const writeAlertIds = (ids: Set<string>) => {
-  if (typeof window === "undefined") {
-    return;
-  }
-  try {
-    window.localStorage.setItem(
-      ALERT_READ_STORAGE_KEY,
-      JSON.stringify(Array.from(ids)),
-    );
-  } catch {
-    // ignore storage errors
-  }
-};
 
 const NAV_GROUP_STORAGE_KEY = "admin_nav_groups";
 
@@ -259,9 +208,7 @@ function AppLayoutRevamp() {
     useAdminData();
   const { products } = useProducts();
 
-  const [theme, setTheme] = useState<"light" | "dark">(
-    getStoredTheme() ?? getPreferredTheme(),
-  );
+  const { theme, toggleTheme } = useTheme();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAlertsOpen, setIsAlertsOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
@@ -309,9 +256,11 @@ function AppLayoutRevamp() {
       return next;
     });
   }, []);
-  const [readAlertIds, setReadAlertIds] = useState<Set<string>>(() =>
-    loadReadAlertIds(),
-  );
+  const {
+    values: readAlertIds,
+    add: markAlertReadById,
+    addAll: markAllAlertIds,
+  } = useLocalStorageSet(ALERT_READ_STORAGE_KEY);
 
   const alertsRef = useRef<HTMLDivElement | null>(null);
   const accountRef = useRef<HTMLDivElement | null>(null);
@@ -388,6 +337,12 @@ function AppLayoutRevamp() {
         to: "/support-tickets",
         label: copy.nav.support,
         icon: LifeBuoy,
+        group: "service",
+      },
+      {
+        to: "/payments/recent",
+        label: copy.nav.recentPayments,
+        icon: BadgeAlert,
         group: "service",
       },
       {
@@ -703,78 +658,30 @@ function AppLayoutRevamp() {
   }, []);
 
   useEffect(() => {
-    if (typeof document === "undefined") {
-      return;
-    }
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    window.dispatchEvent(new Event(ADMIN_THEME_EVENT));
-  }, [theme]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setOpenGroups((current) => ({
-        ...current,
-        [activeGroup]: true,
-      }));
-    }, 0);
-    return () => window.clearTimeout(timer);
+    setOpenGroups((current) => ({
+      ...current,
+      [activeGroup]: true,
+    }));
   }, [activeGroup]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      closeTransientUi();
-    }, 0);
-    return () => window.clearTimeout(timer);
+    closeTransientUi();
   }, [closeTransientUi, location.pathname]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setShowAllSearchResults(false);
-      setActiveSearchIndex(searchResults.length > 0 ? 0 : -1);
-    }, 0);
-    return () => window.clearTimeout(timer);
+    setShowAllSearchResults(false);
+    setActiveSearchIndex(searchResults.length > 0 ? 0 : -1);
   }, [deferredGlobalQuery, searchResults.length]);
 
   useEffect(() => {
     if (!isSearchOpen) {
-      const timer = window.setTimeout(() => {
-        setActiveSearchIndex(-1);
-      }, 0);
-      return () => window.clearTimeout(timer);
+      setActiveSearchIndex(-1);
     }
   }, [isSearchOpen]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (alertsRef.current && !alertsRef.current.contains(target)) {
-        setIsAlertsOpen(false);
-      }
-      if (accountRef.current && !accountRef.current.contains(target)) {
-        setIsAccountOpen(false);
-      }
-      if (searchRef.current && !searchRef.current.contains(target)) {
-        setIsSearchOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleToggleTheme = () => {
-    setTheme((current) => {
-      const next = current === "dark" ? "light" : "dark";
-      if (typeof window !== "undefined") {
-        try {
-          window.localStorage.setItem("theme", next);
-        } catch {
-          // ignore storage errors
-        }
-      }
-      return next;
-    });
-  };
+  useClickOutside(alertsRef, () => setIsAlertsOpen(false), isAlertsOpen);
+  useClickOutside(accountRef, () => setIsAccountOpen(false), isAccountOpen);
+  useClickOutside(searchRef, () => setIsSearchOpen(false), isSearchOpen);
 
   const handleNavigate = (to: string) => {
     navigate(to);
@@ -782,12 +689,7 @@ function AppLayoutRevamp() {
   };
 
   const markAlertRead = (id: string) => {
-    setReadAlertIds((current) => {
-      const next = new Set(current);
-      next.add(id);
-      writeAlertIds(next);
-      return next;
-    });
+    markAlertReadById(id);
   };
 
   const handleGlobalSearch = (event: React.FormEvent<HTMLFormElement>) => {
@@ -1116,7 +1018,7 @@ function AppLayoutRevamp() {
                   <button
                     aria-label={theme === "dark" ? copy.light : copy.dark}
                     className={ghostButtonClass}
-                    onClick={handleToggleTheme}
+                    onClick={toggleTheme}
                     type="button"
                   >
                     {theme === "dark" ? (
@@ -1165,10 +1067,9 @@ function AppLayoutRevamp() {
                             <button
                               className="text-xs font-semibold text-[var(--accent)]"
                               onClick={() => {
-                                const next = new Set(readAlertIds);
-                                alerts.forEach((alert) => next.add(alert.id));
-                                writeAlertIds(next);
-                                setReadAlertIds(next);
+                                markAllAlertIds(
+                                  alerts.map((alert) => alert.id),
+                                );
                               }}
                               type="button"
                             >
@@ -1259,7 +1160,7 @@ function AppLayoutRevamp() {
                           </p>
                         </div>
                         <button
-                          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-300/70 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--destructive-border)] bg-[var(--destructive-soft)] px-4 py-2 text-sm font-semibold text-[var(--destructive-text)] transition hover:bg-[var(--destructive-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--destructive)]"
                           onClick={() => {
                             logout();
                             notify(copy.logout, {

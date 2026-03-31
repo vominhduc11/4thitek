@@ -34,6 +34,7 @@ import com.devwonder.backend.dto.admin.UpdateAdminDiscountRuleStatusRequest;
 import com.devwonder.backend.dto.admin.AdminFinancialSettlementResponse;
 import com.devwonder.backend.dto.admin.AdminOrderAdjustmentRequest;
 import com.devwonder.backend.dto.admin.AdminOrderAdjustmentResponse;
+import com.devwonder.backend.dto.admin.AdminRecentPaymentResponse;
 import com.devwonder.backend.dto.admin.AdminRmaRequest;
 import com.devwonder.backend.dto.admin.AdminUnmatchedPaymentResponse;
 import com.devwonder.backend.dto.admin.AdminUpdateFinancialSettlementRequest;
@@ -59,6 +60,8 @@ import com.devwonder.backend.service.AdminSettingsService;
 import com.devwonder.backend.util.PaginationUtils;
 import jakarta.validation.Valid;
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -69,6 +72,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -472,6 +476,34 @@ public class AdminController {
     ) {
         return ResponseEntity.ok(ApiResponse.success(
                 adminFinancialService.resolveFinancialSettlement(id, request, extractUsername(authentication))));
+    }
+
+    @GetMapping("/payments/recent")
+    public ResponseEntity<ApiResponse<PagedResponse<AdminRecentPaymentResponse>>> recentDebtPayments(
+            @RequestParam(name = "dealerId", required = false) Long dealerId,
+            @RequestParam(name = "from", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+            @RequestParam(name = "to", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+            @RequestParam(name = "minAmount", required = false) BigDecimal minAmount,
+            @RequestParam(name = "maxAmount", required = false) BigDecimal maxAmount,
+            @RequestParam(name = "hasProof", required = false) Boolean hasProof,
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sortBy", required = false) String sortBy,
+            @RequestParam(name = "sortDir", required = false) String sortDir
+    ) {
+        Pageable pageable = PaginationUtils.toPageable(page, size, sortBy, sortDir, "paidAt");
+        Page<AdminRecentPaymentResponse> result = adminFinancialService.getRecentDebtPayments(
+                dealerId,
+                from,
+                to,
+                minAmount,
+                maxAmount,
+                hasProof,
+                pageable
+        );
+        return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "paidAt")));
     }
 
     // ---- OrderAdjustment (BUSINESS_LOGIC.md Section 3.25) ----

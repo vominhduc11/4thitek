@@ -46,8 +46,8 @@ export const formCardClass =
 export const textareaClass =
   "min-h-[130px] w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-sm text-[var(--ink)] placeholder:text-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1";
 export const destructiveButtonClass =
-  "btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-rose-300/70 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-500 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
-export const fieldErrorClass = "mt-2 text-sm font-medium text-rose-600";
+  "btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-[var(--destructive-border)] bg-[var(--destructive-soft)] px-4 py-2 text-sm font-semibold text-[var(--destructive-text)] shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--destructive)] hover:bg-[var(--destructive-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--destructive)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+export const fieldErrorClass = "mt-2 text-sm font-medium text-[var(--error-text)]";
 export const fieldHintClass = "mt-2 text-sm text-[var(--muted)]";
 
 type FieldErrorMessageProps = {
@@ -137,7 +137,7 @@ export const SearchInput = ({
 }: SearchInputProps) => (
   <label className={cx("relative block", className)} htmlFor={id}>
     <span className="sr-only">{label}</span>
-    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
     <input
       id={id}
       className={cx(inputClass, "w-full pl-10 pr-4")}
@@ -217,10 +217,10 @@ type StatCardProps = {
 };
 
 const statToneClass: Record<NonNullable<StatCardProps["tone"]>, string> = {
-  neutral: "text-slate-400",
-  success: "text-emerald-500",
-  warning: "text-amber-500",
-  info: "text-blue-500",
+  neutral: "text-[var(--muted)]",
+  success: "text-[var(--tone-success-text)]",
+  warning: "text-[var(--tone-warning-text)]",
+  info: "text-[var(--accent-cool)]",
 };
 
 export const StatCard = ({
@@ -250,11 +250,11 @@ type StatusBadgeProps = {
 };
 
 const badgeToneClass: Record<BadgeTone, string> = {
-  success: "bg-emerald-500/15 text-emerald-700",
-  warning: "bg-amber-500/15 text-amber-700",
+  success: "bg-[var(--tone-success-bg)] text-[var(--tone-success-text)]",
+  warning: "bg-[var(--tone-warning-bg)] text-[var(--tone-warning-text)]",
   info: "bg-[var(--accent-cool-soft)] text-[var(--accent-cool)]",
-  neutral: "bg-slate-200/70 text-[var(--ink)]",
-  danger: "bg-rose-500/15 text-rose-700",
+  neutral: "bg-[var(--surface-muted)] text-[var(--ink)]",
+  danger: "bg-[var(--tone-danger-bg)] text-[var(--tone-danger-text)]",
 };
 
 export const StatusBadge = ({
@@ -318,17 +318,17 @@ export const ErrorState = ({
   <div
     aria-live="assertive"
     className={cx(
-      "rounded-3xl border border-rose-200 bg-rose-50/80 px-6 py-10 text-center",
+      "rounded-3xl border border-[var(--error-border)] bg-[var(--error-bg)] px-6 py-10 text-center",
       className,
     )}
     role="alert"
   >
-    <Icon aria-hidden="true" className="mx-auto h-10 w-10 text-rose-500" />
-    <p className="mt-4 text-base font-semibold text-rose-700">{title}</p>
-    <p className="mt-2 text-sm text-rose-600">{message}</p>
+    <Icon aria-hidden="true" className="mx-auto h-10 w-10 text-[var(--destructive)]" />
+    <p className="mt-4 text-base font-semibold text-[var(--error-text)]">{title}</p>
+    <p className="mt-2 text-sm text-[var(--error-text)]">{message}</p>
     {onRetry ? (
       <button
-        className="mt-4 inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+        className="mt-4 inline-flex items-center justify-center rounded-xl bg-[var(--destructive)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--destructive)] focus-visible:ring-offset-2"
         onClick={onRetry}
         type="button"
       >

@@ -30,6 +30,7 @@ const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'))
 const ChangePasswordPage = lazy(() => import('./pages/ChangePasswordPage'))
 const UnmatchedPaymentsPage = lazy(() => import('./pages/UnmatchedPaymentsPage'))
 const FinancialSettlementsPage = lazy(() => import('./pages/FinancialSettlementsPage'))
+const RecentPaymentsPage = lazy(() => import('./pages/RecentPaymentsPage'))
 const AuditLogsPage = lazy(() => import('./pages/AuditLogsPage'))
 
 const renderLazyElement = (Component: LazyExoticComponent<ComponentType>) => (
@@ -97,6 +98,10 @@ function App() {
           <Route
             path="/unmatched-payments"
             element={renderLazyElement(UnmatchedPaymentsPage)}
+          />
+          <Route
+            path="/payments/recent"
+            element={renderLazyElement(RecentPaymentsPage)}
           />
           <Route
             path="/financial-settlements"

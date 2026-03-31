@@ -9,7 +9,7 @@ import 'utils.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 
-class OrderSuccessScreen extends StatelessWidget {
+class OrderSuccessScreen extends StatefulWidget {
   const OrderSuccessScreen({
     super.key,
     required this.orderId,
@@ -22,11 +22,65 @@ class OrderSuccessScreen extends StatelessWidget {
   final int totalPrice;
 
   @override
+  State<OrderSuccessScreen> createState() => _OrderSuccessScreenState();
+}
+
+class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
+  OrderController? _orderController;
+  bool _redirectScheduled = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final nextController = OrderScope.of(context);
+    if (!identical(_orderController, nextController)) {
+      _orderController?.removeListener(_handleOrderChange);
+      _orderController = nextController;
+      _orderController?.addListener(_handleOrderChange);
+    }
+    _redirectWhenPaid();
+  }
+
+  @override
+  void dispose() {
+    _orderController?.removeListener(_handleOrderChange);
+    super.dispose();
+  }
+
+  void _handleOrderChange() {
+    if (!mounted) {
+      return;
+    }
+    _redirectWhenPaid();
+  }
+
+  void _redirectWhenPaid() {
+    if (_redirectScheduled) {
+      return;
+    }
+    final order = _orderController?.findById(widget.orderId);
+    if (order?.paymentStatus != OrderPaymentStatus.paid) {
+      return;
+    }
+    _redirectScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => OrderDetailScreen(orderId: widget.orderId),
+        ),
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final texts = _OrderSuccessTexts(
       isEnglish: AppSettingsScope.of(context).locale.languageCode == 'en',
     );
-    final order = OrderScope.of(context).findById(orderId);
+    final order = OrderScope.of(context).findById(widget.orderId);
     final isPaid = order?.paymentStatus == OrderPaymentStatus.paid;
     final statusNote = _buildStatusNote(order, texts);
     final colorScheme = Theme.of(context).colorScheme;
@@ -79,7 +133,7 @@ class OrderSuccessScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        texts.orderIdSummary(orderId),
+                        texts.orderIdSummary(widget.orderId),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -142,8 +196,8 @@ class OrderSuccessScreen extends StatelessWidget {
                   delay: const Duration(milliseconds: 500),
                   child: _SummaryCard(
                     texts: texts,
-                    itemCount: itemCount,
-                    totalPrice: totalPrice,
+                    itemCount: widget.itemCount,
+                    totalPrice: widget.totalPrice,
                     paymentMethod: order != null
                         ? texts.paymentMethodLabel(context, order.paymentMethod)
                         : null,
@@ -164,7 +218,7 @@ class OrderSuccessScreen extends StatelessWidget {
                           Navigator.of(context).pushAndRemoveUntil(
                             MaterialPageRoute(
                               builder: (_) =>
-                                  OrderDetailScreen(orderId: orderId),
+                                  OrderDetailScreen(orderId: widget.orderId),
                             ),
                             (route) => route.isFirst,
                           );

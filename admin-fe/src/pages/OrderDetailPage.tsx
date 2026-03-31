@@ -51,10 +51,12 @@ function OrderDetailPage() {
   const [adjAmount, setAdjAmount] = useState('')
   const [adjReason, setAdjReason] = useState('')
   const [adjRef, setAdjRef] = useState('')
+  const [adjConfirmOverride, setAdjConfirmOverride] = useState(false)
   const [adjError, setAdjError] = useState('')
   const [adjSubmitting, setAdjSubmitting] = useState(false)
 
   const order = orders.find((item) => item.id === decodedId)
+  const orderId = order?.id
   const initialPaymentAmount =
     order && order.outstandingAmount > 0 ? String(order.outstandingAmount) : ''
   const validatePaymentAmount = useCallback(
@@ -105,13 +107,17 @@ function OrderDetailPage() {
   }, [order, resetPaymentForm])
 
   useEffect(() => {
-    if (!accessToken || !order) return
+    if (!accessToken || !orderId) return
     let cancelled = false
-    fetchAdminOrderAdjustments(accessToken, Number(order.id))
+    fetchAdminOrderAdjustments(accessToken, Number(orderId))
       .then((data) => { if (!cancelled) setAdjustments(data) })
       .catch(() => { /* non-critical, silently ignore */ })
     return () => { cancelled = true }
-  }, [accessToken, order?.id])
+  }, [accessToken, orderId])
+
+  useEffect(() => {
+    setAdjConfirmOverride(false)
+  }, [orderId])
 
   if (ordersState.status === 'loading' || ordersState.status === 'idle') {
     return (
@@ -481,7 +487,9 @@ function OrderDetailPage() {
 
       <div className="mt-6 rounded-3xl border border-slate-200/70 bg-white/80 p-5">
         <p className="text-sm font-semibold text-slate-900">{t('Điều chỉnh tài chính')}</p>
-        <p className="mt-1 text-xs text-slate-500">{t('Ghi nhận điều chỉnh, bù trừ hoặc hoàn tiền cho đơn hàng.')}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {t('Ghi nhận điều chỉnh, bù trừ hoặc hoàn tiền cho đơn hàng. Số âm làm giảm đã thu, số dương bổ sung đã thu.')}
+              </p>
 
         {adjustments.length > 0 && (
           <div className="mt-4 overflow-x-auto">
@@ -530,7 +538,7 @@ function OrderDetailPage() {
             <span className={labelClass}>{t('Số tiền')}</span>
             <input
               className={`${inputClass} bg-white text-slate-700`}
-              min="0"
+              step="1"
               type="number"
               value={adjAmount}
               onChange={(e) => setAdjAmount(e.target.value)}
@@ -552,6 +560,19 @@ function OrderDetailPage() {
               onChange={(e) => setAdjRef(e.target.value)}
             />
           </label>
+          {order?.status === 'completed' ? (
+            <label className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:col-span-2">
+              <input
+                checked={adjConfirmOverride}
+                className="mt-1 h-4 w-4 rounded border-amber-300 text-amber-700 focus:ring-amber-500"
+                onChange={(e) => setAdjConfirmOverride(e.target.checked)}
+                type="checkbox"
+              />
+              <span>
+                {t('Đơn đã COMPLETED. Xác nhận override để cho phép tạo adjustment ảnh hưởng dữ liệu accounting đã chốt.')}
+              </span>
+            </label>
+          ) : null}
         </div>
 
         {adjError && (
@@ -565,8 +586,12 @@ function OrderDetailPage() {
             onClick={async () => {
               if (!accessToken) return
               const amount = Number(adjAmount)
-              if (Number.isNaN(amount) || amount <= 0) {
-                setAdjError(t('Số tiền không hợp lệ'))
+              if (Number.isNaN(amount) || amount === 0) {
+                setAdjError(t('Số tiền phải khác 0'))
+                return
+              }
+              if (order?.status === 'completed' && !adjConfirmOverride) {
+                setAdjError(t('Cần xác nhận override trước khi điều chỉnh đơn đã COMPLETED'))
                 return
               }
               if (adjReason.trim().length < 10) {
@@ -581,11 +606,14 @@ function OrderDetailPage() {
                   amount,
                   reason: adjReason.trim(),
                   referenceCode: adjRef.trim() || undefined,
+                  confirmOverride: order?.status === 'completed' ? adjConfirmOverride : undefined,
                 })
                 setAdjustments((prev) => [created, ...prev])
                 setAdjAmount('')
                 setAdjReason('')
                 setAdjRef('')
+                setAdjConfirmOverride(false)
+                void reloadResource('orders')
                 notify(t('Đã thêm điều chỉnh tài chính'), { title: t('Điều chỉnh'), variant: 'success' })
               } catch (err) {
                 setAdjError(err instanceof Error ? err.message : t('Không thêm được điều chỉnh'))

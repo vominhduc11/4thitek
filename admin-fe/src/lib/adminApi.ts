@@ -162,6 +162,7 @@ export type BackendOrderAdjustmentRequest = {
   amount: number
   reason: string
   referenceCode?: string
+  confirmOverride?: boolean
 }
 
 export type BackendAuditLogResponse = {
@@ -520,11 +521,29 @@ export type BackendUnmatchedPaymentResponse = {
   matchedOrderId?: number | null
 }
 
+export type BackendRecentPaymentResponse = {
+  id: number
+  orderId?: number | null
+  orderCode?: string | null
+  dealerId?: number | null
+  dealerName?: string | null
+  amount?: number | string | null
+  method?: BackendPaymentMethod | null
+  status?: BackendPaymentStatus | null
+  channel?: string | null
+  transactionCode?: string | null
+  note?: string | null
+  proofFileName?: string | null
+  paidAt?: string | null
+  createdAt?: string | null
+  reviewSuggested?: boolean | null
+}
+
 // Neutral fallback codes let calling layers map API failures through their own i18n.
 export const ADMIN_API_REQUEST_FAILED = 'ADMIN_API_REQUEST_FAILED'
 export const ADMIN_API_SESSION_EXPIRED = 'ADMIN_API_SESSION_EXPIRED'
 
-const buildQueryString = (params?: Record<string, string | number | null | undefined>) => {
+const buildQueryString = (params?: Record<string, string | number | boolean | null | undefined>) => {
   if (!params) return ''
   const searchParams = new URLSearchParams()
   Object.entries(params).forEach(([key, value]) => {
@@ -554,7 +573,7 @@ const requestWithToken = ({
   token: string
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   body?: unknown
-  params?: Record<string, string | number | null | undefined>
+  params?: Record<string, string | number | boolean | null | undefined>
 }) =>
   fetch(buildApiUrl(`${path}${buildQueryString(params)}`), {
     method,
@@ -591,7 +610,7 @@ const authorizedJsonRequest = async <T>({
   token: string
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   body?: unknown
-  params?: Record<string, string | number | null | undefined>
+  params?: Record<string, string | number | boolean | null | undefined>
 }): Promise<T> => {
   let activeToken = await resolveAuthorizedToken(token)
   let response = await requestWithToken({
@@ -655,7 +674,7 @@ const authorizedBlobRequest = async ({
 }: {
   path: string
   token: string
-  params?: Record<string, string | number | null | undefined>
+  params?: Record<string, string | number | boolean | null | undefined>
   fallbackFileName: string
 }): Promise<BackendReportDownloadResponse> => {
   let activeToken = await resolveAuthorizedToken(token)
@@ -1188,6 +1207,25 @@ export const createAdminOrderAdjustment = (
     token,
     method: 'POST',
     body,
+  })
+
+export const fetchAdminRecentPayments = (
+  token: string,
+  params?: {
+    page?: number
+    size?: number
+    dealerId?: number
+    from?: string
+    to?: string
+    minAmount?: number
+    maxAmount?: number
+    hasProof?: boolean
+  },
+) =>
+  authorizedJsonRequest<BackendPagedResponse<BackendRecentPaymentResponse>>({
+    path: '/admin/payments/recent',
+    token,
+    params,
   })
 
 export const fetchAdminAuditLogs = (token: string, page?: number, size?: number) =>

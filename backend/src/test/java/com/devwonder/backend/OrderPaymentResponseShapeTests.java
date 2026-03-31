@@ -226,6 +226,41 @@ class OrderPaymentResponseShapeTests {
                 .andExpect(jsonPath("$.data[0].allowedTransitions[1]").value("SUSPENDED"));
     }
 
+    @Test
+    void adminRecentDebtPaymentsEndpointKeepsResponseShapeAndFlagsBurstActivity() throws Exception {
+        String adminToken = login("orders.shape.admin@example.com", "ChangedPass#456");
+        saveDebtOrderWithPayment("ORD-DEBT-SHAPE-1", "TX-DEBT-SHAPE-1", Instant.parse("2026-03-10T01:00:00Z"));
+        saveDebtOrderWithPayment("ORD-DEBT-SHAPE-2", "TX-DEBT-SHAPE-2", Instant.parse("2026-03-10T01:20:00Z"));
+        Order flaggedOrder = saveDebtOrderWithPayment(
+                "ORD-DEBT-SHAPE-3",
+                "TX-DEBT-SHAPE-3",
+                Instant.parse("2026-03-10T01:40:00Z")
+        );
+
+        mockMvc.perform(get("/api/v1/admin/payments/recent")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .param("dealerId", dealer.getId().toString())
+                        .param("page", "0")
+                        .param("size", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.items[0].id").isNumber())
+                .andExpect(jsonPath("$.data.items[0].orderId").value(flaggedOrder.getId()))
+                .andExpect(jsonPath("$.data.items[0].orderCode").value("ORD-DEBT-SHAPE-3"))
+                .andExpect(jsonPath("$.data.items[0].dealerId").value(dealer.getId()))
+                .andExpect(jsonPath("$.data.items[0].dealerName").isString())
+                .andExpect(jsonPath("$.data.items[0].amount").isNumber())
+                .andExpect(jsonPath("$.data.items[0].method").value("DEBT"))
+                .andExpect(jsonPath("$.data.items[0].status").value("PAID"))
+                .andExpect(jsonPath("$.data.items[0].channel").value("Dealer debt confirmation"))
+                .andExpect(jsonPath("$.data.items[0].transactionCode").value("TX-DEBT-SHAPE-3"))
+                .andExpect(jsonPath("$.data.items[0].note").value("Debt payment shape test"))
+                .andExpect(jsonPath("$.data.items[0].proofFileName").value("proof-debt-shape.png"))
+                .andExpect(jsonPath("$.data.items[0].paidAt").exists())
+                .andExpect(jsonPath("$.data.items[0].createdAt").exists())
+                .andExpect(jsonPath("$.data.items[0].reviewSuggested").value(true));
+    }
+
     private Dealer registerActiveDealer(String prefix) throws Exception {
         String username = prefix + "@example.com";
         String email = "mail+" + prefix + "@example.com";
@@ -343,6 +378,45 @@ class OrderPaymentResponseShapeTests {
             payment.setPaidAt(Instant.parse("2026-03-10T02:00:00Z"));
             paymentRepository.saveAndFlush(payment);
         }
+
+        return orderRepository.findById(savedOrder.getId()).orElseThrow();
+    }
+
+    private Order saveDebtOrderWithPayment(String orderCode, String transactionCode, Instant paidAt) {
+        Order debtOrder = new Order();
+        debtOrder.setDealer(dealer);
+        debtOrder.setOrderCode(orderCode);
+        debtOrder.setStatus(OrderStatus.PENDING);
+        debtOrder.setPaymentMethod(PaymentMethod.DEBT);
+        debtOrder.setPaymentStatus(PaymentStatus.DEBT_RECORDED);
+        debtOrder.setPaidAmount(BigDecimal.valueOf(50_000));
+        debtOrder.setIsDeleted(false);
+        debtOrder.setReceiverName("Debt Dealer Receiver");
+        debtOrder.setReceiverAddress("456 Debt Street");
+        debtOrder.setReceiverPhone("0911000000");
+        debtOrder.setShippingFee(0);
+        debtOrder.setNote("Debt order shape test");
+
+        OrderItem item = new OrderItem();
+        item.setOrder(debtOrder);
+        item.setProduct(product);
+        item.setQuantity(1);
+        item.setUnitPrice(product.getRetailPrice());
+        debtOrder.setOrderItems(new LinkedHashSet<>(Set.of(item)));
+
+        Order savedOrder = orderRepository.saveAndFlush(debtOrder);
+
+        Payment payment = new Payment();
+        payment.setOrder(savedOrder);
+        payment.setAmount(BigDecimal.valueOf(50_000));
+        payment.setMethod(PaymentMethod.DEBT);
+        payment.setStatus(PaymentStatus.PAID);
+        payment.setChannel("Dealer debt confirmation");
+        payment.setTransactionCode(transactionCode);
+        payment.setNote("Debt payment shape test");
+        payment.setProofFileName("proof-debt-shape.png");
+        payment.setPaidAt(paidAt);
+        paymentRepository.saveAndFlush(payment);
 
         return orderRepository.findById(savedOrder.getId()).orElseThrow();
     }

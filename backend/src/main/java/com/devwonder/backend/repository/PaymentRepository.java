@@ -4,6 +4,8 @@ import com.devwonder.backend.entity.Payment;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -21,4 +23,96 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.order.id = :orderId")
     BigDecimal sumAmountByOrderId(@Param("orderId") Long orderId);
+
+    @EntityGraph(attributePaths = {"order", "order.dealer"})
+    @Query(
+            value = """
+                    select p
+                    from Payment p
+                    join p.order o
+                    join o.dealer d
+                    where o.paymentMethod = com.devwonder.backend.entity.enums.PaymentMethod.DEBT
+                      and (:dealerId is null or d.id = :dealerId)
+                      and (:fromInclusive is null or coalesce(p.paidAt, p.createdAt) >= :fromInclusive)
+                      and (:toInclusive is null or coalesce(p.paidAt, p.createdAt) <= :toInclusive)
+                      and (:minAmount is null or p.amount >= :minAmount)
+                      and (:maxAmount is null or p.amount <= :maxAmount)
+                      and (
+                            :hasProof is null
+                            or (
+                                :hasProof = true
+                                and trim(coalesce(p.proofFileName, '')) <> ''
+                            )
+                            or (
+                                :hasProof = false
+                                and trim(coalesce(p.proofFileName, '')) = ''
+                            )
+                      )
+                    order by coalesce(p.paidAt, p.createdAt) desc, p.id desc
+                    """,
+            countQuery = """
+                    select count(p)
+                    from Payment p
+                    join p.order o
+                    join o.dealer d
+                    where o.paymentMethod = com.devwonder.backend.entity.enums.PaymentMethod.DEBT
+                      and (:dealerId is null or d.id = :dealerId)
+                      and (:fromInclusive is null or coalesce(p.paidAt, p.createdAt) >= :fromInclusive)
+                      and (:toInclusive is null or coalesce(p.paidAt, p.createdAt) <= :toInclusive)
+                      and (:minAmount is null or p.amount >= :minAmount)
+                      and (:maxAmount is null or p.amount <= :maxAmount)
+                      and (
+                            :hasProof is null
+                            or (
+                                :hasProof = true
+                                and trim(coalesce(p.proofFileName, '')) <> ''
+                            )
+                            or (
+                                :hasProof = false
+                                and trim(coalesce(p.proofFileName, '')) = ''
+                            )
+                      )
+                    """
+    )
+    Page<Payment> findDebtPaymentsForReview(
+            @Param("dealerId") Long dealerId,
+            @Param("fromInclusive") Instant fromInclusive,
+            @Param("toInclusive") Instant toInclusive,
+            @Param("minAmount") BigDecimal minAmount,
+            @Param("maxAmount") BigDecimal maxAmount,
+            @Param("hasProof") Boolean hasProof,
+            Pageable pageable
+    );
+
+    @EntityGraph(attributePaths = {"order", "order.dealer"})
+    @Query("""
+            select p
+            from Payment p
+            join p.order o
+            join o.dealer d
+            where o.paymentMethod = com.devwonder.backend.entity.enums.PaymentMethod.DEBT
+              and coalesce(p.paidAt, p.createdAt) >= :fromInclusive
+              and coalesce(p.paidAt, p.createdAt) < :toExclusive
+            order by coalesce(p.paidAt, p.createdAt) desc, p.id desc
+            """)
+    List<Payment> findDebtPaymentsRecordedBetween(
+            @Param("fromInclusive") Instant fromInclusive,
+            @Param("toExclusive") Instant toExclusive
+    );
+
+    @Query("""
+            select count(p)
+            from Payment p
+            join p.order o
+            join o.dealer d
+            where o.paymentMethod = com.devwonder.backend.entity.enums.PaymentMethod.DEBT
+              and d.id = :dealerId
+              and coalesce(p.paidAt, p.createdAt) >= :fromInclusive
+              and coalesce(p.paidAt, p.createdAt) <= :toInclusive
+            """)
+    long countDebtPaymentsForDealerWithinWindow(
+            @Param("dealerId") Long dealerId,
+            @Param("fromInclusive") Instant fromInclusive,
+            @Param("toInclusive") Instant toInclusive
+    );
 }
