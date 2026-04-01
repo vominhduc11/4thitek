@@ -188,6 +188,7 @@ export type BackendDealerAccountResponse = {
   lastOrderAt?: string | null
   revenue?: number | string | null
   creditLimit?: number | string | null
+  outstandingDebt?: number | string | null
   email?: string | null
   phone?: string | null
   allowedTransitions?: BackendDealerAccountStatus[] | null
@@ -1123,11 +1124,12 @@ export const exportAdminReport = (
   token: string,
   type: BackendReportExportType,
   format: BackendReportFormat,
+  dateRange?: { from?: string; to?: string },
 ) =>
   authorizedBlobRequest({
     path: '/admin/reports/export',
     token,
-    params: { type, format },
+    params: { type, format, from: dateRange?.from, to: dateRange?.to },
     fallbackFileName: `${type.toLowerCase()}-report.${format.toLowerCase()}`,
   })
 
@@ -1228,9 +1230,61 @@ export const fetchAdminRecentPayments = (
     params,
   })
 
-export const fetchAdminAuditLogs = (token: string, page?: number, size?: number) =>
+export type BackendOrderPaymentResponse = {
+  id: number
+  orderId?: number | null
+  amount?: number | string | null
+  method?: BackendPaymentMethod | null
+  channel?: string | null
+  transactionCode?: string | null
+  note?: string | null
+  paidAt?: string | null
+  createdAt?: string | null
+  recordedBy?: string | null
+}
+
+export const fetchAdminOrderPayments = (token: string, orderId: number) =>
+  authorizedJsonRequest<BackendOrderPaymentResponse[]>({
+    path: `/admin/orders/${orderId}/payments`,
+    token,
+  })
+
+export const resetAdminUserPassword = (token: string, userId: number) =>
+  authorizedJsonRequest<{ temporaryPassword: string }>({
+    path: `/admin/users/${userId}/reset-password`,
+    token,
+    method: 'POST',
+  })
+
+export const testAdminEmailSettings = (token: string) =>
+  authorizedJsonRequest<{ status: string }>({
+    path: '/admin/settings/test-email',
+    token,
+    method: 'POST',
+  })
+
+export const markAdminRecentPaymentReviewed = (token: string, paymentId: number) =>
+  authorizedJsonRequest<BackendRecentPaymentResponse>({
+    path: `/admin/payments/recent/${paymentId}/review`,
+    token,
+    method: 'PATCH',
+  })
+
+export const fetchAdminAuditLogs = (
+  token: string,
+  page?: number,
+  size?: number,
+  filters?: { from?: string; to?: string; actor?: string; action?: string },
+) =>
   authorizedJsonRequest<BackendPagedResponse<BackendAuditLogResponse>>({
     path: '/admin/audit-logs',
     token,
-    params: { page: page ?? 0, size: size ?? 50 },
+    params: {
+      page: page ?? 0,
+      size: size ?? 50,
+      from: filters?.from,
+      to: filters?.to,
+      actor: filters?.actor,
+      action: filters?.action,
+    },
   })

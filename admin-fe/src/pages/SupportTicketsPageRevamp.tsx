@@ -458,12 +458,39 @@ function SupportTicketsPageRevamp() {
                 </h4>
                 <p className="mt-1 text-sm text-[var(--muted)]">
                   {selectedTicket.dealerName ?? "-"} ·{" "}
-                  {selectedTicket.category ?? "OTHER"}
+                  {selectedTicket.category ?? "OTHER"} ·{" "}
+                  {formatDateTime(selectedTicket.createdAt ?? new Date().toISOString())}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--ink)]">
-                {selectedTicket.message ?? "-"}
+              {/* Conversation thread */}
+              <div className="space-y-3">
+                {/* Dealer message */}
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                    {selectedTicket.dealerName ?? t("Đại lý")}
+                  </p>
+                  <p className="text-sm text-[var(--ink)]">
+                    {selectedTicket.message ?? "-"}
+                  </p>
+                </div>
+
+                {/* Existing admin reply (read-only view) */}
+                {selectedTicket.adminReply && (
+                  <div className="rounded-2xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
+                      Admin
+                    </p>
+                    <p className="text-sm text-[var(--ink)]">
+                      {selectedTicket.adminReply}
+                    </p>
+                    {selectedTicket.updatedAt && (
+                      <p className="mt-2 text-xs text-[var(--muted)]">
+                        {formatDateTime(selectedTicket.updatedAt)}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -521,7 +548,7 @@ function SupportTicketsPageRevamp() {
               <label className="block text-sm text-[var(--ink)]">
                 <span className={tableMetaClass}>{copy.reply}</span>
                 <textarea
-                  className={`${textareaClass} mt-2 min-h-[180px]`}
+                  className={`${textareaClass} mt-2 min-h-[120px]`}
                   value={replyDraft}
                   onChange={(event) => setReplyDraft(event.target.value)}
                 />

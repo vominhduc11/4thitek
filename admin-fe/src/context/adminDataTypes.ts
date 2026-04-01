@@ -57,6 +57,7 @@ export type Dealer = {
   lastOrderAt: string
   revenue: number
   creditLimit: number
+  outstandingDebt: number
   email: string
   phone: string
   allowedTransitions?: DealerStatus[]

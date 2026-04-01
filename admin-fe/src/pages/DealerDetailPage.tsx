@@ -194,6 +194,14 @@ function DealerDetailPage() {
                 {dealer.creditLimit > 0 ? formatCurrency(dealer.creditLimit) : t('Chưa đặt')}
               </p>
             </div>
+            <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                {t('Dư nợ hiện tại')}
+              </p>
+              <p className={`mt-1 font-semibold ${dealer.outstandingDebt > 0 ? 'text-rose-600' : 'text-slate-900'}`}>
+                {dealer.outstandingDebt > 0 ? formatCurrency(dealer.outstandingDebt) : '—'}
+              </p>
+            </div>
           </div>
           <p className="mt-3 text-xs text-slate-500">
             {t('Lần mua gần nhất')}: {formatDateTime(dealer.lastOrderAt)}

@@ -1,10 +1,12 @@
-import { ShieldCheck, UserPlus, Users } from "lucide-react";
+import { KeyRound, ShieldCheck, UserPlus, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAdminData, type UserStatus } from "../context/AdminDataContext";
+import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { resetAdminUserPassword } from "../lib/adminApi";
 import { userStatusLabel, userStatusTone } from "../lib/adminLabels";
 import {
   EmptyState,
@@ -85,6 +87,11 @@ const copyKeys = {
   confirmMessage: 'Chuyển tài khoản này sang trạng thái "{status}"?',
   inviteSuccess: "Đã gửi lời mời người dùng mới.",
   inviteFailed: "Không thể gửi lời mời người dùng.",
+  resetPassword: "Đặt lại mật khẩu",
+  resetPasswordConfirmTitle: "Đặt lại mật khẩu",
+  resetPasswordConfirmMessage: "Đặt lại mật khẩu cho tài khoản \"{name}\"? Mật khẩu tạm thời sẽ được tạo.",
+  resetPasswordSuccess: "Mật khẩu tạm thời: {password}",
+  resetPasswordFailed: "Không thể đặt lại mật khẩu.",
 } as const;
 
 const getInviteFormErrors = (copy: typeof copyKeys, form: InviteForm) => {
@@ -113,6 +120,7 @@ function UsersPageRevamp() {
   const { t } = useLanguage();
   const copy = translateCopy(copyKeys, t);
   const { notify } = useToast();
+  const { accessToken } = useAuth();
   const { confirm, confirmDialog } = useConfirmDialog();
   const { users, usersState, addUser, updateUserStatus, reloadResource } =
     useAdminData();
@@ -120,6 +128,36 @@ function UsersPageRevamp() {
   const [showInvite, setShowInvite] = useState(false);
   const [formErrors, setFormErrors] = useState<InviteFormErrors>({});
   const [form, setForm] = useState<InviteForm>(initialForm);
+  const [resettingPasswordFor, setResettingPasswordFor] = useState<string | null>(null);
+
+  const handleResetPassword = async (userId: string, userName: string) => {
+    if (!accessToken) return;
+
+    const approved = await confirm({
+      title: copy.resetPasswordConfirmTitle,
+      message: copy.resetPasswordConfirmMessage.replace("{name}", userName),
+      tone: "warning",
+      confirmLabel: copy.resetPassword,
+    });
+
+    if (!approved) return;
+
+    setResettingPasswordFor(userId);
+    try {
+      const result = await resetAdminUserPassword(accessToken, Number(userId));
+      notify(copy.resetPasswordSuccess.replace("{password}", result.temporaryPassword), {
+        title: copy.resetPasswordConfirmTitle,
+        variant: "success",
+      });
+    } catch (error) {
+      notify(
+        error instanceof Error ? error.message : copy.resetPasswordFailed,
+        { title: copy.resetPasswordConfirmTitle, variant: "error" },
+      );
+    } finally {
+      setResettingPasswordFor(null);
+    }
+  };
   const toolbarSearchClass = "w-full sm:max-w-sm lg:w-72 xl:w-80";
 
   const normalizedQuery = query.trim().toLowerCase();
@@ -402,6 +440,17 @@ function UsersPageRevamp() {
                       <StatusBadge tone={userStatusTone[user.status]}>
                         {t(userStatusLabel[user.status])}
                       </StatusBadge>
+                      {user.systemRole !== "SUPER_ADMIN" && (
+                        <GhostButton
+                          className="text-xs"
+                          disabled={resettingPasswordFor === user.id}
+                          icon={<KeyRound className="h-3 w-3" />}
+                          onClick={() => void handleResetPassword(user.id, user.name)}
+                          type="button"
+                        >
+                          {resettingPasswordFor === user.id ? "..." : copy.resetPassword}
+                        </GhostButton>
+                      )}
                       {user.systemRole !== "SUPER_ADMIN" && <select
                         aria-label={`${copy.title} ${user.id}`}
                         className={tableActionSelectClass}

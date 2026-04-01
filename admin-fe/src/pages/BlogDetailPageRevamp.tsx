@@ -1,4 +1,4 @@
-import { ArrowLeft, FileText, Pencil, Save, Trash2, X } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, FileText, Pencil, Save, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -111,6 +111,7 @@ function BlogDetailPageRevamp() {
   );
 
   const [isEditing, setIsEditing] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editCategory, setEditCategory] = useState("");
   const [editExcerpt, setEditExcerpt] = useState("");
@@ -160,6 +161,7 @@ function BlogDetailPageRevamp() {
     setEditImageUrl(post.imageUrl ?? "");
     setEditShowOnHomepage(Boolean(post.showOnHomepage));
     setEditScheduledAt(post.scheduledAt ? post.scheduledAt.slice(0, 16) : "");
+    setShowPreview(false);
     setIsEditing(true);
   };
 
@@ -206,13 +208,22 @@ function BlogDetailPageRevamp() {
           <div className="flex items-start justify-between gap-3">
             <p className={labelClass}>{post.id}</p>
             {!isEditing ? (
-              <GhostButton
-                icon={<Pencil className="h-4 w-4" />}
-                onClick={handleStartEdit}
-                type="button"
-              >
-                {copy.edit}
-              </GhostButton>
+              <div className="flex gap-2">
+                <GhostButton
+                  icon={showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  onClick={() => setShowPreview((v) => !v)}
+                  type="button"
+                >
+                  {showPreview ? t("Tắt xem trước") : t("Xem trước")}
+                </GhostButton>
+                <GhostButton
+                  icon={<Pencil className="h-4 w-4" />}
+                  onClick={handleStartEdit}
+                  type="button"
+                >
+                  {copy.edit}
+                </GhostButton>
+              </div>
             ) : null}
           </div>
 
@@ -302,6 +313,52 @@ function BlogDetailPageRevamp() {
                   {copy.cancel}
                 </GhostButton>
               </div>
+            </div>
+          ) : showPreview ? (
+            <div className="mt-4">
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-xs text-[var(--muted)]">
+                {t("Xem trước bài viết — hiển thị như trang public.")}
+              </div>
+              {post.imageUrl ? (
+                <div className="mt-5 overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)]">
+                  <img
+                    src={resolveBackendAssetUrl(post.imageUrl)}
+                    alt={post.title}
+                    className="aspect-[16/9] w-full object-cover"
+                  />
+                </div>
+              ) : null}
+              <div className="mt-6">
+                <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                  {post.category || copy.uncategorized}
+                </p>
+                <h1 className="mt-2 text-2xl font-bold leading-snug text-[var(--ink)]">
+                  {post.title}
+                </h1>
+                {post.scheduledAt && (
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    {formatDateTime(post.scheduledAt)}
+                  </p>
+                )}
+              </div>
+              {post.excerpt ? (
+                <p className="mt-5 text-base leading-7 text-[var(--muted)] italic border-l-4 border-[var(--accent)] pl-4">
+                  {post.excerpt}
+                </p>
+              ) : null}
+              {contentParagraphs.length > 0 ? (
+                <div className="mt-6 space-y-5">
+                  {contentParagraphs.map((paragraph, index) => (
+                    <p key={index} className="text-sm leading-8 text-[var(--ink)]">
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-6 text-sm text-[var(--muted)] italic">
+                  {copy.contentFallback}
+                </p>
+              )}
             </div>
           ) : (
             <>

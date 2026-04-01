@@ -263,6 +263,7 @@ export const mapDealer = (dealer: BackendDealerAccountResponse): Dealer => ({
   lastOrderAt: dealer.lastOrderAt || '',
   revenue: Number(dealer.revenue ?? 0),
   creditLimit: Number(dealer.creditLimit ?? 0),
+  outstandingDebt: Number(dealer.outstandingDebt ?? 0),
   email: dealer.email || '',
   phone: dealer.phone || '',
   allowedTransitions: mapAllowedDealerTransitions(

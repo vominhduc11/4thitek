@@ -595,6 +595,22 @@ public class AdminManagementService {
         admin.setUserStatus(request.status());
         return AdminResponseMapper.toStaffUserResponse(adminRepository.save(admin));
     }
+
+    @Transactional
+    public java.util.Map<String, String> resetUserPassword(Long id) {
+        Admin admin = adminRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Staff user not found"));
+        boolean isSuperAdmin = admin.getRoles().stream()
+                .anyMatch(role -> "SUPER_ADMIN".equals(role.getName()));
+        if (isSuperAdmin) {
+            throw new BadRequestException("Cannot reset password of a super admin account");
+        }
+        String temporaryPassword = generateTemporaryPassword();
+        admin.setPassword(passwordEncoder.encode(temporaryPassword));
+        admin.setRequirePasswordChange(Boolean.TRUE);
+        adminRepository.save(admin);
+        return java.util.Map.of("temporaryPassword", temporaryPassword);
+    }
     @Transactional(readOnly = true)
     public List<AdminDiscountRuleResponse> getDiscountRules() {
         return bulkDiscountRepository.findAll().stream()

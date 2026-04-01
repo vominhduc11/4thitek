@@ -7,6 +7,7 @@ import { useToast } from "../context/ToastContext";
 import { translateCopy } from "../lib/i18n";
 import {
   fetchAdminRecentPayments,
+  markAdminRecentPaymentReviewed,
   type BackendRecentPaymentResponse,
 } from "../lib/adminApi";
 import { formatCurrency, formatDateTime } from "../lib/formatters";
@@ -62,6 +63,9 @@ const copyKeys = {
   noSelection: "Chọn một payment để xem chi tiết",
   flaggedYes: "Có",
   flaggedNo: "Không",
+  markReviewed: "Đánh dấu đã xem xét",
+  markReviewedSuccess: "Đã đánh dấu xem xét.",
+  markReviewedFailed: "Không thể đánh dấu xem xét.",
 } as const;
 
 const toIsoDateTime = (value: string) => {
@@ -94,6 +98,7 @@ function RecentPaymentsPageRevamp() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reviewingId, setReviewingId] = useState<number | null>(null);
 
   const loadPage = useCallback(
     async (nextPage: number) => {
@@ -151,6 +156,25 @@ function RecentPaymentsPageRevamp() {
 
   const handleApply = () => {
     void loadPage(0);
+  };
+
+  const handleMarkReviewed = async (paymentId: number) => {
+    if (!accessToken) return;
+    setReviewingId(paymentId);
+    try {
+      const updated = await markAdminRecentPaymentReviewed(accessToken, paymentId);
+      setItems((previous) =>
+        previous.map((item) => (item.id === paymentId ? { ...item, ...updated } : item)),
+      );
+      notify(copy.markReviewedSuccess, { title: copy.title, variant: "success" });
+    } catch (markError) {
+      notify(
+        markError instanceof Error ? markError.message : copy.markReviewedFailed,
+        { title: copy.title, variant: "error" },
+      );
+    } finally {
+      setReviewingId(null);
+    }
   };
 
   if (isLoading) {
@@ -373,6 +397,18 @@ function RecentPaymentsPageRevamp() {
                     </div>
                   ))}
                 </dl>
+                {selectedItem.reviewSuggested && (
+                  <div className="mt-4 border-t border-[var(--border)] pt-4">
+                    <PrimaryButton
+                      className="w-full"
+                      disabled={reviewingId === selectedItem.id}
+                      onClick={() => void handleMarkReviewed(selectedItem.id)}
+                      type="button"
+                    >
+                      {reviewingId === selectedItem.id ? "..." : copy.markReviewed}
+                    </PrimaryButton>
+                  </div>
+                )}
               </>
             ) : (
               <EmptyState title={copy.noSelection} message={copy.description} />

@@ -14,6 +14,7 @@ public record AdminDealerAccountResponse(
         Integer orders,
         Instant lastOrderAt,
         BigDecimal revenue,
+        BigDecimal outstandingDebt,
         BigDecimal creditLimit,
         String email,
         String phone,

@@ -23,6 +23,8 @@ import {
   PrimaryButton,
   StatCard,
   StatusBadge,
+  inputClass,
+  labelClass,
   softCardClass,
 } from "../components/ui-kit";
 
@@ -50,6 +52,9 @@ const copyKeys = {
   statsFormats: "Định dạng",
   statsReady: "Sẵn sàng",
   readyValue: "XLSX + PDF",
+  dateFrom: "Từ ngày",
+  dateTo: "Đến ngày",
+  dateRangeHint: "Để trống sẽ xuất toàn bộ dữ liệu.",
   exporting: "Đang xuất",
   preparing: "Đang chuẩn bị tệp",
   ready: "Sẵn sàng tải",
@@ -97,6 +102,8 @@ function ReportsPageRevamp() {
   const { notify } = useToast();
   const [activeJob, setActiveJob] = useState<string | null>(null);
   const [lastCompletedJob, setLastCompletedJob] = useState<string | null>(null);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const stats = useMemo(
     () => ({
@@ -118,8 +125,13 @@ function ReportsPageRevamp() {
     const jobKey = `${type}-${format}`;
     setActiveJob(jobKey);
 
+    const dateRange =
+      dateFrom || dateTo
+        ? { from: dateFrom || undefined, to: dateTo || undefined }
+        : undefined;
+
     try {
-      const response = await exportAdminReport(accessToken, type, format);
+      const response = await exportAdminReport(accessToken, type, format, dateRange);
       downloadFile(response.fileName, response.blob);
       setLastCompletedJob(jobKey);
 
@@ -167,6 +179,35 @@ function ReportsPageRevamp() {
           value={stats.ready}
           tone="success"
         />
+      </div>
+
+      <div className={`${softCardClass} mt-6`}>
+        <p className="text-sm font-semibold text-[var(--ink)]">{t("Khoảng thời gian")}</p>
+        <p className="mt-1 text-xs text-[var(--muted)]">{copy.dateRangeHint}</p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="space-y-1">
+            <span className={labelClass}>{copy.dateFrom}</span>
+            <input
+              aria-label={copy.dateFrom}
+              className={inputClass}
+              max={dateTo || undefined}
+              type="date"
+              value={dateFrom}
+              onChange={(event) => setDateFrom(event.target.value)}
+            />
+          </label>
+          <label className="space-y-1">
+            <span className={labelClass}>{copy.dateTo}</span>
+            <input
+              aria-label={copy.dateTo}
+              className={inputClass}
+              min={dateFrom || undefined}
+              type="date"
+              value={dateTo}
+              onChange={(event) => setDateTo(event.target.value)}
+            />
+          </label>
+        </div>
       </div>
 
       {copy.reports.length === 0 ? (

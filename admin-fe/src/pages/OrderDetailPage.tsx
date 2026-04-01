@@ -19,13 +19,17 @@ import {
   fieldErrorClass,
   inputClass,
   labelClass,
+  tableHeadClass,
+  tableRowClass,
 } from '../components/ui-kit'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import {
   fetchAdminOrderAdjustments,
   createAdminOrderAdjustment,
+  fetchAdminOrderPayments,
   type BackendOrderAdjustmentType,
   type BackendOrderAdjustmentResponse,
+  type BackendOrderPaymentResponse,
 } from '../lib/adminApi'
 
 const canDeleteOrder = (status: OrderStatus) => status === 'cancelled'
@@ -45,8 +49,13 @@ function OrderDetailPage() {
   const [paymentNote, setPaymentNote] = useState('')
   const [paymentError, setPaymentError] = useState('')
 
+  // Payment history state
+  const [payments, setPayments] = useState<BackendOrderPaymentResponse[]>([])
+  const [paymentsError, setPaymentsError] = useState<string | null>(null)
+
   // Adjustments state
   const [adjustments, setAdjustments] = useState<BackendOrderAdjustmentResponse[]>([])
+  const [adjustmentsError, setAdjustmentsError] = useState<string | null>(null)
   const [adjType, setAdjType] = useState<BackendOrderAdjustmentType>('CORRECTION')
   const [adjAmount, setAdjAmount] = useState('')
   const [adjReason, setAdjReason] = useState('')
@@ -109,11 +118,30 @@ function OrderDetailPage() {
   useEffect(() => {
     if (!accessToken || !orderId) return
     let cancelled = false
+    setPaymentsError(null)
+    fetchAdminOrderPayments(accessToken, Number(orderId))
+      .then((data) => { if (!cancelled) setPayments(data) })
+      .catch((err) => {
+        if (!cancelled) {
+          setPaymentsError(err instanceof Error ? err.message : t('Không tải được lịch sử thanh toán'))
+        }
+      })
+    return () => { cancelled = true }
+  }, [accessToken, orderId, t])
+
+  useEffect(() => {
+    if (!accessToken || !orderId) return
+    let cancelled = false
+    setAdjustmentsError(null)
     fetchAdminOrderAdjustments(accessToken, Number(orderId))
       .then((data) => { if (!cancelled) setAdjustments(data) })
-      .catch(() => { /* non-critical, silently ignore */ })
+      .catch((err) => {
+        if (!cancelled) {
+          setAdjustmentsError(err instanceof Error ? err.message : t('Không tải được lịch sử điều chỉnh'))
+        }
+      })
     return () => { cancelled = true }
-  }, [accessToken, orderId])
+  }, [accessToken, orderId, t])
 
   useEffect(() => {
     setAdjConfirmOverride(false)
@@ -411,6 +439,12 @@ function OrderDetailPage() {
                         variant: 'success',
                       })
                       setPaymentError('')
+                      // Refresh payment history
+                      if (accessToken && orderId) {
+                        fetchAdminOrderPayments(accessToken, Number(orderId))
+                          .then((data) => setPayments(data))
+                          .catch(() => { /* non-critical */ })
+                      }
                     } catch (error) {
                       notify(
                         error instanceof Error ? error.message : t('Không ghi nhận được thanh toán'),
@@ -484,6 +518,95 @@ function OrderDetailPage() {
         </div>
       </div>
 
+      <div className="mt-6 rounded-3xl border border-slate-200/70 bg-white/80 p-5">
+        <p className="text-sm font-semibold text-slate-900">{t('Mặt hàng trong đơn')}</p>
+        {order.orderItems.length === 0 ? (
+          <p className="mt-3 text-sm text-slate-400">{t('Chưa có thông tin mặt hàng.')}</p>
+        ) : (
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className={tableHeadClass}>
+                  <th className="px-3 py-2 text-left font-semibold">{t('SKU')}</th>
+                  <th className="px-3 py-2 text-left font-semibold">{t('Tên sản phẩm')}</th>
+                  <th className="px-3 py-2 text-right font-semibold">{t('Số lượng')}</th>
+                  <th className="px-3 py-2 text-right font-semibold">{t('Đơn giá')}</th>
+                  <th className="px-3 py-2 text-right font-semibold">{t('Thành tiền')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {order.orderItems.map((item) => (
+                  <tr key={`${item.productId}-${item.productSku}`} className={tableRowClass}>
+                    <td className="px-3 py-2 font-mono text-xs text-slate-500">{item.productSku}</td>
+                    <td className="px-3 py-2 font-medium text-slate-900">{item.productName}</td>
+                    <td className="px-3 py-2 text-right text-slate-700">{item.quantity}</td>
+                    <td className="px-3 py-2 text-right text-slate-700">{formatCurrency(item.unitPrice)}</td>
+                    <td className="px-3 py-2 text-right font-semibold text-slate-900">
+                      {formatCurrency(item.quantity * item.unitPrice)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-slate-200">
+                  <td colSpan={4} className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    {t('Tổng cộng')}
+                  </td>
+                  <td className="px-3 py-2 text-right font-semibold text-slate-900">
+                    {formatCurrency(order.total)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-6 rounded-3xl border border-slate-200/70 bg-white/80 p-5">
+        <p className="text-sm font-semibold text-slate-900">{t('Lịch sử thanh toán')}</p>
+        <p className="mt-1 text-xs text-slate-500">
+          {t('Danh sách các lần ghi nhận thanh toán cho đơn hàng này.')}
+        </p>
+        {paymentsError && (
+          <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">
+            {paymentsError}
+          </div>
+        )}
+        {payments.length === 0 && !paymentsError ? (
+          <p className="mt-3 text-sm text-slate-400">{t('Chưa có lịch sử thanh toán.')}</p>
+        ) : payments.length > 0 ? (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-xs text-slate-700">
+              <thead>
+                <tr className="border-b border-slate-100 text-left text-slate-400 uppercase tracking-wide">
+                  <th className="pb-2 pr-4">{t('Số tiền')}</th>
+                  <th className="pb-2 pr-4">{t('Phương thức')}</th>
+                  <th className="pb-2 pr-4">{t('Kênh')}</th>
+                  <th className="pb-2 pr-4">{t('Mã giao dịch')}</th>
+                  <th className="pb-2 pr-4">{t('Ghi chú')}</th>
+                  <th className="pb-2 pr-4">{t('Người ghi')}</th>
+                  <th className="pb-2">{t('Thời gian')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {payments.map((payment) => (
+                  <tr key={payment.id}>
+                    <td className="py-2 pr-4 font-semibold text-emerald-700">{formatCurrency(Number(payment.amount ?? 0))}</td>
+                    <td className="py-2 pr-4">{payment.method ?? '—'}</td>
+                    <td className="py-2 pr-4">{payment.channel ?? '—'}</td>
+                    <td className="py-2 pr-4 text-slate-400">{payment.transactionCode || '—'}</td>
+                    <td className="py-2 pr-4 max-w-xs break-words">{payment.note || '—'}</td>
+                    <td className="py-2 pr-4">{payment.recordedBy || '—'}</td>
+                    <td className="py-2 whitespace-nowrap">
+                      {payment.paidAt ? formatDateTime(payment.paidAt) : payment.createdAt ? formatDateTime(payment.createdAt) : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </div>
 
       <div className="mt-6 rounded-3xl border border-slate-200/70 bg-white/80 p-5">
         <p className="text-sm font-semibold text-slate-900">{t('Điều chỉnh tài chính')}</p>
@@ -491,6 +614,11 @@ function OrderDetailPage() {
                 {t('Ghi nhận điều chỉnh, bù trừ hoặc hoàn tiền cho đơn hàng. Số âm làm giảm đã thu, số dương bổ sung đã thu.')}
               </p>
 
+        {adjustmentsError && (
+          <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">
+            {adjustmentsError}
+          </div>
+        )}
         {adjustments.length > 0 && (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-xs text-slate-700">

@@ -3,6 +3,7 @@ package com.devwonder.backend.service;
 import com.devwonder.backend.dto.admin.AdminFinancialSettlementResponse;
 import com.devwonder.backend.dto.admin.AdminOrderAdjustmentRequest;
 import com.devwonder.backend.dto.admin.AdminOrderAdjustmentResponse;
+import com.devwonder.backend.dto.admin.AdminOrderPaymentResponse;
 import com.devwonder.backend.dto.admin.AdminRecentPaymentResponse;
 import com.devwonder.backend.dto.admin.AdminUnmatchedPaymentResponse;
 import com.devwonder.backend.dto.admin.AdminUpdateFinancialSettlementRequest;
@@ -222,6 +223,39 @@ public class AdminFinancialService {
                 a.getCreatedBy(),
                 a.getCreatedByRole(),
                 a.getCreatedAt()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminOrderPaymentResponse> getOrderPayments(Long orderId) {
+        orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
+        return paymentRepository.findByOrderIdOrderByPaidAtDescIdDesc(orderId).stream()
+                .map(this::toOrderPaymentResponse)
+                .toList();
+    }
+
+    @Transactional
+    public AdminRecentPaymentResponse markPaymentReviewed(Long paymentId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found: " + paymentId));
+        payment.setReviewed(true);
+        return toRecentPaymentResponse(paymentRepository.save(payment));
+    }
+
+    private AdminOrderPaymentResponse toOrderPaymentResponse(Payment payment) {
+        Order order = payment.getOrder();
+        return new AdminOrderPaymentResponse(
+                payment.getId(),
+                order != null ? order.getId() : null,
+                payment.getAmount(),
+                payment.getMethod(),
+                payment.getChannel(),
+                payment.getTransactionCode(),
+                payment.getNote(),
+                null,
+                payment.getPaidAt(),
+                payment.getCreatedAt()
         );
     }
 

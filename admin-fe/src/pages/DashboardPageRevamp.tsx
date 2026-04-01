@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { ADMIN_THEME_EVENT } from "../hooks/useTheme";
 import {
   AlertTriangle,
@@ -311,34 +312,42 @@ function DashboardPageRevamp() {
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          icon={TrendingUp}
-          label={dashboard.revenue.label}
-          value={formatCurrency(Number(dashboard.revenue.value ?? 0))}
-          hint={`${copy.revenueProgress} ${dashboard.revenue.progress}%`}
-          tone="success"
-        />
-        <StatCard
-          icon={ShoppingCart}
-          label={copy.totalOrders}
-          value={formatNumber(dashboard.orders.total)}
-          hint={`${formatNumber(dashboard.orders.pending)} ${copy.pendingOrders}`}
-          tone="info"
-        />
-        <StatCard
-          icon={AlertTriangle}
-          label={copy.lowStock}
-          value={formatNumber(dashboard.lowStock.skus)}
-          hint={`${formatNumber(dashboard.lowStock.restock)} ${copy.restock}`}
-          tone="warning"
-        />
-        <StatCard
-          icon={Package}
-          label={copy.bestSeller}
-          value={dashboard.topProducts[0]?.name || "-"}
-          hint={dashboard.topProducts[0]?.units || "0"}
-          tone="neutral"
-        />
+        <Link to="/orders" className="block rounded-3xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+          <StatCard
+            icon={TrendingUp}
+            label={dashboard.revenue.label}
+            value={formatCurrency(Number(dashboard.revenue.value ?? 0))}
+            hint={`${copy.revenueProgress} ${dashboard.revenue.progress}%`}
+            tone="success"
+          />
+        </Link>
+        <Link to="/orders?status=pending" className="block rounded-3xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+          <StatCard
+            icon={ShoppingCart}
+            label={copy.totalOrders}
+            value={formatNumber(dashboard.orders.total)}
+            hint={`${formatNumber(dashboard.orders.pending)} ${copy.pendingOrders}`}
+            tone="info"
+          />
+        </Link>
+        <Link to="/serials" className="block rounded-3xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+          <StatCard
+            icon={AlertTriangle}
+            label={copy.lowStock}
+            value={formatNumber(dashboard.lowStock.skus)}
+            hint={`${formatNumber(dashboard.lowStock.restock)} ${copy.restock}`}
+            tone="warning"
+          />
+        </Link>
+        <Link to="/products" className="block rounded-3xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+          <StatCard
+            icon={Package}
+            label={copy.bestSeller}
+            value={dashboard.topProducts[0]?.name || "-"}
+            hint={dashboard.topProducts[0]?.units || "0"}
+            tone="neutral"
+          />
+        </Link>
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
@@ -465,66 +474,72 @@ function DashboardPageRevamp() {
               </div>
             ))}
             {(dashboard.unmatchedPendingCount ?? 0) > 0 && (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/40 dark:bg-amber-900/20">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <CircleDollarSign className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                    <div>
-                      <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-                        {copy.unmatchedPayments}
-                      </p>
-                      <p className="text-xs text-amber-700 dark:text-amber-400">
-                        {dashboard.unmatchedPendingCount}{" "}
-                        {copy.unmatchedPendingHint}
-                      </p>
+              <Link to="/unmatched-payments" className="block rounded-2xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/40 dark:bg-amber-900/20">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <CircleDollarSign className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                      <div>
+                        <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                          {copy.unmatchedPayments}
+                        </p>
+                        <p className="text-xs text-amber-700 dark:text-amber-400">
+                          {dashboard.unmatchedPendingCount}{" "}
+                          {copy.unmatchedPendingHint}
+                        </p>
+                      </div>
                     </div>
+                    <StatusBadge tone="warning">
+                      {String(dashboard.unmatchedPendingCount)}
+                    </StatusBadge>
                   </div>
-                  <StatusBadge tone="warning">
-                    {String(dashboard.unmatchedPendingCount)}
-                  </StatusBadge>
                 </div>
-              </div>
+              </Link>
             )}
             {(dashboard.settlementPendingCount ?? 0) > 0 && (
-              <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800/40 dark:bg-blue-900/20">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <Landmark className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
-                    <div>
-                      <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">
-                        {copy.financialSettlements}
-                      </p>
-                      <p className="text-xs text-blue-700 dark:text-blue-400">
-                        {dashboard.settlementPendingCount}{" "}
-                        {copy.settlementPendingHint}
-                      </p>
+              <Link to="/financial-settlements" className="block rounded-2xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800/40 dark:bg-blue-900/20">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <Landmark className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                      <div>
+                        <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">
+                          {copy.financialSettlements}
+                        </p>
+                        <p className="text-xs text-blue-700 dark:text-blue-400">
+                          {dashboard.settlementPendingCount}{" "}
+                          {copy.settlementPendingHint}
+                        </p>
+                      </div>
                     </div>
+                    <StatusBadge tone="info">
+                      {String(dashboard.settlementPendingCount)}
+                    </StatusBadge>
                   </div>
-                  <StatusBadge tone="info">
-                    {String(dashboard.settlementPendingCount)}
-                  </StatusBadge>
                 </div>
-              </div>
+              </Link>
             )}
             {(dashboard.staleOrdersCount ?? 0) > 0 && (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 dark:border-rose-800/40 dark:bg-rose-900/20">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
-                    <div>
-                      <p className="text-sm font-semibold text-rose-900 dark:text-rose-200">
-                        {copy.staleOrders}
-                      </p>
-                      <p className="text-xs text-rose-700 dark:text-rose-400">
-                        {dashboard.staleOrdersCount} {copy.staleOrdersHint}
-                      </p>
+              <Link to="/orders" className="block rounded-2xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 dark:border-rose-800/40 dark:bg-rose-900/20">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
+                      <div>
+                        <p className="text-sm font-semibold text-rose-900 dark:text-rose-200">
+                          {copy.staleOrders}
+                        </p>
+                        <p className="text-xs text-rose-700 dark:text-rose-400">
+                          {dashboard.staleOrdersCount} {copy.staleOrdersHint}
+                        </p>
+                      </div>
                     </div>
+                    <StatusBadge tone="danger">
+                      {String(dashboard.staleOrdersCount)}
+                    </StatusBadge>
                   </div>
-                  <StatusBadge tone="danger">
-                    {String(dashboard.staleOrdersCount)}
-                  </StatusBadge>
                 </div>
-              </div>
+              </Link>
             )}
           </div>
         </div>

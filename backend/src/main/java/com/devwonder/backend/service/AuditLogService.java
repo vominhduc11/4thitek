@@ -23,9 +23,31 @@ public class AuditLogService {
 
     @Transactional(readOnly = true)
     public Page<AdminAuditLogResponse> getLogs(Pageable pageable) {
+        return getLogs(pageable, null, null, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AdminAuditLogResponse> getLogs(
+            Pageable pageable,
+            java.time.Instant from,
+            java.time.Instant to,
+            String actor,
+            String action
+    ) {
         Pageable effectivePageable = pageable == null || pageable.isUnpaged()
                 ? PageRequest.of(0, 50)
                 : pageable;
+        boolean hasFilters = from != null || to != null
+                || (actor != null && !actor.isBlank())
+                || (action != null && !action.isBlank());
+        if (hasFilters) {
+            return auditLogRepository.findByFilters(
+                    from, to,
+                    (actor != null && !actor.isBlank()) ? actor.trim() : null,
+                    (action != null && !action.isBlank()) ? action.trim() : null,
+                    effectivePageable
+            ).map(AuditLogService::toResponse);
+        }
         return auditLogRepository.findAllByOrderByCreatedAtDesc(effectivePageable)
                 .map(AuditLogService::toResponse);
     }

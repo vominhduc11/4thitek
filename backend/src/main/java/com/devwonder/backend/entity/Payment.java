@@ -64,4 +64,7 @@ public class Payment {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
+
+    @Column(name = "reviewed", nullable = false)
+    private boolean reviewed = false;
 }

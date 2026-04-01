@@ -153,6 +153,14 @@ public final class AdminResponseMapper {
         BigDecimal revenue = revenueOrders.stream()
                 .map(order -> OrderPricingSupport.computeTotalAmount(order, rules, vatPercent))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal outstandingDebt = visibleOrders.stream()
+                .map(order -> {
+                    BigDecimal total = OrderPricingSupport.computeTotalAmount(order, rules, vatPercent);
+                    BigDecimal paid = order.getPaidAmount() == null ? BigDecimal.ZERO : order.getPaidAmount();
+                    BigDecimal diff = total.subtract(paid);
+                    return diff.compareTo(BigDecimal.ZERO) > 0 ? diff : BigDecimal.ZERO;
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         return new AdminDealerAccountResponse(
                 dealer.getId(),
                 firstNonBlank(dealer.getBusinessName(), dealer.getContactName(), dealer.getUsername()),
@@ -162,6 +170,7 @@ public final class AdminResponseMapper {
                 visibleOrders.size(),
                 lastOrderAt,
                 revenue,
+                outstandingDebt,
                 dealer.getCreditLimit(),
                 dealer.getEmail(),
                 dealer.getPhone(),

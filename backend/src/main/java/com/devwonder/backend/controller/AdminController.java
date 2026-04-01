@@ -34,6 +34,7 @@ import com.devwonder.backend.dto.admin.UpdateAdminDiscountRuleStatusRequest;
 import com.devwonder.backend.dto.admin.AdminFinancialSettlementResponse;
 import com.devwonder.backend.dto.admin.AdminOrderAdjustmentRequest;
 import com.devwonder.backend.dto.admin.AdminOrderAdjustmentResponse;
+import com.devwonder.backend.dto.admin.AdminOrderPaymentResponse;
 import com.devwonder.backend.dto.admin.AdminRecentPaymentResponse;
 import com.devwonder.backend.dto.admin.AdminRmaRequest;
 import com.devwonder.backend.dto.admin.AdminUnmatchedPaymentResponse;
@@ -57,6 +58,7 @@ import com.devwonder.backend.service.AdminReportingService;
 import com.devwonder.backend.service.AdminRmaService;
 import com.devwonder.backend.service.AuditLogService;
 import com.devwonder.backend.service.AdminSettingsService;
+import com.devwonder.backend.service.MailService;
 import com.devwonder.backend.util.PaginationUtils;
 import jakarta.validation.Valid;
 import java.nio.charset.StandardCharsets;
@@ -96,6 +98,7 @@ public class AdminController {
     private final AdminFinancialService adminFinancialService;
     private final AdminRmaService adminRmaService;
     private final AuditLogService auditLogService;
+    private final MailService mailService;
 
     @GetMapping("/products")
     public ResponseEntity<ApiResponse<List<AdminProductResponse>>> products() {
@@ -177,6 +180,13 @@ public class AdminController {
             @Valid @RequestBody RecordPaymentRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.recordOrderPayment(id, request)));
+    }
+
+    @GetMapping("/orders/{id}/payments")
+    public ResponseEntity<ApiResponse<List<AdminOrderPaymentResponse>>> getOrderPayments(
+            @PathVariable("id") Long id
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(adminFinancialService.getOrderPayments(id)));
     }
 
     @DeleteMapping("/orders/{id}")
@@ -290,9 +300,13 @@ public class AdminController {
     @GetMapping("/reports/export")
     public ResponseEntity<byte[]> exportReport(
             @RequestParam("type") AdminReportExportType type,
-            @RequestParam("format") AdminReportFormat format
+            @RequestParam("format") AdminReportFormat format,
+            @RequestParam(name = "from", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+            @RequestParam(name = "to", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to
     ) {
-        AdminReportExportResponse report = adminReportingService.export(type, format);
+        AdminReportExportResponse report = adminReportingService.export(type, format, from, to);
         MediaType mediaType;
         try {
             mediaType = MediaType.parseMediaType(report.contentType());
@@ -396,6 +410,13 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.updateUserStatus(id, request)));
     }
 
+    @PostMapping("/users/{id}/reset-password")
+    public ResponseEntity<ApiResponse<Map<String, String>>> resetUserPassword(
+            @PathVariable("id") Long id
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(adminManagementService.resetUserPassword(id)));
+    }
+
     @GetMapping("/discount-rules")
     public ResponseEntity<ApiResponse<List<AdminDiscountRuleResponse>>> discountRules() {
         return ResponseEntity.ok(ApiResponse.success(adminManagementService.getDiscountRules()));
@@ -442,6 +463,20 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(adminSettingsService.updateSettings(request)));
     }
 
+    @PostMapping("/settings/test-email")
+    public ResponseEntity<ApiResponse<Map<String, String>>> testEmail() {
+        if (!mailService.isEnabled()) {
+            throw new BadRequestException("Email is not configured or disabled in settings");
+        }
+        String to = adminSettingsService.getEmailSettings().from();
+        if (to == null || to.isBlank()) {
+            throw new BadRequestException("No sender email configured — set the mail 'from' address in settings first");
+        }
+        mailService.sendText(to, "Test Email - Admin Panel",
+                "This is a test email sent from the admin panel to verify your email configuration is working correctly.");
+        return ResponseEntity.ok(ApiResponse.success(Map.of("status", "sent")));
+    }
+
     // ---- RMA: Serial lifecycle (BUSINESS_LOGIC.md Section 7.3) ----
 
     @PatchMapping("/serials/{id}/rma")
@@ -476,6 +511,13 @@ public class AdminController {
     ) {
         return ResponseEntity.ok(ApiResponse.success(
                 adminFinancialService.resolveFinancialSettlement(id, request, extractUsername(authentication))));
+    }
+
+    @PatchMapping("/payments/recent/{id}/review")
+    public ResponseEntity<ApiResponse<AdminRecentPaymentResponse>> markPaymentReviewed(
+            @PathVariable("id") Long id
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(adminFinancialService.markPaymentReviewed(id)));
     }
 
     @GetMapping("/payments/recent")
@@ -560,10 +602,16 @@ public class AdminController {
     @GetMapping("/audit-logs")
     public ResponseEntity<ApiResponse<PagedResponse<AdminAuditLogResponse>>> auditLogs(
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false) Integer size
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "from", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+            @RequestParam(name = "to", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+            @RequestParam(name = "actor", required = false) String actor,
+            @RequestParam(name = "action", required = false) String action
     ) {
         Pageable pageable = PaginationUtils.toPageable(page, size, "createdAt", "desc", "createdAt");
-        Page<AdminAuditLogResponse> result = auditLogService.getLogs(pageable);
+        Page<AdminAuditLogResponse> result = auditLogService.getLogs(pageable, from, to, actor, action);
         return ResponseEntity.ok(ApiResponse.success(PagedResponse.from(result, "createdAt")));
     }
 

@@ -65,7 +65,17 @@ public class AdminReportingService {
 
     @Transactional(readOnly = true)
     public AdminReportExportResponse export(AdminReportExportType type, AdminReportFormat format) {
-        TableReport report = buildReport(type);
+        return export(type, format, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public AdminReportExportResponse export(
+            AdminReportExportType type,
+            AdminReportFormat format,
+            Instant from,
+            Instant to
+    ) {
+        TableReport report = buildReport(type, from, to);
         byte[] content = switch (format) {
             case XLSX -> renderXlsx(report);
             case PDF -> renderPdf(report);
@@ -78,19 +88,21 @@ public class AdminReportingService {
         return new AdminReportExportResponse(fileName, contentType, content);
     }
 
-    private TableReport buildReport(AdminReportExportType type) {
+    private TableReport buildReport(AdminReportExportType type, Instant from, Instant to) {
         List<BulkDiscount> activeDiscountRules = bulkDiscountRepository.findByStatus(DiscountRuleStatus.ACTIVE);
         return switch (type) {
-            case ORDERS -> buildOrdersReport(activeDiscountRules);
-            case REVENUE -> buildRevenueReport(activeDiscountRules);
+            case ORDERS -> buildOrdersReport(activeDiscountRules, from, to);
+            case REVENUE -> buildRevenueReport(activeDiscountRules, from, to);
             case WARRANTIES -> buildWarrantiesReport();
             case SERIALS -> buildSerialsReport();
         };
     }
 
-    private TableReport buildOrdersReport(List<BulkDiscount> activeDiscountRules) {
+    private TableReport buildOrdersReport(List<BulkDiscount> activeDiscountRules, Instant from, Instant to) {
         List<Order> orders = orderRepository.findVisibleByCreatedAtDesc(org.springframework.data.domain.Pageable.unpaged())
                 .stream()
+                .filter(order -> from == null || (order.getCreatedAt() != null && !order.getCreatedAt().isBefore(from)))
+                .filter(order -> to == null || (order.getCreatedAt() != null && !order.getCreatedAt().isAfter(to)))
                 .sorted(Comparator.comparing(Order::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
 
@@ -114,9 +126,13 @@ public class AdminReportingService {
         );
     }
 
-    private TableReport buildRevenueReport(List<BulkDiscount> activeDiscountRules) {
+    private TableReport buildRevenueReport(List<BulkDiscount> activeDiscountRules, Instant from, Instant to) {
         Map<String, DealerRevenueRow> summary = new LinkedHashMap<>();
-        for (Order order : orderRepository.findVisibleByCreatedAtDesc(org.springframework.data.domain.Pageable.unpaged())) {
+        for (Order order : orderRepository.findVisibleByCreatedAtDesc(org.springframework.data.domain.Pageable.unpaged())
+                .stream()
+                .filter(o -> from == null || (o.getCreatedAt() != null && !o.getCreatedAt().isBefore(from)))
+                .filter(o -> to == null || (o.getCreatedAt() != null && !o.getCreatedAt().isAfter(to)))
+                .toList()) {
             Dealer dealer = order.getDealer();
             String key = dealer == null ? "unassigned" : String.valueOf(dealer.getId());
             DealerRevenueRow row = summary.computeIfAbsent(key, ignored ->

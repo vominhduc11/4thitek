@@ -1,5 +1,6 @@
 import {
   Bell,
+  FlaskConical,
   Gauge,
   Mail,
   Receipt,
@@ -25,9 +26,11 @@ import {
   softCardClass,
 } from "../components/ui-kit";
 import { useAdminData } from "../context/AdminDataContext";
+import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { translateCopy } from "../lib/i18n";
 import { useToast } from "../context/ToastContext";
+import { testAdminEmailSettings } from "../lib/adminApi";
 
 type RateLimitBucketKey =
   | "auth"
@@ -148,6 +151,10 @@ const copyKeys = {
     "Áp dụng cho pricing backend, dealer cart summary và các phép tính doanh thu mới. Giá trị hợp lệ từ 0 đến 100.",
   vatPercentPlaceholder: "Nhập phần trăm VAT",
   vatPercentError: "VAT phải là số nguyên trong khoảng từ 0 đến 100.",
+  testEmail: "Kiểm tra email",
+  testingEmail: "Đang gửi...",
+  testEmailSuccess: "Email kiểm tra đã được gửi thành công.",
+  testEmailFailed: "Không gửi được email kiểm tra.",
 } as const;
 
 const clampInteger = (value: number, min: number, max: number) => {
@@ -342,8 +349,10 @@ function SettingsPage() {
   } = useAdminData();
   const { t } = useLanguage();
   const { notify } = useToast();
+  const { accessToken } = useAuth();
   const copy = translateCopy(copyKeys, t);
   const [draft, setDraft] = useState(settings);
+  const [isTestingEmail, setIsTestingEmail] = useState(false);
 
   useEffect(() => {
     setDraft(settings);
@@ -417,6 +426,22 @@ function SettingsPage() {
         title: copy.title,
         variant: "error",
       });
+    }
+  };
+
+  const handleTestEmail = async () => {
+    if (!accessToken || isTestingEmail) return;
+    setIsTestingEmail(true);
+    try {
+      await testAdminEmailSettings(accessToken);
+      notify(copy.testEmailSuccess, { title: copy.email, variant: "success" });
+    } catch (error) {
+      notify(error instanceof Error ? error.message : copy.testEmailFailed, {
+        title: copy.email,
+        variant: "error",
+      });
+    } finally {
+      setIsTestingEmail(false);
     }
   };
 
@@ -808,6 +833,18 @@ function SettingsPage() {
               value={draft.emailSettings.fromName}
             />
           </SettingField>
+          {draft.emailSettings.enabled && (
+            <div className="flex">
+              <GhostButton
+                disabled={isTestingEmail || isDirty}
+                icon={<FlaskConical className="h-4 w-4" />}
+                onClick={() => void handleTestEmail()}
+                type="button"
+              >
+                {isTestingEmail ? copy.testingEmail : copy.testEmail}
+              </GhostButton>
+            </div>
+          )}
         </SettingsSection>
       </div>
 
