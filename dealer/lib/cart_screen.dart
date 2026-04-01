@@ -15,10 +15,25 @@ import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
 import 'widgets/product_image.dart';
 
-class CartScreen extends StatelessWidget {
+class CartScreen extends StatefulWidget {
   const CartScreen({super.key, this.onShop});
 
   final VoidCallback? onShop;
+
+  @override
+  State<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  final Map<String, Timer> _quantityDebounceTimers = {};
+
+  @override
+  void dispose() {
+    for (final timer in _quantityDebounceTimers.values) {
+      timer.cancel();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,34 +89,6 @@ class CartScreen extends StatelessWidget {
             ),
           ),
         );
-    }
-
-    Future<bool?> confirmDismiss(CartItem item) {
-      return showDialog<bool>(
-        context: context,
-        traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
-        requestFocus: true,
-        builder: (dialogContext) {
-          return AlertDialog(
-            title: Text(texts.deleteConfirmTitle),
-            content: Text(texts.deleteConfirmMessage(item.product.name)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text(texts.cancelAction),
-              ),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: colors.error,
-                  foregroundColor: colors.onError,
-                ),
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: Text(texts.deleteAction),
-              ),
-            ],
-          );
-        },
-      );
     }
 
     List<Widget> buildSummaryBreakdown() {
@@ -216,7 +203,7 @@ class CartScreen extends StatelessWidget {
                     child: _EmptyCart(
                       texts: texts,
                       onShop:
-                          onShop ??
+                          widget.onShop ??
                           () {
                             Navigator.of(
                               context,
@@ -278,9 +265,21 @@ class CartScreen extends StatelessWidget {
                                       ),
                                     ),
                                   ),
-                                  onChanged: (val) => unawaited(
-                                    cart.setQuantity(item.product, val.round()),
-                                  ),
+                                  onChanged: (val) {
+                                    final productId = item.product.id;
+                                    _quantityDebounceTimers[productId]
+                                        ?.cancel();
+                                    _quantityDebounceTimers[productId] =
+                                        Timer(
+                                          const Duration(milliseconds: 400),
+                                          () => unawaited(
+                                            cart.setQuantity(
+                                              item.product,
+                                              val.round(),
+                                            ),
+                                          ),
+                                        );
+                                  },
                                 ),
                               ),
                             ),
@@ -357,7 +356,6 @@ class CartScreen extends StatelessWidget {
                             direction: isSyncingItem
                                 ? DismissDirection.none
                                 : DismissDirection.endToStart,
-                            confirmDismiss: (_) => confirmDismiss(item),
                             background: Container(
                               alignment: Alignment.centerRight,
                               padding: const EdgeInsets.only(right: 20),
@@ -540,33 +538,29 @@ class CartScreen extends StatelessWidget {
                                             ],
                                           ),
                                           const SizedBox(height: 8),
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              left: 68,
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    texts.lineTotalLabel(
-                                                      formatVnd(
-                                                        item.product.price *
-                                                            item.quantity,
-                                                      ),
+                                          Row(
+                                            children: [
+                                              const SizedBox(width: 68), // matches image(56) + gap(12)
+                                              Expanded(
+                                                child: Text(
+                                                  texts.lineTotalLabel(
+                                                    formatVnd(
+                                                      item.product.price *
+                                                          item.quantity,
                                                     ),
-                                                    style: theme
-                                                        .textTheme
-                                                        .bodySmall
-                                                        ?.copyWith(
-                                                          color: colors.primary,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                        ),
                                                   ),
+                                                  style: theme
+                                                      .textTheme
+                                                      .bodySmall
+                                                      ?.copyWith(
+                                                        color: colors.primary,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
                                                 ),
-                                                quantitySpinBox,
-                                              ],
-                                            ),
+                                              ),
+                                              quantitySpinBox,
+                                            ],
                                           ),
                                         ],
                                       ),
@@ -809,8 +803,8 @@ class _CartTexts {
   String cartItemSemantics(String productName) =>
       isEnglish ? 'Cart item $productName' : 'Mục giỏ hàng $productName';
   String get cartItemHint => isEnglish
-      ? 'Swipe left to remove and undo if needed'
-      : 'Vuốt sang trái để xóa và có thể hoàn tác';
+      ? 'Swipe left to remove'
+      : 'Vuốt sang trái để xóa';
 
   String lineTotalLabel(String amount) =>
       isEnglish ? 'Line total: $amount' : 'Tổng dòng: $amount';

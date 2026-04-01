@@ -92,17 +92,17 @@ class IdempotencyStoreTests {
         DealerOrderResponse order = dealerPortalService.createOrder(
                 dealer.getUsername(), createRequest(), key);
 
-        assertThat(idempotencyStore.get(key)).contains(order.id());
+        assertThat(idempotencyStore.get(key, dealer.getId())).contains(order.id());
     }
 
     @Test
     void getReturnsEmptyForUnknownKey() {
-        assertThat(idempotencyStore.get(UUID.randomUUID().toString())).isEmpty();
+        assertThat(idempotencyStore.get(UUID.randomUUID().toString(), dealer.getId())).isEmpty();
     }
 
     @Test
     void getReturnsEmptyForNullKey() {
-        assertThat(idempotencyStore.get(null)).isEmpty();
+        assertThat(idempotencyStore.get(null, dealer.getId())).isEmpty();
     }
 
     // ── put() is a no-op ─────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ class IdempotencyStoreTests {
         idempotencyStore.put(key, 99999L);
 
         // No Order row with this key exists → must remain empty
-        assertThat(idempotencyStore.get(key)).isEmpty();
+        assertThat(idempotencyStore.get(key, dealer.getId())).isEmpty();
     }
 
     // ── duplicate key → same order ───────────────────────────────────────────
@@ -172,7 +172,7 @@ class IdempotencyStoreTests {
                 saved.getId()
         );
 
-        assertThat(idempotencyStore.get(key)).isEmpty();
+        assertThat(idempotencyStore.get(key, dealer.getId())).isEmpty();
     }
 
     // ── persistence model: restart-safe ──────────────────────────────────────
@@ -197,7 +197,7 @@ class IdempotencyStoreTests {
 
         IdempotencyStore freshStore = new IdempotencyStore(orderRepository, orderProperties);
 
-        assertThat(freshStore.get(key)).contains(response.id());
+        assertThat(freshStore.get(key, dealer.getId())).contains(response.id());
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
