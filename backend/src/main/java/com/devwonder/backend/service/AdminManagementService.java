@@ -275,7 +275,7 @@ public class AdminManagementService {
 
     @Transactional
     public List<DealerProductSerialResponse> assignOrderSerials(Long orderId, AdminAssignOrderSerialsRequest request) {
-        Order order = orderRepository.findById(orderId)
+        Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         if (order.getStatus() != OrderStatus.CONFIRMED) {
             throw new BadRequestException("Can only assign serials to a confirmed order");

@@ -23,6 +23,10 @@ import org.springframework.stereotype.Component;
  * After the TTL expires the same key can be used to create a fresh order, exactly as
  * the in-memory implementation behaved.
  *
+ * <p>The lookup is scoped to the requesting dealer ({@code dealerId}) to prevent
+ * cross-dealer data exposure: if two dealers coincidentally use the same key within
+ * the TTL window, each dealer only matches their own order.
+ *
  * <p>{@link #put} is intentionally a no-op: the idempotency key is stored on the
  * {@code Order} entity at creation time by
  * {@link com.devwonder.backend.service.support.DealerOrderWorkflowSupport}, so the
@@ -51,16 +55,20 @@ public class IdempotencyStore {
     }
 
     /**
-     * Returns the cached orderId if an order with this key was created within the TTL window.
-     * Returns empty if the key is unknown or the TTL has expired.
+     * Returns the cached orderId if an order with this key was created by {@code dealerId}
+     * within the TTL window. Returns empty if the key is unknown, belongs to a different
+     * dealer, or the TTL has expired.
+     *
+     * <p>Scoping by dealerId prevents cross-dealer data exposure: two dealers using the
+     * same key within the TTL window each see only their own order.
      */
-    public Optional<Long> get(String idempotencyKey) {
-        if (idempotencyKey == null) {
+    public Optional<Long> get(String idempotencyKey, Long dealerId) {
+        if (idempotencyKey == null || dealerId == null) {
             return Optional.empty();
         }
         Instant ttlCutoff = Instant.now().minusSeconds(orderProperties.getIdempotencyTtlMinutes() * 60L);
         return orderRepository
-                .findByIdempotencyKeyAndCreatedAtAfter(idempotencyKey, ttlCutoff)
+                .findByIdempotencyKeyAndDealerIdAndCreatedAtAfter(idempotencyKey, dealerId, ttlCutoff)
                 .map(Order::getId);
     }
 

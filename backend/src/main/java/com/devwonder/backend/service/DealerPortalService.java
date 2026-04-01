@@ -146,8 +146,12 @@ public class DealerPortalService {
     @Transactional
     @CacheEvict(cacheNames = CacheNames.ADMIN_DASHBOARD, allEntries = true)
     public DealerOrderResponse createOrder(String username, CreateDealerOrderRequest request, String idempotencyKey) {
-        // Idempotency check: return cached response if key seen within TTL (BUSINESS_LOGIC.md 3.4 [Policy])
-        java.util.Optional<Long> cachedOrderId = idempotencyStore.get(idempotencyKey);
+        // Acquire dealer lock first so the idempotency lookup is scoped to this dealer.
+        // This prevents cross-dealer data exposure when two dealers coincidentally use
+        // the same idempotency key within the TTL window (BUSINESS_LOGIC.md 3.4 [Policy]).
+        Dealer dealer = dealerPortalLookupSupport.requireDealerByUsernameForUpdate(username);
+        // Idempotency check: return cached response if key seen within TTL, scoped to this dealer.
+        java.util.Optional<Long> cachedOrderId = idempotencyStore.get(idempotencyKey, dealer.getId());
         if (cachedOrderId.isPresent()) {
             Order cachedOrder = orderRepository.findById(cachedOrderId.get()).orElse(null);
             if (cachedOrder != null) {
@@ -155,7 +159,6 @@ public class DealerPortalService {
             }
             // If order was somehow deleted, fall through to create a new one
         }
-        Dealer dealer = dealerPortalLookupSupport.requireDealerByUsernameForUpdate(username);
         DealerOrderResponse response =
                 dealerOrderWorkflowSupport.createOrder(dealer, request, activeDiscountRules(), activeVatPercent(), idempotencyKey);
         idempotencyStore.put(idempotencyKey, response.id());

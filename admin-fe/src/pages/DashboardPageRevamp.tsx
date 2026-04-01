@@ -51,7 +51,7 @@ ChartJS.register(
 const copyKeys = {
   title: "Tổng quan hệ thống",
   description:
-    "Toàn bộ chỉ số được lấy trực tiếp từ backend quản trị theo theme hiện tại.",
+    "Tổng quan vận hành hệ thống theo thời gian thực.",
   loadTitle: "Không tải được dashboard",
   emptyTitle: "Chưa có dữ liệu",
   emptyMessage: "Backend chưa trả về dữ liệu dashboard.",
@@ -428,7 +428,7 @@ function DashboardPageRevamp() {
                   key={`${item.name}-${item.units}`}
                   className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-sm"
                 >
-                  <span className="font-medium text-[var(--ink)]">
+                  <span className="truncate font-medium text-[var(--ink)]">
                     {item.name}
                   </span>
                   <span className="font-semibold text-[var(--accent)]">

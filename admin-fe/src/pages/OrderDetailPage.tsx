@@ -1,6 +1,6 @@
 import { AlertTriangle, ArrowLeft } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useAdminData, type OrderStatus } from '../context/AdminDataContext'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
@@ -20,7 +20,9 @@ import {
   inputClass,
   labelClass,
   tableHeadClass,
+  tableMetaClass,
   tableRowClass,
+  tableValueClass,
 } from '../components/ui-kit'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import {
@@ -204,16 +206,32 @@ function OrderDetailPage() {
             ? t('Thất bại')
             : t('Chưa thanh toán')
 
+  const paymentStatusTone =
+    order.paymentStatus === 'paid'
+      ? 'success' as const
+      : order.paymentStatus === 'debt_recorded'
+        ? 'warning' as const
+        : order.paymentStatus === 'cancelled' || order.paymentStatus === 'failed'
+          ? 'danger' as const
+          : 'neutral' as const
+
+  const adjTypeLabel: Record<BackendOrderAdjustmentType, string> = {
+    CORRECTION: t('Điều chỉnh'),
+    WRITE_OFF: t('Xóa nợ'),
+    CREDIT_NOTE: t('Ghi có'),
+    REFUND_RECORD: t('Ghi nhận hoàn tiền'),
+  }
+
   return (
     <PagePanel>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--accent)] hover:text-slate-900"
-          to="/orders"
+        <GhostButton
+          icon={<ArrowLeft className="h-4 w-4" />}
+          onClick={() => navigate('/orders')}
+          type="button"
         >
-          <ArrowLeft className="h-4 w-4" />
           {t('Về đơn hàng')}
-        </Link>
+        </GhostButton>
         <StatusBadge tone={orderStatusTone[order.status]}>{t(orderStatusLabel[order.status])}</StatusBadge>
       </div>
 
@@ -227,49 +245,58 @@ function OrderDetailPage() {
       )}
 
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
-        <div className="rounded-3xl border border-slate-200/70 bg-white/80 p-5">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('Đơn hàng')}</p>
-          <h3 className="mt-2 text-2xl font-semibold text-slate-900">{order.orderCode}</h3>
-          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">#{order.id}</p>
-          <p className="mt-2 text-sm text-slate-500">{formatDateTime(order.createdAt)}</p>
-          <div className="mt-4 space-y-2 text-sm text-slate-700">
-            <p>
-              <span className="font-semibold text-slate-900">{t('Đại lý')}:</span> {order.dealer}
-            </p>
-            <p>
-              <span className="font-semibold text-slate-900">{t('Số mặt hàng')}:</span> {order.items}
-            </p>
-            <p>
-              <span className="font-semibold text-slate-900">{t('Tổng tiền')}:</span>{' '}
-              {formatCurrency(order.total)}
-            </p>
-            <p>
-              <span className="font-semibold text-slate-900">{t('Thanh toán')}:</span>{' '}
-              {paymentMethodLabel} | {paymentStatusLabel}
-            </p>
-            <p>
-              <span className="font-semibold text-slate-900">{t('Đã thu')}:</span>{' '}
-              {formatCurrency(order.paidAmount)}
-            </p>
-            <p>
-              <span className="font-semibold text-slate-900">{t('Còn lại')}:</span>{' '}
-              {formatCurrency(order.outstandingAmount)}
-            </p>
-            <p>
-              <span className="font-semibold text-slate-900">{t('Địa chỉ')}:</span> {order.address}
-            </p>
-            <p>
-              <span className="font-semibold text-slate-900">{t('Ghi chú')}:</span> {order.note}
-            </p>
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-ghost)] p-5">
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Đơn hàng')}</p>
+          <h3 className="mt-2 text-2xl font-semibold text-[var(--ink)]">{order.orderCode}</h3>
+          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[var(--muted)]">#{order.id}</p>
+          <p className="mt-2 text-sm text-[var(--muted)]">{formatDateTime(order.createdAt)}</p>
+          <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Đại lý')}</p>
+              <p className="mt-1 font-semibold text-[var(--ink)]">{order.dealer}</p>
+            </div>
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Số mặt hàng')}</p>
+              <p className="mt-1 font-semibold text-[var(--ink)]">{order.items}</p>
+            </div>
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Tổng tiền')}</p>
+              <p className="mt-1 font-semibold text-[var(--accent)]">{formatCurrency(order.total)}</p>
+            </div>
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Phương thức')}</p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-[var(--ink)]">{paymentMethodLabel}</span>
+                <StatusBadge tone={paymentStatusTone}>{paymentStatusLabel}</StatusBadge>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Đã thu')}</p>
+              <p className="mt-1 font-semibold text-[var(--tone-success-ink,#16a34a)]">{formatCurrency(order.paidAmount)}</p>
+            </div>
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Còn lại')}</p>
+              <p className={`mt-1 font-semibold ${order.outstandingAmount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-[var(--ink)]'}`}>
+                {formatCurrency(order.outstandingAmount)}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 sm:col-span-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Địa chỉ')}</p>
+              <p className="mt-1 text-[var(--ink)]">{order.address || '—'}</p>
+            </div>
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 sm:col-span-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{t('Ghi chú')}</p>
+              <p className="mt-1 text-[var(--ink)]">{order.note || '—'}</p>
+            </div>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-slate-200/70 bg-white/80 p-5">
-          <p className="text-sm font-semibold text-slate-900">{t('Cập nhật trạng thái')}</p>
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-ghost)] p-5">
+          <p className="text-sm font-semibold text-[var(--ink)]">{t('Cập nhật trạng thái')}</p>
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <select
               aria-label={t('Trạng thái đơn {id}', { id: order.id })}
-              className={`${inputClass} bg-white text-slate-700`}
+              className={inputClass}
               onChange={async (event) => {
                 const next = event.target.value as OrderStatus
                 if (next === order.status) {
@@ -311,36 +338,6 @@ function OrderDetailPage() {
                 </option>
               ))}
             </select>
-            <PrimaryButton
-              disabled={order.status !== 'shipping'}
-              onClick={async () => {
-                const approved = await confirm({
-                  title: t('Xác nhận hoàn tất đơn'),
-                  message: t('Đánh dấu đơn {id} đã hoàn tất?', { id: order.orderCode }),
-                  tone: 'info',
-                  confirmLabel: t('Hoàn tất'),
-                })
-                if (!approved) {
-                  return
-                }
-
-                try {
-                  await updateOrderStatus(order.id, 'completed')
-                  notify(t('Đơn {id} đã hoàn tất', { id: order.orderCode }), {
-                    title: t('Đơn hàng'),
-                    variant: 'success',
-                  })
-                } catch (error) {
-                  notify(error instanceof Error ? error.message : t('Không cập nhật được đơn hàng'), {
-                    title: t('Đơn hàng'),
-                    variant: 'error',
-                  })
-                }
-              }}
-              type="button"
-            >
-              {t('Hoàn tất nhanh')}
-            </PrimaryButton>
           </div>
 
           {order.outstandingAmount > 0 && isPaymentDirty ? (
@@ -366,7 +363,7 @@ function OrderDetailPage() {
                   <input
                     aria-describedby={paymentError ? 'order-payment-amount-error' : undefined}
                     aria-invalid={Boolean(paymentError)}
-                    className={`${inputClass} bg-white text-slate-700 ${paymentError ? 'border-rose-300' : ''}`}
+                    className={`${inputClass}${paymentError ? ' border-rose-300' : ''}`}
                     max={order.outstandingAmount > 0 ? order.outstandingAmount : undefined}
                     min="1"
                     onChange={(event) => {
@@ -393,7 +390,7 @@ function OrderDetailPage() {
                 <label className="space-y-2">
                   <span className={labelClass}>{t('Mã giao dịch')}</span>
                   <input
-                    className={`${inputClass} bg-white text-slate-700`}
+                    className={inputClass}
                     onChange={(event) => setTransactionCode(event.target.value)}
                     value={transactionCode}
                   />
@@ -401,7 +398,7 @@ function OrderDetailPage() {
                 <label className="space-y-2">
                   <span className={labelClass}>{t('Ghi chú nội bộ')}</span>
                   <textarea
-                    className="min-h-24 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                    className="min-h-24 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-sm text-[var(--ink)] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                     onChange={(event) => setPaymentNote(event.target.value)}
                     value={paymentNote}
                   />
@@ -476,52 +473,52 @@ function OrderDetailPage() {
             </div>
           ) : null}
 
-          <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50/70 p-3">
-            <p className="text-sm font-semibold text-rose-700">{t('Xóa đơn hàng')}</p>
-            <p className="mt-1 text-xs text-rose-600">
-              {t('Hành động này sẽ xóa đơn khỏi danh sách.')}
-            </p>
-            <GhostButton
-              className="mt-3 border-rose-200 text-rose-700 hover:border-rose-500 hover:text-rose-700"
-              disabled={!canDeleteOrder(order.status)}
-              title={canDeleteOrder(order.status) ? undefined : 'Chi xoa duoc don da huy'}
-              onClick={async () => {
-                const approved = await confirm({
-                  title: t('Xóa đơn hàng'),
-                  message: t('Hành động này sẽ xóa đơn khỏi danh sách.'),
-                  tone: 'danger',
-                  confirmLabel: t('Xóa đơn'),
-                })
-                if (!approved) {
-                  return
-                }
+          {canDeleteOrder(order.status) && (
+            <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50/70 p-3">
+              <p className="text-sm font-semibold text-rose-700">{t('Xóa đơn hàng')}</p>
+              <p className="mt-1 text-xs text-rose-600">
+                {t('Hành động này sẽ xóa đơn khỏi danh sách.')}
+              </p>
+              <GhostButton
+                className="mt-3 border-rose-200 text-rose-700 hover:border-rose-500 hover:text-rose-700"
+                onClick={async () => {
+                  const approved = await confirm({
+                    title: t('Xóa đơn hàng'),
+                    message: t('Hành động này sẽ xóa đơn khỏi danh sách.'),
+                    tone: 'danger',
+                    confirmLabel: t('Xóa đơn'),
+                  })
+                  if (!approved) {
+                    return
+                  }
 
-                try {
-                  await deleteOrder(order.id)
-                  notify(t('Đã xóa {id}', { id: order.id }), {
-                    title: t('Đơn hàng'),
-                    variant: 'error',
-                  })
-                  navigate('/orders')
-                } catch (error) {
-                  notify(error instanceof Error ? error.message : t('Không xóa được đơn hàng'), {
-                    title: t('Đơn hàng'),
-                    variant: 'error',
-                  })
-                }
-              }}
-              type="button"
-            >
-              {t('Xóa đơn')}
-            </GhostButton>
-          </div>
+                  try {
+                    await deleteOrder(order.id)
+                    notify(t('Đã xóa {id}', { id: order.id }), {
+                      title: t('Đơn hàng'),
+                      variant: 'error',
+                    })
+                    navigate('/orders')
+                  } catch (error) {
+                    notify(error instanceof Error ? error.message : t('Không xóa được đơn hàng'), {
+                      title: t('Đơn hàng'),
+                      variant: 'error',
+                    })
+                  }
+                }}
+                type="button"
+              >
+                {t('Xóa đơn')}
+              </GhostButton>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="mt-6 rounded-3xl border border-slate-200/70 bg-white/80 p-5">
-        <p className="text-sm font-semibold text-slate-900">{t('Mặt hàng trong đơn')}</p>
+      <div className="mt-6 rounded-3xl border border-[var(--border)] bg-[var(--surface-ghost)] p-5">
+        <p className="text-sm font-semibold text-[var(--ink)]">{t('Mặt hàng trong đơn')}</p>
         {order.orderItems.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-400">{t('Chưa có thông tin mặt hàng.')}</p>
+          <p className="mt-3 text-sm text-[var(--muted)]">{t('Chưa có thông tin mặt hàng.')}</p>
         ) : (
           <div className="mt-3 overflow-x-auto">
             <table className="w-full text-sm">
@@ -537,22 +534,22 @@ function OrderDetailPage() {
               <tbody>
                 {order.orderItems.map((item) => (
                   <tr key={`${item.productId}-${item.productSku}`} className={tableRowClass}>
-                    <td className="px-3 py-2 font-mono text-xs text-slate-500">{item.productSku}</td>
-                    <td className="px-3 py-2 font-medium text-slate-900">{item.productName}</td>
-                    <td className="px-3 py-2 text-right text-slate-700">{item.quantity}</td>
-                    <td className="px-3 py-2 text-right text-slate-700">{formatCurrency(item.unitPrice)}</td>
-                    <td className="px-3 py-2 text-right font-semibold text-slate-900">
+                    <td className={`px-3 py-2 font-mono text-xs ${tableMetaClass}`}>{item.productSku}</td>
+                    <td className={`px-3 py-2 font-medium ${tableValueClass}`}>{item.productName}</td>
+                    <td className="px-3 py-2 text-right text-[var(--ink)]">{item.quantity}</td>
+                    <td className="px-3 py-2 text-right text-[var(--ink)]">{formatCurrency(item.unitPrice)}</td>
+                    <td className={`px-3 py-2 text-right ${tableValueClass}`}>
                       {formatCurrency(item.quantity * item.unitPrice)}
                     </td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t border-slate-200">
-                  <td colSpan={4} className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-400">
+                <tr className="border-t border-[var(--border)]">
+                  <td colSpan={4} className={`px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide ${tableMetaClass}`}>
                     {t('Tổng cộng')}
                   </td>
-                  <td className="px-3 py-2 text-right font-semibold text-slate-900">
+                  <td className={`px-3 py-2 text-right ${tableValueClass}`}>
                     {formatCurrency(order.total)}
                   </td>
                 </tr>
@@ -562,9 +559,9 @@ function OrderDetailPage() {
         )}
       </div>
 
-      <div className="mt-6 rounded-3xl border border-slate-200/70 bg-white/80 p-5">
-        <p className="text-sm font-semibold text-slate-900">{t('Lịch sử thanh toán')}</p>
-        <p className="mt-1 text-xs text-slate-500">
+      <div className="mt-6 rounded-3xl border border-[var(--border)] bg-[var(--surface-ghost)] p-5">
+        <p className="text-sm font-semibold text-[var(--ink)]">{t('Lịch sử thanh toán')}</p>
+        <p className="mt-1 text-xs text-[var(--muted)]">
           {t('Danh sách các lần ghi nhận thanh toán cho đơn hàng này.')}
         </p>
         {paymentsError && (
@@ -573,31 +570,31 @@ function OrderDetailPage() {
           </div>
         )}
         {payments.length === 0 && !paymentsError ? (
-          <p className="mt-3 text-sm text-slate-400">{t('Chưa có lịch sử thanh toán.')}</p>
+          <p className={`mt-3 text-sm ${tableMetaClass}`}>{t('Chưa có lịch sử thanh toán.')}</p>
         ) : payments.length > 0 ? (
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-xs text-slate-700">
+            <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-slate-100 text-left text-slate-400 uppercase tracking-wide">
-                  <th className="pb-2 pr-4">{t('Số tiền')}</th>
-                  <th className="pb-2 pr-4">{t('Phương thức')}</th>
-                  <th className="pb-2 pr-4">{t('Kênh')}</th>
-                  <th className="pb-2 pr-4">{t('Mã giao dịch')}</th>
-                  <th className="pb-2 pr-4">{t('Ghi chú')}</th>
-                  <th className="pb-2 pr-4">{t('Người ghi')}</th>
-                  <th className="pb-2">{t('Thời gian')}</th>
+                <tr className={tableHeadClass}>
+                  <th className="px-3 py-2 font-semibold">{t('Số tiền')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Phương thức')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Kênh')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Mã giao dịch')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Ghi chú')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Người ghi')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Thời gian')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody>
                 {payments.map((payment) => (
-                  <tr key={payment.id}>
-                    <td className="py-2 pr-4 font-semibold text-emerald-700">{formatCurrency(Number(payment.amount ?? 0))}</td>
-                    <td className="py-2 pr-4">{payment.method ?? '—'}</td>
-                    <td className="py-2 pr-4">{payment.channel ?? '—'}</td>
-                    <td className="py-2 pr-4 text-slate-400">{payment.transactionCode || '—'}</td>
-                    <td className="py-2 pr-4 max-w-xs break-words">{payment.note || '—'}</td>
-                    <td className="py-2 pr-4">{payment.recordedBy || '—'}</td>
-                    <td className="py-2 whitespace-nowrap">
+                  <tr key={payment.id} className={tableRowClass}>
+                    <td className="px-3 py-2 font-semibold text-[var(--tone-success-ink,#16a34a)]">{formatCurrency(Number(payment.amount ?? 0))}</td>
+                    <td className="px-3 py-2 text-[var(--ink)]">{payment.method ?? '—'}</td>
+                    <td className="px-3 py-2 text-[var(--ink)]">{payment.channel ?? '—'}</td>
+                    <td className={`px-3 py-2 ${tableMetaClass}`}>{payment.transactionCode || '—'}</td>
+                    <td className="px-3 py-2 max-w-xs break-words text-[var(--ink)]">{payment.note || '—'}</td>
+                    <td className="px-3 py-2 text-[var(--ink)]">{payment.recordedBy || '—'}</td>
+                    <td className="px-3 py-2 whitespace-nowrap text-[var(--ink)]">
                       {payment.paidAt ? formatDateTime(payment.paidAt) : payment.createdAt ? formatDateTime(payment.createdAt) : '—'}
                     </td>
                   </tr>
@@ -608,11 +605,11 @@ function OrderDetailPage() {
         ) : null}
       </div>
 
-      <div className="mt-6 rounded-3xl border border-slate-200/70 bg-white/80 p-5">
-        <p className="text-sm font-semibold text-slate-900">{t('Điều chỉnh tài chính')}</p>
-              <p className="mt-1 text-xs text-slate-500">
-                {t('Ghi nhận điều chỉnh, bù trừ hoặc hoàn tiền cho đơn hàng. Số âm làm giảm đã thu, số dương bổ sung đã thu.')}
-              </p>
+      <div className="mt-6 rounded-3xl border border-[var(--border)] bg-[var(--surface-ghost)] p-5">
+        <p className="text-sm font-semibold text-[var(--ink)]">{t('Điều chỉnh tài chính')}</p>
+        <p className="mt-1 text-xs text-[var(--muted)]">
+          {t('Ghi nhận điều chỉnh, bù trừ hoặc hoàn tiền cho đơn hàng. Số âm làm giảm đã thu, số dương bổ sung đã thu.')}
+        </p>
 
         {adjustmentsError && (
           <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">
@@ -621,26 +618,26 @@ function OrderDetailPage() {
         )}
         {adjustments.length > 0 && (
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-xs text-slate-700">
+            <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-slate-100 text-left text-slate-400 uppercase tracking-wide">
-                  <th className="pb-2 pr-4">{t('Loại')}</th>
-                  <th className="pb-2 pr-4">{t('Số tiền')}</th>
-                  <th className="pb-2 pr-4">{t('Lý do')}</th>
-                  <th className="pb-2 pr-4">{t('Mã tham chiếu')}</th>
-                  <th className="pb-2 pr-4">{t('Người tạo')}</th>
-                  <th className="pb-2">{t('Thời gian')}</th>
+                <tr className={tableHeadClass}>
+                  <th className="px-3 py-2 font-semibold">{t('Loại')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Số tiền')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Lý do')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Mã tham chiếu')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Người tạo')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('Thời gian')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody>
                 {adjustments.map((adj) => (
-                  <tr key={adj.id}>
-                    <td className="py-2 pr-4 font-medium">{adj.type}</td>
-                    <td className="py-2 pr-4">{formatCurrency(Number(adj.amount))}</td>
-                    <td className="py-2 pr-4 max-w-xs break-words">{adj.reason}</td>
-                    <td className="py-2 pr-4 text-slate-400">{adj.referenceCode || '—'}</td>
-                    <td className="py-2 pr-4">{adj.createdBy || '—'}</td>
-                    <td className="py-2 whitespace-nowrap">{adj.createdAt ? formatDateTime(adj.createdAt) : '—'}</td>
+                  <tr key={adj.id} className={tableRowClass}>
+                    <td className={`px-3 py-2 font-medium ${tableValueClass}`}>{adjTypeLabel[adj.type] ?? adj.type}</td>
+                    <td className="px-3 py-2 text-[var(--ink)]">{formatCurrency(Number(adj.amount))}</td>
+                    <td className="px-3 py-2 max-w-xs break-words text-[var(--ink)]">{adj.reason}</td>
+                    <td className={`px-3 py-2 ${tableMetaClass}`}>{adj.referenceCode || '—'}</td>
+                    <td className="px-3 py-2 text-[var(--ink)]">{adj.createdBy || '—'}</td>
+                    <td className="px-3 py-2 whitespace-nowrap text-[var(--ink)]">{adj.createdAt ? formatDateTime(adj.createdAt) : '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -648,111 +645,118 @@ function OrderDetailPage() {
           </div>
         )}
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          <label className="space-y-1">
-            <span className={labelClass}>{t('Loại điều chỉnh')}</span>
-            <select
-              className={`${inputClass} bg-white text-slate-700`}
-              value={adjType}
-              onChange={(e) => setAdjType(e.target.value as BackendOrderAdjustmentType)}
-            >
-              <option value="CORRECTION">{t('Điều chỉnh (CORRECTION)')}</option>
-              <option value="WRITE_OFF">{t('Xóa nợ (WRITE_OFF)')}</option>
-              <option value="CREDIT_NOTE">{t('Ghi có (CREDIT_NOTE)')}</option>
-              <option value="REFUND_RECORD">{t('Ghi nhận hoàn tiền (REFUND_RECORD)')}</option>
-            </select>
-          </label>
-          <label className="space-y-1">
-            <span className={labelClass}>{t('Số tiền')}</span>
-            <input
-              className={`${inputClass} bg-white text-slate-700`}
-              step="1"
-              type="number"
-              value={adjAmount}
-              onChange={(e) => setAdjAmount(e.target.value)}
-            />
-          </label>
-          <label className="space-y-1 sm:col-span-2">
-            <span className={labelClass}>{t('Lý do (tối thiểu 10 ký tự)')}</span>
-            <textarea
-              className="min-h-20 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              value={adjReason}
-              onChange={(e) => setAdjReason(e.target.value)}
-            />
-          </label>
-          <label className="space-y-1 sm:col-span-2">
-            <span className={labelClass}>{t('Mã tham chiếu (tuỳ chọn)')}</span>
-            <input
-              className={`${inputClass} bg-white text-slate-700`}
-              value={adjRef}
-              onChange={(e) => setAdjRef(e.target.value)}
-            />
-          </label>
-          {order?.status === 'completed' ? (
-            <label className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:col-span-2">
-              <input
-                checked={adjConfirmOverride}
-                className="mt-1 h-4 w-4 rounded border-amber-300 text-amber-700 focus:ring-amber-500"
-                onChange={(e) => setAdjConfirmOverride(e.target.checked)}
-                type="checkbox"
-              />
-              <span>
-                {t('Đơn đã COMPLETED. Xác nhận override để cho phép tạo adjustment ảnh hưởng dữ liệu accounting đã chốt.')}
-              </span>
-            </label>
-          ) : null}
-        </div>
+        <details className="mt-5">
+          <summary className="cursor-pointer select-none list-none rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm font-semibold text-[var(--ink)] transition hover:bg-[var(--surface-muted)] [&::-webkit-details-marker]:hidden">
+            {t('Thêm điều chỉnh tài chính')}
+          </summary>
+          <div className="mt-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="space-y-1">
+                <span className={labelClass}>{t('Loại điều chỉnh')}</span>
+                <select
+                  className={inputClass}
+                  value={adjType}
+                  onChange={(e) => setAdjType(e.target.value as BackendOrderAdjustmentType)}
+                >
+                  <option value="CORRECTION">{t('Điều chỉnh')}</option>
+                  <option value="WRITE_OFF">{t('Xóa nợ')}</option>
+                  <option value="CREDIT_NOTE">{t('Ghi có')}</option>
+                  <option value="REFUND_RECORD">{t('Ghi nhận hoàn tiền')}</option>
+                </select>
+              </label>
+              <label className="space-y-1">
+                <span className={labelClass}>{t('Số tiền')}</span>
+                <input
+                  className={inputClass}
+                  step="1"
+                  type="number"
+                  value={adjAmount}
+                  onChange={(e) => setAdjAmount(e.target.value)}
+                />
+              </label>
+              <label className="space-y-1 sm:col-span-2">
+                <span className={labelClass}>{t('Lý do (tối thiểu 10 ký tự)')}</span>
+                <textarea
+                  className="min-h-20 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  value={adjReason}
+                  onChange={(e) => setAdjReason(e.target.value)}
+                />
+              </label>
+              <label className="space-y-1 sm:col-span-2">
+                <span className={labelClass}>{t('Mã tham chiếu (tuỳ chọn)')}</span>
+                <input
+                  className={inputClass}
+                  value={adjRef}
+                  onChange={(e) => setAdjRef(e.target.value)}
+                />
+              </label>
+              {order?.status === 'completed' ? (
+                <label className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:col-span-2">
+                  <input
+                    checked={adjConfirmOverride}
+                    className="mt-1 h-4 w-4 rounded border-amber-300 text-amber-700 focus:ring-amber-500"
+                    onChange={(e) => setAdjConfirmOverride(e.target.checked)}
+                    type="checkbox"
+                  />
+                  <span>
+                    {t('Đơn hàng đã hoàn tất. Xác nhận để tạo điều chỉnh tài chính.')}
+                  </span>
+                </label>
+              ) : null}
+            </div>
 
-        {adjError && (
-          <FieldErrorMessage className={fieldErrorClass}>{adjError}</FieldErrorMessage>
-        )}
+            {adjError && (
+              <FieldErrorMessage className={fieldErrorClass}>{adjError}</FieldErrorMessage>
+            )}
 
-        <div className="mt-3">
-          <PrimaryButton
-            disabled={adjSubmitting}
-            type="button"
-            onClick={async () => {
-              if (!accessToken) return
-              const amount = Number(adjAmount)
-              if (Number.isNaN(amount) || amount === 0) {
-                setAdjError(t('Số tiền phải khác 0'))
-                return
-              }
-              if (order?.status === 'completed' && !adjConfirmOverride) {
-                setAdjError(t('Cần xác nhận override trước khi điều chỉnh đơn đã COMPLETED'))
-                return
-              }
-              if (adjReason.trim().length < 10) {
-                setAdjError(t('Lý do phải có ít nhất 10 ký tự'))
-                return
-              }
-              setAdjError('')
-              setAdjSubmitting(true)
-              try {
-                const created = await createAdminOrderAdjustment(accessToken, Number(order.id), {
-                  type: adjType,
-                  amount,
-                  reason: adjReason.trim(),
-                  referenceCode: adjRef.trim() || undefined,
-                  confirmOverride: order?.status === 'completed' ? adjConfirmOverride : undefined,
-                })
-                setAdjustments((prev) => [created, ...prev])
-                setAdjAmount('')
-                setAdjReason('')
-                setAdjRef('')
-                setAdjConfirmOverride(false)
-                void reloadResource('orders')
-                notify(t('Đã thêm điều chỉnh tài chính'), { title: t('Điều chỉnh'), variant: 'success' })
-              } catch (err) {
-                setAdjError(err instanceof Error ? err.message : t('Không thêm được điều chỉnh'))
-              } finally {
-                setAdjSubmitting(false)
-              }
-            }}
-          >
-            {t('Thêm điều chỉnh')}
-          </PrimaryButton>
-        </div>
+            <div className="mt-3">
+              <PrimaryButton
+                disabled={adjSubmitting}
+                type="button"
+                onClick={async () => {
+                  if (!accessToken) return
+                  const amount = Number(adjAmount)
+                  if (Number.isNaN(amount) || amount === 0) {
+                    setAdjError(t('Số tiền phải khác 0'))
+                    return
+                  }
+                  if (order?.status === 'completed' && !adjConfirmOverride) {
+                    setAdjError(t('Cần xác nhận trước khi điều chỉnh đơn đã hoàn tất'))
+                    return
+                  }
+                  if (adjReason.trim().length < 10) {
+                    setAdjError(t('Lý do phải có ít nhất 10 ký tự'))
+                    return
+                  }
+                  setAdjError('')
+                  setAdjSubmitting(true)
+                  try {
+                    const created = await createAdminOrderAdjustment(accessToken, Number(order.id), {
+                      type: adjType,
+                      amount,
+                      reason: adjReason.trim(),
+                      referenceCode: adjRef.trim() || undefined,
+                      confirmOverride: order?.status === 'completed' ? adjConfirmOverride : undefined,
+                    })
+                    setAdjustments((prev) => [created, ...prev])
+                    setAdjAmount('')
+                    setAdjReason('')
+                    setAdjRef('')
+                    setAdjConfirmOverride(false)
+                    void reloadResource('orders')
+                    notify(t('Đã thêm điều chỉnh tài chính'), { title: t('Điều chỉnh'), variant: 'success' })
+                  } catch (err) {
+                    setAdjError(err instanceof Error ? err.message : t('Không thêm được điều chỉnh'))
+                  } finally {
+                    setAdjSubmitting(false)
+                  }
+                }}
+              >
+                {t('Thêm điều chỉnh')}
+              </PrimaryButton>
+            </div>
+          </div>
+        </details>
       </div>
 
       {confirmDialog}

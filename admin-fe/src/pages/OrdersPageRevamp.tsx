@@ -210,33 +210,32 @@ function OrdersPageRevamp() {
       <PageHeader
         title={copy.title}
         subtitle={copy.description}
-        actions={
-          <>
-            <SearchInput
-              id="orders-search"
-              label={copy.searchLabel}
-              placeholder={copy.searchPlaceholder}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              className={toolbarSearchClass}
-            />
-            <select
-              aria-label={copy.status}
-              className={`${inputClass} w-full sm:max-w-[14rem] lg:w-56`}
-              onChange={(event) =>
-                setStatusFilter(event.target.value as "all" | OrderStatus)
-              }
-              value={statusFilter}
-            >
-              {ORDER_STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </>
-        }
       />
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <SearchInput
+          id="orders-search"
+          label={copy.searchLabel}
+          placeholder={copy.searchPlaceholder}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          className={toolbarSearchClass}
+        />
+        <select
+          aria-label={copy.status}
+          className={`${inputClass} w-full sm:max-w-[14rem] lg:w-56`}
+          onChange={(event) =>
+            setStatusFilter(event.target.value as "all" | OrderStatus)
+          }
+          value={statusFilter}
+        >
+          {ORDER_STATUS_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard
