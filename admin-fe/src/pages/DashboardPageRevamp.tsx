@@ -50,8 +50,7 @@ ChartJS.register(
 
 const copyKeys = {
   title: "Tổng quan hệ thống",
-  description:
-    "Tổng quan vận hành hệ thống theo thời gian thực.",
+  description: "Tổng quan vận hành hệ thống theo thời gian thực.",
   loadTitle: "Không tải được dashboard",
   emptyTitle: "Chưa có dữ liệu",
   emptyMessage: "Backend chưa trả về dữ liệu dashboard.",
@@ -75,19 +74,19 @@ const copyKeys = {
 const getThemeTokens = () => {
   if (typeof window === "undefined") {
     return {
-      ink: "#0f172a",
-      muted: "#64748b",
-      border: "#e2e8f0",
-      accent: "#2563eb",
-      accentSoft: "#dbeafe",
-      palette: ["#f59e0b", "#2563eb", "#22c55e", "#14b8a6", "#ef4444"],
+      ink: "#102131",
+      muted: "#607181",
+      border: "rgba(63,72,86,0.12)",
+      accent: "#29abe2",
+      accentSoft: "rgba(41,171,226,0.14)",
+      palette: ["#29abe2", "#0071bc", "#2be086", "#05a7af", "#bdf919"],
     };
   }
   const styles = window.getComputedStyle(document.documentElement);
   const ink = styles.getPropertyValue("--ink").trim() || "#0f172a";
   const muted = styles.getPropertyValue("--muted").trim() || "#64748b";
   const border = styles.getPropertyValue("--border").trim() || "#e2e8f0";
-  const accent = styles.getPropertyValue("--accent").trim() || "#2563eb";
+  const accent = styles.getPropertyValue("--accent").trim() || "#29abe2";
   const accentSoft =
     styles.getPropertyValue("--accent-soft").trim() || "#dbeafe";
   return {
@@ -96,7 +95,7 @@ const getThemeTokens = () => {
     border,
     accent,
     accentSoft,
-    palette: ["#f59e0b", accent, "#22c55e", "#14b8a6", "#ef4444"],
+    palette: [accent, "#0071bc", "#2be086", "#05a7af", "#bdf919"],
   };
 };
 
@@ -312,7 +311,10 @@ function DashboardPageRevamp() {
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Link to="/orders" className="block rounded-3xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+        <Link
+          to="/orders"
+          className="block rounded-3xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        >
           <StatCard
             icon={TrendingUp}
             label={dashboard.revenue.label}
@@ -321,7 +323,10 @@ function DashboardPageRevamp() {
             tone="success"
           />
         </Link>
-        <Link to="/orders?status=pending" className="block rounded-3xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+        <Link
+          to="/orders?status=pending"
+          className="block rounded-3xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        >
           <StatCard
             icon={ShoppingCart}
             label={copy.totalOrders}
@@ -330,7 +335,10 @@ function DashboardPageRevamp() {
             tone="info"
           />
         </Link>
-        <Link to="/serials" className="block rounded-3xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+        <Link
+          to="/serials"
+          className="block rounded-3xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        >
           <StatCard
             icon={AlertTriangle}
             label={copy.lowStock}
@@ -339,7 +347,10 @@ function DashboardPageRevamp() {
             tone="warning"
           />
         </Link>
-        <Link to="/products" className="block rounded-3xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+        <Link
+          to="/products"
+          className="block rounded-3xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        >
           <StatCard
             icon={Package}
             label={copy.bestSeller}
@@ -474,16 +485,19 @@ function DashboardPageRevamp() {
               </div>
             ))}
             {(dashboard.unmatchedPendingCount ?? 0) > 0 && (
-              <Link to="/unmatched-payments" className="block rounded-2xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/40 dark:bg-amber-900/20">
+              <Link
+                to="/unmatched-payments"
+                className="block rounded-2xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              >
+                <div className="rounded-2xl border border-[rgba(189,249,25,0.34)] bg-[rgba(189,249,25,0.16)] px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <CircleDollarSign className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                      <CircleDollarSign className="h-4 w-4 shrink-0 text-[var(--tone-warning-text)]" />
                       <div>
-                        <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                        <p className="text-sm font-semibold text-[var(--tone-warning-text)]">
                           {copy.unmatchedPayments}
                         </p>
-                        <p className="text-xs text-amber-700 dark:text-amber-400">
+                        <p className="text-xs text-[var(--tone-warning-text)]">
                           {dashboard.unmatchedPendingCount}{" "}
                           {copy.unmatchedPendingHint}
                         </p>
@@ -497,16 +511,19 @@ function DashboardPageRevamp() {
               </Link>
             )}
             {(dashboard.settlementPendingCount ?? 0) > 0 && (
-              <Link to="/financial-settlements" className="block rounded-2xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
-                <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800/40 dark:bg-blue-900/20">
+              <Link
+                to="/financial-settlements"
+                className="block rounded-2xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              >
+                <div className="rounded-2xl border border-[var(--brand-border-strong)] bg-[var(--accent-soft)] px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <Landmark className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                      <Landmark className="h-4 w-4 shrink-0 text-[var(--accent-strong)]" />
                       <div>
-                        <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">
+                        <p className="text-sm font-semibold text-[var(--accent-strong)]">
                           {copy.financialSettlements}
                         </p>
-                        <p className="text-xs text-blue-700 dark:text-blue-400">
+                        <p className="text-xs text-[var(--accent-strong)]">
                           {dashboard.settlementPendingCount}{" "}
                           {copy.settlementPendingHint}
                         </p>
@@ -520,16 +537,19 @@ function DashboardPageRevamp() {
               </Link>
             )}
             {(dashboard.staleOrdersCount ?? 0) > 0 && (
-              <Link to="/orders" className="block rounded-2xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 dark:border-rose-800/40 dark:bg-rose-900/20">
+              <Link
+                to="/orders"
+                className="block rounded-2xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              >
+                <div className="rounded-2xl border border-[var(--destructive-border)] bg-[var(--destructive-soft)] px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
+                      <AlertTriangle className="h-4 w-4 shrink-0 text-[var(--destructive-text)]" />
                       <div>
-                        <p className="text-sm font-semibold text-rose-900 dark:text-rose-200">
+                        <p className="text-sm font-semibold text-[var(--destructive-text)]">
                           {copy.staleOrders}
                         </p>
-                        <p className="text-xs text-rose-700 dark:text-rose-400">
+                        <p className="text-xs text-[var(--destructive-text)]">
                           {dashboard.staleOrdersCount} {copy.staleOrdersHint}
                         </p>
                       </div>

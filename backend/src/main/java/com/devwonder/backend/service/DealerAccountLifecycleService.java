@@ -30,7 +30,7 @@ public class DealerAccountLifecycleService {
         }
         CustomerStatus status = dealer.getCustomerStatus();
         if (status == null) {
-            throw new UnauthorizedException("Tài khoản đại lý chưa có trạng thái hợp lệ. Vui lòng liên hệ 4ThiTek.");
+            throw new UnauthorizedException("Tài khoản đại lý chưa có trạng thái hợp lệ. Vui lòng liên hệ 4T HITEK.");
         }
         if (status == CustomerStatus.ACTIVE) {
             return;
@@ -41,18 +41,18 @@ public class DealerAccountLifecycleService {
     public void sendApplicationReceivedEmail(Dealer dealer) {
         sendEmailIfPossible(
                 dealer.getEmail(),
-                "4ThiTek đã nhận hồ sơ đăng ký đại lý",
+                "4T HITEK đã nhận hồ sơ đăng ký đại lý",
                 """
                         Xin chào %s,
 
-                        4ThiTek đã nhận hồ sơ đăng ký đại lý của bạn.
+                        4T HITEK đã nhận hồ sơ đăng ký đại lý của bạn.
                         Trạng thái hiện tại: Đang xem xét.
 
                         Tài khoản Dealer sẽ được kích hoạt sau khi hồ sơ được phê duyệt.
                         Chúng tôi sẽ gửi email tiếp theo khi có cập nhật.
 
                         Trân trọng,
-                        4ThiTek
+                        4T HITEK
                         """.formatted(resolveDisplayName(dealer))
         );
     }
@@ -85,8 +85,8 @@ public class DealerAccountLifecycleService {
 
     private String loginBlockedMessage(CustomerStatus status) {
         return switch (status) {
-            case UNDER_REVIEW -> "Tài khoản đang chờ duyệt. Vui lòng đợi email cập nhật từ 4ThiTek.";
-            case SUSPENDED -> "Tài khoản đã bị tạm khóa. Vui lòng liên hệ 4ThiTek để biết thêm chi tiết.";
+            case UNDER_REVIEW -> "Tài khoản đang chờ duyệt. Vui lòng đợi email cập nhật từ 4T HITEK.";
+            case SUSPENDED -> "Tài khoản đã bị tạm khóa. Vui lòng liên hệ 4T HITEK để biết thêm chi tiết.";
             case ACTIVE -> "Tài khoản đại lý đã sẵn sàng.";
         };
     }
@@ -109,9 +109,9 @@ public class DealerAccountLifecycleService {
 
     private String statusEmailSubject(CustomerStatus status) {
         return switch (status) {
-            case ACTIVE -> "4ThiTek đã phê duyệt tài khoản đại lý";
-            case UNDER_REVIEW -> "4ThiTek đang xem xét hồ sơ đại lý";
-            case SUSPENDED -> "4ThiTek đã tạm khóa tài khoản đại lý";
+            case ACTIVE -> "4T HITEK đã phê duyệt tài khoản đại lý";
+            case UNDER_REVIEW -> "4T HITEK đang xem xét hồ sơ đại lý";
+            case SUSPENDED -> "4T HITEK đã tạm khóa tài khoản đại lý";
         };
     }
 
@@ -125,25 +125,25 @@ public class DealerAccountLifecycleService {
                     Bạn có thể đăng nhập ứng dụng Dealer bằng email đã đăng ký và mật khẩu đã tạo trên website.
 
                     Trân trọng,
-                    4ThiTek
+                    4T HITEK
                     """.formatted(greetingName);
             case UNDER_REVIEW -> """
                     Xin chào %s,
 
-                    Hồ sơ đại lý của bạn đang được 4ThiTek xem xét.
+                    Hồ sơ đại lý của bạn đang được 4T HITEK xem xét.
                     Chúng tôi sẽ gửi email tiếp theo ngay khi có kết quả xử lý.
 
                     Trân trọng,
-                    4ThiTek
+                    4T HITEK
                     """.formatted(greetingName);
             case SUSPENDED -> """
                     Xin chào %s,
 
                     Tài khoản đại lý của bạn đã bị tạm khóa.
-                    Vui lòng liên hệ đội ngũ 4ThiTek để biết thêm chi tiết và được hỗ trợ.
+                    Vui lòng liên hệ đội ngũ 4T HITEK để biết thêm chi tiết và được hỗ trợ.
 
                     Trân trọng,
-                    4ThiTek
+                    4T HITEK
                     """.formatted(greetingName);
         };
     }

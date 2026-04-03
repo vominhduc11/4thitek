@@ -6,10 +6,10 @@ import { SITE_URL } from '@/lib/site';
 export const metadata: Metadata = createBaseMetadata({
     locale: 'vi',
     path: '/blogs',
-    title: '4ThiTek | Tin tuc & Bai viet',
+    title: '4T HITEK | Tin tuc & Bai viet',
     description:
-        'Cap nhat tin tuc san pham tai nghe SCS moi nhat, huong dan su dung chuyen sau va bai viet cong nghe tu 4ThiTek.',
-    keywords: ['tin tuc 4ThiTek', 'bai viet tai nghe SCS', 'huong dan tai nghe', 'cong nghe am thanh', 'review tai nghe SCS']
+        'Cap nhat tin tuc san pham tai nghe SCS moi nhat, huong dan su dung chuyen sau va bai viet cong nghe tu 4T HITEK.',
+    keywords: ['tin tuc 4T HITEK', 'bai viet tai nghe SCS', 'huong dan tai nghe', 'cong nghe am thanh', 'review tai nghe SCS']
 });
 
 export default function BlogsLayout({ children }: { children: React.ReactNode }) {

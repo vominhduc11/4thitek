@@ -18,7 +18,8 @@ describe('seo helpers', () => {
     it('generates organization, website, product and article structured data', () => {
         expect(organizationJsonLd()).toMatchObject({
             '@type': 'Organization',
-            name: '4ThiTek'
+            name: '4T HITEK',
+            legalName: 'CÔNG TY TNHH 4T HITEK'
         });
         expect(websiteJsonLd()).toMatchObject({
             '@type': 'WebSite'
@@ -47,9 +48,9 @@ describe('seo helpers', () => {
             mainEntityOfPage: 'https://4thitek.vn/blogs/99-review'
         });
         expect(localBusinessJsonLd()).toMatchObject({
-            description: 'Nha phan phoi chinh hang tai nghe SCS tai Viet Nam',
+            description: '4T HITEK la don vi phan phoi va ho tro san pham cong nghe ket noi cho hanh trinh duong dai tai Viet Nam.',
             address: {
-                addressLocality: 'Viet Nam'
+                streetAddress: '79/30/52 Âu Cơ, Phương Hoà Bình, TP. Hồ Chí Minh'
             }
         });
     });

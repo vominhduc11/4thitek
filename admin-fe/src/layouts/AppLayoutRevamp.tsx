@@ -22,7 +22,6 @@ import {
   Settings,
   ShieldCheck,
   ShoppingCart,
-  Sparkles,
   Sun,
   UserCircle,
   Users,
@@ -46,6 +45,7 @@ import {
   inputClass,
   tableMetaClass,
 } from "../components/ui-kit";
+import { ADMIN_APP_NAME, BRAND_NAME } from "../config/businessProfile";
 import { useAdminData } from "../context/AdminDataContext";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -760,28 +760,27 @@ function AppLayoutRevamp() {
       id={mobile ? mobileNavigationId : undefined}
       className={
         mobile
-          ? "flex h-full min-h-0 flex-col gap-6 border-r border-white/10 bg-[linear-gradient(180deg,#0f172a,#111827_60%,#0b1120)] px-5 py-6 text-slate-100"
-          : "hidden min-h-0 flex-col gap-6 border-r border-white/10 bg-[linear-gradient(180deg,#0f172a,#111827_60%,#0b1120)] px-5 py-6 text-slate-100 lg:flex lg:w-72 lg:shrink-0 xl:w-[308px]"
+          ? "brand-admin-shell flex h-full min-h-0 flex-col gap-5 border-r border-[var(--brand-border)] px-5 py-6 text-slate-100"
+          : "brand-admin-shell hidden min-h-0 flex-col gap-5 border-r border-[var(--brand-border)] px-5 py-6 text-slate-100 lg:flex lg:w-72 lg:shrink-0 xl:w-[304px]"
       }
     >
       <div className="flex items-center gap-3">
         <img
           src={logoMark}
-          alt="4ThiTek"
-          className="h-11 w-auto max-w-[168px] object-contain drop-shadow-[0_10px_24px_rgba(37,99,235,0.22)]"
+          alt={BRAND_NAME}
+          className="h-11 w-auto max-w-[168px] object-contain drop-shadow-[0_10px_24px_rgba(0,113,188,0.22)]"
         />
         <div className="min-w-0">
-          <div className="flex items-center gap-2 text-sm font-semibold text-white">
-            Admin Portal
-            <Sparkles className="h-4 w-4 text-blue-300" />
+          <div className="flex items-center gap-2 text-sm font-semibold tracking-[0.01em] text-white">
+            {ADMIN_APP_NAME}
           </div>
           <p className="text-xs text-slate-400">{copy.workspace}</p>
         </div>
       </div>
 
-      <div className="space-y-2 rounded-3xl border border-white/10 bg-white/5 p-4">
+      <div className="space-y-2 rounded-[24px] border border-[var(--brand-border)] bg-[rgba(41,171,226,0.07)] p-4">
         <div className="flex items-center gap-2 text-sm font-semibold text-white">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-white/10 text-blue-200">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-[18px] bg-[rgba(41,171,226,0.14)] text-blue-200">
             <Blocks className="h-4 w-4" />
           </span>
           {copy.welcome}
@@ -793,16 +792,16 @@ function AppLayoutRevamp() {
         {groupedNav.map((group) => (
           <section
             key={group.id}
-            className="rounded-3xl border border-white/10 bg-white/5 px-3 py-3"
+            className="rounded-[22px] border border-[var(--brand-border)] bg-[rgba(41,171,226,0.05)] px-3 py-3"
           >
             <button
-              className="flex w-full items-center justify-between gap-3 px-2 py-2 text-left text-xs font-semibold uppercase tracking-[0.25em] text-slate-400"
+              className="flex w-full items-center justify-between gap-3 px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400"
               onClick={() => toggleGroup(group.id)}
               type="button"
             >
               <span>{group.label}</span>
               <span className="inline-flex items-center gap-2">
-                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-slate-300">
+                <span className="rounded-full bg-[rgba(41,171,226,0.1)] px-2 py-0.5 text-[10px] text-slate-300">
                   {group.items.length}
                 </span>
                 {openGroups[group.id] ? (
@@ -827,13 +826,13 @@ function AppLayoutRevamp() {
                         [
                           "group flex items-center justify-between gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition",
                           isActive
-                            ? "bg-[color:rgba(37,99,235,0.18)] text-white shadow-[inset_0_0_0_1px_rgba(59,130,246,0.45)]"
-                            : "text-slate-300 hover:bg-white/6 hover:text-white",
+                            ? "bg-[linear-gradient(135deg,rgba(41,171,226,0.18),rgba(0,113,188,0.18))] text-white shadow-[inset_0_0_0_1px_rgba(41,171,226,0.34)]"
+                            : "text-slate-300 hover:bg-[rgba(41,171,226,0.1)] hover:text-white",
                         ].join(" ")
                       }
                     >
                       <span className="flex min-w-0 items-center gap-3">
-                        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white/8 text-blue-200">
+                        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[rgba(41,171,226,0.14)] text-blue-200">
                           <Icon className="h-4 w-4" />
                         </span>
                         <span className="truncate">{item.label}</span>
@@ -853,7 +852,7 @@ function AppLayoutRevamp() {
           <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(34,197,94,0.18)]" />
           <span>{copy.online}</span>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
+        <div className="rounded-[18px] border border-[var(--brand-border)] bg-[rgba(41,171,226,0.05)] px-3 py-2">
           <p className="text-[11px] uppercase tracking-[0.28em] text-slate-500">
             {copy.account}
           </p>
@@ -868,9 +867,9 @@ function AppLayoutRevamp() {
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[var(--app-bg)] text-[var(--ink)] lg:overflow-hidden">
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute -top-[18vmax] left-[8vmax] h-[38vmax] w-[38vmax] rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(37,99,235,0.14),transparent_65%)] animate-drift motion-reduce:animate-none" />
-        <div className="absolute -bottom-[20vmax] right-[6vmax] h-[44vmax] w-[44vmax] rounded-full bg-[radial-gradient(circle_at_60%_40%,rgba(59,130,246,0.16),transparent_65%)] animate-drift-slow motion-reduce:animate-none" />
-        <div className="absolute inset-0 opacity-35 [background-size:120px_120px] [background-image:linear-gradient(to_right,rgba(15,23,42,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.05)_1px,transparent_1px)]" />
+        <div className="absolute -top-[18vmax] left-[8vmax] h-[38vmax] w-[38vmax] rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(41,171,226,0.08),transparent_65%)] animate-drift motion-reduce:animate-none" />
+        <div className="absolute -bottom-[20vmax] right-[6vmax] h-[44vmax] w-[44vmax] rounded-full bg-[radial-gradient(circle_at_60%_40%,rgba(0,113,188,0.1),transparent_65%)] animate-drift-slow motion-reduce:animate-none" />
+        <div className="absolute inset-0 opacity-18 [background-size:120px_120px] [background-image:linear-gradient(to_right,rgba(41,171,226,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(41,171,226,0.05)_1px,transparent_1px)]" />
       </div>
 
       <div className="relative flex min-h-screen lg:h-screen">
@@ -884,7 +883,7 @@ function AppLayoutRevamp() {
                   <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
                     {copy.workspace}
                   </p>
-                  <h1 className="mt-1 text-lg font-semibold text-[var(--ink)] sm:text-2xl">
+                  <h1 className="mt-1 text-lg font-semibold tracking-[-0.02em] text-[var(--ink)] sm:text-2xl">
                     {copy.welcome}
                   </h1>
                   <p className="mt-1 hidden max-w-3xl text-sm text-[var(--muted)] md:block">
@@ -937,7 +936,7 @@ function AppLayoutRevamp() {
                     value={globalQuery}
                   />
                   {isSearchOpen && globalQuery.trim() ? (
-                    <div className="absolute left-0 right-0 z-30 mt-2 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
+                    <div className="absolute left-0 right-0 z-30 mt-2 rounded-[24px] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_16px_34px_rgba(15,23,42,0.12)]">
                       <div className="flex items-start justify-between gap-3 px-2">
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
                           {copy.searchHint}
@@ -1048,7 +1047,7 @@ function AppLayoutRevamp() {
                       )}
                       <span className="hidden sm:inline">{copy.alerts}</span>
                       {unreadAlerts.length > 0 ? (
-                        <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                        <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[var(--destructive)] px-1.5 py-0.5 text-[11px] font-semibold text-white">
                           {unreadAlerts.length}
                         </span>
                       ) : null}
@@ -1056,7 +1055,7 @@ function AppLayoutRevamp() {
 
                     {isAlertsOpen ? (
                       <div
-                        className="absolute right-0 z-30 mt-2 w-[min(92vw,360px)] rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_18px_40px_rgba(15,23,42,0.12)]"
+                        className="absolute right-0 z-30 mt-2 w-[min(92vw,360px)] rounded-[24px] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_16px_34px_rgba(15,23,42,0.12)]"
                         role="menu"
                       >
                         <div className="flex items-center justify-between gap-3 px-2">
@@ -1106,7 +1105,7 @@ function AppLayoutRevamp() {
                                           {alert.title}
                                         </span>
                                         {isUnread ? (
-                                          <span className="h-2 w-2 shrink-0 rounded-full bg-rose-500" />
+                                          <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--destructive)]" />
                                         ) : null}
                                       </span>
                                       <span className="mt-1 block text-xs leading-5 text-[var(--muted)]">
@@ -1141,7 +1140,7 @@ function AppLayoutRevamp() {
 
                     {isAccountOpen ? (
                       <div
-                        className="absolute right-0 z-30 mt-2 w-[min(92vw,16rem)] rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_18px_40px_rgba(15,23,42,0.12)] sm:w-64"
+                        className="absolute right-0 z-30 mt-2 w-[min(92vw,16rem)] rounded-[24px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_16px_34px_rgba(15,23,42,0.12)] sm:w-64"
                         role="menu"
                       >
                         <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
@@ -1192,7 +1191,7 @@ function AppLayoutRevamp() {
 
       <div
         aria-hidden={!isSidebarOpen}
-        className={`fixed inset-0 z-40 bg-slate-950/50 transition lg:hidden ${
+        className={`fixed inset-0 z-40 bg-[rgba(1,8,15,0.62)] transition lg:hidden ${
           isSidebarOpen
             ? "pointer-events-auto opacity-100"
             : "pointer-events-none opacity-0"
@@ -1208,7 +1207,7 @@ function AppLayoutRevamp() {
         <div className="flex h-full flex-col">
           <button
             aria-label={copy.closeNavigation}
-            className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white"
+            className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--brand-border)] bg-[rgba(41,171,226,0.1)] text-white"
             onClick={() => setIsSidebarOpen(false)}
             type="button"
           >

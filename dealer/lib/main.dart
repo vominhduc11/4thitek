@@ -10,6 +10,7 @@ import 'app_router.dart';
 import 'app_resume_refresh.dart';
 import 'app_settings_controller.dart';
 import 'auth_storage.dart';
+import 'business_profile.dart';
 import 'breakpoints.dart';
 import 'cart_controller.dart';
 import 'dealer_routes.dart';
@@ -350,7 +351,7 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
                         routerConfig: _router,
                         scaffoldMessengerKey: _scaffoldMessengerKey,
                         debugShowCheckedModeBanner: false,
-                        title: '4thitek Dealer Hub',
+                        title: BusinessProfile.dealerAppName,
                         builder: (context, child) {
                           final mq = MediaQuery.of(context);
                           final scale = mq.textScaler.scale(1).clamp(0.85, 1.3);
@@ -363,7 +364,7 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
                         },
                         onGenerateTitle: (context) =>
                             AppLocalizations.of(context)?.appTitle ??
-                            '4thitek Dealer Hub',
+                            BusinessProfile.dealerAppName,
                         theme: _buildDarkTheme(),
                         locale: _appSettingsController.locale,
                         localizationsDelegates: const [
@@ -386,49 +387,51 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
   }
 
   ThemeData _buildDarkTheme() {
-    const scaffoldColor = Color(0xFF091017);
-    const cardRadius = 20.0;
+    const scaffoldColor = Color(0xFF07111A);
+    const cardRadius = 22.0;
     const colorScheme = ColorScheme(
       brightness: Brightness.dark,
-      primary: Color(0xFF3385B0),
-      onPrimary: Color(0xFFECEDEE),
-      primaryContainer: Color(0xFF17384E),
-      onPrimaryContainer: Color(0xFFE6F3F9),
-      secondary: Color(0xFF437496),
-      onSecondary: Color(0xFFECEDEE),
-      secondaryContainer: Color(0xFF1B3141),
-      onSecondaryContainer: Color(0xFFDCEAF1),
-      tertiary: Color(0xFF8BB9D2),
-      onTertiary: Color(0xFF081722),
-      tertiaryContainer: Color(0xFF204255),
-      onTertiaryContainer: Color(0xFFE8F4FB),
-      error: Color(0xFFE86A6A),
-      onError: Color(0xFF220909),
-      errorContainer: Color(0xFF4B191B),
-      onErrorContainer: Color(0xFFFFDAD7),
-      surface: Color(0xFF0F1822),
-      onSurface: Color(0xFFECEDEE),
-      surfaceContainerLowest: Color(0xFF0B131C),
-      surfaceContainerLow: Color(0xFF121C27),
-      surfaceContainer: Color(0xFF162230),
-      surfaceContainerHigh: Color(0xFF1D2A39),
-      surfaceContainerHighest: Color(0xFF253648),
-      onSurfaceVariant: Color(0xFFAEB8C3),
-      outline: Color(0xFF385166),
-      outlineVariant: Color(0xFF27394B),
+      primary: Color(0xFF29ABE2),
+      onPrimary: Color(0xFFF7FBFF),
+      primaryContainer: Color(0xFF0F3554),
+      onPrimaryContainer: Color(0xFFF7FBFF),
+      secondary: Color(0xFF0071BC),
+      onSecondary: Color(0xFFF7FBFF),
+      secondaryContainer: Color(0xFF112B42),
+      onSecondaryContainer: Color(0xFFE8F4FB),
+      tertiary: Color(0xFF05A7AF),
+      onTertiary: Color(0xFFF7FBFF),
+      tertiaryContainer: Color(0xFF123941),
+      onTertiaryContainer: Color(0xFFE6FBFB),
+      error: Color(0xFFFF7D92),
+      onError: Color(0xFF24060D),
+      errorContainer: Color(0xFF4D1622),
+      onErrorContainer: Color(0xFFFFD9E0),
+      surface: Color(0xFF0A141E),
+      onSurface: Color(0xFFF7FBFF),
+      surfaceContainerLowest: Color(0xFF061019),
+      surfaceContainerLow: Color(0xFF0C1925),
+      surfaceContainer: Color(0xFF10202E),
+      surfaceContainerHigh: Color(0xFF152736),
+      surfaceContainerHighest: Color(0xFF1B3042),
+      onSurfaceVariant: Color(0xFF9FB8CA),
+      outline: Color(0xFF335369),
+      outlineVariant: Color(0xFF1E3447),
       shadow: Color(0xFF000000),
       scrim: Color(0xCC000000),
-      inverseSurface: Color(0xFFE8EDF2),
-      onInverseSurface: Color(0xFF16202A),
-      inversePrimary: Color(0xFF2D5E84),
-      surfaceTint: Color(0xFF3385B0),
+      inverseSurface: Color(0xFFF1F8FD),
+      onInverseSurface: Color(0xFF102131),
+      inversePrimary: Color(0xFF0071BC),
+      surfaceTint: Color(0xFF29ABE2),
     );
-    final baseTextTheme = GoogleFonts.beVietnamProTextTheme(
-      ThemeData(brightness: Brightness.dark).textTheme,
-    ).apply(
-      bodyColor: colorScheme.onSurface,
-      displayColor: colorScheme.onSurface,
-    );
+    final baseTextTheme =
+        GoogleFonts.sourceSans3TextTheme(
+          ThemeData(brightness: Brightness.dark).textTheme,
+        ).apply(
+          bodyColor: colorScheme.onSurface,
+          displayColor: colorScheme.onSurface,
+        );
+    final displayTextTheme = GoogleFonts.montserratTextTheme(baseTextTheme);
 
     return ThemeData(
       useMaterial3: true,
@@ -437,26 +440,50 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
       canvasColor: scaffoldColor,
       splashFactory: InkSparkle.splashFactory,
       textTheme: baseTextTheme.copyWith(
+        displayLarge: displayTextTheme.displayLarge?.copyWith(
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.8,
+        ),
+        displayMedium: displayTextTheme.displayMedium?.copyWith(
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.6,
+        ),
+        displaySmall: displayTextTheme.displaySmall?.copyWith(
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.45,
+        ),
+        headlineMedium: displayTextTheme.headlineMedium?.copyWith(
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.35,
+        ),
         headlineSmall: baseTextTheme.headlineSmall?.copyWith(
           fontWeight: FontWeight.w800,
-          letterSpacing: -0.3,
+          letterSpacing: -0.32,
         ),
         titleLarge: baseTextTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.w800,
-          letterSpacing: -0.2,
+          letterSpacing: -0.14,
         ),
         titleMedium: baseTextTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w700,
+          letterSpacing: -0.04,
         ),
         bodyLarge: baseTextTheme.bodyLarge?.copyWith(height: 1.42),
         bodyMedium: baseTextTheme.bodyMedium?.copyWith(height: 1.45),
         labelLarge: baseTextTheme.labelLarge?.copyWith(
           fontWeight: FontWeight.w700,
-          letterSpacing: 0.1,
+          letterSpacing: 0.16,
+        ),
+        labelMedium: baseTextTheme.labelMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.14,
         ),
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: scaffoldColor,
+        backgroundColor: Color.alphaBlend(
+          colorScheme.primary.withValues(alpha: 0.06),
+          scaffoldColor,
+        ),
         foregroundColor: colorScheme.onSurface,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
@@ -464,6 +491,7 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
         titleTextStyle: baseTextTheme.titleLarge?.copyWith(
           color: colorScheme.onSurface,
           fontWeight: FontWeight.w800,
+          letterSpacing: -0.12,
         ),
       ),
       cardTheme: CardThemeData(
@@ -473,7 +501,7 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(cardRadius),
           side: BorderSide(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.8),
+            color: colorScheme.outlineVariant.withValues(alpha: 0.9),
           ),
         ),
       ),
@@ -481,7 +509,7 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
         backgroundColor: colorScheme.surfaceContainerHigh,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(28),
           side: BorderSide(
             color: colorScheme.outlineVariant.withValues(alpha: 0.9),
           ),
@@ -492,7 +520,7 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
         surfaceTintColor: Colors.transparent,
         dragHandleColor: colorScheme.outline,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
@@ -516,23 +544,23 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
           color: colorScheme.onSurfaceVariant,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(color: colorScheme.outline),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(color: colorScheme.outline),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.6),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(color: colorScheme.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(color: colorScheme.error, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(
@@ -545,7 +573,7 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
           minimumSize: const WidgetStatePropertyAll(Size(44, 44)),
           padding: const WidgetStatePropertyAll(EdgeInsets.all(10)),
           shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           foregroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.disabled)) {
@@ -558,7 +586,7 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
               return colorScheme.surfaceContainerLow.withValues(alpha: 0.45);
             }
             if (states.contains(WidgetState.pressed)) {
-              return colorScheme.primaryContainer.withValues(alpha: 0.8);
+              return colorScheme.primaryContainer.withValues(alpha: 0.88);
             }
             if (states.contains(WidgetState.hovered) ||
                 states.contains(WidgetState.focused)) {
@@ -577,9 +605,13 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
           foregroundColor: colorScheme.onPrimary,
           minimumSize: const Size(0, 54),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: TextStyle(
+            fontFamily: GoogleFonts.sourceSans3().fontFamily,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -591,27 +623,41 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
           minimumSize: const Size(0, 54),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
           ),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          textStyle: TextStyle(
+            fontFamily: GoogleFonts.sourceSans3().fontFamily,
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(0, 54),
           foregroundColor: colorScheme.onSurface,
-          backgroundColor: colorScheme.surfaceContainerLow.withValues(alpha: 0.3),
+          backgroundColor: colorScheme.surfaceContainerLow.withValues(
+            alpha: 0.4,
+          ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
           ),
           side: BorderSide(color: colorScheme.outline),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          textStyle: TextStyle(
+            fontFamily: GoogleFonts.sourceSans3().fontFamily,
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: colorScheme.primary,
-          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          textStyle: TextStyle(
+            fontFamily: GoogleFonts.sourceSans3().fontFamily,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -647,16 +693,20 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
             return colorScheme.onSurfaceVariant;
           }),
           side: WidgetStatePropertyAll(
-            BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.9)),
+            BorderSide(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.9),
+            ),
           ),
           shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           ),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 74,
-        backgroundColor: colorScheme.surfaceContainerLow.withValues(alpha: 0.98),
+        backgroundColor: colorScheme.surfaceContainerLow.withValues(
+          alpha: 0.98,
+        ),
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.black.withValues(alpha: 0.16),
         indicatorColor: colorScheme.primaryContainer.withValues(alpha: 0.95),
@@ -680,7 +730,9 @@ class _DealerAppState extends State<DealerApp> with WidgetsBindingObserver {
         }),
       ),
       navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: colorScheme.surfaceContainerLow.withValues(alpha: 0.96),
+        backgroundColor: colorScheme.surfaceContainerLow.withValues(
+          alpha: 0.96,
+        ),
         indicatorColor: colorScheme.primaryContainer.withValues(alpha: 0.95),
         selectedIconTheme: IconThemeData(color: colorScheme.onPrimaryContainer),
         unselectedIconTheme: IconThemeData(

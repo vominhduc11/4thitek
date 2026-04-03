@@ -42,9 +42,7 @@ class _CartScreenState extends State<CartScreen> {
     _quantityDebounceTimers[productId]?.cancel();
     _quantityDebounceTimers[productId] = Timer(
       const Duration(milliseconds: 400),
-      () => unawaited(
-        cart.setQuantity(item.product, value.round()),
-      ),
+      () => unawaited(cart.setQuantity(item.product, value.round())),
     );
   }
 
@@ -74,16 +72,16 @@ class _CartScreenState extends State<CartScreen> {
     final useSideSummary = screenWidth >= 960;
     final isLandscapePhone =
         MediaQuery.orientationOf(context) == Orientation.landscape && !isTablet;
-    final useWideItemLayout = isTablet || isLandscapePhone || screenWidth >= 560;
+    final useWideItemLayout =
+        isTablet || isLandscapePhone || screenWidth >= 560;
 
     final contentMaxWidth = isDesktopWide
         ? 1240.0
         : isTablet
-            ? 980.0
-            : 760.0;
+        ? 980.0
+        : 760.0;
 
-    final textScale =
-        MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.6);
+    final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.6);
     final safeBottom = MediaQuery.paddingOf(context).bottom;
     final hasBottomCheckoutBar = items.isNotEmpty && !useSideSummary;
     final listBottomPadding = hasBottomCheckoutBar
@@ -93,8 +91,8 @@ class _CartScreenState extends State<CartScreen> {
     final quantityFieldWidth = isDesktopWide
         ? 156.0
         : isTablet
-            ? 148.0
-            : (isLandscapePhone ? 136.0 : 128.0);
+        ? 148.0
+        : (isLandscapePhone ? 136.0 : 128.0);
 
     final nextDiscountRemaining = nextDiscountTarget == null
         ? 0
@@ -119,9 +117,7 @@ class _CartScreenState extends State<CartScreen> {
       if (!didRemove) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(content: Text(texts.syncCartFailed)),
-          );
+          ..showSnackBar(SnackBar(content: Text(texts.syncCartFailed)));
         return;
       }
       final messenger = ScaffoldMessenger.of(context);
@@ -144,11 +140,9 @@ class _CartScreenState extends State<CartScreen> {
       if (!hasAnyOrderableItems || isCartSyncing) {
         return;
       }
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => const CheckoutScreen(),
-        ),
-      );
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => const CheckoutScreen()));
     }
 
     Widget buildSummaryPanel({
@@ -158,6 +152,7 @@ class _CartScreenState extends State<CartScreen> {
     }) {
       return SectionCard(
         title: texts.summaryTitle,
+        icon: Icons.payments_outlined,
         padding: padding ?? const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -320,9 +315,7 @@ class _CartScreenState extends State<CartScreen> {
 
     Widget buildCartList({required bool desktop}) {
       final children = <Widget>[
-        FadeSlideIn(
-          child: buildOverviewCard(desktop: desktop),
-        ),
+        FadeSlideIn(child: buildOverviewCard(desktop: desktop)),
         const SizedBox(height: 16),
         FadeSlideIn(
           delay: const Duration(milliseconds: 40),
@@ -395,9 +388,7 @@ class _CartScreenState extends State<CartScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: canPop,
         leading: canPop
-            ? BackButton(
-                onPressed: () => navigator.maybePop(),
-              )
+            ? BackButton(onPressed: () => navigator.maybePop())
             : null,
         leadingWidth: canPop ? 56 : null,
         titleSpacing: canPop ? 0 : null,
@@ -413,11 +404,7 @@ class _CartScreenState extends State<CartScreen> {
             color: colors.outlineVariant.withValues(alpha: 0.7),
           ),
         ),
-        title: BrandAppBarTitle(
-          texts.screenTitle,
-          logoSize: 26,
-          logoGap: 8,
-        ),
+        title: BrandAppBarTitle(texts.screenTitle, logoSize: 26, logoGap: 8),
         actions: const [GlobalSearchIconButton()],
       ),
       body: LayoutBuilder(
@@ -427,7 +414,8 @@ class _CartScreenState extends State<CartScreen> {
             bodyContent = FadeSlideIn(
               child: _EmptyCart(
                 texts: texts,
-                onShop: widget.onShop ??
+                onShop:
+                    widget.onShop ??
                     () {
                       Navigator.of(context).popUntil((route) => route.isFirst);
                     },
@@ -474,8 +462,8 @@ class _CartScreenState extends State<CartScreen> {
                         statusMessage: isCartSyncing
                             ? texts.syncingBeforeCheckoutHint
                             : hasAnyOrderableItems
-                                ? texts.readyCheckoutHint
-                                : texts.checkoutUnavailableHint,
+                            ? texts.readyCheckoutHint
+                            : texts.checkoutUnavailableHint,
                         canCheckout: hasAnyOrderableItems && !isCartSyncing,
                         isSyncing: isCartSyncing,
                         onPressed: goCheckout,
@@ -614,7 +602,9 @@ class _CartHeroCard extends StatelessWidget {
                     Text(
                       subtitle,
                       style: textTheme.bodyMedium?.copyWith(
-                        color: colors.onPrimaryContainer.withValues(alpha: 0.84),
+                        color: colors.onPrimaryContainer.withValues(
+                          alpha: 0.84,
+                        ),
                         height: 1.45,
                       ),
                     ),
@@ -715,9 +705,9 @@ class _CartOverviewCard extends StatelessWidget {
           Text(
             subtitle,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colors.onSurfaceVariant,
-                  height: 1.45,
-                ),
+              color: colors.onSurfaceVariant,
+              height: 1.45,
+            ),
           ),
           const SizedBox(height: 14),
           Wrap(
@@ -748,10 +738,7 @@ class _CartOverviewCard extends StatelessWidget {
 }
 
 class _CartSectionHeader extends StatelessWidget {
-  const _CartSectionHeader({
-    required this.title,
-    required this.subtitle,
-  });
+  const _CartSectionHeader({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
@@ -944,10 +931,7 @@ class _CartCheckoutBar extends StatelessWidget {
 }
 
 class _HeroMetricChip extends StatelessWidget {
-  const _HeroMetricChip({
-    required this.icon,
-    required this.label,
-  });
+  const _HeroMetricChip({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
@@ -975,9 +959,9 @@ class _HeroMetricChip extends StatelessWidget {
             child: Text(
               label,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -1024,9 +1008,9 @@ class _CartStatusPill extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: foreground,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: foreground,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -1088,16 +1072,11 @@ class _CartItemCard extends StatelessWidget {
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: colors.outlineVariant,
-                    ),
+                    borderSide: BorderSide(color: colors.outlineVariant),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: colors.primary,
-                      width: 1.5,
-                    ),
+                    borderSide: BorderSide(color: colors.primary, width: 1.5),
                   ),
                 ),
                 onChanged: onQuantityChanged,
@@ -1156,15 +1135,9 @@ class _CartItemCard extends StatelessWidget {
             showInStockQuantity: true,
           ),
           if (!canIncrease && item.product.stock > 0)
-            _InlineHintChip(
-              text: texts.maxStockReached,
-              color: colors.error,
-            ),
+            _InlineHintChip(text: texts.maxStockReached, color: colors.error),
           if (isSyncingItem)
-            _InlineHintChip(
-              text: texts.syncingItemHint,
-              color: colors.primary,
-            ),
+            _InlineHintChip(text: texts.syncingItemHint, color: colors.primary),
           if (item.product.stock <= 0)
             _InlineHintChip(
               text: texts.discontinuedProduct,
@@ -1180,8 +1153,9 @@ class _CartItemCard extends StatelessWidget {
       hint: texts.cartItemHint,
       child: Dismissible(
         key: ValueKey('dismiss-${item.product.id}'),
-        direction:
-            isSyncingItem ? DismissDirection.none : DismissDirection.endToStart,
+        direction: isSyncingItem
+            ? DismissDirection.none
+            : DismissDirection.endToStart,
         background: Container(
           alignment: Alignment.centerRight,
           padding: const EdgeInsets.only(right: 20),
@@ -1206,12 +1180,7 @@ class _CartItemCard extends StatelessWidget {
             ),
           ),
           child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              isWide ? 16 : 14,
-              14,
-              8,
-              14,
-            ),
+            padding: EdgeInsets.fromLTRB(isWide ? 16 : 14, 14, 8, 14),
             child: isWide
                 ? Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1336,9 +1305,7 @@ class _ItemContent extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          texts.lineTotalLabel(
-            formatVnd(item.product.price * item.quantity),
-          ),
+          texts.lineTotalLabel(formatVnd(item.product.price * item.quantity)),
           style: theme.textTheme.bodySmall?.copyWith(
             color: colors.primary,
             fontWeight: FontWeight.w700,
@@ -1351,10 +1318,7 @@ class _ItemContent extends StatelessWidget {
 }
 
 class _InlineHintChip extends StatelessWidget {
-  const _InlineHintChip({
-    required this.text,
-    required this.color,
-  });
+  const _InlineHintChip({required this.text, required this.color});
 
   final String text;
   final Color color;
@@ -1370,9 +1334,9 @@ class _InlineHintChip extends StatelessWidget {
       child: Text(
         text,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w700,
-            ),
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -1415,19 +1379,15 @@ class _CartMetricTile extends StatelessWidget {
               color: colors.primaryContainer.withValues(alpha: 0.55),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(
-              icon,
-              color: colors.onPrimaryContainer,
-              size: 20,
-            ),
+            child: Icon(icon, color: colors.onPrimaryContainer, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
             ),
           ),
           const SizedBox(width: 12),
@@ -1436,9 +1396,9 @@ class _CartMetricTile extends StatelessWidget {
               value,
               textAlign: TextAlign.right,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: valueColor,
-                  ),
+                fontWeight: FontWeight.w800,
+                color: valueColor,
+              ),
             ),
           ),
         ],
@@ -1465,18 +1425,15 @@ class _SummaryRow extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+          child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
         ),
         const SizedBox(width: 12),
         Text(
           value,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
-              ),
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ],
     );
@@ -1514,10 +1471,10 @@ class _DiscountHintCard extends StatelessWidget {
             child: Text(
               message,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: colors.onSecondaryContainer,
-                    height: 1.45,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: colors.onSecondaryContainer,
+                height: 1.45,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -1547,9 +1504,9 @@ class _StatusNotice extends StatelessWidget {
           child: Text(
             message,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],
@@ -1558,10 +1515,7 @@ class _StatusNotice extends StatelessWidget {
 }
 
 class _EmptyCart extends StatelessWidget {
-  const _EmptyCart({
-    required this.onShop,
-    required this.texts,
-  });
+  const _EmptyCart({required this.onShop, required this.texts});
 
   final VoidCallback onShop;
   final _CartTexts texts;
@@ -1611,18 +1565,18 @@ class _EmptyCart extends StatelessWidget {
                 Text(
                   texts.emptyTitle,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: colors.onPrimaryContainer,
-                      ),
+                    fontWeight: FontWeight.w800,
+                    color: colors.onPrimaryContainer,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 10),
                 Text(
                   texts.emptySubtitle,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: colors.onPrimaryContainer.withValues(alpha: 0.84),
-                        height: 1.5,
-                      ),
+                    color: colors.onPrimaryContainer.withValues(alpha: 0.84),
+                    height: 1.5,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 22),
@@ -1647,8 +1601,7 @@ class _CartTexts {
 
   String get screenTitle => isEnglish ? 'Cart' : 'Giỏ hàng';
 
-  String get heroTitle =>
-      isEnglish ? 'Review your cart' : 'Kiểm tra giỏ hàng';
+  String get heroTitle => isEnglish ? 'Review your cart' : 'Kiểm tra giỏ hàng';
 
   String get heroSubtitle => isEnglish
       ? 'Adjust quantities, review discounts and continue to checkout when everything looks right.'
@@ -1681,8 +1634,7 @@ class _CartTexts {
   String get totalPaymentLabel =>
       isEnglish ? 'Total payment' : 'Tổng thanh toán';
 
-  String get summaryTitle =>
-      isEnglish ? 'Order summary' : 'Tóm tắt đơn hàng';
+  String get summaryTitle => isEnglish ? 'Order summary' : 'Tóm tắt đơn hàng';
 
   String get summarySubtitle => isEnglish
       ? 'Review pricing and checkout availability before placing the order.'
@@ -1723,8 +1675,7 @@ class _CartTexts {
 
   String get undoAction => isEnglish ? 'Undo' : 'Hoàn tác';
 
-  String get deleteTooltip =>
-      isEnglish ? 'Remove from cart' : 'Xóa khỏi giỏ';
+  String get deleteTooltip => isEnglish ? 'Remove from cart' : 'Xóa khỏi giỏ';
 
   String cartItemSemantics(String productName) =>
       isEnglish ? 'Cart item $productName' : 'Mục giỏ hàng $productName';

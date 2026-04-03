@@ -1,9 +1,9 @@
 {
   "@@locale": "en",
-  "appTitle": "4thitek Dealer Hub",
+  "appTitle": "4T HITEK Dealer",
   "viewAction": "View",
   "sessionExpiredMessage": "Your session has expired. Please sign in again.",
-  "welcomeTitle": "Welcome to 4thitek Dealer Hub",
+  "welcomeTitle": "Welcome to 4T HITEK Dealer",
   "welcomeStepProducts": "1. Create orders quickly from the Products tab.",
   "welcomeStepOrders": "2. Track debt and status in the Orders tab.",
   "welcomeStepSearch": "3. Use global search to find orders and products instantly.",

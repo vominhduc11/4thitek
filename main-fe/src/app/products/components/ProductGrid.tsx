@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useCallback, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FiArrowUpRight, FiHeadphones } from 'react-icons/fi';
+import { memo, useCallback, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { AnimatePresence, motion } from 'framer-motion';
+import { FiArrowUpRight, FiHeadphones } from 'react-icons/fi';
 import type { SimpleProduct } from '@/types/product';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
@@ -16,14 +16,18 @@ interface ProductImageWithFallbackProps {
     className?: string;
 }
 
-const ProductImageWithFallback = memo(function ProductImageWithFallback({ src, alt, className }: ProductImageWithFallbackProps) {
+const ProductImageWithFallback = memo(function ProductImageWithFallback({
+    src,
+    alt,
+    className
+}: ProductImageWithFallbackProps) {
     const [imageError, setImageError] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
     if (!src || imageError) {
         return (
-            <div className={`${className} flex flex-col items-center justify-center`}>
-                <FiHeadphones className="h-12 w-12 text-slate-600" />
+            <div className={`${className} flex items-center justify-center`}>
+                <FiHeadphones className="h-12 w-12 text-[var(--text-muted)]" />
             </div>
         );
     }
@@ -32,16 +36,16 @@ const ProductImageWithFallback = memo(function ProductImageWithFallback({ src, a
         <div className={`${className} relative`}>
             {isLoading && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--brand-blue)] border-t-transparent" />
                 </div>
             )}
             <Image
                 src={src}
                 alt={alt}
-                width={200}
-                height={200}
-                sizes="200px"
-                className={`w-full h-full object-contain transition-opacity duration-200 ease-out ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+                width={220}
+                height={220}
+                sizes="(max-width: 1024px) 200px, 240px"
+                className={`h-full w-full object-contain transition-opacity duration-200 ease-out ${isLoading ? 'opacity-0' : 'opacity-100'}`}
                 onLoad={() => setIsLoading(false)}
                 onError={() => {
                     setImageError(true);
@@ -60,88 +64,67 @@ export default function ProductGrid({ products }: ProductGridProps) {
     const { t } = useLanguage();
     const animationConfig = useAnimationConfig();
 
-    const renderProductCard = useCallback((product: SimpleProduct, index: number) => {
-        return (
-            <motion.div
+    const renderProductCard = useCallback(
+        (product: SimpleProduct, index: number) => (
+            <motion.article
                 key={product.id}
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
+                exit={{ opacity: 0, y: -16 }}
                 transition={{
                     duration: animationConfig.duration,
-                    delay: animationConfig.enableComplexAnimations ? Math.min(index * animationConfig.stagger, 0.5) : 0,
+                    delay: animationConfig.enableComplexAnimations ? Math.min(index * animationConfig.stagger, 0.4) : 0,
                     ease: animationConfig.ease
                 }}
-                style={{ willChange: 'transform, opacity' }}
                 className="relative w-full"
             >
-                <Link href={buildProductPath(product.id, product.name)}>
+                <Link href={buildProductPath(product.id, product.name)} className="group block h-full">
                     <motion.div
-                        className="relative bg-gradient-to-b from-gray-900/40 to-gray-800/60 hover:from-gray-800/60 hover:to-gray-700/70 transition-colors duration-300 cursor-pointer group overflow-hidden rounded-xl min-h-[320px] sm:min-h-[360px] md:min-h-[400px] lg:min-h-[440px] xl:min-h-[480px] 2xl:min-h-[520px] grid grid-rows-[auto_1fr_auto] border border-gray-700/30 hover:border-[#4FC8FF]/40 shadow-lg backdrop-blur-sm"
+                        className="brand-card flex h-full min-h-[360px] flex-col overflow-hidden rounded-[28px] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[var(--brand-border-strong)] hover:shadow-[0_24px_44px_rgba(0,113,188,0.16)] sm:min-h-[390px] xl:min-h-[430px]"
                         whileHover={
                             animationConfig.enableComplexAnimations
-                                ? {
-                                      y: -6,
-                                      boxShadow: '0 16px 32px rgba(79, 200, 255, 0.15)',
-                                      transition: { duration: 0.25, ease: 'easeOut' }
-                                  }
+                                ? { y: -5, transition: { duration: 0.22, ease: 'easeOut' } }
                                 : undefined
                         }
                         whileTap={{ scale: 0.99 }}
                     >
-                    <div className="absolute left-3 sm:left-4 md:left-6 top-3 sm:top-4 z-20">
-                        <div
-                            className="font-bold text-xs sm:text-sm uppercase tracking-widest text-gray-400 group-hover:text-[#4FC8FF] transition-colors duration-300"
-                            style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
-                        >
-                            {t('products.featured.product')}
+                        <div className="flex items-start justify-between gap-3">
+                            <span className="brand-badge-muted text-[11px] font-semibold uppercase tracking-[0.18em]">
+                                {t('products.featured.product')}
+                            </span>
+                            <FiArrowUpRight className="h-5 w-5 text-[var(--text-muted)] transition-colors duration-200 group-hover:text-[var(--brand-blue)]" />
                         </div>
-                    </div>
 
-                    <div className="flex justify-center items-center py-5 md:py-6 px-5 md:px-6 z-10 relative">
-                        <motion.div
-                            key={`product-${product.id}`}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.3, ease: 'easeOut' }}
-                        >
+                        <div className="relative mt-6 flex flex-1 items-center justify-center overflow-hidden rounded-[24px] border border-[var(--brand-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))] p-6">
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(41,171,226,0.12),transparent_60%)] opacity-80" />
                             <ProductImageWithFallback
                                 src={product.image || ''}
                                 alt={product.name}
-                                className="w-[140px] h-[140px] sm:w-[160px] sm:h-[160px] md:w-[180px] md:h-[180px] lg:w-[200px] lg:h-[200px] xl:w-[220px] xl:h-[220px] 2xl:w-[260px] 2xl:h-[260px] object-contain"
+                                className="relative z-10 h-[180px] w-[180px] sm:h-[200px] sm:w-[200px] xl:h-[220px] xl:w-[220px]"
                             />
-                        </motion.div>
-                    </div>
-
-                    <div className="px-5 md:px-6 pb-6 md:pb-8 pt-2 sm:pt-3 z-10 relative flex flex-col h-full">
-                        <h3 className="text-white font-bold text-base sm:text-lg md:text-xl xl:text-2xl mb-2 sm:mb-3 min-h-[2.5rem] sm:min-h-[3rem] flex items-center group-hover:text-[#4FC8FF] transition-colors duration-300">
-                            <span className="line-clamp-2">{product.name}</span>
-                        </h3>
-                        <p className="text-gray-300 text-xs sm:text-sm xl:text-base leading-relaxed mb-2 sm:mb-3 line-clamp-2">
-                            {product.description}
-                        </p>
-
-                        <div className="flex justify-end mt-auto pt-2 sm:pt-3">
-                            <div className="p-2 sm:p-3 rounded-full group-hover:bg-white/10 transition-colors">
-                                <FiArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 group-hover:text-cyan-400 transition-colors duration-300" />
-                            </div>
                         </div>
-                    </div>
 
-                        <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[radial-gradient(circle_at_center,_rgba(79,200,255,0.08),_transparent_65%)]" />
-                        <div className="absolute inset-0 border-2 border-transparent group-hover:border-[#4FC8FF]/40 transition-colors duration-300 pointer-events-none" />
+                        <div className="mt-5 flex flex-1 flex-col">
+                            <h3 className="line-clamp-2 text-xl font-semibold leading-snug text-[var(--text-primary)] transition-colors duration-200 group-hover:text-[var(--brand-blue)]">
+                                {product.name}
+                            </h3>
+                            <p className="mt-3 line-clamp-3 text-sm leading-7 text-[var(--text-secondary)] sm:text-base">
+                                {product.description}
+                            </p>
+                        </div>
                     </motion.div>
                 </Link>
-            </motion.div>
-        );
-    }, [t, animationConfig]);
+            </motion.article>
+        ),
+        [animationConfig, t]
+    );
 
     return (
         <div className="w-full overflow-visible">
             <motion.div
-                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 relative mb-12 overflow-visible"
+                className="relative mb-12 grid grid-cols-1 gap-5 overflow-visible sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                 layout
-                transition={{ duration: 0.5, ease: 'easeInOut' }}
+                transition={{ duration: 0.45, ease: 'easeInOut' }}
             >
                 <AnimatePresence mode="popLayout">
                     {products.map((product, index) => renderProductCard(product, index))}

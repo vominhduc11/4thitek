@@ -55,15 +55,15 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
     const headerStyle = isHydrated
         ? {
-              backgroundColor: scrollY <= 0 ? 'transparent' : `rgba(12,19,29,${Math.min(scrollY / 400, 0.9)})`,
-              backdropFilter: scrollY > 20 ? `blur(${Math.min(scrollY / 80, 10)}px)` : 'none',
-              borderBottom: `1px solid rgba(255,255,255,${Math.min(scrollY / 200, 0.1)})`,
-              boxShadow: scrollY > 150 ? '0 4px 20px rgba(0,0,0,0.2)' : 'none'
+              backgroundColor: scrollY <= 0 ? 'transparent' : `rgba(6,17,27,${Math.min(0.58 + scrollY / 700, 0.92)})`,
+              backdropFilter: scrollY > 20 ? `blur(${Math.min(scrollY / 80, 14)}px)` : 'none',
+              borderBottom: `1px solid rgba(41,171,226,${Math.min(scrollY / 550, 0.2)})`,
+              boxShadow: scrollY > 100 ? '0 18px 40px rgba(1,8,15,0.24)' : 'none'
           }
         : {
               backgroundColor: 'transparent',
               backdropFilter: 'none',
-              borderBottom: '1px solid rgba(255,255,255,0)',
+              borderBottom: '1px solid rgba(41,171,226,0)',
               boxShadow: 'none'
           };
 
@@ -79,7 +79,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
     return (
         <motion.header
-            className="fixed top-0 left-0 sm:left-20 right-0 flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 transition-all duration-300 ease-out bg-transparent"
+            className="fixed left-0 right-0 top-0 flex items-center justify-between px-3 py-3 transition-all duration-300 ease-out sm:left-20 sm:px-6 sm:py-4"
             variants={headerVariants}
             initial="hidden"
             animate="visible"
@@ -88,36 +88,38 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <motion.div className="flex items-center gap-3 sm:gap-4" variants={logoVariants}>
                 <button
                     onClick={onMenuClick}
-                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded transition-all duration-200 hover:bg-white/10 sm:hidden"
+                    className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)] text-[var(--brand-blue)] shadow-[0_10px_24px_rgba(1,8,15,0.18)] transition-all duration-200 hover:border-[var(--brand-border-strong)] hover:bg-[rgba(12,30,44,0.86)] sm:hidden"
                     aria-label={t('common.openMenu')}
                     suppressHydrationWarning
                 >
-                    <FiMenu size={24} color="#27b2fc" />
+                    <FiMenu size={22} color="var(--brand-blue)" />
                 </button>
-                <Link href="/" className="transition-all duration-300 ease-out cursor-pointer" style={logoStyle}>
+                <Link href="/" className="cursor-pointer transition-all duration-300 ease-out" style={logoStyle}>
                     <Image
                         src="/logo-4t.png"
                         alt={t('brand.logoAlt')}
                         width={142}
                         height={32}
-                        className="w-[106px] sm:w-[142px] h-auto hover:scale-105 transition-transform duration-200"
+                        className="h-auto w-[110px] transition-transform duration-200 hover:scale-[1.03] sm:w-[150px]"
                         priority
                     />
                 </Link>
             </motion.div>
 
-            {/* Desktop nav — hidden on mobile, visible from md breakpoint */}
-            <nav className="hidden md:flex items-center gap-1" aria-label={t('nav.navigation')}>
+            <nav
+                className="hidden items-center gap-2 rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.62)] px-2 py-1.5 shadow-[0_12px_30px_rgba(1,8,15,0.18)] backdrop-blur-xl md:flex"
+                aria-label={t('nav.navigation')}
+            >
                 {NAV_LINKS.map(({ href, key }) => {
                     const isActive = pathname === href || pathname.startsWith(href + '/');
                     return (
                         <Link
                             key={href}
                             href={href}
-                            className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded transition-colors duration-200 ${
+                            className={`rounded-full px-4 py-2 text-sm font-semibold tracking-[0.18em] transition-all duration-200 ${
                                 isActive
-                                    ? 'text-[#4FC8FF]'
-                                    : 'text-gray-300 hover:text-white hover:bg-white/8'
+                                    ? 'bg-[linear-gradient(135deg,var(--brand-gradient-start),var(--brand-gradient-end))] text-white shadow-[0_12px_24px_rgba(0,113,188,0.24)]'
+                                    : 'text-[var(--text-muted)] hover:bg-[rgba(41,171,226,0.12)] hover:text-[var(--text-primary)]'
                             }`}
                         >
                             {t(key)}
@@ -129,11 +131,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <motion.div variants={searchVariants} className="flex items-center gap-2 sm:gap-3">
                 <button
                     onClick={openSearch}
-                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded transition-all duration-200 hover:bg-white/10"
+                    className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.64)] text-[var(--brand-blue)] transition-all duration-200 hover:border-[var(--brand-border-strong)] hover:bg-[rgba(41,171,226,0.12)]"
                     aria-label={t('common.search')}
                     suppressHydrationWarning
                 >
-                    <FiSearch size={20} color="#fff" />
+                    <FiSearch size={20} color="var(--brand-blue)" />
                 </button>
                 <LanguageSwitcher />
             </motion.div>

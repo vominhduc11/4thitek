@@ -53,10 +53,7 @@ const contentVariants: Variants = {
     }
 };
 
-export default function ProductPageClient({
-    initialProductData,
-    initialRelatedProducts
-}: ProductPageClientProps) {
+export default function ProductPageClient({ initialProductData, initialRelatedProducts }: ProductPageClientProps) {
     const { t } = useLanguage();
     const { product, descriptions, apiSpecifications, hasApiSpecifications } = mapProductDetailToViewModel(
         initialProductData,
@@ -86,10 +83,9 @@ export default function ProductPageClient({
             setShowStickyNav(true);
             return;
         }
-        const observer = new IntersectionObserver(
-            ([entry]) => setShowStickyNav(!entry.isIntersecting),
-            { threshold: 0 }
-        );
+        const observer = new IntersectionObserver(([entry]) => setShowStickyNav(!entry.isIntersecting), {
+            threshold: 0
+        });
         observer.observe(el);
         return () => observer.disconnect();
     }, []);
@@ -124,15 +120,42 @@ export default function ProductPageClient({
                                 hasApiSpecifications
                                     ? apiSpecifications
                                     : [
-                                          { label: t('products.specifications.labels.driver'), value: product.specifications?.driver || '' },
-                                          { label: t('products.specifications.labels.frequencyResponse'), value: product.specifications?.frequencyResponse || '' },
-                                          { label: t('products.specifications.labels.impedance'), value: product.specifications?.impedance || '' },
-                                          { label: t('products.specifications.labels.sensitivity'), value: product.specifications?.sensitivity || '' },
-                                          { label: t('products.specifications.labels.maxPower'), value: product.specifications?.maxPower || '' },
-                                          { label: t('products.specifications.labels.cable'), value: product.specifications?.cable || '' },
-                                          { label: t('products.specifications.labels.weight'), value: product.specifications?.weight || '' },
-                                          { label: t('products.specifications.labels.dimensions'), value: product.specifications?.dimensions || '' },
-                                          { label: t('products.specifications.labels.connector'), value: product.specifications?.connector || '' }
+                                          {
+                                              label: t('products.specifications.labels.driver'),
+                                              value: product.specifications?.driver || ''
+                                          },
+                                          {
+                                              label: t('products.specifications.labels.frequencyResponse'),
+                                              value: product.specifications?.frequencyResponse || ''
+                                          },
+                                          {
+                                              label: t('products.specifications.labels.impedance'),
+                                              value: product.specifications?.impedance || ''
+                                          },
+                                          {
+                                              label: t('products.specifications.labels.sensitivity'),
+                                              value: product.specifications?.sensitivity || ''
+                                          },
+                                          {
+                                              label: t('products.specifications.labels.maxPower'),
+                                              value: product.specifications?.maxPower || ''
+                                          },
+                                          {
+                                              label: t('products.specifications.labels.cable'),
+                                              value: product.specifications?.cable || ''
+                                          },
+                                          {
+                                              label: t('products.specifications.labels.weight'),
+                                              value: product.specifications?.weight || ''
+                                          },
+                                          {
+                                              label: t('products.specifications.labels.dimensions'),
+                                              value: product.specifications?.dimensions || ''
+                                          },
+                                          {
+                                              label: t('products.specifications.labels.connector'),
+                                              value: product.specifications?.connector || ''
+                                          }
                                       ].filter((specification) => specification.value.trim().length > 0)
                             }
                         />
@@ -161,7 +184,10 @@ export default function ProductPageClient({
                         exit="exit"
                         transition={{ duration: 0.45, ease: 'easeOut' }}
                     >
-                        <ProductDetails description={product.longDescription || product.description || ''} descriptions={descriptions} />
+                        <ProductDetails
+                            description={product.longDescription || product.description || ''}
+                            descriptions={descriptions}
+                        />
                     </motion.div>
                 );
         }
@@ -185,7 +211,7 @@ export default function ProductPageClient({
     };
 
     return (
-        <div className="min-h-screen bg-[#0c131d] text-white flex flex-col">
+        <div className="brand-section min-h-screen text-white flex flex-col">
             {/* Hero first — no flow space consumed before it, video fills from top */}
             <AvoidSidebar>
                 <ProductHero
@@ -199,9 +225,13 @@ export default function ProductPageClient({
 
             {/* Mobile section selector (< md) */}
             <motion.div
-                className="fixed left-0 right-0 top-[68px] border-b border-gray-800/50 bg-[#0c131d]/95 py-3 backdrop-blur-sm md:hidden sm:top-[76px]"
+                className="fixed left-0 right-0 top-[68px] border-b border-[var(--brand-border)] bg-[rgba(6,17,27,0.95)] py-3 backdrop-blur-sm md:hidden sm:top-[76px]"
                 style={{ zIndex: Z_INDEX.STICKY }}
-                animate={{ opacity: showStickyNav ? 1 : 0, y: showStickyNav ? 0 : -8, pointerEvents: showStickyNav ? 'auto' : 'none' }}
+                animate={{
+                    opacity: showStickyNav ? 1 : 0,
+                    y: showStickyNav ? 0 : -8,
+                    pointerEvents: showStickyNav ? 'auto' : 'none'
+                }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
             >
                 <AvoidSidebar>
@@ -212,17 +242,26 @@ export default function ProductPageClient({
                                 const selectedItem = breadcrumbItems.find((item) => item.label === event.target.value);
                                 if (selectedItem) handleBreadcrumbClick(selectedItem);
                             }}
-                            className="w-full appearance-none rounded-lg border border-gray-700 bg-gray-800/50 px-4 py-3 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                            className="w-full appearance-none rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)] px-4 py-3 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand-blue)]"
                             aria-label={t('products.detail.selectSection')}
                         >
                             {breadcrumbItems.map((item) => (
-                                <option key={item.label} value={item.label} className="bg-gray-800 text-white">
+                                <option
+                                    key={item.label}
+                                    value={item.label}
+                                    className="bg-[var(--brand-dark)] text-white"
+                                >
                                     {item.label}
                                 </option>
                             ))}
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
-                            <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg
+                                className="h-4 w-4 text-[var(--text-muted)]"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
                         </div>
@@ -232,9 +271,13 @@ export default function ProductPageClient({
 
             {/* Desktop section tab nav (md+) */}
             <motion.div
-                className="fixed left-0 right-0 top-[76px] hidden border-b border-gray-800/50 bg-[#0c131d]/95 backdrop-blur-sm md:block"
+                className="fixed left-0 right-0 top-[76px] hidden border-b border-[var(--brand-border)] bg-[rgba(6,17,27,0.95)] backdrop-blur-sm md:block"
                 style={{ zIndex: Z_INDEX.STICKY }}
-                animate={{ opacity: showStickyNav ? 1 : 0, y: showStickyNav ? 0 : -8, pointerEvents: showStickyNav ? 'auto' : 'none' }}
+                animate={{
+                    opacity: showStickyNav ? 1 : 0,
+                    y: showStickyNav ? 0 : -8,
+                    pointerEvents: showStickyNav ? 'auto' : 'none'
+                }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
             >
                 <AvoidSidebar>
@@ -247,16 +290,16 @@ export default function ProductPageClient({
                                 <button
                                     type="button"
                                     onClick={() => handleBreadcrumbClick(item)}
-                                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-200 ${
+                                    className={`rounded-full px-4 py-2 text-sm font-medium transition-colors duration-200 ${
                                         activeBreadcrumb === item.label
-                                            ? 'text-cyan-400'
-                                            : 'text-gray-400 hover:text-white'
+                                            ? 'bg-[rgba(41,171,226,0.12)] text-[var(--brand-blue)]'
+                                            : 'text-[var(--text-secondary)] hover:text-white'
                                     }`}
                                 >
                                     {item.label}
                                 </button>
                                 {index < breadcrumbItems.length - 1 && (
-                                    <span className="text-gray-700 text-xs select-none">/</span>
+                                    <span className="text-[var(--text-muted)] text-xs select-none">/</span>
                                 )}
                             </div>
                         ))}

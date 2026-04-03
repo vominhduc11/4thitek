@@ -53,7 +53,7 @@ public class DebtPaymentReconciliationJob {
                 toExclusive
         );
         long flaggedCount = payments.stream().filter(item -> Boolean.TRUE.equals(item.reviewSuggested())).count();
-        String subject = "[4ThiTek] Daily debt reconciliation report - " + windowStart.toLocalDate();
+        String subject = "[4T HITEK] Daily debt reconciliation report - " + windowStart.toLocalDate();
         String body = buildBody(windowStart, windowEnd, payments, flaggedCount);
         for (String recipient : recipients) {
             asyncMailService.sendText(recipient, subject, body);

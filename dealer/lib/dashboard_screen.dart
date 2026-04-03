@@ -1557,7 +1557,7 @@ class _OverviewCard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF1D4ED8), Color(0xFF2563EB)],
+          colors: [Color(0xFF0071BC), Color(0xFF29ABE2)],
         ),
         borderRadius: BorderRadius.circular(24),
       ),
@@ -2196,7 +2196,7 @@ LinearGradient _revenueBarGradient(_MonthRevenue item, int currentMonth) {
     return const LinearGradient(
       begin: Alignment.bottomCenter,
       end: Alignment.topCenter,
-      colors: [Color(0xFF1D4ED8), Color(0xFF60A5FA)],
+      colors: [Color(0xFF0071BC), Color(0xFF29ABE2)],
     );
   }
 
@@ -3963,7 +3963,7 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
                     horizontalLines: [
                       HorizontalLine(
                         y: averagePerDay,
-                        color: const Color(0xFF2563EB).withValues(alpha: 0.4),
+                        color: const Color(0xFF29ABE2).withValues(alpha: 0.4),
                         strokeWidth: 1.1,
                         dashArray: const [6, 4],
                         label: HorizontalLineLabel(
@@ -4015,7 +4015,7 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
                         return TouchedSpotIndicatorData(
                           FlLine(
                             color: const Color(
-                              0xFF2563EB,
+                              0xFF29ABE2,
                             ).withValues(alpha: 0.22),
                             strokeWidth: 1.1,
                             dashArray: const [5, 4],
@@ -4025,7 +4025,7 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
                             getDotPainter: (spot, percent, line, index) =>
                                 FlDotCirclePainter(
                                   radius: 4,
-                                  color: const Color(0xFF2563EB),
+                                  color: const Color(0xFF29ABE2),
                                   strokeWidth: 2,
                                   strokeColor: Colors.white,
                                 ),
@@ -4153,7 +4153,7 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
                       isCurved: true,
                       curveSmoothness: 0.25,
                       preventCurveOverShooting: true,
-                      color: const Color(0xFF2563EB),
+                      color: const Color(0xFF29ABE2),
                       barWidth: 2.2,
                       isStrokeCapRound: true,
                       dotData: FlDotData(
@@ -4175,13 +4175,13 @@ class _ActivationTrendCardState extends State<_ActivationTrendCard> {
                             strokeWidth: 1.8,
                             strokeColor: isPeak
                                 ? const Color(0xFFDC2626)
-                                : const Color(0xFF2563EB),
+                                : const Color(0xFF29ABE2),
                           );
                         },
                       ),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: const Color(0xFF2563EB).withValues(alpha: 0.08),
+                        color: const Color(0xFF29ABE2).withValues(alpha: 0.08),
                       ),
                     ),
                   ],
@@ -5166,14 +5166,14 @@ class _TopCustomerCard extends StatelessWidget {
             height: 42,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFFEEF2FF),
+              color: const Color(0xFFE6F4FB),
             ),
             alignment: Alignment.center,
             child: Text(
               stat.initials,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF4338CA),
+                color: const Color(0xFF0071BC),
               ),
             ),
           ),

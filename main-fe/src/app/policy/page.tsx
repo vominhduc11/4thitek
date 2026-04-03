@@ -49,32 +49,23 @@ function PolicyPageContent() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0c131d] text-white flex flex-col">
+        <div className="brand-section min-h-screen text-white flex flex-col">
             <HeroSection
                 breadcrumbItems={breadcrumbItems}
                 breadcrumbWrapperClassName="ml-0 sm:ml-16 md:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20"
             />
-            <PolicyBreadcrumb
-                selectedPolicy={selectedPolicy}
-                onPolicyClick={handlePolicyClick}
-                policyContent={data}
-            />
-            <PolicyContent
-                selectedPolicy={selectedPolicy}
-                policyContent={data}
-                loading={loading}
-                error={error}
-            />
+            <PolicyBreadcrumb selectedPolicy={selectedPolicy} onPolicyClick={handlePolicyClick} policyContent={data} />
+            <PolicyContent selectedPolicy={selectedPolicy} policyContent={data} loading={loading} error={error} />
         </div>
     );
 }
 
 function PolicyPageFallback() {
     return (
-        <div className="min-h-screen bg-[#0c131d] text-white flex items-center justify-center">
+        <div className="brand-section min-h-screen text-white flex items-center justify-center">
             <div className="text-center">
-                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-[#4FC8FF]"></div>
-                <p className="mt-4 text-sm text-gray-400">Loading policy...</p>
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[var(--brand-blue)] border-t-transparent"></div>
+                <p className="mt-4 text-sm text-[var(--text-secondary)]">Loading policy...</p>
             </div>
         </div>
     );

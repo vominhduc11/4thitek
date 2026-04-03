@@ -12,29 +12,29 @@ const cx = (...classes: Array<string | false | null | undefined>) =>
   classes.filter(Boolean).join(" ");
 
 export const panelClass =
-  "rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]";
+  "brand-admin-panel rounded-[24px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_18px_42px_rgba(11,24,38,0.08)]";
 
 export const softCardClass =
-  "rounded-3xl border border-[var(--border)] bg-[var(--surface-ghost)] p-4 shadow-sm backdrop-blur";
+  "rounded-[20px] border border-[var(--border)] bg-[var(--surface-ghost)] p-4 shadow-[0_12px_28px_rgba(11,24,38,0.05)]";
 
 export const ghostButtonClass =
-  "btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--ink)] shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--accent)] hover:text-[var(--ink)] hover:shadow-[0_12px_26px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+  "btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--ink)] shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--ink)] hover:shadow-[0_12px_26px_rgba(11,24,38,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
 
 export const primaryButtonClass =
-  "btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+  "btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--brand-gradient-start),var(--brand-gradient-end))] px-4 py-2 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(0,113,188,0.28)] transition hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
 
 export const inputClass =
-  "h-11 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--ink)] shadow-sm transition placeholder:text-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1";
+  "h-11 rounded-[18px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-sm text-[var(--ink)] shadow-sm transition placeholder:text-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1";
 export const selectClass = inputClass;
 
-export const cardTitleClass = "text-lg font-semibold text-[var(--ink)]";
+export const cardTitleClass = "text-lg font-semibold tracking-[-0.01em] text-[var(--ink)]";
 export const bodyTextClass = "text-sm text-[var(--muted)]";
 export const labelClass =
   "text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]";
 export const tableCardClass =
-  "rounded-3xl border border-[var(--border)] bg-[var(--surface-ghost)] p-4 shadow-sm backdrop-blur";
+  "rounded-[24px] border border-[var(--border)] bg-[var(--surface-ghost)] p-4 shadow-[0_16px_34px_rgba(11,24,38,0.06)] backdrop-blur";
 export const tableRowClass =
-  "cursor-pointer rounded-2xl bg-[var(--surface-ghost)] text-sm text-[var(--ink)] shadow-sm transition hover:bg-[var(--accent-soft)]/40";
+  "cursor-pointer rounded-2xl bg-[var(--surface-ghost)] text-sm text-[var(--ink)] shadow-sm transition hover:border-[var(--brand-border)] hover:bg-[var(--accent-soft)]/70";
 export const tableHeadClass =
   "text-left text-xs uppercase tracking-[0.2em] text-[var(--muted)]";
 export const tableMetaClass = "text-xs text-[var(--muted)]";
@@ -42,11 +42,11 @@ export const tableValueClass = "font-semibold text-[var(--ink)]";
 export const tableActionSelectClass =
   "min-h-11 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--ink)] shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1";
 export const formCardClass =
-  "rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)] p-5";
+  "rounded-[24px] border border-[var(--border)] bg-[var(--surface-muted)] p-5";
 export const textareaClass =
   "min-h-[130px] w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-sm text-[var(--ink)] placeholder:text-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1";
 export const destructiveButtonClass =
-  "btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-[var(--destructive-border)] bg-[var(--destructive-soft)] px-4 py-2 text-sm font-semibold text-[var(--destructive-text)] shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--destructive)] hover:bg-[var(--destructive-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--destructive)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+  "btn-stable inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--destructive-border)] bg-[var(--destructive-soft)] px-4 py-2 text-sm font-semibold text-[var(--destructive-text)] shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--destructive)] hover:bg-[var(--destructive-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--destructive)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
 export const fieldErrorClass = "mt-2 text-sm font-medium text-[var(--error-text)]";
 export const fieldHintClass = "mt-2 text-sm text-[var(--muted)]";
 
@@ -190,7 +190,7 @@ export const PageHeader = ({
       )}
     >
       <div className="min-w-0">
-        <h1 className="text-xl font-semibold" style={{ color: "var(--ink)" }}>
+        <h1 className="text-[1.35rem] font-semibold tracking-[-0.02em]" style={{ color: "var(--ink)" }}>
           {title}
         </h1>
         {supportingText ? (
@@ -235,7 +235,7 @@ export const StatCard = ({
       <span className={labelClass}>{label}</span>
       {Icon && <Icon className={cx("h-4 w-4", statToneClass[tone])} />}
     </div>
-    <p className="mt-2 text-2xl font-semibold text-[var(--ink)]">{value}</p>
+    <p className="mt-2 text-[1.65rem] font-semibold tracking-[-0.03em] text-[var(--ink)]">{value}</p>
     {hint && <p className={tableMetaClass}>{hint}</p>}
   </div>
 );
@@ -290,8 +290,8 @@ export const EmptyState = ({
   icon: Icon,
   action,
 }: EmptyStateProps) => (
-  <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)] px-6 py-10 text-center text-sm text-[var(--muted)]">
-    {Icon ? <Icon className="mx-auto h-10 w-10 text-[var(--muted)]" /> : null}
+  <div className="rounded-[20px] border border-[var(--border)] bg-[var(--surface-muted)] px-6 py-10 text-center text-sm text-[var(--muted)]">
+    {Icon ? <Icon className="mx-auto h-10 w-10 text-[var(--accent)]" /> : null}
     <p className="mt-4 text-base font-semibold text-[var(--ink)]">{title}</p>
     <p className="mt-2 text-xs text-[var(--muted)]">{message}</p>
     {action ? <div className="mt-4">{action}</div> : null}
@@ -318,7 +318,7 @@ export const ErrorState = ({
   <div
     aria-live="assertive"
     className={cx(
-      "rounded-3xl border border-[var(--error-border)] bg-[var(--error-bg)] px-6 py-10 text-center",
+      "rounded-[20px] border border-[var(--error-border)] bg-[var(--error-bg)] px-6 py-10 text-center",
       className,
     )}
     role="alert"
@@ -327,11 +327,7 @@ export const ErrorState = ({
     <p className="mt-4 text-base font-semibold text-[var(--error-text)]">{title}</p>
     <p className="mt-2 text-sm text-[var(--error-text)]">{message}</p>
     {onRetry ? (
-      <button
-        className="mt-4 inline-flex items-center justify-center rounded-xl bg-[var(--destructive)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--destructive)] focus-visible:ring-offset-2"
-        onClick={onRetry}
-        type="button"
-      >
+      <button className="mt-4 inline-flex items-center justify-center rounded-full bg-[var(--destructive)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--destructive)] focus-visible:ring-offset-2" onClick={onRetry} type="button">
         {retryLabel}
       </button>
     ) : null}
@@ -348,7 +344,7 @@ export const LoadingRows = ({ rows = 4 }: LoadingRowsProps) => (
     {Array.from({ length: rows }).map((_, index) => (
       <div
         key={`skeleton-row-${index}`}
-        className="h-16 animate-pulse rounded-2xl bg-gradient-to-r from-slate-200/70 via-slate-100 to-slate-200/70 dark:from-slate-700/40 dark:via-slate-600/30 dark:to-slate-700/40"
+        className="h-16 animate-pulse rounded-[18px] bg-[linear-gradient(90deg,rgba(41,171,226,0.08),rgba(255,255,255,0.72),rgba(41,171,226,0.08))] dark:bg-[linear-gradient(90deg,rgba(41,171,226,0.12),rgba(18,34,48,0.88),rgba(41,171,226,0.12))]"
       />
     ))}
   </div>
@@ -413,10 +409,10 @@ export const PaginationNav = ({
           previousLabel={previousLabel}
           forcePage={page}
           containerClassName="flex flex-wrap items-center gap-2 text-sm"
-          pageLinkClassName="flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-          previousLinkClassName="flex min-h-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-          nextLinkClassName="flex min-h-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-          breakLinkClassName="flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 text-[var(--muted)]"
+          pageLinkClassName="flex min-h-11 min-w-11 items-center justify-center rounded-[18px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          previousLinkClassName="flex min-h-11 items-center justify-center rounded-[18px] border border-[var(--border)] bg-[var(--surface-raised)] px-4 text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          nextLinkClassName="flex min-h-11 items-center justify-center rounded-[18px] border border-[var(--border)] bg-[var(--surface-raised)] px-4 text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          breakLinkClassName="flex min-h-11 min-w-11 items-center justify-center rounded-[18px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-[var(--muted)]"
           activeLinkClassName="border-[var(--accent)] bg-[var(--accent)] text-white"
           disabledLinkClassName="cursor-not-allowed border-[var(--border)] text-[var(--muted)] opacity-50"
         />

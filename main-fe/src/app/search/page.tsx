@@ -1,17 +1,18 @@
 'use client';
 
-import { useState, useEffect, useMemo, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { FiSearch, FiFilter, FiX, FiArrowLeft } from 'react-icons/fi';
-import { motion, AnimatePresence } from 'framer-motion';
-import { apiService } from '@/services/apiService';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
+import { FiArrowLeft, FiArrowRight, FiBookOpen, FiFilter, FiPackage, FiSearch, FiX } from 'react-icons/fi';
+import Hero from '@/components/ui/Hero';
+import { Input } from '@/components/ui/input';
 import { useLanguage } from '@/context/LanguageContext';
 import { useDebounce } from '@/hooks/useDebounce';
-import Hero from '@/components/ui/Hero';
-import { parseImageUrl } from '@/utils/media';
 import { buildBlogPath, buildProductPath } from '@/lib/slug';
+import { apiService } from '@/services/apiService';
+import { parseImageUrl } from '@/utils/media';
 
 interface SearchResult {
     type: 'product' | 'blog';
@@ -23,64 +24,11 @@ interface SearchResult {
     category?: string;
 }
 
-// Animation variants
-const containerVariants = {
-    hidden: { opacity: 0 },
+const sectionVariants = {
+    hidden: { opacity: 0, y: 24 },
     visible: {
         opacity: 1,
-        transition: {
-            staggerChildren: 0.1,
-            delayChildren: 0.2
-        }
-    }
-};
-
-const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
         y: 0,
-        opacity: 1,
-        transition: {
-            duration: 0.5
-        }
-    }
-};
-
-const cardVariants = {
-    hidden: { y: 20, opacity: 0, scale: 0.95 },
-    visible: {
-        y: 0,
-        opacity: 1,
-        scale: 1,
-        transition: {
-            duration: 0.4
-        }
-    },
-    hover: {
-        y: -5,
-        scale: 1.02,
-        transition: {
-            duration: 0.2
-        }
-    }
-};
-
-const searchFormVariants = {
-    hidden: { y: -20, opacity: 0 },
-    visible: {
-        y: 0,
-        opacity: 1,
-        transition: {
-            duration: 0.6
-        }
-    }
-};
-
-const filterVariants = {
-    hidden: { x: -20, opacity: 0 },
-    visible: {
-        x: 0,
-        opacity: 1,
         transition: {
             duration: 0.5
         }
@@ -98,10 +46,8 @@ function SearchContent() {
     const [activeFilter, setActiveFilter] = useState<'all' | 'products' | 'blogs'>('all');
     const [searchInput, setSearchInput] = useState(query);
 
-    // Debounce search input for live search
     const debouncedSearchInput = useDebounce(searchInput, 500);
 
-    // Perform search when debounced search input changes
     useEffect(() => {
         const searchQuery = debouncedSearchInput.trim();
 
@@ -124,41 +70,49 @@ function SearchContent() {
                 const searchResults: SearchResult[] = [];
                 const data = response.data ?? { products: [], blogs: [] };
 
-                // Process products
-                data.products.forEach((product: { id: string | number; name: string; shortDescription: string; image: string }) => {
-                    const productId = product.id?.toString().trim();
-                    if (!productId) {
-                        return;
+                data.products.forEach(
+                    (product: { id: string | number; name: string; shortDescription: string; image: string }) => {
+                        const productId = product.id?.toString().trim();
+                        if (!productId) {
+                            return;
+                        }
+
+                        searchResults.push({
+                            type: 'product',
+                            id: productId,
+                            title: product.name,
+                            subtitle: product.shortDescription,
+                            image: parseImageUrl(product.image),
+                            href: buildProductPath(productId, product.name),
+                            category: t('search.type.product')
+                        });
                     }
+                );
 
-                    searchResults.push({
-                        type: 'product',
-                        id: productId,
-                        title: product.name,
-                        subtitle: product.shortDescription,
-                        image: parseImageUrl(product.image),
-                        href: buildProductPath(productId, product.name),
-                        category: t('search.type.product')
-                    });
-                });
+                data.blogs.forEach(
+                    (blog: {
+                        id: string | number;
+                        title: string;
+                        description: string;
+                        image: string;
+                        category?: string;
+                    }) => {
+                        const blogId = blog.id?.toString().trim();
+                        if (!blogId) {
+                            return;
+                        }
 
-                // Process blogs
-                data.blogs.forEach((blog: { id: string | number; title: string; description: string; image: string; category?: string }) => {
-                    const blogId = blog.id?.toString().trim();
-                    if (!blogId) {
-                        return;
+                        searchResults.push({
+                            type: 'blog',
+                            id: blogId,
+                            title: blog.title,
+                            subtitle: blog.description,
+                            image: parseImageUrl(blog.image),
+                            href: buildBlogPath(blogId, blog.title),
+                            category: blog.category || t('search.type.blog')
+                        });
                     }
-
-                    searchResults.push({
-                        type: 'blog',
-                        id: blogId,
-                        title: blog.title,
-                        subtitle: blog.description,
-                        image: parseImageUrl(blog.image),
-                        href: buildBlogPath(blogId, blog.title),
-                        category: blog.category || t('search.type.blog')
-                    });
-                });
+                );
 
                 setResults(searchResults);
             } catch (error) {
@@ -169,15 +123,13 @@ function SearchContent() {
             }
         };
 
-        performSearch();
+        void performSearch();
     }, [debouncedSearchInput, t]);
 
-    // Update search input when query param changes
     useEffect(() => {
         setSearchInput(query);
     }, [query]);
 
-    // Filter results based on active filter
     const filteredResults = useMemo(() => {
         return results.filter((result) => {
             if (activeFilter === 'all') return true;
@@ -187,12 +139,15 @@ function SearchContent() {
         });
     }, [results, activeFilter]);
 
-    // Handle new search
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (searchInput.trim()) {
-            router.push(`/search?q=${encodeURIComponent(searchInput.trim())}`);
+    const handleSearch = (event: React.FormEvent) => {
+        event.preventDefault();
+        const trimmedInput = searchInput.trim();
+        if (trimmedInput) {
+            router.push(`/search?q=${encodeURIComponent(trimmedInput)}`);
+            return;
         }
+
+        router.push('/search');
     };
 
     const breadcrumbItems = [
@@ -200,496 +155,349 @@ function SearchContent() {
         { label: t('search.page.breadcrumb'), active: true }
     ];
 
-    const productCount = results.filter(r => r.type === 'product').length;
-    const blogCount = results.filter(r => r.type === 'blog').length;
+    const productCount = results.filter((result) => result.type === 'product').length;
+    const blogCount = results.filter((result) => result.type === 'blog').length;
     const defaultSuggestions = (getTranslation('search.page.suggestions.default') as string[]) || [];
     const noResultsSuggestions = (getTranslation('search.page.suggestions.noResults') as string[]) || [];
+    const filterTabs = [
+        { id: 'all', label: t('search.tabs.all'), count: results.length },
+        { id: 'products', label: t('search.tabs.products'), count: productCount },
+        { id: 'blogs', label: t('search.tabs.blogs'), count: blogCount }
+    ] as const;
 
     return (
-        <div className="min-h-screen bg-[#0c131d] text-white flex flex-col relative overflow-hidden">
-            {/* Background Effects */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                {/* Gradient Orbs */}
-                <div className="absolute top-20 -right-20 w-96 h-96 bg-[#4FC8FF]/5 rounded-full blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-20 -left-20 w-80 h-80 bg-blue-600/3 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
-
-                {/* Floating Particles */}
-                <div className="absolute top-32 left-1/4 w-2 h-2 bg-[#4FC8FF]/30 rounded-full animate-bounce" style={{animationDelay: '1s'}}></div>
-                <div className="absolute top-64 right-1/3 w-1 h-1 bg-blue-400/40 rounded-full animate-bounce" style={{animationDelay: '3s'}}></div>
-                <div className="absolute bottom-64 left-1/3 w-1.5 h-1.5 bg-[#4FC8FF]/25 rounded-full animate-bounce" style={{animationDelay: '5s'}}></div>
+        <div className="relative min-h-screen overflow-hidden bg-[#06111B] text-white">
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute inset-0 bg-topo opacity-35" />
+                <div className="absolute left-[-8rem] top-20 h-72 w-72 rounded-full bg-[rgba(41,171,226,0.16)] blur-3xl" />
+                <div className="absolute bottom-24 right-[-6rem] h-80 w-80 rounded-full bg-[rgba(0,113,188,0.16)] blur-3xl" />
             </div>
 
-            {/* Hero Section */}
             <Hero
                 breadcrumbItems={breadcrumbItems}
                 breadcrumbWrapperClassName="ml-0 sm:ml-16 md:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20"
             />
 
-            {/* Search Section */}
-            <motion.section
-                className="ml-0 sm:ml-16 md:ml-20 py-8 sm:py-12 md:py-16 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 relative"
-                initial="hidden"
-                animate="visible"
-                variants={containerVariants}
-            >
-                <div className="max-w-6xl mx-auto">
-                    {/* Search Header */}
+            <section className="relative py-10 sm:py-12 md:py-16">
+                <div className="brand-shell ml-0 space-y-8 sm:ml-16 md:ml-20">
                     <motion.div
-                        className="mb-6 lg:mb-8"
-                        variants={itemVariants}
+                        className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"
+                        initial="hidden"
+                        animate="visible"
+                        variants={sectionVariants}
                     >
-                        <motion.div
-                            className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6"
-                            variants={itemVariants}
-                        >
-                            <motion.div
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.95 }}
+                        <div className="space-y-4">
+                            <Link
+                                href="/"
+                                className="inline-flex items-center gap-2 rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.62)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-secondary)] transition-all duration-200 hover:border-[var(--brand-border-strong)] hover:text-white"
+                                aria-label={t('search.page.backHomeAria')}
                             >
-                                <Link
-                                    href="/"
-                                    className="p-2 hover:bg-gray-700/50 rounded-lg transition-all duration-300 flex-shrink-0 group"
-                                    aria-label={t('search.page.backHomeAria')}
-                                >
-                                    <FiArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-[#4FC8FF] transition-colors" />
-                                </Link>
-                            </motion.div>
-                            <motion.h1
-                                className="text-xl sm:text-2xl md:text-3xl font-bold text-white truncate"
-                                initial={{ x: -20, opacity: 0 }}
-                                animate={{ x: 0, opacity: 1 }}
-                                transition={{ duration: 0.6, delay: 0.3 }}
-                            >
-                                {t('search.page.resultsTitle')}
-                            </motion.h1>
-                        </motion.div>
-
-                        {/* Search Form */}
-                        <motion.form
-                            onSubmit={handleSearch}
-                            className="mb-4 sm:mb-6"
-                            variants={searchFormVariants}
-                        >
-                            <div className="relative max-w-full sm:max-w-2xl group">
-                                <motion.div
-                                    className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5"
-                                    animate={{
-                                        color: searchInput ? '#4FC8FF' : '#9CA3AF',
-                                        scale: searchInput ? 1.1 : 1
-                                    }}
-                                    transition={{ duration: 0.2 }}
-                                >
-                                    <FiSearch className="w-full h-full" />
-                                </motion.div>
-                                <input
-                                    type="text"
-                                    placeholder={t('search.placeholder')}
-                                    value={searchInput}
-                                    onChange={(e) => setSearchInput(e.target.value)}
-                                    className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-3 sm:py-4 text-sm sm:text-base bg-gray-800/50 border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#4FC8FF] focus:bg-gray-800/70 focus:shadow-lg focus:shadow-[#4FC8FF]/10 transition-all duration-300 backdrop-blur-sm"
-                                />
-                                <AnimatePresence>
-                                    {searchInput && (
-                                        <motion.button
-                                            type="button"
-                                            onClick={() => setSearchInput('')}
-                                            className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-600/50 rounded transition-colors"
-                                            initial={{ opacity: 0, scale: 0.8 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.8 }}
-                                            whileHover={{ scale: 1.1 }}
-                                            whileTap={{ scale: 0.9 }}
-                                        >
-                                            <FiX className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 hover:text-red-400 transition-colors" />
-                                        </motion.button>
-                                    )}
-                                </AnimatePresence>
+                                <FiArrowLeft className="h-4 w-4" />
+                                {t('nav.home')}
+                            </Link>
+                            <div className="max-w-3xl space-y-3">
+                                <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--brand-blue)]">
+                                    TK HiTek Discovery
+                                </p>
+                                <h1 className="font-serif text-3xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-4xl lg:text-5xl">
+                                    {t('search.page.resultsTitle')}
+                                </h1>
+                                <p className="max-w-2xl text-base leading-7 text-[var(--text-secondary)] sm:text-lg">
+                                    Search products and content in one place while keeping the same road-ready,
+                                    high-clarity TK HiTek visual language.
+                                </p>
                             </div>
-                        </motion.form>
+                        </div>
 
-                        {/* Search Info */}
-                        <AnimatePresence>
-                            {debouncedSearchInput && (
-                                <motion.div
-                                    className="space-y-4"
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.4 }}
-                                >
-                                    <motion.div variants={itemVariants}>
-                                        <motion.p
-                                            className="text-sm sm:text-base text-gray-300 mb-1"
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            transition={{ delay: 0.2 }}
-                                        >
-                                            {t('search.page.queryLabel')}{' '}
-                                            <span className="text-white font-medium break-words bg-gradient-to-r from-[#4FC8FF] to-blue-400 bg-clip-text text-transparent">&ldquo;{debouncedSearchInput}&rdquo;</span>
-                                        </motion.p>
-                                        <motion.p
-                                            className="text-xs sm:text-sm text-gray-400"
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            transition={{ delay: 0.3 }}
-                                        >
-                                            {t('search.page.resultsCount')
-                                                .replace('{count}', String(filteredResults.length))}
-                                        </motion.p>
-                                    </motion.div>
-
-                                    {/* Filter Tabs */}
-                                    <motion.div
-                                        className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
-                                        variants={filterVariants}
-                                    >
-                                        <motion.div
-                                            className="flex items-center gap-2 flex-shrink-0"
-                                            initial={{ opacity: 0, x: -10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: 0.4 }}
-                                        >
-                                            <FiFilter className="w-4 h-4 text-[#4FC8FF]" />
-                                            <span className="text-sm text-gray-400 hidden sm:block">{t('search.page.filterLabel')}</span>
-                                        </motion.div>
-                                        <motion.div
-                                            className="flex items-center gap-1 overflow-x-auto"
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            transition={{ delay: 0.5, staggerChildren: 0.1 }}
-                                        >
-                                            {[
-                                                { id: 'all', label: t('search.tabs.all'), count: results.length },
-                                                { id: 'products', label: t('search.tabs.products'), count: productCount },
-                                                { id: 'blogs', label: t('search.tabs.blogs'), count: blogCount }
-                                            ].map((tab, index) => (
-                                                <motion.button
-                                                    key={tab.id}
-                                                    onClick={() => setActiveFilter(tab.id as 'all' | 'products' | 'blogs')}
-                                                    className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-300 whitespace-nowrap relative overflow-hidden ${
-                                                        activeFilter === tab.id
-                                                            ? 'bg-gradient-to-r from-[#4FC8FF] to-blue-500 text-white shadow-lg shadow-[#4FC8FF]/25'
-                                                            : 'text-gray-400 hover:text-white hover:bg-gray-700/50 border border-gray-600/30 hover:border-[#4FC8FF]/30'
-                                                    }`}
-                                                    initial={{ opacity: 0, y: 20 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: 0.6 + index * 0.1 }}
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                >
-                                                    {activeFilter === tab.id && (
-                                                        <motion.div
-                                                            className="absolute inset-0 bg-white/10"
-                                                            layoutId="activeFilter"
-                                                            initial={false}
-                                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                                        />
-                                                    )}
-                                                    <span className="relative z-10">
-                                                        <span className="sm:hidden">{tab.label}</span>
-                                                        <span className="hidden sm:inline">{tab.label} ({tab.count})</span>
-                                                    </span>
-                                                </motion.button>
-                                            ))}
-                                        </motion.div>
-                                    </motion.div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        <div className="flex items-center gap-3 rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.62)] px-4 py-2 text-sm text-[var(--text-secondary)] shadow-[0_18px_42px_rgba(0,113,188,0.12)]">
+                            <FiFilter className="h-4 w-4 text-[var(--brand-blue)]" />
+                            <span>{filteredResults.length} results visible</span>
+                        </div>
                     </motion.div>
 
-                    {/* Results */}
-                    <div className="min-h-[300px] sm:min-h-[400px]">
-                        {isLoading ? (
-                            /* Loading State - Enhanced Skeleton UI */
+                    <motion.form
+                        onSubmit={handleSearch}
+                        className="brand-card rounded-[30px] p-4 sm:p-5"
+                        initial="hidden"
+                        animate="visible"
+                        variants={sectionVariants}
+                    >
+                        <div className="relative">
+                            <FiSearch
+                                className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2"
+                                style={{
+                                    color: searchInput ? 'var(--brand-blue)' : 'var(--text-muted)'
+                                }}
+                            />
+                            <Input
+                                type="text"
+                                placeholder={t('search.placeholder')}
+                                value={searchInput}
+                                onChange={(event) => setSearchInput(event.target.value)}
+                                className="h-14 rounded-full border-[var(--brand-border)] pl-12 pr-12 text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                            />
+                            <AnimatePresence>
+                                {searchInput && (
+                                    <motion.button
+                                        key="clear"
+                                        type="button"
+                                        onClick={() => setSearchInput('')}
+                                        className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-transparent text-[var(--text-muted)] transition-all duration-200 hover:border-[var(--brand-border)] hover:bg-[rgba(41,171,226,0.1)] hover:text-[var(--text-primary)]"
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.9 }}
+                                    >
+                                        <FiX className="h-4 w-4" />
+                                    </motion.button>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </motion.form>
+
+                    <AnimatePresence mode="wait">
+                        {debouncedSearchInput ? (
                             <motion.div
-                                className="space-y-4 sm:space-y-6"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ duration: 0.3 }}
+                                key="search-meta"
+                                className="space-y-5"
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -16 }}
+                                transition={{ duration: 0.25 }}
                             >
-                                {/* Loading Header */}
-                                <div className="flex items-center justify-center py-8 sm:py-12">
-                                    <div className="text-center">
-                                        <motion.div
-                                            className="relative mx-auto mb-4"
-                                            animate={{ rotate: 360 }}
-                                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                                        >
-                                            <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-[#4FC8FF]/20 border-t-[#4FC8FF] rounded-full"></div>
-                                            <div className="absolute inset-2 w-8 h-8 sm:w-12 sm:h-12 border-2 border-blue-400/30 border-b-blue-400 rounded-full animate-spin" style={{animationDirection: 'reverse', animationDuration: '1s'}}></div>
-                                        </motion.div>
-                                        <motion.p
-                                            className="text-sm sm:text-base text-gray-400"
-                                            animate={{ opacity: [0.5, 1, 0.5] }}
-                                            transition={{ duration: 2, repeat: Infinity }}
-                                        >
-                                            {t('search.page.loading')}
-                                        </motion.p>
+                                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                                    <div className="space-y-2">
+                                        <p className="text-sm uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                                            {t('search.page.queryLabel')}
+                                        </p>
+                                        <p className="text-lg font-semibold text-[var(--text-primary)] sm:text-xl">
+                                            <span className="bg-[linear-gradient(135deg,var(--brand-gradient-start),var(--brand-gradient-end))] bg-clip-text text-transparent">
+                                                &ldquo;{debouncedSearchInput}&rdquo;
+                                            </span>
+                                        </p>
+                                        <p className="text-sm text-[var(--text-secondary)]">
+                                            {t('search.page.resultsCount').replace(
+                                                '{count}',
+                                                String(filteredResults.length)
+                                            )}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-2">
+                                        {filterTabs.map((tab) => (
+                                            <button
+                                                key={tab.id}
+                                                type="button"
+                                                onClick={() => setActiveFilter(tab.id)}
+                                                className={`inline-flex h-11 items-center rounded-full px-4 text-xs font-semibold uppercase tracking-[0.16em] transition-all duration-200 sm:text-sm ${
+                                                    activeFilter === tab.id
+                                                        ? 'brand-button-primary shadow-[0_18px_42px_rgba(0,113,188,0.18)]'
+                                                        : 'brand-button-secondary text-[var(--text-secondary)] hover:text-white'
+                                                }`}
+                                            >
+                                                {tab.label} ({tab.count})
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
-
-                                {/* Skeleton Cards */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                                    {Array.from({ length: 6 }).map((_, index) => (
-                                        <motion.div
-                                            key={index}
-                                            className="bg-gray-800/30 rounded-lg overflow-hidden backdrop-blur-sm"
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ duration: 0.3, delay: index * 0.1 }}
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="search-empty"
+                                className="brand-card rounded-[32px] p-8 text-center sm:p-10"
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -16 }}
+                                transition={{ duration: 0.25 }}
+                            >
+                                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-[var(--brand-border-strong)] bg-[rgba(41,171,226,0.12)] shadow-[0_0_0_12px_rgba(41,171,226,0.04)]">
+                                    <FiSearch className="h-9 w-9 text-[var(--brand-blue)]" />
+                                </div>
+                                <h2 className="mt-6 font-serif text-2xl font-semibold text-[var(--text-primary)] sm:text-3xl">
+                                    {t('search.page.emptyTitle')}
+                                </h2>
+                                <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-[var(--text-secondary)]">
+                                    {t('search.page.emptyBody')}
+                                </p>
+                                <div className="mt-8 flex flex-wrap justify-center gap-3">
+                                    {defaultSuggestions.map((suggestion) => (
+                                        <button
+                                            key={suggestion}
+                                            type="button"
+                                            onClick={() => router.push(`/search?q=${encodeURIComponent(suggestion)}`)}
+                                            className="inline-flex items-center rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.62)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all duration-200 hover:border-[var(--brand-border-strong)] hover:bg-[rgba(41,171,226,0.12)] hover:text-white"
                                         >
-                                            <div className="aspect-video bg-gradient-to-r from-gray-700/50 to-gray-600/50 animate-pulse"></div>
-                                            <div className="p-4 space-y-3">
-                                                <div className="h-4 bg-gradient-to-r from-gray-600/50 to-gray-500/50 rounded animate-pulse"></div>
-                                                <div className="h-3 bg-gradient-to-r from-gray-700/50 to-gray-600/50 rounded w-3/4 animate-pulse"></div>
-                                                <div className="h-3 bg-gradient-to-r from-gray-700/50 to-gray-600/50 rounded w-1/2 animate-pulse"></div>
-                                            </div>
-                                        </motion.div>
+                                            {suggestion}
+                                        </button>
                                     ))}
                                 </div>
                             </motion.div>
-                        ) : !debouncedSearchInput ? (
-                            /* No Query State - Enhanced */
-                            <motion.div
-                                className="text-center py-12 sm:py-16 px-4"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.6 }}
-                            >
-                                <motion.div
-                                    className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-6 sm:mb-8 bg-gradient-to-br from-[#4FC8FF]/20 to-blue-600/20 rounded-full flex items-center justify-center relative"
-                                    animate={{
-                                        scale: [1, 1.05, 1],
-                                        boxShadow: [
-                                            "0 0 0 0px rgba(79, 200, 255, 0.3)",
-                                            "0 0 0 10px rgba(79, 200, 255, 0.1)",
-                                            "0 0 0 0px rgba(79, 200, 255, 0)"
-                                        ]
-                                    }}
-                                    transition={{ duration: 2, repeat: Infinity }}
-                                >
-                                    <FiSearch className="w-8 h-8 sm:w-10 sm:h-10 text-[#4FC8FF]" />
-                                </motion.div>
-                                <motion.h3
-                                    className="text-xl sm:text-2xl font-bold text-white mb-3"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ delay: 0.2 }}
-                                >
-                                    {t('search.page.emptyTitle')}
-                                </motion.h3>
-                                <motion.p
-                                    className="text-sm sm:text-base text-gray-400 mb-6"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ delay: 0.3 }}
-                                >
-                                    {t('search.page.emptyBody')}
-                                </motion.p>
+                        )}
+                    </AnimatePresence>
 
-                                {/* Floating suggestions */}
-                                <motion.div
-                                    className="flex flex-wrap justify-center gap-2 sm:gap-3 max-w-md mx-auto"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ delay: 0.4 }}
-                                >
-                                    {defaultSuggestions.map((suggestion, index) => (
-                                        <motion.button
-                                            key={suggestion}
-                                            onClick={() => router.push(`/search?q=${encodeURIComponent(suggestion)}`)}
-                                            className="px-3 py-1.5 text-xs sm:text-sm bg-gray-700/30 hover:bg-[#4FC8FF]/20 text-gray-400 hover:text-[#4FC8FF] rounded-full transition-all duration-300 border border-gray-600/30 hover:border-[#4FC8FF]/50"
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: 0.5 + index * 0.1 }}
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                        >
-                                            {suggestion}
-                                        </motion.button>
-                                    ))}
-                                </motion.div>
-                            </motion.div>
-                        ) : filteredResults.length > 0 ? (
-                            /* Results Grid - Enhanced */
+                    <div className="min-h-[320px]">
+                        {isLoading ? (
                             <motion.div
-                                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
-                                variants={containerVariants}
+                                className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3"
                                 initial="hidden"
                                 animate="visible"
+                                variants={{
+                                    hidden: { opacity: 0 },
+                                    visible: {
+                                        opacity: 1,
+                                        transition: {
+                                            staggerChildren: 0.08
+                                        }
+                                    }
+                                }}
                             >
-                                {filteredResults.map((result) => (
+                                {Array.from({ length: 6 }).map((_, index) => (
                                     <motion.div
-                                        key={`${result.type}-${result.id}`}
-                                        variants={cardVariants}
-                                        whileHover="hover"
-                                        className="group"
+                                        key={`skeleton-${index}`}
+                                        className="brand-card rounded-[28px] p-4 sm:p-5"
+                                        variants={sectionVariants}
                                     >
-                                        <Link
-                                            href={result.href}
-                                            className="block bg-gradient-to-br from-gray-800/40 to-gray-900/60 backdrop-blur-sm rounded-xl overflow-hidden transition-all duration-500 group border border-gray-700/50 hover:border-[#4FC8FF]/50 relative"
-                                        >
-                                            {/* Glow effect on hover */}
-                                            <div className="absolute inset-0 bg-gradient-to-br from-[#4FC8FF]/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-                                            {/* Image */}
-                                            <div className="aspect-video bg-gradient-to-br from-gray-700/30 to-gray-800/50 relative overflow-hidden">
-                                                {result.image ? (
-                                                    <Image
-                                                        src={result.image}
-                                                        alt={result.title}
-                                                        fill
-                                                        className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
-                                                    />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-600/30 to-gray-700/30">
-                                                        <FiSearch className="w-8 h-8 text-gray-400 group-hover:text-[#4FC8FF] transition-colors duration-300" />
-                                                    </div>
-                                                )}
-
-                                                {/* Overlay gradient */}
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
-                                                {/* Type Badge */}
-                                                <motion.div
-                                                    className="absolute top-3 left-3"
-                                                    initial={{ scale: 0.8, opacity: 0.8 }}
-                                                    whileHover={{ scale: 1, opacity: 1 }}
-                                                    transition={{ duration: 0.2 }}
-                                                >
-                                                    <span
-                                                        className={`text-xs px-3 py-1.5 rounded-full font-medium backdrop-blur-sm border transition-all duration-300 ${
-                                                            result.type === 'product'
-                                                                ? 'bg-blue-500/90 text-white border-blue-400/50 group-hover:bg-blue-400 group-hover:shadow-lg group-hover:shadow-blue-500/25'
-                                                                : 'bg-green-500/90 text-white border-green-400/50 group-hover:bg-green-400 group-hover:shadow-lg group-hover:shadow-green-500/25'
-                                                        }`}
-                                                    >
-                                                        {result.type === 'product' ? t('search.type.product') : t('search.type.blog')}
-                                                    </span>
-                                                </motion.div>
-                                            </div>
-
-                                            {/* Content - Enhanced */}
-                                            <div className="p-4 sm:p-5 relative">
-                                                <motion.h3
-                                                    className="text-sm sm:text-base text-white font-bold mb-2 group-hover:text-[#4FC8FF] transition-colors duration-300 line-clamp-2"
-                                                    initial={{ opacity: 0.9 }}
-                                                    whileHover={{ opacity: 1 }}
-                                                >
-                                                    {result.title}
-                                                </motion.h3>
-                                                {result.subtitle && (
-                                                    <motion.p
-                                                        className="text-xs sm:text-sm text-gray-400 line-clamp-2 sm:line-clamp-3 mb-3 group-hover:text-gray-300 transition-colors duration-300"
-                                                        initial={{ opacity: 0.8 }}
-                                                        whileHover={{ opacity: 1 }}
-                                                    >
-                                                        {result.subtitle}
-                                                    </motion.p>
-                                                )}
-                                                {result.category && (
-                                                    <motion.div
-                                                        className="flex items-center gap-1"
-                                                        initial={{ opacity: 0.7 }}
-                                                        whileHover={{ opacity: 1 }}
-                                                    >
-                                                        <div className="w-1 h-1 bg-[#4FC8FF] rounded-full"></div>
-                                                        <span className="text-xs text-[#4FC8FF] font-medium">
-                                                            {result.category}
-                                                        </span>
-                                                    </motion.div>
-                                                )}
-
-                                                {/* Hover indicator */}
-                                                <motion.div
-                                                    className="absolute bottom-2 right-2 w-6 h-6 bg-[#4FC8FF]/20 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
-                                                    whileHover={{ scale: 1.1 }}
-                                                >
-                                                    <div className="w-2 h-2 bg-[#4FC8FF] rounded-full"></div>
-                                                </motion.div>
-                                            </div>
-                                        </Link>
+                                        <div className="aspect-[16/10] rounded-[22px] bg-[linear-gradient(135deg,rgba(63,72,86,0.36),rgba(17,30,45,0.72))] animate-pulse" />
+                                        <div className="mt-5 space-y-3">
+                                            <div className="h-4 w-24 rounded-full bg-[rgba(41,171,226,0.18)] animate-pulse" />
+                                            <div className="h-5 rounded-full bg-white/8 animate-pulse" />
+                                            <div className="h-4 w-5/6 rounded-full bg-white/6 animate-pulse" />
+                                            <div className="h-4 w-2/3 rounded-full bg-white/6 animate-pulse" />
+                                        </div>
                                     </motion.div>
                                 ))}
                             </motion.div>
-                        ) : (
-                            /* No Results - Enhanced */
+                        ) : debouncedSearchInput && filteredResults.length > 0 ? (
                             <motion.div
-                                className="text-center py-12 sm:py-16 px-4"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.6 }}
+                                className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3"
+                                initial="hidden"
+                                animate="visible"
+                                variants={{
+                                    hidden: { opacity: 0 },
+                                    visible: {
+                                        opacity: 1,
+                                        transition: {
+                                            staggerChildren: 0.08
+                                        }
+                                    }
+                                }}
                             >
-                                <motion.div
-                                    className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-6 sm:mb-8 bg-gradient-to-br from-gray-700/30 to-gray-800/30 rounded-full flex items-center justify-center relative"
-                                    animate={{
-                                        scale: [1, 1.05, 1],
-                                    }}
-                                    transition={{ duration: 2, repeat: Infinity }}
-                                >
-                                    <FiSearch className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
-                                    <div className="absolute inset-0 rounded-full border border-gray-600/30"></div>
-                                </motion.div>
-                                <motion.h3
-                                    className="text-xl sm:text-2xl font-bold text-white mb-3"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ delay: 0.2 }}
-                                >
-                                    {t('search.page.noResultsTitle')}
-                                </motion.h3>
-                                <motion.p
-                                    className="text-sm sm:text-base text-gray-400 mb-6 max-w-md mx-auto leading-relaxed"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ delay: 0.3 }}
-                                >
-                                    {t('search.page.noResultsBody')
-                                        .replace('{query}', debouncedSearchInput)}
-                                </motion.p>
-                                <motion.div
-                                    className="flex flex-wrap gap-2 justify-center max-w-lg mx-auto"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ delay: 0.4 }}
-                                >
-                                    {noResultsSuggestions.map((suggestion, index) => (
-                                        <motion.div
-                                            key={suggestion}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: 0.5 + index * 0.1 }}
+                                {filteredResults.map((result) => {
+                                    const Icon = result.type === 'product' ? FiPackage : FiBookOpen;
+                                    const toneClass =
+                                        result.type === 'product'
+                                            ? 'border-[rgba(41,171,226,0.32)] bg-[rgba(41,171,226,0.14)] text-[var(--brand-blue)]'
+                                            : 'border-[rgba(5,167,175,0.28)] bg-[rgba(5,167,175,0.14)] text-[var(--support-teal)]';
+
+                                    return (
+                                        <motion.article
+                                            key={`${result.type}-${result.id}`}
+                                            variants={sectionVariants}
+                                            whileHover={{ y: -6 }}
+                                            transition={{ duration: 0.2 }}
                                         >
                                             <Link
-                                                href={`/search?q=${encodeURIComponent(suggestion)}`}
-                                                className="inline-block px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-[#4FC8FF]/10 to-blue-600/10 hover:from-[#4FC8FF]/20 hover:to-blue-600/20 border border-[#4FC8FF]/30 hover:border-[#4FC8FF]/50 rounded-full text-xs sm:text-sm text-[#4FC8FF] hover:text-white transition-all duration-300 hover:shadow-lg hover:shadow-[#4FC8FF]/10 transform hover:scale-105"
+                                                href={result.href}
+                                                className="brand-card group flex h-full flex-col rounded-[28px] p-4 transition-all duration-300 hover:border-[var(--brand-border-strong)] hover:shadow-[0_24px_44px_rgba(0,113,188,0.18)] sm:p-5"
                                             >
-                                                {suggestion}
+                                                <div className="relative aspect-[16/10] overflow-hidden rounded-[22px] border border-[var(--brand-border)] bg-[linear-gradient(135deg,rgba(17,30,45,0.88),rgba(7,17,27,0.94))]">
+                                                    {result.image ? (
+                                                        <Image
+                                                            src={result.image}
+                                                            alt={result.title}
+                                                            fill
+                                                            className="object-cover transition-transform duration-700 group-hover:scale-105"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-full w-full items-center justify-center">
+                                                            <Icon className="h-10 w-10 text-[var(--brand-blue)]" />
+                                                        </div>
+                                                    )}
+                                                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,17,27,0.04),rgba(6,17,27,0.68))]" />
+                                                    <span
+                                                        className={`absolute left-3 top-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${toneClass}`}
+                                                    >
+                                                        <Icon className="h-3.5 w-3.5" />
+                                                        {result.type === 'product'
+                                                            ? t('search.type.product')
+                                                            : t('search.type.blog')}
+                                                    </span>
+                                                </div>
+
+                                                <div className="mt-5 flex flex-1 flex-col">
+                                                    <h3 className="text-lg font-semibold leading-snug text-[var(--text-primary)] transition-colors duration-200 group-hover:text-[var(--brand-blue)]">
+                                                        {result.title}
+                                                    </h3>
+                                                    {result.subtitle && (
+                                                        <p className="mt-3 line-clamp-3 text-sm leading-6 text-[var(--text-secondary)]">
+                                                            {result.subtitle}
+                                                        </p>
+                                                    )}
+                                                    <div className="mt-4 flex items-center justify-between gap-3">
+                                                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                                                            <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand-blue)]" />
+                                                            {result.category}
+                                                        </div>
+                                                        <span className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--brand-blue)]">
+                                                            Open
+                                                            <FiArrowRight className="h-4 w-4" />
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             </Link>
-                                        </motion.div>
-                                    ))}
-                                </motion.div>
+                                        </motion.article>
+                                    );
+                                })}
                             </motion.div>
-                        )}
+                        ) : debouncedSearchInput ? (
+                            <motion.div
+                                className="brand-card rounded-[32px] p-8 text-center sm:p-10"
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)]">
+                                    <FiSearch className="h-9 w-9 text-[var(--text-muted)]" />
+                                </div>
+                                <h2 className="mt-6 font-serif text-2xl font-semibold text-[var(--text-primary)] sm:text-3xl">
+                                    {t('search.page.noResultsTitle')}
+                                </h2>
+                                <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-[var(--text-secondary)]">
+                                    {t('search.page.noResultsBody').replace('{query}', debouncedSearchInput)}
+                                </p>
+                                <div className="mt-8 flex flex-wrap justify-center gap-3">
+                                    {noResultsSuggestions.map((suggestion) => (
+                                        <Link
+                                            key={suggestion}
+                                            href={`/search?q=${encodeURIComponent(suggestion)}`}
+                                            className="inline-flex items-center rounded-full border border-[var(--brand-border)] bg-[rgba(41,171,226,0.08)] px-4 py-2 text-sm font-medium text-[var(--brand-blue)] transition-all duration-200 hover:border-[var(--brand-border-strong)] hover:bg-[rgba(41,171,226,0.16)] hover:text-white"
+                                        >
+                                            {suggestion}
+                                        </Link>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        ) : null}
                     </div>
                 </div>
-            </motion.section>
+            </section>
+        </div>
+    );
+}
+
+function SearchFallback() {
+    return (
+        <div className="flex min-h-screen items-center justify-center bg-[#06111B] px-4 text-white">
+            <div className="brand-card rounded-[28px] px-8 py-10 text-center">
+                <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[var(--brand-blue)] border-t-transparent" />
+                <p className="mt-4 text-sm text-[var(--text-secondary)]">Loading search experience...</p>
+            </div>
         </div>
     );
 }
 
 export default function SearchPage() {
-    const { t } = useLanguage();
     return (
-        <Suspense fallback={
-            <div className="min-h-screen bg-[#0c131d] text-white flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4FC8FF] mx-auto mb-4"></div>
-                    <p className="text-gray-400">{t('common.loading')}</p>
-                </div>
-            </div>
-        }>
+        <Suspense fallback={<SearchFallback />}>
             <SearchContent />
         </Suspense>
     );

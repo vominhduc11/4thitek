@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { apiService } from '@/services/apiService';
 import { useLanguage } from '@/context/LanguageContext';
+import { apiService } from '@/services/apiService';
 import ResellerResults from './ResellerResults';
 import ResellerSearch from './ResellerSearch';
 import type { Reseller, ResellerSearchFilters } from './types';
@@ -61,7 +61,9 @@ const extractDealersArray = (payload: unknown): ApiDealer[] | null => {
 
         for (const value of Object.values(current)) {
             if (Array.isArray(value)) {
-                const firstObject = value.find((item) => item && typeof item === 'object') as Record<string, unknown> | undefined;
+                const firstObject = value.find((item) => item && typeof item === 'object') as
+                    | Record<string, unknown>
+                    | undefined;
                 if (firstObject && isDealerLike(firstObject)) {
                     return value as ApiDealer[];
                 }
@@ -149,22 +151,15 @@ export default function DealerNetworkSection() {
                 transition={{ duration: 0.6, ease: 'easeOut' }}
                 viewport={{ once: true }}
             >
-                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-cyan-300/80">
-                    {t('reseller.title')}
-                </p>
-                <h2 className="text-3xl font-bold text-white md:text-4xl">
+                <p className="brand-eyebrow mb-3">{t('reseller.title')}</p>
+                <h2 className="font-serif text-3xl font-semibold text-[var(--brand-blue)] md:text-4xl">
                     {t('reseller.subtitle')}
                 </h2>
             </motion.div>
 
-            <div className="rounded-[28px] border border-white/10 bg-[#101926]/70 px-4 py-6 shadow-[0_30px_90px_rgba(2,8,23,0.35)] backdrop-blur sm:px-6">
+            <div className="brand-card rounded-[32px] px-4 py-6 shadow-[0_30px_90px_rgba(2,8,23,0.35)] sm:px-6">
                 <ResellerSearch onSearch={setSearchFilters} resellers={resellers} />
-                <ResellerResults
-                    searchFilters={searchFilters}
-                    resellers={resellers}
-                    loading={loading}
-                    error={error}
-                />
+                <ResellerResults searchFilters={searchFilters} resellers={resellers} loading={loading} error={error} />
             </div>
         </section>
     );

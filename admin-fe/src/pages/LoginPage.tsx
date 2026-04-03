@@ -3,7 +3,13 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import logoCard from "../assets/images/logo-4t.png";
 import LanguageSwitcher from "../components/LanguageSwitcher";
-import { FieldErrorMessage } from "../components/ui-kit";
+import {
+  FieldErrorMessage,
+  ghostButtonClass,
+  inputClass,
+  primaryButtonClass,
+} from "../components/ui-kit";
+import { ADMIN_APP_NAME, BRAND_NAME } from "../config/businessProfile";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useToast } from "../context/ToastContext";
@@ -20,7 +26,9 @@ const resolveLoginErrorMessage = (
 ) => {
   switch (code) {
     case "ADMIN_EMAIL_REQUIRED":
-      return t("Please contact your system owner to add an email address to your admin account.");
+      return t(
+        "Please contact your system owner to add an email address to your admin account.",
+      );
     case "ADMIN_EMAIL_UNVERIFIED":
       return t("Your admin email address must be verified before you can sign in.");
     default:
@@ -48,8 +56,7 @@ function LoginPage() {
   }>({});
   const [showPassword, setShowPassword] = useState(false);
 
-  const target = ((location.state as LocationState | null)?.from ||
-    "/") as string;
+  const target = ((location.state as LocationState | null)?.from || "/") as string;
 
   const validateFields = (nextUsername: string, nextPassword: string) => {
     const nextErrors: { username?: string; password?: string } = {};
@@ -119,14 +126,14 @@ function LoginPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-[var(--app-bg)] via-[var(--surface)] to-[var(--accent-soft)] px-6 py-10 sm:px-10">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(41,171,226,0.12),transparent_28%),linear-gradient(135deg,var(--app-bg),var(--surface)_46%,rgba(41,171,226,0.08))] px-6 py-10 sm:px-10">
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute -left-[16vmax] -top-[20vmax] h-[56vmax] w-[56vmax] rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(37,99,235,0.35),transparent_65%)] animate-drift motion-reduce:animate-none" />
-        <div className="absolute -bottom-[22vmax] -right-[14vmax] h-[56vmax] w-[56vmax] rounded-full bg-[radial-gradient(circle_at_70%_30%,rgba(59,130,246,0.35),transparent_60%)] animate-drift-slow motion-reduce:animate-none" />
-        <div className="absolute inset-0 opacity-25 [background-size:120px_120px] [background-image:linear-gradient(to_right,rgba(15,23,42,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.08)_1px,transparent_1px)]" />
+        <div className="absolute -left-[16vmax] -top-[20vmax] h-[56vmax] w-[56vmax] rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(41,171,226,0.18),transparent_65%)] animate-drift motion-reduce:animate-none" />
+        <div className="absolute -bottom-[22vmax] -right-[14vmax] h-[56vmax] w-[56vmax] rounded-full bg-[radial-gradient(circle_at_70%_30%,rgba(0,113,188,0.14),transparent_60%)] animate-drift-slow motion-reduce:animate-none" />
+        <div className="absolute inset-0 opacity-18 [background-size:120px_120px] [background-image:linear-gradient(to_right,rgba(63,72,86,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(63,72,86,0.08)_1px,transparent_1px)]" />
       </div>
 
-      <main className="relative w-full max-w-md rounded-3xl border border-slate-200/70 bg-white/95 p-8 shadow-[0_32px_80px_rgba(15,23,42,0.18)] backdrop-blur animate-card-enter motion-reduce:animate-none">
+      <main className="brand-admin-panel relative w-full max-w-md rounded-[28px] border border-[var(--brand-border)] p-8 shadow-[0_24px_54px_rgba(11,24,38,0.14)] backdrop-blur animate-card-enter motion-reduce:animate-none">
         <div className="flex justify-end">
           <LanguageSwitcher />
         </div>
@@ -135,39 +142,34 @@ function LoginPage() {
           <div className="mx-auto mb-4 flex justify-center animate-pop-in motion-reduce:animate-none">
             <img
               src={logoCard}
-              alt="4ThiTek"
-              className="h-auto w-[min(11rem,60vw)] max-w-full object-contain drop-shadow-[0_14px_28px_rgba(37,99,235,0.2)] sm:w-48 md:w-52"
+              alt={BRAND_NAME}
+              className="h-auto w-[min(11rem,60vw)] max-w-full object-contain drop-shadow-[0_12px_24px_rgba(0,113,188,0.18)] sm:w-48 md:w-52"
             />
           </div>
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+          <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
             {t("Bảng điều hành")}
           </p>
-          <h1 className="mt-2 font-serif text-2xl font-semibold text-slate-900">
-            {t("4ThiTek Quản trị")}
+          <h1 className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-[var(--ink)]">
+            {ADMIN_APP_NAME}
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
-            {t("Đăng nhập để truy cập hệ thống quản lý phân phối tai nghe SCS")}
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            {t("Đăng nhập để truy cập hệ thống quản lý phân phối của 4T HITEK")}
           </p>
         </header>
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <div>
-            <label
-              className="text-sm font-semibold text-slate-700"
-              htmlFor="username"
-            >
+            <label className="text-sm font-semibold text-[var(--ink)]" htmlFor="username">
               {t("Tên đăng nhập")}
             </label>
             <div className="relative mt-2">
-              <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
               <input
                 id="username"
-                aria-describedby={
-                  fieldErrors.username ? "login-username-error" : undefined
-                }
+                aria-describedby={fieldErrors.username ? "login-username-error" : undefined}
                 aria-invalid={Boolean(fieldErrors.username)}
-                className={`w-full rounded-2xl border bg-slate-50 px-10 py-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 ${
-                  fieldErrors.username ? "border-rose-300" : "border-slate-200"
+                className={`${inputClass} w-full pl-10 pr-4 ${
+                  fieldErrors.username ? "border-rose-300" : ""
                 }`}
                 type="text"
                 placeholder={t("Nhập tên đăng nhập")}
@@ -190,22 +192,17 @@ function LoginPage() {
           </div>
 
           <div>
-            <label
-              className="text-sm font-semibold text-slate-700"
-              htmlFor="password"
-            >
+            <label className="text-sm font-semibold text-[var(--ink)]" htmlFor="password">
               {t("Mật khẩu")}
             </label>
             <div className="relative mt-2">
-              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
               <input
                 id="password"
-                aria-describedby={
-                  fieldErrors.password ? "login-password-error" : undefined
-                }
+                aria-describedby={fieldErrors.password ? "login-password-error" : undefined}
                 aria-invalid={Boolean(fieldErrors.password)}
-                className={`w-full rounded-2xl border bg-slate-50 px-10 py-3 pr-12 text-sm text-slate-900 placeholder:text-slate-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 ${
-                  fieldErrors.password ? "border-rose-300" : "border-slate-200"
+                className={`${inputClass} w-full pl-10 pr-12 ${
+                  fieldErrors.password ? "border-rose-300" : ""
                 }`}
                 type={showPassword ? "text" : "password"}
                 placeholder={t("Nhập mật khẩu")}
@@ -220,10 +217,8 @@ function LoginPage() {
                 }}
               />
               <button
-                aria-label={
-                  showPassword ? t("Ẩn mật khẩu") : t("Hiển thị mật khẩu")
-                }
-                className="absolute right-3 top-1/2 inline-flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
+                aria-label={showPassword ? t("Ẩn mật khẩu") : t("Hiển thị mật khẩu")}
+                className="absolute right-3 top-1/2 inline-flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-full text-[var(--muted)] transition hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
                 disabled={isLoggingIn || isResendingVerification}
                 onClick={() => setShowPassword((current) => !current)}
                 type="button"
@@ -242,7 +237,7 @@ function LoginPage() {
             ) : null}
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-slate-500">
+          <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
             <input
               className="h-4 w-4 accent-[var(--accent)]"
               type="checkbox"
@@ -256,16 +251,22 @@ function LoginPage() {
           {error ? <FieldErrorMessage>{error}</FieldErrorMessage> : null}
 
           {authErrorCode === "ADMIN_EMAIL_REQUIRED" ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              {t("Your admin account needs an email address before sign-in can continue. Please contact your system owner.")}
+            <div className="rounded-[18px] border border-[rgba(189,249,25,0.34)] bg-[rgba(189,249,25,0.16)] px-4 py-3 text-sm text-[var(--tone-warning-text)]">
+              {t(
+                "Your admin account needs an email address before sign-in can continue. Please contact your system owner.",
+              )}
             </div>
           ) : null}
 
           {authErrorCode === "ADMIN_EMAIL_UNVERIFIED" ? (
-            <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-              <p>{t("Check your inbox and spam folder for the verification email, then try signing in again.")}</p>
+            <div className="rounded-[18px] border border-[var(--brand-border-strong)] bg-[var(--accent-soft)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+              <p>
+                {t(
+                  "Check your inbox and spam folder for the verification email, then try signing in again.",
+                )}
+              </p>
               <button
-                className="mt-3 inline-flex min-h-11 items-center justify-center rounded-full border border-sky-300 px-4 py-2 text-sm font-semibold text-sky-900 transition hover:border-sky-400 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className={`${ghostButtonClass} mt-3 border-[var(--brand-border-strong)] text-[var(--accent-strong)] hover:bg-[rgba(41,171,226,0.12)]`}
                 type="button"
                 disabled={isResendingVerification || isLoggingIn}
                 onClick={() => void handleResendVerification()}
@@ -275,7 +276,7 @@ function LoginPage() {
                   : t("Resend verification email")}
               </button>
               {resendNotice ? (
-                <p className="mt-3 text-sm text-sky-800" role="status">
+                <p className="mt-3 text-sm text-[var(--accent-strong)]" role="status">
                   {resendNotice}
                 </p>
               ) : null}
@@ -283,20 +284,22 @@ function LoginPage() {
           ) : null}
 
           <button
-            className="w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70"
+            className={`${primaryButtonClass} w-full`}
             type="submit"
             disabled={isLoggingIn || isResendingVerification}
           >
             {isLoggingIn ? t("Đang đăng nhập...") : t("Đăng nhập")}
           </button>
 
-          <p className="text-center text-xs text-slate-500">
-            {t("If your system owner requires email verification, you must verify your admin email before sign-in succeeds.")}
+          <p className="text-center text-xs text-[var(--muted)]">
+            {t(
+              "If your system owner requires email verification, you must verify your admin email before sign-in succeeds.",
+            )}
           </p>
         </form>
 
-        <footer className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-3 text-xs text-slate-500">
-          <span>(c) 2026 4ThiTek</span>
+        <footer className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border)] pt-3 text-xs text-[var(--muted)]">
+          <span>(c) 2026 {BRAND_NAME}</span>
           <span>{t("Phiên bản 1.0")}</span>
         </footer>
       </main>

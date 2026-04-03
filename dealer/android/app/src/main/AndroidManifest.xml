@@ -7,7 +7,7 @@
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"/>
     <application
-        android:label="4thitek Dealer Hub"
+        android:label="4T HITEK Dealer"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

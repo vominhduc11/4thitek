@@ -118,7 +118,9 @@ class _HistoryCard extends StatelessWidget {
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
         ),
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.45,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,9 +226,7 @@ class _HistoryStateCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         color: backgroundColor,
-        border: Border.all(
-          color: foregroundColor.withValues(alpha: 0.14),
-        ),
+        border: Border.all(color: foregroundColor.withValues(alpha: 0.14)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,9 +278,9 @@ class _HistorySkeletonCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(
-          alpha: 0.45,
-        ),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -366,7 +366,7 @@ class _StatusChip extends StatelessWidget {
         break;
       case 'IN_PROGRESS':
         background = const Color(0xFF3A2C11);
-        foreground = const Color(0xFFFFC361);
+        foreground = const Color(0xFFBDF919);
         break;
       case 'CLOSED':
         background = scheme.surface;

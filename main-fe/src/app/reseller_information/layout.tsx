@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-    title: '4ThiTek | Thông tin đại lý',
+    title: '4T HITEK | Thông tin đại lý',
     robots: { index: false, follow: false }
 };
 

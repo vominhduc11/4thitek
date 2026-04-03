@@ -1,10 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { BlogHero, BlogBreadcrumb, BlogGrid, BlogPagination } from './components';
 import { useLanguage } from '@/context/LanguageContext';
-import type { BlogPost } from '@/types/blog';
 import type { BlogCategory } from '@/types/api';
+import type { BlogPost } from '@/types/blog';
+import { BlogBreadcrumb, BlogGrid, BlogHero, BlogPagination } from './components';
 
 interface BlogsPageClientProps {
     initialPosts: BlogPost[];
@@ -28,13 +28,16 @@ export default function BlogsPageClient({
         const selectedBlogs =
             selectedCategory === 'ALL'
                 ? initialPosts
-                : initialPosts.filter((blog) => blog.category.id === selectedCategory || blog.category.name === selectedCategory);
+                : initialPosts.filter(
+                      (blog) => blog.category.id === selectedCategory || blog.category.name === selectedCategory
+                  );
 
         const searchedBlogs = normalizedQuery
-            ? selectedBlogs.filter((blog) =>
-                  blog.title.toLowerCase().includes(normalizedQuery) ||
-                  blog.excerpt.toLowerCase().includes(normalizedQuery) ||
-                  blog.category.name.toLowerCase().includes(normalizedQuery)
+            ? selectedBlogs.filter(
+                  (blog) =>
+                      blog.title.toLowerCase().includes(normalizedQuery) ||
+                      blog.excerpt.toLowerCase().includes(normalizedQuery) ||
+                      blog.category.name.toLowerCase().includes(normalizedQuery)
               )
             : selectedBlogs;
 
@@ -55,7 +58,7 @@ export default function BlogsPageClient({
     }, [currentPage, filteredBlogs]);
 
     return (
-        <div className="min-h-screen bg-[#0c131d] text-white flex flex-col overflow-x-hidden">
+        <div className="brand-section min-h-screen overflow-x-hidden text-white">
             <BlogHero />
             <BlogBreadcrumb
                 selectedCategory={selectedCategory}
@@ -85,7 +88,7 @@ export default function BlogsPageClient({
                 }}
             />
             {totalItems === 0 && (
-                <div className="pb-8 text-center text-sm text-gray-400">
+                <div className="pb-8 text-center text-sm text-[var(--text-secondary)]">
                     {t('blog.grid.emptyBodyLine1')}
                 </div>
             )}

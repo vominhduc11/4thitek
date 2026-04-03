@@ -39,7 +39,7 @@ import org.springframework.test.web.servlet.MvcResult;
         "app.bootstrap-super-admin.name=System Owner",
         "app.mail.enabled=true",
         "app.mail.from=ops@4thitek.local",
-        "app.mail.from-name=4ThiTek Ops",
+        "app.mail.from-name=4T HITEK Ops",
         "app.password-reset.base-url=https://admin.4thitek.local/reset",
         "app.email-verification.base-url=https://admin.4thitek.local/verify-email"
 })

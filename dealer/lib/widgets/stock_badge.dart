@@ -24,22 +24,35 @@ class StockBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = Theme.of(context).textTheme.bodySmall;
     final colors = Theme.of(context).colorScheme;
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+
     late final String label;
     late final Color textColor;
     late final Color background;
 
     if (remainingStock <= 0) {
-      label = 'Hết hàng';
+      label = isEnglish ? 'Out of stock' : 'Hết hàng';
       textColor = colors.error;
       background = colors.errorContainer.withValues(alpha: 0.42);
     } else if (remainingStock <= lowStockThreshold) {
       label = useColonForLowStock
-          ? 'Sắp hết: $remainingStock'
-          : 'Sắp hết ($remainingStock)';
-      textColor = const Color(0xFFFFC361);
-      background = const Color(0xFF3B2C10);
+          ? (isEnglish
+                ? 'Low stock: $remainingStock'
+                : 'Sắp hết: $remainingStock')
+          : (isEnglish
+                ? 'Low stock ($remainingStock)'
+                : 'Sắp hết ($remainingStock)');
+      textColor = const Color(0xFFBDF919);
+      background = Color.alphaBlend(
+        const Color(0xFFBDF919).withValues(alpha: 0.12),
+        colors.surfaceContainerHigh,
+      );
     } else {
-      label = showInStockQuantity ? 'Còn hàng: $remainingStock' : 'Còn hàng';
+      label = showInStockQuantity
+          ? (isEnglish
+                ? 'In stock: $remainingStock'
+                : 'Còn hàng: $remainingStock')
+          : (isEnglish ? 'In stock' : 'Còn hàng');
       textColor = colors.primary;
       background = colors.primaryContainer.withValues(alpha: 0.48);
     }
@@ -49,9 +62,7 @@ class StockBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: textColor.withValues(alpha: 0.18),
-        ),
+        border: Border.all(color: textColor.withValues(alpha: 0.18)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

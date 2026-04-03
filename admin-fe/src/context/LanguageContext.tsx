@@ -256,7 +256,7 @@ const translations: Record<Language, TranslationMap> = {
     "Cảnh báo": "Alerts",
     "Tài khoản": "Account",
     "Bảng điều hành": "Control panel",
-    "4ThiTek Quản trị": "4ThiTek Admin",
+    "4T HITEK Admin": "4T HITEK Admin",
     "Đăng nhập để truy cập hệ thống quản lý phân phối tai nghe SCS":
       "Sign in to access the SCS distribution admin system.",
     "Tên đăng nhập": "Username",

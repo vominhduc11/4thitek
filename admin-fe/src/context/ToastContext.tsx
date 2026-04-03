@@ -34,9 +34,18 @@ const iconByVariant = {
 } as const
 
 const cardByVariant = {
-  success: 'border-emerald-200 bg-emerald-50/95 text-emerald-900',
-  error: 'border-rose-200 bg-rose-50/95 text-rose-900',
-  info: 'border-blue-200 bg-blue-50/95 text-blue-900',
+  success:
+    'border-[rgba(43,224,134,0.28)] bg-[var(--surface-raised)] text-[var(--ink)]',
+  error:
+    'border-[var(--destructive-border)] bg-[var(--surface-raised)] text-[var(--ink)]',
+  info:
+    'border-[var(--brand-border-strong)] bg-[var(--surface-raised)] text-[var(--ink)]',
+} as const
+
+const iconToneByVariant = {
+  success: 'text-[var(--tone-success-text)]',
+  error: 'text-[var(--destructive-text)]',
+  info: 'text-[var(--accent-strong)]',
 } as const
 
 let toastSeed = 0
@@ -81,15 +90,15 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
           const Icon = iconByVariant[toast.variant]
           return (
             <div
-              className={`pointer-events-auto rounded-2xl border p-3 shadow-[0_16px_32px_rgba(15,23,42,0.18)] backdrop-blur animate-[card-enter_0.25s_ease_both] ${cardByVariant[toast.variant]}`}
+              className={`pointer-events-auto rounded-[20px] border p-3 shadow-[0_14px_28px_rgba(11,24,38,0.16)] backdrop-blur animate-[card-enter_0.25s_ease_both] ${cardByVariant[toast.variant]}`}
               key={toast.id}
               role="status"
             >
               <div className="flex items-start gap-3">
-                <Icon className="mt-0.5 h-4 w-4 shrink-0" />
+                <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${iconToneByVariant[toast.variant]}`} />
                 <div className="min-w-0 flex-1">
                   {toast.title ? (
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em]">
+                    <p className={`text-xs font-semibold uppercase tracking-[0.2em] ${iconToneByVariant[toast.variant]}`}>
                       {toast.title}
                     </p>
                   ) : null}
@@ -97,7 +106,7 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
                 </div>
                 <button
                   aria-label="Dismiss"
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/60 text-slate-600 transition hover:bg-white hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--surface)]/70 text-[var(--muted)] transition hover:bg-[var(--surface)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
                   onClick={() => dismiss(toast.id)}
                   type="button"
                 >

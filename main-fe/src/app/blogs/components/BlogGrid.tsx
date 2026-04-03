@@ -1,12 +1,10 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { useMemo, useCallback, memo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { MdArrowForward } from 'react-icons/md';
-
-// Import the proper BlogPost type
 import type { BlogPost } from '@/types/blog';
 import { useHydration } from '@/hooks/useHydration';
 import { formatDateSafe } from '@/utils/dateFormatter';
@@ -21,148 +19,96 @@ const BlogGrid = memo(function BlogGrid({ blogs }: BlogGridProps) {
     const { locale, t } = useLanguage();
     const isHydrated = useHydration();
 
-    // Memoized category display helper
-    const getCategoryDisplay = useCallback((category: BlogPost['category']) => {
-        // Handle object category payloads returned by the backend
-        if (typeof category === 'object' && category?.name) {
-            return category.name.toUpperCase();
-        }
-        // Handle old string format
-        if (typeof category === 'string') {
-            const categoryNames: { [key: string]: string } = {
-                TECHNOLOGY: t('blog.categories.technology'),
-                TUTORIAL: t('blog.categories.tutorial'),
-                NEWS: t('blog.categories.news'),
-                REVIEW: t('blog.categories.review'),
-                TIPS: t('blog.categories.tips')
-            };
-            return (categoryNames[category] || category).toUpperCase();
-        }
-        return t('blog.list.categoryFallback').toUpperCase();
-    }, [t]);
+    const getCategoryDisplay = useCallback(
+        (category: BlogPost['category']) => {
+            if (typeof category === 'object' && category?.name) {
+                return category.name.toUpperCase();
+            }
+            if (typeof category === 'string') {
+                const categoryNames: { [key: string]: string } = {
+                    TECHNOLOGY: t('blog.categories.technology'),
+                    TUTORIAL: t('blog.categories.tutorial'),
+                    NEWS: t('blog.categories.news'),
+                    REVIEW: t('blog.categories.review'),
+                    TIPS: t('blog.categories.tips')
+                };
+                return (categoryNames[category] || category).toUpperCase();
+            }
+            return t('blog.list.categoryFallback').toUpperCase();
+        },
+        [t]
+    );
 
-    // Memoized category color helper
-    const getCategoryColor = useCallback((category: BlogPost['category']) => {
-        // Handle object category payloads returned by the backend
-        if (typeof category === 'object' && category?.color) {
-            return category.color;
-        }
-        // Handle old string format
-        if (typeof category === 'string') {
-            const categoryColors: { [key: string]: string } = {
-                TECHNOLOGY: '#60a5fa',
-                TUTORIAL: '#4ade80',
-                NEWS: '#f87171',
-                REVIEW: '#c084fc',
-                TIPS: '#facc15'
-            };
-            return categoryColors[category] || '#9ca3af';
-        }
-        return '#9ca3af';
-    }, []);
-
-    // Memoized processed blogs data
-    const processedBlogs = useMemo(() => {
-        return blogs.map(blog => ({
-            ...blog,
-            categoryDisplay: getCategoryDisplay(blog.category),
-            categoryColor: getCategoryColor(blog.category),
-            formattedDate: formatDateSafe(blog.publishedAt, isHydrated, locale),
-            imageUrl: blog.featuredImage || ''
-        }));
-    }, [blogs, isHydrated, locale, getCategoryDisplay, getCategoryColor]);
+    const processedBlogs = useMemo(
+        () =>
+            blogs.map((blog) => ({
+                ...blog,
+                categoryDisplay: getCategoryDisplay(blog.category),
+                formattedDate: formatDateSafe(blog.publishedAt, isHydrated, locale),
+                imageUrl: blog.featuredImage || ''
+            })),
+        [blogs, getCategoryDisplay, isHydrated, locale]
+    );
 
     return (
-        <div className="ml-0 sm:ml-16 md:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 py-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-6 lg:gap-8 2xl:gap-10 3xl:gap-12">
+        <div className="brand-shell py-8 sm:ml-16 md:ml-20">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                 {processedBlogs.map((blog, index) => (
                     <motion.article
                         key={blog.id}
-                        className="group bg-transparent rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer border border-white/10 hover:border-white/20"
+                        className="group"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: index * 0.1 }}
-                        whileHover={{
-                            y: -8,
-                            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)'
-                        }}
+                        transition={{ duration: 0.4, delay: index * 0.06 }}
                     >
-                        <Link href={buildBlogPath(blog.id, blog.title)} className="block">
-                            {/* Cover Image - 16:9 Aspect Ratio */}
-                            <div className="relative w-full aspect-video overflow-hidden">
+                        <Link
+                            href={buildBlogPath(blog.id, blog.title)}
+                            className="brand-card flex h-full flex-col overflow-hidden rounded-[28px] p-4 transition-all duration-300 hover:-translate-y-1 hover:border-[var(--brand-border-strong)] hover:shadow-[0_24px_44px_rgba(0,113,188,0.16)]"
+                        >
+                            <div className="relative aspect-[16/10] overflow-hidden rounded-[22px] border border-[var(--brand-border)] bg-[rgba(7,17,27,0.75)]">
                                 {blog.imageUrl ? (
                                     <Image
                                         src={blog.imageUrl}
                                         alt={t('blog.grid.coverAlt').replace('{title}', blog.title)}
                                         fill
                                         className="object-cover transition-transform duration-300 group-hover:scale-105"
-                                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, (max-width: 3200px) 33vw, 40vw"
+                                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                         loading="lazy"
                                     />
                                 ) : (
-                                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900 text-gray-500">
-                                        <svg
-                                            aria-hidden="true"
-                                            className="h-10 w-10"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={1.5}
-                                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2 1.586-1.586a2 2 0 012.828 0L20 14m-6-8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                            />
-                                        </svg>
+                                    <div className="flex h-full items-center justify-center text-[var(--text-muted)]">
+                                        <MdArrowForward className="h-10 w-10" />
                                     </div>
                                 )}
-
-
-                                {/* Gradient Overlay */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,17,27,0.04),rgba(6,17,27,0.72))]" />
                             </div>
 
-                            {/* Card Content */}
-                            <div className="p-6">
-                                {/* Metadata */}
-                                <div className="flex items-center justify-between mb-3">
+                            <div className="mt-5 flex flex-1 flex-col">
+                                <div className="flex items-center justify-between gap-3">
                                     <time
                                         dateTime={blog.publishedAt}
-                                        className="text-xs font-medium text-gray-400 uppercase tracking-wide"
+                                        className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]"
                                     >
                                         {blog.formattedDate}
                                     </time>
-                                    <span
-                                        className="text-xs font-bold uppercase tracking-wide"
-                                        style={{ color: blog.categoryColor }}
-                                    >
-                                        {blog.categoryDisplay}
-                                    </span>
+                                    <span className="brand-badge text-[10px]">{blog.categoryDisplay}</span>
                                 </div>
 
-                                {/* Title */}
-                                <h3 className="text-lg sm:text-xl 2xl:text-2xl 3xl:text-3xl font-bold text-white mb-3 2xl:mb-4 3xl:mb-5 line-clamp-2 leading-tight group-hover:text-[#4FC8FF] transition-colors duration-300">
+                                <h3 className="mt-4 line-clamp-2 text-xl font-semibold leading-tight text-[var(--text-primary)] transition-colors duration-200 group-hover:text-[var(--brand-blue)]">
                                     {blog.title}
                                 </h3>
 
-                                {/* Description */}
-                                <p className="text-sm sm:text-base text-gray-300 mb-4 line-clamp-3 leading-relaxed">
+                                <p className="mt-3 line-clamp-3 text-sm leading-7 text-[var(--text-secondary)] sm:text-base">
                                     {blog.excerpt}
                                 </p>
 
-                                {/* Bottom Section */}
-                                <div className="flex items-center justify-end">
-                                    {/* CTA Arrow Button */}
+                                <div className="mt-4 flex items-center justify-end">
                                     <motion.div
-                                        className="flex items-center justify-center w-11 h-11 bg-white/10 rounded-full group-hover:bg-[#4FC8FF] transition-all duration-300 backdrop-blur-sm"
-                                        whileHover={{ scale: 1.1 }}
+                                        className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--brand-border)] bg-[rgba(41,171,226,0.08)] text-[var(--brand-blue)] transition-all duration-200 group-hover:border-[var(--brand-border-strong)] group-hover:bg-[rgba(41,171,226,0.18)]"
+                                        whileHover={{ scale: 1.06 }}
                                         whileTap={{ scale: 0.95 }}
                                     >
-                                        <MdArrowForward
-                                            className="w-5 h-5 text-white group-hover:text-white transition-colors duration-300"
-                                            aria-label={t('blog.grid.readArticle')}
-                                        />
+                                        <MdArrowForward className="h-5 w-5" aria-label={t('blog.grid.readArticle')} />
                                     </motion.div>
                                 </div>
                             </div>
@@ -171,18 +117,17 @@ const BlogGrid = memo(function BlogGrid({ blogs }: BlogGridProps) {
                 ))}
             </div>
 
-            {/* Empty State */}
             {blogs.length === 0 && (
                 <motion.div
-                    className="text-center py-16"
+                    className="py-16 text-center"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5 }}
+                    transition={{ duration: 0.4 }}
                 >
-                    <div className="max-w-md mx-auto">
-                        <div className="w-24 h-24 mx-auto mb-6 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
+                    <div className="brand-card-muted mx-auto max-w-md rounded-[30px] p-8">
+                        <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full border border-[var(--brand-border)] bg-[rgba(41,171,226,0.08)]">
                             <svg
-                                className="w-12 h-12 text-gray-400"
+                                className="h-12 w-12 text-[var(--text-muted)]"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -195,10 +140,10 @@ const BlogGrid = memo(function BlogGrid({ blogs }: BlogGridProps) {
                                 />
                             </svg>
                         </div>
-                        <h3 className="text-xl 2xl:text-2xl 3xl:text-3xl font-bold text-white mb-4 2xl:mb-5 3xl:mb-6">
+                        <h3 className="text-xl font-semibold text-[var(--text-primary)]">
                             {t('blog.grid.emptyTitle')}
                         </h3>
-                        <p className="text-gray-400">
+                        <p className="mt-4 text-[var(--text-secondary)]">
                             {t('blog.grid.emptyBodyLine1')}
                             <br />
                             {t('blog.grid.emptyBodyLine2')}

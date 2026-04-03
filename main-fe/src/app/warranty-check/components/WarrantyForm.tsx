@@ -40,13 +40,13 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
 
     return (
         <motion.div
-            className="max-w-2xl mx-auto bg-[#1a2332] p-4 sm:p-6 lg:p-8 rounded-lg shadow-lg border border-gray-700"
+            className="brand-card mx-auto max-w-2xl rounded-[28px] p-4 sm:p-6 lg:p-8"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
         >
             <motion.h2
-                className="text-xl sm:text-2xl font-bold text-center mb-4 sm:mb-6 text-white"
+                className="mb-4 text-center font-serif text-xl font-bold text-[var(--text-primary)] sm:mb-6 sm:text-2xl"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
@@ -67,8 +67,8 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.5, delay: 0.4 }}
                 >
-                    <label htmlFor="serialNumber" className="block text-sm font-medium text-gray-300 mb-2">
-                        {t('warrantyCheck.form.serialNumberRequired')} <span className="text-red-500" aria-hidden="true">*</span>
+                    <label htmlFor="serialNumber" className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">
+                        {t('warrantyCheck.form.serialNumberRequired')} <span className="text-[var(--destructive)]" aria-hidden="true">*</span>
                     </label>
                     <Input
                         id="serialNumber"
@@ -80,8 +80,8 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                         aria-required="true"
                         aria-invalid={validationError ? 'true' : 'false'}
                         aria-describedby={validationError ? 'serial-error' : 'serial-helper'}
-                        className={`w-full transition-all duration-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-400 ${
-                            validationError ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
+                        className={`w-full transition-all duration-300 ${
+                            validationError ? 'border-[var(--destructive)] focus:border-[var(--destructive)] focus:ring-[var(--destructive)]' : 'hover:border-[var(--brand-border-strong)]'
                         }`}
                     />
                     <AnimatePresence mode="wait">
@@ -90,7 +90,7 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                                 id="serial-error"
                                 role="alert"
                                 key="error"
-                                className="text-xs sm:text-sm text-red-400 mt-1 flex items-center gap-1"
+                                className="mt-1 flex items-center gap-1 text-xs text-[var(--destructive-text)] sm:text-sm"
                                 initial={{ opacity: 0, y: -4 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -4 }}
@@ -100,7 +100,7 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                                 {validationError}
                             </motion.p>
                         ) : (
-                            <p id="serial-helper" className="text-xs sm:text-sm text-gray-400 mt-1">
+                            <p id="serial-helper" className="mt-1 text-xs text-[var(--text-muted)] sm:text-sm">
                                 {t('warrantyCheck.form.serialNumberHelper')}
                             </p>
                         )}
@@ -115,7 +115,7 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
                     <Button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full bg-gradient-to-r from-[#4FC8FF] to-[#0EA5E9] hover:from-[#0EA5E9] hover:to-[#0284C7] text-white py-2 sm:py-3 text-base sm:text-lg font-medium rounded-lg border border-[#4FC8FF]/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-0.5 disabled:transform-none disabled:hover:scale-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="brand-button-primary w-full rounded-full py-2 text-base font-medium shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100 disabled:hover:translate-y-0 sm:py-3 sm:text-lg"
                     >
                         {isLoading ? (
                             <div className="flex items-center justify-center gap-2">
@@ -130,13 +130,13 @@ const WarrantyForm: React.FC<WarrantyFormProps> = ({ onSubmit }) => {
             </motion.form>
 
             <motion.div
-                className="mt-6 p-4 bg-[#0c131d] rounded-lg border border-gray-600"
+                className="mt-6 rounded-[24px] border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)] p-4"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.6 }}
             >
-                <h3 className="font-semibold text-gray-300 mb-2">{t('warrantyCheck.form.notes.title')}</h3>
-                <ul className="text-sm text-gray-400 space-y-1">
+                <h3 className="mb-2 font-serif font-semibold text-[var(--text-primary)]">{t('warrantyCheck.form.notes.title')}</h3>
+                <ul className="space-y-1 text-sm text-[var(--text-secondary)]">
                     <li>{t('warrantyCheck.form.notes.serialRequired')}</li>
                     <li>{t('warrantyCheck.form.notes.infoDisplay')}</li>
                     <li>{t('warrantyCheck.form.notes.contactSupport')}</li>

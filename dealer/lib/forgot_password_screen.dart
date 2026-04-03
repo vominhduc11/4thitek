@@ -158,9 +158,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 end: Alignment.bottomRight,
                 stops: [0.0, 0.45, 1.0],
                 colors: [
-                  Color(0xFF08131D),
-                  Color(0xFF102738),
-                  Color(0xFF1A415C),
+                  Color(0xFF07111A),
+                  Color(0xFF0D2232),
+                  Color(0xFF13456A),
                 ],
               ),
             ),
@@ -173,14 +173,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           Positioned(
             right: topOrbRight,
             top: topOrbTop,
-            child: _GlowOrb(size: topOrbSize, color: const Color(0x243385B0)),
+            child: _GlowOrb(size: topOrbSize, color: const Color(0x2429ABE2)),
           ),
           Positioned(
             left: bottomOrbLeft,
             bottom: bottomOrbBottom,
             child: _GlowOrb(
               size: bottomOrbSize,
-              color: const Color(0x1A8BB9D2),
+              color: const Color(0x1A0071BC),
             ),
           ),
           SafeArea(
@@ -212,7 +212,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               style: IconButton.styleFrom(
                                 minimumSize: const Size(48, 48),
                                 foregroundColor: const Color(0xFFECEDEE),
-                                backgroundColor: const Color(0x183385B0),
+                                backgroundColor: const Color(0x1A29ABE2),
                               ),
                               icon: const Icon(Icons.arrow_back_rounded),
                             ),
@@ -1046,7 +1046,7 @@ class _TexturePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = const Color(0x66FFFFFF);
+    final paint = Paint()..color = const Color(0x4029ABE2);
     const spacing = 22.0;
     const radius = 0.9;
     var row = 0;

@@ -47,7 +47,6 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
     const { registerAnimation, completeAnimation, cancelAnimation } = useAnimationCoordinator();
     const { handleError } = useErrorHandler();
 
-    // Load recent searches from localStorage
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const saved =
@@ -70,7 +69,6 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
         }
     }, []);
 
-    // Focus input when modal opens
     useEffect(() => {
         if (isOpen && inputRef.current) {
             const focusTimer = window.setTimeout(() => {
@@ -80,7 +78,6 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
         }
     }, [isOpen]);
 
-    // API search function
     const performSearch = useCallback(async (searchQuery: string): Promise<SearchResult[]> => {
         if (!searchQuery.trim()) return [];
 
@@ -92,17 +89,16 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                 return [];
             }
 
-            const results: SearchResult[] = [];
+            const nextResults: SearchResult[] = [];
             const data = response.data ?? { products: [], blogs: [] };
 
-            // Process products
             data.products.forEach((product: { id: string | number; name: string; shortDescription: string; image: string }) => {
                 const productId = product.id?.toString().trim();
                 if (!productId) {
                     return;
                 }
 
-                results.push({
+                nextResults.push({
                     type: 'product',
                     id: productId,
                     title: product.name,
@@ -113,14 +109,13 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                 });
             });
 
-            // Process blogs
             data.blogs.forEach((blog: { id: string | number; title: string; description: string; image: string; category?: string }) => {
                 const blogId = blog.id?.toString().trim();
                 if (!blogId) {
                     return;
                 }
 
-                results.push({
+                nextResults.push({
                     type: 'blog',
                     id: blogId,
                     title: blog.title,
@@ -131,14 +126,13 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                 });
             });
 
-            return results;
+            return nextResults;
         } catch (error) {
             handleError(error instanceof Error ? error : new Error('Search failed'), 'SearchModal.performSearch');
             return [];
         }
     }, [handleError, t]);
 
-    // Handle search with debouncing
     useEffect(() => {
         if (!query.trim()) {
             searchRequestIdRef.current += 1;
@@ -162,11 +156,9 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
         return () => window.clearTimeout(searchTimeout);
     }, [query, performSearch]);
 
-    // Optimized search submit handler
     const handleSearch = useCallback((searchQuery: string) => {
         if (!searchQuery.trim()) return;
 
-        // Save to recent searches
         const newRecentSearches = [searchQuery, ...recentSearches.filter((s) => s !== searchQuery)].slice(0, 5);
 
         setRecentSearches(newRecentSearches);
@@ -178,7 +170,6 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
         router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
     }, [onClose, recentSearches, router]);
 
-    // Optimized filtered results with useMemo
     const filteredResults = useMemo(() => {
         return results.filter((result) => {
             if (activeTab === 'all') return true;
@@ -188,7 +179,6 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
         });
     }, [results, activeTab]);
 
-    // Handle escape key and body scroll lock
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
@@ -199,10 +189,9 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
         if (isOpen) {
             modalManager.openModal('search-modal');
             document.addEventListener('keydown', handleEscape);
-            
-            // Register modal opening animation
+
             registerAnimation('search-modal-open', () => {
-                // Modal opening animation handled by Framer Motion
+                return undefined;
             }, 2);
         } else {
             modalManager.closeModal('search-modal');
@@ -220,9 +209,8 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
         <AnimatePresence>
             {isOpen && (
                 <>
-                    {/* Backdrop */}
                     <motion.div
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+                        className="fixed inset-0 bg-[rgba(1,8,15,0.64)] backdrop-blur-md"
                         style={{ zIndex: Z_INDEX.MODAL_BACKDROP }}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -230,9 +218,8 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                         onClick={onClose}
                     />
 
-                    {/* Modal */}
                     <motion.div
-                        className="fixed top-0 left-0 right-0"
+                        className="fixed left-0 right-0 top-0"
                         style={{ zIndex: Z_INDEX.MODAL }}
                         initial={{ y: -20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
@@ -243,18 +230,17 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                         aria-labelledby="search-modal-title"
                         onAnimationComplete={() => completeAnimation('search-modal-open')}
                     >
-                        <div className="bg-[#0c131d] border-b border-gray-700/30 shadow-2xl backdrop-blur-sm">
-                            {/* Search Header */}
-                            <div className="px-6 py-4 border-b border-gray-700/30">
+                        <div className="border-b border-[var(--brand-border)] bg-[radial-gradient(circle_at_top,rgba(41,171,226,0.14),transparent_28%),linear-gradient(180deg,rgba(9,17,26,0.98),rgba(7,14,22,0.98))] shadow-2xl backdrop-blur-sm">
+                            <div className="border-b border-[var(--brand-border)] px-6 py-4">
                                 <div className="flex items-center gap-4">
-                                    <div className="flex-1 relative">
+                                    <div className="relative flex-1">
                                         <label htmlFor="site-search-input" className="sr-only">
                                             {t('search.placeholder')}
                                         </label>
                                         <h2 id="search-modal-title" className="sr-only">
                                             {t('search.placeholder')}
                                         </h2>
-                                        <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                        <FiSearch className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--brand-blue)]" />
                                         <input
                                             id="site-search-input"
                                             ref={inputRef}
@@ -267,26 +253,25 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                                                     handleSearch(query);
                                                 }
                                             }}
-                                            className="w-full pl-12 pr-4 py-3 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#4FC8FF] focus:bg-gray-800/70 transition-all duration-300"
+                                            className="brand-input w-full rounded-2xl border pl-12 pr-4 py-3 text-[var(--text-primary)] transition-all duration-300 focus:border-[var(--brand-border-strong)] focus:bg-[rgba(12,30,44,0.88)] focus:outline-none"
                                         />
                                         {isSearching && (
-                                            <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#4FC8FF]"></div>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                                <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-[var(--brand-blue)]"></div>
                                             </div>
                                         )}
                                     </div>
                                     <button
                                         onClick={onClose}
-                                        className="p-2 hover:bg-gray-700/50 rounded-lg transition-colors"
+                                        className="rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.56)] p-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--brand-border-strong)] hover:bg-[rgba(41,171,226,0.12)] hover:text-[var(--text-primary)]"
                                         aria-label={t('search.modal.closeAria')}
                                     >
-                                        <FiX className="w-5 h-5 text-gray-400" />
+                                        <FiX className="h-5 w-5" />
                                     </button>
                                 </div>
 
-                                {/* Tabs */}
                                 {query && (
-                                    <div className="flex items-center gap-1 mt-4">
+                                    <div className="mt-4 flex items-center gap-1">
                                         {[
                                             { id: 'all', label: t('search.tabs.all'), count: results.length },
                                             {
@@ -303,10 +288,10 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                                             <button
                                                 key={tab.id}
                                                 onClick={() => setActiveTab(tab.id as 'all' | 'products' | 'blogs')}
-                                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                                className={`rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ${
                                                     activeTab === tab.id
-                                                        ? 'bg-[#4FC8FF] text-white'
-                                                        : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                                                        ? 'bg-[linear-gradient(135deg,var(--brand-gradient-start),var(--brand-gradient-end))] text-white shadow-[0_10px_20px_rgba(0,113,188,0.22)]'
+                                                        : 'text-[var(--text-secondary)] hover:bg-[rgba(41,171,226,0.12)] hover:text-[var(--text-primary)]'
                                                 }`}
                                             >
                                                 {tab.label} {tab.count > 0 && `(${tab.count})`}
@@ -316,17 +301,14 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                                 )}
                             </div>
 
-                            {/* Search Content */}
-                            <div className="max-h-[70vh] overflow-y-auto custom-scrollbar">
+                            <div className="custom-scrollbar max-h-[70vh] overflow-y-auto">
                                 {!query ? (
-                                    /* Empty State - Recent Searches */
-                                    <div className="p-6 space-y-6">
-                                        {/* Recent Searches */}
+                                    <div className="space-y-6 p-6">
                                         {recentSearches.length > 0 && (
                                             <div>
-                                                <div className="flex items-center gap-2 mb-3">
-                                                    <FiClock className="w-4 h-4 text-gray-400" />
-                                                    <h3 className="text-sm font-medium text-gray-300">
+                                                <div className="mb-3 flex items-center gap-2">
+                                                    <FiClock className="h-4 w-4 text-[var(--brand-blue)]" />
+                                                    <h3 className="text-sm font-medium text-[var(--text-secondary)]">
                                                         {t('search.modal.recentTitle')}
                                                     </h3>
                                                 </div>
@@ -335,7 +317,7 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                                                         <button
                                                             key={index}
                                                             onClick={() => setQuery(search)}
-                                                            className="px-3 py-1.5 bg-gray-700/50 hover:bg-gray-600/50 rounded-full text-sm text-gray-300 hover:text-white transition-colors"
+                                                            className="brand-badge rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)] px-3 py-1.5 text-sm text-[var(--text-secondary)] transition-colors hover:border-[var(--brand-border-strong)] hover:text-[var(--text-primary)]"
                                                         >
                                                             {search}
                                                         </button>
@@ -343,93 +325,85 @@ const SearchModal = memo(function SearchModal({ isOpen, onClose }: SearchModalPr
                                                 </div>
                                             </div>
                                         )}
-
                                     </div>
                                 ) : filteredResults.length > 0 ? (
-                                    /* Search Results */
-                                    <div className="p-4 space-y-2">
+                                    <div className="space-y-2 p-4">
                                         {filteredResults.map((result) => (
                                             <Link
                                                 key={`${result.type}-${result.id}`}
                                                 href={result.href}
                                                 onClick={onClose}
-                                                className="block p-3 hover:bg-gray-700/30 rounded-lg transition-colors group"
+                                                className="group block rounded-2xl border border-transparent p-3 transition-colors hover:border-[var(--brand-border)] hover:bg-[rgba(41,171,226,0.08)]"
                                             >
                                                 <div className="flex items-center gap-4">
-                                                    {/* Image */}
-                                                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-700/50 flex-shrink-0">
+                                                    <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-2xl border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)]">
                                                         {result.image && (
                                                             <Image
                                                                 src={result.image}
                                                                 alt={result.title}
                                                                 width={48}
                                                                 height={48}
-                                                                className="w-full h-full object-cover"
+                                                                className="h-full w-full object-cover"
                                                             />
                                                         )}
                                                     </div>
 
-                                                    {/* Content */}
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2 mb-1">
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="mb-1 flex items-center gap-2">
                                                             <span
-                                                                className={`text-xs px-2 py-0.5 rounded-full ${
-                                                                result.type === 'product'
-                                                                    ? 'bg-blue-500/20 text-blue-400'
-                                                                    : 'bg-green-500/20 text-green-400'
-                                                            }`}
-                                                        >
-                                                            {result.type === 'product' ? t('search.type.product') : t('search.type.blog')}
-                                                        </span>
+                                                                className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                                                    result.type === 'product'
+                                                                        ? 'bg-[rgba(41,171,226,0.18)] text-[var(--brand-blue)]'
+                                                                        : 'bg-[rgba(43,224,134,0.18)] text-[#7BF0B1]'
+                                                                }`}
+                                                            >
+                                                                {result.type === 'product' ? t('search.type.product') : t('search.type.blog')}
+                                                            </span>
                                                             {result.category && (
-                                                                <span className="text-xs text-gray-400">
+                                                                <span className="text-xs text-[var(--text-secondary)]">
                                                                     {result.category}
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <h4 className="text-white font-medium text-sm group-hover:text-[#4FC8FF] transition-colors line-clamp-1">
+                                                        <h4 className="line-clamp-1 text-sm font-medium text-[var(--text-primary)] transition-colors group-hover:text-[var(--brand-blue)]">
                                                             {result.title}
                                                         </h4>
                                                         {result.subtitle && (
-                                                            <p className="text-gray-400 text-xs mt-1 line-clamp-2">
+                                                            <p className="mt-1 line-clamp-2 text-xs text-[var(--text-secondary)]">
                                                                 {result.subtitle}
                                                             </p>
                                                         )}
                                                     </div>
 
-                                                    {/* Arrow */}
-                                                    <FiArrowRight className="w-4 h-4 text-gray-400 group-hover:text-[#4FC8FF] transition-colors flex-shrink-0" />
+                                                    <FiArrowRight className="h-4 w-4 flex-shrink-0 text-[var(--text-secondary)] transition-colors group-hover:text-[var(--brand-blue)]" />
                                                 </div>
                                             </Link>
                                         ))}
 
-                                        {/* View All Results */}
                                         <button
                                             onClick={() => handleSearch(query)}
-                                            className="w-full p-3 mt-4 border border-gray-600/50 hover:border-[#4FC8FF]/50 rounded-lg text-gray-400 hover:text-[#4FC8FF] transition-colors text-sm"
+                                            className="brand-button-secondary mt-4 w-full rounded-2xl p-3 text-sm transition-colors hover:border-[var(--brand-border-strong)] hover:text-[var(--brand-blue)]"
                                         >
                                             {t('search.modal.viewAllResults').replace('{query}', query)}
                                         </button>
                                     </div>
                                 ) : query && !isSearching ? (
-                                    /* No Results */
                                     <div className="p-8 text-center">
-                                        <div className="w-16 h-16 mx-auto mb-4 bg-gray-700/30 rounded-full flex items-center justify-center">
-                                            <FiSearch className="w-6 h-6 text-gray-400" />
+                                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)]">
+                                            <FiSearch className="h-6 w-6 text-[var(--brand-blue)]" />
                                         </div>
-                                        <h3 className="text-white font-medium mb-2">{t('search.modal.noResultsTitle')}</h3>
-                                        <p className="text-gray-400 text-sm mb-4">
+                                        <h3 className="mb-2 font-medium text-[var(--text-primary)]">{t('search.modal.noResultsTitle')}</h3>
+                                        <p className="mb-4 text-sm text-[var(--text-secondary)]">
                                             {t('search.modal.noResultsBody').replace('{query}', query)}
                                         </p>
                                     </div>
                                 ) : isSearching ? (
-                                    /* Loading State */
                                     <div className="p-8 text-center">
-                                        <div className="w-16 h-16 mx-auto mb-4 bg-gray-700/30 rounded-full flex items-center justify-center">
-                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4FC8FF]"></div>
+                                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)]">
+                                            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[var(--brand-blue)]"></div>
                                         </div>
-                                        <h3 className="text-white font-medium mb-2">{t('search.modal.searchingTitle')}</h3>
-                                        <p className="text-gray-400 text-sm">
+                                        <h3 className="mb-2 font-medium text-[var(--text-primary)]">{t('search.modal.searchingTitle')}</h3>
+                                        <p className="text-sm text-[var(--text-secondary)]">
                                             {t('search.modal.searchingBody').replace('{query}', query)}
                                         </p>
                                     </div>

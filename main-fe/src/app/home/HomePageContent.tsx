@@ -1,22 +1,22 @@
-import { HeroSection, FeaturedProductsCarousel, ProductSeries, Newsroom } from './components';
+import { FeaturedProductsCarousel, HeroSection, Newsroom, ProductSeries } from './components';
 import BrandValues from './components/BrandValues';
-import { mapBlogSummaryToPost, mapProductSummaryToSimpleProduct } from '@/lib/contentMappers';
 import { publicApiServer } from '@/lib/publicApiServer';
+import { mapBlogSummaryToPost, mapProductSummaryToSimpleProduct } from '@/lib/contentMappers';
 
-/** SVG wave divider — organic transition between sections */
 function WaveDivider({ fromColor, toColor }: { fromColor: string; toColor: string }) {
     return (
-        <div className="relative overflow-hidden h-10 sm:h-14 md:h-[72px] lg:h-20 xl:h-24" style={{ background: toColor }} aria-hidden="true">
+        <div
+            className="relative h-10 overflow-hidden sm:h-14 md:h-[72px] lg:h-20 xl:h-24"
+            style={{ background: toColor }}
+            aria-hidden="true"
+        >
             <svg
                 viewBox="0 0 1440 72"
                 preserveAspectRatio="none"
                 xmlns="http://www.w3.org/2000/svg"
                 className="absolute inset-0 h-full w-full"
             >
-                <path
-                    d="M0,0 C240,72 480,0 720,36 C960,72 1200,0 1440,36 L1440,0 Z"
-                    fill={fromColor}
-                />
+                <path d="M0,0 C240,72 480,0 720,36 C960,72 1200,0 1440,36 L1440,0 Z" fill={fromColor} />
             </svg>
         </div>
     );
@@ -42,21 +42,14 @@ export default async function HomePageContent() {
         .filter((blog): blog is NonNullable<typeof blog> => blog !== null);
 
     return (
-        <div className="relative bg-[#0c131d] text-white">
+        <div className="relative overflow-hidden bg-[#06111B] text-white">
             <HeroSection initialProduct={featuredProducts[0] ?? null} />
-
             <ProductSeries initialProducts={homepageProducts} />
-
-            {/* Wave: dark (#0c131d) into deep-blue (#013A5E) */}
-            <WaveDivider fromColor="#0c131d" toColor="#013A5E" />
-
+            <WaveDivider fromColor="#06111B" toColor="#081A2A" />
             <FeaturedProductsCarousel products={featuredProducts} />
-
-            {/* Wave: deep-blue (#032B4A) into near-black (#060d16) */}
-            <WaveDivider fromColor="#032B4A" toColor="#060d16" />
-
+            <WaveDivider fromColor="#081A2A" toColor="#07111A" />
             <BrandValues />
-
+            <WaveDivider fromColor="#07111A" toColor="#06111B" />
             <Newsroom initialBlogs={blogs} />
         </div>
     );

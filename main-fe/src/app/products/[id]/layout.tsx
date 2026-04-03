@@ -26,8 +26,8 @@ export async function generateMetadata({
         return createBaseMetadata({
             locale: 'vi',
             path: `/products/${id}`,
-            title: '4ThiTek | San pham',
-            description: 'Thong tin san pham 4ThiTek.'
+            title: '4T HITEK | San pham',
+            description: 'Thong tin san pham 4T HITEK.'
         });
     }
 
@@ -36,10 +36,10 @@ export async function generateMetadata({
     return createBaseMetadata({
         locale: 'vi',
         path: canonicalPath,
-        title: `${product.name} | 4ThiTek`,
+        title: `${product.name} | 4T HITEK`,
         description: product.shortDescription || product.description || product.name,
         image: parseImageUrl(product.image, '') || undefined,
-        keywords: ['tai nghe SCS', product.name, '4ThiTek', 'tai nghe chinh hang']
+        keywords: ['tai nghe SCS', product.name, '4T HITEK', 'tai nghe chinh hang']
     });
 }
 

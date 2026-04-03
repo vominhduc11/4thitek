@@ -1,11 +1,11 @@
 {
-    "name": "4thitek Dealer Hub",
-    "short_name": "Dealer Hub",
+    "name": "4T HITEK Dealer",
+    "short_name": "4T HITEK",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#FFFFFF",
     "theme_color": "#2563EB",
-    "description": "A new Flutter project.",
+    "description": "Dealer ordering application for CÔNG TY TNHH 4T HITEK.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

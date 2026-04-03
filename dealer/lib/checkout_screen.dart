@@ -201,6 +201,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return FadeSlideIn(
         child: SectionCard(
           title: texts.shippingInfoTitle,
+          icon: Icons.local_shipping_outlined,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -251,6 +252,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         delay: const Duration(milliseconds: 60),
         child: SectionCard(
           title: texts.paymentMethodTitle,
+          icon: Icons.account_balance_wallet_outlined,
           child: _isLoadingProfile
               ? _CheckoutStatePanel(
                   icon: Icons.sync_outlined,
@@ -335,6 +337,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         delay: const Duration(milliseconds: 120),
         child: SectionCard(
           title: texts.productsInOrderTitle(cart.totalItems),
+          icon: Icons.inventory_2_outlined,
           child: Theme(
             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
             child: ExpansionTile(
@@ -370,6 +373,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         delay: const Duration(milliseconds: 160),
         child: SectionCard(
           title: texts.orderNoteTitle,
+          icon: Icons.sticky_note_2_outlined,
           child: TextField(
             controller: _orderNoteController,
             maxLines: 3,
@@ -391,6 +395,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         delay: const Duration(milliseconds: 200),
         child: SectionCard(
           title: texts.orderSummaryTitle,
+          icon: Icons.receipt_long_outlined,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

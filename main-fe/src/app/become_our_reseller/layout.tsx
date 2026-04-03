@@ -6,10 +6,10 @@ import { SITE_URL } from '@/lib/site';
 export const metadata: Metadata = createBaseMetadata({
     locale: 'vi',
     path: '/become_our_reseller',
-    title: '4ThiTek | Tro thanh dai ly',
+    title: '4T HITEK | Tro thanh dai ly',
     description:
-        'Dang ky tro thanh dai ly chinh thuc cua 4ThiTek. Phan phoi tai nghe SCS chinh hang va nhan chinh sach ho tro kinh doanh toan dien.',
-    keywords: ['dai ly 4ThiTek', 'phan phoi tai nghe SCS', 'dang ky dai ly SCS', 'kinh doanh tai nghe', 'nhuong quyen SCS']
+        'Dang ky tro thanh dai ly chinh thuc cua 4T HITEK. Phan phoi tai nghe SCS chinh hang va nhan chinh sach ho tro kinh doanh toan dien.',
+    keywords: ['dai ly 4T HITEK', 'phan phoi tai nghe SCS', 'dang ky dai ly SCS', 'kinh doanh tai nghe', 'nhuong quyen SCS']
 });
 
 export default function BecomeOurResellerLayout({ children }: { children: React.ReactNode }) {

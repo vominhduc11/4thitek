@@ -2,9 +2,9 @@
 
 import { motion } from 'framer-motion';
 import {
-    MdKeyboardDoubleArrowLeft,
     MdKeyboardArrowLeft,
     MdKeyboardArrowRight,
+    MdKeyboardDoubleArrowLeft,
     MdKeyboardDoubleArrowRight
 } from 'react-icons/md';
 import { useLanguage } from '@/context/LanguageContext';
@@ -14,8 +14,8 @@ interface PaginationProps {
     totalPages: number;
     totalItems: number;
     onPageChange: (page: number) => void;
-    showCount?: boolean; // Option to show/hide count display
-    countLabel?: string; // Custom label for count (e.g., "sản phẩm", "bài viết")
+    showCount?: boolean;
+    countLabel?: string;
 }
 
 export default function Pagination({
@@ -27,7 +27,7 @@ export default function Pagination({
     countLabel = 'items'
 }: PaginationProps) {
     const { t } = useLanguage();
-    // Don't render if there's only one page or no items
+
     if (totalPages <= 1 || totalItems === 0) {
         return null;
     }
@@ -36,177 +36,100 @@ export default function Pagination({
     const startItem = (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
+    const navButtonClass =
+        'flex h-11 w-11 items-center justify-center rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.72)] text-[var(--text-secondary)] transition-all duration-200 hover:border-[var(--brand-border-strong)] hover:text-white disabled:cursor-not-allowed disabled:opacity-40';
+
     return (
-        <div className="ml-0 sm:ml-16 md:ml-20 mr-4 sm:mr-12 md:mr-16 lg:mr-20 py-8 sm:py-12">
-            <div className="px-4 sm:px-6 lg:px-8">
+        <div className="py-8 sm:py-12">
+            <div className="brand-shell ml-0 sm:ml-16 md:ml-20">
                 <motion.div
-                    className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 lg:gap-8 relative"
-                    initial={{ opacity: 0, y: 20 }}
+                    className="brand-card rounded-[28px] px-5 py-5 sm:px-6"
+                    initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.3 }}
+                    transition={{ duration: 0.35 }}
                 >
-                    {/* Horizontal Divider Line - Full Width */}
-                    <motion.div
-                        className="absolute left-0 right-0 top-1/2 h-px bg-gradient-to-r from-gray-500/40 via-gray-500/70 to-gray-500/40 z-0 hidden lg:block"
-                        initial={{ scaleX: 0, opacity: 0 }}
-                        animate={{ scaleX: 1, opacity: 1 }}
-                        transition={{ duration: 1.2, delay: 0.5 }}
-                        style={{ transform: 'translateY(-0.5px)' }}
-                    />
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                        {showCount ? (
+                            <div className="space-y-2">
+                                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+                                    {countLabel}
+                                </p>
+                                <p className="text-sm text-[var(--text-secondary)]">
+                                    {t('pagination.summary')
+                                        .replace('{start}', String(startItem))
+                                        .replace('{end}', String(endItem))
+                                        .replace('{total}', String(totalItems))
+                                        .replace('{label}', countLabel)}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+                                    {t('pagination.pageSummary')
+                                        .replace('{current}', String(currentPage))
+                                        .replace('{total}', String(totalPages))}
+                                </p>
+                                <p className="text-sm text-[var(--text-secondary)]">
+                                    {startItem}-{endItem} / {totalItems}
+                                </p>
+                            </div>
+                        )}
 
-                    {/* Left Side - Count Display (Optional) */}
-                    {showCount && (
-                        <div className="flex items-center space-x-4 bg-[#0c131d] pr-4 relative z-10">
-                            {/* Short Divider Line */}
-                            <motion.div
-                                className="w-12 sm:w-16 h-px bg-gray-600/50"
-                                initial={{ scaleX: 0 }}
-                                animate={{ scaleX: 1 }}
-                                transition={{ duration: 0.8, delay: 0.6 }}
-                            />
-
-                            {/* Count Display */}
-                            <motion.div
-                                className="group flex items-center space-x-2"
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.6, delay: 0.4 }}
+                        <div className="flex flex-wrap items-center gap-2">
+                            <motion.button
+                                type="button"
+                                className={navButtonClass}
+                                disabled={currentPage === 1}
+                                onClick={() => onPageChange(1)}
+                                whileHover={{ scale: 1.04 }}
+                                whileTap={{ scale: 0.96 }}
+                                aria-label={t('pagination.first')}
                             >
-                                <span className="text-[#4FC8FF] font-bold text-lg sm:text-xl">
-                                    {startItem}
-                                </span>
-                                <span className="text-white/70 font-sans text-sm">/{totalItems}</span>
-                            </motion.div>
-                        </div>
-                    )}
-
-                    {/* Navigation Controls */}
-                    <motion.div
-                        className={`flex items-center space-x-2 bg-[#0c131d] px-4 relative z-10 ${
-                            showCount ? '' : 'mx-auto'
-                        }`}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.7 }}
-                    >
-                        {/* First Page */}
-                        <motion.button
-                            className="p-2.5 sm:p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/40 hover:text-white/70 transition-colors duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            disabled={currentPage === 1}
-                            onClick={() => onPageChange(1)}
-                            aria-label={t('pagination.first')}
-                        >
-                            <MdKeyboardDoubleArrowLeft className="w-4 h-4" />
-                        </motion.button>
-
-                        {/* Previous Page */}
-                        <motion.button
-                            className="p-2.5 sm:p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/40 hover:text-white/70 transition-colors duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            disabled={currentPage === 1}
-                            onClick={() => onPageChange(currentPage - 1)}
-                            aria-label={t('pagination.previous')}
-                        >
-                            <MdKeyboardArrowLeft className="w-4 h-4" />
-                        </motion.button>
-
-                        {/* Page Numbers */}
-                        <div className="flex items-center space-x-1 px-4">
-                            <motion.span
-                                className="px-3 py-1 bg-[#4FC8FF]/20 border border-[#4FC8FF]/50 rounded text-[#4FC8FF] font-bold text-sm min-w-[2rem] text-center"
-                                key={currentPage}
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{ duration: 0.3 }}
+                                <MdKeyboardDoubleArrowLeft className="h-4 w-4" />
+                            </motion.button>
+                            <motion.button
+                                type="button"
+                                className={navButtonClass}
+                                disabled={currentPage === 1}
+                                onClick={() => onPageChange(currentPage - 1)}
+                                whileHover={{ scale: 1.04 }}
+                                whileTap={{ scale: 0.96 }}
+                                aria-label={t('pagination.previous')}
                             >
-                                {currentPage}
-                            </motion.span>
-                            <span className="text-white/50 text-sm mx-2">{t('pagination.of')}</span>
-                            <span className="text-white/70 font-medium text-sm">{totalPages}</span>
+                                <MdKeyboardArrowLeft className="h-4 w-4" />
+                            </motion.button>
+
+                            <div className="brand-badge px-4 py-2 text-sm font-semibold">
+                                <span>{currentPage}</span>
+                                <span className="text-[var(--text-muted)]">/</span>
+                                <span>{totalPages}</span>
+                            </div>
+
+                            <motion.button
+                                type="button"
+                                className={navButtonClass}
+                                disabled={currentPage === totalPages}
+                                onClick={() => onPageChange(currentPage + 1)}
+                                whileHover={{ scale: 1.04 }}
+                                whileTap={{ scale: 0.96 }}
+                                aria-label={t('pagination.next')}
+                            >
+                                <MdKeyboardArrowRight className="h-4 w-4" />
+                            </motion.button>
+                            <motion.button
+                                type="button"
+                                className={navButtonClass}
+                                disabled={currentPage === totalPages}
+                                onClick={() => onPageChange(totalPages)}
+                                whileHover={{ scale: 1.04 }}
+                                whileTap={{ scale: 0.96 }}
+                                aria-label={t('pagination.last')}
+                            >
+                                <MdKeyboardDoubleArrowRight className="h-4 w-4" />
+                            </motion.button>
                         </div>
-
-                        {/* Next Page */}
-                        <motion.button
-                            className="p-2.5 sm:p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/40 hover:text-white/70 transition-colors duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            disabled={currentPage === totalPages}
-                            onClick={() => onPageChange(currentPage + 1)}
-                            aria-label={t('pagination.next')}
-                        >
-                            <MdKeyboardArrowRight className="w-4 h-4" />
-                        </motion.button>
-
-                        {/* Last Page */}
-                        <motion.button
-                            className="p-2.5 sm:p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/40 hover:text-white/70 transition-colors duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            disabled={currentPage === totalPages}
-                            onClick={() => onPageChange(totalPages)}
-                            aria-label={t('pagination.last')}
-                        >
-                            <MdKeyboardDoubleArrowRight className="w-4 h-4" />
-                        </motion.button>
-                    </motion.div>
-                </motion.div>
-
-                {/* Mobile Responsive Version */}
-                <motion.div
-                    className="flex lg:hidden items-center justify-center mt-6"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.6, delay: 0.8 }}
-                >
-                    <div className="flex items-center space-x-2">
-                        <motion.button
-                            className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/40 disabled:opacity-30"
-                            whileTap={{ scale: 0.9 }}
-                            disabled={currentPage === 1}
-                            onClick={() => onPageChange(currentPage - 1)}
-                            aria-label={t('pagination.previous')}
-                        >
-                            <MdKeyboardArrowLeft className="w-4 h-4" />
-                        </motion.button>
-
-                        <span className="text-white/70 text-sm font-medium px-4">
-                            {t('pagination.pageSummary')
-                                .replace('{current}', String(currentPage))
-                                .replace('{total}', String(totalPages))}
-                        </span>
-
-                        <motion.button
-                            className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/40 disabled:opacity-30"
-                            whileTap={{ scale: 0.9 }}
-                            disabled={currentPage === totalPages}
-                            onClick={() => onPageChange(currentPage + 1)}
-                            aria-label={t('pagination.next')}
-                        >
-                            <MdKeyboardArrowRight className="w-4 h-4" />
-                        </motion.button>
                     </div>
                 </motion.div>
-
-                {/* Count Summary (Optional) */}
-                {showCount && (
-                    <motion.div
-                        className="text-center mt-8 pt-6 border-t border-white/10"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.9 }}
-                    >
-                        <p className="text-gray-400 text-sm">
-                            {t('pagination.summary')
-                                .replace('{start}', String(startItem))
-                                .replace('{end}', String(endItem))
-                                .replace('{total}', String(totalItems))
-                                .replace('{label}', countLabel)}
-                        </p>
-                    </motion.div>
-                )}
             </div>
         </div>
     );

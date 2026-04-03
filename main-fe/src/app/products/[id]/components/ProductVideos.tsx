@@ -27,13 +27,15 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                     <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 3xl:text-6xl font-bold mb-6 md:mb-8 text-white">
                         {t('products.videos.title')}
                     </h2>
-                    <div className="bg-gray-900/50 rounded-2xl border border-gray-700/50 p-6 text-center">
-                        <p className="text-gray-400 text-sm sm:text-base">
+                    <div className="brand-card-muted rounded-[28px] border border-[var(--brand-border)] p-6 text-center">
+                        <p className="text-sm text-[var(--text-secondary)] sm:text-base">
                             {productName
                                 ? t('products.videos.emptyWithName').replace('{name}', productName)
                                 : t('products.videos.empty')}
                         </p>
-                        <p className="text-gray-500 text-xs sm:text-sm mt-2">{t('products.videos.emptyHint')}</p>
+                        <p className="mt-2 text-xs text-[var(--text-muted)] sm:text-sm">
+                            {t('products.videos.emptyHint')}
+                        </p>
                     </div>
                 </div>
             </section>
@@ -51,8 +53,8 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
 
                 {featuredVideo && (
                     <div className="mb-8 md:mb-12">
-                        <div className="bg-gray-900/50 rounded-2xl overflow-hidden border border-gray-700/50">
-                            <div className="aspect-video bg-gray-800 relative group">
+                        <div className="brand-card overflow-hidden rounded-[28px] border border-[var(--brand-border)]">
+                            <div className="relative aspect-video bg-[rgba(7,17,27,0.88)] group">
                                 {featuredVideo.url.trim() ? (
                                     <ResponsiveVideo
                                         url={featuredVideo.url}
@@ -62,15 +64,18 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                                     />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center">
-                                        <p className="text-gray-400 text-center">{t('products.videos.noVideo')}</p>
+                                        <p className="text-center text-[var(--text-secondary)]">
+                                            {t('products.videos.noVideo')}
+                                        </p>
                                     </div>
                                 )}
                             </div>
                             <div className="p-4 md:p-6">
                                 <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-2xl 3xl:text-4xl font-bold text-white mb-2">
-                                    {featuredVideo.title || t('products.videos.featuredTitle').replace('{name}', productName || '')}
+                                    {featuredVideo.title ||
+                                        t('products.videos.featuredTitle').replace('{name}', productName || '')}
                                 </h3>
-                                <p className="text-gray-400 text-sm sm:text-base md:text-lg lg:text-xl xl:text-xl 3xl:text-3xl">
+                                <p className="text-sm text-[var(--text-secondary)] sm:text-base md:text-lg lg:text-xl xl:text-xl 3xl:text-3xl">
                                     {featuredVideo.description || t('products.videos.featuredDescription')}
                                 </p>
                             </div>
@@ -78,8 +83,8 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                     </div>
                 )}
 
-                {secondaryVideos.length > 0 && (
-                    secondaryVideos.length <= 3 ? (
+                {secondaryVideos.length > 0 &&
+                    (secondaryVideos.length <= 3 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-12">
                             {secondaryVideos.map((video, index) => (
                                 <motion.div
@@ -87,9 +92,9 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                                     initial={{ opacity: 0, y: 30 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.6, delay: index * 0.1 }}
-                                    className="bg-gray-900/50 rounded-lg overflow-hidden border border-gray-700/30 hover:border-blue-400/50 transition-all duration-300 group cursor-pointer"
+                                    className="brand-card-muted cursor-pointer overflow-hidden rounded-[24px] border border-[var(--brand-border)] transition-all duration-300 group hover:border-[var(--brand-border-strong)]"
                                 >
-                                    <div className="aspect-video bg-gray-800 relative">
+                                    <div className="relative aspect-video bg-[rgba(7,17,27,0.88)]">
                                         {video.url.trim() ? (
                                             <ResponsiveVideo
                                                 url={video.url}
@@ -99,7 +104,9 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                                             />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center">
-                                                <p className="text-gray-400 text-center text-sm">{t('products.videos.unavailable')}</p>
+                                                <p className="text-center text-sm text-[var(--text-secondary)]">
+                                                    {t('products.videos.unavailable')}
+                                                </p>
                                             </div>
                                         )}
                                         {video.duration && (
@@ -109,11 +116,12 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                                         )}
                                     </div>
                                     <div className="p-4">
-                                        <h4 className="text-white font-medium mb-2 group-hover:text-blue-400 transition-colors line-clamp-2 text-sm sm:text-base md:text-lg lg:text-xl xl:text-xl 3xl:text-3xl">
+                                        <h4 className="mb-2 line-clamp-2 text-sm font-medium text-white transition-colors group-hover:text-[var(--brand-blue)] sm:text-base md:text-lg lg:text-xl xl:text-xl 3xl:text-3xl">
                                             {video.title}
                                         </h4>
-                                        <p className="text-gray-400 text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 3xl:text-2xl line-clamp-2">
-                                            {video.description || t('products.videos.videoAbout').replace('{title}', video.title)}
+                                        <p className="line-clamp-2 text-xs text-[var(--text-secondary)] sm:text-sm md:text-base lg:text-lg xl:text-lg 3xl:text-2xl">
+                                            {video.description ||
+                                                t('products.videos.videoAbout').replace('{title}', video.title)}
                                         </p>
                                     </div>
                                 </motion.div>
@@ -134,8 +142,8 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                             >
                                 {secondaryVideos.map((video, index) => (
                                     <SwiperSlide key={index}>
-                                        <div className="bg-gray-900/50 rounded-lg overflow-hidden border border-gray-700/30 hover:border-blue-400/50 transition-all duration-300 h-full flex flex-col">
-                                            <div className="aspect-video bg-gray-800 relative">
+                                        <div className="brand-card-muted flex h-full flex-col overflow-hidden rounded-[24px] border border-[var(--brand-border)] transition-all duration-300 hover:border-[var(--brand-border-strong)]">
+                                            <div className="relative aspect-video bg-[rgba(7,17,27,0.88)]">
                                                 {video.url.trim() ? (
                                                     <ResponsiveVideo
                                                         url={video.url}
@@ -145,7 +153,9 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                                                     />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center">
-                                                        <p className="text-gray-400 text-center text-sm">{t('products.videos.unavailable')}</p>
+                                                        <p className="text-center text-sm text-[var(--text-secondary)]">
+                                                            {t('products.videos.unavailable')}
+                                                        </p>
                                                     </div>
                                                 )}
                                                 {video.duration && (
@@ -155,11 +165,12 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                                                 )}
                                             </div>
                                             <div className="p-4 flex-1">
-                                                <h4 className="text-white font-medium mb-2 group-hover:text-blue-400 transition-colors line-clamp-2 text-sm sm:text-base md:text-lg lg:text-xl xl:text-xl 3xl:text-3xl">
+                                                <h4 className="mb-2 line-clamp-2 text-sm font-medium text-white transition-colors group-hover:text-[var(--brand-blue)] sm:text-base md:text-lg lg:text-xl xl:text-xl 3xl:text-3xl">
                                                     {video.title}
                                                 </h4>
-                                                <p className="text-gray-400 text-xs sm:text-sm md:text-base lg:text-lg xl:text-lg 3xl:text-2xl line-clamp-2">
-                                                    {video.description || t('products.videos.videoAbout').replace('{title}', video.title)}
+                                                <p className="line-clamp-2 text-xs text-[var(--text-secondary)] sm:text-sm md:text-base lg:text-lg xl:text-lg 3xl:text-2xl">
+                                                    {video.description ||
+                                                        t('products.videos.videoAbout').replace('{title}', video.title)}
                                                 </p>
                                             </div>
                                         </div>
@@ -167,8 +178,7 @@ export default function ProductVideos({ productName, videos = [] }: ProductVideo
                                 ))}
                             </Swiper>
                         </div>
-                    )
-                )}
+                    ))}
             </div>
         </section>
     );

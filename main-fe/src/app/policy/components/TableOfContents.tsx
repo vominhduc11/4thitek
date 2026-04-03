@@ -22,14 +22,16 @@ export default function TableOfContents({ entries }: TableOfContentsProps) {
     };
 
     return (
-        <div className="bg-[#17202c] rounded-lg p-6 mb-8">
-            <h4 className="text-lg font-semibold mb-4">{t('policy.tableOfContents')}</h4>
-            <ul className="space-y-2 list-decimal list-inside text-gray-300">
+        <div className="brand-card-muted mb-8 rounded-[28px] p-6">
+            <h4 className="mb-4 font-serif text-xl font-semibold text-[var(--brand-blue)]">
+                {t('policy.tableOfContents')}
+            </h4>
+            <ul className="list-decimal list-inside space-y-2 text-[var(--text-secondary)]">
                 {entries.map((entry, index) => (
                     <li key={index}>
                         <button
                             onClick={() => handleScrollToSection(entry.anchorId)}
-                            className="hover:text-white transition-colors cursor-pointer text-left"
+                            className="cursor-pointer text-left transition-colors hover:text-[var(--text-primary)]"
                         >
                             {entry.label}
                         </button>

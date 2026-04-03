@@ -1,25 +1,22 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAnimationConfig } from '@/hooks/useReducedMotion';
 import { buildProductPath } from '@/lib/slug';
 import type { SimpleProduct } from '@/types/product';
-import { useAnimationConfig } from '@/hooks/useReducedMotion';
 
 interface FeaturedProductsCarouselProps {
     products?: SimpleProduct[];
     initialIndex?: number;
 }
 
-export default function FeaturedProductsCarousel({
-    products = [],
-    initialIndex = 0
-}: FeaturedProductsCarouselProps) {
+export default function FeaturedProductsCarousel({ products = [], initialIndex = 0 }: FeaturedProductsCarouselProps) {
     const { t } = useLanguage();
     const { enableComplexAnimations, duration, ease } = useAnimationConfig();
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -38,41 +35,39 @@ export default function FeaturedProductsCarousel({
     const nextProduct = useCallback(() => {
         if (!products.length) return;
         setDirection(1);
-        setCurrentIndex((prev) => (prev + 1) % products.length);
+        setCurrentIndex((previous) => (previous + 1) % products.length);
     }, [products.length]);
 
     const prevProduct = useCallback(() => {
         if (!products.length) return;
         setDirection(-1);
-        setCurrentIndex((prev) => (prev - 1 + products.length) % products.length);
+        setCurrentIndex((previous) => (previous - 1 + products.length) % products.length);
     }, [products.length]);
 
     const handleTouchEnd = () => {
         if (touchStart === null || touchEnd === null) return;
         const distance = touchStart - touchEnd;
-        if (distance > 50) {
-            nextProduct();
-        } else if (distance < -50) {
-            prevProduct();
-        }
+        if (distance > 50) nextProduct();
+        if (distance < -50) prevProduct();
     };
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (!products.length) return;
-            // Only handle when no input/textarea/select is focused
             const tag = (document.activeElement?.tagName ?? '').toLowerCase();
             if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
-            // Only handle when section is in viewport
             if (sectionRef.current) {
                 const rect = sectionRef.current.getBoundingClientRect();
                 const inViewport = rect.top < window.innerHeight && rect.bottom > 0;
                 if (!inViewport) return;
             }
+
             if (event.key === 'ArrowLeft') {
                 event.preventDefault();
                 prevProduct();
-            } else if (event.key === 'ArrowRight') {
+            }
+
+            if (event.key === 'ArrowRight') {
                 event.preventDefault();
                 nextProduct();
             }
@@ -85,12 +80,12 @@ export default function FeaturedProductsCarousel({
     if (!products.length) {
         return (
             <AvoidSidebar>
-                <section className="relative overflow-hidden bg-gradient-to-b from-[#013A5E] to-[#032B4A] py-16 md:py-24">
-                    <div className="container relative z-10 mx-auto max-w-[1400px] px-4 text-center">
-                        <h2 className="mb-4 text-[2rem] font-semibold text-[#E1F0FF]">
+                <section className="brand-section-blue py-16 md:py-24">
+                    <div className="brand-shell relative z-10 text-center sm:ml-16 md:ml-20">
+                        <h2 className="font-serif text-[2rem] font-semibold text-[var(--text-primary)]">
                             {t('products.featured.carouselTitle')}
                         </h2>
-                        <p className="text-gray-300">{t('products.featured.empty')}</p>
+                        <p className="mt-4 text-[var(--text-secondary)]">{t('products.featured.empty')}</p>
                     </div>
                 </section>
             </AvoidSidebar>
@@ -99,39 +94,50 @@ export default function FeaturedProductsCarousel({
 
     const currentProduct = products[currentIndex];
     const transitionEase = enableComplexAnimations ? 'easeInOut' : ease;
-    const transitionDuration = enableComplexAnimations ? 0.8 : duration;
+    const transitionDuration = enableComplexAnimations ? 0.7 : duration;
+    const navButtonClass =
+        'absolute top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.7)] text-[var(--text-primary)] transition-all duration-200 hover:border-[var(--brand-border-strong)] hover:bg-[rgba(41,171,226,0.16)]';
 
     return (
         <AvoidSidebar>
             <section
                 ref={sectionRef}
-                className="relative overflow-hidden bg-gradient-to-b from-[#013A5E] to-[#032B4A] py-16 md:py-24 bg-grain"
+                className="brand-section-blue py-16 md:py-24"
                 aria-labelledby="featured-carousel-heading"
             >
-                {/* Subtle diagonal lines — suggest road / path / motion */}
-                <div className="absolute inset-0 pointer-events-none opacity-[0.06]" aria-hidden="true">
+                <div className="absolute inset-0 bg-topo opacity-30" />
+                <div className="pointer-events-none absolute inset-0 opacity-[0.08]" aria-hidden="true">
                     <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
                         <defs>
-                            <pattern id="diagonal-lines" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
-                                <line x1="0" y1="0" x2="0" y2="40" stroke="#4FC8FF" strokeWidth="1"/>
+                            <pattern
+                                id="diagonal-lines-brand"
+                                x="0"
+                                y="0"
+                                width="48"
+                                height="48"
+                                patternUnits="userSpaceOnUse"
+                                patternTransform="rotate(35)"
+                            >
+                                <line x1="0" y1="0" x2="0" y2="48" stroke="#29ABE2" strokeWidth="1" />
                             </pattern>
                         </defs>
-                        <rect width="100%" height="100%" fill="url(#diagonal-lines)"/>
+                        <rect width="100%" height="100%" fill="url(#diagonal-lines-brand)" />
                     </svg>
                 </div>
-                <div className="container relative z-10 mx-auto max-w-[1400px] px-4">
-                    <div className="mb-16 text-center">
-                        {/* Cyan eyebrow — marks this as the curated/spotlight section */}
-                        <span className="mb-4 inline-block rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.3em] text-cyan-400">
-                            {t('products.featured.product')}
-                        </span>
-                        <h2 id="featured-carousel-heading" className="text-[2rem] font-semibold text-[#E1F0FF]">
+
+                <div className="brand-shell relative z-10 sm:ml-16 md:ml-20">
+                    <div className="mb-12 text-center">
+                        <span className="brand-badge mb-4">{t('products.featured.product')}</span>
+                        <h2
+                            id="featured-carousel-heading"
+                            className="font-serif text-[2rem] font-semibold text-[var(--text-primary)] sm:text-[2.5rem]"
+                        >
                             {t('products.featured.carouselTitle')}
                         </h2>
                     </div>
 
                     <div
-                        className="group relative overflow-hidden rounded-[32px] border border-white/10 bg-black/25 p-6 backdrop-blur"
+                        className="brand-card group relative overflow-hidden rounded-[34px] p-6 sm:p-8"
                         onTouchStart={(event) => {
                             setTouchEnd(null);
                             setTouchStart(event.targetTouches[0].clientX);
@@ -142,7 +148,7 @@ export default function FeaturedProductsCarousel({
                         <button
                             type="button"
                             onClick={prevProduct}
-                            className="absolute left-4 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/10 bg-black/30 p-3 text-white transition hover:border-cyan-300 hover:text-cyan-200"
+                            className={`${navButtonClass} left-4`}
                             aria-label={t('products.featured.prev')}
                         >
                             <ChevronLeftIcon className="h-5 w-5" />
@@ -151,7 +157,7 @@ export default function FeaturedProductsCarousel({
                         <button
                             type="button"
                             onClick={nextProduct}
-                            className="absolute right-4 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/10 bg-black/30 p-3 text-white transition hover:border-cyan-300 hover:text-cyan-200"
+                            className={`${navButtonClass} right-4`}
                             aria-label={t('products.featured.next')}
                         >
                             <ChevronRightIcon className="h-5 w-5" />
@@ -167,37 +173,37 @@ export default function FeaturedProductsCarousel({
                                 transition={{ duration: transitionDuration, ease: transitionEase }}
                                 className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center"
                             >
-                                <div className="relative mx-auto aspect-[4/3] w-full max-w-2xl overflow-hidden rounded-3xl bg-gradient-to-br from-white/10 to-white/5 p-6 transition-all duration-500 group-hover:scale-[1.03] group-hover:-translate-y-2 group-hover:shadow-[0_20px_50px_rgba(79,200,255,0.2)]">
+                                <div className="brand-card-muted relative mx-auto aspect-[4/3] w-full max-w-2xl overflow-hidden rounded-[30px] p-6">
                                     {currentProduct.image ? (
                                         <Image
                                             src={currentProduct.image}
                                             alt={currentProduct.name}
                                             fill
-                                            className="object-contain p-8 transition-transform duration-700 group-hover:scale-110"
+                                            className="object-contain p-8 transition-transform duration-700 group-hover:scale-105"
                                             sizes="(max-width: 1024px) 100vw, 50vw"
                                             priority={currentIndex === 0}
                                         />
                                     ) : null}
                                 </div>
 
-                                <div className="flex flex-col justify-center text-center lg:text-left lg:min-h-[360px]">
-                                    <p className="mb-3 text-sm uppercase tracking-[0.3em] text-cyan-300">
+                                <div className="flex flex-col justify-center text-center lg:min-h-[360px] lg:text-left">
+                                    <p className="mb-3 text-sm font-semibold uppercase tracking-[0.3em] text-[var(--brand-blue)]">
                                         {t('products.featured.product')}
                                     </p>
-                                    <h3 className="line-clamp-2 text-3xl font-black uppercase text-white sm:text-4xl lg:text-5xl">
+                                    <h3 className="font-serif text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl lg:text-5xl">
                                         {currentProduct.name}
                                     </h3>
-                                    <p className="mt-5 line-clamp-4 max-w-xl text-base leading-relaxed text-slate-200 sm:text-lg">
+                                    <p className="mt-5 max-w-xl text-base leading-8 text-[var(--text-secondary)] sm:text-lg">
                                         {currentProduct.shortDescription}
                                     </p>
                                     <div className="mt-8 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
                                         <Link
                                             href={buildProductPath(currentProduct.id, currentProduct.name)}
-                                            className="rounded-full bg-cyan-400 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-950 transition hover:bg-cyan-300"
+                                            className="brand-button-primary rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)] transition hover:-translate-y-0.5 hover:brightness-105"
                                         >
                                             {t('products.featured.discoveryNow')}
                                         </Link>
-                                        <span className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-slate-300">
+                                        <span className="brand-badge-muted">
                                             {currentIndex + 1} / {products.length}
                                         </span>
                                     </div>

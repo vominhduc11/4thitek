@@ -32,8 +32,8 @@ export async function generateMetadata({
         return createBaseMetadata({
             locale: 'vi',
             path: `/blogs/${id}`,
-            title: '4ThiTek | Bai viet',
-            description: 'Bai viet tu 4ThiTek.'
+            title: '4T HITEK | Bai viet',
+            description: 'Bai viet tu 4T HITEK.'
         });
     }
 
@@ -41,10 +41,10 @@ export async function generateMetadata({
     return createBaseMetadata({
         locale: 'vi',
         path: buildBlogPath(article.id, article.title),
-        title: `${article.title} | 4ThiTek`,
+        title: `${article.title} | 4T HITEK`,
         description: article.description || article.title,
         image: parseImageUrl(article.image, '') || undefined,
-        keywords: ['4ThiTek', 'tai nghe SCS', article.category, article.title].filter(Boolean) as string[]
+        keywords: ['4T HITEK', 'tai nghe SCS', article.category, article.title].filter(Boolean) as string[]
     });
 }
 

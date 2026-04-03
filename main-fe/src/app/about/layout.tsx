@@ -6,10 +6,10 @@ import { SITE_URL } from '@/lib/site';
 export const metadata: Metadata = createBaseMetadata({
     locale: 'vi',
     path: '/about',
-    title: '4ThiTek | Ve chung toi',
+    title: '4T HITEK | Ve chung toi',
     description:
-        'Tim hieu ve 4ThiTek - nha phan phoi chinh hang tai nghe SCS tai Viet Nam. Su menh, gia tri cot loi va cam ket chat luong voi khach hang.',
-    keywords: ['ve 4ThiTek', 'gioi thieu 4ThiTek', 'nha phan phoi SCS', 'tai nghe SCS Viet Nam', 'cong ty 4ThiTek']
+        'Tim hieu ve 4T HITEK - nha phan phoi chinh hang tai nghe SCS tai Viet Nam. Su menh, gia tri cot loi va cam ket chat luong voi khach hang.',
+    keywords: ['ve 4T HITEK', 'gioi thieu 4T HITEK', 'nha phan phoi SCS', 'tai nghe SCS Viet Nam', 'cong ty 4T HITEK']
 });
 
 export default function AboutLayout({ children }: { children: React.ReactNode }) {

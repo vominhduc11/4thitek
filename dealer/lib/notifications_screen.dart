@@ -15,6 +15,7 @@ import 'utils.dart';
 import 'warranty_hub_screen.dart';
 import 'widgets/brand_identity.dart';
 import 'widgets/fade_slide_in.dart';
+import 'widgets/section_card.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -42,7 +43,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final l10n = AppLocalizations.of(context)!;
     final notices = List.of(notificationController.notices)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    final hasUnread = notificationController.unreadCount > 0;
+    final unreadCount = notificationController.unreadCount;
+    final hasUnread = unreadCount > 0;
     final isTablet = AppBreakpoints.isTablet(context);
     final isDesktop =
         MediaQuery.sizeOf(context).width >= AppBreakpoints.desktop;
@@ -73,104 +75,127 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             onRefresh: notificationController.refresh,
             child: notices.isEmpty
                 ? _buildEmptyState(context)
-                : ListView.separated(
+                : ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                    itemCount: notices.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 10),
-                    itemBuilder: (context, index) {
-                      final notice = notices[index];
-                      final shouldAnimate = index < 6;
-                      final isRead = notificationController.isRead(notice.id);
-                      final colorScheme = Theme.of(context).colorScheme;
-                      final cardColor = isRead
-                          ? colorScheme.surfaceContainerHighest.withValues(
-                              alpha: 0.35,
-                            )
-                          : colorScheme.surface;
-                      final borderColor = colorScheme.outlineVariant.withValues(
-                        alpha: isRead ? 0.45 : 0.7,
-                      );
+                    children: [
+                      FadeSlideIn(
+                        child: _buildSummaryPanel(
+                          context,
+                          l10n: l10n,
+                          noticeCount: notices.length,
+                          unreadCount: unreadCount,
+                          hasUnread: hasUnread,
+                          notificationController: notificationController,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      for (var index = 0; index < notices.length; index++) ...[
+                        Builder(
+                          builder: (context) {
+                            final notice = notices[index];
+                            final shouldAnimate = index < 6;
+                            final isRead = notificationController.isRead(
+                              notice.id,
+                            );
+                            final colorScheme = Theme.of(context).colorScheme;
+                            final cardColor = isRead
+                                ? colorScheme.surfaceContainerHighest
+                                      .withValues(alpha: 0.35)
+                                : colorScheme.surface;
+                            final borderColor = colorScheme.outlineVariant
+                                .withValues(alpha: isRead ? 0.45 : 0.7);
 
-                      return FadeSlideIn(
-                        animate: shouldAnimate,
-                        delay: shouldAnimate
-                            ? Duration(milliseconds: 20 * index)
-                            : Duration.zero,
-                        child: RepaintBoundary(
-                          child: Card(
-                            color: cardColor,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(color: borderColor),
-                            ),
-                            child: ListTile(
-                              onTap: () => _openNoticeDetail(notice),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 10,
-                              ),
-                              leading: _NoticeTypeAvatar(
-                                type: notice.type,
-                                isRead: isRead,
-                              ),
-                              title: Text(
-                                notice.title,
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(
-                                      fontWeight: isRead
-                                          ? FontWeight.w600
-                                          : FontWeight.w700,
+                            return FadeSlideIn(
+                              animate: shouldAnimate,
+                              delay: shouldAnimate
+                                  ? Duration(milliseconds: 20 * index)
+                                  : Duration.zero,
+                              child: RepaintBoundary(
+                                child: Card(
+                                  color: cardColor,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18),
+                                    side: BorderSide(color: borderColor),
+                                  ),
+                                  child: ListTile(
+                                    onTap: () => _openNoticeDetail(notice),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 10,
                                     ),
-                              ),
-                              subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 6),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      notice.message,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
+                                    leading: _NoticeTypeAvatar(
+                                      type: notice.type,
+                                      isRead: isRead,
+                                    ),
+                                    title: Text(
+                                      notice.title,
                                       style: Theme.of(context)
                                           .textTheme
-                                          .bodyMedium
+                                          .titleSmall
                                           ?.copyWith(
-                                            color: isRead
-                                                ? colorScheme.onSurfaceVariant
-                                                : colorScheme.onSurface,
+                                            fontWeight: isRead
+                                                ? FontWeight.w600
+                                                : FontWeight.w700,
                                           ),
                                     ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      formatRelativeTime(notice.createdAt),
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall
-                                          ?.copyWith(
-                                            color: colorScheme.onSurfaceVariant,
+                                    subtitle: Padding(
+                                      padding: const EdgeInsets.only(top: 6),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            notice.message,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium
+                                                ?.copyWith(
+                                                  color: isRead
+                                                      ? colorScheme
+                                                            .onSurfaceVariant
+                                                      : colorScheme.onSurface,
+                                                ),
                                           ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              trailing: isRead
-                                  ? null
-                                  : Container(
-                                      width: 10,
-                                      height: 10,
-                                      decoration: BoxDecoration(
-                                        color: colorScheme.primary,
-                                        shape: BoxShape.circle,
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            formatRelativeTime(
+                                              notice.createdAt,
+                                            ),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .labelSmall
+                                                ?.copyWith(
+                                                  color: colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                            ),
-                          ),
+                                    trailing: isRead
+                                        ? null
+                                        : Container(
+                                            width: 10,
+                                            height: 10,
+                                            decoration: BoxDecoration(
+                                              color: colorScheme.primary,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
+                        if (index != notices.length - 1)
+                          const SizedBox(height: 10),
+                      ],
+                    ],
                   ),
           ),
         ),
@@ -178,51 +203,111 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
+  Widget _buildSummaryPanel(
+    BuildContext context, {
+    required AppLocalizations l10n,
+    required int noticeCount,
+    required int unreadCount,
+    required bool hasUnread,
+    required NotificationController notificationController,
+  }) {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final colors = Theme.of(context).colorScheme;
+
+    return SectionCard(
+      title: l10n.notificationsTitle(noticeCount),
+      subtitle: hasUnread
+          ? (isEnglish
+                ? 'Prioritize unread updates so orders, debt, and warranty tasks do not slip.'
+                : 'Ưu tiên xử lý thông báo mới để không bỏ lỡ đơn hàng, công nợ và bảo hành.')
+          : (isEnglish
+                ? 'All notices are up to date. Pull down anytime to sync new activity.'
+                : 'Tất cả thông báo đã được cập nhật. Kéo xuống bất kỳ lúc nào để đồng bộ hoạt động mới.'),
+      icon: hasUnread
+          ? Icons.notifications_active_outlined
+          : Icons.done_all_outlined,
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _NoticeMetricChip(
+                icon: Icons.mark_email_unread_outlined,
+                label: isEnglish ? 'Unread' : 'Chưa đọc',
+                value: '$unreadCount',
+              ),
+              _NoticeMetricChip(
+                icon: Icons.inventory_2_outlined,
+                label: isEnglish ? 'Total notices' : 'Tổng thông báo',
+                value: '$noticeCount',
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: colors.primaryContainer.withValues(alpha: 0.24),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: colors.outlineVariant.withValues(alpha: 0.34),
+              ),
+            ),
+            child: Text(
+              hasUnread
+                  ? (isEnglish
+                        ? 'Unread notices stay highlighted with a blue indicator until you open or confirm them.'
+                        : 'Thông báo chưa đọc sẽ được giữ trạng thái nổi bật bằng chấm xanh cho đến khi bạn mở hoặc xác nhận.')
+                  : (isEnglish
+                        ? 'Notification history remains available here for quick review and operational follow-up.'
+                        : 'Lịch sử thông báo vẫn được lưu tại đây để tra cứu nhanh và theo dõi vận hành.'),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: colors.onSurfaceVariant,
+                height: 1.45,
+              ),
+            ),
+          ),
+          if (hasUnread) ...[
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.tonalIcon(
+                onPressed: () => _markAllAsRead(notificationController),
+                icon: const Icon(Icons.done_all_outlined),
+                label: Text(l10n.notificationsMarkAllReadTooltip),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildEmptyState(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final colors = Theme.of(context).colorScheme;
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(28, 56, 28, 24),
       children: [
-        Container(
+        SectionCard(
+          title: l10n.notificationsEmptyTitle,
+          subtitle: isEnglish
+              ? 'Updates about orders, promotions, warranty actions, and system changes will appear here.'
+              : 'Các cập nhật về đơn hàng, khuyến mãi, bảo hành và thay đổi hệ thống sẽ xuất hiện tại đây.',
+          icon: Icons.notifications_none_rounded,
           padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            color: colors.surfaceContainer,
-            border: Border.all(
-              color: colors.outlineVariant.withValues(alpha: 0.75),
-            ),
-          ),
           child: Column(
             children: [
-              Container(
-                width: 68,
-                height: 68,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: colors.primaryContainer.withValues(alpha: 0.65),
-                ),
-                child: Icon(
-                  Icons.notifications_none_rounded,
-                  size: 34,
-                  color: colors.primary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.notificationsEmptyTitle,
-                textAlign: TextAlign.center,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 8),
               Text(
                 l10n.notificationsEmptyMessage,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colors.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   height: 1.45,
                 ),
               ),
@@ -529,6 +614,56 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case NoticeType.system:
         return l10n.notificationsRelatedOpenOverview;
     }
+  }
+}
+
+class _NoticeMetricChip extends StatelessWidget {
+  const _NoticeMetricChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest.withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: colors.primary),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+              Text(
+                value,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 

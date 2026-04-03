@@ -19,30 +19,21 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
     const { t } = useLanguage();
     const router = useRouter();
 
-    // Handle Products navigation
     const handleProductsNavigation = () => {
-        onClose(); // Close drawer first
+        onClose();
         router.push('/products');
     };
 
-    // Remove series navigation as we now use individual products
-
-    // Handle Home navigation
     const handleHomeNavigation = () => {
-        onClose(); // Close drawer first
+        onClose();
         router.push('/');
     };
 
-    // Handle Blog navigation
     const handleBlogNavigation = () => {
-        onClose(); // Close drawer first
+        onClose();
         router.push('/blogs');
     };
 
-
-    // Remove hover effects as no longer needed
-
-    // Handle body scroll lock with centralized modal manager
     useEffect(() => {
         if (isOpen) {
             modalManager.openModal('side-drawer');
@@ -55,7 +46,6 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
         };
     }, [isOpen]);
 
-    // Close on Escape key
     const handleKeyDown = useCallback(
         (e: KeyboardEvent) => {
             if (e.key === 'Escape' && isOpen) {
@@ -70,7 +60,6 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [handleKeyDown]);
 
-    // Animation variants
     const backdropVariants: Variants = {
         hidden: { opacity: 0 },
         visible: {
@@ -92,7 +81,7 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
             x: 0,
             transition: {
                 duration: 0.4,
-                ease: [0.25, 0.46, 0.45, 0.94] // Custom easing for smooth slide
+                ease: [0.25, 0.46, 0.45, 0.94]
             }
         },
         exit: {
@@ -119,15 +108,15 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
         }
     };
 
-    // Remove productMenuVariants as no longer needed
+    const linkClass =
+        'flex min-h-[44px] w-full items-center rounded-full px-4 py-3 text-left text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-secondary)] transition-colors hover:bg-[rgba(41,171,226,0.12)] hover:text-[var(--text-primary)] sm:text-base';
 
     return (
         <AnimatePresence mode="wait">
             {isOpen && (
                 <>
-                    {/* Backdrop */}
                     <motion.div
-                        className="fixed inset-0 bg-black/60 backdrop-blur-md"
+                        className="fixed inset-0 bg-[rgba(1,8,15,0.72)] backdrop-blur-md"
                         style={{ zIndex: Z_INDEX.DRAWER_BACKDROP }}
                         variants={backdropVariants}
                         initial="hidden"
@@ -136,9 +125,8 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                         onClick={onClose}
                     />
 
-                    {/* Drawer */}
                     <motion.aside
-                        className="fixed top-0 left-0 h-screen w-auto flex shadow-2xl max-w-[85vw] sm:max-w-[75vw] lg:max-w-none"
+                        className="fixed left-0 top-0 flex h-screen w-auto max-w-[85vw] shadow-2xl sm:max-w-[75vw] lg:max-w-none"
                         style={{ zIndex: Z_INDEX.DRAWER }}
                         variants={drawerVariants}
                         initial="hidden"
@@ -148,16 +136,15 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                         aria-modal="true"
                         aria-label={t('nav.navigation')}
                     >
-                        {/* Narrow Side */}
                         <motion.div
-                            className="w-16 sm:w-20 flex flex-col justify-between items-center py-4 sm:py-6 md:py-8 bg-gradient-to-b from-[#1a2332] via-[#1e2631] to-[#0f1419] border-r border-gray-700/50"
+                            className="flex w-16 flex-col items-center justify-between border-r border-[var(--brand-border)] bg-[linear-gradient(180deg,rgba(15,29,44,0.98),rgba(6,13,21,0.98))] py-4 sm:w-20 sm:py-6 md:py-8"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.3, duration: 0.3 }}
                         >
                             <motion.button
                                 aria-label={t('common.closeMenu')}
-                                className="text-gray-400 hover:text-white hover:bg-white/10 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg"
+                                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.56)] text-[var(--text-secondary)] transition-colors hover:border-[var(--brand-border-strong)] hover:bg-[rgba(41,171,226,0.12)] hover:text-[var(--text-primary)]"
                                 onClick={onClose}
                                 autoFocus
                                 whileHover={{ scale: 1.1 }}
@@ -169,8 +156,8 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
 
                             <div className="flex flex-col gap-4 sm:gap-6 md:gap-8">
                                 <motion.div
-                                    className="text-gray-400 hover:text-blue-400 p-1.5 sm:p-2 md:p-2.5"
-                                    whileHover={{ scale: 1.2, color: '#60a5fa' }}
+                                    className="p-1.5 text-[var(--text-secondary)] sm:p-2 md:p-2.5"
+                                    whileHover={{ scale: 1.2, color: '#29ABE2' }}
                                     transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                 >
                                     <a
@@ -180,12 +167,12 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                         aria-label={t('social.facebook')}
                                         className="block"
                                     >
-                                        <FaFacebookF size={14} className="sm:w-4 sm:h-4 md:w-5 md:h-5" />
+                                        <FaFacebookF size={14} className="sm:h-4 sm:w-4 md:h-5 md:w-5" />
                                     </a>
                                 </motion.div>
                                 <motion.div
-                                    className="text-gray-400 hover:text-blue-400 p-1.5 sm:p-2 md:p-2.5"
-                                    whileHover={{ scale: 1.2, color: '#60a5fa' }}
+                                    className="p-1.5 text-[var(--text-secondary)] sm:p-2 md:p-2.5"
+                                    whileHover={{ scale: 1.2, color: '#29ABE2' }}
                                     transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                 >
                                     <a
@@ -195,15 +182,14 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                         aria-label={t('social.youtube')}
                                         className="block"
                                     >
-                                        <FaYoutube size={14} className="sm:w-4 sm:h-4 md:w-5 md:h-5" />
+                                        <FaYoutube size={14} className="sm:h-4 sm:w-4 md:h-5 md:w-5" />
                                     </a>
                                 </motion.div>
                             </div>
                         </motion.div>
 
-                        {/* Main Navigation */}
                         <motion.nav
-                            className="w-56 xs:w-64 sm:w-72 md:w-80 lg:w-96 bg-gradient-to-b from-[#1e2631] to-[#151e2b] text-gray-300 px-3 xs:px-4 sm:px-6 md:px-8 lg:px-10 py-5 xs:py-6 sm:py-8 md:py-10 lg:py-12 relative border-r border-gray-700/30"
+                            className="relative w-56 border-r border-[var(--brand-border)] bg-[radial-gradient(circle_at_top,rgba(41,171,226,0.12),transparent_34%),linear-gradient(180deg,rgba(12,22,33,0.98),rgba(7,14,22,0.98))] px-3 py-5 text-[var(--text-secondary)] xs:w-64 xs:px-4 xs:py-6 sm:w-72 sm:px-6 sm:py-8 md:w-80 md:px-8 md:py-10 lg:w-96 lg:px-10 lg:py-12"
                             initial={{ opacity: 0, x: -50 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.2, duration: 0.4 }}
@@ -214,11 +200,12 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.4, duration: 0.3 }}
                             >
-                                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-2 md:mb-3">
+                                <p className="brand-eyebrow text-[0.72rem]">{t('brand.message')}</p>
+                                <h2 className="mb-2 mt-3 font-serif text-lg font-bold text-white sm:text-xl md:mb-3 md:text-2xl">
                                     {t('nav.navigation') || 'Navigation'}
                                 </h2>
                                 <motion.div
-                                    className="w-10 sm:w-12 md:w-14 h-0.5 md:h-1 bg-blue-500"
+                                    className="h-0.5 w-10 bg-[linear-gradient(135deg,var(--brand-gradient-start),var(--brand-gradient-end))] sm:w-12 md:h-1 md:w-14"
                                     initial={{ width: 0 }}
                                     animate={{ width: '2.5rem' }}
                                     transition={{ delay: 0.6, duration: 0.5, ease: 'easeOut' }}
@@ -234,8 +221,8 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                 <motion.li variants={staggerItem}>
                                     <motion.button
                                         onClick={handleHomeNavigation}
-                                        className="block text-sm sm:text-base font-medium uppercase tracking-wider hover:text-white py-3 min-h-[44px] w-full text-left flex items-center"
-                                        whileHover={{ x: 4, color: '#ffffff' }}
+                                        className={linkClass}
+                                        whileHover={{ x: 4, color: '#F8FBFF' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                     >
                                         {t('nav.home')}
@@ -245,81 +232,75 @@ export default function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
                                 <motion.li variants={staggerItem}>
                                     <motion.button
                                         onClick={handleProductsNavigation}
-                                        className="block text-sm sm:text-base font-medium uppercase tracking-wider hover:text-white py-3 min-h-[44px] w-full text-left flex items-center"
-                                        whileHover={{ x: 4, color: '#ffffff' }}
+                                        className={linkClass}
+                                        whileHover={{ x: 4, color: '#F8FBFF' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                     >
                                         {t('nav.products')}
                                     </motion.button>
                                 </motion.li>
 
-                                {/* Company */}
                                 <motion.li variants={staggerItem}>
                                     <motion.button
                                         onClick={() => {
                                             onClose();
                                             router.push('/about');
                                         }}
-                                        className="block text-sm sm:text-base font-medium uppercase tracking-wider hover:text-white py-3 min-h-[44px] w-full text-left flex items-center"
-                                        whileHover={{ x: 4, color: '#ffffff' }}
+                                        className={linkClass}
+                                        whileHover={{ x: 4, color: '#F8FBFF' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                     >
                                         {t('nav.company')}
                                     </motion.button>
                                 </motion.li>
 
-                                {/* Reseller */}
                                 <motion.li variants={staggerItem}>
                                     <motion.button
                                         onClick={() => {
                                             onClose();
                                             router.push('/become_our_reseller#dealer-network');
                                         }}
-                                        className="block text-sm sm:text-base font-medium uppercase tracking-wider hover:text-white py-3 min-h-[44px] w-full text-left flex items-center"
-                                        whileHover={{ x: 4, color: '#ffffff' }}
+                                        className={linkClass}
+                                        whileHover={{ x: 4, color: '#F8FBFF' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                     >
                                         {t('nav.reseller')}
                                     </motion.button>
                                 </motion.li>
 
-
-                                {/* Blog */}
                                 <motion.li variants={staggerItem}>
                                     <motion.button
                                         onClick={handleBlogNavigation}
-                                        className="block text-sm sm:text-base font-medium uppercase tracking-wider hover:text-white py-3 min-h-[44px] w-full text-left flex items-center"
-                                        whileHover={{ x: 4, color: '#ffffff' }}
+                                        className={linkClass}
+                                        whileHover={{ x: 4, color: '#F8FBFF' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                     >
                                         {t('nav.blog')}
                                     </motion.button>
                                 </motion.li>
 
-                                {/* Contact Us */}
                                 <motion.li variants={staggerItem}>
                                     <motion.button
                                         onClick={() => {
                                             onClose();
                                             router.push('/contact');
                                         }}
-                                        className="block text-sm sm:text-base font-medium uppercase tracking-wider hover:text-white py-3 min-h-[44px] w-full text-left flex items-center"
-                                        whileHover={{ x: 4, color: '#ffffff' }}
+                                        className={linkClass}
+                                        whileHover={{ x: 4, color: '#F8FBFF' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                     >
                                         {t('nav.contact')}
                                     </motion.button>
                                 </motion.li>
-
                             </motion.ul>
 
                             <motion.div
-                                className="absolute bottom-[4.5rem] sm:bottom-20 md:bottom-24 right-4 sm:right-6 md:right-8 opacity-20 hidden sm:block"
+                                className="absolute bottom-[4.5rem] right-4 hidden opacity-20 sm:bottom-20 sm:right-6 sm:block md:bottom-24 md:right-8"
                                 initial={{ opacity: 0, rotate: 0 }}
                                 animate={{ opacity: 0.2, rotate: 90 }}
                                 transition={{ delay: 0.8, duration: 0.5 }}
                             >
-                                <span className="text-4xl sm:text-6xl md:text-7xl font-black text-white uppercase origin-center select-none">
+                                <span className="origin-center select-none text-4xl font-black uppercase text-[var(--brand-blue)] sm:text-6xl md:text-7xl">
                                     {t('common.menu')}
                                 </span>
                             </motion.div>

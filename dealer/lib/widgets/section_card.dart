@@ -6,16 +6,28 @@ class SectionCard extends StatelessWidget {
     required this.title,
     required this.child,
     this.padding = const EdgeInsets.all(16),
+    this.subtitle,
+    this.icon,
+    this.action,
   });
 
   final String title;
   final Widget child;
   final EdgeInsetsGeometry padding;
+  final String? subtitle;
+  final IconData? icon;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final hasSubtitle = subtitle != null && subtitle!.trim().isNotEmpty;
+    final accentBackground = Color.alphaBlend(
+      colors.primary.withValues(alpha: 0.16),
+      colors.surfaceContainerHighest,
+    );
+
     return Card(
       clipBehavior: Clip.antiAlias,
       elevation: 0,
@@ -29,7 +41,10 @@ class SectionCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              colors.surfaceContainerHigh.withValues(alpha: 0.98),
+              Color.alphaBlend(
+                colors.primary.withValues(alpha: 0.08),
+                colors.surfaceContainerHigh,
+              ),
               colors.surfaceContainer.withValues(alpha: 0.96),
             ],
           ),
@@ -40,28 +55,76 @@ class SectionCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 4,
-                    height: 18,
+                    width: 6,
+                    height: hasSubtitle ? 36 : 24,
                     decoration: BoxDecoration(
-                      color: colors.primary,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [colors.primary, colors.secondary],
+                      ),
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.1,
-                      ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (icon != null) ...[
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: accentBackground,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: colors.outlineVariant.withValues(
+                                  alpha: 0.32,
+                                ),
+                              ),
+                            ),
+                            child: Icon(icon, size: 18, color: colors.primary),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.1,
+                                ),
+                              ),
+                              if (hasSubtitle) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  subtitle!,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colors.onSurfaceVariant,
+                                    height: 1.45,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        if (action != null) ...[
+                          const SizedBox(width: 12),
+                          action!,
+                        ],
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: hasSubtitle ? 16 : 14),
               child,
             ],
           ),

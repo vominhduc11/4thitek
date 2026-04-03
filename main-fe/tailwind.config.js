@@ -25,7 +25,8 @@ module.exports = {
         extend: {
             fontFamily: {
                 sans: ['var(--font-sans)', ...defaultTheme.fontFamily.sans],
-                mono: ['var(--font-mono)', ...defaultTheme.fontFamily.mono]
+                serif: ['var(--font-serif)', ...defaultTheme.fontFamily.sans],
+                mono: ['var(--font-sans)', ...defaultTheme.fontFamily.sans]
             },
             screens: {
                 xs: '480px', // Extra small screen breakpoint
@@ -41,30 +42,30 @@ module.exports = {
             },
             colors: {
                 primary: {
-                    DEFAULT: '#4FC8FF',
-                    50: '#F0FBFF',
-                    100: '#E1F7FF',
-                    200: '#C3EFFF',
-                    300: '#A5E7FF',
-                    400: '#87DFFF',
-                    500: '#4FC8FF',
-                    600: '#17B1FF',
-                    700: '#0090D9',
-                    800: '#006EA6',
-                    900: '#004C73'
+                    DEFAULT: '#29ABE2',
+                    50: '#F1FBFE',
+                    100: '#DFF5FC',
+                    200: '#B7EAF8',
+                    300: '#84D9F2',
+                    400: '#4EC2EA',
+                    500: '#29ABE2',
+                    600: '#118BC5',
+                    700: '#0071BC',
+                    800: '#0B527C',
+                    900: '#083857'
                 },
                 dark: {
-                    DEFAULT: '#0a0f1a',
-                    50: '#1a2332',
-                    100: '#243447',
-                    200: '#2d3a4d',
-                    300: '#364153',
-                    400: '#3f4859',
-                    500: '#0a0f1a',
-                    600: '#080c15',
-                    700: '#060910',
-                    800: '#04060a',
-                    900: '#020305'
+                    DEFAULT: '#06111B',
+                    50: '#132131',
+                    100: '#1A2A3C',
+                    200: '#243548',
+                    300: '#314152',
+                    400: '#3F4856',
+                    500: '#06111B',
+                    600: '#050D14',
+                    700: '#03090E',
+                    800: '#020509',
+                    900: '#010305'
                 }
             },
             animation: {

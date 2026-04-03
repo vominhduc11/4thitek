@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'app_settings_controller.dart';
+import 'business_profile.dart';
 import 'breakpoints.dart';
 import 'notification_controller.dart';
 import 'support_service.dart';
@@ -49,8 +50,8 @@ class _SupportScreenState extends State<SupportScreen> {
   bool _isSubmitting = false;
   int _handledSupportEventVersion = 0;
 
-  static const _hotline = '1900 1234';
-  static const _supportEmail = 'support@4thitek.vn';
+  static const _hotline = BusinessProfile.contactPhone;
+  static const _supportEmail = BusinessProfile.contactEmail;
   static const _subjectMax = 80;
   static const _messageMax = 1000;
   static const _subjectMin = 5;

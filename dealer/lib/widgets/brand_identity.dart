@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../business_profile.dart';
 
 class BrandAssets {
   const BrandAssets._();
@@ -55,12 +58,14 @@ class BrandLogoWordmark extends StatelessWidget {
           child: Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              '4THITEK',
+              BusinessProfile.brandName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontFamily: GoogleFonts.montserrat().fontFamily,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.18,
+              ),
             ),
           ),
         );
@@ -85,6 +90,11 @@ class BrandAppBarTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final titleStyle = Theme.of(context).textTheme.titleLarge?.copyWith(
+      fontWeight: FontWeight.w800,
+      letterSpacing: -0.08,
+    );
+
     return Row(
       children: [
         BrandLogoIcon(size: logoSize),
@@ -94,6 +104,7 @@ class BrandAppBarTitle extends StatelessWidget {
             title,
             maxLines: maxLines,
             overflow: TextOverflow.ellipsis,
+            style: titleStyle,
           ),
         ),
       ],

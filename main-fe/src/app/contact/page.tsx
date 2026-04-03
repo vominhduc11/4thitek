@@ -2,7 +2,7 @@ import { ContactHero, ContactHeader, ContactInfo } from './components';
 
 export default function ContactPage() {
     return (
-        <div className="min-h-screen bg-[#0c131d] text-white flex flex-col">
+        <div className="brand-section min-h-screen text-white flex flex-col">
             {/* Hero Section with Breadcrumb */}
             <ContactHero />
 
@@ -10,8 +10,8 @@ export default function ContactPage() {
             <ContactHeader />
 
             {/* Main Content */}
-            <section className="bg-[#0c131d] text-white pt-8 pb-16">
-                <div className="ml-0 sm:ml-16 md:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
+            <section className="pt-8 pb-16 text-white">
+                <div className="brand-shell sm:ml-16 md:ml-20">
                     {/* Contact Info Cards */}
                     <ContactInfo />
                 </div>

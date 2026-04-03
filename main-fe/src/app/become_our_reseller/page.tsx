@@ -6,10 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Hero from '@/components/ui/Hero';
 import { useLanguage } from '@/context/LanguageContext';
-import {
-    FiCheckCircle,
-    FiMail
-} from 'react-icons/fi';
+import { FiCheckCircle, FiMail } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import debounce from 'lodash.debounce';
 import { ultraWideSpacing } from '@/styles/typography';
@@ -38,102 +35,121 @@ const DEALER_CONTACT_NAME_MAX_LENGTH = 150;
 const DEALER_EMAIL_MAX_LENGTH = 100;
 const DEALER_PASSWORD_MIN_LENGTH = 8;
 
-
 export default function BecomeOurReseller() {
     const { t, language } = useLanguage();
-    const { data: resellerContent, error: resellerContentError } = usePublicContent<ResellerLocationsContent>('become-reseller');
+    const { data: resellerContent, error: resellerContentError } =
+        usePublicContent<ResellerLocationsContent>('become-reseller');
     const locationMap = useMemo(() => resellerContent?.locations.districtsByCity ?? {}, [resellerContent]);
     const allCities = useMemo(() => resellerContent?.locations.cities ?? [], [resellerContent]);
 
     // Get districts for selected city
-    const getDistrictsForCity = useCallback((cityName: string): string[] => {
-        return locationMap[cityName] || [];
-    }, [locationMap]);
+    const getDistrictsForCity = useCallback(
+        (cityName: string): string[] => {
+            return locationMap[cityName] || [];
+        },
+        [locationMap]
+    );
 
     // Memoized validation regexes for performance - matching backend validation
-    const emailRegex = useMemo(() => /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/, []);
+    const emailRegex = useMemo(
+        () =>
+            /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/,
+        []
+    );
     const phoneRegex = useMemo(() => /^(0[0-9]{9})$/, []);
     const hasUppercaseRegex = useMemo(() => /[A-Z]/, []);
     const hasLowercaseRegex = useMemo(() => /[a-z]/, []);
     const hasDigitRegex = useMemo(() => /\d/, []);
-    const isStrongPassword = useCallback((value: string) => {
-        return value.length >= DEALER_PASSWORD_MIN_LENGTH
-            && hasUppercaseRegex.test(value)
-            && hasLowercaseRegex.test(value)
-            && hasDigitRegex.test(value);
-    }, [hasDigitRegex, hasLowercaseRegex, hasUppercaseRegex]);
+    const isStrongPassword = useCallback(
+        (value: string) => {
+            return (
+                value.length >= DEALER_PASSWORD_MIN_LENGTH &&
+                hasUppercaseRegex.test(value) &&
+                hasLowercaseRegex.test(value) &&
+                hasDigitRegex.test(value)
+            );
+        },
+        [hasDigitRegex, hasLowercaseRegex, hasUppercaseRegex]
+    );
 
     // Centralized field validation - matching backend requirements
-    const validateField = useCallback((name: FormFieldName, value: string, values: FormData) => {
-        let error = '';
-        const trimmedValue = value.trim();
-        
-        switch (name) {
-            case 'email':
-                if (trimmedValue && !emailRegex.test(trimmedValue)) {
-                    error = t('becomeReseller.form.errors.invalidEmail');
-                } else if (trimmedValue.length > DEALER_EMAIL_MAX_LENGTH) {
-                    error = t('becomeReseller.form.errors.emailMax');
-                }
-                break;
-            case 'phone':
-                if (trimmedValue && !phoneRegex.test(trimmedValue)) {
-                    error = t('becomeReseller.form.errors.invalidPhone');
-                }
-                break;
-            case 'name':
-                if (trimmedValue.length > 0 && (trimmedValue.length < 2 || trimmedValue.length > DEALER_NAME_MAX_LENGTH)) {
-                    error = t('becomeReseller.form.errors.companyNameLength');
-                }
-                break;
-            case 'fullName':
-                if (trimmedValue.length > DEALER_CONTACT_NAME_MAX_LENGTH) {
-                    error = t('becomeReseller.form.errors.fullNameMax');
-                }
-                break;
-            case 'taxCode':
-                if (trimmedValue.length > 50) {
-                    error = t('becomeReseller.form.errors.taxCodeMax');
-                }
-                break;
-            case 'address':
-                if (trimmedValue.length > 255) {
-                    error = t('becomeReseller.form.errors.addressMax');
-                }
-                break;
-            case 'district':
-                if (trimmedValue.length > 100) {
-                    error = t('becomeReseller.form.errors.districtMax');
-                }
-                break;
-            case 'city':
-                if (trimmedValue.length > 100) {
-                    error = t('becomeReseller.form.errors.cityMax');
-                }
-                break;
-            case 'password':
-                if (value && !isStrongPassword(value)) {
-                    error = t('becomeReseller.form.errors.passwordMin');
-                }
-                break;
-            case 'confirmPassword':
-                if (value && value !== values.password) {
-                    error = t('becomeReseller.form.errors.passwordMismatch');
-                }
-                break;
-        }
-        
-        setValidationErrors(prev => ({
-            ...prev,
-            [name]: error
-        }));
-    }, [emailRegex, isStrongPassword, phoneRegex, t]);
+    const validateField = useCallback(
+        (name: FormFieldName, value: string, values: FormData) => {
+            let error = '';
+            const trimmedValue = value.trim();
+
+            switch (name) {
+                case 'email':
+                    if (trimmedValue && !emailRegex.test(trimmedValue)) {
+                        error = t('becomeReseller.form.errors.invalidEmail');
+                    } else if (trimmedValue.length > DEALER_EMAIL_MAX_LENGTH) {
+                        error = t('becomeReseller.form.errors.emailMax');
+                    }
+                    break;
+                case 'phone':
+                    if (trimmedValue && !phoneRegex.test(trimmedValue)) {
+                        error = t('becomeReseller.form.errors.invalidPhone');
+                    }
+                    break;
+                case 'name':
+                    if (
+                        trimmedValue.length > 0 &&
+                        (trimmedValue.length < 2 || trimmedValue.length > DEALER_NAME_MAX_LENGTH)
+                    ) {
+                        error = t('becomeReseller.form.errors.companyNameLength');
+                    }
+                    break;
+                case 'fullName':
+                    if (trimmedValue.length > DEALER_CONTACT_NAME_MAX_LENGTH) {
+                        error = t('becomeReseller.form.errors.fullNameMax');
+                    }
+                    break;
+                case 'taxCode':
+                    if (trimmedValue.length > 50) {
+                        error = t('becomeReseller.form.errors.taxCodeMax');
+                    }
+                    break;
+                case 'address':
+                    if (trimmedValue.length > 255) {
+                        error = t('becomeReseller.form.errors.addressMax');
+                    }
+                    break;
+                case 'district':
+                    if (trimmedValue.length > 100) {
+                        error = t('becomeReseller.form.errors.districtMax');
+                    }
+                    break;
+                case 'city':
+                    if (trimmedValue.length > 100) {
+                        error = t('becomeReseller.form.errors.cityMax');
+                    }
+                    break;
+                case 'password':
+                    if (value && !isStrongPassword(value)) {
+                        error = t('becomeReseller.form.errors.passwordMin');
+                    }
+                    break;
+                case 'confirmPassword':
+                    if (value && value !== values.password) {
+                        error = t('becomeReseller.form.errors.passwordMismatch');
+                    }
+                    break;
+            }
+
+            setValidationErrors((prev) => ({
+                ...prev,
+                [name]: error
+            }));
+        },
+        [emailRegex, isStrongPassword, phoneRegex, t]
+    );
 
     // Debounced validation for better UX
     const debouncedValidate = useMemo(
-        () => debounce((name: FormFieldName, value: string, values: FormData) => {
-            validateField(name, value, values);
-        }, 300),
+        () =>
+            debounce((name: FormFieldName, value: string, values: FormData) => {
+                validateField(name, value, values);
+            }, 300),
         [validateField]
     );
 
@@ -149,24 +165,20 @@ export default function BecomeOurReseller() {
                 field: 'phone',
                 patterns: ['phone', 'Phone', 'điện thoại', 'số'],
                 keywords: ['exists', 'taken', 'already', 'tồn tại', 'đã sử dụng']
-            },
+            }
         ];
 
         const lowerMessage = message.toLowerCase();
-        
+
         for (const error of errorPatterns) {
-            const hasPattern = error.patterns.some(p => 
-                lowerMessage.includes(p.toLowerCase())
-            );
-            const hasKeyword = error.keywords.some(k => 
-                lowerMessage.includes(k.toLowerCase())
-            );
-            
+            const hasPattern = error.patterns.some((p) => lowerMessage.includes(p.toLowerCase()));
+            const hasKeyword = error.keywords.some((k) => lowerMessage.includes(k.toLowerCase()));
+
             if (hasPattern && hasKeyword) {
                 return { field: error.field, message };
             }
         }
-        
+
         return { message };
     }, []);
 
@@ -185,9 +197,8 @@ export default function BecomeOurReseller() {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
-    const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+    const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
     const [errorMessage, setErrorMessage] = useState<string>('');
-
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -206,7 +217,7 @@ export default function BecomeOurReseller() {
 
         if (fieldName === 'city') {
             // Clear district validation error when city changes.
-            setValidationErrors(prevErrors => {
+            setValidationErrors((prevErrors) => {
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { district, ...rest } = prevErrors;
                 return rest;
@@ -233,7 +244,7 @@ export default function BecomeOurReseller() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // Prepare form data for validation and submission
         const formFields = {
             name: formData.name.trim(),
@@ -250,7 +261,7 @@ export default function BecomeOurReseller() {
 
         // Clear previous validation errors
         setValidationErrors({});
-        const newErrors: {[key: string]: string} = {};
+        const newErrors: { [key: string]: string } = {};
 
         // Check if required fields are empty - all fields are now required
         const requiredFields = {
@@ -263,7 +274,7 @@ export default function BecomeOurReseller() {
             password: t('becomeReseller.form.errors.passwordRequired'),
             confirmPassword: t('becomeReseller.form.errors.confirmPasswordRequired')
         };
-        
+
         Object.entries(requiredFields).forEach(([fieldName, errorMessage]) => {
             if (!formFields[fieldName as keyof typeof formFields]) {
                 newErrors[fieldName] = errorMessage;
@@ -273,7 +284,7 @@ export default function BecomeOurReseller() {
         // Validate all fields with values according to backend requirements
         Object.entries(formFields).forEach(([key, value]) => {
             if (!value) return; // Skip validation if already handled by required field check
-            
+
             // Validate each field according to backend rules
             switch (key) {
                 case 'email':
@@ -367,7 +378,7 @@ export default function BecomeOurReseller() {
                 })
             });
 
-            const payload = await response.json().catch(() => null) as {
+            const payload = (await response.json().catch(() => null)) as {
                 success?: boolean;
                 error?: string;
             } | null;
@@ -410,7 +421,7 @@ export default function BecomeOurReseller() {
     ];
 
     return (
-        <div className="min-h-screen bg-[#0c131d] text-white flex flex-col">
+        <div className="brand-section min-h-screen text-white flex flex-col">
             {/* Hero Section */}
             <Hero
                 breadcrumbItems={breadcrumbItems}
@@ -418,8 +429,8 @@ export default function BecomeOurReseller() {
             />
 
             {/* Application Form Section */}
-            <section className="ml-0 sm:ml-16 md:ml-20 py-8 sm:py-12 md:py-16 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
-                <div className="max-w-4xl mx-auto">
+            <section className="py-8 sm:py-12 md:py-16">
+                <div className="brand-shell max-w-4xl sm:ml-16 md:ml-20">
                     <motion.div
                         className="text-center mb-12"
                         initial={{ opacity: 0, y: 30 }}
@@ -427,29 +438,29 @@ export default function BecomeOurReseller() {
                         transition={{ duration: 0.8, ease: 'easeOut' }}
                         viewport={{ once: true }}
                     >
-                        <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">{t('becomeReseller.form.title')}</h2>
-                        <p className="text-xl text-gray-300">
-                            {t('becomeReseller.form.subtitle')}
-                        </p>
+                        <h2 className="font-serif text-3xl md:text-4xl font-semibold text-[var(--text-primary)] mb-4">
+                            {t('becomeReseller.form.title')}
+                        </h2>
+                        <p className="text-lg text-[var(--text-secondary)]">{t('becomeReseller.form.subtitle')}</p>
                     </motion.div>
 
                     <motion.div
-                        className="mb-8 rounded-[28px] border border-cyan-400/25 bg-cyan-400/10 p-6 text-left shadow-[0_24px_80px_rgba(34,211,238,0.12)] backdrop-blur"
+                        className="brand-card mb-8 rounded-[28px] p-6 text-left"
                         initial={{ opacity: 0, y: 24 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.75, delay: 0.1, ease: 'easeOut' }}
                         viewport={{ once: true }}
                     >
-                        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/85">
+                        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--brand-blue)]">
                             {t('becomeReseller.form.portalBadge')}
                         </p>
                         <h3 className="mt-3 text-xl font-semibold text-white md:text-2xl">
                             {t('becomeReseller.form.portalTitle')}
                         </h3>
-                        <p className="mt-3 text-sm leading-7 text-slate-200 md:text-base">
+                        <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)] md:text-base">
                             {t('becomeReseller.form.portalDescription')}
                         </p>
-                        <p className="mt-4 text-sm font-medium leading-6 text-cyan-100 md:text-base">
+                        <p className="mt-4 text-sm font-medium leading-6 text-[var(--text-primary)] md:text-base">
                             {t('becomeReseller.form.portalFootnote')}
                         </p>
                     </motion.div>
@@ -460,10 +471,10 @@ export default function BecomeOurReseller() {
                         transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
                         viewport={{ once: true }}
                     >
-                        <Card className="bg-gray-800/50 border-gray-700 shadow-2xl hover:shadow-3xl transition-all duration-300">
+                        <Card className="brand-card rounded-[30px] shadow-2xl transition-all duration-300">
                             <CardContent className="p-8">
                                 {submitStatus === 'success' && (
-                                    <div className="mb-8 p-6 bg-green-900/50 border border-green-600 text-green-300 rounded-lg">
+                                    <div className="mb-8 rounded-[24px] border border-[rgba(43,224,134,0.24)] bg-[rgba(43,224,134,0.1)] p-6 text-[#c9f8e0]">
                                         <div className="flex items-center gap-3">
                                             <FiCheckCircle className="w-6 h-6" />
                                             <div>
@@ -479,7 +490,7 @@ export default function BecomeOurReseller() {
                                 )}
 
                                 {submitStatus === 'error' && (
-                                    <div className="mb-8 p-6 bg-red-900/50 border border-red-600 text-red-300 rounded-lg">
+                                    <div className="mb-8 rounded-[24px] border border-[rgba(239,95,120,0.24)] bg-[rgba(239,95,120,0.1)] p-6 text-[var(--destructive-text)]">
                                         <div className="flex items-center gap-3">
                                             <FiMail className="w-6 h-6" />
                                             <div>
@@ -495,19 +506,26 @@ export default function BecomeOurReseller() {
                                 <form onSubmit={handleSubmit} className="space-y-6" noValidate>
                                     {/* Reseller Registration Form */}
                                     <div className="space-y-6">
-                                        <h3 className="text-2xl font-semibold text-white border-b border-gray-700 pb-3">
+                                        <h3 className="border-b border-[var(--brand-border)] pb-3 font-serif text-2xl font-semibold text-[var(--text-primary)]">
                                             {t('becomeReseller.form.resellerRegistration')}
                                         </h3>
                                         {resellerContentError && (
-                                            <p className="text-sm text-red-300">
-                                                {language === 'vi' ? 'Không thể tải danh sách tỉnh/thành từ hệ thống.' : 'Unable to load the city list from the server.'}
+                                            <p className="text-sm text-[var(--destructive-text)]">
+                                                {language === 'vi'
+                                                    ? 'Không thể tải danh sách tỉnh/thành từ hệ thống.'
+                                                    : 'Unable to load the city list from the server.'}
                                             </p>
                                         )}
-                                        
-                                        <div className={`grid grid-cols-1 sm:grid-cols-2 ${ultraWideSpacing['grid-gap-md']}`}>
+
+                                        <div
+                                            className={`grid grid-cols-1 sm:grid-cols-2 ${ultraWideSpacing['grid-gap-md']}`}
+                                        >
                                             {/* Company Name */}
                                             <div className="md:col-span-2">
-                                                <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
+                                                <label
+                                                    htmlFor="name"
+                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                >
                                                     {t('becomeReseller.form.nameRequired')}
                                                 </label>
                                                 <Input
@@ -517,18 +535,25 @@ export default function BecomeOurReseller() {
                                                     value={formData.name}
                                                     onChange={handleInputChange}
                                                     placeholder={t('becomeReseller.form.namePlaceholder')}
-                                                    className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
-                                                        validationErrors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                                    className={`rounded-[1.2rem] ${
+                                                        validationErrors.name
+                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                            : ''
                                                     }`}
                                                 />
                                                 {validationErrors.name && (
-                                                    <p className="text-red-400 text-sm mt-1">{validationErrors.name}</p>
+                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                        {validationErrors.name}
+                                                    </p>
                                                 )}
                                             </div>
 
                                             {/* Full Name */}
                                             <div>
-                                                <label htmlFor="fullName" className="block text-sm font-medium text-gray-300 mb-2">
+                                                <label
+                                                    htmlFor="fullName"
+                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                >
                                                     {t('becomeReseller.form.fullName')}
                                                 </label>
                                                 <Input
@@ -538,18 +563,25 @@ export default function BecomeOurReseller() {
                                                     value={formData.fullName}
                                                     onChange={handleInputChange}
                                                     placeholder={t('becomeReseller.form.fullNamePlaceholder')}
-                                                    className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
-                                                        validationErrors.fullName ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                                    className={`rounded-[1.2rem] ${
+                                                        validationErrors.fullName
+                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                            : ''
                                                     }`}
                                                 />
                                                 {validationErrors.fullName && (
-                                                    <p className="text-red-400 text-sm mt-1">{validationErrors.fullName}</p>
+                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                        {validationErrors.fullName}
+                                                    </p>
                                                 )}
                                             </div>
 
                                             {/* Tax Code */}
                                             <div>
-                                                <label htmlFor="taxCode" className="block text-sm font-medium text-gray-300 mb-2">
+                                                <label
+                                                    htmlFor="taxCode"
+                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                >
                                                     {t('becomeReseller.form.taxCode')}
                                                 </label>
                                                 <Input
@@ -559,18 +591,25 @@ export default function BecomeOurReseller() {
                                                     value={formData.taxCode}
                                                     onChange={handleInputChange}
                                                     placeholder={t('becomeReseller.form.taxCodePlaceholder')}
-                                                    className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
-                                                        validationErrors.taxCode ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                                    className={`rounded-[1.2rem] ${
+                                                        validationErrors.taxCode
+                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                            : ''
                                                     }`}
                                                 />
                                                 {validationErrors.taxCode && (
-                                                    <p className="text-red-400 text-sm mt-1">{validationErrors.taxCode}</p>
+                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                        {validationErrors.taxCode}
+                                                    </p>
                                                 )}
                                             </div>
 
                                             {/* Phone */}
                                             <div>
-                                                <label htmlFor="phone" className="block text-sm font-medium text-gray-300 mb-2">
+                                                <label
+                                                    htmlFor="phone"
+                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                >
                                                     {t('becomeReseller.form.phoneRequired')}
                                                 </label>
                                                 <Input
@@ -580,18 +619,25 @@ export default function BecomeOurReseller() {
                                                     value={formData.phone}
                                                     onChange={handleInputChange}
                                                     placeholder={t('becomeReseller.form.phonePlaceholder')}
-                                                    className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
-                                                        validationErrors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                                    className={`rounded-[1.2rem] ${
+                                                        validationErrors.phone
+                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                            : ''
                                                     }`}
                                                 />
                                                 {validationErrors.phone && (
-                                                    <p className="text-red-400 text-sm mt-1">{validationErrors.phone}</p>
+                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                        {validationErrors.phone}
+                                                    </p>
                                                 )}
                                             </div>
 
                                             {/* Email */}
                                             <div className="md:col-span-2">
-                                                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                                                <label
+                                                    htmlFor="email"
+                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                >
                                                     {t('becomeReseller.form.emailRequired')}
                                                 </label>
                                                 <Input
@@ -601,17 +647,24 @@ export default function BecomeOurReseller() {
                                                     value={formData.email}
                                                     onChange={handleInputChange}
                                                     placeholder={t('becomeReseller.form.emailPlaceholder')}
-                                                    className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
-                                                        validationErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                                    className={`rounded-[1.2rem] ${
+                                                        validationErrors.email
+                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                            : ''
                                                     }`}
                                                 />
                                                 {validationErrors.email && (
-                                                    <p className="text-red-400 text-sm mt-1">{validationErrors.email}</p>
+                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                        {validationErrors.email}
+                                                    </p>
                                                 )}
                                             </div>
 
                                             <div>
-                                                <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+                                                <label
+                                                    htmlFor="password"
+                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                >
                                                     {t('becomeReseller.form.passwordRequired')}
                                                 </label>
                                                 <Input
@@ -622,17 +675,24 @@ export default function BecomeOurReseller() {
                                                     onChange={handleInputChange}
                                                     placeholder={t('becomeReseller.form.passwordPlaceholder')}
                                                     autoComplete="new-password"
-                                                    className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
-                                                        validationErrors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                                    className={`rounded-[1.2rem] ${
+                                                        validationErrors.password
+                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                            : ''
                                                     }`}
                                                 />
                                                 {validationErrors.password && (
-                                                    <p className="text-red-400 text-sm mt-1">{validationErrors.password}</p>
+                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                        {validationErrors.password}
+                                                    </p>
                                                 )}
                                             </div>
 
                                             <div>
-                                                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
+                                                <label
+                                                    htmlFor="confirmPassword"
+                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                >
                                                     {t('becomeReseller.form.confirmPasswordRequired')}
                                                 </label>
                                                 <Input
@@ -643,18 +703,25 @@ export default function BecomeOurReseller() {
                                                     onChange={handleInputChange}
                                                     placeholder={t('becomeReseller.form.confirmPasswordPlaceholder')}
                                                     autoComplete="new-password"
-                                                    className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
-                                                        validationErrors.confirmPassword ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                                    className={`rounded-[1.2rem] ${
+                                                        validationErrors.confirmPassword
+                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                            : ''
                                                     }`}
                                                 />
                                                 {validationErrors.confirmPassword && (
-                                                    <p className="text-red-400 text-sm mt-1">{validationErrors.confirmPassword}</p>
+                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                        {validationErrors.confirmPassword}
+                                                    </p>
                                                 )}
                                             </div>
 
                                             {/* Address */}
                                             <div className="md:col-span-2">
-                                                <label htmlFor="address" className="block text-sm font-medium text-gray-300 mb-2">
+                                                <label
+                                                    htmlFor="address"
+                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                >
                                                     {t('becomeReseller.form.streetAddressRequired')}
                                                 </label>
                                                 <Input
@@ -664,18 +731,25 @@ export default function BecomeOurReseller() {
                                                     value={formData.address}
                                                     onChange={handleInputChange}
                                                     placeholder={t('becomeReseller.form.streetAddressPlaceholder')}
-                                                    className={`bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-[#4FC8FF] focus:ring-[#4FC8FF] ${
-                                                        validationErrors.address ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                                    className={`rounded-[1.2rem] ${
+                                                        validationErrors.address
+                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                            : ''
                                                     }`}
                                                 />
                                                 {validationErrors.address && (
-                                                    <p className="text-red-400 text-sm mt-1">{validationErrors.address}</p>
+                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                        {validationErrors.address}
+                                                    </p>
                                                 )}
                                             </div>
 
                                             {/* District */}
                                             <div>
-                                                <label htmlFor="district" className="block text-sm font-medium text-gray-300 mb-2">
+                                                <label
+                                                    htmlFor="district"
+                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                >
                                                     {t('becomeReseller.form.districtRequired')}
                                                 </label>
                                                 <select
@@ -684,30 +758,41 @@ export default function BecomeOurReseller() {
                                                     value={formData.district}
                                                     onChange={handleInputChange}
                                                     disabled={!formData.city}
-                                                    className={`w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4FC8FF] focus:border-[#4FC8FF] transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                                                        validationErrors.district ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                                    className={`brand-input w-full rounded-[1.2rem] px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand-blue)] disabled:opacity-50 disabled:cursor-not-allowed ${
+                                                        validationErrors.district
+                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                            : ''
                                                     }`}
                                                 >
-                                                    <option value="" className="bg-gray-700">
+                                                    <option value="" className="bg-[#06111B]">
                                                         {formData.city
                                                             ? t('becomeReseller.form.districtPlaceholder')
-                                                            : t('becomeReseller.form.citySelectFirst')
-                                                        }
+                                                            : t('becomeReseller.form.citySelectFirst')}
                                                     </option>
-                                                    {formData.city && getDistrictsForCity(formData.city).map((district) => (
-                                                        <option key={district} value={district} className="bg-gray-700">
-                                                            {district}
-                                                        </option>
-                                                    ))}
+                                                    {formData.city &&
+                                                        getDistrictsForCity(formData.city).map((district) => (
+                                                            <option
+                                                                key={district}
+                                                                value={district}
+                                                                className="bg-[#06111B]"
+                                                            >
+                                                                {district}
+                                                            </option>
+                                                        ))}
                                                 </select>
                                                 {validationErrors.district && (
-                                                    <p className="text-red-400 text-sm mt-1">{validationErrors.district}</p>
+                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                        {validationErrors.district}
+                                                    </p>
                                                 )}
                                             </div>
 
                                             {/* City */}
                                             <div>
-                                                <label htmlFor="city" className="block text-sm font-medium text-gray-300 mb-2">
+                                                <label
+                                                    htmlFor="city"
+                                                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                                                >
                                                     {t('becomeReseller.form.cityRequired')}
                                                 </label>
                                                 <select
@@ -715,21 +800,25 @@ export default function BecomeOurReseller() {
                                                     name="city"
                                                     value={formData.city}
                                                     onChange={handleInputChange}
-                                                    className={`w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4FC8FF] focus:border-[#4FC8FF] transition-colors ${
-                                                        validationErrors.city ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                                    className={`brand-input w-full rounded-[1.2rem] px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand-blue)] ${
+                                                        validationErrors.city
+                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                                            : ''
                                                     }`}
                                                 >
-                                                    <option value="" className="bg-gray-700">
+                                                    <option value="" className="bg-[#06111B]">
                                                         {t('becomeReseller.form.cityPlaceholder')}
                                                     </option>
                                                     {allCities.map((city) => (
-                                                        <option key={city} value={city} className="bg-gray-700">
+                                                        <option key={city} value={city} className="bg-[#06111B]">
                                                             {city}
                                                         </option>
                                                     ))}
                                                 </select>
                                                 {validationErrors.city && (
-                                                    <p className="text-red-400 text-sm mt-1">{validationErrors.city}</p>
+                                                    <p className="text-[var(--destructive-text)] text-sm mt-1">
+                                                        {validationErrors.city}
+                                                    </p>
                                                 )}
                                             </div>
                                         </div>
@@ -739,9 +828,11 @@ export default function BecomeOurReseller() {
                                         <Button
                                             type="submit"
                                             disabled={isSubmitting}
-                                            className="bg-[#4FC8FF] hover:bg-[#4FC8FF]/90 text-white px-12 py-3 text-lg font-semibold"
+                                            className="brand-button-primary px-12 py-3 text-lg font-semibold text-[var(--text-primary)]"
                                         >
-                                            {isSubmitting ? t('becomeReseller.form.submittingButton') : t('becomeReseller.form.submitButton')}
+                                            {isSubmitting
+                                                ? t('becomeReseller.form.submittingButton')
+                                                : t('becomeReseller.form.submitButton')}
                                         </Button>
                                     </div>
                                 </form>
@@ -751,12 +842,11 @@ export default function BecomeOurReseller() {
                 </div>
             </section>
 
-            <section className="ml-0 sm:ml-16 md:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
-                <div className="mx-auto max-w-6xl">
+            <section className="py-2">
+                <div className="brand-shell mx-auto max-w-6xl sm:ml-16 md:ml-20">
                     <DealerNetworkSection />
                 </div>
             </section>
         </div>
     );
 }
-

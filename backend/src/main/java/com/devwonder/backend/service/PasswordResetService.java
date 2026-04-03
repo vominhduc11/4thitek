@@ -1,5 +1,6 @@
 package com.devwonder.backend.service;
 
+import com.devwonder.backend.config.BusinessIdentity;
 import com.devwonder.backend.entity.Account;
 import com.devwonder.backend.entity.Admin;
 import com.devwonder.backend.entity.PasswordResetToken;
@@ -63,7 +64,7 @@ public class PasswordResetService {
 
             asyncMailService.sendText(
                     account.getEmail(),
-                    "4ThiTek password reset",
+                    BusinessIdentity.BRAND_NAME + " password reset",
                     buildResetEmail(savedToken.getToken())
             );
         });
@@ -126,7 +127,7 @@ public class PasswordResetService {
         return """
                 Hello,
 
-                We received a request to reset the password for your 4ThiTek account.
+                We received a request to reset the password for your %s account.
 
                 Open this link to set a new password:
                 %s
@@ -134,7 +135,7 @@ public class PasswordResetService {
                 This link expires in %d minutes.
 
                 If you did not request a password reset, you can ignore this email.
-                """.formatted(resetLink, expirationMinutes);
+                """.formatted(BusinessIdentity.BRAND_NAME, resetLink, expirationMinutes);
     }
 
     /**
@@ -161,7 +162,7 @@ public class PasswordResetService {
         try {
             mailService.sendText(
                     account.getEmail(),
-                    "4ThiTek — Kích hoạt tài khoản quản trị",
+                    BusinessIdentity.BRAND_NAME + " — Kích hoạt tài khoản quản trị",
                     buildOnboardingEmail(savedToken.getToken(), account)
             );
         } catch (RuntimeException ex) {
@@ -179,7 +180,7 @@ public class PasswordResetService {
         return """
                 Xin chào %s,
 
-                Tài khoản quản trị hệ thống 4ThiTek của bạn đã được tạo thành công.
+                Tài khoản quản trị hệ thống %s của bạn đã được tạo thành công.
 
                 Để đặt mật khẩu và kích hoạt tài khoản, vui lòng mở liên kết dưới đây:
                 %s
@@ -189,8 +190,8 @@ public class PasswordResetService {
                 Nếu bạn không yêu cầu tạo tài khoản này, vui lòng liên hệ quản trị viên.
 
                 Trân trọng,
-                4ThiTek
-                """.formatted(displayName, setupLink, expirationMinutes);
+                %s
+                """.formatted(displayName, BusinessIdentity.BRAND_NAME, setupLink, expirationMinutes, BusinessIdentity.BRAND_NAME);
     }
 
     private String normalizeEmail(String value) {

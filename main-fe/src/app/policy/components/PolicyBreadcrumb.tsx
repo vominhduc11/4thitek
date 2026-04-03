@@ -14,7 +14,7 @@ const PolicyBreadcrumb = ({ selectedPolicy = 'warranty', onPolicyClick, policyCo
     const description = policyContent?.descriptions[selectedPolicy] || policyContent?.descriptions.default || '';
 
     return (
-        <div className="ml-0 sm:ml-16 md:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 -mt-16 sm:-mt-20 lg:-mt-24 relative z-20 py-6 sm:py-8 lg:py-10">
+        <div className="brand-shell relative z-20 -mt-16 py-6 sm:ml-16 sm:-mt-20 sm:py-8 md:ml-20 lg:-mt-24 lg:py-10">
             <div>
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
@@ -22,7 +22,7 @@ const PolicyBreadcrumb = ({ selectedPolicy = 'warranty', onPolicyClick, policyCo
                     transition={{ duration: 0.8, delay: 0.3 }}
                 >
                     <motion.h1
-                        className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2 text-[#4FC8FF]"
+                        className="mb-2 font-serif text-3xl font-semibold text-[var(--brand-blue)] sm:text-4xl lg:text-5xl"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -32,7 +32,7 @@ const PolicyBreadcrumb = ({ selectedPolicy = 'warranty', onPolicyClick, policyCo
 
                     {/* Policy Description */}
                     <motion.p
-                        className="text-gray-300 text-sm sm:text-base lg:text-lg mb-8 leading-relaxed max-w-4xl"
+                        className="mb-8 max-w-4xl text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base lg:text-lg"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.4 }}
@@ -49,7 +49,7 @@ const PolicyBreadcrumb = ({ selectedPolicy = 'warranty', onPolicyClick, policyCo
                     >
                         {/* Continuous horizontal line - full width */}
                         <motion.div
-                            className="absolute left-0 right-0 top-1/2 h-px bg-gray-500/60 z-0"
+                            className="absolute left-0 right-0 top-1/2 h-px bg-[rgba(133,170,197,0.36)] z-0"
                             initial={{ scaleX: 0, opacity: 0 }}
                             animate={{ scaleX: 1, opacity: 1 }}
                             transition={{ duration: 1.2, delay: 0.8 }}
@@ -57,7 +57,7 @@ const PolicyBreadcrumb = ({ selectedPolicy = 'warranty', onPolicyClick, policyCo
 
                         {/* Policy Navigation - aligned left */}
                         <div className="flex items-center gap-1 relative z-10 pl-12 sm:pl-16 lg:pl-20">
-                            <div className="bg-[#0c131d] px-2 flex items-center gap-1">
+                            <div className="bg-[#06111B] px-2 flex items-center gap-1">
                                 {policyList.map((policy, index) => (
                                     <motion.div
                                         key={policy.key}
@@ -68,10 +68,10 @@ const PolicyBreadcrumb = ({ selectedPolicy = 'warranty', onPolicyClick, policyCo
                                     >
                                         <motion.button
                                             onClick={() => onPolicyClick?.(policy.key)}
-                                            className={`px-2 py-2 text-sm font-medium transition-all duration-300 bg-[#0c131d] whitespace-nowrap ${
+                                            className={`px-2 py-2 text-sm font-medium transition-all duration-300 bg-[#06111B] whitespace-nowrap ${
                                                 selectedPolicy === policy.key
-                                                    ? 'text-[#4FC8FF] font-semibold'
-                                                    : 'text-gray-300 hover:text-white'
+                                                    ? 'text-[var(--brand-blue)] font-semibold'
+                                                    : 'text-[var(--text-secondary)] hover:text-white'
                                             }`}
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
@@ -80,7 +80,9 @@ const PolicyBreadcrumb = ({ selectedPolicy = 'warranty', onPolicyClick, policyCo
                                         </motion.button>
 
                                         {/* Separator */}
-                                        {index < policyList.length - 1 && <span className="text-gray-500 mx-1">/</span>}
+                                        {index < policyList.length - 1 && (
+                                            <span className="text-[var(--text-muted)] mx-1">/</span>
+                                        )}
                                     </motion.div>
                                 ))}
                             </div>

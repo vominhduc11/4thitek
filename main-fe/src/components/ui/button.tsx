@@ -10,20 +10,20 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ({ className, variant = 'default', size = 'default', ...props }, ref) => {
         const baseStyles =
-            'inline-flex items-center justify-center rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98]';
+            'inline-flex items-center justify-center rounded-full text-sm font-semibold tracking-[0.08em] uppercase transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-blue)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#06111B] disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]';
 
         const variants = {
-            default: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md',
-            outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-            ghost: 'hover:bg-accent hover:text-accent-foreground',
-            link: 'text-primary underline-offset-4 hover:underline'
+            default: 'brand-button-primary hover:-translate-y-0.5 hover:brightness-105',
+            outline: 'brand-button-secondary hover:-translate-y-0.5 hover:border-[var(--brand-blue)] hover:bg-[rgba(41,171,226,0.14)]',
+            ghost: 'text-[var(--text-secondary)] hover:bg-white/6 hover:text-white',
+            link: 'text-[var(--brand-blue)] underline-offset-4 hover:underline'
         };
 
         const sizes = {
-            default: 'h-10 py-2 px-4',
-            sm: 'h-9 px-3 rounded-md',
-            lg: 'h-11 px-8 rounded-md',
-            icon: 'h-10 w-10'
+            default: 'h-11 px-5',
+            sm: 'h-10 px-4',
+            lg: 'h-12 px-8',
+            icon: 'h-11 w-11'
         };
 
         return (

@@ -1,5 +1,6 @@
 package com.devwonder.backend.service;
 
+import com.devwonder.backend.config.BusinessIdentity;
 import com.devwonder.backend.config.EmailVerificationProperties;
 import com.devwonder.backend.dto.auth.EmailVerificationResponse;
 import com.devwonder.backend.dto.auth.ResendEmailVerificationResponse;
@@ -86,7 +87,7 @@ public class EmailVerificationService {
         emailVerificationTokenRepository.save(token);
         asyncMailService.sendText(
                 account.getEmail(),
-                "4ThiTek - Verify your admin email",
+                BusinessIdentity.BRAND_NAME + " - Verify your admin email",
                 buildVerificationEmail(rawToken, account)
         );
         log.info("Queued admin email verification mail for account {}", account.getId());
@@ -163,13 +164,13 @@ public class EmailVerificationService {
         return """
                 Hello %s,
 
-                Please verify the email address for your 4ThiTek admin account by opening the link below:
+                Please verify the email address for your %s admin account by opening the link below:
                 %s
 
                 This verification link expires in %d minutes and can be used only once.
 
                 If you did not expect this email, please contact your system owner.
-                """.formatted(displayName, verificationLink, resolveExpirationMinutes());
+                """.formatted(displayName, BusinessIdentity.BRAND_NAME, verificationLink, resolveExpirationMinutes());
     }
 
     private long resolveExpirationMinutes() {

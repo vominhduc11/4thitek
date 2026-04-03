@@ -99,7 +99,7 @@ public class AdminOrderNotificationSupport {
 
     private String buildOrderStatusEmailSubject(Order order, OrderStatus status) {
         String orderCode = firstNonBlank(order.getOrderCode(), "#" + order.getId());
-        return "4ThiTek cập nhật đơn hàng " + orderCode + ": " + buildOrderStatusLabel(status);
+        return "4T HITEK cập nhật đơn hàng " + orderCode + ": " + buildOrderStatusLabel(status);
     }
 
     private String buildOrderStatusEmailBody(Dealer dealer, Order order, OrderStatus status) {
@@ -113,7 +113,7 @@ public class AdminOrderNotificationSupport {
                 %s
 
                 Trân trọng,
-                4ThiTek
+                4T HITEK
                 """.formatted(
                 resolveDisplayName(dealer),
                 orderCode,

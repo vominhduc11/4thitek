@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => '4thitek Dealer Hub';
+  String get appTitle => '4T HITEK Dealer';
 
   @override
   String get viewAction => 'View';
@@ -19,7 +19,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your session has expired. Please sign in again.';
 
   @override
-  String get welcomeTitle => 'Welcome to 4thitek Dealer Hub';
+  String get welcomeTitle => 'Welcome to 4T HITEK Dealer';
 
   @override
   String get welcomeStepProducts =>

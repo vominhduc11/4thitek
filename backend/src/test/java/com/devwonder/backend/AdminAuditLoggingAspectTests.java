@@ -129,7 +129,7 @@ class AdminAuditLoggingAspectTests {
                                 "whsec_live_123",
                                 "VCB",
                                 "123456789",
-                                "4ThiTek"
+                                "4T HITEK"
                         ),
                         null,
                         null

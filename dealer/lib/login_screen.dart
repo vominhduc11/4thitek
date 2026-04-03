@@ -185,9 +185,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 end: Alignment.bottomRight,
                 stops: [0.0, 0.55, 1.0],
                 colors: [
-                  Color(0xFF08131D),
-                  Color(0xFF102738),
-                  Color(0xFF1A415C),
+                  Color(0xFF07111A),
+                  Color(0xFF0D2232),
+                  Color(0xFF13456A),
                 ],
               ),
             ),
@@ -202,7 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
             top: layout.isTablet ? -60 : (layout.isCompactVisual ? -26 : -40),
             child: _GlowOrb(
               size: layout.topOrbSize,
-              color: const Color(0x243385B0),
+              color: const Color(0x2429ABE2),
             ),
           ),
           Positioned(
@@ -212,7 +212,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 : (layout.isCompactVisual ? -18 : -30),
             child: _GlowOrb(
               size: layout.bottomOrbSize,
-              color: const Color(0x1A8BB9D2),
+              color: const Color(0x1A0071BC),
             ),
           ),
           SafeArea(
@@ -381,9 +381,9 @@ class _BrandPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0x1A8BB9D2),
+        color: const Color(0x1A29ABE2),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0x3D8BB9D2)),
+        border: Border.all(color: const Color(0x4D29ABE2)),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1081,13 +1081,13 @@ class _RegisterPrompt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final texts = _loginTexts(context);
-    final borderColor = const Color(0x338BB9D2);
+    final borderColor = const Color(0x4D29ABE2);
     final textColor = const Color(0xFFECEDEE);
 
     return Center(
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: const Color(0x183385B0),
+          color: const Color(0x1A29ABE2),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: borderColor),
         ),
@@ -1130,8 +1130,8 @@ class _LoginTexts {
   final bool isEnglish;
 
   String get brandSubtitle => isEnglish
-      ? 'Sign in to manage orders, debt, and warranties with 4thitek.'
-      : 'Đăng nhập để quản lý đơn nhập, công nợ và bảo hành cùng 4thitek.';
+      ? 'Sign in to manage orders, debt, and warranties with 4T HITEK.'
+      : 'Đăng nhập để quản lý đơn nhập, công nợ và bảo hành cùng 4T HITEK.';
   String get brandPillOrders =>
       isEnglish ? 'Manage orders' : 'Quản lý đơn nhập';
   String get brandPillDebt => isEnglish ? 'Track debt' : 'Theo dõi công nợ';
@@ -1209,7 +1209,7 @@ class _TexturePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = const Color(0x66FFFFFF);
+    final paint = Paint()..color = const Color(0x4029ABE2);
     const spacing = 22.0;
     const radius = 0.9;
     var row = 0;

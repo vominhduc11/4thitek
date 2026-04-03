@@ -5,8 +5,8 @@ export const metadata: Metadata = {
     ...createBaseMetadata({
         locale: 'vi',
         path: '/search',
-        title: '4ThiTek | Tim kiem',
-        description: 'Tim kiem san pham tai nghe SCS va bai viet tren website 4ThiTek.',
+        title: '4T HITEK | Tim kiem',
+        description: 'Tim kiem san pham tai nghe SCS va bai viet tren website 4T HITEK.',
         noindex: true
     })
 };

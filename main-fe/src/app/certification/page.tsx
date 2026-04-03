@@ -1,12 +1,8 @@
-import {
-    CertificationHero,
-    CertificationHeader,
-    CertificationList
-} from './components';
+import { CertificationHero, CertificationHeader, CertificationList } from './components';
 
 export default function CertificationPage() {
     return (
-        <div className="min-h-screen bg-[#0c131d] text-white flex flex-col">
+        <div className="brand-section min-h-screen text-white flex flex-col">
             {/* Hero Section with Breadcrumb */}
             <CertificationHero />
 

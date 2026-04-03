@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { FiChevronDown, FiMapPin, FiSearch } from 'react-icons/fi';
 import { motion } from 'framer-motion';
+import { FiChevronDown, FiMapPin, FiSearch } from 'react-icons/fi';
 import { useLanguage } from '@/context/LanguageContext';
 import type { Reseller, ResellerSearchFilters } from './types';
 
@@ -77,9 +77,7 @@ export default function ResellerSearch({
         setSearchFilters(nextFilters);
     };
 
-    const getSelectedCity = () => {
-        return cities.find((city) => city === searchFilters.city);
-    };
+    const getSelectedCity = () => cities.find((city) => city === searchFilters.city);
 
     const getSelectedDistrict = () => {
         if (!searchFilters.city || !searchFilters.district) return null;
@@ -97,19 +95,19 @@ export default function ResellerSearch({
     };
 
     return (
-        <section className="bg-[#0c131d] pb-8 pt-8 text-white">
+        <section className="pb-8 pt-4 text-white">
             <div className="mx-auto max-w-6xl">
-                <h1 className="mb-6 text-center text-3xl font-bold text-white sm:text-4xl md:text-5xl">
+                <h1 className="mb-4 text-center font-serif text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl md:text-5xl">
                     {t('reseller.title')}
                 </h1>
-                <p className="mx-auto mb-8 max-w-3xl text-center text-base leading-relaxed text-gray-300 sm:text-lg">
+                <p className="mx-auto mb-8 max-w-3xl text-center text-base leading-relaxed text-[var(--text-secondary)] sm:text-lg">
                     {t('reseller.subtitle')}
                 </p>
 
-                <div className="rounded-lg bg-[#1a2332] p-4 sm:p-6">
+                <div className="brand-card-muted rounded-[28px] p-4 sm:p-6">
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-gray-300">
+                            <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">
                                 <FiMapPin className="mr-1 inline h-4 w-4" />
                                 {t('reseller.city')}
                             </label>
@@ -117,17 +115,19 @@ export default function ResellerSearch({
                                 <button
                                     type="button"
                                     onClick={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
-                                    className="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-600 bg-[#0c131d] px-4 py-3 text-white transition-all duration-300 focus:border-[#00d4ff] focus:outline-none"
+                                    className="brand-input flex w-full items-center justify-between gap-2 rounded-2xl px-4 py-3 text-white transition-all duration-300 focus:border-[var(--brand-blue)] focus:outline-none"
                                     suppressHydrationWarning
                                 >
                                     <div className="flex items-center gap-2">
-                                        <FiMapPin className="h-4 w-4 text-gray-400" />
-                                        <span className={searchFilters.city ? 'text-white' : 'text-gray-400'}>
+                                        <FiMapPin className="h-4 w-4 text-[var(--text-muted)]" />
+                                        <span
+                                            className={searchFilters.city ? 'text-white' : 'text-[var(--text-muted)]'}
+                                        >
                                             {getSelectedCity() || t('reseller.selectCity')}
                                         </span>
                                     </div>
                                     <FiChevronDown
-                                        className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isCityDropdownOpen ? 'rotate-180' : ''}`}
+                                        className={`h-4 w-4 text-[var(--text-muted)] transition-transform duration-200 ${isCityDropdownOpen ? 'rotate-180' : ''}`}
                                     />
                                 </button>
 
@@ -137,7 +137,7 @@ export default function ResellerSearch({
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                                         transition={{ duration: 0.2 }}
-                                        className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto overflow-hidden rounded-lg border border-gray-600 bg-[#0c131d] shadow-xl"
+                                        className="brand-card absolute left-0 right-0 top-full z-50 mt-2 max-h-60 overflow-hidden overflow-y-auto rounded-[24px] border border-[var(--brand-border)] shadow-xl"
                                     >
                                         {cities.map((city) => {
                                             const isSelected = searchFilters.city === city;
@@ -151,17 +151,19 @@ export default function ResellerSearch({
                                                     }}
                                                     className={`flex w-full items-center gap-3 px-4 py-3 text-sm transition-all duration-200 ${
                                                         isSelected
-                                                            ? 'border-l-2 border-[#00d4ff] bg-[#00d4ff]/20 text-[#00d4ff]'
-                                                            : 'text-white hover:bg-gray-700/50 hover:text-[#00d4ff]'
+                                                            ? 'border-l-2 border-[var(--brand-blue)] bg-[rgba(41,171,226,0.16)] text-[var(--brand-blue)]'
+                                                            : 'text-white hover:bg-[rgba(41,171,226,0.08)] hover:text-[var(--brand-blue)]'
                                                     }`}
                                                 >
-                                                    <FiMapPin className={`h-4 w-4 ${isSelected ? 'text-[#00d4ff]' : 'text-gray-400'}`} />
+                                                    <FiMapPin
+                                                        className={`h-4 w-4 ${isSelected ? 'text-[var(--brand-blue)]' : 'text-[var(--text-muted)]'}`}
+                                                    />
                                                     <span>{city}</span>
                                                     {isSelected && (
                                                         <motion.div
                                                             initial={{ scale: 0 }}
                                                             animate={{ scale: 1 }}
-                                                            className="ml-auto h-2 w-2 rounded-full bg-[#00d4ff]"
+                                                            className="ml-auto h-2 w-2 rounded-full bg-[var(--brand-blue)]"
                                                         />
                                                     )}
                                                 </button>
@@ -173,24 +175,32 @@ export default function ResellerSearch({
                         </div>
 
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-gray-300">{t('reseller.district')}</label>
+                            <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">
+                                {t('reseller.district')}
+                            </label>
                             <div ref={districtDropdownRef} className="relative">
                                 <button
                                     type="button"
-                                    onClick={() => searchFilters.city && setIsDistrictDropdownOpen(!isDistrictDropdownOpen)}
+                                    onClick={() =>
+                                        searchFilters.city && setIsDistrictDropdownOpen(!isDistrictDropdownOpen)
+                                    }
                                     disabled={!searchFilters.city}
-                                    className={`flex w-full items-center justify-between gap-2 rounded-lg border border-gray-600 bg-[#0c131d] px-4 py-3 text-white transition-all duration-300 focus:border-[#00d4ff] focus:outline-none ${
+                                    className={`brand-input flex w-full items-center justify-between gap-2 rounded-2xl px-4 py-3 text-white transition-all duration-300 focus:border-[var(--brand-blue)] focus:outline-none ${
                                         !searchFilters.city ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
                                     }`}
                                 >
                                     <div className="flex items-center gap-2">
-                                        <FiMapPin className="h-4 w-4 text-gray-400" />
-                                        <span className={searchFilters.district ? 'text-white' : 'text-gray-400'}>
+                                        <FiMapPin className="h-4 w-4 text-[var(--text-muted)]" />
+                                        <span
+                                            className={
+                                                searchFilters.district ? 'text-white' : 'text-[var(--text-muted)]'
+                                            }
+                                        >
                                             {getSelectedDistrict() || t('reseller.selectDistrict')}
                                         </span>
                                     </div>
                                     <FiChevronDown
-                                        className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${
+                                        className={`h-4 w-4 text-[var(--text-muted)] transition-transform duration-200 ${
                                             isDistrictDropdownOpen ? 'rotate-180' : ''
                                         }`}
                                     />
@@ -202,7 +212,7 @@ export default function ResellerSearch({
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                                         transition={{ duration: 0.2 }}
-                                        className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto overflow-hidden rounded-lg border border-gray-600 bg-[#0c131d] shadow-xl"
+                                        className="brand-card absolute left-0 right-0 top-full z-50 mt-2 max-h-60 overflow-hidden overflow-y-auto rounded-[24px] border border-[var(--brand-border)] shadow-xl"
                                     >
                                         {getAvailableDistricts().map((district) => {
                                             const isSelected = searchFilters.district === district;
@@ -216,17 +226,19 @@ export default function ResellerSearch({
                                                     }}
                                                     className={`flex w-full items-center gap-3 px-4 py-3 text-sm transition-all duration-200 ${
                                                         isSelected
-                                                            ? 'border-l-2 border-[#00d4ff] bg-[#00d4ff]/20 text-[#00d4ff]'
-                                                            : 'text-white hover:bg-gray-700/50 hover:text-[#00d4ff]'
+                                                            ? 'border-l-2 border-[var(--brand-blue)] bg-[rgba(41,171,226,0.16)] text-[var(--brand-blue)]'
+                                                            : 'text-white hover:bg-[rgba(41,171,226,0.08)] hover:text-[var(--brand-blue)]'
                                                     }`}
                                                 >
-                                                    <FiMapPin className={`h-4 w-4 ${isSelected ? 'text-[#00d4ff]' : 'text-gray-400'}`} />
+                                                    <FiMapPin
+                                                        className={`h-4 w-4 ${isSelected ? 'text-[var(--brand-blue)]' : 'text-[var(--text-muted)]'}`}
+                                                    />
                                                     <span>{district}</span>
                                                     {isSelected && (
                                                         <motion.div
                                                             initial={{ scale: 0 }}
                                                             animate={{ scale: 1 }}
-                                                            className="ml-auto h-2 w-2 rounded-full bg-[#00d4ff]"
+                                                            className="ml-auto h-2 w-2 rounded-full bg-[var(--brand-blue)]"
                                                         />
                                                     )}
                                                 </button>
@@ -238,13 +250,15 @@ export default function ResellerSearch({
                         </div>
 
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-gray-300">{t('reseller.specificAddress')}</label>
+                            <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">
+                                {t('reseller.specificAddress')}
+                            </label>
                             <input
                                 type="text"
                                 value={searchFilters.address}
                                 onChange={(event) => handleInputChange('address', event.target.value)}
                                 placeholder={t('reseller.enterAddress')}
-                                className="w-full rounded-lg border border-gray-600 bg-[#0c131d] px-4 py-3 text-white transition-colors focus:border-[#00d4ff] focus:outline-none"
+                                className="brand-input w-full rounded-2xl px-4 py-3 text-white transition-colors focus:border-[var(--brand-blue)] focus:outline-none"
                                 suppressHydrationWarning
                             />
                         </div>
@@ -252,7 +266,7 @@ export default function ResellerSearch({
                         <div className="flex items-end">
                             <button
                                 onClick={handleSearch}
-                                className="flex w-full items-center justify-center space-x-2 rounded-lg bg-[#00d4ff] px-6 py-3 font-semibold text-[#0c131d] transition-colors duration-300 hover:bg-[#00b8e6]"
+                                className="brand-button-primary flex w-full items-center justify-center space-x-2 rounded-2xl px-6 py-3 font-semibold text-[var(--text-primary)] transition-colors duration-300 hover:brightness-110"
                                 suppressHydrationWarning
                             >
                                 <FiSearch className="h-5 w-5" />

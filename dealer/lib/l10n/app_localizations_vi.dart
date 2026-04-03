@@ -9,7 +9,7 @@ class AppLocalizationsVi extends AppLocalizations {
   AppLocalizationsVi([String locale = 'vi']) : super(locale);
 
   @override
-  String get appTitle => '4thitek Dealer Hub';
+  String get appTitle => '4T HITEK Dealer';
 
   @override
   String get viewAction => 'Xem';
@@ -19,7 +19,7 @@ class AppLocalizationsVi extends AppLocalizations {
       'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
 
   @override
-  String get welcomeTitle => 'Chào mừng đến 4thitek Dealer Hub';
+  String get welcomeTitle => 'Chào mừng đến 4T HITEK Dealer';
 
   @override
   String get welcomeStepProducts => '1. Tạo đơn nhanh trong tab Sản phẩm.';

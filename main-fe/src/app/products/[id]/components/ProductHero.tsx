@@ -23,7 +23,7 @@ function ProductImageWithFallback({ src, alt, className }: ProductImageWithFallb
     if (!src || imageError) {
         return (
             <div className={`${className} flex flex-col items-center justify-center`}>
-                <FiHeadphones className="h-20 w-20 text-slate-600 md:h-28 md:w-28 xl:h-36 xl:w-36" />
+                <FiHeadphones className="h-20 w-20 text-[var(--text-muted)] md:h-28 md:w-28 xl:h-36 xl:w-36" />
             </div>
         );
     }
@@ -32,7 +32,7 @@ function ProductImageWithFallback({ src, alt, className }: ProductImageWithFallb
         <div className={className}>
             {isLoading && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--brand-blue)] border-t-transparent" />
                 </div>
             )}
             <Image
@@ -42,7 +42,10 @@ function ProductImageWithFallback({ src, alt, className }: ProductImageWithFallb
                 height={800}
                 className={`w-full h-full object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
                 onLoad={() => setIsLoading(false)}
-                onError={() => { setImageError(true); setIsLoading(false); }}
+                onError={() => {
+                    setImageError(true);
+                    setIsLoading(false);
+                }}
                 priority
             />
         </div>
@@ -109,19 +112,25 @@ export default function ProductHero({
                 </video>
 
                 {/* Mobile gradient background */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(79,200,255,0.22),_transparent_45%),linear-gradient(180deg,_#0c131d_0%,_#07101a_55%,_#03070d_100%)] sm:hidden" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(41,171,226,0.24),_transparent_45%),linear-gradient(180deg,_#07111A_0%,_#08131D_55%,_#03070d_100%)] sm:hidden" />
 
                 {/* Fallback gradient (desktop) */}
-                <div className="absolute inset-0 hidden sm:block bg-gradient-to-br from-blue-900/20 via-purple-900/20 to-black" />
+                <div className="absolute inset-0 hidden sm:block bg-[linear-gradient(135deg,rgba(41,171,226,0.18),rgba(0,113,188,0.14),rgba(3,7,13,0.96))]" />
 
                 {/* Dark overlay */}
                 <div className="absolute inset-0 bg-black/30" />
 
                 {/* Edge gradient vignettes — simplified (2 divs not 10) */}
                 <div className="absolute inset-x-0 top-0 z-10 h-40 bg-gradient-to-b from-black to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 z-10 h-56 bg-gradient-to-t from-[#0c131d] to-[#0c131d]/0 md:h-80 lg:h-[420px] xl:h-[500px] 3xl:h-[600px]" />
-                <div className="absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-black to-transparent" style={{ clipPath: 'ellipse(100% 70% at 0% 50%)' }} />
-                <div className="absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-black to-transparent" style={{ clipPath: 'ellipse(100% 70% at 100% 50%)' }} />
+                <div className="absolute inset-x-0 bottom-0 z-10 h-56 bg-gradient-to-t from-[#07111A] to-[#07111A]/0 md:h-80 lg:h-[420px] xl:h-[500px] 3xl:h-[600px]" />
+                <div
+                    className="absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-black to-transparent"
+                    style={{ clipPath: 'ellipse(100% 70% at 0% 50%)' }}
+                />
+                <div
+                    className="absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-black to-transparent"
+                    style={{ clipPath: 'ellipse(100% 70% at 100% 50%)' }}
+                />
             </div>
 
             {/* Vertical "PRODUCT" label — left side, desktop only */}
@@ -144,7 +153,7 @@ export default function ProductHero({
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 10 }}
-                            transition={{ duration: 0.4, ease: "easeOut" }}
+                            transition={{ duration: 0.4, ease: 'easeOut' }}
                             className="max-w-2xl 2xl:max-w-3xl 3xl:max-w-6xl px-4 text-2xl font-extrabold leading-tight text-white sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl 2xl:text-[2.75rem] 3xl:text-6xl tracking-tight"
                         >
                             {product.name}
@@ -158,15 +167,15 @@ export default function ProductHero({
                             <motion.button
                                 onClick={handleShuffleProduct}
                                 disabled={isShuffling}
-                                className={`inline-flex h-14 w-14 3xl:h-20 3xl:w-20 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-md transition-all duration-300 hover:border-cyan-400/50 hover:bg-white/10 hover:shadow-[0_0_30px_rgba(34,211,238,0.2)] ${isShuffling ? 'cursor-not-allowed opacity-40' : ''}`}
+                                className={`inline-flex h-14 w-14 items-center justify-center rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.62)] backdrop-blur-md transition-all duration-300 hover:border-[var(--brand-border-strong)] hover:bg-[rgba(41,171,226,0.12)] hover:shadow-[0_0_30px_rgba(0,113,188,0.2)] 3xl:h-20 3xl:w-20 ${isShuffling ? 'cursor-not-allowed opacity-40' : ''}`}
                                 title={t('products.detail.viewOtherProducts')}
                                 whileHover={{ scale: 1.1, y: -2 }}
                                 whileTap={{ scale: 0.95 }}
                             >
                                 {isShuffling ? (
-                                    <div className="h-5 w-5 3xl:h-8 3xl:w-8 rounded-full border-2 3xl:border-4 border-cyan-400 border-t-transparent animate-spin" />
+                                    <div className="h-5 w-5 rounded-full border-2 border-[var(--brand-blue)] border-t-transparent animate-spin 3xl:h-8 3xl:w-8 3xl:border-4" />
                                 ) : (
-                                    <CiShuffle className="h-6 w-6 3xl:h-10 3xl:w-10 text-white/80 transition-colors pointer-events-none group-hover:text-cyan-400" />
+                                    <CiShuffle className="pointer-events-none h-6 w-6 text-white/80 transition-colors group-hover:text-[var(--brand-blue)] 3xl:h-10 3xl:w-10" />
                                 )}
                             </motion.button>
                         </div>
@@ -174,8 +183,8 @@ export default function ProductHero({
                         {/* Product image */}
                         <div className="relative mx-auto lg:mx-0 h-48 w-full max-w-[280px] sm:h-64 sm:max-w-sm md:h-72 md:max-w-md lg:h-80 lg:max-w-lg xl:h-96 xl:max-w-xl min-[1400px]:h-[440px] min-[1400px]:max-w-[580px] 3xl:h-[600px] 3xl:max-w-3xl flex-shrink-0">
                             {/* Mobile decorative glow behind image */}
-                            <div className="absolute inset-0 bg-cyan-500/10 blur-[80px] rounded-full lg:hidden" />
-                            
+                            <div className="absolute inset-0 rounded-full bg-[rgba(41,171,226,0.12)] blur-[80px] lg:hidden" />
+
                             <AnimatePresence mode="wait">
                                 <motion.div
                                     key={product.id + '-image'}
@@ -198,13 +207,23 @@ export default function ProductHero({
                         <div className="hidden lg:block w-40 xl:w-48 flex-shrink-0 text-left">
                             <motion.button
                                 onClick={handleFindRetailer}
-                                className="inline-flex items-center gap-3 3xl:gap-5 rounded-full border border-cyan-400/30 bg-cyan-400/5 px-8 py-4 3xl:px-12 3xl:py-6 text-sm 3xl:text-xl font-bold uppercase tracking-widest text-white backdrop-blur-md transition-all duration-300 hover:border-cyan-400 hover:bg-cyan-400/10 hover:shadow-[0_0_40px_rgba(34,211,238,0.25)]"
+                                className="inline-flex items-center gap-3 rounded-full border border-[var(--brand-border-strong)] bg-[rgba(41,171,226,0.08)] px-8 py-4 text-sm font-bold uppercase tracking-widest text-white backdrop-blur-md transition-all duration-300 hover:border-[var(--brand-blue)] hover:bg-[rgba(41,171,226,0.14)] hover:shadow-[0_0_40px_rgba(0,113,188,0.22)] 3xl:gap-5 3xl:px-12 3xl:py-6 3xl:text-xl"
                                 whileHover={{ scale: 1.05, y: -2 }}
                                 whileTap={{ scale: 0.95 }}
                             >
                                 <span className="whitespace-nowrap">{t('products.detail.findRetailer')}</span>
-                                <svg className="h-4 w-4 3xl:h-6 3xl:w-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                <svg
+                                    className="h-4 w-4 text-[var(--brand-blue)] 3xl:h-6 3xl:w-6"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M13 7l5 5m0 0l-5 5m5-5H6"
+                                    />
                                 </svg>
                             </motion.button>
                         </div>
@@ -214,11 +233,11 @@ export default function ProductHero({
                             <motion.button
                                 onClick={handleShuffleProduct}
                                 disabled={isShuffling}
-                                className={`flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-sm shadow-lg ${isShuffling ? 'cursor-not-allowed opacity-60' : ''}`}
+                                className={`flex h-12 w-12 items-center justify-center rounded-full border border-[var(--brand-border)] bg-[rgba(7,17,27,0.62)] backdrop-blur-sm shadow-lg ${isShuffling ? 'cursor-not-allowed opacity-60' : ''}`}
                                 whileTap={{ scale: 0.9 }}
                             >
                                 {isShuffling ? (
-                                    <div className="h-4 w-4 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+                                    <div className="h-4 w-4 rounded-full border-2 border-[var(--brand-blue)] border-t-transparent animate-spin" />
                                 ) : (
                                     <CiShuffle className="h-5 w-5 text-white/90" />
                                 )}
@@ -226,18 +245,26 @@ export default function ProductHero({
 
                             <motion.button
                                 onClick={handleFindRetailer}
-                                className="flex flex-1 items-center justify-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-6 py-3.5 text-xs font-bold uppercase tracking-[0.15em] text-white shadow-lg active:bg-cyan-400/20"
+                                className="flex flex-1 items-center justify-center gap-2 rounded-full border border-[var(--brand-border-strong)] bg-[rgba(41,171,226,0.1)] px-6 py-3.5 text-xs font-bold uppercase tracking-[0.15em] text-white shadow-lg active:bg-[rgba(41,171,226,0.18)]"
                                 whileTap={{ scale: 0.98 }}
                             >
                                 <span className="whitespace-nowrap">{t('products.detail.findRetailer')}</span>
-                                <svg className="h-3.5 w-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                <svg
+                                    className="h-3.5 w-3.5 text-[var(--brand-blue)]"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M13 7l5 5m0 0l-5 5m5-5H6"
+                                    />
                                 </svg>
                             </motion.button>
                         </div>
                     </div>
-
-
                 </div>
             </div>
 
@@ -251,75 +278,74 @@ export default function ProductHero({
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         transition={{ duration: 1.2, ease: 'easeOut', delay: 0.8 }}
                     >
-                    <div className="relative mx-auto max-w-[1800px] 3xl:max-w-[2400px] px-4">
-                        {/* Left decorative line */}
-                        <motion.div
-                            className="absolute top-1/2 left-4 h-px"
-                            initial={{ scaleX: 0, opacity: 0 }}
-                            animate={{ scaleX: 1, opacity: 1 }}
-                            transition={{ duration: 1.5, ease: 'easeOut', delay: 1.2 }}
-                            style={{
-                                width: 'calc(50% - clamp(200px, 30vw, 1200px))',
-                                background: 'linear-gradient(to right, transparent, rgba(79,200,255,0.6))',
-                                transformOrigin: 'right center'
-                            }}
-                        />
-                        {/* Right decorative line */}
-                        <motion.div
-                            className="absolute top-1/2 right-4 h-px"
-                            initial={{ scaleX: 0, opacity: 0 }}
-                            animate={{ scaleX: 1, opacity: 1 }}
-                            transition={{ duration: 1.5, ease: 'easeOut', delay: 1.2 }}
-                            style={{
-                                width: 'calc(50% - clamp(200px, 30vw, 1200px))',
-                                background: 'linear-gradient(to left, transparent, rgba(79,200,255,0.6))',
-                                transformOrigin: 'left center'
-                            }}
-                        />
-                        <motion.nav
-                            className="relative z-20 flex items-center justify-center gap-1 md:gap-2 3xl:gap-6"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8, ease: 'easeOut', delay: 1.4 }}
-                        >
-                            {breadcrumbItems.map((item, index) => (
-                                <motion.div
-                                    key={item.label}
-                                    className="flex items-center"
-                                    initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    transition={{ duration: 0.6, ease: 'easeOut', delay: 1.6 + index * 0.1 }}
-                                >
-                                    <motion.button
-                                        onClick={() => onBreadcrumbClick(item)}
-                                        className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200 md:px-4 md:py-2 md:text-base 3xl:text-2xl ${
-                                            activeBreadcrumb === item.label
-                                                ? 'text-cyan-400'
-                                                : 'text-gray-400 hover:text-white'
-                                        }`}
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
+                        <div className="relative mx-auto max-w-[1800px] 3xl:max-w-[2400px] px-4">
+                            {/* Left decorative line */}
+                            <motion.div
+                                className="absolute top-1/2 left-4 h-px"
+                                initial={{ scaleX: 0, opacity: 0 }}
+                                animate={{ scaleX: 1, opacity: 1 }}
+                                transition={{ duration: 1.5, ease: 'easeOut', delay: 1.2 }}
+                                style={{
+                                    width: 'calc(50% - clamp(200px, 30vw, 1200px))',
+                                    background: 'linear-gradient(to right, transparent, rgba(41,171,226,0.6))',
+                                    transformOrigin: 'right center'
+                                }}
+                            />
+                            {/* Right decorative line */}
+                            <motion.div
+                                className="absolute top-1/2 right-4 h-px"
+                                initial={{ scaleX: 0, opacity: 0 }}
+                                animate={{ scaleX: 1, opacity: 1 }}
+                                transition={{ duration: 1.5, ease: 'easeOut', delay: 1.2 }}
+                                style={{
+                                    width: 'calc(50% - clamp(200px, 30vw, 1200px))',
+                                    background: 'linear-gradient(to left, transparent, rgba(41,171,226,0.6))',
+                                    transformOrigin: 'left center'
+                                }}
+                            />
+                            <motion.nav
+                                className="relative z-20 flex items-center justify-center gap-1 md:gap-2 3xl:gap-6"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.8, ease: 'easeOut', delay: 1.4 }}
+                            >
+                                {breadcrumbItems.map((item, index) => (
+                                    <motion.div
+                                        key={item.label}
+                                        className="flex items-center"
+                                        initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        transition={{ duration: 0.6, ease: 'easeOut', delay: 1.6 + index * 0.1 }}
                                     >
-                                        {item.label}
-                                    </motion.button>
-                                    {index < breadcrumbItems.length - 1 && (
-                                        <motion.span
-                                            className="text-gray-600 text-xs 3xl:text-xl select-none"
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            transition={{ delay: 1.8 + index * 0.1 }}
+                                        <motion.button
+                                            onClick={() => onBreadcrumbClick(item)}
+                                            className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200 md:px-4 md:py-2 md:text-base 3xl:text-2xl ${
+                                                activeBreadcrumb === item.label
+                                                    ? 'text-[var(--brand-blue)]'
+                                                    : 'text-[var(--text-secondary)] hover:text-white'
+                                            }`}
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
                                         >
-                                            /
-                                        </motion.span>
-                                    )}
-                                </motion.div>
-                            ))}
-                        </motion.nav>
-                    </div>
-                </motion.div>
+                                            {item.label}
+                                        </motion.button>
+                                        {index < breadcrumbItems.length - 1 && (
+                                            <motion.span
+                                                className="select-none text-xs text-[var(--text-muted)] 3xl:text-xl"
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                transition={{ delay: 1.8 + index * 0.1 }}
+                                            >
+                                                /
+                                            </motion.span>
+                                        )}
+                                    </motion.div>
+                                ))}
+                            </motion.nav>
+                        </div>
+                    </motion.div>
                 </div>
             )}
-
         </motion.section>
     );
 }

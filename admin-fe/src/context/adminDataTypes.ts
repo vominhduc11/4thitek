@@ -1,3 +1,5 @@
+import { AUTOMATED_SENDER_EMAIL, BRAND_NAME } from '../config/businessProfile'
+
 export type OrderStatus = 'pending' | 'confirmed' | 'shipping' | 'completed' | 'cancelled'
 export type PaymentMethod = 'bank_transfer' | 'debt' | null
 export type PaymentStatus = 'pending' | 'paid' | 'debt_recorded' | 'cancelled' | 'failed'
@@ -135,8 +137,8 @@ export const initialSettings: AppSettings = {
   },
   emailSettings: {
     enabled: false,
-    from: '',
-    fromName: '',
+    from: AUTOMATED_SENDER_EMAIL,
+    fromName: BRAND_NAME,
   },
   rateLimitOverrides: {
     enabled: true,

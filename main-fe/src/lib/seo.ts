@@ -1,5 +1,14 @@
 import type { Metadata } from 'next';
-import { buildCanonicalUrl, SITE_NAME, SITE_URL, type SupportedLocale } from './site';
+import {
+    buildCanonicalUrl,
+    CONTACT_EMAIL,
+    CONTACT_PHONE,
+    LEGAL_COMPANY_NAME,
+    REGISTERED_ADDRESS,
+    SITE_NAME,
+    SITE_URL,
+    type SupportedLocale
+} from './site';
 
 const DEFAULT_OG_IMAGE = `${SITE_URL}/logo.png`;
 
@@ -57,6 +66,7 @@ export const organizationJsonLd = () => ({
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: SITE_NAME,
+    legalName: LEGAL_COMPANY_NAME,
     url: SITE_URL,
     logo: {
         '@type': 'ImageObject',
@@ -67,6 +77,8 @@ export const organizationJsonLd = () => ({
     contactPoint: {
         '@type': 'ContactPoint',
         contactType: 'customer service',
+        email: CONTACT_EMAIL,
+        telephone: CONTACT_PHONE,
         availableLanguage: ['Vietnamese', 'English']
     },
     sameAs: [SITE_URL]
@@ -82,15 +94,17 @@ export const localBusinessJsonLd = () => ({
         url: `${SITE_URL}/logo.png`
     },
     image: `${SITE_URL}/logo.png`,
-    description: 'Nha phan phoi chinh hang tai nghe SCS tai Viet Nam',
+    description: '4T HITEK la don vi phan phoi va ho tro san pham cong nghe ket noi cho hanh trinh duong dai tai Viet Nam.',
     address: {
         '@type': 'PostalAddress',
-        addressCountry: 'VN',
-        addressLocality: 'Viet Nam'
+        streetAddress: REGISTERED_ADDRESS,
+        addressCountry: 'VN'
     },
     contactPoint: {
         '@type': 'ContactPoint',
         contactType: 'customer service',
+        email: CONTACT_EMAIL,
+        telephone: CONTACT_PHONE,
         availableLanguage: ['Vietnamese', 'English']
     },
     priceRange: '$$',

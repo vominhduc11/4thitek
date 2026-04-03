@@ -7,10 +7,10 @@ import { createBaseMetadata } from '@/lib/seo';
 export const metadata: Metadata = createBaseMetadata({
     locale: 'vi',
     path: '/blogs',
-    title: 'Tin tuc & Bai viet - 4ThiTek',
+    title: 'Tin tuc & Bai viet - 4T HITEK',
     description:
-        'Cap nhat tin tuc moi nhat ve tai nghe SCS, huong dan su dung, danh gia san pham va cac bai viet chuyen sau tu 4ThiTek.',
-    keywords: ['tin tuc tai nghe SCS', '4ThiTek blog', 'danh gia tai nghe', 'huong dan tai nghe SCS']
+        'Cap nhat tin tuc moi nhat ve tai nghe SCS, huong dan su dung, danh gia san pham va cac bai viet chuyen sau tu 4T HITEK.',
+    keywords: ['tin tuc tai nghe SCS', '4T HITEK blog', 'danh gia tai nghe', 'huong dan tai nghe SCS']
 });
 
 interface BlogsPageProps {

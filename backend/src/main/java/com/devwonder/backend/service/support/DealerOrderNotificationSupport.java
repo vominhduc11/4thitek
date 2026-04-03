@@ -51,17 +51,17 @@ public class DealerOrderNotificationSupport {
         }
         try {
             String orderCode = firstNonBlank(order.getOrderCode(), "#" + order.getId());
-            String subject = "4ThiTek xác nhận đơn hàng " + orderCode;
+            String subject = "4T HITEK xác nhận đơn hàng " + orderCode;
             String body = """
                     Xin chào %s,
 
                     Đơn hàng %s của bạn đã được tiếp nhận thành công.
                     Chúng tôi sẽ xử lý và thông báo cho bạn khi có cập nhật mới.
 
-                    Cảm ơn bạn đã tin tưởng sử dụng dịch vụ của 4ThiTek.
+                    Cảm ơn bạn đã tin tưởng sử dụng dịch vụ của 4T HITEK.
 
                     Trân trọng,
-                    4ThiTek
+                    4T HITEK
                     """.formatted(resolveDisplayName(dealer), orderCode);
             mailService.sendText(recipient, subject, body);
         } catch (RuntimeException ex) {

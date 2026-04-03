@@ -1,3 +1,14 @@
+import {
+    CONTACT_EMAIL,
+    CONTACT_PHONE,
+    REGISTERED_ADDRESS,
+    REGISTERED_ADDRESS_LINES,
+    SOCIAL_PROFILE_LABEL
+} from '@/lib/site';
+
+const CONTACT_ADDRESS_EN = REGISTERED_ADDRESS;
+const CONTACT_ADDRESS_VI = REGISTERED_ADDRESS;
+
 // Translation data
 export const translations = {
     en: {
@@ -12,7 +23,7 @@ export const translations = {
         },
         hero: {
             title: 'Professional Audio Communication',
-            subtitle: `Discover a breakthrough era of motorcycle communication with 4T HITEK—a pioneering brand in Ho Chi Minh City specializing in telecom components and motorcycle accessories. The 4THITEK solution offers limitless connectivity, safety, and convenience. Featuring cutting-edge Bluetooth technology, a wind-noise reducing mic, and crisp audio, it lets you talk, listen to music, access GPS navigation, and receive real-time safety alerts—even at high speeds or in harsh terrain. Its compact, easy-to-install, and waterproof design fits most standard helmets. With group-connect capability for 2–8 riders and hundreds-of-meters range, you'll stay in touch during group rides or events. Firmware updates via mobile app ensure you always enjoy the latest features without replacing hardware. With 4THITEK, every journey becomes an intelligent, seamless, and stylish communication experience—truly the future of motorcycle connectivity.`,
+            subtitle: `Discover a breakthrough era of motorcycle communication with 4T HITEK—a pioneering brand in Ho Chi Minh City specializing in telecom components and motorcycle accessories. The 4T HITEK solution offers limitless connectivity, safety, and convenience. Featuring cutting-edge Bluetooth technology, a wind-noise reducing mic, and crisp audio, it lets you talk, listen to music, access GPS navigation, and receive real-time safety alerts—even at high speeds or in harsh terrain. Its compact, easy-to-install, and waterproof design fits most standard helmets. With group-connect capability for 2–8 riders and hundreds-of-meters range, you'll stay in touch during group rides or events. Firmware updates via mobile app ensure you always enjoy the latest features without replacing hardware. With 4T HITEK, every journey becomes an intelligent, seamless, and stylish communication experience—truly the future of motorcycle connectivity.`,
             cta: 'Explore Products'
         },
         products: {
@@ -66,7 +77,7 @@ export const translations = {
         reseller: {
             title: 'Find Authorized Dealers',
             subtitle:
-                'Find the nearest 4THITEK authorized dealers to purchase products and receive the best technical support.',
+                'Find the nearest 4T HITEK authorized dealers to purchase products and receive the best technical support.',
             city: 'City',
             district: 'District',
             specificAddress: 'Specific Address',
@@ -285,10 +296,10 @@ export const translations = {
         },
         about: {
             title: 'ABOUT US',
-            description: 'At 4thitek, we believe that exceptional audio is not just heard—it\'s experienced. Our journey began with a simple mission: to create audio products that deliver uncompromising sound quality, innovative design, and reliable performance.',
+            description: 'At 4T HITEK, we believe that exceptional audio is not just heard—it\'s experienced. Our journey began with a simple mission: to create audio products that deliver uncompromising sound quality, innovative design, and reliable performance.',
             purpose: {
                 title: 'Our Purpose',
-                description: 'At 4thitek, we\'re driven by our passion for sound. We combine cutting-edge technology with meticulous craftsmanship to create audio products that deliver an immersive and authentic listening experience.'
+                description: 'At 4T HITEK, we\'re driven by our passion for sound. We combine cutting-edge technology with meticulous craftsmanship to create audio products that deliver an immersive and authentic listening experience.'
             },
             mission: {
                 title: 'Our Mission',
@@ -357,14 +368,14 @@ export const translations = {
         },
         contact: {
             title: 'CONTACT US',
-            description: 'Contact us for the best consultation and support. TuneZone\'s team of specialists is always ready to answer all questions and help you find the most suitable products.',
+            description: 'Contact us for the best consultation and support. 4T HITEK\'s team of specialists is always ready to answer all questions and help you find the most suitable products.',
             info: {
                 address: 'Address',
                 phone: 'Phone',
                 email: 'Email',
-                addressContent: ['79/30/52 Âu Cơ, Phường 14', 'Quận 11, Thành phố Hồ Chí Minh'],
-                phoneContent: ['+84 679689900'],
-                emailContent: ['info@4thitek.vn']
+                addressContent: [...REGISTERED_ADDRESS_LINES],
+                phoneContent: [CONTACT_PHONE],
+                emailContent: [CONTACT_EMAIL]
             },
             form: {
                 title: 'Send Message',
@@ -410,8 +421,8 @@ export const translations = {
                 warranty: 'Learn about our product warranty policy, processing procedures and applicable conditions. We are committed to protecting customer interests with professional and dedicated warranty services.',
                 return: 'Detailed guidance on return and exchange procedures, processing time and necessary conditions. Ensuring safe and convenient shopping experience for customers.',
                 privacy: 'Our commitment to protecting customer personal information. Learn how we collect, use and protect your data safely and transparently.',
-                terms: 'Terms and conditions for using our services. Regulations on customer rights and obligations when using TuneZone products and services.',
-                default: 'Learn about TuneZone policies and regulations. We are committed to providing the best service experience with transparent and fair policies.'
+                terms: 'Terms and conditions for using our services. Regulations on customer rights and obligations when using 4T HITEK products and services.',
+                default: 'Learn about 4T HITEK policies and regulations. We are committed to providing the best service experience with transparent and fair policies.'
             },
             content: {
                 warranty: {
@@ -420,7 +431,7 @@ export const translations = {
                         'general-warranty': {
                             title: 'General Warranty',
                             content: {
-                                intro: 'All products sold at TuneZone are warranted according to manufacturer\'s policy and our regulations. Warranty period is calculated from the date of purchase.',
+                                intro: 'All products sold at 4T HITEK are warranted according to manufacturer\'s policy and our regulations. Warranty period is calculated from the date of purchase.',
                                 conditions: 'Warranty conditions:',
                                 conditionsList: [
                                     'Product is still within warranty period',
@@ -473,7 +484,7 @@ export const translations = {
                         'information-collection': {
                             title: 'Information Collection',
                             content: {
-                                commitment: 'TuneZone is committed to protecting customer personal information according to the highest security standards. We do not share personal information with third parties without your consent.',
+                                commitment: '4T HITEK is committed to protecting customer personal information according to the highest security standards. We do not share personal information with third parties without your consent.',
                                 collectTitle: 'Information we collect:',
                                 collectList: [
                                     'Contact information (name, email, phone)',
@@ -504,7 +515,7 @@ export const translations = {
                         'terms-conditions': {
                             title: 'Terms and Conditions',
                             content: {
-                                intro: 'This website is operated by TuneZone Store. Please read the Terms & Conditions carefully before using or registering on this website. You must fully agree to these terms and conditions if you want to use the website. If you do not agree with any part of these terms and conditions, you will not be able to use this website in any form.',
+                                intro: 'This website is operated by CÔNG TY TNHH 4T HITEK. Please read the Terms & Conditions carefully before using or registering on this website. You must fully agree to these terms and conditions if you want to use the website. If you do not agree with any part of these terms and conditions, you will not be able to use this website in any form.',
                                 global: 'Note that this website is built to serve global access for users.',
                                 application: 'The information on this website applies to users globally.',
                                 rights: 'We reserve the right to refuse access to this website at any time without prior notice.'
@@ -521,7 +532,7 @@ export const translations = {
                         'changes': {
                             title: 'Changes',
                             content: {
-                                rights: 'TuneZone reserves the right to change, add or remove any part of these terms at any time. Changes will take effect immediately upon posting on the website.',
+                                rights: '4T HITEK reserves the right to change, add or remove any part of these terms at any time. Changes will take effect immediately upon posting on the website.',
                                 recommendation: 'We encourage you to regularly check this page for the latest updates. Continued use of the service after changes means you accept the new terms.',
                                 notification: 'In case of significant changes, we will notify via email or website notification before implementation.'
                             }
@@ -625,10 +636,10 @@ export const translations = {
             },
             contact: {
                 title: 'Contact',
-                address: 'Ho Chi Minh City, Vietnam',
-                phone: '+84 909 123 456',
-                phoneRaw: '+84909123456',
-                email: 'info@4thitek.vn'
+                address: CONTACT_ADDRESS_EN,
+                phone: CONTACT_PHONE,
+                phoneRaw: CONTACT_PHONE,
+                email: CONTACT_EMAIL
             }
         },
         becomeReseller: {
@@ -774,9 +785,9 @@ export const translations = {
                 title: 'Have Questions?',
                 subtitle: 'Our partnership team is here to help you get started',
                 email: 'Email Us',
-                emailContent: 'reseller@tunezonehifi.com',
+                emailContent: CONTACT_EMAIL,
                 phone: 'Call Us',
-                phoneContent: '+1 (555) 123-4567',
+                phoneContent: CONTACT_PHONE,
                 visit: 'Visit Us',
                 visitContent: 'Business hours: Mon-Fri 9AM-6PM'
             }
@@ -827,7 +838,7 @@ export const translations = {
         },
         brandValues: {
             eyebrow: 'OFFICIAL DISTRIBUTOR',
-            title: 'Why Choose 4ThiTek?',
+            title: 'Why Choose 4T HITEK?',
             subtitle: 'Exclusive official distributor of SCS products in Vietnam — backed by certification, warranty, and a nationwide reseller network.',
             items: {
                 exclusive: {
@@ -859,7 +870,7 @@ export const translations = {
         },
         hero: {
             title: 'Truyền Thông Âm Thanh Chuyên Nghiệp',
-            subtitle: 'Trải nghiệm tương lai của giao tiếp xe máy với 4THITEK',
+            subtitle: 'Trải nghiệm tương lai của giao tiếp xe máy với 4T HITEK',
             cta: 'Khám Phá Sản Phẩm'
         },
         products: {
@@ -912,7 +923,7 @@ export const translations = {
         },
         reseller: {
             title: 'Tìm Đại Lý Ủy Quyền',
-            subtitle: 'Tìm kiếm đại lý ủy quyền 4THITEK gần nhất để mua sản phẩm và nhận hỗ trợ kỹ thuật tốt nhất.',
+            subtitle: 'Tìm kiếm đại lý ủy quyền 4T HITEK gần nhất để mua sản phẩm và nhận hỗ trợ kỹ thuật tốt nhất.',
             city: 'Thành Phố',
             district: 'Quận/Huyện',
             specificAddress: 'Địa Chỉ Cụ Thể',
@@ -1131,10 +1142,10 @@ export const translations = {
         },
         about: {
             title: 'VỀ CHÚNG TÔI',
-            description: 'Tại 4thitek, chúng tôi tin rằng âm thanh đặc biệt không chỉ được nghe thấy mà còn được trải nghiệm. Hành trình của chúng tôi bắt đầu với một sứ mệnh đơn giản: tạo ra các sản phẩm âm thanh mang lại chất lượng âm thanh không thỏa hiệp, thiết kế sáng tạo và hiệu suất đáng tin cậy.',
+            description: 'Tại 4T HITEK, chúng tôi tin rằng âm thanh đặc biệt không chỉ được nghe thấy mà còn được trải nghiệm. Hành trình của chúng tôi bắt đầu với một sứ mệnh đơn giản: tạo ra các sản phẩm âm thanh mang lại chất lượng âm thanh không thỏa hiệp, thiết kế sáng tạo và hiệu suất đáng tin cậy.',
             purpose: {
                 title: 'Mục Đích Của Chúng Tôi',
-                description: 'Tại 4thitek, chúng tôi được thúc đẩy bởi niềm đam mê âm thanh. Chúng tôi kết hợp công nghệ tiên tiến với sự khéo léo tỉ mỉ để tạo ra các sản phẩm âm thanh mang lại trải nghiệm nghe nhập vai và chân thực.'
+                description: 'Tại 4T HITEK, chúng tôi được thúc đẩy bởi niềm đam mê âm thanh. Chúng tôi kết hợp công nghệ tiên tiến với sự khéo léo tỉ mỉ để tạo ra các sản phẩm âm thanh mang lại trải nghiệm nghe nhập vai và chân thực.'
             },
             mission: {
                 title: 'Sứ Mệnh Của Chúng Tôi',
@@ -1203,14 +1214,14 @@ export const translations = {
         },
         contact: {
             title: 'LIÊN HỆ',
-            description: 'Liên hệ với chúng tôi để được tư vấn và hỗ trợ tốt nhất. Đội ngũ chuyên viên của TuneZone luôn sẵn sàng giải đáp mọi thắc mắc và hỗ trợ bạn tìm được sản phẩm phù hợp nhất.',
+            description: 'Liên hệ với chúng tôi để được tư vấn và hỗ trợ tốt nhất. Đội ngũ chuyên viên của 4T HITEK luôn sẵn sàng giải đáp mọi thắc mắc và hỗ trợ bạn tìm được sản phẩm phù hợp nhất.',
             info: {
                 address: 'Địa chỉ',
                 phone: 'Điện thoại',
                 email: 'Email',
-                addressContent: ['79/30/52 Âu Cơ, Phường 14', 'Quận 11, Thành phố Hồ Chí Minh'],
-                phoneContent: ['+84 679689900'],
-                emailContent: ['info@4thitek.vn']
+                addressContent: [...REGISTERED_ADDRESS_LINES],
+                phoneContent: [CONTACT_PHONE],
+                emailContent: [CONTACT_EMAIL]
             },
             form: {
                 title: 'Gửi tin nhắn',
@@ -1256,8 +1267,8 @@ export const translations = {
                 warranty: 'Tìm hiểu về chính sách bảo hành sản phẩm, quy trình xử lý và các điều kiện áp dụng. Chúng tôi cam kết bảo vệ quyền lợi khách hàng với dịch vụ bảo hành chuyên nghiệp và tận tâm.',
                 return: 'Hướng dẫn chi tiết về quy trình đổi trả hàng, thời gian xử lý và các điều kiện cần thiết. Đảm bảo trải nghiệm mua sắm an toàn và thuận tiện cho khách hàng.',
                 privacy: 'Cam kết bảo mật thông tin cá nhân của khách hàng. Tìm hiểu cách chúng tôi thu thập, sử dụng và bảo vệ dữ liệu của bạn một cách an toàn và minh bạch.',
-                terms: 'Các điều khoản và điều kiện sử dụng dịch vụ. Quy định về quyền và nghĩa vụ của khách hàng khi sử dụng sản phẩm và dịch vụ của TuneZone.',
-                default: 'Tìm hiểu về các chính sách và quy định của TuneZone. Chúng tôi cam kết mang đến trải nghiệm dịch vụ tốt nhất với các chính sách minh bạch và công bằng.'
+                terms: 'Các điều khoản và điều kiện sử dụng dịch vụ. Quy định về quyền và nghĩa vụ của khách hàng khi sử dụng sản phẩm và dịch vụ của 4T HITEK.',
+                default: 'Tìm hiểu về các chính sách và quy định của 4T HITEK. Chúng tôi cam kết mang đến trải nghiệm dịch vụ tốt nhất với các chính sách minh bạch và công bằng.'
             },
             content: {
                 warranty: {
@@ -1266,7 +1277,7 @@ export const translations = {
                         'general-warranty': {
                             title: 'Bảo hành tổng quát',
                             content: {
-                                intro: 'Tất cả sản phẩm được bán tại TuneZone đều được bảo hành theo chính sách của nhà sản xuất và các quy định của chúng tôi. Thời gian bảo hành được tính từ ngày mua hàng.',
+                                intro: 'Tất cả sản phẩm được bán tại 4T HITEK đều được bảo hành theo chính sách của nhà sản xuất và các quy định của chúng tôi. Thời gian bảo hành được tính từ ngày mua hàng.',
                                 conditions: 'Điều kiện bảo hành:',
                                 conditionsList: [
                                     'Sản phẩm còn trong thời hạn bảo hành',
@@ -1319,7 +1330,7 @@ export const translations = {
                         'information-collection': {
                             title: 'Thu thập thông tin',
                             content: {
-                                commitment: 'TuneZone cam kết bảo vệ thông tin cá nhân của khách hàng theo các tiêu chuẩn bảo mật cao nhất. Chúng tôi không chia sẻ thông tin cá nhân với bên thứ ba mà không có sự đồng ý của bạn.',
+                                commitment: '4T HITEK cam kết bảo vệ thông tin cá nhân của khách hàng theo các tiêu chuẩn bảo mật cao nhất. Chúng tôi không chia sẻ thông tin cá nhân với bên thứ ba mà không có sự đồng ý của bạn.',
                                 collectTitle: 'Thông tin chúng tôi thu thập:',
                                 collectList: [
                                     'Thông tin liên hệ (họ tên, email, số điện thoại)',
@@ -1350,7 +1361,7 @@ export const translations = {
                         'terms-conditions': {
                             title: 'Các điều kiện và điều khoản',
                             content: {
-                                intro: 'Trang web này được điều hành bởi Cửa Hàng TuneZone. Xin vui lòng đọc kỹ các Điều kiện & Điều khoản trước khi sử dụng hoặc đăng ký trên trang web này. Bạn phải hoàn toàn đồng ý với các điều kiện và điều khoản này nếu muốn sử dụng trang web. Nếu bạn không đồng ý với bất kỳ phần nào trong các điều kiện và điều khoản này, bạn sẽ không thể sử dụng trang web này dưới bất kỳ hình thức nào.',
+                                intro: 'Trang web này được điều hành bởi Cửa Hàng 4T HITEK. Xin vui lòng đọc kỹ các Điều kiện & Điều khoản trước khi sử dụng hoặc đăng ký trên trang web này. Bạn phải hoàn toàn đồng ý với các điều kiện và điều khoản này nếu muốn sử dụng trang web. Nếu bạn không đồng ý với bất kỳ phần nào trong các điều kiện và điều khoản này, bạn sẽ không thể sử dụng trang web này dưới bất kỳ hình thức nào.',
                                 global: 'Lưu ý rằng trang web này được xây dựng nhằm phục vụ truy cập trên phạm vi toàn cầu đối với người sử dụng.',
                                 application: 'Những thông tin trên trang web này được áp dụng cho người sử dụng trên phạm vi toàn cầu.',
                                 rights: 'Chúng tôi có quyền từ chối truy cập vào trang web này bất cứ lúc nào mà không cần phải thông báo trước.'
@@ -1367,7 +1378,7 @@ export const translations = {
                         'changes': {
                             title: 'Những thay đổi',
                             content: {
-                                rights: 'TuneZone có quyền thay đổi, bổ sung hoặc xóa bỏ bất kỳ phần nào trong các điều khoản này vào bất cứ lúc nào. Các thay đổi sẽ có hiệu lực ngay khi được đăng tải trên website.',
+                                rights: '4T HITEK có quyền thay đổi, bổ sung hoặc xóa bỏ bất kỳ phần nào trong các điều khoản này vào bất cứ lúc nào. Các thay đổi sẽ có hiệu lực ngay khi được đăng tải trên website.',
                                 recommendation: 'Chúng tôi khuyến khích bạn thường xuyên kiểm tra trang này để cập nhật những thay đổi mới nhất. Việc tiếp tục sử dụng dịch vụ sau khi có thay đổi đồng nghĩa với việc bạn chấp nhận các điều khoản mới.',
                                 notification: 'Trong trường hợp có thay đổi quan trọng, chúng tôi sẽ thông báo qua email hoặc thông báo trên website trước khi áp dụng.'
                             }
@@ -1471,10 +1482,10 @@ export const translations = {
             },
             contact: {
                 title: 'Liên Hệ',
-                address: 'Thành phố Hồ Chí Minh, Việt Nam',
-                phone: '+84 909 123 456',
-                phoneRaw: '+84909123456',
-                email: 'info@4thitek.vn'
+                address: CONTACT_ADDRESS_VI,
+                phone: CONTACT_PHONE,
+                phoneRaw: CONTACT_PHONE,
+                email: CONTACT_EMAIL
             }
         },
         becomeReseller: {
@@ -1620,9 +1631,9 @@ export const translations = {
                 title: 'Có Câu Hỏi?',
                 subtitle: 'Đội ngũ đối tác của chúng tôi sẵn sàng hỗ trợ bạn bắt đầu',
                 email: 'Email Cho Chúng Tôi',
-                emailContent: 'reseller@tunezonehifi.com',
+                emailContent: CONTACT_EMAIL,
                 phone: 'Gọi Cho Chúng Tôi',
-                phoneContent: '+1 (555) 123-4567',
+                phoneContent: CONTACT_PHONE,
                 visit: 'Ghé Thăm Chúng Tôi',
                 visitContent: 'Giờ làm việc: Thứ 2-6 9AM-6PM'
             }
@@ -1673,7 +1684,7 @@ export const translations = {
         },
         brandValues: {
             eyebrow: 'NHÀ PHÂN PHỐI CHÍNH HÃNG',
-            title: 'Tại Sao Chọn 4ThiTek?',
+            title: 'Tại Sao Chọn 4T HITEK?',
             subtitle: 'Nhà phân phối độc quyền chính hãng sản phẩm SCS tại Việt Nam — được chứng nhận, bảo hành đầy đủ và mạng lưới đại lý toàn quốc.',
             items: {
                 exclusive: {
@@ -1760,9 +1771,9 @@ export const extraTranslations = {
         },
         blog: {
             author: {
-                name: '4THITEK Team',
+                name: '4T HITEK Team',
                 title: 'Technical Team',
-                bio: '4THITEK Technical Team'
+                bio: '4T HITEK Technical Team'
             },
             categories: {
                 uncategorized: 'Uncategorized'
@@ -2043,11 +2054,11 @@ export const extraTranslations = {
                     descriptionAll: 'Tell us about your ride and we will recommend the best setup for you.',
                     descriptionPosition: 'Looking for {position} options? We will help you find the right fit.',
                     emailLabel: 'Email',
-                    emailValue: 'support@4thitek.vn',
+                    emailValue: CONTACT_EMAIL,
                     phoneLabel: 'Hotline',
-                    phoneValue: '1900 8888',
+                    phoneValue: CONTACT_PHONE,
                     addressLabel: 'Address',
-                    addressValue: 'Ho Chi Minh City, Vietnam'
+                    addressValue: CONTACT_ADDRESS_EN
                 },
                 whyTitle: 'Why Choose 4T HITEK?',
                 features: [
@@ -2159,17 +2170,17 @@ export const extraTranslations = {
                     title: 'Need Help?',
                     hotline: {
                         title: 'Hotline',
-                        value: '1900 8888',
+                        value: CONTACT_PHONE,
                         note: 'Mon–Sat, 8:00–18:00'
                     },
                     facebook: {
                         title: 'Facebook',
-                        value: 'facebook.com/4thitek',
+                        value: SOCIAL_PROFILE_LABEL,
                         note: 'Message us on Facebook'
                     },
                     address: {
                         title: 'Address',
-                        value: 'Ho Chi Minh City, Vietnam',
+                        value: CONTACT_ADDRESS_EN,
                         note: 'Authorized service center'
                     }
                 },
@@ -2284,9 +2295,9 @@ export const extraTranslations = {
                 customerAddressLabel: 'Customer Address',
                 supportTitle: 'Support',
                 hotlineLabel: 'Hotline',
-                hotlineValue: '1900 8888',
+                hotlineValue: CONTACT_PHONE,
                 supportEmailLabel: 'Support Email',
-                supportEmailValue: 'support@4thitek.vn',
+                supportEmailValue: CONTACT_EMAIL,
                 exportTimestampLabel: 'Exported at',
                 fileNamePrefix: 'warranty'
             },
@@ -2328,9 +2339,9 @@ export const extraTranslations = {
                     title: 'Support',
                     description: 'For more help, contact our support team.',
                     hotlineLabel: 'Hotline',
-                    hotlineValue: '1900 8888',
+                    hotlineValue: CONTACT_PHONE,
                     emailLabel: 'Email',
-                    emailValue: 'support@4thitek.vn'
+                    emailValue: CONTACT_EMAIL
                 }
             }
         }
@@ -2399,9 +2410,9 @@ export const extraTranslations = {
         },
         blog: {
             author: {
-                name: 'Đội ngũ 4THITEK',
+                name: 'Đội ngũ 4T HITEK',
                 title: 'Đội kỹ thuật',
-                bio: 'Đội ngũ kỹ thuật 4THITEK'
+                bio: 'Đội ngũ kỹ thuật 4T HITEK'
             },
             categories: {
                 uncategorized: 'Chưa phân loại'
@@ -2682,11 +2693,11 @@ export const extraTranslations = {
                     descriptionAll: 'Chia sẻ nhu cầu sử dụng, chúng tôi sẽ gợi ý cấu hình phù hợp.',
                     descriptionPosition: 'Bạn đang tìm phân khúc {position}? Chúng tôi sẽ giúp bạn chọn đúng.',
                     emailLabel: 'Email',
-                    emailValue: 'support@4thitek.vn',
+                    emailValue: CONTACT_EMAIL,
                     phoneLabel: 'Hotline',
-                    phoneValue: '1900 8888',
+                    phoneValue: CONTACT_PHONE,
                     addressLabel: 'Địa chỉ',
-                    addressValue: 'TP. Hồ Chí Minh, Việt Nam'
+                    addressValue: CONTACT_ADDRESS_VI
                 },
                 whyTitle: 'Vì Sao Chọn 4T HITEK?',
                 features: [
@@ -2798,17 +2809,17 @@ export const extraTranslations = {
                     title: 'Liên hệ hỗ trợ',
                     hotline: {
                         title: 'Hotline',
-                        value: '1900 8888',
+                        value: CONTACT_PHONE,
                         note: 'Thứ 2–Thứ 7, 8:00–18:00'
                     },
                     facebook: {
                         title: 'Facebook',
-                        value: 'facebook.com/4thitek',
+                        value: SOCIAL_PROFILE_LABEL,
                         note: 'Nhắn tin cho chúng tôi'
                     },
                     address: {
                         title: 'Địa chỉ',
-                        value: 'TP. Hồ Chí Minh, Việt Nam',
+                        value: CONTACT_ADDRESS_VI,
                         note: 'Trung tâm bảo hành ủy quyền'
                     }
                 },
@@ -2923,9 +2934,9 @@ export const extraTranslations = {
                 customerAddressLabel: 'Địa chỉ',
                 supportTitle: 'Hỗ trợ',
                 hotlineLabel: 'Hotline',
-                hotlineValue: '1900 8888',
+                hotlineValue: CONTACT_PHONE,
                 supportEmailLabel: 'Email hỗ trợ',
-                supportEmailValue: 'support@4thitek.vn',
+                supportEmailValue: CONTACT_EMAIL,
                 exportTimestampLabel: 'Thời gian xuất',
                 fileNamePrefix: 'bao-hanh'
             },
@@ -2967,9 +2978,9 @@ export const extraTranslations = {
                     title: 'Hỗ trợ',
                     description: 'Liên hệ bộ phận hỗ trợ để được trợ giúp.',
                     hotlineLabel: 'Hotline',
-                    hotlineValue: '1900 8888',
+                    hotlineValue: CONTACT_PHONE,
                     emailLabel: 'Email',
-                    emailValue: 'support@4thitek.vn'
+                    emailValue: CONTACT_EMAIL
                 }
             }
         },

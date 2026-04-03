@@ -39,12 +39,12 @@ describe('adminDataMappers', () => {
         webhookToken: 'token-123',
         bankName: 'ACB',
         accountNumber: '123456789',
-        accountHolder: '4thitek',
+        accountHolder: 'CÔNG TY TNHH 4T HITEK',
       },
       emailSettings: {
         enabled: true,
-        from: 'noreply@example.com',
-        fromName: '4thitek Admin',
+        from: 'info@4thitek.vn',
+        fromName: '4T HITEK',
       },
       rateLimitOverrides: {
         enabled: true,
@@ -58,7 +58,7 @@ describe('adminDataMappers', () => {
 
     expect(mapped.sepay.enabled).toBe(true)
     expect(mapped.sepay.webhookToken).toBe('token-123')
-    expect(mapped.emailSettings.from).toBe('noreply@example.com')
+    expect(mapped.emailSettings.from).toBe('info@4thitek.vn')
     expect(mapped.vatPercent).toBe(8)
     expect(mapped.rateLimitOverrides.auth.requests).toBe(12)
     expect(mapped.rateLimitOverrides.webhook.requests).toBe(180)

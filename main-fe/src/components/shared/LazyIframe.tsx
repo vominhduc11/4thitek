@@ -71,10 +71,10 @@ const LazyIframe = memo(function LazyIframe({
     };
 
     const defaultPlaceholder = (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-800/30">
+        <div className="absolute inset-0 flex items-center justify-center bg-[rgba(7,17,27,0.7)]">
             <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-4 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-sm text-gray-400">{t('common.loadingVideo')}</p>
+                <div className="mx-auto mb-4 h-16 w-16 animate-spin rounded-full border-4 border-[rgba(41,171,226,0.35)] border-t-[var(--brand-blue)]"></div>
+                <p className="text-sm text-[var(--text-secondary)]">{t('common.loadingVideo')}</p>
             </div>
         </div>
     );

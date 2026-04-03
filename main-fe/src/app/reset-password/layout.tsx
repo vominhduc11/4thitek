@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-    title: '4ThiTek | Đặt lại mật khẩu',
+    title: '4T HITEK | Đặt lại mật khẩu',
     robots: { index: false, follow: false }
 };
 

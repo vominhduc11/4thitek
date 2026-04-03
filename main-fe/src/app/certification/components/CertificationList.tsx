@@ -13,8 +13,8 @@ export default function CertificationList() {
     const { data, error } = usePublicContent<CertificationContent>('certification');
 
     return (
-        <section className="bg-[#0c131d] py-12 sm:py-16 2xl:py-20 3xl:py-24">
-            <div className="ml-0 sm:ml-16 md:ml-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
+        <section className="brand-section py-12 sm:py-16 2xl:py-20 3xl:py-24">
+            <div className="brand-shell sm:ml-16 md:ml-20">
                 <motion.div
                     className="mb-12 2xl:mb-16 3xl:mb-20"
                     initial={{ opacity: 0, y: 20 }}
@@ -22,31 +22,38 @@ export default function CertificationList() {
                     transition={{ duration: 0.6 }}
                     viewport={{ once: true }}
                 >
-                    <h2 className="text-2xl sm:text-3xl xl:text-4xl 3xl:text-5xl font-bold mb-4 2xl:mb-6 3xl:mb-8 text-white">{data?.list.title || ''}</h2>
-                    <div className="w-16 h-1 2xl:w-20 3xl:w-24 bg-[#4FC8FF] mb-6 2xl:mb-8 3xl:mb-10"></div>
-                    <p className="text-gray-300 text-base 2xl:text-lg 3xl:text-xl max-w-3xl 2xl:max-w-4xl 3xl:max-w-5xl">
+                    <p className="brand-eyebrow mb-3">
+                        {language === 'vi' ? 'Chuẩn mực và chứng nhận' : 'Standards and certifications'}
+                    </p>
+                    <h2 className="mb-4 font-serif text-3xl font-semibold text-[var(--brand-blue)] sm:text-4xl xl:text-5xl 3xl:text-6xl">
+                        {data?.list.title || ''}
+                    </h2>
+                    <div className="mb-6 h-1 w-24 rounded-full bg-[linear-gradient(90deg,var(--brand-gradient-start),var(--brand-gradient-end))] 2xl:mb-8 3xl:mb-10" />
+                    <p className="max-w-3xl text-base text-[var(--text-secondary)] 2xl:max-w-4xl 2xl:text-lg 3xl:max-w-5xl 3xl:text-xl">
                         {data?.list.description || ''}
                     </p>
                     {error && !data && (
-                        <p className="mt-4 text-sm text-red-300">
-                            {language === 'vi' ? 'Không thể tải nội dung chứng nhận.' : 'Unable to load certification content.'}
+                        <p className="mt-4 text-sm text-[var(--destructive-text)]">
+                            {language === 'vi'
+                                ? 'KhĂ´ng thá»ƒ táº£i ná»™i dung chá»©ng nháº­n.'
+                                : 'Unable to load certification content.'}
                         </p>
                     )}
                 </motion.div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-8 2xl:gap-10 3xl:gap-12">
+                <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 2xl:gap-10 3xl:grid-cols-5 3xl:gap-12">
                     {(data?.items ?? []).map((cert, index) => (
                         <motion.div
                             key={cert.id}
-                            className="bg-[#151e2b] rounded-lg 2xl:rounded-xl 3xl:rounded-2xl overflow-hidden shadow-lg"
+                            className="brand-card overflow-hidden rounded-[28px]"
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: index * 0.1 }}
                             viewport={{ once: true }}
                             whileHover={{ y: -5, transition: { duration: 0.2 } }}
                         >
-                            <div className="p-6 2xl:p-8 3xl:p-10 flex items-center justify-center h-40 2xl:h-48 3xl:h-56 bg-white/5">
-                                <div className="relative h-24 2xl:h-28 3xl:h-32 w-full">
+                            <div className="flex h-40 items-center justify-center bg-[rgba(255,255,255,0.03)] p-6 2xl:h-48 2xl:p-8 3xl:h-56 3xl:p-10">
+                                <div className="relative h-24 w-full 2xl:h-28 3xl:h-32">
                                     {cert.logo ? (
                                         <Image
                                             src={cert.logo}
@@ -56,7 +63,7 @@ export default function CertificationList() {
                                             sizes="(max-width: 768px) 100vw, (max-width: 3200px) 33vw, 40vw"
                                         />
                                     ) : (
-                                        <div className="flex h-full items-center justify-center text-gray-500">
+                                        <div className="flex h-full items-center justify-center text-[var(--text-muted)]">
                                             <svg
                                                 aria-hidden="true"
                                                 className="h-10 w-10"
@@ -76,15 +83,22 @@ export default function CertificationList() {
                                 </div>
                             </div>
                             <div className="p-6 2xl:p-8 3xl:p-10">
-                                <h3 className="text-xl 2xl:text-2xl 3xl:text-3xl font-bold text-white mb-2 2xl:mb-3 3xl:mb-4">{cert.name}</h3>
-                                <p className="text-gray-400 text-sm 2xl:text-base 3xl:text-lg mb-4 2xl:mb-6 3xl:mb-8 leading-relaxed">{cert.description}</p>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs 2xl:text-sm 3xl:text-base text-[#4FC8FF]">{data?.list.issuedBy}: {cert.issuedBy}</span>
+                                <h3 className="mb-2 text-xl font-semibold text-[var(--text-primary)] 2xl:mb-3 2xl:text-2xl 3xl:mb-4 3xl:text-3xl">
+                                    {cert.name}
+                                </h3>
+                                <p className="mb-4 text-sm leading-relaxed text-[var(--text-secondary)] 2xl:mb-6 2xl:text-base 3xl:mb-8 3xl:text-lg">
+                                    {cert.description}
+                                </p>
+                                <div className="flex items-center justify-between gap-4">
+                                    <span className="brand-badge-muted text-xs 2xl:text-sm 3xl:text-base">
+                                        {data?.list.issuedBy}: {cert.issuedBy}
+                                    </span>
                                     <Link
                                         href={cert.link}
-                                        className="text-gray-400 hover:text-[#4FC8FF] transition-colors flex items-center gap-1 2xl:gap-2 3xl:gap-3 text-sm 2xl:text-base 3xl:text-lg"
+                                        className="flex items-center gap-1 text-sm text-[var(--brand-blue)] transition-colors hover:text-[var(--text-primary)] 2xl:gap-2 2xl:text-base 3xl:gap-3 3xl:text-lg"
                                     >
-                                        {data?.list.details} <FiExternalLink className="w-3.5 h-3.5 2xl:w-4 2xl:h-4 3xl:w-5 3xl:h-5" />
+                                        {data?.list.details}{' '}
+                                        <FiExternalLink className="h-3.5 w-3.5 2xl:h-4 2xl:w-4 3xl:h-5 3xl:w-5" />
                                     </Link>
                                 </div>
                             </div>

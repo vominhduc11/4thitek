@@ -16,23 +16,15 @@ interface PolicyContentProps {
 
 // Helper function to render content with translations
 const renderSectionContent = (contentData: PolicySectionContent) => {
-    const baseClass = "leading-normal text-base 2xl:text-lg 3xl:text-xl";
+    const baseClass = 'leading-normal text-base 2xl:text-lg 3xl:text-xl';
     const paragraphClass = `mb-4 2xl:mb-6 3xl:mb-8 ${baseClass}`;
     const listClass = `list-disc list-inside mb-4 2xl:mb-6 3xl:mb-8 space-y-2 2xl:space-y-3 3xl:space-y-4 ${baseClass}`;
-    const strongClass = "text-base 2xl:text-lg 3xl:text-xl";
+    const strongClass = 'text-base 2xl:text-lg 3xl:text-xl';
 
     return (
         <>
-            {contentData.intro && (
-                <p className={paragraphClass}>
-                    {contentData.intro}
-                </p>
-            )}
-            {contentData.commitment && (
-                <p className={paragraphClass}>
-                    {contentData.commitment}
-                </p>
-            )}
+            {contentData.intro && <p className={paragraphClass}>{contentData.intro}</p>}
+            {contentData.commitment && <p className={paragraphClass}>{contentData.commitment}</p>}
             {contentData.conditions && (
                 <p className={paragraphClass}>
                     <strong className={strongClass}>{contentData.conditions}</strong>
@@ -45,26 +37,10 @@ const renderSectionContent = (contentData: PolicySectionContent) => {
                     ))}
                 </ul>
             )}
-            {contentData.contact && (
-                <p className={paragraphClass}>
-                    {contentData.contact}
-                </p>
-            )}
-            {contentData.processing && (
-                <p className={paragraphClass}>
-                    {contentData.processing}
-                </p>
-            )}
-            {contentData.notification && (
-                <p className={baseClass}>
-                    {contentData.notification}
-                </p>
-            )}
-            {contentData.shipping && (
-                <p className={baseClass}>
-                    {contentData.shipping}
-                </p>
-            )}
+            {contentData.contact && <p className={paragraphClass}>{contentData.contact}</p>}
+            {contentData.processing && <p className={paragraphClass}>{contentData.processing}</p>}
+            {contentData.notification && <p className={baseClass}>{contentData.notification}</p>}
+            {contentData.shipping && <p className={baseClass}>{contentData.shipping}</p>}
             {contentData.collectTitle && (
                 <p className={paragraphClass}>
                     <strong className={strongClass}>{contentData.collectTitle}</strong>
@@ -89,53 +65,30 @@ const renderSectionContent = (contentData: PolicySectionContent) => {
                     ))}
                 </ul>
             )}
-            {contentData.rights && (
-                <p className={baseClass}>
-                    {contentData.rights}
-                </p>
-            )}
-            {contentData.global && (
-                <p className={paragraphClass}>
-                    {contentData.global}
-                </p>
-            )}
-            {contentData.application && (
-                <p className={paragraphClass}>
-                    {contentData.application}
-                </p>
-            )}
-            {contentData.law && (
-                <p className={paragraphClass}>
-                    {contentData.law}
-                </p>
-            )}
-            {contentData.validity && (
-                <p className={paragraphClass}>
-                    {contentData.validity}
-                </p>
-            )}
-            {contentData.compliance && (
-                <p className={baseClass}>
-                    {contentData.compliance}
-                </p>
-            )}
-            {contentData.recommendation && (
-                <p className={paragraphClass}>
-                    {contentData.recommendation}
-                </p>
-            )}
+            {contentData.rights && <p className={baseClass}>{contentData.rights}</p>}
+            {contentData.global && <p className={paragraphClass}>{contentData.global}</p>}
+            {contentData.application && <p className={paragraphClass}>{contentData.application}</p>}
+            {contentData.law && <p className={paragraphClass}>{contentData.law}</p>}
+            {contentData.validity && <p className={paragraphClass}>{contentData.validity}</p>}
+            {contentData.compliance && <p className={baseClass}>{contentData.compliance}</p>}
+            {contentData.recommendation && <p className={paragraphClass}>{contentData.recommendation}</p>}
         </>
     );
 };
 
-export default function PolicyContent({ selectedPolicy, policyContent, loading = false, error = null }: PolicyContentProps) {
+export default function PolicyContent({
+    selectedPolicy,
+    policyContent,
+    loading = false,
+    error = null
+}: PolicyContentProps) {
     const { t } = useLanguage();
     const currentPolicyData = policyContent?.content[selectedPolicy] as PolicyDataEntry | undefined;
 
     if (loading && !policyContent) {
         return (
             <SectionContainer>
-                <div className="py-8 text-gray-300">{t('common.loading')}</div>
+                <div className="py-8 text-[var(--text-secondary)]">{t('common.loading')}</div>
             </SectionContainer>
         );
     }
@@ -144,22 +97,24 @@ export default function PolicyContent({ selectedPolicy, policyContent, loading =
     if (!currentPolicyData || !currentPolicyData.sections) {
         return (
             <div className="text-white p-8">
-                <div className="bg-red-500/20 border border-red-500 rounded-lg p-4">
-                    <h3 className="text-xl font-bold mb-2">{t('policy.errors.title')}</h3>
-                    <p>
-                        {error || t('policy.errors.message').replace('{policy}', selectedPolicy)}
-                    </p>
-                    <p className="text-sm mt-2">{t('policy.errors.hint')}</p>
+                <div className="brand-card rounded-[24px] border border-[rgba(239,95,120,0.28)] p-4">
+                    <h3 className="mb-2 font-serif text-xl font-semibold text-[var(--destructive-text)]">
+                        {t('policy.errors.title')}
+                    </h3>
+                    <p>{error || t('policy.errors.message').replace('{policy}', selectedPolicy)}</p>
+                    <p className="mt-2 text-sm text-[var(--text-muted)]">{t('policy.errors.hint')}</p>
                 </div>
             </div>
         );
     }
 
     // Create table of contents entries from translation data
-    const currentTableOfContents = Object.entries(currentPolicyData.sections || {}).map(([sectionKey, sectionData]) => ({
-        label: sectionData.title,
-        anchorId: sectionKey
-    }));
+    const currentTableOfContents = Object.entries(currentPolicyData.sections || {}).map(
+        ([sectionKey, sectionData]) => ({
+            label: sectionData.title,
+            anchorId: sectionKey
+        })
+    );
 
     return (
         <SectionContainer>

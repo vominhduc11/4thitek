@@ -200,8 +200,8 @@ class _AppPreferencesTexts {
   String get appearanceTitle => isEnglish ? 'Appearance' : 'Giao diện';
 
   String get appearanceSubtitle => isEnglish
-      ? 'Dealer Hub now uses one optimized dark mode for consistent readability across all devices.'
-      : 'Dealer Hub hiện dùng một giao diện tối tối ưu để đảm bảo khả năng đọc nhất quán trên mọi thiết bị.';
+      ? '4T HITEK Dealer now uses one optimized dark mode for consistent readability across all devices.'
+      : '4T HITEK Dealer hiện dùng một giao diện tối tối ưu để đảm bảo khả năng đọc nhất quán trên mọi thiết bị.';
 
   String get appearanceModeLabel =>
       isEnglish ? 'Theme mode' : 'Chế độ hiển thị';

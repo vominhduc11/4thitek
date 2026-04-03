@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'account_settings_screen.dart';
 import 'app_preferences_screen.dart';
+import 'business_profile.dart';
 import 'cart_screen.dart';
 import 'change_password_screen.dart';
 import 'checkout_screen.dart';
@@ -188,7 +189,7 @@ class _LaunchRouteScreen extends StatelessWidget {
             colors: [
               colors.surfaceContainerLow,
               colors.surface,
-              const Color(0xFF091017),
+              const Color(0xFF07111A),
             ],
           ),
         ),
@@ -300,7 +301,7 @@ class _RouteNotFoundScreen extends StatelessWidget {
         : 'Mở danh mục sản phẩm';
 
     return Scaffold(
-      appBar: AppBar(title: const BrandAppBarTitle('4thitek')),
+      appBar: AppBar(title: const BrandAppBarTitle(BusinessProfile.brandName)),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),

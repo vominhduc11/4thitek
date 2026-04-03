@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'4thitek Dealer Hub'**
+  /// **'4T HITEK Dealer'**
   String get appTitle;
 
   /// No description provided for @viewAction.
@@ -119,7 +119,7 @@ abstract class AppLocalizations {
   /// No description provided for @welcomeTitle.
   ///
   /// In en, this message translates to:
-  /// **'Welcome to 4thitek Dealer Hub'**
+  /// **'Welcome to 4T HITEK Dealer'**
   String get welcomeTitle;
 
   /// No description provided for @welcomeStepProducts.

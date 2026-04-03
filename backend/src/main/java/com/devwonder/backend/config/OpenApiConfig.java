@@ -15,10 +15,13 @@ public class OpenApiConfig {
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("4ThiTek API")
+                        .title(BusinessIdentity.BRAND_NAME + " API")
                         .version("v1")
                         .description("Documented API surface for admin, dealer, customer, and public clients.")
-                        .contact(new Contact().name("4ThiTek")))
+                        .contact(new Contact()
+                                .name(BusinessIdentity.BRAND_NAME)
+                                .email(BusinessIdentity.CONTACT_EMAIL)
+                                .url(BusinessIdentity.WEBSITE_URL)))
                 .servers(List.of(
                         new Server().url("/api/v1").description("Versioned API")
                 ));

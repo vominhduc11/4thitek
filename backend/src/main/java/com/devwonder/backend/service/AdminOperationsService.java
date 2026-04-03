@@ -670,7 +670,7 @@ public class AdminOperationsService {
 
     private String buildSupportTicketEmailSubject(DealerSupportTicket ticket) {
         String ticketCode = safeValue(ticket.getTicketCode(), "#" + ticket.getId());
-        return "4ThiTek cập nhật yêu cầu hỗ trợ " + ticketCode;
+        return "4T HITEK cập nhật yêu cầu hỗ trợ " + ticketCode;
     }
 
     private String buildSupportTicketEmailBody(
@@ -704,7 +704,7 @@ public class AdminOperationsService {
 
         body.append("\nVui lòng mở ứng dụng Dealer để xem chi tiết thêm.\n\n")
                 .append("Trân trọng,\n")
-                .append("4ThiTek");
+                .append("4T HITEK");
         return body.toString();
     }
 

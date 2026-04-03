@@ -12,25 +12,25 @@ interface BreadcrumbProps {
 
 export default function Breadcrumb({ items }: BreadcrumbProps) {
     return (
-        <nav className="flex items-center text-xs sm:text-sm lg:text-base mb-6">
-            <ul className="flex space-x-2">
+        <nav className="mb-6" aria-label="Breadcrumb">
+            <ul className="flex flex-wrap items-center gap-2 text-xs sm:text-sm lg:text-base">
                 {items.map((item, index) => (
-                    <li key={index} className="flex items-center space-x-2">
+                    <li key={`${item.label}-${index}`} className="flex items-center gap-2">
                         {item.active ? (
-                            <span className="text-[#4FC8FF] font-medium">{item.label}</span>
+                            <span className="font-semibold text-[var(--brand-blue)]">{item.label}</span>
                         ) : item.href ? (
                             <Link
                                 href={item.href}
-                                className="hover:text-white cursor-pointer text-gray-400 transition-colors"
+                                className="text-[var(--text-secondary)] transition-colors hover:text-white"
                             >
                                 {item.label}
                             </Link>
                         ) : (
-                            <span className="hover:text-white cursor-pointer text-gray-400 transition-colors">
+                            <span className="text-[var(--text-secondary)] transition-colors hover:text-white">
                                 {item.label}
                             </span>
                         )}
-                        {index < items.length - 1 && <span className="text-gray-400">/</span>}
+                        {index < items.length - 1 && <span className="text-[var(--text-muted)]">/</span>}
                     </li>
                 ))}
             </ul>

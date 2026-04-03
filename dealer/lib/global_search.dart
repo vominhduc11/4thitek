@@ -622,7 +622,7 @@ class _GlobalSearchTexts {
   String get orderItemLabel => isEnglish ? 'Order' : 'Đơn hàng';
   String get productItemLabel => isEnglish ? 'Product' : 'Sản phẩm';
   String get hintTitle =>
-      isEnglish ? 'Search the dealer hub' : 'Tìm nhanh trong Dealer Hub';
+      isEnglish ? 'Search 4T HITEK Dealer' : 'Tìm nhanh trong 4T HITEK Dealer';
   String get hintMessage => isEnglish
       ? 'Enter a keyword to quickly find orders and products.'
       : 'Nhập từ khóa để tìm nhanh đơn hàng và sản phẩm.';

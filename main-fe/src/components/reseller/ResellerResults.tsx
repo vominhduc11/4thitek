@@ -53,14 +53,12 @@ export default function ResellerResults({
 
     if (parentLoading) {
         return (
-            <section className="bg-[#0c131d] py-8 text-white">
-                <div className="w-full">
-                    <div className="space-y-4">
-                        <CardSkeleton height={150} backgroundColor="#1e293b" foregroundColor="#334155" />
-                        <CardSkeleton height={150} backgroundColor="#1e293b" foregroundColor="#334155" />
-                        <CardSkeleton height={150} backgroundColor="#1e293b" foregroundColor="#334155" />
-                        <CardSkeleton height={150} backgroundColor="#1e293b" foregroundColor="#334155" />
-                    </div>
+            <section className="py-8 text-white">
+                <div className="w-full space-y-4">
+                    <CardSkeleton height={150} backgroundColor="#152332" foregroundColor="#28445c" />
+                    <CardSkeleton height={150} backgroundColor="#152332" foregroundColor="#28445c" />
+                    <CardSkeleton height={150} backgroundColor="#152332" foregroundColor="#28445c" />
+                    <CardSkeleton height={150} backgroundColor="#152332" foregroundColor="#28445c" />
                 </div>
             </section>
         );
@@ -71,7 +69,7 @@ export default function ResellerResults({
 
         return (
             <motion.section
-                className="flex min-h-[400px] items-center justify-center bg-[#0c131d] py-8 text-white"
+                className="flex min-h-[400px] items-center justify-center py-8 text-white"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5 }}
@@ -82,11 +80,15 @@ export default function ResellerResults({
                     animate={{ scale: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
                 >
-                    <div className="rounded-lg border border-red-500/30 bg-[#1e293b] p-8 text-center">
-                        <div className="mb-4 text-5xl text-red-500">⚠️</div>
-                        <h3 className="mb-2 text-lg font-semibold text-red-400">{t('errors.reseller.errorTitle')}</h3>
-                        <p className="mb-4 text-gray-300">{errorMessage}</p>
-                        <p className="text-sm text-gray-400">{t('errors.general.serverError')}</p>
+                    <div className="brand-card w-full rounded-[28px] border border-[rgba(239,95,120,0.28)] p-8 text-center">
+                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[rgba(239,95,120,0.14)] text-[var(--destructive)]">
+                            !
+                        </div>
+                        <h3 className="mb-2 font-serif text-lg font-semibold text-[var(--destructive-text)]">
+                            {t('errors.reseller.errorTitle')}
+                        </h3>
+                        <p className="mb-4 text-[var(--text-secondary)]">{errorMessage}</p>
+                        <p className="text-sm text-[var(--text-muted)]">{t('errors.general.serverError')}</p>
                     </div>
                 </motion.div>
             </motion.section>
@@ -94,7 +96,7 @@ export default function ResellerResults({
     }
 
     return (
-        <section className="bg-[#0c131d] py-8 text-white">
+        <section className="py-8 text-white">
             <div className="w-full">
                 <ResellerList
                     resellers={resellers}

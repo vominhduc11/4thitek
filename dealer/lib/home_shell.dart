@@ -97,8 +97,8 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
                   children: [
                     Text(
                       isEnglish
-                          ? 'Dealer Hub is tuned for the daily workflow of active dealers.'
-                          : 'Dealer Hub được tối ưu cho luồng tác vụ hằng ngày của đại lý.',
+                          ? '4T HITEK Dealer is tuned for the daily workflow of active dealers.'
+                          : '4T HITEK Dealer được tối ưu cho luồng tác vụ hằng ngày của đại lý.',
                       style: Theme.of(dialogContext).textTheme.bodyMedium
                           ?.copyWith(
                             color: colors.onSurfaceVariant,
@@ -308,8 +308,8 @@ class _DealerHomeShellState extends State<DealerHomeShell> {
                                     Expanded(
                                       child: Text(
                                         isEnglish
-                                            ? 'SCS Dealer Hub'
-                                            : 'Trung tâm Dealer SCS',
+                                            ? '4T HITEK Dealer'
+                                            : 'Trung tâm Dealer 4T HITEK',
                                         style: Theme.of(context)
                                             .textTheme
                                             .labelLarge

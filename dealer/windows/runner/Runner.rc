@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "4thitek Dealer Hub" "\0"
+            VALUE "CompanyName", "CÔNG TY TNHH 4T HITEK" "\0"
+            VALUE "FileDescription", "4T HITEK Dealer" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "dealer_hub" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 CÔNG TY TNHH 4T HITEK. All rights reserved." "\0"
             VALUE "OriginalFilename", "dealer_hub.exe" "\0"
-            VALUE "ProductName", "4thitek Dealer Hub" "\0"
+            VALUE "ProductName", "4T HITEK Dealer" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

@@ -34,8 +34,8 @@ const toneClasses: Record<ConfirmTone, string> = {
 
 const modalStyles = {
   overlay: {
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
-    backdropFilter: 'blur(8px)',
+    backgroundColor: 'rgba(1, 8, 15, 0.62)',
+    backdropFilter: 'blur(14px)',
     display: 'grid',
     placeItems: 'center',
     padding: '1rem',
@@ -120,18 +120,18 @@ export const useConfirmDialog = () => {
         contentLabel={pending?.title ?? 'Confirm action'}
       >
         {pending ? (
-          <div className={`${panelClass} w-full space-y-5 p-5 sm:p-6`}>
+          <div className={`${panelClass} w-full space-y-5 overflow-hidden p-5 sm:p-6`}>
             <div className="space-y-3">
               <span
                 className={[
-                  'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]',
+                  'inline-flex items-center rounded-full border border-[var(--brand-border)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]',
                   toneClasses[pending.tone ?? 'info'],
                 ].join(' ')}
               >
                 {pending.confirmLabel}
               </span>
               <div>
-                <h3 className="text-lg font-semibold text-[var(--ink)]">{pending.title}</h3>
+                <h3 className="text-base font-semibold tracking-[-0.01em] text-[var(--ink)]">{pending.title}</h3>
                 <p className="mt-2 text-sm text-[var(--muted)]">{pending.message}</p>
               </div>
             </div>
@@ -169,28 +169,28 @@ export const useConfirmDialog = () => {
         onAfterOpen={() => inputRef.current?.focus()}
       >
         {pendingPrompt ? (
-          <div className={`${panelClass} w-full space-y-5 p-5 sm:p-6`}>
+          <div className={`${panelClass} w-full space-y-5 overflow-hidden p-5 sm:p-6`}>
             <div className="space-y-3">
               <span
                 className={[
-                  'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]',
+                  'inline-flex items-center rounded-full border border-[var(--brand-border)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]',
                   toneClasses[pendingPrompt.tone ?? 'info'],
                 ].join(' ')}
               >
                 {pendingPrompt.confirmLabel}
               </span>
               <div>
-                <h3 className="text-lg font-semibold text-[var(--ink)]">{pendingPrompt.title}</h3>
+                <h3 className="text-base font-semibold tracking-[-0.01em] text-[var(--ink)]">{pendingPrompt.title}</h3>
                 <p className="mt-2 text-sm text-[var(--muted)]">{pendingPrompt.message}</p>
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-[var(--muted)]">
+              <label className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
                 {pendingPrompt.inputLabel}
               </label>
               <textarea
                 ref={inputRef}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-cool)]"
+                className="w-full rounded-[18px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-3 text-sm text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-cool)]"
                 placeholder={pendingPrompt.inputPlaceholder ?? ''}
                 rows={3}
                 value={promptValue}
@@ -205,7 +205,7 @@ export const useConfirmDialog = () => {
                 className={[
                   'w-full sm:w-auto',
                   pendingPrompt.tone === 'danger'
-                    ? 'bg-rose-600 shadow-[0_16px_30px_rgba(225,29,72,0.28)] hover:bg-rose-700'
+                    ? 'bg-[var(--destructive)] shadow-[0_16px_30px_rgba(225,29,72,0.28)] hover:opacity-90'
                     : '',
                 ].join(' ')}
                 disabled={pendingPrompt.required !== false && !promptValue.trim()}

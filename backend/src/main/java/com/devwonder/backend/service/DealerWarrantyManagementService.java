@@ -363,7 +363,7 @@ public class DealerWarrantyManagementService {
                 : productSerial.getSerial();
         String startDate = formatInstant(saved.getWarrantyStart());
         String endDate = formatInstant(saved.getWarrantyEnd());
-        String subject = "4ThiTek — Xác nhận đăng ký bảo hành " + warrantyCode;
+        String subject = "4T HITEK — Xác nhận đăng ký bảo hành " + warrantyCode;
         String body = """
                 Xin chào %s,
 
@@ -377,7 +377,7 @@ public class DealerWarrantyManagementService {
                 Vui lòng lưu giữ thông tin này để được hỗ trợ khi cần thiết.
 
                 Trân trọng,
-                4ThiTek
+                4T HITEK
                 """.formatted(customerName, productName, warrantyCode, startDate, endDate);
         asyncMailService.sendText(recipient, subject, body);
     }

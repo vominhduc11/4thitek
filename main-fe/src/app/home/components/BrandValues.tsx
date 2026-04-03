@@ -2,9 +2,9 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { FiShield, FiMap, FiHeadphones, FiArrowRight } from 'react-icons/fi';
-import { useLanguage } from '@/context/LanguageContext';
+import { FiArrowRight, FiHeadphones, FiMap, FiShield } from 'react-icons/fi';
 import AvoidSidebar from '@/components/ui/AvoidSidebar';
+import { useLanguage } from '@/context/LanguageContext';
 import { useAnimationConfig } from '@/hooks/useReducedMotion';
 
 const ITEMS = [
@@ -19,87 +19,84 @@ export default function BrandValues() {
 
     return (
         <AvoidSidebar>
-            <section className="group relative overflow-hidden bg-gradient-to-b from-[#060d16] to-[#001A35] py-16 sm:py-20 md:py-24 bg-grain" aria-labelledby="brand-values-heading">
+            <section className="brand-section-blue py-16 sm:py-20 md:py-24" aria-labelledby="brand-values-heading">
+                <div className="absolute inset-0 bg-topo opacity-35" />
+                <div className="absolute inset-0 bg-dot-grid opacity-20" />
 
-                {/* ── Signal connectivity rings — brand identity: Bluetooth range ── */}
                 {enableInfiniteAnimations && (
-                    <div className="absolute right-[12%] top-1/2 -translate-y-1/2 pointer-events-none hidden lg:block" aria-hidden="true">
-                        <div className="relative h-48 w-48 flex items-center justify-center">
-                            <div className="absolute h-full w-full rounded-full border border-amber-400/25 animate-signal-ring group-hover:border-amber-400/60 transition-colors duration-700" />
-                            <div className="absolute h-full w-full rounded-full border border-amber-400/20 animate-signal-ring-2 group-hover:border-amber-400/50 transition-colors duration-700" />
-                            <div className="absolute h-full w-full rounded-full border border-amber-400/15 animate-signal-ring-3 group-hover:border-amber-400/40 transition-colors duration-700" />
-                            {/* Centre dot — signal source */}
-                            <div className="h-2 w-2 rounded-full bg-amber-400/60 transition-all duration-700 group-hover:scale-150 group-hover:bg-amber-400" />
+                    <div
+                        className="pointer-events-none absolute right-[10%] top-1/2 hidden -translate-y-1/2 lg:block"
+                        aria-hidden="true"
+                    >
+                        <div className="relative flex h-52 w-52 items-center justify-center">
+                            <div className="animate-signal-ring absolute h-full w-full rounded-full border border-[rgba(41,171,226,0.24)]" />
+                            <div className="animate-signal-ring-2 absolute h-full w-full rounded-full border border-[rgba(0,113,188,0.2)]" />
+                            <div className="animate-signal-ring-3 absolute h-full w-full rounded-full border border-[rgba(41,171,226,0.16)]" />
+                            <div className="h-3 w-3 rounded-full bg-[var(--brand-blue)] shadow-[0_0_20px_rgba(41,171,226,0.5)]" />
                         </div>
                     </div>
                 )}
 
-                {/* ── Dot-grid texture in background ── */}
-                <div className="absolute inset-0 bg-dot-grid opacity-30 pointer-events-none" />
-
-                <div className="relative z-10 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
-                    {/* Section heading */}
+                <div className="brand-shell relative z-10 sm:ml-16 md:ml-20">
                     <motion.div
-                        className="mb-14 text-center"
+                        className="mx-auto mb-14 max-w-3xl text-center"
                         initial={{ opacity: 0, y: 24 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        transition={{ duration: 0.7 }}
+                        transition={{ duration: 0.6 }}
                     >
-                        {/* Amber warm accent — energy, motion, rider spirit */}
-                        <span className="mb-4 inline-block rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.3em] text-amber-400">
-                            {t('brandValues.eyebrow')}
-                        </span>
-                        <h2 id="brand-values-heading" className="text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
+                        <span className="brand-badge mb-5">{t('brandValues.eyebrow')}</span>
+                        <h2
+                            id="brand-values-heading"
+                            className="font-serif text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl lg:text-5xl"
+                        >
                             {t('brandValues.title')}
                         </h2>
-                        <p className="mx-auto mt-4 max-w-2xl text-base text-gray-400 sm:text-lg">
+                        <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-[var(--text-secondary)] sm:text-lg">
                             {t('brandValues.subtitle')}
                         </p>
                     </motion.div>
 
-                    {/* Value cards */}
-                    <div className="mx-auto mb-14 grid max-w-5xl gap-5 sm:grid-cols-2 md:grid-cols-3">
+                    <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-3">
                         {ITEMS.map(({ icon: Icon, key }, index) => (
-                            <motion.div
+                            <motion.article
                                 key={key}
-                                className="group/card relative rounded-2xl border border-white/8 bg-white/4 p-6 backdrop-blur-sm transition-all duration-500 hover:border-cyan-500/40 hover:bg-carbon hover:-translate-y-2 hover:shadow-[0_15px_30px_rgba(79,200,255,0.15)] overflow-hidden"
+                                className="brand-card group rounded-[28px] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-[var(--brand-border-strong)] hover:shadow-[0_24px_48px_rgba(0,113,188,0.16)]"
                                 initial={{ opacity: 0, y: 32 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
-                                transition={{ duration: 0.6, delay: index * 0.12 }}
+                                transition={{ duration: 0.5, delay: index * 0.1 }}
                             >
-                                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400 transition-all duration-500 group-hover/card:bg-cyan-500/30 group-hover/card:scale-110 group-hover/card:shadow-[0_0_15px_rgba(79,200,255,0.4)]">
-                                    <Icon className="h-6 w-6 transition-transform duration-500 group-hover/card:rotate-12" />
+                                <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--brand-border-strong)] bg-[rgba(41,171,226,0.14)] text-[var(--brand-blue)] transition-transform duration-300 group-hover:scale-105">
+                                    <Icon className="h-6 w-6" />
                                 </div>
-                                <h3 className="mb-2 text-lg font-semibold text-white transition-colors duration-300 group-hover/card:text-cyan-300">
+                                <h3 className="text-xl font-semibold text-[var(--text-primary)]">
                                     {t(`brandValues.items.${key}.title`)}
                                 </h3>
-                                <p className="text-sm leading-relaxed text-gray-400 transition-colors duration-300 group-hover/card:text-gray-300">
+                                <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)] sm:text-base">
                                     {t(`brandValues.items.${key}.description`)}
                                 </p>
-                            </motion.div>
+                            </motion.article>
                         ))}
                     </div>
 
-                    {/* CTA row */}
                     <motion.div
-                        className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
+                        className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        transition={{ duration: 0.6, delay: 0.3 }}
+                        transition={{ duration: 0.55, delay: 0.2 }}
                     >
                         <Link
                             href="/reseller_information"
-                            className="inline-flex items-center gap-2 rounded-full bg-cyan-400 px-7 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
+                            className="brand-button-primary inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] transition hover:-translate-y-0.5 hover:brightness-105"
                         >
                             {t('brandValues.findReseller')}
                             <FiArrowRight className="h-4 w-4" />
                         </Link>
                         <Link
                             href="/become_our_reseller"
-                            className="inline-flex items-center gap-2 rounded-full border border-white/20 px-7 py-3 text-sm font-semibold text-white transition hover:border-cyan-400/50 hover:text-cyan-300"
+                            className="brand-button-secondary inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] transition hover:-translate-y-0.5 hover:border-[var(--brand-blue)] hover:bg-[rgba(41,171,226,0.14)]"
                         >
                             {t('brandValues.becomeReseller')}
                         </Link>
