@@ -1,0 +1,332 @@
+--- PAGE 1 ---
+THE BRANDGUIDELINE
+
+--- PAGE 2 ---
+01 06
+Cảm hứng sáng tạo Bộ icon
+02 07
+Logo thương hiệu Hệ thống lưới
+03 08
+Màu sắc Blend hình ảnh
+04 09
+Typefae Social Media
+05
+Ứng dụng logo
+
+--- PAGE 3 ---
+Giới thiệu BRAND GUIDELINE
+Nhận diện thương hiệu TK HiTek đượcthiết kế
+với nguồn cảm hứng từ những sản phẩm công
+nghệ - viễn tưởng, nhằm truyền tải thông điệp
+chính xác nhất đến với khách hàng.
+Với phương châm “KẾT NỐI MỌI NƠI, THẢNH
+THƠI THƯỞNG THỨC”, TKHiTek sẽ mang lại
+những trải nghiệm tuyệt vời cho những chặng
+đường xa.
+CẢM HỨNG
+
+--- PAGE 4 ---
+Logo thương hiệu BRAND GUIDELINE
+LOGO
+
+--- PAGE 5 ---
+Biểu tượng thương hiệu BRAND GUIDELINE
+Ý nghĩa
+Biểu tượng của logo TK HITek được kết hợp tạo nên từ sự kết hợp giữa hai monogram T và K và hình ảnh liên tưởng của đôi
+cánh chim đang bay.
+Đôi cánh, truyền tải ý nghĩa của sự tự do, tự do bay lượn, tự do làm, tự do sống. Điều này cũng thể hiện được một phần ý nghĩa
+biểu tượng
+truyền tải cho những người trẻ, những người thích sự xê dịch và thích làm mọi điều thỏa mãn cá nhân.
+
+--- PAGE 6 ---
+Biểu tượng thương hiệu BRAND GUIDELINE
+Màu
+Ngoài màu thương hiệu đang được sử dụng, trong một vài trường hợp, biểu tượng sẽ có thêm hai phiên bản màu sáng và màu
+tối.
+Việc có thêm 2 phiên bản màu sẽ giúp cho việc hiển thị và nhận diện của thương hiệu được đảm bảo hơn, cho dù trên bấtk ỳ
+biểu tượng
+background nào thì biểu tượng luôn hiển thị rõ ràng, dễ nhận biết.
+DARK COLOR LIGHT COLOR
+
+--- PAGE 7 ---
+Ô lưới biểu tượng BRAND GUIDELINE
+10px
+60
+
+--- PAGE 8 ---
+Logo thương hiệu BRAND GUIDELINE
+
+--- PAGE 9 ---
+Ô lưới logo BRAND GUIDELINE
+y
+x
+x
+y
+x
+
+--- PAGE 10 ---
+Màu sắc logo BRAND GUIDELINE
+Trong thực tế, không phải lúc nào logo cũng có thể xuấ thiện đúng với màu sắc thương hiệu, ví dụ như gia công dập nổi, dập
+Logo với
+chìm, điêu khắc, ... trên các chất liệu. Nên trong các trường hợp đó, logo sẽ được đưa về màu âm bản - dương bản.
+Việc sử dụng âm bản - dương bản logo cũng được linh động trong thiết kế khi muốn tạo sự khác biệt, tạo điểm nhấn hoặc do
+background bị trùng với màu logo.
+âm - dương bản
+DƯƠNG BẢN ÂM BẢN
+
+--- PAGE 11 ---
+Màu sắc logo BRAND GUIDELINE
+Logo TK HiTek sẽ có 2 phiên bản màu chính, đó là biểu tượng xanh chữ xám và biểu tượng xanh chữ trắng.
+Phiên bản
+Việc thay đổi qua lại giữa hai màu chữ này không ảnh hưởng nhiều tới thiết kế. Nhưng nên đảm bảo tính đồng bộ.
+*Ví dụ một bộ ảnh cho một bài post facebook thì chỉ nên dùng hoặc logo chữ xám hoặc logo chữ trắng cho tất cả thiết kế trong bộ
+màu logo
+ảnh đó.
+
+--- PAGE 12 ---
+Khoảng cách an toàn BRAND GUIDELINE
+
+--- PAGE 13 ---
+Kích thước BRAND GUIDELINE
+Logo được thiết kế dưới định dạng vector, nên việc kéo dãn chỉ cần đảm bảo về tỉ lệ và màu sắc, logo sẽ không bị vỡ dù
+Kích thước
+kéo lớn với kích thước nào. Nhưng trong trường hợp thu nhỏ, do diện tích hiển thị nhỏ, nên logo sẽ không hiển thị toàn
+bộ. Logo sẽ được bỏ slogan, bỏ bớt chi tiết hoặc chỉ còn chi tiết cánh cửa để làm Biểu tượng nhận diện nếu diện tích hiển
+nhỏ nhất thị là quá nhỏ (ví dụ trong trường hợp sử dụng làm favicon cho website).
+Có 2 trường hợp cho favicon như đề xuất bên dưới đây.
+16px
+Favicon
+22px
+36px
+100px
+
+--- PAGE 14 ---
+Màu sắc thương hiệu BRAND GUIDELINE
+MÀU SẮC
+THƯƠNG HIỆU
+
+--- PAGE 15 ---
+Màu sắc thương hiệu BRAND GUIDELINE
+Màu sắc thương hiệu chính của logo là dải màu grandient, dải màu này được thể hiện tốt nhấ trên các thiết kế hiển thị (web-
+Màu sắc
+site, social media, ...)
+Màu phẳng (flat) là màu đơn sắc, được sử dụng thay thế và song song với dải màu grandient, sử dụng trong các trường hợp
+mà màu gradient không thể hiện được tốt như: in ấn, gia công, do ảnh hưởng của background, hoặc do chủ ý của người sử
+thương hiệu
+dụng, ....
+Màu xám thực chất là phiên bản tối hơn của màu xanh, được sử dụng làm màu cho tên thương hiệu.
+#29ABE2 #29ABE2 #3F4856
+R 41 R 63
+G 171 G 72
+B 226 B 86
+C 70 C 76
+M 15 M 64
+BLUE Y 0 BLUE Y 48
+K 0 K 34
+FLAT DARK
+GRADIENT #0071BC
+
+--- PAGE 16 ---
+Màu sắc thương hiệu BRAND GUIDELINE
+Mật độ
+Trên các thiết kế, màu sắc ưu tiên xuất hiện luôn là màu xanh hoặc dải màu gradient thương hiệu.
+Không nhất thiết màu xanh phải chiếm phần lớn diện tích thiết kế, nhưng màu xanh thương hiệu luôn là màu nổi bật nhất.
+sử dụng
+GRADIENT 40% BLUE 40%
+DARK BLUE 10% WHITE GREY 10%
+
+--- PAGE 17 ---
+Màu sắc thương hiệu BRAND GUIDELINE
+Bảng màu
+Đây là bảng màu hỗ trợ đã được thiết kế để bổ sung và tăng cường bản sắc thương hiệu TK HiTek. Các màu sắc được lấy cảm
+hứng từ các yếu tố màu lạnh, thiên hướng màu sắc của thiên nhiên. Những màu sắc này được lựa chọn sao cho dễ dàng kết
+hợp với màu sắc của logo trên thiết kế.
+bổ sung
+*Không sử dụng những màu sắc này cho Logo chính.
+HEX: 2BE086 HEX: BDF919
+RGB: 43, 224, 134 RGB: 189, 249, 25
+CMYK: 64, 0, 69, 0 CMYK: 30, 0, 100, 0
+HEX: 05A7AF HEX: 0B5FF4
+RGB: 5, 167, 175 RGB: 11, 95, 244
+CMYK: 77, 12, 33, 0 CMYK: 82, 64, 0, 0
+
+--- PAGE 18 ---
+Typeface BRAND GUIDELINE
+TYPEFACE
+KIỂU CHỮ
+
+--- PAGE 19 ---
+Typeface - Kiểu chữ BRAND GUIDELINE
+Source
+Source Sans Pro là kiểu chữ nhận diện riêng có nhiều phiên bản để ứng dụng trong việc thiết kế sáng tạo, ứng dụng vào nội
+dung quảng cáo, ấn phẩm truyền thông, website, bao bì sản phẩm, soạn thảo văn bản, thư, ghi chú, bảng biểu, biểu đồ...vvv
+Sans Pro
+ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ
+abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz
+0123456789.,:;!@#$%&() 0123456789.,:;!@#$%&()
+Aa Aa Aa Aa Aa
+Black Bold Semibold Regular Light
+
+--- PAGE 20 ---
+Typeface - Kiểu chữ BRAND GUIDELINE
+Montserrat
+Montserrat là kiểu chữ phổ biến thay thế dùng cho các trường hợp ngoại lệ khác khi không thể sử dụng kiểu chữ truyền thông chính.
+Font montserrat không được dùng nhiều hơn với Source Sans Pro trên cùng một thiết kế, chỉ sử dụng trong các trường hợp để làm nổi
+bật nội dung hoặc giảm bớt sự nhàm chán cho thiết kế.
+ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ
+abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz
+0123456789.,:;!@#$%&() 0123456789.,:;!@#$%&()
+Aa Aa Aa Aa Aa
+Black Bold Semibold Regular Light
+
+--- PAGE 21 ---
+Typeface - Kiểu chữ BRAND GUIDELINE
+Phân cấp
+Trong việc sử dụng bộ font chữ thương hiệu cho các thiết kế, để đảm bảo sự đồng bộ theo quy chuẩn, size chữ nội dung cần
+đảm bảo việc phân cấp dưới đây.
+Với chữ display ( nội dung chính, nội dung làm nổi bật) thì có thể tùy biến với những kích thước lớn hơn.
+kiểu chữ
+Phân cấp chữ cũng được sử dụng trong thiết kế UI Website của thương hiệu.
+Công nghệ mới
+Công nghệ mới
+dành cho biker
+dành cho biker
+Tiêu đề lớn nhất H1 / Cỡ chữ 60 Tiêu đề nhỏ từng đoạn / H3 - Cỡ chữ 36
+Công nghệ mới
+Công nghệ mới
+dành cho biker
+dành cho biker
+Tiêu đề lớn H2 / Cỡ chữ 45 Tiêu đề nhỏ từng khổ / H4 - Cỡ chữ 26
+
+--- PAGE 22 ---
+Typeface - Kiểu chữ BRAND GUIDELINE
+Phân cấp
+Trong việc sử dụng bộ font chữ thương hiệu cho các thiết kế, để đảm bảo sự đồng bộ theo quy chuẩn, size chữ nội dung cần
+đảm bảo việc phân cấp dưới đây.
+Với chữ display ( nội dung chính, nội dung làm nổi bật) thì có thể tùy biến với những kích thước lớn hơn.
+kiểu chữ
+Phân cấp chữ cũng được sử dụng trong thiết kế UI Website của thương hiệu.
+Đôi cánh, truyền tải ý nghĩa của sự tự do, tự do bay
+lượn, tự do làm, tự do sống. Điều này cũng thể hiện
+được một phần ý nghĩa truyền tải cho những người
+ĐĂNG KÝ THAM GIA
+trẻ, những người thích sự xê dịch và thích làm mọi
+điều thỏa mãn cá nhân.
+Body Text / Đoạn văn / Câu văn - Cỡ chữ 16 CTA / Bottom Website - Cỡ chữ 24
+CHI TIẾT
+TRANG CHỦ / SẢN PHẨM / DỊCH VỤ /
+Menu website / tab bar web - Cỡ chữ 18 Bottom Website - Cỡ chữ 18
+
+--- PAGE 23 ---
+Ứng dụng logo BRAND GUIDELINE
+ỨNG DỤNG LOGO
+
+--- PAGE 24 ---
+Ứng dụng logo BRAND GUIDELINE
+Biển hiệu
+Logo của TK HiTek có bố cục ngang, nên hệ thống biển hiệu của thương hiệu cũng sẽ được đề xuất tốt nhất dưới dạng biển
+ngang.
+Trên biển hiệu nên có thêm chi tiết nhận diện riêng của thương hiệu. Với tỉ lệ ngang của biển hiệu, bên phải luôn hiển thị họa
+tiết màu xanh, logo + địa chỉ sẽ được đặt ở bên trái của biển hiệu.
+0123.456.789 0123.456.789
+www.bigbike.vn www.bigbike.vn
+23, Quang Trung, Go Vap 23, Quang Trung, Go Vap
+0123.456.789
+www.bigbike.vn
+23, Quang Trung, Go Vap 0123.456.789
+www.bigbike.vn
+23, Quang Trung, Go Vap
+
+--- PAGE 25 ---
+Ứng dụng logo BRAND GUIDELINE
+Biển hiệu
+Logo của TK HiTek có bố cục ngang, nên hệ thống biển hiệu của thương hiệu cũng sẽ được đề xuất tốt nhất dưới dạng biển
+ngang.
+Trên biển hiệu nên có thêm chi tiết nhận diện riêng của thương hiệu. Với tỉ lệ ngang của biển hiệu, bên phải luôn hiển thị họa
+tiết màu xanh, logo + địa chỉ sẽ được đặt ở bên trái của biển hiệu.
+ww 0 w 1 . 2 b 3 i . g 4 b 5 i 6 k . e 7 .v 8 n 9 23, Quanwg wT 0 rw1 u.2 nb3 gi.g, 4 bG 5i6 ok.e V 7.av8 pn9
+23, Quang Trung, Go Vap
+
+--- PAGE 26 ---
+Ứng dụng logo BRAND GUIDELINE
+BỘ ICON
+
+--- PAGE 27 ---
+Icon thương hiệu BRAND GUIDELINE
+Icon
+Bộ icon được ứng dụng trên các thiết kế như NameCard, Website, những thông tin liên hệ, CTA, .... Icon sử dụng phải đảm bảo về màu
+sắc thương hiệu. Các màu có thể sử dụng là màu thương hiệu và âm - dương bản: Xanh dương - Trắng - Đen
+
+--- PAGE 28 ---
+Ứng dụng logo BRAND GUIDELINE
+HỆ THỐNG LƯỚI
+
+--- PAGE 29 ---
+Màu sắc logo BRAND GUIDELINE
+Hệ thống lưới được đề nghị sử dụng nhằm tổ chức cấu trúc trong thiết kế layout đồ họa trình bày thông tin, hình ảnh được thống
+Hệ thống
+nhất, cân bằng. Thiết kế của hướng đến sự đơn giản, gọn gàng và chuyên nghiệp chính vì vậy hệ thống lưới là yếu tố bắt buộc.
+Cách sử dụng cột như sau:
+ô lưới
+- Đưa tỉ lệ lên trên layout thiết kế
+- Cột đầu bên trái và bên phải sẽ là cột để căn lề
+- Thiết kế nằm 10 cốt bên trong
+
+--- PAGE 30 ---
+Màu sắc logo BRAND GUIDELINE
+Kết hợp với phần Ứng dụng logo và hệ thống ô lưới, chúng ta sẽ có một thiết kế đặc trưng riêng cho TK HiTek.
+Hệ thống
+Dưới đây là một số ví dụ trong thiết kế
+ô lưới
+VO MINH TRI VO MINH TRI
+CEO - FOUNDER CEO - FOUNDER
+0123.456.789 0123.456.789
+suport@tkhitek.vn suport@tkhitek.vn
+Quang Trung, Go Vap, HCM Quang Trung, Go Vap, HCM
+www.tkhitek.vn www.tkhitek.vn
+
+--- PAGE 31 ---
+Ứng dụng logo BRAND GUIDELINE
+SỬ DỤNG HÌNH ẢNH
+
+--- PAGE 32 ---
+Màu sắc logo BRAND GUIDELINE
+Việc sử dụng hình ảnh trên các thiết kế hoặc ấn phẩm của TK HiTek nên mang được màu sắc của thương hiệu. Để tạo sự đồng
+Blend
+bộ giữa hình ảnh với màu thương hiệu, trong các thiết kế hãy đổ một lớp màu thương hiệu lên trên hình ảnh và sử dụng
+những tính năng hòa trộn màu để tạo ra
+Nên sử dụng các cách hòa trộn có sẵn trên các phần mềm thiết kế như: Darken, Multiply, Overlay, ...
+hình ảnh
++ =
+
+--- PAGE 33 ---
+Ứng dụng logo BRAND GUIDELINE
+TEMPLATE SOCIAL
+
+--- PAGE 34 ---
+Màu sắc logo BRAND GUIDELINE
+Những thiết kế trên Social Media của TK HiTek luôn phải sử dụng tối ưu màu sắc thương hiệu và bộ typeface, để luôn đảm bảo việc truyền tải
+Social
+thông tin cho khách hàng theo đúng tiêu chí:
+- Tính công nghệ
+- Tuổi trẻ, phá cách
+Media
+- Sử dụng tối đa 2 font chữ trên một thiết kế đểt ạo sự chuyên nghiệp
+CHÚNG TÔI
+TẠO RA SỰ
+KHÁC BIỆT
+CHÚNG TÔI
+TRẢI NGHIỆM GIẢM GIÁ
+LUÔN MANG TỚI
+NHIỀU SẢN PHẨM
+MANG TẦM ĐỘT PHÁ
+CÔNG NGHỆ HIỆN ĐẠI CHO KHÁCH HÀNG
+GIẢM GIÁ
+SẢN PHẨM
+50%
+QuangTrung, GoVap, HCM 0123.456.789
+QuangTrung, GoVap, HCM 0123.456.789 www.tkhitek.vn
+
+--- PAGE 35 ---
+THANK YOU!
+

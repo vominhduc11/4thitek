@@ -1709,6 +1709,8 @@ export const translations = {
 export const extraTranslations = {
     en: {
         brand: {
+            message: 'Connect Everywhere, Enjoy with Ease',
+            description: '4T HITEK delivers connected communication solutions for long-distance journeys with a modern, convenient, and seamless riding experience.',
             logoAlt: '4T HITEK'
         },
         common: {
@@ -2348,6 +2350,8 @@ export const extraTranslations = {
     },
     vi: {
         brand: {
+            message: 'K\u1ebft n\u1ed1i m\u1ecdi n\u01a1i, th\u1ea3nh th\u01a1i th\u01b0\u1edfng th\u1ee9c',
+            description: '4T HITEK mang \u0111\u1ebfn gi\u1ea3i ph\u00e1p li\u00ean l\u1ea1c cho nh\u1eefng h\u00e0nh tr\u00ecnh \u0111\u01b0\u1eddng xa v\u1edbi tr\u1ea3i nghi\u1ec7m hi\u1ec7n \u0111\u1ea1i, thu\u1eadn ti\u1ec7n v\u00e0 li\u1ec1n m\u1ea1ch.',
             logoAlt: '4T HITEK'
         },
         common: {
